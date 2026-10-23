@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis"
+version = "2.0.0"
+description = "JARVIS 2 — osobní hlasový a chatový AI asistent pro Windows + Android"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+  "pydantic>=2.6",
+  "tomli-w>=1.0",
+  "keyring>=25",
+  "psutil>=5.9",
+  "pillow>=10",
+  "qrcode>=7.4",
+  "yt-dlp>=2024.1.1",
+  "ddgs>=9",
+  "trafilatura>=1.8",
+  "pypdf>=4",
+  "python-docx>=1.1",
+  "openpyxl>=3.1",
+  "python-pptx>=0.6.23",
+  "edge-tts>=6.1",
+  "mcp>=1.2",
+]
+
+[project.optional-dependencies]
+desktop = [
+  "pywebview>=5",
+  "pystray>=0.19",
+  "keyboard>=0.13",
+  "pyautogui>=0.9.54",
+  "mss>=9",
+  "pyperclip>=1.8",
+  "pycaw>=20240210; sys_platform == 'win32'",
+  "comtypes>=1.4; sys_platform == 'win32'",
+  "winsdk>=1.0.0b10; sys_platform == 'win32'",
+  "playwright>=1.44",
+]
+voice = [
+  "sounddevice>=0.4.6",
+  "numpy>=1.26",
+  "webrtcvad-wheels>=2.0.11",
+  "openwakeword>=0.6",
+  "faster-whisper>=1.0",
+  "piper-tts>=1.2",
+  "rapidocr-onnxruntime>=1.3",
+]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[tool.setuptools.packages.find]
+include = ["jarvis*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
