@@ -33,8 +33,12 @@ def setup_logging(debug: bool) -> None:
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
+HEADLESS = False
+
+
 def message_box(text: str) -> None:
-    if sys.platform == "win32":
+    logging.getLogger("jarvis").error(text)
+    if sys.platform == "win32" and not HEADLESS:
         import ctypes
 
         ctypes.windll.user32.MessageBoxW(None, text, "JARVIS", 0x10)
@@ -115,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--debug", action="store_true")
     ap.add_argument("--version", action="version", version=__version__)
     args = ap.parse_args(argv)
+    global HEADLESS
+    HEADLESS = args.no_ui
 
     setup_logging(args.debug)
     log = logging.getLogger("jarvis")
