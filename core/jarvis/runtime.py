@@ -74,7 +74,7 @@ class Runtime:
             from .tools.skills import load_all_skills, migrate_existing
 
             migrate_existing(self)
-            load_all_skills(self.cfg.tools.approved_skills)
+            load_all_skills(self.cfg.tools.approved_skills, self.cfg.tools.legacy_skills)
         except Exception as e:  # pragma: no cover
             log.warning("skills: %s", e)
         try:
@@ -161,7 +161,7 @@ class Runtime:
 
     def stop_all(self) -> None:
         """Emergency STOP (spec §4.4): everything JARVIS is doing stops now."""
-        self.agent.cancel_confirms()
+        self.agent.drop_queued()
         self.agent.stop()
         if self.speaker:
             self.speaker.stop()

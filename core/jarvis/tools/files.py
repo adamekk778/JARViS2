@@ -84,9 +84,21 @@ async def write_text_file(ctx, path: str, content: str) -> ToolResult:
     return ToolResult(True, f"Uloženo {p}")
 
 
+SIZE_SCAN_LIMIT = 2000  # files; a preview must stay fast even for node_modules
+
+
 def _size(p: Path) -> str:
     try:
-        n = p.stat().st_size if p.is_file() else sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
+        if p.is_file():
+            n = p.stat().st_size
+        else:
+            n, count = 0, 0
+            for f in p.rglob("*"):
+                count += 1
+                if count > SIZE_SCAN_LIMIT:
+                    return f">{SIZE_SCAN_LIMIT} souborů"
+                if f.is_file():
+                    n += f.stat().st_size
     except OSError:
         return "?"
     for unit in ("B", "kB", "MB", "GB"):

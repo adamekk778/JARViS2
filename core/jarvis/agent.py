@@ -74,11 +74,20 @@ class Agent:
         self.busy = False
         self._goal = ""
         self._lang = "cs"
+        self._gen = 0  # bumped by drop_queued(): requests waiting for the lock are discarded
 
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
                      record_user: bool = True, extra_system: str = "", lang: str = "") -> str:
+        rt = self.rt
+        if self._lock.locked() and rt.tasks.current and rt.tasks.current["status"] == "paused":
+            msg = "Úkol je pozastavený – nejdřív ho nech pokračovat, nebo ho zruš (Úkoly nebo STOP)."
+            rt.bus.publish("error", message=msg)
+            return msg
+        gen = self._gen
         async with self._lock:
+            if gen != self._gen:  # STOP was pressed while this request waited → drop it
+                return ""
             self._task = asyncio.current_task()
             self.busy = True
             try:
@@ -102,11 +111,15 @@ class Agent:
     def pending_confirm(self) -> str | None:
         return next((k for k, f in self._confirms.items() if not f.done()), None)
 
+    def drop_queued(self) -> None:
+        self._gen += 1
+
     def cancel_confirms(self) -> None:
         for cid in list(self._confirms):
             self.confirm(cid, False)
 
     def stop(self) -> None:
+        self.cancel_confirms()  # an open "Ano / Ne" must not outlive the task it belongs to
         if self._task and not self._task.done():
             self._task.cancel()
 
@@ -138,7 +151,7 @@ class Agent:
         self._confirms[cid] = fut
         desc = describe_call(call.name, call.arguments)
         spec = tools.REGISTRY.get(call.name)
-        details = tools.details_for(spec, call.arguments) if spec else []
+        details = await asyncio.to_thread(tools.details_for, spec, call.arguments, self.rt) if spec else []
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
                             details=details)
         self.rt.on_confirm_request(cid, desc)
@@ -164,7 +177,7 @@ class Agent:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
         else:
             approved = True
-            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted):
+            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:
@@ -239,7 +252,7 @@ class Agent:
                      "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
                     for c in calls]})
                 safe = [c for c in calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
-                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted))]
+                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
                 results: dict[str, dict] = {}
                 if len(safe) > 1:
                     outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
@@ -269,6 +282,11 @@ class Agent:
             cancelled = True
             status = "cancelled"
             full_text = (full_text + " …(přerušeno)").strip()
+        except Exception as e:  # a bug must not leave the task "running" forever
+            log.exception("agent failed")
+            status = "failed"
+            bus.publish("error", message=f"Něco se pokazilo: {type(e).__name__}: {e}")
+            full_text = (full_text + "\n\n" if full_text else "") + "Omlouvám se, při práci se něco pokazilo."
         if rt.tasks.current is not None:
             rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,

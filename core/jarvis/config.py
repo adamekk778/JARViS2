@@ -113,6 +113,7 @@ class Tools(BaseModel):
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
     approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)
+    legacy_skills: list[str] = Field(default_factory=list)     # 2.0 skills: keep their full ctx (platform, store)
 
 
 class McpServer(BaseModel):

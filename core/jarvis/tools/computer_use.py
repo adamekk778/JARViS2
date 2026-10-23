@@ -127,6 +127,6 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
       "např. 'v Excelu udělej graf z otevřené tabulky' nebo 'v nastavení Windows zapni noční světlo'.",
       danger=True, category="ovládání počítače")
 async def computer_use(ctx, task: Annotated[str, "co přesně udělat"]) -> ToolResult:
-    if not ctx.cfg.permissions.input:
-        return ToolResult(False, "Ovládání počítače je vypnuté v Nastavení → Oprávnění.")
+    if not (ctx.cfg.permissions.input and ctx.cfg.permissions.screen):
+        return ToolResult(False, "Ovládání počítače potřebuje oprávnění Myš/klávesnice i Obrazovka (Nastavení → Oprávnění).")
     return await run_computer_task(ctx, task)

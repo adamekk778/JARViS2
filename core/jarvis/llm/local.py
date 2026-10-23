@@ -79,6 +79,12 @@ class LocalManager:
         self.rt = rt
         self.transport: httpx.AsyncBaseTransport | None = None
         self._cancel = False
+        self.missing: dict | None = None  # {"name", "size_gb"}: the configured offline model is not downloaded
+
+    def set_missing(self, name: str, size_gb: float | None) -> None:
+        """Remembered (not just a one-off event) so the notch and dashboard can show it whenever they connect."""
+        self.missing = {"name": name, "size_gb": size_gb}
+        self.rt.bus.publish_threadsafe("local_model_missing", **self.missing)
 
     # ---------- helpers ----------
     def _provider(self):
@@ -99,10 +105,13 @@ class LocalManager:
 
     # ---------- queries ----------
     async def status(self) -> dict:
-        hw = detect_hardware()
+        import asyncio
+
+        hw = await asyncio.to_thread(detect_hardware)  # PowerShell CIM query can take seconds
         out = {"running": False, "version": "", "installed": [], "loaded": [], "hardware": hw, "catalog": MODELS,
                "recommended": recommend(hw), "mode": self.rt.cfg.brain.local_mode,
-               "enabled": self.rt.cfg.brain.local_enabled, "gpu": self.rt.cfg.brain.local_gpu, "model": self.model}
+               "enabled": self.rt.cfg.brain.local_enabled, "gpu": self.rt.cfg.brain.local_gpu, "model": self.model,
+               "missing": self.missing}
         try:
             async with self._client(5) as c:
                 out["version"] = (await c.get(self.base + "/api/version")).json().get("version", "")
@@ -138,6 +147,8 @@ class LocalManager:
             pub("local_pull_progress", name=name, error=f"Ollama neodpovídá: {e}")
             return False
         pub("local_pull_progress", name=name, done=True)
+        if self.missing and self.missing.get("name") == name:
+            self.missing = None
         return True
 
     def cancel_pull(self) -> None:

@@ -118,17 +118,27 @@ def cap_details(lines: list[str]) -> list[str]:
     return lines
 
 
-def _capped(fn: Callable[[dict], list[str]]) -> Callable[[dict], list[str]]:
-    def wrapped(args: dict) -> list[str]:
-        return cap_details(fn(args or {}))
+def _hook(fn: Callable, args: dict, ctx: Any = None):
+    """danger_if / details hooks take (args) or (args, ctx=...); ctx lets them look things up (e.g. a UI ref's name)."""
+    try:
+        wants_ctx = "ctx" in inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        wants_ctx = False
+    return fn(args or {}, ctx=ctx) if wants_ctx else fn(args or {})
+
+
+def _capped(fn: Callable) -> Callable[..., list[str]]:
+    def wrapped(args: dict, ctx: Any = None) -> list[str]:
+        return cap_details(_hook(fn, args, ctx))
     return wrapped
 
 
-def details_for(spec: ToolSpec, args: dict) -> list[str]:
+def details_for(spec: ToolSpec, args: dict, ctx: Any = None) -> list[str]:
+    """Preview lines for the confirmation dialog. May touch the disk or git → call it from a worker thread."""
     if not spec.details:
         return []
     try:
-        return spec.details(args)
+        return spec.details(args, ctx)
     except Exception:
         return []
 
@@ -145,7 +155,8 @@ def unregister_source(source: str) -> None:
 NEVER_TRUSTED = {"claude_code", "delete_file"}   # always confirmed, even when the user marked them trusted
 
 
-def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), trusted: list[str] = ()) -> bool:
+def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), trusted: list[str] = (),
+                 ctx: Any = None) -> bool:
     if spec.name in NEVER_TRUSTED:
         return True
     if spec.name in trusted:
@@ -154,7 +165,7 @@ def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), tru
         return True
     if spec.danger_if is not None:
         try:
-            return bool(spec.danger_if(args))
+            return bool(_hook(spec.danger_if, args, ctx))
         except Exception:
             return True
     return spec.danger
@@ -170,10 +181,11 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
         return ToolResult(False, f"Neznámý nástroj: {name}")
-    from ..permissions import PERMS, allowed as perm_allowed, perm_of
+    from ..permissions import PERMS, blocked_by
 
-    if not perm_allowed(getattr(ctx, "cfg", None), spec):
-        return ToolResult(False, f"Oprávnění „{PERMS[perm_of(spec)]}“ je vypnuté (Nastavení → Oprávnění).")
+    off = blocked_by(getattr(ctx, "cfg", None), spec)
+    if off:
+        return ToolResult(False, f"Oprávnění „{PERMS[off]}“ je vypnuté (Nastavení → Oprávnění).")
     allowed = set(spec.parameters.get("properties", {}))
     clean = {k: v for k, v in (args or {}).items() if k in allowed}
     missing = [r for r in spec.parameters.get("required", []) if r not in clean]

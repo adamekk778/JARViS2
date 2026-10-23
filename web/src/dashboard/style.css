@@ -151,3 +151,5 @@ details.skill summary .help { flex: 1; }
 .card .row-text { display: grid; gap: 2px; }
 .model-row .row-text strong { display: flex; gap: 6px; align-items: center; }
 a.btn { text-decoration: none; }
+.chat-wrap { display: flex; flex-direction: column; }
+.chat-wrap > .chat { flex: 1; min-height: 0; }

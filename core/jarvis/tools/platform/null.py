@@ -52,6 +52,7 @@ class NullPlatform(Platform):
                 {"ref": "w0:2", "role": "Button", "name": "Krát", "automation_id": "multiplyButton", "value": None},
                 {"ref": "w0:3", "role": "Button", "name": "Rovná se", "automation_id": "equalButton", "value": None},
                 {"ref": "w0:4", "role": "Edit", "name": "Výsledek", "automation_id": "CalculatorResults", "value": "0"},
+                {"ref": "w0:5", "role": "Button", "name": "Odeslat", "automation_id": "sendButton", "value": None},
             ]
             for n in self._nodes:
                 n.update(enabled=True, rect=[0, 0, 40, 30], depth=1)

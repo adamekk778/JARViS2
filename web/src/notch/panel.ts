@@ -5,6 +5,7 @@ import { fmtSize, h, icon, KIND_ICON, toast } from "../shared/dom";
 import type { Attachment } from "../shared/protocol";
 import type { JarvisClient } from "../shared/ws";
 import { TaskCard } from "../shared/taskcard";
+import { missingModelCard } from "../shared/localmissing";
 
 export type Section = "chat" | "quick" | "system" | "files" | "tools" | "settings";
 
@@ -61,6 +62,7 @@ export function buildPanel(ctx: PanelCtx) {
   };
   const taskCard = new TaskCard(client, { compact: true, hideWhenIdle: true });
   const right = h("aside", { class: "p-right" },
+    missingModelCard(client, "compact"),
     taskCard.el,
     mediaCard,
     h("div", { class: "p-card" },

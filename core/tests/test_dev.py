@@ -82,7 +82,7 @@ async def test_restore_checkpoint(ctx, proj):
     cp = (await tools.call("checkpoint", {"project": str(proj)}, ctx)).data["id"]
     (proj / "a.txt").write_text("v3\n", encoding="utf-8")
     spec = tools.REGISTRY["restore_checkpoint"]
-    assert any("a.txt" in line for line in spec.details({"project": str(proj), "id": cp}))
+    assert any("a.txt" in line for line in tools.details_for(spec, {"project": str(proj), "id": cp}, ctx))
     res = await tools.call("restore_checkpoint", {"project": str(proj), "id": cp}, ctx)
     assert res.ok
     assert (proj / "a.txt").read_text(encoding="utf-8") == "v2\n"

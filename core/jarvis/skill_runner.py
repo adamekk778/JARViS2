@@ -17,22 +17,32 @@ class _Denied:
         raise PermissionError("Tento skill nemá oprávnění ovládat počítač (manifest permissions).")
 
 
-def _ctx(permissions: list[str]):
+def _ctx(permissions: list[str], legacy: bool = False):
     import httpx
 
     def notify(title, body="", url="", speak=True, target="all"):
         print("@@NOTIFY " + json.dumps({"title": str(title), "body": str(body)}, ensure_ascii=False), flush=True)
         return 1
 
+    perms = set(permissions)
     platform = _Denied()
-    if {"input", "apps"} & set(permissions):
-        from .tools.platform import get_platform
+    if legacy or {"input", "apps"} & perms:
+        from .tools.platform import get as get_platform
 
         platform = get_platform()
-    return SimpleNamespace(http=lambda: httpx.AsyncClient(timeout=30), notify=notify, platform=platform)
+    store = _Denied()
+    if legacy or {"files_read", "files_write"} & perms:
+        from . import paths
+        from .attachments import AttachmentStore
+        from .memory import DB
+
+        store = AttachmentStore(paths.sub("files"), DB(paths.data_dir() / "jarvis.db"))
+    return SimpleNamespace(http=lambda: httpx.AsyncClient(timeout=30), notify=notify, platform=platform, store=store)
 
 
 def main(argv: list[str]) -> int:
+    legacy = "--legacy" in argv
+    argv = [a for a in argv if a != "--legacy"]
     path, tool_name, args_json = argv[0], argv[1], argv[2] if len(argv) > 2 else "{}"
     from .tools import base
     from .tools.skills import read_manifest
@@ -49,7 +59,7 @@ def main(argv: list[str]) -> int:
     args = {k: v for k, v in args.items() if k in ts.parameters.get("properties", {})}
 
     async def run():
-        out = ts.func(_ctx(manifest["permissions"]), **args)  # exceptions propagate → "Skill spadl" in the parent
+        out = ts.func(_ctx(manifest["permissions"], legacy), **args)  # exceptions propagate → "Skill spadl" in the parent
         if asyncio.iscoroutine(out):
             out = await out
         return out if isinstance(out, base.ToolResult) else base.ToolResult(True, str(out) if out is not None else "hotovo")

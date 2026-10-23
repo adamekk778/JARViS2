@@ -4,11 +4,13 @@ from __future__ import annotations
 import re
 
 _CS_CHARS = set("áčďéěíňóřšťúůýž")
+# Only words that are NOT also common Czech words (no "a", "to", "do", "me", "on", "i", "pro"…): Czech typed without
+# diacritics ("pust to na youtube", "dej to do me slozky") must stay Czech.
 _EN = {
-    "the", "a", "an", "and", "or", "is", "are", "was", "be", "to", "of", "in", "on", "for", "with", "it", "this", "that",
-    "what", "how", "why", "when", "where", "who", "can", "could", "would", "please", "me", "my", "you", "your", "i",
-    "open", "play", "show", "tell", "time", "some", "music", "do", "does", "it's", "what's", "is", "at", "for", "from",
-    "all", "thanks", "thank", "hello", "hi", "hey",
+    "the", "an", "and", "or", "is", "are", "was", "be", "of", "in", "for", "with", "it", "this", "that",
+    "what", "how", "why", "when", "where", "who", "can", "could", "would", "please", "my", "you", "your",
+    "open", "play", "show", "tell", "time", "some", "music", "does", "it's", "what's", "from", "weather",
+    "all", "thanks", "thank", "hello", "hi", "hey", "today", "like", "calculator", "turn", "set", "find",
 }
 
 
@@ -19,4 +21,5 @@ def detect(text: str) -> str:
     words = re.findall(r"[a-z']+", t)
     if len(words) < 3:
         return "cs"
-    return "en" if sum(w in _EN for w in words) / len(words) >= 0.25 else "cs"
+    hits = sum(w in _EN for w in words)
+    return "en" if hits >= 2 and hits / len(words) >= 0.3 else "cs"

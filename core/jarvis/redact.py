@@ -10,10 +10,14 @@ _PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
     re.compile(r"xox[abpr]-[A-Za-z0-9-]{10,}"),
     re.compile(r"AIza[0-9A-Za-z_-]{20,}"),
+    re.compile(r"gsk_[A-Za-z0-9]{20,}"),
+    re.compile(r"hf_[A-Za-z0-9]{20,}"),
+    re.compile(r"github_pat_\w{20,}"),
     re.compile(r"eyJ[\w-]+\.[\w-]+\.[\w-]+"),
 ]
-_KEYVAL = re.compile(r"(?i)\b(key|token|secret|password|heslo|pass)(\s*[=:]\s*)\S{6,}")
-_WORD = re.compile(r"(?i)\b(heslo|password|pin|passwd)\b")
+_KEYVAL = re.compile(r"(?i)(api[_-]?key|key|token|secret|password|heslo|pass)(\s*[=:]\s*)\S{6,}")
+_BARE = re.compile(r"(?i)\b(token|secret|api[_ -]?key|klíč|klic)(\s+)([A-Za-z0-9_\-]{16,})")
+_WORD = re.compile(r"(?i)\b(heslo|password|pin|passwd|api[_ -]?key|token)\b")
 _literals: set[str] = set()
 
 
@@ -30,7 +34,8 @@ def redact(text: str) -> str:
         text = text.replace(lit, MASK)
     for p in _PATTERNS:
         text = p.sub(MASK, text)
-    return _KEYVAL.sub(lambda m: m.group(1) + m.group(2) + MASK, text)
+    text = _KEYVAL.sub(lambda m: m.group(1) + m.group(2) + MASK, text)
+    return _BARE.sub(lambda m: m.group(1) + m.group(2) + MASK, text)
 
 
 def looks_secret(text: str) -> bool:

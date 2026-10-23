@@ -59,18 +59,19 @@ def read_manifest(path) -> dict:
     return out
 
 
-def _runner_cmd(path: Path, tool_name: str, args: dict) -> list[str]:
+def _runner_cmd(path: Path, tool_name: str, args: dict, legacy: bool = False) -> list[str]:
     payload = json.dumps(args, ensure_ascii=False)
+    extra = ["--legacy"] if legacy else []
     if getattr(sys, "frozen", False):
-        return [sys.executable, "--run-skill", str(path), tool_name, payload]
-    return [sys.executable, "-m", "jarvis.skill_runner", str(path), tool_name, payload]
+        return [sys.executable, "--run-skill", str(path), tool_name, payload, *extra]
+    return [sys.executable, "-m", "jarvis.skill_runner", str(path), tool_name, payload, *extra]
 
 
-def _wrap(path: Path, tool_name: str, timeout: int):
+def _wrap(path: Path, tool_name: str, timeout: int, legacy: bool = False):
     async def run_isolated(ctx, **kwargs) -> ToolResult:
         env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[2]) + os.pathsep
                + os.environ.get("PYTHONPATH", ""), "PYTHONIOENCODING": "utf-8"}
-        proc = await asyncio.create_subprocess_exec(*_runner_cmd(path, tool_name, kwargs), env=env,
+        proc = await asyncio.create_subprocess_exec(*_runner_cmd(path, tool_name, kwargs, legacy), env=env,
                                                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                                                     creationflags=0x08000000 if os.name == "nt" else 0)
         try:
@@ -97,7 +98,7 @@ def _wrap(path: Path, tool_name: str, timeout: int):
     return run_isolated
 
 
-def load_skill_file(path) -> list[str]:
+def load_skill_file(path, legacy: bool = False) -> list[str]:
     path = Path(path)
     name = path.stem
     mod_name = _module_name(name)
@@ -111,7 +112,7 @@ def load_skill_file(path) -> list[str]:
     for k in names:
         ts = REGISTRY[k]
         ts.perm = manifest["permissions"][0] if manifest["permissions"] else "apps"
-        ts.func = _wrap(path, k, manifest["timeout"])
+        ts.func = _wrap(path, k, manifest["timeout"], legacy)
     return names
 
 
@@ -122,11 +123,13 @@ def migrate_existing(rt) -> list[str]:
     rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('skills_migrated', '1')")
     names = [f.stem for f in sorted(skills_dir().glob("*.py")) if f.stem not in rt.cfg.tools.approved_skills]
     if names:
-        rt.update_config({"tools": {"approved_skills": list(rt.cfg.tools.approved_skills) + names}})
+        rt.update_config({"tools": {"approved_skills": list(rt.cfg.tools.approved_skills) + names,
+                                    "legacy_skills": list(rt.cfg.tools.legacy_skills) + names}})
     return names
 
 
-def load_all_skills(approved: set[str] | list[str] | None = None) -> dict[str, list[str] | str]:
+def load_all_skills(approved: set[str] | list[str] | None = None,
+                    legacy: set[str] | list[str] | None = None) -> dict[str, list[str] | str]:
     """Loads approved skills only; others stay listed but switched off until the user approves them."""
     allowed = set(approved or ())
     out: dict = {}
@@ -136,7 +139,7 @@ def load_all_skills(approved: set[str] | list[str] | None = None) -> dict[str, l
             out[f.stem] = "neschváleno"
             continue
         try:
-            out[f.stem] = load_skill_file(f)
+            out[f.stem] = load_skill_file(f, f.stem in set(legacy or ()))
         except Exception as e:
             log.warning("skill %s failed: %s", f.name, e)
             out[f.stem] = f"chyba: {e}"

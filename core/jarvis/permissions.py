@@ -27,6 +27,14 @@ TOOL_PERM = {
 }
 
 
+# Tools that need more than one area (computer_use looks at the screen AND drives mouse/keyboard).
+EXTRA_PERMS = {"computer_use": ["screen"]}
+
+
+def required(spec: Any) -> list[str]:
+    return [perm_of(spec), *EXTRA_PERMS.get(spec.name, [])]
+
+
 def perm_of(spec: Any) -> str:
     if getattr(spec, "perm", None):
         return spec.perm
@@ -37,6 +45,13 @@ def perm_of(spec: Any) -> str:
     return CATEGORY_PERM.get(spec.category, "apps")
 
 
-def allowed(cfg: Any, spec: Any) -> bool:
+def blocked_by(cfg: Any, spec: Any) -> str | None:
+    """The first switched-off permission this tool needs, or None."""
     perms = getattr(cfg, "permissions", None)
-    return perms is None or bool(getattr(perms, perm_of(spec), True))
+    if perms is None:
+        return None
+    return next((p for p in required(spec) if not getattr(perms, p, True)), None)
+
+
+def allowed(cfg: Any, spec: Any) -> bool:
+    return blocked_by(cfg, spec) is None

@@ -9,6 +9,7 @@ import { stopButton } from "../shared/taskcard";
 import { buildTasks } from "./tasks";
 import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
+import { missingModelCard } from "../shared/localmissing";
 
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);
@@ -49,7 +50,7 @@ const nav = h("nav", { class: "rail", "aria-label": "Sekce" });
 const main = h("main", { class: "view" });
 const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
-  h("div", { class: "chat-wrap" }, chat.el));
+  h("div", { class: "chat-wrap" }, missingModelCard(client), chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {

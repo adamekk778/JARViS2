@@ -328,15 +328,20 @@ class WindowsPlatform(Platform):
         pg.dragTo(x2, y2, duration=0.4, button="left")
 
     def release_all_input(self):
+        """STOP: let go of keys/buttons that are physically held down. Releasing ones that are up would send stray
+        WM_RBUTTONUP (context menu) or Alt-up (menu bar) to the window under the cursor."""
         pg = self._pg()
-        for k in ("ctrl", "alt", "shift", "win"):
+        down = lambda vk: bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)  # noqa: E731
+        for vk, key in ((0x11, "ctrl"), (0x12, "alt"), (0x10, "shift"), (0x5B, "win")):
             try:
-                pg.keyUp(k)
+                if down(vk):
+                    pg.keyUp(key)
             except Exception:
                 pass
-        for b in ("left", "right", "middle"):
+        for vk, button in ((0x01, "left"), (0x02, "right"), (0x04, "middle")):
             try:
-                pg.mouseUp(button=b)
+                if down(vk):
+                    pg.mouseUp(button=button)
             except Exception:
                 pass
 

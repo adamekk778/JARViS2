@@ -61,7 +61,8 @@ def _git_env(extra: dict | None = None) -> dict:
 
 
 def _git(repo: Path, *args: str, env: dict | None = None, check: bool = True, timeout: int = 60) -> str:
-    r = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
+    # quotePath=false: file names with diacritics come back as real names, not "pozn\303\241mky"
+    r = subprocess.run(["git", "-c", "core.quotePath=false", *args], cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=timeout, env=_git_env(env), creationflags=NO_WINDOW)
     if check and r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout).strip()[:500] or f"git {args[0]} selhal")
@@ -123,12 +124,44 @@ def _changed_files(repo: Path, cid: str) -> list[str]:
     return [line.replace("\t", " ") for line in out.splitlines() if line.strip()]
 
 
-def _restore_details(args: dict) -> list[str]:
-    p = Path(str(args.get("project", "")))
-    root = _repo_root(p) if p.is_absolute() and p.is_dir() else None
-    if not root:
+COPY_IGNORE = ("node_modules", ".venv", "venv", "__pycache__", ".git", "dist")
+
+
+def _copy_dir(p: Path, cid: str = "") -> Path:
+    base = paths.sub("checkpoints") / p.name
+    return base / cid if cid else base
+
+
+def _tree_files(root: Path) -> set[str]:
+    out = set()
+    for f in root.rglob("*"):
+        rel = f.relative_to(root)
+        if f.is_file() and not any(part in COPY_IGNORE for part in rel.parts):
+            out.add(rel.as_posix())
+    return out
+
+
+def _copy_changes(p: Path, snap: Path) -> list[str]:
+    now, then = _tree_files(p), _tree_files(snap)
+    lines = [f"A {f}" for f in sorted(now - then)] + [f"D {f}" for f in sorted(then - now)]
+    for f in sorted(now & then):
+        if (p / f).read_bytes() != (snap / f).read_bytes():
+            lines.append(f"M {f}")
+    return lines
+
+
+def _restore_details(args: dict, ctx=None) -> list[str]:
+    if ctx is None:
         return []
-    return _changed_files(root, str(args.get("id", "")))
+    p = resolve_project(ctx, str(args.get("project", "")))
+    if isinstance(p, ToolResult):
+        return []
+    cid = str(args.get("id", ""))
+    root = _repo_root(p) if shutil.which("git") else None
+    if root:
+        return _changed_files(root, cid)
+    snap = _copy_dir(p, cid)
+    return _copy_changes(p, snap) if snap.is_dir() else []
 
 
 def _run_cmd(cmd: str, cwd: Path, timeout: int) -> tuple[int, str]:
@@ -253,18 +286,41 @@ async def checkpoint(ctx, project: str, label: str = "") -> ToolResult:
     p = resolve_project(ctx, project)
     if isinstance(p, ToolResult):
         return p
+    cid = await asyncio.to_thread(_copy_checkpoint, p)
+    return ToolResult(True, f"Záchytný bod {cid} uložen do {_copy_dir(p, cid)}", data={"id": cid, "kind": "copy"})
+
+
+def _copy_checkpoint(p: Path) -> str:
     cid = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    dst = paths.sub("checkpoints") / p.name / cid
-    await asyncio.to_thread(shutil.copytree, p, dst,
-                            ignore=shutil.ignore_patterns("node_modules", ".venv", "venv", "__pycache__", ".git", "dist"))
-    return ToolResult(True, f"Záchytný bod {cid} uložen do {dst}", data={"id": cid, "kind": "copy"})
+    base, n = cid, 2
+    while _copy_dir(p, cid).exists():
+        cid, n = f"{base}-{n}", n + 1
+    shutil.copytree(p, _copy_dir(p, cid), ignore=shutil.ignore_patterns(*COPY_IGNORE))
+    return cid
+
+
+def _copy_restore(p: Path, cid: str) -> str:
+    snap = _copy_dir(p, cid)
+    if not snap.is_dir():
+        raise RuntimeError(f"záchytný bod {cid} neexistuje")
+    backup = _copy_checkpoint(p)
+    for rel in _tree_files(p) - _tree_files(snap):
+        (p / rel).unlink()
+    shutil.copytree(snap, p, dirs_exist_ok=True)
+    return backup
 
 
 @tool("checkpoints", "Seznam záchytných bodů projektu.", category="programování", perm="files_read")
 async def checkpoints(ctx, project: str) -> ToolResult:
     repo = _repo(ctx, project)
     if isinstance(repo, ToolResult):
-        return repo
+        p = resolve_project(ctx, project)
+        if isinstance(p, ToolResult) or (shutil.which("git") and _repo_root(p)):
+            return repo
+        base = _copy_dir(p)
+        items = [{"id": d.name, "date": d.name, "label": "kopie složky"}
+                 for d in sorted(base.iterdir(), reverse=True) if d.is_dir()] if base.is_dir() else []
+        return ToolResult(True, f"{len(items)} záchytných bodů", data=items)
     out = await asyncio.to_thread(_git, repo, "for-each-ref", "--sort=-creatordate",
                                   "--format=%(refname:short)\t%(creatordate:iso)\t%(subject)", REF_PREFIX)
     items = []
@@ -279,7 +335,15 @@ async def checkpoints(ctx, project: str) -> ToolResult:
 async def restore_checkpoint(ctx, project: str, id: str) -> ToolResult:  # noqa: A002
     repo = _repo(ctx, project)
     if isinstance(repo, ToolResult):
-        return repo
+        p = resolve_project(ctx, project)
+        if isinstance(p, ToolResult) or (shutil.which("git") and _repo_root(p)):
+            return repo
+        try:
+            backup = await asyncio.to_thread(_copy_restore, p, id)
+        except (RuntimeError, OSError) as e:
+            return ToolResult(False, f"Obnovení se nepovedlo: {e}")
+        return ToolResult(True, f"Obnoveno ze záchytného bodu {id} (předchozí stav zálohován jako {backup})",
+                          data={"backup": backup})
 
     def run():
         ref = REF_PREFIX + id

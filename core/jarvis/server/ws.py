@@ -119,6 +119,7 @@ class Connection:
                         media=rt.media_state, shelf=[rt.public_attachment(a) for a in rt.shelf],
                         timers=rt.timers.list(), voice=self._voice_status(),
                         pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current, task=rt.tasks.current,
+                        local_missing=rt.local.missing,
                         pet_mode=rt.cfg.character.pet_mode,
                         update=rt.updater.status if rt.updater else None)
 
@@ -259,7 +260,7 @@ class Connection:
             name, ok = m.get("name", ""), bool(m.get("approved"))
             cur = [s for s in rt.cfg.tools.approved_skills if s != name] + ([name] if ok else [])
             rt.update_config({"tools": {"approved_skills": cur}})
-            await asyncio.to_thread(load_all_skills, cur)
+            await asyncio.to_thread(load_all_skills, cur, rt.cfg.tools.legacy_skills)
             await self.send("skills", items=list_skills(cur))
         elif t == "quick_action":
             name = m.get("action", "")
@@ -268,7 +269,7 @@ class Connection:
                 return
             spec = tools.REGISTRY.get(name)
             args = m.get("args") or {}
-            if spec and tools.is_dangerous(spec, args, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted) and not m.get("confirmed"):
+            if spec and tools.is_dangerous(spec, args, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt) and not m.get("confirmed"):
                 await self.send("quick_result", action=name, ok=False, needs_confirm=True, summary="Potvrď akci")
                 return
             res = await tools.call(name, args, rt)

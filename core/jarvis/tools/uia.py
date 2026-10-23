@@ -15,8 +15,19 @@ RISKY = ("smaz", "odstran", "delete", "remove", "odesl", "send", "koup", "buy", 
          "instal", "format")
 
 
-def _risky(args: dict) -> bool:
-    words = re.findall(r"\w+", norm(f"{args.get('target', '')} {args.get('window', '')}"))
+def _risky(args: dict, ctx=None) -> bool:
+    target = str(args.get("target", ""))
+    if REF.match(target.strip()):
+        # a ref (from ui_inspect) says nothing by itself → judge the element it points to
+        node = None
+        try:
+            node = ctx.platform.ui_get(target.strip()) if ctx is not None else None
+        except Exception:
+            pass
+        if node is None:
+            return True  # unknown element: better ask
+        target = f"{node.get('name', '')} {node.get('automation_id', '')}"
+    words = re.findall(r"\w+", norm(f"{target} {args.get('window', '')}"))
     return any(w.startswith(p) for w in words for p in RISKY)
 
 
