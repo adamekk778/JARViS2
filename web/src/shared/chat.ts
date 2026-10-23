@@ -31,6 +31,7 @@ export interface ChatOptions {
 
 const DEFAULT_SUGGESTIONS = ["Pusť na YouTube nějakou dobrou hudbu", "Jaké bude zítra počasí?",
   "Udělej screenshot a popiš, co je na obrazovce", "Najdi na webu dnešní zprávy z technologií"];
+const SUGGEST_ICON = ["youtube-logo", "cloud-sun", "monitor", "newspaper"];
 
 /** Static little JARVIS for message avatars (the animated Blob is reserved for live places). */
 export const miniBlob = (live = false) => h("div", { class: `mini-blob ${live ? "live" : ""}`, "aria-hidden": "true" }, h("i"), h("i"));
@@ -72,15 +73,16 @@ export class ChatView {
   constructor(private client: JarvisClient, opts: ChatOptions = {}) {
     this.list = h("div", { class: "chat-list", role: "log", "aria-live": "polite" });
     this.greetingEl = h("h2", {}, opts.greeting || "Jak můžu pomoct?");
+    const suggestions = opts.suggestions ?? DEFAULT_SUGGESTIONS;
     const avatar = opts.emptyAvatar === false ? null : new Blob({ size: 96 });
     if (avatar) this.emptyBlob = avatar;
     this.empty = h("div", { class: "chat-empty" },
       avatar ? avatar.el : null,
       this.greetingEl,
-      opts.subtitle ? h("p", { class: "chat-sub" }, opts.subtitle) : null,
-      h("div", { class: "chat-suggest" },
-        ...(opts.suggestions ?? DEFAULT_SUGGESTIONS)
-          .map((s) => h("button", { class: "chip suggest", type: "button", onclick: () => this.sendText(s) }, s))));
+      h("p", { class: "chat-sub" }, opts.subtitle ?? (opts.compact ? "Napiš nebo nahraj hlasovou zprávu." : "Napiš, řekni „Hey Jarvis“, nebo vyber jeden z návrhů.")),
+      suggestions.length ? h("div", { class: "chat-suggest" },
+        ...suggestions.map((s, i) => h("button", { class: "suggest", type: "button", onclick: () => this.sendText(s) },
+          h("span", { class: "suggest-ico" }, icon(SUGGEST_ICON[i] || "sparkle")), h("span", {}, s), icon("arrow-up-right", "suggest-go")))) : null);
     this.scroller = h("div", { class: "chat-scroll" }, this.empty, this.list);
     this.scroller.addEventListener("scroll", () => {
       const s = this.scroller;

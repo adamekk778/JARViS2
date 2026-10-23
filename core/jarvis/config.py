@@ -93,10 +93,17 @@ class Notch(BaseModel):
 
 class Appearance(BaseModel):
     theme: Literal["stark", "light"] = "stark"
-    accent: str = "#2ee6ff"
+    accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch
     sound_volume: int = 30     # 0–100
+
+    @model_validator(mode="before")
+    @classmethod
+    def _new_default_accent(cls, data: Any) -> Any:
+        if isinstance(data, dict) and str(data.get("accent", "")).lower() == "#2ee6ff":
+            data = {**data, "accent": "#4f8dff"}
+        return data
 
 
 class Hotkeys(BaseModel):

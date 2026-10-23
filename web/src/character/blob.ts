@@ -321,7 +321,7 @@ export class Blob {
     const ex = this.gaze.x * 9, ey = this.gaze.y * 7;
     this.eyeL.setAttribute("transform", `translate(${100 - EYE_X + ex} ${EYE_Y + ey}) rotate(${this.eye.tilt})`);
     this.eyeR.setAttribute("transform", `translate(${100 + EYE_X + ex} ${EYE_Y + ey}) rotate(${-this.eye.tilt})`);
-    const c = this.eye.cut;
+    const c = Math.max(0, this.eye.cut);  // the lerp can overshoot below 0 after a long frame
     for (const { cut, side } of this.cuts) {
       cut.setAttribute("cx", (side * e.w * 0.9).toFixed(2));
       cut.setAttribute("cy", (-e.h * 0.04).toFixed(2));

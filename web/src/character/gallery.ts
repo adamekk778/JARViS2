@@ -2,7 +2,7 @@
 import { applyAppearance } from "../shared/base";
 import { Blob, MOOD_LABEL, MOODS, type CharacterColor } from "./blob";
 
-applyAppearance({ appearance: { theme: "stark", accent: "#2ee6ff" } });
+applyAppearance({ appearance: { theme: "stark", accent: "#4f8dff" } });
 const style = document.createElement("style");
 style.textContent = `
 body { background: radial-gradient(120% 80% at 50% 0%, #2b3a52 0%, #111821 45%, #07090c 100%); min-height: 100vh; }

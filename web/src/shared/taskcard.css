@@ -50,3 +50,13 @@
 .mm-progress { position: relative; width: 120px; height: 18px; border-radius: 99px; background: var(--surface-3); overflow: hidden; flex: none; }
 .mm-progress b { display: block; height: 100%; background: var(--accent-soft); }
 .mm-progress em { position: absolute; inset: 0; display: grid; place-items: center; font: 600 11px var(--font); font-style: normal; }
+
+/* 2.2 design */
+.taskcard { border-radius: var(--r-card); background: var(--glass); border-color: var(--edge); box-shadow: var(--hi); }
+.tc-bar { background: var(--glass-3); }
+.tc-bar b { background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent))); box-shadow: 0 0 10px color-mix(in oklab, var(--accent) 60%, transparent); }
+.tc-btn { border-radius: var(--r-pill); background: var(--glass-2); border-color: var(--edge); }
+.tc-btn.primary { background: var(--accent); }
+.tc-details, .confirm-details { background: rgb(0 0 0 / .22); border: 1px solid var(--edge); }
+.stop-btn { background: linear-gradient(180deg, #ff6f74, var(--danger)); box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--danger) 80%, transparent); }
+.missing-model { border-radius: var(--r-card); background: color-mix(in oklab, var(--accent) 7%, transparent); box-shadow: var(--hi); }

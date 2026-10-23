@@ -57,3 +57,9 @@ def test_2_1_defaults():
     c = config.Config()
     assert c.notch.pinned is False and c.appearance.sounds is True and c.appearance.sound_volume == 30
     assert c.hotkeys.stop_all == "ctrl+alt+x" and c.agent.mode is False and c.brain.local_mode == "balanced"
+
+
+def test_old_default_accent_becomes_jarvis_blue():
+    assert config.Config.model_validate({"appearance": {"accent": "#2EE6FF"}}).appearance.accent == "#4f8dff"
+    assert config.Config.model_validate({"appearance": {"accent": "#ff5d63"}}).appearance.accent == "#ff5d63"
+    assert config.Config().appearance.accent == "#4f8dff"

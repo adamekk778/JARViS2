@@ -10,6 +10,7 @@ import { buildTasks } from "./tasks";
 import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
 import { missingModelCard } from "../shared/localmissing";
+import { commandPalette } from "./palette";
 
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);
@@ -26,6 +27,11 @@ const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => cl
 
 type Page = "tasks" | "voice-mode" | "diagnostics";
 type View = "chat" | Page | Section;
+const GROUPS: [string, View[]][] = [
+  ["Hlavní", ["chat", "tasks", "voice-mode"]],
+  ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
+  ["Systém", ["diagnostics"]],
+];
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["tasks", "list-checks", "Úkoly"],
@@ -74,37 +80,78 @@ function go(v: View) {
   history.replaceState(null, "", `#${v}`);
 }
 
-for (const [v, ic, label] of NAV) {
-  nav.append(h("button", { type: "button", "data-view": v, title: label, onclick: () => go(v) }, icon(ic), h("span", {}, label)));
-  if (v === "voice-mode" || v === "backup") nav.append(h("div", { class: "rail-sep" }));
+for (const [group, views] of GROUPS) {
+  nav.append(h("div", { class: "rail-group" }, group));
+  for (const v of views) {
+    const [, ic, label] = NAV.find(([n]) => n === v)!;
+    nav.append(h("button", { type: "button", "data-view": v, title: label, onclick: () => go(v) }, icon(ic), h("span", {}, label)));
+  }
 }
 
+const MOOD_TEXT: Record<string, string> = {
+  idle: "Připraven", listening: "Poslouchám…", thinking: "Přemýšlím…", working: "Pracuji…", speaking: "Mluvím…",
+  waiting: "Čekám na tvé potvrzení", error: "Něco se pokazilo", limit: "Dosažen limit AI", updating: "Aktualizuji…",
+  success: "Hotovo", offline: "Nepřipojeno", focus: "Režim soustředění", notify: "Mám pro tebe zprávu",
+  dancing: "Tančím", joy: "Připraven", sleeping: "Odpočívám",
+};
+const statusText = h("span", { class: "brand-status" }, "Připojuji…");
+const palette = commandPalette({
+  nav: NAV.map(([v, ic, label]) => ({ icon: ic, label, run: () => go(v) })),
+  actions: [
+    { icon: "plus", label: "Nová konverzace", run: () => { go("chat"); client.send("new_chat"); } },
+    { icon: "stop-circle", label: "Zastavit vše (STOP)", run: () => client.send("stop_all") },
+    { icon: "microphone", label: "Zapnout / vypnout poslech", run: () => client.send("voice_toggle") },
+  ],
+  search: (q) => { go("general"); settingsUI.search(q); },
+});
+const paletteBtn = h("button", { class: "palette-btn", type: "button", title: "Rychlé hledání (Ctrl+K)", onclick: () => palette.open() },
+  icon("magnifying-glass"), h("span", {}, "Hledat nebo přejít…"), h("kbd", {}, "Ctrl K"));
+
 const header = h("header", { class: "topbar" },
-  h("div", { class: "brand" }, orb, h("strong", {}, "JARVIS")),
+  h("div", { class: "brand" }, orb, h("div", { class: "brand-text" }, h("strong", {}, "JARVIS"), statusText)),
+  paletteBtn,
   h("div", { class: "top-right" }, stopBtn, brainChip, voiceBtn));
+
+function greet(name?: string) {
+  const hr = new Date().getHours();
+  const hello = hr < 5 ? "Dobrou noc" : hr < 10 ? "Dobré ráno" : hr < 12 ? "Dobré dopoledne" : hr < 18 ? "Dobré odpoledne" : "Dobrý večer";
+  chat.setGreeting(name ? `${hello}, ${name}` : hello);
+}
+greet();
 
 document.getElementById("app")!.append(h("div", { class: "shell" }, header, nav, main));
 
 client.onStatus((s) => {
-  if (s !== "open") face.setMood("offline");
+  if (s !== "open") { face.setMood("offline"); statusText.textContent = s === "closed" ? "Odpojeno, zkouším znovu…" : "Připojuji…"; }
   if (s === "closed") brainChip.lastChild!.textContent = "odpojeno, zkouším znovu…";
 });
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
   face.setMood(m.mood?.mood || "idle");
+  statusText.textContent = MOOD_TEXT[m.mood?.mood || "idle"] || "Připraven";
+  greet(m.settings?.general?.address_as || m.settings?.general?.user_name);
   if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
   brainChip.lastChild!.textContent = m.brain ? `${m.brain[0]} · ${m.brain[1]}` : (m.settings?.brain?.chain?.[0] ?? "AI");
   voiceBtn.classList.toggle("on", !!m.voice?.listening);
   voiceBtn.hidden = !m.voice?.available;
 });
 client.on("settings_changed", (m) => { applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
-client.on("mood", (m) => { face.setMood(m.mood, { badge: m.badge, progress: m.progress }); stopBtn.hidden = !BUSY.includes(m.mood); });
+client.on("mood", (m) => {
+  face.setMood(m.mood, { badge: m.badge, progress: m.progress });
+  stopBtn.hidden = !BUSY.includes(m.mood);
+  statusText.textContent = MOOD_TEXT[m.mood] || "Připraven";
+  statusText.dataset.busy = String(BUSY.includes(m.mood));
+});
 client.on("stopped", () => toast("Zastaveno.", "ok"));
 client.on("level", (m) => face.setLevel(m.rms || 0));
 client.on("brain", (m) => (brainChip.lastChild!.textContent = `${m.provider} · ${m.model}`));
 client.on("voice_status", (m) => { voiceBtn.classList.toggle("on", !!m.listening); voiceBtn.hidden = !m.available; });
 client.on("notify", (m) => toast(`${m.title}: ${m.body}`, "info", 6000));
 client.connect();
+
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); palette.open(); }
+});
 
 window.addEventListener("hashchange", () => {
   const v = location.hash.slice(1) as View;

@@ -171,3 +171,85 @@
 .conv-folder { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 10px 4px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-align: left; }
 .conv-folder span:first-of-type { flex: 1; }
 .actions .brain i { vertical-align: -1px; }
+
+/* =====================================================================================
+   2.2 design: chat in liquid glass (dashboard, notch panel and phone share it)
+   ===================================================================================== */
+.chat-scroll { padding-top: 28px; }
+.chat-empty { padding: 9vh 20px 20px; gap: 10px; }
+.chat-empty > .blob, .chat-empty > :first-child:not(h2) { position: relative; margin-bottom: 6px; filter: drop-shadow(0 18px 30px color-mix(in oklab, var(--accent) 35%, transparent)); }
+.chat-empty h2 { font-size: 32px; font-weight: 600; letter-spacing: -0.03em; margin: 4px 0 0;
+  background: linear-gradient(180deg, var(--text) 30%, color-mix(in oklab, var(--text) 55%, var(--accent))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.chat-sub { margin: 0 0 14px; color: var(--muted); }
+.chat-suggest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(640px, 100%); }
+.suggest {
+  position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; text-align: left;
+  padding: 14px 14px; border-radius: var(--r-card); border: 1px solid var(--edge); background: var(--glass); box-shadow: var(--hi);
+  color: var(--text-2); font-size: 13.5px; line-height: 1.35; cursor: pointer;
+  transition: border-color .25s, background .25s, transform .3s var(--spring), color .2s;
+  animation: msg-in .5s var(--ease) backwards;
+}
+.suggest:nth-child(2) { animation-delay: .05s; } .suggest:nth-child(3) { animation-delay: .1s; } .suggest:nth-child(4) { animation-delay: .15s; }
+.suggest:hover { border-color: var(--accent-line); background: color-mix(in oklab, var(--accent) 8%, transparent); color: var(--text); transform: translateY(-2px); }
+.suggest-ico { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; font-size: 18px; color: var(--accent);
+  background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 25%, transparent); }
+.suggest-go { color: var(--muted); opacity: 0; transition: opacity .2s, transform .3s var(--spring); }
+.suggest:hover .suggest-go { opacity: 1; transform: translate(2px, -2px); color: var(--accent); }
+.chat.compact .chat-suggest { grid-template-columns: 1fr; }
+.chat.compact .chat-empty { padding-top: 6vh; }
+.chat.compact .chat-empty h2 { font-size: 26px; }
+
+.msg.user .bubble {
+  padding: 11px 16px; border-radius: 20px 20px 6px 20px; color: var(--text);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 30%, var(--surface)), color-mix(in oklab, var(--accent) 18%, var(--surface)));
+  border: 1px solid color-mix(in oklab, var(--accent) 34%, transparent);
+  box-shadow: 0 10px 28px -14px color-mix(in oklab, var(--accent) 70%, transparent), var(--hi);
+}
+:root[data-theme="light"] .msg.user .bubble { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 18%, white), color-mix(in oklab, var(--accent) 11%, white)); }
+.voice-tag { color: var(--accent-2); }
+.mini-blob { box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent), 0 4px 12px -2px color-mix(in oklab, var(--accent) 60%, transparent); }
+
+.md :not(pre) > code { background: var(--glass-2); border: 1px solid var(--edge); }
+.md blockquote { border-left-color: var(--accent); background: var(--glass); border-radius: 0 10px 10px 0; padding: 6px 14px; }
+.md th { background: var(--glass-2); }
+.md th, .md td { border-color: var(--edge); }
+.md a { color: var(--accent-2); text-underline-offset: 3px; }
+.code { border-radius: 14px; border-color: var(--edge); background: #070a0f; box-shadow: var(--shadow-sm); }
+.code-head { background: rgb(255 255 255 / .03); border-bottom: 1px solid rgb(255 255 255 / .05); }
+
+.tool { background: var(--glass); border-color: var(--edge); box-shadow: var(--hi); font-size: 12.5px; transition: border-color .2s; }
+.tool:hover { border-color: var(--border-strong); }
+.tool > i:first-child { color: var(--accent); }
+
+.actions .icon-btn.sm { color: var(--muted); }
+.actions .icon-btn.sm:hover { color: var(--text); }
+.brain { border-color: var(--edge); background: var(--glass); }
+
+.confirm { border-radius: var(--r-card); background: color-mix(in oklab, var(--warn) 8%, transparent); box-shadow: var(--hi); }
+.chat-status { color: var(--accent-2); font-weight: 500; }
+
+/* floating glass composer */
+.composer { padding: 6px 20px 20px; }
+.composer-row {
+  padding: 7px; border-radius: 24px; background: var(--glass-solid);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border-strong); box-shadow: var(--shadow), var(--hi);
+}
+.composer-row:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow), var(--hi); }
+.chat-input { padding: 9px 8px; font-size: 15px; }
+.chat-input::placeholder { color: var(--muted); }
+.send-btn { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 85%, white), var(--accent)); box-shadow: var(--accent-glow); transition: transform .2s var(--spring), filter .2s; }
+.send-btn:hover { filter: brightness(1.08); transform: scale(1.05); }
+.send-btn.stop { background: var(--text); box-shadow: none; }
+.pend { background: var(--glass-2); border-color: var(--edge); border-radius: 14px; }
+.pend .bar { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+/* conversation list */
+.conv-list { gap: 2px; }
+.conv { border-radius: 12px; transition: background .2s; }
+.conv:hover { background: var(--glass-2); }
+.conv.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 24%, transparent); }
+.conv-open { border-radius: 12px; }
+.conv-title { font-size: 13.5px; }
+.conv-folder { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.chat.drop::after { border-radius: var(--r-panel); background: color-mix(in oklab, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }

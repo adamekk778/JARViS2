@@ -243,7 +243,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     },
 
     appearance: () => {
-      const colors = ["#2ee6ff", "#3ddc97", "#ffb547", "#ff5d63", "#7c9bff", "#f472b6", "#e9eef3"];
+      const colors = ["#4f8dff", "#2ee6ff", "#3ddc97", "#ffb547", "#ff5d63", "#a78bfa", "#f472b6", "#e9eef3"];
       const picker = h("input", { type: "color", value: S.appearance.accent, "aria-label": "Vlastní barva" }) as HTMLInputElement;
       picker.onchange = () => set("appearance.accent", picker.value);
       return [card("Barvy", null,
@@ -588,6 +588,12 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       query = "";
       searchInput.value = "";
       render();
+    },
+    search(q: string) {
+      query = q;
+      searchInput.value = q;
+      render();
+      searchInput.focus();
     },
   };
 }

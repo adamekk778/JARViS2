@@ -75,3 +75,46 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .m-chat > .taskcard { margin: 8px 12px 0; flex: none; }
 .m-chat > .chat { flex: 1; min-height: 0; }
 .m-head .stop-btn { margin-left: auto; }
+
+/* =====================================================================================
+   2.2 design: glass header, floating glass tab bar, glass tiles
+   ===================================================================================== */
+body.mobile { background-attachment: fixed; }
+.connect h1 { letter-spacing: .32em; font-weight: 600; }
+.connect > :first-child { filter: drop-shadow(0 18px 30px color-mix(in oklab, var(--accent) 40%, transparent)); }
+.m-shell { grid-template-rows: auto 1fr auto; }
+.m-head {
+  background: var(--glass-solid); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--edge); padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+}
+.m-title strong { letter-spacing: .3em; font-weight: 600; }
+.m-status { display: inline-flex; align-items: center; gap: 5px; }
+.m-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.m-control, .m-more { padding: 18px 14px 24px; gap: 12px; }
+.card { background: var(--glass); border: 1px solid var(--edge); border-radius: var(--r-card); box-shadow: var(--hi); padding: 16px; }
+.card h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.tabs {
+  margin: 0 12px calc(10px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 24px; gap: 4px;
+  background: var(--glass-solid); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--border-strong); box-shadow: var(--shadow), var(--hi);
+}
+.tabs button { border-radius: 18px; padding: 7px 0 5px; transition: background .25s, color .2s; }
+.tabs button i { transition: transform .3s var(--spring); }
+.tabs button.active { color: var(--accent); background: var(--accent-soft); }
+.tabs button.active i { transform: translateY(-1px) scale(1.08); }
+
+.ptt {
+  width: 156px; height: 156px; border: 1px solid var(--accent-line);
+  background: radial-gradient(circle at 50% 30%, color-mix(in oklab, var(--accent) 30%, transparent), var(--glass) 72%);
+  box-shadow: 0 0 0 10px color-mix(in oklab, var(--accent) 7%, transparent), 0 0 0 22px color-mix(in oklab, var(--accent) 4%, transparent), var(--hi);
+}
+.ctl { border-radius: 16px; border-color: var(--edge); background: var(--glass); box-shadow: var(--hi); }
+.ctl i { color: var(--accent); }
+.ctl:active { background: var(--glass-3); }
+.ctl.primary { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 85%, white), var(--accent)); box-shadow: var(--accent-glow); }
+.ctl.primary i { color: var(--accent-ink); }
+.drawer { background: var(--glass-solid); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-right-color: var(--edge); }
+.scrim { background: rgb(0 0 0 / .4); }
+.m-chat > .taskcard { margin: 10px 12px 0; }
+.chat.compact .composer { padding: 4px 10px 8px; }
