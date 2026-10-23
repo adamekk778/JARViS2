@@ -360,3 +360,25 @@ a.btn { text-decoration: none; }
 .snip-row { display: grid; gap: 8px; }
 .snip-head { display: flex; gap: 8px; align-items: center; }
 .snip-head .input { flex: 1; }
+
+/* Claude Code page */
+.cc-preview { display: grid; gap: 10px; }
+.cc-diff, .cc-details { margin: 0; max-height: 320px; overflow: auto; padding: 12px 14px; border-radius: 10px; background: #070a0f; font: 11.5px/1.55 var(--mono); color: #b9c0ca; white-space: pre; }
+.cc-diff .add { color: #4ade80; } .cc-diff .del { color: #f87171; }
+.cc-asks { display: grid; gap: 10px; }
+.cc-asks:empty { display: none; }
+.cc-ask { display: grid; gap: 12px; border-color: color-mix(in oklab, var(--warn) 40%, transparent); background: color-mix(in oklab, var(--warn) 6%, var(--surface)); }
+.cc-ask-head { display: flex; gap: 10px; align-items: flex-start; }
+.cc-ask-head > i { color: var(--warn); font-size: 22px; }
+.cc-ask-head div { display: grid; gap: 2px; }
+.cc-details { white-space: pre-wrap; max-height: 160px; }
+.cc-session { display: grid; gap: 10px; }
+.cc-s-head { display: flex; gap: 10px; align-items: center; }
+.cc-s-head .help { margin-left: auto; }
+.tag.st-busy { color: var(--accent); } .tag.st-wait { color: var(--warn); } .tag.st-ok { color: var(--ok); } .tag.st-bad { color: var(--danger); }
+.cc-prompt { margin: 0; color: var(--text-2); font-size: 13.5px; }
+.cc-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.cc-steps li { display: flex; gap: 10px; } .cc-steps li span { color: var(--faint); font-variant-numeric: tabular-nums; }
+.cc-steps li:first-child { color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.chip-x { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0; display: inline-grid; }

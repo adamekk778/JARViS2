@@ -45,6 +45,9 @@ class Runtime:
         from .notetaker import Notetaker
 
         self.notetaker = Notetaker(self)
+        from .claude_bridge import ClaudeBridge
+
+        self.claude = ClaudeBridge(self)
         self.local = LocalManager(self)
         self.timers = Timers(self._timer_fired)
         self.voice: Any = None        # voice.loop.VoiceLoop when available

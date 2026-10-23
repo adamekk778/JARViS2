@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .. import __version__, paths
@@ -156,6 +156,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             app.mount(f"/{extra}", StaticFiles(directory=dist / extra), name=extra)
 
     dist_root = dist.resolve()
+
+    @app.post("/api/hooks/claude/{event}")
+    async def claude_hook(event: str, request: Request):
+        """Claude Code hooks (curl from ~/.claude/settings.json). Empty reply = no opinion."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+        res = await rt.claude.handle(event, payload if isinstance(payload, dict) else {})
+        return JSONResponse(res) if res else Response(status_code=204)
 
     @app.post("/api/show")
     async def show(request: Request, view: str = "chat"):

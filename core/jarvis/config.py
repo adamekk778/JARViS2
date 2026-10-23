@@ -186,6 +186,14 @@ class Dictation(BaseModel):
     sounds: bool = True
 
 
+class ClaudeCfg(BaseModel):
+    """Claude Code in the notch (3.0)."""
+    enabled: bool = True
+    approvals: bool = True            # Allow / Deny from the notch and the phone
+    notify_done: bool = True
+    always_allow: list[str] = Field(default_factory=list)   # tools allowed with "Vždy" (e.g. "Read")
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -216,6 +224,7 @@ class Config(BaseModel):
     permissions: Permissions = Field(default_factory=Permissions)
     agent: AgentCfg = Field(default_factory=AgentCfg)
     dictation: Dictation = Field(default_factory=Dictation)
+    claude: ClaudeCfg = Field(default_factory=ClaudeCfg)
 
     @model_validator(mode="before")
     @classmethod

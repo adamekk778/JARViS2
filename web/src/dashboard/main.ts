@@ -11,6 +11,7 @@ import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
 import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
 import { buildNotetaker } from "./notetaker";
+import { buildClaude } from "./claude";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
 
@@ -27,10 +28,10 @@ stopBtn.hidden = true;
 const BUSY = ["listening", "thinking", "working", "speaking", "waiting"];
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "tasks", "voice-mode"]],
+  ["Hlavní", ["chat", "tasks", "voice-mode", "claude"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
@@ -39,6 +40,7 @@ const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
+  ["claude", "terminal-window", "Claude Code"],
   ["dictate", "microphone", "Diktování"],
   ["notetaker", "record", "Nahrávání hovorů"],
   ["stats", "chart-bar", "Statistiky"],
@@ -76,6 +78,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   dictate: buildDictation(client, (v) => go(v as View)),
   stats: buildStats(client),
   notetaker: buildNotetaker(client),
+  claude: buildClaude(client),
 };
 recapOverlay(client);
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));

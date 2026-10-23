@@ -204,8 +204,13 @@ function updateBlob() {
   shape.dataset.mood = displayMood();
 }
 
-function busy() {
+/** JARVIS itself is doing something (STOP makes sense). */
+function jarvisBusy() {
   return ["listening", "thinking", "working", "speaking", "waiting"].includes(coreMood) || !!pendingConfirm;
+}
+/** Something needs the live bubble open: JARVIS at work or Claude Code waiting for an answer. */
+function busy() {
+  return jarvisBusy() || claudeAsks.length > 0;
 }
 
 function settle(force = false) {
@@ -321,15 +326,15 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "
 // ---------- live bubble ----------
 const STATE_LABEL: Partial<Record<Mood, string>> = { listening: "Poslouchám…", thinking: "Přemýšlím…", working: "Pracuji…", waiting: "Potřebuji potvrzení" };
 function renderLive() {
-  bubbleState.textContent = STATE_LABEL[coreMood] ?? "";
+  bubbleState.textContent = claudeAsks.length && !pendingConfirm ? `Claude Code · ${claudeAsks[0].project} čeká na tebe` : STATE_LABEL[coreMood] ?? "";
   const activeTask = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
   if (activeTask && activeTask.total) {
     const cur = activeTask.steps.find((s) => s.status === "running") || activeTask.steps[Math.min(activeTask.done, activeTask.total - 1)];
     bubbleTask.replaceChildren(icon("list-checks"), ` Krok ${Math.min(activeTask.done + 1, activeTask.total)}/${activeTask.total}`,
       cur ? h("span", { class: "muted" }, ` · ${cur.title}`) : "", activeTask.status === "paused" ? h("span", { class: "muted" }, " (pozastaveno)") : "");
   } else bubbleTask.replaceChildren();
-  liveStop.hidden = !busy();
-  barStop.hidden = !busy();
+  liveStop.hidden = !jarvisBusy();
+  barStop.hidden = !jarvisBusy();
   const text = liveText.length > 600 ? "…" + liveText.slice(-600) : liveText;
   bubbleAnswer.innerHTML = text ? renderMarkdown(text) : "";
   bubbleAnswer.scrollTop = bubbleAnswer.scrollHeight;
@@ -374,6 +379,30 @@ function showAlert(title: string, body: string) {
   }
 }
 
+// ---------- Claude Code (3.0): live step in the capsule, Allow / Deny in the live bubble ----------
+let claudeSessions: any[] = [];
+let claudeAsks: any[] = [];
+function renderClaudeAsk() {
+  const a = claudeAsks[0];
+  if (!a) { if (!pendingConfirm) bubbleConfirm.replaceChildren(); return; }
+  if (pendingConfirm) return;      // JARVIS's own question first
+  const answer = (decision: string) => { client.send("claude_decision", { id: a.id, decision }); };
+  bubbleState.textContent = `Claude Code · ${a.project} čeká na tebe`;
+  bubbleConfirm.replaceChildren(
+    h("span", { title: (a.details || []).join("\n") }, icon("terminal-window", "ph-fill"), " ", String(a.label)),
+    h("button", { class: "n-pill no", type: "button", onclick: () => answer("deny") }, "Zamítnout"),
+    h("button", { class: "n-pill", type: "button", title: `Vždy povolit ${a.tool}`, onclick: () => answer("always") }, "Vždy"),
+    h("button", { class: "n-pill yes", type: "button", onclick: () => answer("allow") }, "Povolit"));
+  if (mode !== "panel") setMode("live");
+}
+function claudeActivity(): boolean {
+  const s = claudeSessions.find((x) => x.state === "working" || x.state === "thinking" || x.state === "waiting");
+  if (!s) return false;
+  activity = s.step || "Claude Code";
+  actText.replaceChildren(icon("terminal-window"), " ", s.state === "waiting" ? `${s.project} · čeká` : activity);
+  return true;
+}
+
 // ---------- activity (closed notch) ----------
 let timers: any[] = [];
 let media: any = {};
@@ -409,6 +438,8 @@ function updateActivity() {
   if (!weatherText.dataset.w) weatherText.textContent = now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" });
   if (dictActivity()) {
     // dictation wins while it runs
+  } else if (claudeActivity()) {
+    // a Claude Code session at work
   } else if (timers.length) {
     const r = Math.max(0, Math.round(timers[0].ends_at - Date.now() / 1000));
     activity = `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
@@ -443,7 +474,10 @@ client.on("welcome", (m) => {
   media = m.media || {};
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
+  claudeSessions = m.claude_sessions || [];
+  claudeAsks = m.claude_pending || [];
   onMood(m.mood || { mood: m.busy ? "thinking" : "idle" });
+  renderClaudeAsk();
   if (m.settings?.notch?.pinned) { setPinned(true, false); openPanel(); } else settle();
 });
 client.on("settings_changed", (m) => {
@@ -476,9 +510,17 @@ client.on("confirm_request", (m) => {
   if (mode !== "panel") setMode("live");
   renderLive();
 });
-client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); if (!busy()) settle(); } });
+client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
 client.on("notify", (m) => { showAlert(m.title, m.body); play("notify"); });
+client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });
+client.on("claude_permission", (m) => { claudeAsks.push(m); play("notify"); renderClaudeAsk(); renderLive(); });
+client.on("claude_permission_resolved", (m) => {
+  claudeAsks = claudeAsks.filter((a) => a.id !== m.id);
+  renderClaudeAsk();
+  renderLive();
+  if (!busy()) settle();
+});
 client.on("task_update", (m) => {
   const prevStatus = task?.id === m.task?.id ? task?.status : null;
   task = m.task;
