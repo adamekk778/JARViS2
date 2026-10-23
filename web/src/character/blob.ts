@@ -176,6 +176,17 @@ export class Blob {
   }
 
   private onPointer = (e: PointerEvent) => this.lookAt(e.clientX, e.clientY);
+  /** Frames actually drawn (for the performance check in the dev gallery). */
+  renderedFrames = 0;
+  private lastRender = 0;
+
+  /** Idle animation is cheap (spec §8): ≤20 fps when calm and the cursor is still, ≤10 fps with reduced motion. */
+  private fpsCap(now: number): number {
+    if (reducedMotion()) return 10;
+    const calm = this.mood === "idle" || this.mood === "closed" || this.mood === "sleeping" || this.mood === "focus";
+    const pointerStill = !this.cursor || now - this.cursor.t > 3000;
+    return calm && pointerStill ? 20 : 0;
+  }
   private detachedSince = 0;
 
   destroy() {
@@ -268,6 +279,10 @@ export class Blob {
     this.detachedSince = 0;
     this.raf = requestAnimationFrame(this.frame);
     if (document.hidden) return;
+    const cap = this.fpsCap(now);
+    if (cap && now - this.lastRender < 1000 / cap - 2) return;
+    this.lastRender = now;
+    this.renderedFrames++;
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     const k = 1 - Math.exp(-dt * 12);

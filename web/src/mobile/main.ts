@@ -7,6 +7,7 @@ import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { native } from "./native";
 import { Blob } from "../character/blob";
+import { stopButton, TaskCard } from "../shared/taskcard";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -88,13 +89,17 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const openDrawer = () => document.body.classList.add("drawer-open");
   const closeDrawer = () => document.body.classList.remove("drawer-open");
 
+  const stop = stopButton(c, "sm");
+  stop.hidden = true;
+  const taskCard = new TaskCard(c, { compact: true, hideWhenIdle: true });
   const header = h("header", { class: "m-head" },
     h("button", { class: "icon-btn", type: "button", "aria-label": "Konverzace", onclick: openDrawer }, icon("list")),
     h("div", { class: "m-title" }, orb, h("div", {}, h("strong", {}, "JARVIS"), status)),
+    stop,
     h("button", { class: "icon-btn", type: "button", "aria-label": "Nová konverzace", onclick: () => c.send("new_chat") }, icon("note-pencil")));
 
   const views: Record<string, HTMLElement> = {
-    chat: h("section", { class: "m-view m-chat" }, chat.el),
+    chat: h("section", { class: "m-view m-chat" }, taskCard.el, chat.el),
     control: controlView(c),
     more: moreView(c, ep, pairing),
   };
@@ -119,7 +124,11 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
   });
   c.on("settings_changed", (m) => applyAppearance(m.settings));
-  c.on("mood", (m) => face.setMood(m.mood, { badge: m.badge, progress: m.progress }));
+  c.on("mood", (m) => {
+    face.setMood(m.mood, { badge: m.badge, progress: m.progress });
+    stop.hidden = !["listening", "thinking", "working", "speaking", "waiting"].includes(m.mood);
+  });
+  c.on("stopped", () => { toast("Zastaveno.", "ok"); native.haptic(); });
   c.on("notify", (m) => {
     if (document.hidden) native.notify(m.title, m.body);
     else toast(`${m.title}: ${m.body}`, "info", 6000);

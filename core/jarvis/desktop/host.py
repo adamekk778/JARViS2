@@ -152,11 +152,29 @@ class DesktopHost:
             pystray.MenuItem(lambda _: "Vrátit JARVISe do notche" if self.pet.active else "Vytáhnout JARVISe na plochu",
                              lambda: self.pet.command("toggle")),
             pystray.MenuItem(voice_label, toggle_voice, visible=lambda _: self.rt.voice is not None),
+            pystray.MenuItem("Schránka", pystray.Menu(
+                pystray.MenuItem("Shrň schránku", lambda: self._clipboard("Shrň stručně tento text")),
+                pystray.MenuItem("Přelož schránku", lambda: self._clipboard("Přelož tento text (česky ↔ anglicky)")),
+                pystray.MenuItem("Vysvětli schránku", lambda: self._clipboard("Vysvětli mi jednoduše tento text")))),
+            pystray.MenuItem("STOP – zastavit vše", lambda: self.rt.call_soon(self.rt.stop_all)),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Ukončit", self.quit),
         )
         self.tray = pystray.Icon("JARVIS", img, "JARVIS", menu)
         self.tray.run()
+
+    def _clipboard(self, instruction: str) -> None:
+        """Tray → clipboard assistant. The clipboard is read only now, on this explicit click."""
+        try:
+            text = self.rt.platform.clipboard_get()
+        except Exception as e:
+            log.warning("clipboard: %s", e)
+            return
+        if not text.strip():
+            self.rt.notify("Schránka je prázdná", "Nejdřív zkopíruj nějaký text.", speak=False)
+            return
+        self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat"))
+        self.open_chat("chat")
 
     def _hotkeys(self) -> None:
         try:

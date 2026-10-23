@@ -1,4 +1,5 @@
 import "./chat.css";
+import "./taskcard.css";
 import { fmtSize, fmtTime, h, icon, KIND_ICON, toast, TOOL_ICON } from "./dom";
 import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, ToolCard } from "./protocol";
@@ -321,7 +322,8 @@ export class ChatView {
   private confirmCard(m: ServerMsg) {
     const card = h("div", { class: "confirm", "data-confirm": m.id },
       icon("shield-warning", "ph-fill"),
-      h("div", { class: "confirm-text" }, h("strong", {}, "Potvrdit akci?"), h("span", {}, String(m.description || "").replace(/^[^\p{L}\p{N}]+/u, ""))),
+      h("div", { class: "confirm-text" }, h("strong", {}, "Potvrdit akci?"), h("span", {}, String(m.description || "").replace(/^[^\p{L}\p{N}]+/u, "")),
+        (m.details || []).length ? h("ul", { class: "confirm-details" }, ...(m.details as string[]).map((d) => h("li", { title: d }, d))) : null),
       h("div", { class: "confirm-btns" },
         h("button", { class: "btn danger", type: "button", onclick: () => answer(false) }, "Ne"),
         h("button", { class: "btn primary", type: "button", onclick: () => answer(true) }, "Ano, proveď")));

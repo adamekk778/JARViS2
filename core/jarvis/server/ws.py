@@ -118,7 +118,7 @@ class Connection:
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
                         media=rt.media_state, shelf=[rt.public_attachment(a) for a in rt.shelf],
                         timers=rt.timers.list(), voice=self._voice_status(),
-                        pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current,
+                        pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current, task=rt.tasks.current,
                         pet_mode=rt.cfg.character.pet_mode,
                         update=rt.updater.status if rt.updater else None)
 

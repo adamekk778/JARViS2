@@ -49,3 +49,11 @@ def test_secrets_file_fallback():
     assert secrets.get("groq") == "abc"
     secrets.set("groq", "")
     assert secrets.get("groq") == ""
+
+
+def test_2_1_defaults():
+    from jarvis import config
+
+    c = config.Config()
+    assert c.notch.pinned is False and c.appearance.sounds is True and c.appearance.sound_volume == 30
+    assert c.hotkeys.stop_all == "ctrl+alt+x" and c.agent.mode is False and c.brain.local_mode == "balanced"

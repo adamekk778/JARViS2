@@ -23,6 +23,7 @@ MOODS.filter((m) => !only || m === only).forEach((m, i) => {
   const stage = document.createElement("div");
   stage.className = "stage";
   const b = new Blob({ size: Number(params.get("size")) || 110, trackCursor: false });
+  ((window as any).__blobs ??= []).push(b);
   b.setMood(m, { badge: m === "notify" ? 3 : 0, progress: m === "working" ? 0.6 : null });
   if (m === "listening" || m === "speaking") setInterval(() => b.setLevel(0.08 + Math.random() * 0.12), 90);
   stage.append(b.el);

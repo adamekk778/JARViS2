@@ -4,6 +4,7 @@ import { ChatView } from "../shared/chat";
 import { fmtSize, h, icon, KIND_ICON, toast } from "../shared/dom";
 import type { Attachment } from "../shared/protocol";
 import type { JarvisClient } from "../shared/ws";
+import { TaskCard } from "../shared/taskcard";
 
 export type Section = "chat" | "quick" | "system" | "files" | "tools" | "settings";
 
@@ -31,6 +32,7 @@ export function buildPanel(ctx: PanelCtx) {
   let media: any = {};
   let update: any = null;
   let current: Section = "chat";
+  let agentBtn: HTMLElement | undefined;
   let mood = "idle";
 
   // ---------- chat (centre) ----------
@@ -57,7 +59,9 @@ export function buildPanel(ctx: PanelCtx) {
         h("button", { class: "p-icon big", type: "button", "aria-label": "Play/pauza", onclick: () => quick("media_control", { action: "play_pause" }) }, icon(media.playing ? "pause" : "play", "ph-fill")),
         h("button", { class: "p-icon", type: "button", "aria-label": "Další", onclick: () => quick("media_control", { action: "next" }) }, icon("skip-forward", "ph-fill"))));
   };
+  const taskCard = new TaskCard(client, { compact: true, hideWhenIdle: true });
   const right = h("aside", { class: "p-right" },
+    taskCard.el,
     mediaCard,
     h("div", { class: "p-card" },
       h("div", { class: "p-card-head" }, h("span", {}, "Rychlé akce"), h("button", { class: "p-icon sm", type: "button", "aria-label": "Všechny akce", onclick: () => show("quick") }, icon("squares-four"))),
@@ -84,10 +88,17 @@ export function buildPanel(ctx: PanelCtx) {
       big("headphones", "Fokus zap/vyp", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "accent"),
       big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" })),
       big("arrow-square-down", "Na plochu", () => ctx.undock()),
-      big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" }))),
+      big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" })),
+      (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }))),
+      big("hand-palm", "STOP", () => client.send("stop_all"), "danger")),
+    h("div", { class: "timers-row clip-row" }, h("span", {}, icon("clipboard-text"), " Schránka"),
+      ...([["Shrň", "Shrň stručně text, který mám ve schránce."], ["Přelož", "Přelož text ze schránky (česky ↔ anglicky)."],
+        ["Vysvětli", "Vysvětli mi jednoduše text, který mám ve schránce."]] as const).map(([label, text]) =>
+        h("button", { class: "p-pill", type: "button", onclick: () => { show("chat"); client.send("user_text", { text, attachments: [] }); } }, label))),
     h("div", { class: "timers-row" }, h("span", {}, icon("timer"), " Minutka"),
       ...[1, 5, 10, 25].map((m) => h("button", { class: "p-pill", type: "button", onclick: () => quick("set_timer", { seconds: m * 60, label: `${m} min` }) }, `+${m} min`))));
 
+  const syncAgent = () => agentBtn?.classList.toggle("accent", !!settings?.agent?.mode);
   const sysVals: Record<string, HTMLElement> = {};
   const stat = (k: string, ic: string, label: string) => h("div", { class: "stat" }, icon(ic), h("span", {}, label), (sysVals[k] = h("b", {}, "–")));
   const weatherBox = h("div", { class: "weather" }, h("span", { class: "muted" }, "Počasí se načítá…"));
@@ -206,9 +217,9 @@ export function buildPanel(ctx: PanelCtx) {
     update = m.update;
     const name = settings?.general?.user_name;
     chat.setGreeting(name ? `Ahoj, ${name}! Jak ti dnes můžu pomoct?` : "Ahoj! Jak ti dnes můžu pomoct?");
-    renderShelf(); renderMedia(); renderSettings(); renderUpdate();
+    renderShelf(); renderMedia(); renderSettings(); renderUpdate(); syncAgent();
   });
-  client.on("settings_changed", (m) => { settings = m.settings; if (current === "settings") renderSettings(); });
+  client.on("settings_changed", (m) => { settings = m.settings; syncAgent(); if (current === "settings") renderSettings(); });
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
   client.on("media", (m) => { media = m; renderMedia(); });
   client.on("update_status", (m) => { update = m; renderUpdate(); });

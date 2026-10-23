@@ -86,6 +86,7 @@ class Notch(BaseModel):
     close_delay_ms: int = 400
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
+    pinned: bool = False   # big panel stays open (also after restart)
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
 
@@ -94,6 +95,8 @@ class Appearance(BaseModel):
     theme: Literal["stark", "light"] = "stark"
     accent: str = "#2ee6ff"
     animations: Literal["full", "reduced"] = "full"
+    sounds: bool = True        # subtle interface sounds in the notch
+    sound_volume: int = 30     # 0–100
 
 
 class Hotkeys(BaseModel):

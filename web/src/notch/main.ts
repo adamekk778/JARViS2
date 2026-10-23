@@ -5,6 +5,8 @@ import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
+import { configureSounds, play } from "../shared/sounds";
+import { stopButton, type Task } from "../shared/taskcard";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -38,6 +40,9 @@ let liveText = "";
 let alertTimer = 0, lingerTimer = 0, openTimer = 0, closeTimer = 0, uiMoodTimer = 0;
 let uiMood: Mood | null = null; // opening / closing / dragged flashes
 let activity = "";
+let pinBtn: HTMLElement;
+let task: Task | null = null;
+let capturing = false;
 
 // ---------- DOM ----------
 const blob = new Blob({ size: 64 });
@@ -46,7 +51,8 @@ const actText = h("span", { class: "act" });
 
 const barLeft = h("div", { class: "bar-side l" },
   h("button", { class: "n-btn", type: "button", title: "Chat", "aria-label": "Chat", onclick: () => openPanel("chat") }, icon("chat-circle-dots")));
-const barRight = h("div", { class: "bar-side r" },
+const barStop = stopButton(client, "sm");
+const barRight = h("div", { class: "bar-side r" }, barStop,
   h("button", { class: "n-btn", type: "button", title: "Mluvit (Ctrl+Alt+Mezerník)", "aria-label": "Mluvit", onclick: () => client.send("push_to_talk") }, icon("microphone")),
   h("button", { class: "n-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six")));
 
@@ -55,7 +61,10 @@ const bubbleTranscript = h("div", { class: "b-transcript" });
 const bubbleTool = h("div", { class: "b-tool" });
 const bubbleAnswer = h("div", { class: "b-answer md" });
 const bubbleConfirm = h("div", { class: "b-confirm" });
-const bubble = h("div", { class: "n-bubble" }, bubbleState, bubbleTranscript, bubbleTool, bubbleAnswer, bubbleConfirm);
+const bubbleTask = h("div", { class: "b-task" });
+const liveStop = stopButton(client, "sm");
+const bubble = h("div", { class: "n-bubble" }, bubbleState, bubbleTask, bubbleTranscript, bubbleTool, bubbleAnswer, bubbleConfirm);
+const capChip = h("span", { class: "n-capture", hidden: true, title: "JARVIS se právě dívá na obrazovku" }, h("i", { class: "dot" }), "Vidím obrazovku");
 
 const panel = buildPanel({
   client,
@@ -68,14 +77,20 @@ const panelHead = h("div", { class: "p-head" },
   h("div", { class: "p-head-r" },
     h("button", { class: "p-icon", type: "button", title: "Nová konverzace", "aria-label": "Nová konverzace", onclick: () => client.send("new_chat") }, icon("note-pencil")),
     h("button", { class: "p-icon", type: "button", title: "Velké okno chatu", "aria-label": "Velké okno", onclick: () => openChat("chat") }, icon("arrows-out-simple")),
-    h("button", { class: "p-icon pin", type: "button", title: "Připnout", "aria-label": "Připnout", onclick: (e: Event) => { pinned = !pinned; (e.currentTarget as HTMLElement).classList.toggle("on", pinned); } }, icon("push-pin")),
-    h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { pinned = false; settle(true); } }, icon("minus"))));
+    (pinBtn = h("button", { class: "p-icon pin", type: "button", title: "Připnout (zůstane otevřený i po restartu)", "aria-label": "Připnout", onclick: () => setPinned(!pinned) }, icon("push-pin"))),
+    h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { if (pinned) setPinned(false); settle(true); } }, icon("minus"))));
 const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
+function setPinned(v: boolean, save = true) {
+  pinned = v;
+  pinBtn.classList.toggle("on", v);
+  if (save) client.send("settings_set", { patch: { notch: { pinned: v } } });
+  if (!v) scheduleClose();
+}
 
 const alertTitle = h("strong");
 const alertBody = h("span");
 const alertBox = h("div", { class: "n-alert-text" }, alertTitle, alertBody);
-const inner = h("div", { class: "n-inner" }, panelWrap, blobBox, actText, barLeft, barRight, bubble, alertBox);
+const inner = h("div", { class: "n-inner" }, panelWrap, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -102,7 +117,7 @@ function sizeFor(m: Mode): [number, number] {
 function liveHeight() {
   const kids = [...bubble.children].filter((c) => (c as HTMLElement).textContent) as HTMLElement[];
   const content = kids.reduce((s, k) => s + (k === bubbleAnswer ? Math.min(118, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 4;
-  return Math.max(96, Math.min(270, content + 30));
+  return Math.max(96, Math.min(300, content + 34));
 }
 
 let lastSize = [0, 0];
@@ -196,7 +211,7 @@ shape.addEventListener("mouseleave", () => {
 });
 blobBox.addEventListener("click", () => {
   if (justDragged) return;
-  if (mode === "panel") { pinned = false; settle(true); }
+  if (mode === "panel") { if (pinned) setPinned(false); settle(true); }
   else openPanel("chat");
 });
 
@@ -251,12 +266,20 @@ window.addEventListener("drop", async (e) => {
   shape.classList.remove("dropping");
   for (const f of [...(e.dataTransfer?.files || [])]) client.send("shelf_add", { attachment_id: (await client.upload(f, f.name)).id });
 });
-window.addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "panel") { pinned = false; settle(true); } });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "panel") { if (pinned) setPinned(false); settle(true); } });
 
 // ---------- live bubble ----------
 const STATE_LABEL: Partial<Record<Mood, string>> = { listening: "Poslouchám…", thinking: "Přemýšlím…", working: "Pracuji…", waiting: "Potřebuji potvrzení" };
 function renderLive() {
   bubbleState.textContent = STATE_LABEL[coreMood] ?? "";
+  const activeTask = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
+  if (activeTask && activeTask.total) {
+    const cur = activeTask.steps.find((s) => s.status === "running") || activeTask.steps[Math.min(activeTask.done, activeTask.total - 1)];
+    bubbleTask.replaceChildren(icon("list-checks"), ` Krok ${Math.min(activeTask.done + 1, activeTask.total)}/${activeTask.total}`,
+      cur ? h("span", { class: "muted" }, ` · ${cur.title}`) : "", activeTask.status === "paused" ? h("span", { class: "muted" }, " (pozastaveno)") : "");
+  } else bubbleTask.replaceChildren();
+  liveStop.hidden = !busy();
+  barStop.hidden = !busy();
   const text = liveText.length > 600 ? "…" + liveText.slice(-600) : liveText;
   bubbleAnswer.innerHTML = text ? renderMarkdown(text) : "";
   bubbleAnswer.scrollTop = bubbleAnswer.scrollHeight;
@@ -267,6 +290,10 @@ function onMood(m: any) {
   const prev = coreMood;
   coreMood = m.mood;
   moodInfo = m;
+  if (m.mood !== prev) {
+    if (m.mood === "listening") play(prev === "idle" || prev === "sleeping" || prev === "closed" ? "wake" : "listen");
+    else if (m.mood === "error" || m.mood === "limit") play("error");
+  }
   if (m.mood === "listening" && prev !== "listening") {
     liveText = "";
     bubbleTranscript.textContent = "";
@@ -321,6 +348,8 @@ setInterval(updateActivity, 1000);
 client.onStatus((s) => { if (s !== "open") { coreMood = "offline"; updateBlob(); } });
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
+  configureSounds(m.settings?.appearance);
+  task = m.task || null;
   cfg = { ...cfg, ...(m.settings?.notch || {}) };
   if (!m.settings?.notch?.expanded_width || m.settings.notch.expanded_width < 900) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
   const ch = m.settings?.character;
@@ -331,10 +360,11 @@ client.on("welcome", (m) => {
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
   onMood(m.mood || { mood: m.busy ? "thinking" : "idle" });
-  settle();
+  if (m.settings?.notch?.pinned) { setPinned(true, false); openPanel(); } else settle();
 });
 client.on("settings_changed", (m) => {
   applyAppearance(m.settings);
+  configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
   if (ch) blob.setColor(ch.color, ch.glow || undefined);
   petMode = !!ch?.pet_mode;
@@ -355,7 +385,8 @@ client.on("confirm_request", (m) => {
   pendingConfirm = m.id;
   const answer = (ok: boolean) => { client.send("confirm_response", { id: m.id, approved: ok }); pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); };
   bubbleConfirm.replaceChildren(
-    h("span", {}, icon("shield-warning", "ph-fill"), " ", String(m.description)),
+    h("span", {}, icon("shield-warning", "ph-fill"), " ", String(m.description),
+      (m.details || []).length ? h("span", { class: "muted", title: (m.details as string[]).join("\n") }, ` (${(m.details as string[]).length}× – detail v panelu)`) : ""),
     h("button", { class: "n-pill no", type: "button", onclick: () => answer(false) }, "Ne"),
     h("button", { class: "n-pill yes", type: "button", onclick: () => answer(true) }, "Ano"));
   if (mode !== "panel") setMode("live");
@@ -363,7 +394,19 @@ client.on("confirm_request", (m) => {
 });
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
-client.on("notify", (m) => showAlert(m.title, m.body));
+client.on("notify", (m) => { showAlert(m.title, m.body); play("notify"); });
+client.on("task_update", (m) => {
+  const prevStatus = task?.id === m.task?.id ? task?.status : null;
+  task = m.task;
+  if (prevStatus && prevStatus !== "done" && task?.status === "done" && (task?.total || 0) > 1) play("done");
+  renderLive();
+});
+client.on("screen_capture", (m) => {
+  capturing = !!m.active;
+  capChip.hidden = !capturing;
+  shape.classList.toggle("capturing", capturing);
+});
+client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => { media = m; updateActivity(); });
 client.on("timers", (m) => { timers = m.items || []; updateActivity(); });
 client.on("quick_result", (m) => { if (/timer/.test(m.action)) client.send("timers_get"); });

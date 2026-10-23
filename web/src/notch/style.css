@@ -171,3 +171,25 @@ html.native .n-inner { box-shadow: none !important; }
 .sw-black { background: radial-gradient(circle at 35% 30%, #3a414c, #030405); } .sw-midnight { background: radial-gradient(circle at 35% 30%, #3a4f82, #04060f); }
 .sw-violet { background: radial-gradient(circle at 35% 30%, #6a4aa6, #0b0414); } .sw-rose { background: radial-gradient(circle at 35% 30%, #a5507a, #12040b); }
 .sw-white { background: radial-gradient(circle at 35% 30%, #fff, #9aa6b6); }
+
+/* ---------- 2.1: task step, STOP, screen-capture indicator ---------- */
+.b-task { color: #cfd8e3; font-size: 12.5px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-task i { color: var(--accent); }
+.b-task .muted, .b-confirm .muted { color: #8c99a8; }
+.stop-btn.sm { height: 26px; padding: 0 10px; font-size: 11px; }
+.n-inner > .stop-btn { position: absolute; right: 14px; top: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.notch[data-mode="live"] .n-inner > .stop-btn:not([hidden]) { opacity: 1; pointer-events: auto; }
+.bar-side .stop-btn { align-self: center; }
+.n-capture { position: absolute; left: 14px; top: 9px; display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--font); color: #ffb3b6; white-space: nowrap; }
+.n-capture .dot { width: 7px; height: 7px; border-radius: 50%; background: #ff4048; box-shadow: 0 0 8px #ff4048; animation: cap-blink 1.2s infinite; }
+.notch[data-mode="closed"] .n-capture { font-size: 0; gap: 0; left: 12px; top: 13px; }
+.notch[data-mode="panel"] .n-capture { left: auto; right: 190px; top: 16px; }
+@keyframes cap-blink { 50% { opacity: .35; } }
+:root[data-motion="reduced"] .n-capture .dot { animation: none; }
+.n-inner > .n-capture:not([hidden]) { opacity: 1; }
+.n-capture[hidden] { display: none; }
+.n-inner > .stop-btn { top: 12px; bottom: auto; right: 16px; }
+.n-bubble > * { flex-shrink: 0; }
+.qbtn.danger i { color: var(--danger); }
+.p-right .taskcard { background: rgb(255 255 255 / .04); border-color: rgb(255 255 255 / .06); }
+.clip-row { margin-top: 6px; }

@@ -178,7 +178,8 @@ class Agent:
                 rt.bus.publish("state", state="acting")
                 label = describe_call(call.name, call.arguments)
                 rt.bus.publish("tool_start", id=call.id, name=call.name, args=call.arguments, label=label)
-                rt.tasks.action_started(label)
+                if call.name != "update_plan":
+                    rt.tasks.action_started(label)
                 t0 = time.monotonic()
                 res = await tools.call(call.name, call.arguments, rt)
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary)

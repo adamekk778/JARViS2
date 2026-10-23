@@ -84,3 +84,26 @@
 .swatch.char-violet { background: radial-gradient(circle at 35% 30%, #6a4aa6, #0b0414); }
 .swatch.char-rose { background: radial-gradient(circle at 35% 30%, #a5507a, #12040b); }
 .swatch.char-white { background: radial-gradient(circle at 35% 30%, #fff, #9aa6b6); }
+
+/* ---------- Úkoly ---------- */
+.tasks-view { padding: 24px 28px; display: grid; gap: 16px; align-content: start; overflow: auto; height: 100%; box-sizing: border-box; }
+.tasks-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tasks-head h2 { margin: 0; font-size: 20px; }
+.agent-toggle { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.tasks-cols { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.3fr); gap: 16px; min-height: 0; }
+.tasks-history { display: grid; gap: 10px; align-content: start; }
+.tasks-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.tasks-filter .input { flex: 1; min-width: 120px; }
+.tasks-filter input.input { min-width: 170px; }
+.task-list { display: grid; gap: 4px; max-height: 52vh; overflow: auto; }
+.task-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.task-row:hover, .task-row.on { background: var(--surface-2); border-color: var(--border); }
+.task-goal { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-detail { padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--border); overflow: auto; max-height: 60vh; }
+.task-detail h3 { margin: 0 0 4px; font-size: 16px; }
+.task-detail h4 { margin: 14px 0 6px; font-size: 13px; color: var(--muted); }
+.task-steps li.s-done { color: var(--ok); } .task-steps li.s-failed { color: var(--danger); }
+.task-actions { width: 100%; border-collapse: collapse; font-size: 12px; }
+.task-actions th, .task-actions td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.task-actions tr.fail td { color: var(--danger); }
+@media (max-width: 900px) { .tasks-cols { grid-template-columns: 1fr; } }

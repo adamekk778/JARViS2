@@ -71,3 +71,7 @@ body.mobile { overscroll-behavior: none; }
 body.drawer-open .drawer { transform: none; }
 body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 @media (max-width: 380px) { .ctl-grid { grid-template-columns: repeat(3, 1fr); } }
+.m-chat { display: flex; flex-direction: column; }
+.m-chat > .taskcard { margin: 8px 12px 0; flex: none; }
+.m-chat > .chat { flex: 1; min-height: 0; }
+.m-head .stop-btn { margin-left: auto; }

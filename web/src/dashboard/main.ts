@@ -5,6 +5,8 @@ import { Blob } from "../character/blob";
 import { h, icon, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildSettings, type Section } from "./settings";
+import { stopButton } from "../shared/taskcard";
+import { buildTasks } from "./tasks";
 
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);
@@ -14,11 +16,16 @@ face.setMood("offline");
 const orb = face.el;
 const brainChip = h("span", { class: "chip brain-chip", title: "Aktuální AI mozek" }, icon("brain"), "připojuji…");
 const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslech (Hey Jarvis)", "aria-label": "Zapnout nebo vypnout poslech", onclick: () => client.send("voice_toggle") }, icon("microphone"));
+const stopBtn = stopButton(client);
+stopBtn.hidden = true;
+const BUSY = ["listening", "thinking", "working", "speaking", "waiting"];
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type View = "chat" | Section;
+type Page = "tasks";
+type View = "chat" | Page | Section;
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
+  ["tasks", "list-checks", "Úkoly"],
   ["general", "user-circle", "Obecné"],
   ["brain", "brain", "Mozek (AI)"],
   ["voice", "waveform", "Hlas"],
@@ -39,27 +46,32 @@ const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
   h("div", { class: "chat-wrap" }, chat.el));
 const settingsHost = h("section", { class: "settings-view" });
-main.append(chatView, settingsHost);
+const tasks = buildTasks(client);
+const pages: Record<Page, { el: HTMLElement; show?: () => void }> = { tasks };
+main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
 
 const settingsUI = buildSettings(client, settingsHost);
 
 function go(v: View) {
   nav.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
+  const page = pages[v as Page];
   chatView.hidden = v !== "chat";
-  settingsHost.hidden = v === "chat";
-  if (v !== "chat") settingsUI.show(v as Section);
+  settingsHost.hidden = v === "chat" || !!page;
+  for (const [k, p] of Object.entries(pages)) p.el.hidden = k !== v;
+  if (page) page.show?.();
+  else if (v !== "chat") settingsUI.show(v as Section);
   else chat.focus();
   history.replaceState(null, "", `#${v}`);
 }
 
 for (const [v, ic, label] of NAV) {
   nav.append(h("button", { type: "button", "data-view": v, title: label, onclick: () => go(v) }, icon(ic), h("span", {}, label)));
-  if (v === "chat") nav.append(h("div", { class: "rail-sep" }));
+  if (v === "tasks") nav.append(h("div", { class: "rail-sep" }));
 }
 
 const header = h("header", { class: "topbar" },
   h("div", { class: "brand" }, orb, h("strong", {}, "JARVIS")),
-  h("div", { class: "top-right" }, brainChip, voiceBtn));
+  h("div", { class: "top-right" }, stopBtn, brainChip, voiceBtn));
 
 document.getElementById("app")!.append(h("div", { class: "shell" }, header, nav, main));
 
@@ -76,7 +88,8 @@ client.on("welcome", (m) => {
   voiceBtn.hidden = !m.voice?.available;
 });
 client.on("settings_changed", (m) => { applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
-client.on("mood", (m) => face.setMood(m.mood, { badge: m.badge, progress: m.progress }));
+client.on("mood", (m) => { face.setMood(m.mood, { badge: m.badge, progress: m.progress }); stopBtn.hidden = !BUSY.includes(m.mood); });
+client.on("stopped", () => toast("Zastaveno.", "ok"));
 client.on("level", (m) => face.setLevel(m.rms || 0));
 client.on("brain", (m) => (brainChip.lastChild!.textContent = `${m.provider} · ${m.model}`));
 client.on("voice_status", (m) => { voiceBtn.classList.toggle("on", !!m.listening); voiceBtn.hidden = !m.available; });
