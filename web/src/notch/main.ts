@@ -49,6 +49,12 @@ let capturing = false;
 const blob = new Blob({ size: 64 });
 const blobBox = h("div", { class: "n-blob" }, blob.el);
 const actText = h("span", { class: "act" });
+const glow = h("div", { class: "n-glow", "aria-hidden": "true" });
+const progressBar = h("b");
+const progress = h("div", { class: "n-progress", "aria-hidden": "true" }, progressBar);
+const clock = h("b");
+const weatherText = h("span");
+const barTop = h("div", { class: "bar-top" }, clock, weatherText);
 
 const barLeft = h("div", { class: "bar-side l" },
   h("button", { class: "n-btn", type: "button", title: "Chat", "aria-label": "Chat", onclick: () => openPanel("chat") }, icon("chat-circle-dots")));
@@ -91,7 +97,7 @@ function setPinned(v: boolean, save = true) {
 const alertTitle = h("strong");
 const alertBody = h("span");
 const alertBox = h("div", { class: "n-alert-text" }, alertTitle, alertBody);
-const inner = h("div", { class: "n-inner" }, panelWrap, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop);
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -108,7 +114,7 @@ function openChat(view = "chat") {
 function sizeFor(m: Mode): [number, number] {
   switch (m) {
     case "panel": return [cfg.expanded_width || 1000, Math.max(340, cfg.expanded_height || 390)];
-    case "bar": return [360, 96];
+    case "bar": return [400, 104];
     case "hover": return [Math.round(cfg.width * 1.1), Math.round(cfg.height * 1.15)];
     case "alert": return [440, 92];
     case "live": return [560, liveHeight()];
@@ -152,6 +158,7 @@ function apply(m: Mode) {
   const [w, hh] = sizeFor(m);
   const growing = w > lastSize[0] || hh > lastSize[1];
   window.clearTimeout((apply as any)._t);
+  shape.classList.toggle("shrinking", !growing && (w < lastSize[0] || hh < lastSize[1]));
   if (growing) resizeWindow(w + PAD * 2, hh + PAD);
   shape.style.setProperty("--w", `${w}px`);
   shape.style.setProperty("--h", `${hh}px`);
@@ -369,10 +376,19 @@ function showAlert(title: string, body: string) {
 let timers: any[] = [];
 let media: any = {};
 function updateActivity() {
+  const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
+  shape.classList.toggle("has-task", !!(t && t.total));
+  progressBar.style.width = t && t.total ? `${Math.round((t.done / t.total) * 100)}%` : "0";
+  const now = new Date();
+  clock.textContent = now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  if (!weatherText.dataset.w) weatherText.textContent = now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" });
   if (timers.length) {
     const r = Math.max(0, Math.round(timers[0].ends_at - Date.now() / 1000));
     activity = `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
     actText.replaceChildren(icon("timer"), " ", activity);
+  } else if (t && t.total) {
+    activity = `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`;
+    actText.replaceChildren(icon("list-checks"), " ", activity);
   } else if (media?.playing && media.title) {
     activity = media.title;
     actText.replaceChildren(icon("music-notes"), " ", activity);
@@ -439,6 +455,7 @@ client.on("notify", (m) => { showAlert(m.title, m.body); play("notify"); });
 client.on("task_update", (m) => {
   const prevStatus = task?.id === m.task?.id ? task?.status : null;
   task = m.task;
+  updateActivity();
   if (prevStatus && prevStatus !== "done" && task?.status === "done" && (task?.total || 0) > 1) play("done");
   renderLive();
 });
@@ -449,6 +466,15 @@ client.on("screen_capture", (m) => {
 });
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => { media = m; updateActivity(); });
+let weatherAsked = 0;
+client.on("weather", (m) => {
+  if (m.error) return;
+  weatherText.dataset.w = "1";
+  weatherText.textContent = `${Math.round(m.temp)}° · ${m.city}`;
+});
+shape.addEventListener("mouseenter", () => {
+  if (Date.now() - weatherAsked > 30 * 60_000) { weatherAsked = Date.now(); client.send("weather_get"); }
+});
 client.on("timers", (m) => { timers = m.items || []; updateActivity(); });
 client.on("quick_result", (m) => { if (/timer/.test(m.action)) client.send("timers_get"); });
 client.on("pet_state", (m) => { if (m.action === "open_panel") setTimeout(() => openPanel("chat"), 300); });
