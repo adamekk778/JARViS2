@@ -47,7 +47,9 @@ class Runtime:
 
     # ---------- lifecycle ----------
     async def start(self) -> None:
-        self.bus.bind_loop(asyncio.get_running_loop())
+        self.loop = asyncio.get_running_loop()
+        self.bus.bind_loop(self.loop)
+        self.store.transcribe = self._transcribe_file
         try:
             from .scheduler import Scheduler
 
@@ -68,6 +70,25 @@ class Runtime:
             self.scheduler.stop()
         if self.mcp:
             await self.mcp.stop()
+
+    # ---------- thread bridges (tray, hotkeys, voice run in other threads) ----------
+    loop: asyncio.AbstractEventLoop | None = None
+
+    def submit(self, coro):
+        """Run a coroutine on the runtime loop from any thread."""
+        if self.loop is None:
+            raise RuntimeError("runtime not started")
+        return asyncio.run_coroutine_threadsafe(coro, self.loop)
+
+    def call_soon(self, fn, *args) -> None:
+        if self.loop is not None:
+            self.loop.call_soon_threadsafe(fn, *args)
+
+    def _transcribe_file(self, path) -> str:
+        stt = getattr(self.voice, "transcriber", None) if self.voice else None
+        if stt is None:
+            raise RuntimeError("rozpoznávání řeči není dostupné (hlasový modul neběží)")
+        return stt.transcribe_file(str(path))
 
     # ---------- helpers used by tools ----------
     def http(self) -> httpx.AsyncClient:
