@@ -39,6 +39,7 @@ class Updater:
         self._url: str | None = None
         self._task: asyncio.Task | None = None
         self._notified: str | None = None
+        self.min_size = 5_000_000  # a real JARVIS-Setup.exe is far bigger
 
     def start(self) -> None:
         self._task = asyncio.get_running_loop().create_task(self._loop())
@@ -106,6 +107,14 @@ class Updater:
                             last = p
                             self.status["progress"] = round(p, 3)
                             self._publish()
+        if total and got != total:
+            dest.unlink(missing_ok=True)
+            raise RuntimeError("stažení se nedokončilo")
+        with open(dest, "rb") as f:
+            magic = f.read(2)
+        if dest.stat().st_size < self.min_size or magic != b"MZ":
+            dest.unlink(missing_ok=True)
+            raise RuntimeError("stažený soubor není instalátor JARVISe")
         self.status.update(state="ready", progress=1.0)
         self._publish()
         return dest
@@ -118,6 +127,8 @@ class Updater:
 
     async def download_and_install(self) -> None:
         """Called only from an explicit user action (panel button / confirmed voice request)."""
+        if self.status["state"] in ("downloading", "ready"):
+            return  # already in progress
         try:
             path = await self.download()
             self.install(path)

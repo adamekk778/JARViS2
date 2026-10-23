@@ -8,6 +8,24 @@ from .pet import Rect
 
 IS_WIN = sys.platform == "win32"
 SKIP_TITLES = ("JARVIS", "Program Manager")
+_typed = False
+
+
+def _types() -> None:
+    """64-bit safe signatures (HWND/HMONITOR are pointers; plain ints overflow c_int)."""
+    global _typed
+    if _typed or not IS_WIN:
+        return
+    from ctypes import wintypes as W
+
+    u = ctypes.windll.user32
+    for name in ("IsWindowVisible", "IsIconic", "IsZoomed", "GetWindowTextLengthW"):
+        getattr(u, name).argtypes = [W.HWND]
+    u.GetWindowTextW.argtypes = [W.HWND, W.LPWSTR, ctypes.c_int]
+    u.GetWindowRect.argtypes = [W.HWND, ctypes.POINTER(W.RECT)]
+    u.GetMonitorInfoW.argtypes = [W.HMONITOR, ctypes.c_void_p]
+    ctypes.windll.dwmapi.DwmGetWindowAttribute.argtypes = [W.HWND, W.DWORD, ctypes.c_void_p, W.DWORD]
+    _typed = True
 
 
 def monitors() -> list[tuple[Rect, Rect]]:
@@ -23,7 +41,8 @@ def monitors() -> list[tuple[Rect, Rect]]:
         _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
                     ("dwFlags", wintypes.DWORD)]
 
-    proto = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(wintypes.RECT), ctypes.c_long)
+    _types()
+    proto = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HMONITOR, wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.LPARAM)
 
     def cb(hmon, hdc, rect, data):
         mi = MONITORINFO()
@@ -53,7 +72,8 @@ def window_tops(work: Rect, limit: int = 15) -> list[Rect]:
     u = ctypes.windll.user32
     dwm = ctypes.windll.dwmapi
     found: list[Rect] = []
-    proto = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    _types()
+    proto = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
     def cb(hwnd, _):
         if len(found) >= limit:

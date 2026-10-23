@@ -109,12 +109,12 @@ let lastSize = [0, 0];
 function apply(m: Mode) {
   const [w, hh] = sizeFor(m);
   const growing = w > lastSize[0] || hh > lastSize[1];
+  window.clearTimeout((apply as any)._t);
   if (growing) resizeWindow(w + PAD * 2, hh + PAD);
   shape.style.setProperty("--w", `${w}px`);
   shape.style.setProperty("--h", `${hh}px`);
   shape.dataset.mode = m;
   if (!growing) {
-    window.clearTimeout((apply as any)._t);
     (apply as any)._t = window.setTimeout(() => resizeWindow(w + PAD * 2, hh + PAD), 460);
   }
   lastSize = [w, hh];
@@ -140,8 +140,8 @@ function flashUi(mood: Mood, ms: number) {
 /** Which mood the character shows: core mood, layered with UI-only moods (spec §3). */
 function displayMood(): Mood {
   if (demoMood) return demoMood;
-  if (uiMood) return uiMood;
   const calm = coreMood === "idle" || coreMood === "sleeping";
+  if (uiMood && calm) return uiMood;
   if (mode === "closed") return calm ? (coreMood === "sleeping" ? "sleeping" : "closed") : coreMood;
   if (mode === "hover" && calm) return "hover";
   if (mode === "bar" && calm) return "expanded";
@@ -166,7 +166,11 @@ function settle(force = false) {
 
 function scheduleClose() {
   window.clearTimeout(closeTimer);
-  closeTimer = window.setTimeout(() => { if (!hovering && !pinned) settle(true); }, cfg.close_delay_ms);
+  closeTimer = window.setTimeout(() => {
+    if (hovering || pinned) return;
+    if (busy()) setMode("live");
+    else settle(true);
+  }, cfg.close_delay_ms);
 }
 
 function openPanel(section?: Parameters<typeof panel.show>[0]) {
@@ -357,6 +361,7 @@ client.on("confirm_request", (m) => {
   if (mode !== "panel") setMode("live");
   renderLive();
 });
+client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
 client.on("notify", (m) => showAlert(m.title, m.body));
 client.on("media", (m) => { media = m; updateActivity(); });

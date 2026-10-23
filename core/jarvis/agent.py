@@ -72,6 +72,7 @@ class Agent:
         fut = self._confirms.get(cid)
         if fut and not fut.done():
             fut.set_result(bool(approved))
+            self.rt.bus.publish("confirm_resolved", id=cid, approved=bool(approved))
             return True
         return False
 

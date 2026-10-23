@@ -37,7 +37,15 @@ class PetApi:
             self._c.sim.interact() if self._c.sim else None
 
     def dock(self) -> None:
+        """Double-click: fly back up into the notch, then hide."""
+        with self._c.lock:
+            if self._c.sim:
+                self._c.sim.go_home()
+                return
         self._c.dock()
+
+    def set_scale(self, dpr: float) -> None:
+        self._c.scale = max(0.5, min(4.0, float(dpr or 1)))
 
     def bubble(self, on: bool) -> None:
         self._c.big = bool(on)
@@ -61,7 +69,9 @@ class PetController:
         self.big = False
         self._hidden_fs = False
         self._last_state: tuple | None = None
-        self._grab_off = (0.0, 0.0)
+        self.scale = 1.0          # devicePixelRatio of the pet window (CSS px → physical px)
+        self._placed: tuple | None = None
+        self._saved_at = 0.0
 
     # ---------- window ----------
     def create_window(self) -> None:
@@ -90,27 +100,39 @@ class PetController:
         elif action in ("dock", "toggle"):
             self.dock()
 
-    def _notch_point(self) -> tuple[int, int]:
-        scr = self.host._screen()
-        sx, sy, sw = (scr.x, scr.y, scr.width) if scr else (0, 0, 1920)
-        return int(sx + sw / 2 + self.rt.cfg.notch.offset_x), int(sy)
+    def _monitor(self):
+        mons = platforms.monitors()
+        i = self.rt.cfg.notch.monitor
+        return mons[i if 0 <= i < len(mons) else 0]
 
-    def undock(self) -> None:
+    def _notch_point(self) -> tuple[int, int]:
+        mon, _work = self._monitor()  # same (physical-pixel) source as the work area
+        return int(mon.x + mon.w / 2 + self.rt.cfg.notch.offset_x * self.scale), int(mon.y)
+
+    def undock(self, restore: bool = False) -> None:
         if not self.win:
             return
-        work = platforms.work_area(self.rt.cfg.notch.monitor)
+        _mon, work = self._monitor()
         nx, ny = self._notch_point()
+        ch = self.rt.cfg.character
         with self.lock:
-            self.sim = PetSim(work, size=96, notch_point=(nx, ny), start_x=nx)
-            self.sim.y = float(ny + 140)
-            self.sim.action = "fall"
+            if restore and ch.pet_x >= 0:
+                self.sim = PetSim(work, size=int(96 * self.scale), notch_point=(nx, ny), start_x=ch.pet_x)
+                self.sim.action = "idle"
+            else:
+                self.sim = PetSim(work, size=int(96 * self.scale), notch_point=(nx, ny), start_x=nx)
+                self.sim.y = float(ny + 140 * self.scale)
+                self.sim.action = "fall"
         self.active = True
-        self.rt.call_soon(self.rt.update_config, {"character": {"pet_mode": True}})
+        self._placed = None
+        if not ch.pet_mode:
+            self.rt.call_soon(self.rt.update_config, {"character": {"pet_mode": True}})
         self._place()
-        try:
-            self.win.show()
-        except Exception as e:
-            log.warning("pet show: %s", e)
+        if not self._hidden_fs:
+            try:
+                self.win.show()
+            except Exception as e:
+                log.warning("pet show: %s", e)
 
     def dock(self) -> None:
         self.active = False
@@ -119,6 +141,8 @@ class PetController:
                 self.win.hide()
         except Exception:
             pass
+        with self.lock:
+            self.sim = None
         self.rt.call_soon(self.rt.update_config, {"character": {"pet_mode": False}})
 
     def grab(self) -> None:
@@ -138,13 +162,21 @@ class PetController:
 
     # ---------- loop ----------
     def _place(self) -> None:
+        """Move/resize the window only when something actually changed (each call hops to the GUI thread)."""
         if not (self.win and self.sim):
             return
         w, h = BIG if self.big else SMALL
         fx, fy = FOOT_BIG if self.big else FOOT_SMALL
+        # sim works in physical pixels (Win32); the page lays out in CSS pixels → scale the foot offset
+        x, y = int(round(self.sim.x - fx * self.scale)), int(round(self.sim.y - fy * self.scale))
+        target = (x, y, w, h)
+        if target == self._placed:
+            return
         try:
-            self.win.resize(w, h)
-            self.win.move(int(self.sim.x - fx), int(self.sim.y - fy))
+            if not self._placed or self._placed[2:] != (w, h):
+                self.win.resize(w, h)
+            self.win.move(x, y)
+            self._placed = target
         except Exception as e:
             log.debug("pet move: %s", e)
 
@@ -163,14 +195,20 @@ class PetController:
                 if now >= next_scan:
                     tops = platforms.window_tops(self.sim.work)
                     next_scan = now + 0.5
-                    self.sim.set_focus(self.rt.mood.current["mood"] == "focus")
+                    last = self.rt.mood._last or {}  # cached by the loop thread; no cross-thread compute()
+                    self.sim.set_focus(last.get("mood") == "focus")
                     fs = winutil.foreground_is_fullscreen() and self.rt.cfg.notch.hide_in_fullscreen
                     if fs != self._hidden_fs:
                         self._hidden_fs = fs
                         (self.win.hide if fs else self.win.show)()
                 with self.lock:
+                    if not self.sim:
+                        continue
                     frame = self.sim.step(dt, tops)
                     docked = self.sim.docked
+                if now - self._saved_at > 30 and frame.action not in ("held", "return"):
+                    self._saved_at = now
+                    self.rt.call_soon(self.rt.update_config, {"character": {"pet_x": int(frame.x), "pet_y": int(frame.y)}})
                 self._place()
                 state = (frame.action, frame.facing)
                 if state != self._last_state:

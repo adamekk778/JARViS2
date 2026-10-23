@@ -153,6 +153,7 @@ export class ChatView {
     c.on("assistant_done", (m) => this.done(m));
     c.on("confirm_request", (m) => this.confirmCard(m));
     c.on("confirm_timeout", (m) => this.list.querySelector(`[data-confirm="${m.id}"]`)?.classList.add("resolved"));
+    c.on("confirm_resolved", (m) => this.list.querySelector(`[data-confirm="${m.id}"]`)?.classList.add("resolved"));
     c.on("error", (m) => toast(m.message, "error", 6000));
     c.on("tts_audio", (m) => this.play(c.url(m.attachment.url)));
     c.on("quick_result", (m) => m.summary && toast(m.summary, m.ok ? "ok" : "error"));

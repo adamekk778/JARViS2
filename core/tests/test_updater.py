@@ -46,7 +46,7 @@ async def test_same_version_no_update(rt):
 
 
 async def test_download_reports_progress_but_never_installs_itself(rt, monkeypatch):
-    payload = b"x" * 200_000
+    payload = b"MZ" + b"x" * 200_000
 
     def handler(r):
         if r.url.path.endswith("latest"):
@@ -54,6 +54,7 @@ async def test_download_reports_progress_but_never_installs_itself(rt, monkeypat
         return httpx.Response(200, content=payload, headers={"content-length": str(len(payload))})
 
     u = Updater(rt, httpx.MockTransport(handler), current="2.0.8")
+    u.min_size = 1000
     installed = []
     monkeypatch.setattr(u, "install", lambda p: installed.append(p))
     await u.check()

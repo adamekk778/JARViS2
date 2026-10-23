@@ -29,13 +29,14 @@ SERVER_TYPES = [
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
-    "mood", "pet_state", "update_status",
+    "mood", "pet_state", "update_status", "confirm_resolved",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get"}
+LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+              "update_install"}
 
 
 class Connection:
@@ -281,7 +282,7 @@ class Connection:
         elif t == "pet_command":
             action = m.get("action", "")
             if action in ("undock", "dock", "toggle") and rt.pet_hook:
-                rt.pet_hook(action)
+                await asyncio.to_thread(rt.pet_hook, action)  # pywebview calls block
             elif action in ("undock", "dock", "toggle"):
                 rt.update_config({"character": {"pet_mode": action == "undock" or (action == "toggle" and not rt.cfg.character.pet_mode)}})
         elif t == "update_check":

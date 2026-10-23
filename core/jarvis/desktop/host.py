@@ -221,7 +221,7 @@ class DesktopHost:
                 self.open_chat("chat")
             if self.rt.cfg.character.pet_mode:
                 time.sleep(1.5)
-                self.pet.undock()
+                self.pet.undock(restore=True)
 
         webview.start(started, gui="edgechromium" if sys.platform == "win32" else None,
                       private_mode=False, storage_path=str(__import__("jarvis.paths", fromlist=["sub"]).sub("webview")))

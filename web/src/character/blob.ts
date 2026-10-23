@@ -24,8 +24,9 @@ function eyePath(e: Eye): string {
   return `M ${f(-w)} 0 C ${f(-w)} ${f(-h * top)} ${f(w)} ${f(-h * top)} ${f(w)} 0 C ${f(w)} ${f(h * bottom)} ${f(-w)} ${f(h * bottom)} ${f(-w)} 0 Z`;
 }
 
+const prefersReduced = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 function reducedMotion(): boolean {
-  return document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return document.documentElement.dataset.motion === "reduced" || !!prefersReduced?.matches;
 }
 
 export interface BlobOptions {
@@ -105,9 +106,7 @@ export class Blob {
     this.el.append(svg, this.acc);
 
     this.setColor(opts.color ?? "black", opts.glow);
-    if (opts.trackCursor !== false) {
-      window.addEventListener("pointermove", (e) => this.lookAt(e.clientX, e.clientY), { passive: true });
-    }
+    if (opts.trackCursor !== false) window.addEventListener("pointermove", this.onPointer, { passive: true });
     this.renderAccessories();
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -148,8 +147,13 @@ export class Blob {
     this.el.style.setProperty("--blob-glow", glow || "var(--accent, #2ee6ff)");
   }
 
+  private onPointer = (e: PointerEvent) => this.lookAt(e.clientX, e.clientY);
+  private detachedSince = 0;
+
   destroy() {
     cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    window.removeEventListener("pointermove", this.onPointer);
     this.el.remove();
   }
 
@@ -226,8 +230,16 @@ export class Blob {
 
   // ---------- animation ----------
   private frame = (now: number) => {
+    if (!this.el.isConnected) {
+      // thrown away by a re-render → stop for good after a moment (lets it be garbage-collected)
+      this.detachedSince ||= now;
+      if (now - this.detachedSince > 3000) { this.destroy(); return; }
+      this.raf = requestAnimationFrame(this.frame);
+      return;
+    }
+    this.detachedSince = 0;
     this.raf = requestAnimationFrame(this.frame);
-    if (!this.el.isConnected) return;
+    if (document.hidden) return;
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     const k = 1 - Math.exp(-dt * 12);

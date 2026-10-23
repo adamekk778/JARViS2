@@ -65,6 +65,16 @@ function say(t: string, done = false) {
 // ---------- mouse ----------
 let down: { x: number; y: number } | null = null;
 let moved = false;
+let suppressClick = false;
+let clickTimer = 0;
+let dragPos: [number, number] | null = null;
+let dragRaf = 0;
+const dpr = () => window.devicePixelRatio || 1;
+function flushDrag() {
+  dragRaf = 0;
+  if (dragPos) api("drag", dragPos[0], dragPos[1]);
+  dragPos = null;
+}
 body.addEventListener("pointerdown", (e) => {
   if (e.button !== 0) return;
   down = { x: e.screenX, y: e.screenY };
@@ -80,20 +90,30 @@ body.addEventListener("pointermove", (e) => {
     api("grab");
     update();
   }
-  if (moved) api("drag", e.screenX, e.screenY);
+  if (moved) {
+    dragPos = [e.screenX * dpr(), e.screenY * dpr()]; // physical pixels, like the window position
+    if (!dragRaf) dragRaf = requestAnimationFrame(flushDrag);
+  }
 });
 body.addEventListener("pointerup", async () => {
   const wasDrag = moved;
   down = null;
   moved = false;
   if (wasDrag) {
+    suppressClick = true;
+    setTimeout(() => (suppressClick = false), 250);
+    if (dragRaf) { cancelAnimationFrame(dragRaf); flushDrag(); }
     held = false;
     await api("release");
     update();
   }
 });
-body.addEventListener("click", () => { if (!held) client.send("push_to_talk"); });
-body.addEventListener("dblclick", () => api("dock"));
+body.addEventListener("click", () => {
+  if (suppressClick || held) return;
+  window.clearTimeout(clickTimer);
+  clickTimer = window.setTimeout(() => client.send("push_to_talk"), 260); // wait: maybe it's a double-click
+});
+body.addEventListener("dblclick", () => { window.clearTimeout(clickTimer); api("dock"); });
 body.addEventListener("mouseenter", () => { hoverUntil = performance.now() + 2000; api("hover"); update(); });
 root.addEventListener("contextmenu", (e) => { e.preventDefault(); menu.hidden = false; });
 function hideMenu() { menu.hidden = true; }
@@ -105,6 +125,7 @@ setInterval(update, 500);
 const SIZES: Record<string, number> = { S: 80, M: 110, L: 140 };
 function applySize(s?: string) {
   const px = SIZES[s || "M"] ?? 110;
+  api("set_scale", dpr());
   blob.el.style.setProperty("--blob-size", `${px}px`);
   body.style.width = body.style.height = `${px}px`;
   body.style.left = `${110 - px / 2}px`;
@@ -123,6 +144,7 @@ client.on("level", (m) => blob.setLevel(m.rms || 0));
 client.on("transcript", (m) => { if (m.final && m.text) say(`„${m.text}“`); });
 client.on("assistant_delta", (m) => say(text.startsWith("„") ? m.text : text + m.text));
 client.on("assistant_done", (m) => say(m.text, true));
+client.on("confirm_resolved", () => showBubble(false));
 client.on("confirm_request", (m) => {
   say(`Potřebuji potvrzení: **${m.description}**`);
   answer.append(h("div", { class: "pet-confirm" },

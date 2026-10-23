@@ -31,6 +31,7 @@ export function buildPanel(ctx: PanelCtx) {
   let media: any = {};
   let update: any = null;
   let current: Section = "chat";
+  let mood = "idle";
 
   // ---------- chat (centre) ----------
   const chat = new ChatView(client, {
@@ -80,7 +81,7 @@ export function buildPanel(ctx: PanelCtx) {
       big("camera", "Screenshot", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
       big("lock", "Zamknout", () => quick("system_power", { action: "lock" })),
       big("moon", "Tmavý režim", () => quick("set_dark_mode", { dark: true })),
-      big("headphones", "Fokus", () => client.send("mood_set", { mood: "focus" }), "accent"),
+      big("headphones", "Fokus zap/vyp", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "accent"),
       big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" })),
       big("arrow-square-down", "Na plochu", () => ctx.undock()),
       big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" }))),
@@ -134,6 +135,7 @@ export function buildPanel(ctx: PanelCtx) {
   const toolsView = h("div", { class: "p-sec p-tools" }, toolsBox, h("h4", {}, "Naučené dovednosti"), skillsBox, h("h4", {}, "Integrace (MCP)"), mcpBox);
 
   const settingsView = h("div", { class: "p-sec p-settings" });
+  let previewBlob: Blob | null = null;
   const renderSettings = () => {
     if (!settings) return;
     const sw = (path: string, label: string) => {
@@ -144,7 +146,7 @@ export function buildPanel(ctx: PanelCtx) {
       return h("label", { class: "p-row" }, h("span", {}, label), h("span", { class: "switch" }, inp, h("span")));
     };
     const colors: CharacterColor[] = ["black", "midnight", "violet", "rose", "white"];
-    const preview = new Blob({ size: 64 });
+    const preview = (previewBlob ??= new Blob({ size: 64 }));
     preview.setMood("personalize");
     preview.setColor(settings.character?.color || "black", settings.character?.glow || undefined);
     settingsView.replaceChildren(
@@ -155,6 +157,13 @@ export function buildPanel(ctx: PanelCtx) {
             const sel = h("select", { class: "p-select" }, h("option", { value: "voice" }, "Jen u hlasu"), h("option", { value: "always" }, "Vždy"), h("option", { value: "never" }, "Nikdy")) as HTMLSelectElement;
             sel.value = settings.voice?.speak_mode || "voice";
             sel.onchange = () => client.send("settings_set", { patch: { voice: { speak_mode: sel.value } } });
+            return sel;
+          })()),
+        h("label", { class: "p-row" }, h("span", {}, "Animace"),
+          (() => {
+            const sel = h("select", { class: "p-select" }, h("option", { value: "full" }, "Plné"), h("option", { value: "reduced" }, "Omezené")) as HTMLSelectElement;
+            sel.value = settings.appearance?.animations || "full";
+            sel.onchange = () => client.send("settings_set", { patch: { appearance: { animations: sel.value } } });
             return sel;
           })()),
         h("button", { class: "p-pill", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), " Celé nastavení")),
@@ -210,7 +219,7 @@ export function buildPanel(ctx: PanelCtx) {
     sysVals.bat.textContent = m.battery_percent != null ? `${m.battery_percent} %` : "síť";
     sysVals.net.textContent = m.ip || "online";
   });
-  client.on("mood", (m) => { if (sysVals.net) sysVals.net.textContent = m.mood === "offline" ? "offline" : sysVals.net.textContent; });
+  client.on("mood", (m) => { mood = m.mood; if (sysVals.net) sysVals.net.textContent = m.mood === "offline" ? "offline" : sysVals.net.textContent; });
   client.on("weather", (m) => {
     if (m.error) { weatherBox.replaceChildren(h("span", { class: "muted" }, "Počasí nedostupné")); return; }
     const dn = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];

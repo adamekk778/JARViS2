@@ -46,11 +46,12 @@ Name: "{autodesktop}\JARVIS"; Filename: "{app}\JARVIS.exe"; Tasks: desktopicon
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "JARVIS"; ValueType: none; Flags: uninsdeletevalue
 
 [Run]
-Filename: "winget"; Parameters: "install -e --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Node.js (pro OmniRoute)…"; Flags: runhidden waituntilterminated; Tasks: omniroute
-Filename: "{cmd}"; Parameters: "/c ""set PATH=%PATH%;{commonpf64}\nodejs;{commonpf}\nodejs && npm install -g omniroute"""; StatusMsg: "Instaluji OmniRoute…"; Flags: runhidden waituntilterminated; Tasks: omniroute
-Filename: "winget"; Parameters: "install -e --id Ollama.Ollama --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Ollama…"; Flags: runhidden waituntilterminated; Tasks: ollama
-Filename: "winget"; Parameters: "install -e --id tailscale.tailscale --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Tailscale…"; Flags: runhidden waituntilterminated; Tasks: tailscale
+Filename: "winget"; Parameters: "install -e --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Node.js (pro OmniRoute)…"; Flags: runhidden waituntilterminated; Tasks: omniroute; Check: not WizardSilent
+Filename: "{cmd}"; Parameters: "/c ""set PATH=%PATH%;{commonpf64}\nodejs;{commonpf}\nodejs && npm install -g omniroute"""; StatusMsg: "Instaluji OmniRoute…"; Flags: runhidden waituntilterminated; Tasks: omniroute; Check: not WizardSilent
+Filename: "winget"; Parameters: "install -e --id Ollama.Ollama --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Ollama…"; Flags: runhidden waituntilterminated; Tasks: ollama; Check: not WizardSilent
+Filename: "winget"; Parameters: "install -e --id tailscale.tailscale --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Tailscale…"; Flags: runhidden waituntilterminated; Tasks: tailscale; Check: not WizardSilent
 Filename: "{app}\JARVIS.exe"; Description: "Spustit JARVIS"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\JARVIS.exe"; Parameters: "--background"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/c taskkill /im JARVIS.exe /f"; Flags: runhidden; RunOnceId: "StopJarvis"
