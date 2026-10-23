@@ -301,6 +301,7 @@ class Connection:
         elif t == "settings_get":
             await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags(),
                             presets=__import__("jarvis.llm.presets", fromlist=["PRESETS"]).PRESETS,
+                            perm_labels=__import__("jarvis.permissions", fromlist=["PERMS"]).PERMS,
                             voice=self._voice_status())
         elif t == "settings_set":
             try:

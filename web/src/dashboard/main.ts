@@ -7,6 +7,8 @@ import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildSettings, type Section } from "./settings";
 import { stopButton } from "../shared/taskcard";
 import { buildTasks } from "./tasks";
+import { buildVoiceMode } from "./voice-mode";
+import { buildDiagnostics } from "./diagnostics";
 
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);
@@ -21,23 +23,26 @@ stopBtn.hidden = true;
 const BUSY = ["listening", "thinking", "working", "speaking", "waiting"];
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks";
+type Page = "tasks" | "voice-mode" | "diagnostics";
 type View = "chat" | Page | Section;
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["tasks", "list-checks", "Úkoly"],
+  ["voice-mode", "microphone-stage", "Hlasový režim"],
   ["general", "user-circle", "Obecné"],
   ["brain", "brain", "Mozek (AI)"],
   ["voice", "waveform", "Hlas"],
   ["notch", "rectangle", "Notch"],
   ["appearance", "palette", "Vzhled"],
   ["hotkeys", "keyboard", "Zkratky"],
+  ["permissions", "shield-check", "Oprávnění"],
   ["tools", "toolbox", "Nástroje"],
   ["integrations", "plugs-connected", "Integrace"],
   ["phone", "device-mobile", "Telefon"],
   ["memory", "database", "Paměť"],
   ["jobs", "calendar-check", "Rutiny"],
   ["backup", "floppy-disk", "Záloha"],
+  ["diagnostics", "pulse", "Diagnostika"],
 ];
 
 const nav = h("nav", { class: "rail", "aria-label": "Sekce" });
@@ -47,7 +52,11 @@ const chatView = h("section", { class: "chat-view" },
   h("div", { class: "chat-wrap" }, chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
-const pages: Record<Page, { el: HTMLElement; show?: () => void }> = { tasks };
+const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
+  tasks,
+  "voice-mode": buildVoiceMode(client),
+  diagnostics: buildDiagnostics(client, (text) => { go("chat"); client.send("user_text", { text, attachments: [] }); }),
+};
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
 
 const settingsUI = buildSettings(client, settingsHost);
@@ -57,7 +66,7 @@ function go(v: View) {
   const page = pages[v as Page];
   chatView.hidden = v !== "chat";
   settingsHost.hidden = v === "chat" || !!page;
-  for (const [k, p] of Object.entries(pages)) p.el.hidden = k !== v;
+  for (const [k, p] of Object.entries(pages)) { if (k !== v && !p.el.hidden) p.hide?.(); p.el.hidden = k !== v; }
   if (page) page.show?.();
   else if (v !== "chat") settingsUI.show(v as Section);
   else chat.focus();
@@ -66,7 +75,7 @@ function go(v: View) {
 
 for (const [v, ic, label] of NAV) {
   nav.append(h("button", { type: "button", "data-view": v, title: label, onclick: () => go(v) }, icon(ic), h("span", {}, label)));
-  if (v === "tasks") nav.append(h("div", { class: "rail-sep" }));
+  if (v === "voice-mode" || v === "backup") nav.append(h("div", { class: "rail-sep" }));
 }
 
 const header = h("header", { class: "topbar" },

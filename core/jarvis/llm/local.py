@@ -20,10 +20,10 @@ log = logging.getLogger(__name__)
 MODELS: list[dict] = [
     {"name": "qwen2.5:3b", "label": "Qwen 2.5 3B", "size_gb": 1.9, "min_ram_gb": 8, "vision": False, "note": "výchozí, rychlý"},
     {"name": "llama3.2:3b", "label": "Llama 3.2 3B", "size_gb": 2.0, "min_ram_gb": 8, "vision": False, "note": ""},
-    {"name": "gemma3:4b", "label": "Gemma 3 4B", "size_gb": 3.3, "min_ram_gb": 8, "vision": True, "note": "vidí obrázky"},
+    {"name": "gemma3:4b", "label": "Gemma 3 4B", "size_gb": 3.3, "min_ram_gb": 8, "vision": True, "note": ""},
     {"name": "qwen2.5:7b", "label": "Qwen 2.5 7B", "size_gb": 4.7, "min_ram_gb": 16, "vision": False, "note": "chytřejší, pomalejší"},
     {"name": "llama3.1:8b", "label": "Llama 3.1 8B", "size_gb": 4.9, "min_ram_gb": 16, "vision": False, "note": ""},
-    {"name": "qwen2.5vl:7b", "label": "Qwen 2.5 VL 7B", "size_gb": 6.0, "min_ram_gb": 16, "vision": True, "note": "vidí obrázky"},
+    {"name": "qwen2.5vl:7b", "label": "Qwen 2.5 VL 7B", "size_gb": 6.0, "min_ram_gb": 16, "vision": True, "note": ""},
     {"name": "qwen2.5-coder:7b", "label": "Qwen 2.5 Coder 7B", "size_gb": 4.7, "min_ram_gb": 16, "vision": False, "note": "programování"},
 ]
 MODES = {  # mode → (num_ctx, threads(cores), keep_alive)
@@ -68,9 +68,10 @@ def detect_hardware(force: bool = False) -> dict:
 
 
 def recommend(hw: dict) -> list[str]:
-    limit = 3.5 if hw.get("ram_gb", 8) < 16 else 6.0
-    names = [m["name"] for m in MODELS if m["size_gb"] <= limit]
-    return ["qwen2.5:3b"] + [n for n in names if n != "qwen2.5:3b"]
+    """A short pick, not the whole catalog: the fast default, a vision model and (with ≥16 GB RAM) a smarter 7B."""
+    if hw.get("ram_gb", 8) < 16:
+        return ["qwen2.5:3b", "gemma3:4b"]
+    return ["qwen2.5:3b", "qwen2.5:7b", "gemma3:4b"]
 
 
 class LocalManager:

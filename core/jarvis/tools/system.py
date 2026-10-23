@@ -36,6 +36,8 @@ def _disks() -> list[dict]:
             u = psutil.disk_usage(part.mountpoint)
         except (OSError, PermissionError):
             continue
+        if u.total < 2**30:  # tiny system / virtual mounts
+            continue
         out.append({"mount": part.mountpoint, "used_pct": u.percent, "free_gb": round(u.free / 2**30, 1)})
     return out
 

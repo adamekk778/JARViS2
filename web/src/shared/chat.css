@@ -160,3 +160,14 @@
 .mini-blob.live i { animation: mini-blink 3.5s infinite; }
 @keyframes mini-bob { 50% { transform: translateY(-2px) scale(1.03, .97); } }
 @keyframes mini-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.15); } }
+
+/* 2.1: message editing, conversation folders */
+.msg.user .meta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.msg.user .edit-btn { opacity: 0; transition: opacity .15s; }
+.msg.user:hover .edit-btn, .msg.user .edit-btn:focus-visible { opacity: 1; }
+.edit-wrap { display: grid; gap: 8px; width: min(560px, 100%); margin-left: auto; }
+.edit-wrap textarea { resize: vertical; font: inherit; }
+.edit-wrap .btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+.conv-folder { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 10px 4px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-align: left; }
+.conv-folder span:first-of-type { flex: 1; }
+.actions .brain i { vertical-align: -1px; }

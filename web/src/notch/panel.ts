@@ -90,6 +90,7 @@ export function buildPanel(ctx: PanelCtx) {
       big("arrow-square-down", "Na plochu", () => ctx.undock()),
       big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" })),
       (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }))),
+      big("microphone-stage", "Hlasový režim", () => ctx.openChat("voice-mode")),
       big("hand-palm", "STOP", () => client.send("stop_all"), "danger")),
     h("div", { class: "timers-row clip-row" }, h("span", {}, icon("clipboard-text"), " Schránka"),
       ...([["Shrň", "Shrň stručně text, který mám ve schránce."], ["Přelož", "Přelož text ze schránky (česky ↔ anglicky)."],

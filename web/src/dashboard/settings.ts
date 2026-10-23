@@ -3,7 +3,7 @@ import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 
 export type Section =
-  | "general" | "brain" | "voice" | "notch" | "appearance" | "hotkeys" | "tools" | "integrations"
+  | "general" | "brain" | "voice" | "notch" | "appearance" | "hotkeys" | "permissions" | "tools" | "integrations"
   | "phone" | "memory" | "jobs" | "backup";
 
 const TITLES: Record<Section, [string, string, string]> = {
@@ -13,7 +13,8 @@ const TITLES: Record<Section, [string, string, string]> = {
   notch: ["rectangle", "Notch", "Výřez nahoře na obrazovce, který se po najetí myší rozevře."],
   appearance: ["palette", "Vzhled", "Barvy a animace."],
   hotkeys: ["keyboard", "Zkratky", "Globální klávesové zkratky (fungují v jakékoli aplikaci)."],
-  tools: ["toolbox", "Nástroje a oprávnění", "Co JARVIS smí dělat a co musíš potvrdit."],
+  permissions: ["shield-check", "Oprávnění", "Co JARVIS smí dělat. Vypnutá oblast okamžitě zmizí – JARVIS ji nepoužije, dokud ji znovu nezapneš."],
+  tools: ["toolbox", "Nástroje a skilly", "Jednotlivé nástroje, co musíš potvrdit, povolené složky a naučené dovednosti."],
   integrations: ["plugs-connected", "Integrace", "MCP servery (Gmail, kalendář, Spotify, chytrá domácnost…) a generování obrázků."],
   phone: ["device-mobile", "Telefon", "Spáruj Android aplikaci naskenováním QR kódu."],
   memory: ["database", "Paměť", "Co si o tobě JARVIS pamatuje."],
@@ -33,6 +34,19 @@ const VOICES = [
   ["de-DE-ConradNeural", "Conrad (němčina)"],
 ];
 
+const PERM_HELP: Record<string, string> = {
+  apps: "Spouštět a zavírat aplikace, okna, média, časovače, schránka.",
+  input: "Myš, klávesnice a klikání v aplikacích (UI Automation, ovládání počítače).",
+  screen: "Snímky obrazovky a čtení textu z oken.",
+  files_read: "Hledat a číst soubory, git stav a rozdíly.",
+  files_write: "Vytvářet, přesouvat a mazat soubory (mazání vždy s potvrzením).",
+  shell: "PowerShell, Python, testy, Claude Code a skilly (vždy s potvrzením).",
+  network: "Web, prohlížeč, stahování, MCP servery.",
+  system: "Napájení, tmavý režim, stav a výkon PC.",
+};
+const MODES: [string, string][] = [["eco", "Úsporný – malý kontext, málo vláken, rychle uvolní paměť"], ["balanced", "Vyvážený (doporučeno)"], ["performance", "Výkon – velký kontext, všechna jádra"]];
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 const getPath = (o: any, path: string) => path.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
 function patchOf(path: string, value: unknown) {
   const out: any = {};
@@ -50,6 +64,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let voiceStatus: any = {};
   let current: Section = "general";
   let local = true;
+  let permLabels: Record<string, string> = {};
+  let query = "";
   const extra: Record<string, any> = {};
 
   const set = (path: string, value: unknown) => {
@@ -141,6 +157,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         list.append(h("div", { class: `provider ${p.enabled ? "" : "off"}` },
           h("div", { class: "provider-head" }, h("span", { class: "order" }, String(i + 1)),
             h("strong", {}, `${p.id}`), h("span", { class: "help" }, presets[p.preset]?.label || p.preset),
+            h("span", { class: `chip ${presets[p.preset]?.local ? "local" : "cloud"}` }, icon(presets[p.preset]?.local ? "cpu" : "cloud"), presets[p.preset]?.local ? " Lokální" : " Cloud"),
             h("button", { class: "icon-btn sm", type: "button", title: "Výš", "aria-label": "Posunout výš", onclick: () => move(-1) }, icon("arrow-up")),
             h("button", { class: "icon-btn sm", type: "button", title: "Níž", "aria-label": "Posunout níž", onclick: () => move(1) }, icon("arrow-down")),
             h("label", { class: "switch" }, en, h("span")),
@@ -161,10 +178,12 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       return [
         card("Poskytovatelé (záložní řetěz)", "Výchozí: OmniRoute (zdarma, běží na tvém PC na portu 20128) a pak Ollama (offline). Když jeden selže nebo dojde limit, JARVIS automaticky zkusí další.",
           list, h("div", { class: "row" }, h("div", { style: { flex: "1" } }, presetSel), h("button", { class: "btn primary", type: "button", onclick: add }, icon("plus"), "Přidat poskytovatele"))),
+        localCard(),
         card("Chování", null,
           range("brain.temperature", "Kreativita (temperature)", 0, 1.5, 0.1, (v) => v.toFixed(1)),
           h("div", { class: "grid2" }, text("brain.max_tokens", "Max délka odpovědi (tokeny)", "", "number"), text("brain.first_token_timeout", "Čekat na první odpověď (s)", "Pak zkusí dalšího poskytovatele", "number")),
-          sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet.")),
+          sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet."),
+          h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
       ];
     },
 
@@ -177,7 +196,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         voiceStatus.devices?.length
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
-        range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`)),
+        range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
+        sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“.")),
       card("Rozpoznávání řeči", null,
         h("div", { class: "grid2" },
           select("voice.stt_provider", "Kde rozpoznávat", [["local", "Lokálně (offline, faster-whisper)"], ["groq", "Groq API (rychlé, zdarma, potřebuje klíč u poskytovatele groq)"]]),
@@ -185,6 +205,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("voice.stt_language", "Jazyk řeči", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "Angličtina"], ["auto", "Automaticky"]])),
       card("Hlas JARVISe", null,
         select("voice.tts_voice", "Hlas", VOICES as [string, string][], "Microsoft Edge neurální hlasy, zdarma. Offline záloha: Piper."),
+        select("voice.tts_voice_en", "Hlas pro angličtinu", VOICES.filter(([v]) => v.startsWith("en-")) as [string, string][], "Když na JARVISe promluvíš nebo napíšeš anglicky, odpoví anglicky tímhle hlasem."),
+        (() => {
+          const outs: string[] | undefined = extra.audio?.outputs;
+          if (!extra.audioAsked) { extra.audioAsked = true; client.send("audio_devices_get"); }
+          return outs?.length
+            ? select("voice.output_device", "Reproduktor", [["", "Výchozí systémový"], ...outs.map((d) => [d, d] as [string, string])])
+            : text("voice.output_device", "Reproduktor (název zařízení)", "Prázdné = výchozí");
+        })(),
         h("div", { class: "grid2" },
           range("voice.tts_rate", "Rychlost", -50, 50, 5, (v) => signed(v, " %"), pct, (v) => signed(v, "%")),
           range("voice.tts_pitch", "Výška", -30, 30, 2, (v) => signed(v, " Hz"), (s) => parseInt(String(s).replace("Hz", ""), 10) || 0, (v) => signed(v, "Hz"))),
@@ -202,7 +230,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         return h("label", {}, c, label);
       }));
       return [
-        card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku")),
+        card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku"),
+          sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu")),
         card("Dlaždice v rozevřeném notchi", "Pořadí odpovídá pořadí zaškrtnutí.", tileBox),
         card("Rozměry a chování", null,
           h("div", { class: "grid2" }, text("notch.monitor", "Monitor (0 = hlavní)", "", "number"), text("notch.offset_x", "Posun vodorovně (px)", "", "number")),
@@ -222,11 +251,22 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         h("div", { class: "field" }, "Akcent", h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]])),
+        card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
+          range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`)),
         characterCard()];
     },
 
     hotkeys: () => [card("Klávesové zkratky", "Formát: ctrl+alt+space, ctrl+alt+j, f9… (Esc zastaví JARVISe jen když mluví nebo pracuje)",
-      text("hotkeys.talk", "Mluvit / psát JARVISovi"), text("hotkeys.chat", "Otevřít okno chatu"), text("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"))],
+      text("hotkeys.talk", "Mluvit / psát JARVISovi"), text("hotkeys.chat", "Otevřít okno chatu"), text("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"),
+      text("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."))],
+
+    permissions: () => [
+      card("Oblasti oprávnění", "Platí okamžitě. Nebezpečné akce (mazání, odesílání, instalace, PowerShell…) JARVIS vždy nejdřív potvrdí s tebou.",
+        ...Object.keys(PERM_HELP).map((k) => sw(`permissions.${k}`, permLabels[k] || k, PERM_HELP[k]))),
+      card("Soukromí", null,
+        h("p", { class: "help" }, "Mikrofon se zapíná jen slovem „Hey Jarvis“, zkratkou nebo tlačítkem. Když JARVIS kouká na obrazovku, notch ukáže červenou tečku. Hesla a obsah obrazovky si nepamatuje."),
+        h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => client.send("stop_all") }, icon("hand-palm"), "STOP – okamžitě zastavit vše"))),
+    ],
 
     tools: () => {
       const items: any[] = extra.tools || [];
@@ -260,9 +300,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const folders = h("textarea", { class: "input", rows: 3, placeholder: "D:\\Projekty" }, (S.tools.allowed_folders || []).join("\n")) as HTMLTextAreaElement;
       folders.onchange = () => set("tools.allowed_folders", folders.value.split("\n").map((s) => s.trim()).filter(Boolean));
       return [
-        card("Hlavní oprávnění", null,
-          sw("tools.computer_use", "Ovládání počítače (myš a klávesnice)", "JARVIS vidí obrazovku a kliká jako člověk. Na začátku úkolu se vždy zeptá."),
-          h("label", { class: "field" }, "Další složky, kde smí hledat soubory (jedna na řádek)", folders)),
+        card("Povolené složky", "Další složky, kde smí hledat soubory, a projekty pro programování (git, záchytné body, testy). Jedna na řádek. Hlavní oprávnění najdeš v sekci Oprávnění.",
+          h("label", { class: "field" }, "Složky", folders)),
+        skillsCard(),
         card(`Všechny nástroje (${items.length})`, "Nebezpečné akce JARVIS vždy nejdřív potvrdí s tebou, pokud jim nedáš důvěru.", box),
       ];
     },
@@ -332,6 +372,24 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           }),
           facts && !facts.length ? h("p", { class: "help" }, "Zatím si nic nepamatuje.") : null,
           h("div", { class: "fact" }, add, h("button", { class: "btn primary", type: "button", onclick: () => { if (add.value.trim()) client.send("fact_update", { text: add.value.trim() }); } }, icon("plus"), "Přidat"))),
+        card("Export a import paměti", "Fakta (a volitelně konverzace) jako soubor JSON. Přílohy se neexportují.",
+          (() => {
+            const withConv = h("input", { type: "checkbox", "aria-label": "I konverzace" }) as HTMLInputElement;
+            const file = h("input", { type: "file", accept: "application/json", hidden: true }) as HTMLInputElement;
+            file.onchange = async () => {
+              const f = file.files?.[0];
+              if (!f) return;
+              try { client.send("memory_import", { data: JSON.parse(await f.text()), merge: true }); }
+              catch { toast("Soubor není platný JSON", "error"); }
+              file.value = "";
+            };
+            return h("div", { class: "btn-row" },
+              h("label", { class: "check" }, withConv, " i konverzace"),
+              h("button", { class: "btn primary", type: "button", onclick: () => client.send("memory_export", { conversations: withConv.checked }) }, icon("download-simple"), "Exportovat"),
+              h("button", { class: "btn", type: "button", onclick: () => file.click() }, icon("upload-simple"), "Importovat"), file);
+          })()),
+        card("Historie úkolů", "Úkoly a provedené akce se ukládají zvlášť od paměti.",
+          h("div", { class: "btn-row" }, h("a", { class: "btn", href: "#tasks" }, icon("list-checks"), "Otevřít Úkoly"))),
         card("Smazat vše", "Smaže celou historii konverzací i paměť. Nejde vrátit.",
           h("div", {}, h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Opravdu smazat celou paměť a historii?")) client.send("memory_wipe"); } }, icon("trash"), "Smazat paměť a historii"))),
       ];
@@ -376,6 +434,67 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     },
   };
 
+  function localCard() {
+    const st = extra.local;
+    if (!extra.localAsked) { extra.localAsked = true; client.send("local_status"); }
+    if (!st) return card("Lokální AI (offline)", null, h("p", { class: "help" }, "Zjišťuji stav Ollamy a hardware…"));
+    const hw = st.hardware || {};
+    const gpu = (hw.gpus || []).map((g: any) => `${g.name}${g.vram_gb ? ` (${g.vram_gb} GB)` : ""}`).join(", ") || "nezjištěno";
+    const installed = new Map<string, number>((st.installed || []).map((m: any) => [m.name, m.size_gb]));
+    const loaded = new Set((st.loaded || []).map((m: any) => m.name));
+    const prog = extra.pull || {};
+    const rows = (st.catalog || []).map((m: any) => {
+      const inst = installed.has(m.name);
+      const p = prog[m.name];
+      const action = p && !p.done && !p.error && !p.cancelled
+        ? h("div", { class: "pull" }, h("span", { class: "p-progress" }, h("b", { style: { width: `${p.total ? Math.round((p.completed || 0) / p.total * 100) : 5}%` } })),
+            h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("local_pull_cancel") }, "Zrušit"))
+        : inst
+          ? h("button", { class: "btn ghost sm", type: "button", onclick: () => { if (confirm(`Smazat ${m.name} (${installed.get(m.name)} GB)?`)) client.send("local_delete", { name: m.name }); } }, icon("trash"), "Smazat")
+          : h("button", { class: "btn sm", type: "button", disabled: !st.running, onclick: () => {
+              if (confirm(`Stáhnout ${m.name} (${m.size_gb} GB)? Volné místo: ${hw.disk_free_gb ?? "?"} GB.`)) { extra.pull = { ...prog, [m.name]: { completed: 0 } }; client.send("local_pull", { name: m.name }); render(); }
+            } }, icon("download-simple"), `Stáhnout (${m.size_gb} GB)`);
+      return h("div", { class: "model-row" },
+        h("div", { class: "row-text" }, h("strong", {}, m.label, (st.recommended || []).includes(m.name) ? h("span", { class: "chip ok" }, "doporučeno") : null),
+          h("span", {}, `${m.name} · ${m.size_gb} GB${m.vision ? " · vidí obrázky" : ""}${m.note ? ` · ${m.note}` : ""}`)),
+        inst ? h("span", { class: "chip" }, loaded.has(m.name) ? "v paměti" : "staženo") : null,
+        p?.error ? h("span", { class: "test-out fail" }, p.error) : null,
+        action);
+    });
+    return card("Lokální AI (offline)", "Modely běží přímo v tvém PC přes Ollamu. Nic se nestáhne bez tvého kliknutí.",
+      h("div", { class: "grid2" },
+        h("div", { class: "row-text" }, h("strong", {}, "Tvůj počítač"), h("span", {}, `RAM ${hw.ram_gb ?? "?"} GB · procesor ${hw.cores ?? "?"}× · GPU: ${gpu} · volno na disku ${hw.disk_free_gb ?? "?"} GB`)),
+        h("div", { class: "row-text" }, h("strong", {}, "Ollama"), st.running
+          ? h("span", {}, `běží (verze ${st.version})`)
+          : h("span", {}, "neběží – ", h("a", { href: "https://ollama.com/download", target: "_blank", rel: "noopener" }, "stáhnout Ollamu"), " a spustit"))),
+      sw("brain.local_enabled", "Lokální AI zapnutá", "Vypnuto: JARVIS lokální modely nepoužívá a uvolní je z paměti. Notch a vše ostatní běží dál."),
+      select("brain.local_mode", "Výkonový režim", MODES),
+      h("div", { class: "models" }, ...rows),
+      h("div", { class: "btn-row" },
+        h("button", { class: "btn", type: "button", disabled: !st.running, onclick: () => { extra.gpuMsg = "Testuji… (první spuštění modelu může chvíli trvat)"; client.send("local_gpu_test"); render(); } }, icon("graphics-card"), "Otestovat GPU"),
+        h("button", { class: "btn ghost", type: "button", disabled: !st.running, onclick: () => client.send("local_unload") }, icon("eject"), "Uvolnit z paměti"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { extra.localAsked = false; render(); } }, icon("arrows-clockwise"), "Obnovit")),
+      extra.gpuMsg || st.gpu ? h("p", { class: "help" }, extra.gpuMsg || (st.gpu === "gpu" ? "Poslední test: model běží na GPU." : "Poslední test: model běží jen na procesoru.")) : null);
+  }
+
+  function skillsCard() {
+    const items: any[] | undefined = extra.skills;
+    if (!extra.skillsAsked) { extra.skillsAsked = true; client.send("skills_get"); }
+    return card("Naučené dovednosti (skilly)", "Izolace chrání před pádem a zaseknutím, není to bezpečnostní sandbox – povoluj jen kód, kterému rozumíš.",
+      ...(items || []).map((s) => {
+        const on = h("input", { type: "checkbox", role: "switch", "aria-label": `Povolit ${s.name}` }) as HTMLInputElement;
+        on.checked = !!s.approved;
+        on.onchange = () => client.send("skill_approve", { name: s.name, approved: on.checked });
+        return h("details", { class: "skill" },
+          h("summary", {}, h("strong", {}, s.name), h("span", { class: "help" }, s.manifest?.description || ""),
+            ...(s.manifest?.permissions || []).map((p: string) => h("span", { class: "chip" }, permLabels[p] || p)),
+            h("span", { class: "chip" }, `${s.manifest?.timeout ?? 30} s`),
+            h("label", { class: "switch" }, on, h("span"))),
+          h("pre", { class: "skill-code" }, s.code || ""));
+      }),
+      items && !items.length ? h("p", { class: "help" }, "Zatím žádné. Řekni třeba: „Nauč se převádět měny.“") : null);
+  }
+
   function characterCard() {
     const ch = S.character || {};
     const preview = new Character({ size: 110 });
@@ -395,6 +514,11 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
   }
 
+  const searchInput = h("input", { class: "input", type: "search", placeholder: "Hledat v nastavení…", "aria-label": "Hledat v nastavení" }) as HTMLInputElement;
+  const searchBox = h("div", { class: "set-search" }, icon("magnifying-glass"), searchInput);
+  let searchTimer = 0;
+  searchInput.oninput = () => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => { query = searchInput.value; render(); searchInput.focus(); }, 200); };
+
   function render() {
     if (!S) {
       host.replaceChildren(h("div", { class: "set-page" }, h("p", { class: "help" }, "Načítám nastavení…")));
@@ -402,15 +526,44 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     }
     const [ic, title, lead] = TITLES[current];
     const scroll = host.scrollTop;
-    host.replaceChildren(h("div", { class: "set-page" },
-      h("h1", {}, icon(ic), title), h("p", { class: "lead" }, lead),
+    const q = norm(query.trim());
+    let body: Node[];
+    if (q) {
+      // search across every section: keep only cards (and their rows) that match
+      body = [];
+      for (const sec of Object.keys(sections) as Section[]) {
+        const cards = (sections[sec]() as HTMLElement[]).filter((c) => c instanceof HTMLElement && norm(c.textContent || "").includes(q));
+        for (const c of cards) {
+          c.querySelectorAll(".row, .field, .tool-row").forEach((r) => { if (!norm(r.textContent || "").includes(q) && !norm(c.querySelector("h2")?.textContent || "").includes(q)) (r as HTMLElement).hidden = true; });
+          body.push(h("p", { class: "search-sec" }, icon(TITLES[sec][0]), " ", TITLES[sec][1]), c);
+        }
+      }
+      if (!body.length) body = [h("p", { class: "help" }, "Nic nenalezeno.")];
+    } else body = sections[current]();
+    host.replaceChildren(searchBox, h("div", { class: "set-page" },
+      q ? h("h1", {}, icon("magnifying-glass"), `Hledání „${query.trim()}“`) : h("h1", {}, icon(ic), title),
+      q ? null : h("p", { class: "lead" }, lead),
       local ? null : h("div", { class: "readonly-note" }, "Nastavení jde měnit jen přímo na počítači."),
-      ...sections[current]()));
+      ...body));
     host.scrollTop = scroll;
   }
 
   client.on("welcome", (m) => { S = m.settings; local = !!m.local; voiceStatus = m.voice || {}; client.send("settings_get"); render(); });
-  client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.voice) voiceStatus = m.voice; render(); });
+  client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
+  client.on("local_info", (m) => { extra.local = m; if (m.gpu_message) extra.gpuMsg = m.gpu_message; if (current === "brain") render(); });
+  client.on("local_pull_progress", (m) => {
+    extra.pull = { ...(extra.pull || {}), [m.name]: m };
+    if (m.done || m.cancelled || m.error) { extra.localAsked = false; if (m.done) toast(`${m.name} staženo`, "ok"); }
+    if (current === "brain") render();
+  });
+  client.on("local_model_missing", (m) => toast(`Pro offline režim stáhni ${m.name} (${m.size_gb} GB) v Nastavení → Mozek → Lokální AI.`, "info", 9000));
+  client.on("audio_devices", (m) => { extra.audio = m; if (current === "voice") render(); });
+  client.on("skills", (m) => { extra.skills = m.items; if (current === "tools") render(); });
+  client.on("memory_export_data", (m) => {
+    const blob = new Blob([JSON.stringify(m.data, null, 2)], { type: "application/json" });
+    h("a", { href: URL.createObjectURL(blob), download: `jarvis-pamet-${new Date().toISOString().slice(0, 10)}.json` }).click();
+  });
+  client.on("memory_import_result", (m) => toast(`Importováno: ${m.facts_added} faktů, ${m.conversations_added} konverzací (přeskočeno ${m.facts_skipped})`, "ok"));
   client.on("settings_changed", (m) => { S = m.settings; render(); });
   client.on("voice_status", (m) => { voiceStatus = m; if (current === "voice") render(); });
   client.on("provider_test_result", (m) => {
@@ -429,6 +582,11 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       if (s === "phone") extra.pairing = null;
       if (s === "jobs") extra.jobs = undefined;
       if (s === "integrations") extra.mcpAsked = false;
+      if (s === "brain") extra.localAsked = false;
+      if (s === "tools") extra.skillsAsked = false;
+      if (s === "voice") extra.audioAsked = false;
+      query = "";
+      searchInput.value = "";
       render();
     },
   };

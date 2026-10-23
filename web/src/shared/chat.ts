@@ -236,12 +236,15 @@ export class ChatView {
   private messageEl(m: Message): HTMLElement {
     if (m.role === "user") {
       const voice = (m.source || "").includes("voice");
-      return h("div", { class: "msg user", "data-id": m.id },
-        h("div", { class: "bubble" },
-          voice ? h("span", { class: "voice-tag", title: "Hlasem" }, icon("microphone")) : null,
-          m.text ? h("div", { class: "user-text" }, m.text) : null,
-          this.attachmentsEl(m.attachments)),
-        h("div", { class: "meta" }, fmtTime(m.created)));
+      const bubble = h("div", { class: "bubble" },
+        voice ? h("span", { class: "voice-tag", title: "Hlasem" }, icon("microphone")) : null,
+        m.text ? h("div", { class: "user-text" }, m.text) : null,
+        this.attachmentsEl(m.attachments));
+      const el = h("div", { class: "msg user", "data-id": m.id }, bubble,
+        h("div", { class: "meta" },
+          m.text ? h("button", { class: "icon-btn sm edit-btn", type: "button", title: "Upravit a poslat znovu", "aria-label": "Upravit zprávu", onclick: () => this.editMessage(el, bubble, m) }, icon("pencil-simple")) : null,
+          fmtTime(m.created)));
+      return el;
     }
     const body = h("div", { class: "md", html: renderMarkdown(m.text) });
     return h("div", { class: "msg assistant", "data-id": m.id },
@@ -253,12 +256,33 @@ export class ChatView {
         this.actions(m)));
   }
 
+  /** Inline editor: saving drops this message and everything after it, then JARVIS answers the new version. */
+  private editMessage(el: HTMLElement, bubble: HTMLElement, m: Message) {
+    if (el.querySelector(".edit-box")) return;
+    const ta = h("textarea", { class: "input edit-box", rows: Math.min(8, m.text.split("\n").length + 1) }, m.text) as HTMLTextAreaElement;
+    const close = () => { box.remove(); bubble.hidden = false; };
+    const save = () => {
+      const text = ta.value.trim();
+      if (!text || text === m.text) return close();
+      this.client.send("message_edit", { id: m.id, text });
+      close();
+    };
+    ta.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); } if (e.key === "Escape") close(); };
+    const box = h("div", { class: "edit-wrap" }, ta, h("div", { class: "btn-row" },
+      h("button", { class: "btn ghost", type: "button", onclick: close }, "Zrušit"),
+      h("button", { class: "btn primary", type: "button", onclick: save }, icon("paper-plane-tilt"), "Poslat znovu")));
+    bubble.hidden = true;
+    bubble.after(box);
+    ta.focus();
+  }
+
   private actions(m: Message): HTMLElement {
     return h("div", { class: "actions" },
       h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", "aria-label": "Kopírovat", onclick: () => { navigator.clipboard?.writeText(m.text); toast("Zkopírováno", "ok", 1500); } }, icon("copy")),
       h("button", { class: "icon-btn sm", type: "button", title: "Přečíst nahlas", "aria-label": "Přečíst nahlas", onclick: () => this.speak(m) }, icon("speaker-high")),
       h("button", { class: "icon-btn sm regen", type: "button", title: "Vygenerovat znovu", "aria-label": "Vygenerovat znovu", onclick: () => this.client.send("regenerate") }, icon("arrows-clockwise")),
-      m.meta?.brain ? h("span", { class: "brain", title: "Odpověděl" }, m.meta.brain[0]) : null,
+      m.meta?.brain ? h("span", { class: "brain", title: isLocalBrain(m.meta.brain[0]) ? "Odpověděl lokální model (offline, v tvém PC)" : "Odpověděl cloudový model (přes internet)" },
+        icon(isLocalBrain(m.meta.brain[0]) ? "cpu" : "cloud"), " ", m.meta.brain[0]) : null,
       h("span", { class: "meta" }, fmtTime(m.created)));
   }
 
@@ -444,15 +468,38 @@ export class ChatView {
   }
 }
 
+/** Local (offline) providers by preset id prefix: Ollama, LM Studio. */
+export const isLocalBrain = (provider: string) => /^(ollama|lmstudio)/i.test(provider || "");
+
 export function conversationList(client: JarvisClient, onPick?: () => void): HTMLElement {
   const list = h("nav", { class: "conv-list", "aria-label": "Konverzace" });
   let current = "";
+  const collapsed = new Set<string>();
+  const row = (c: any) =>
+    h("div", { class: `conv ${c.id === current ? "active" : ""}` },
+      h("button", { class: "conv-open", type: "button", onclick: () => { client.send("switch_conversation", { id: c.id }); onPick?.(); } },
+        h("span", { class: "conv-title" }, c.title || "Konverzace"), h("span", { class: "conv-time" }, fmtTime(c.updated))),
+      h("button", { class: "icon-btn sm conv-del", type: "button", title: "Přejmenovat", "aria-label": "Přejmenovat konverzaci", onclick: () => {
+        const t = prompt("Nový název konverzace:", c.title || "");
+        if (t && t.trim()) client.send("conversation_rename", { id: c.id, title: t.trim() });
+      } }, icon("pencil-simple")),
+      h("button", { class: "icon-btn sm conv-del", type: "button", title: "Přesunout do složky", "aria-label": "Přesunout do složky", onclick: () => {
+        const f = prompt("Složka (prázdné = bez složky):", c.folder || "");
+        if (f !== null) client.send("conversation_move", { id: c.id, folder: f.trim() });
+      } }, icon("folder-simple")),
+      h("button", { class: "icon-btn sm conv-del", type: "button", title: "Smazat", "aria-label": "Smazat konverzaci", onclick: () => { if (confirm("Smazat tuhle konverzaci?")) client.send("delete_conversation", { id: c.id }); } }, icon("trash")));
   const render = (items: any[]) => {
-    list.replaceChildren(...items.map((c) =>
-      h("div", { class: `conv ${c.id === current ? "active" : ""}` },
-        h("button", { class: "conv-open", type: "button", onclick: () => { client.send("switch_conversation", { id: c.id }); onPick?.(); } },
-          h("span", { class: "conv-title" }, c.title || "Konverzace"), h("span", { class: "conv-time" }, fmtTime(c.updated))),
-        h("button", { class: "icon-btn sm conv-del", type: "button", title: "Smazat", "aria-label": "Smazat konverzaci", onclick: () => { if (confirm("Smazat tuhle konverzaci?")) client.send("delete_conversation", { id: c.id }); } }, icon("trash")))));
+    const groups = new Map<string, any[]>();
+    for (const c of items) (groups.get(c.folder || "") ?? groups.set(c.folder || "", []).get(c.folder || "")!).push(c);
+    const out: HTMLElement[] = [...(groups.get("") || []).map(row)];
+    for (const [folder, convs] of [...groups].filter(([f]) => f).sort(([a], [b]) => a.localeCompare(b, "cs"))) {
+      const open = !collapsed.has(folder);
+      out.push(h("button", { class: "conv-folder", type: "button", "aria-expanded": String(open),
+        onclick: () => { open ? collapsed.add(folder) : collapsed.delete(folder); render(items); } },
+        icon(open ? "caret-down" : "caret-right"), icon("folder-simple"), h("span", {}, folder), h("span", { class: "conv-time" }, String(convs.length))));
+      if (open) out.push(...convs.map(row));
+    }
+    list.replaceChildren(...out);
     if (!items.length) list.append(h("p", { class: "help" }, "Zatím žádné konverzace."));
   };
   client.on("welcome", (m) => { current = m.conversation; render(m.conversations || []); });
