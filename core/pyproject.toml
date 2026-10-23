@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jarvis"
-version = "2.1.0"
+version = "3.0.0"
 description = "JARVIS 2 — osobní hlasový a chatový AI asistent pro Windows + Android"
 requires-python = ">=3.11"
 dependencies = [

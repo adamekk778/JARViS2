@@ -4,6 +4,7 @@ export const MOODS = [
   "closed", "idle", "hover", "opening", "expanded", "closing",
   "listening", "thinking", "speaking", "dancing", "working", "success", "error", "sleeping",
   "limit", "offline", "updating", "notify", "dragged", "desktop_interact", "focus", "personalize", "waiting", "joy",
+  "annoyed", "dizzy",
 ] as const;
 export type Mood = (typeof MOODS)[number];
 
@@ -13,6 +14,7 @@ export const MOOD_LABEL: Record<Mood, string> = {
   success: "Úspěch", error: "Chyba", sleeping: "Spí", limit: "Limit", offline: "Bez internetu",
   updating: "Aktualizace", notify: "Upozornění", dragged: "Přetažení", desktop_interact: "Interakce",
   focus: "Režim fokus", personalize: "Personalizace", waiting: "Čeká", joy: "Radost",
+  annoyed: "Naštvaný (šťouchání)", dizzy: "Zamotaná hlava",
 };
 
 // Eye shape: half-width, half-height, top curvature, bottom curvature (negative = curves the other way),
@@ -31,11 +33,12 @@ export const EYES: Record<string, Eye> = {
   sleepy: E(14.5, 17, -0.15, 1.15),           // ‿ ‿
   closed: E(13, 3.5, 0.25, 0.25),            // — —
   sad: E(13.5, 16, 0.05, 1.3, -20),          // droopy lids, outer corners down
+  annoyed: E(14, 12, 0.05, 1.25, 18),        // flat lids, inner corners down: "stop poking me"
 };
 
 export type Accessory =
   | "waves" | "dots" | "voice" | "notes" | "laptop" | "check" | "warn" | "zzz" | "limit" | "cloud"
-  | "spinner" | "bell" | "cursor" | "dragbox" | "minus" | "stars" | "wait" | "heart";
+  | "spinner" | "bell" | "cursor" | "dragbox" | "minus" | "stars" | "wait" | "heart" | "spiral" | "anger";
 
 export interface Look {
   eyes: keyof typeof EYES;
@@ -54,6 +57,7 @@ export interface Look {
   hop?: boolean;
   shake?: boolean;
   blink?: boolean;          // random blinking allowed
+  wobble?: boolean;         // dizzy: the head goes round
 }
 
 const base: Look = { eyes: "open", gaze: [0, 0], bob: 1.5, bobSpeed: 0.25, squash: 1, tilt: 0, glow: 0.45, accessories: [], blink: true };
@@ -85,6 +89,8 @@ export const LOOKS: Record<Mood, Look> = {
   personalize: L({ eyes: "open", accessories: ["stars"], glow: 0.75 }),
   waiting: L({ eyes: "open", accessories: ["wait"], bob: 1.5, bobSpeed: 0.3 }),
   joy: L({ eyes: "happy", accessories: ["heart"], hop: true, glow: 0.8, blink: false }),
+  annoyed: L({ eyes: "annoyed", accessories: ["anger"], shake: true, squash: 1.05, glow: 0.5, blink: false }),
+  dizzy: L({ eyes: "closed", noEyes: true, accessories: ["spiral", "stars"], wobble: true, glow: 0.5, blink: false }),
 };
 
 export type CharacterColor = "black" | "midnight" | "violet" | "rose" | "white" | "blue" | "orange" | "green" | "amber" | "cyan";

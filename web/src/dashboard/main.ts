@@ -12,6 +12,7 @@ import { buildDiagnostics } from "./diagnostics";
 import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
 import { buildNotetaker } from "./notetaker";
 import { buildClaude } from "./claude";
+import { whatsNewOverlay } from "../shared/whatsnew";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
 
@@ -81,6 +82,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   claude: buildClaude(client),
 };
 recapOverlay(client);
+whatsNewOverlay(client);
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
 
 const settingsUI = buildSettings(client, settingsHost);
@@ -159,12 +161,12 @@ client.on("welcome", (m) => {
   statusText.textContent = moodText(m.mood?.mood || "idle");
   versionText.textContent = m.version ? `JARVIS ${m.version}` : "";
   greet(m.settings?.general?.address_as || m.settings?.general?.user_name);
-  if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
+  if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); }
   brainChip.lastChild!.textContent = m.brain ? `${m.brain[0]} · ${m.brain[1]}` : (m.settings?.brain?.chain?.[0] ?? "AI");
   voiceBtn.classList.toggle("on", !!m.voice?.listening);
   voiceBtn.hidden = !m.voice?.available;
 });
-client.on("settings_changed", (m) => { lastSettings = m.settings; statusText.textContent = moodText(lastMood); applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
+client.on("settings_changed", (m) => { lastSettings = m.settings; statusText.textContent = moodText(lastMood); applyAppearance(m.settings); if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); } });
 client.on("mood", (m) => {
   face.setMood(m.mood, { badge: m.badge, progress: m.progress });
   stopBtn.hidden = !BUSY.includes(m.mood);

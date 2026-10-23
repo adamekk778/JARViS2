@@ -5,7 +5,7 @@ import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
-import { configureSounds, play } from "../shared/sounds";
+import { configureSounds, play, setCustomSounds } from "../shared/sounds";
 import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender } from "../shared/region";
 
@@ -266,6 +266,8 @@ shape.addEventListener("mouseleave", async () => {
 });
 blobBox.addEventListener("click", () => {
   if (justDragged) return;
+  const poked = blob.poke();      // 3 quick pokes annoy him, 6 make his head spin
+  if (poked) { flashUi(poked, poked === "dizzy" ? 3200 : 1600); updateBlob(); return; }
   if (mode === "panel") { if (pinned) setPinned(false); settle(true); }
   else openPanel("chat");
 });
@@ -379,6 +381,15 @@ function showAlert(title: string, body: string) {
   }
 }
 
+// ---------- a new version waits (3.0): JARVIS turns blue and the capsule says so ----------
+let upd: any = null;
+let charColor: [any, string | undefined] = ["black", undefined];
+function paintUpdate() {
+  const waiting = upd?.available && upd.state !== "error";
+  if (waiting) blob.setColor("blue", charColor[1]);
+  else blob.setColor(charColor[0], charColor[1]);
+}
+
 // ---------- Claude Code (3.0): live step in the capsule, Allow / Deny in the live bubble ----------
 let claudeSessions: any[] = [];
 let claudeAsks: any[] = [];
@@ -447,6 +458,9 @@ function updateActivity() {
   } else if (t && t.total) {
     activity = `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`;
     actText.replaceChildren(icon("list-checks"), " ", activity);
+  } else if (upd?.available && upd.state !== "error") {
+    activity = upd.state === "downloading" ? `Stahuji ${Math.round((upd.progress || 0) * 100)} %` : `Nová verze ${upd.latest}`;
+    actText.replaceChildren(icon("arrow-circle-up"), " ", activity);
   } else if (media?.playing && media.title) {
     activity = media.title;
     actText.replaceChildren(icon("music-notes"), " ", activity);
@@ -468,13 +482,16 @@ client.on("welcome", (m) => {
   cfg = { ...cfg, ...(m.settings?.notch || {}) };
   if (!m.settings?.notch?.expanded_width || m.settings.notch.expanded_width < 900) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
   const ch = m.settings?.character;
-  if (ch) blob.setColor(ch.color, ch.glow || undefined);
+  if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); }
+  upd = m.update;
+  paintUpdate();
   petMode = !!m.pet_mode;
   shape.classList.toggle("pet-away", petMode);
   media = m.media || {};
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
   claudeSessions = m.claude_sessions || [];
+  setCustomSounds(m.sounds);
   claudeAsks = m.claude_pending || [];
   onMood(m.mood || { mood: m.busy ? "thinking" : "idle" });
   renderClaudeAsk();
@@ -484,7 +501,7 @@ client.on("settings_changed", (m) => {
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
-  if (ch) blob.setColor(ch.color, ch.glow || undefined);
+  if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); }
   petMode = !!ch?.pet_mode;
   shape.classList.toggle("pet-away", petMode);
 });
@@ -513,6 +530,8 @@ client.on("confirm_request", (m) => {
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
 client.on("notify", (m) => { showAlert(m.title, m.body); play("notify"); });
+client.on("sounds", (m) => setCustomSounds(m.files));
+client.on("update_status", (m) => { upd = m; paintUpdate(); updateActivity(); });
 client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });
 client.on("claude_permission", (m) => { claudeAsks.push(m); play("notify"); renderClaudeAsk(); renderLive(); });
 client.on("claude_permission_resolved", (m) => {

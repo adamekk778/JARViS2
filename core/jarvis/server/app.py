@@ -169,6 +169,15 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         res = await rt.claude.handle(event, payload if isinstance(payload, dict) else {})
         return JSONResponse(res) if res else Response(status_code=204)
 
+    @app.get("/api/sounds/{name}")
+    async def custom_sound(name: str, request: Request):
+        """Your own interface sounds from the sounds folder (only names JARVIS knows)."""
+        require_auth(request)
+        fname = rt.custom_sounds().get(name)
+        if not fname:
+            raise HTTPException(404, "Žádný vlastní zvuk")
+        return FileResponse(rt.sounds_dir() / fname)
+
     @app.post("/api/show")
     async def show(request: Request, view: str = "chat"):
         """A second launch of JARVIS.exe asks the running one to show its window."""

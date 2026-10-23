@@ -121,6 +121,47 @@ class Runtime:
         if self.loop is not None:
             self.loop.call_soon_threadsafe(fn, *args)
 
+    # ---------- your own interface sounds (3.0) ----------
+    SOUND_FILES = {"wake": ("probuzeni", "wake"), "listen": ("poslech", "listen"), "done": ("hotovo", "done"),
+                   "error": ("chyba", "error"), "notify": ("upozorneni", "notify")}
+    SOUND_EXT = (".wav", ".mp3", ".ogg")
+
+    def sounds_dir(self):
+        d = paths.sub("sounds")
+        readme = d / "PRECTI-ME.txt"
+        if not readme.exists():
+            readme.write_text(
+                "Vlastní zvuky JARVISe\n\nDej sem soubor .wav, .mp3 nebo .ogg s jedním z těchto jmen a JARVIS ho použije místo svého zvuku:\n"
+                "  probuzeni  – probuzení („Hey Jarvis“)\n  poslech    – začal poslouchat\n  hotovo     – úkol hotový\n"
+                "  chyba      – něco se nepovedlo\n  upozorneni – upozornění\n\nNapř. hotovo.mp3. Krátké zvuky (do 2 s) fungují nejlíp.\n",
+                encoding="utf-8")
+        return d
+
+    def custom_sounds(self) -> dict[str, str]:
+        d = paths.sub("sounds")
+        files = {f.stem.lower(): f.name for f in d.iterdir() if f.suffix.lower() in self.SOUND_EXT} if d.exists() else {}
+        return {snd: files[n] for snd, names in self.SOUND_FILES.items() for n in names if n in files}
+
+    def open_sounds_folder(self) -> None:
+        try:
+            self.platform.open_path(str(self.sounds_dir()))
+        except Exception as e:
+            log.warning("sounds folder: %s", e)
+
+    # ---------- what's new (once after each feature version) ----------
+    def whats_new_due(self) -> str:
+        """'3.0' when this major.minor has not been introduced yet, else ''."""
+        from . import __version__
+
+        mm = ".".join(__version__.split(".")[:2])
+        row = self.db.one("SELECT v FROM kv WHERE k='whats_new_seen'")
+        return "" if row and row["v"] == mm else mm
+
+    def whats_new_seen(self) -> None:
+        mm = self.whats_new_due()
+        if mm:
+            self.db.exec("INSERT OR REPLACE INTO kv VALUES ('whats_new_seen', ?)", (mm,))
+
     # ---------- weekly recap (Mondays) ----------
     def recap_due(self) -> bool:
         """True from Monday until the recap of last week was opened (and only when there was something)."""

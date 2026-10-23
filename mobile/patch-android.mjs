@@ -11,6 +11,7 @@ const perms = [
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.VIBRATE",
   "android.permission.ACCESS_NETWORK_STATE",
+  "android.permission.USE_BIOMETRIC",
 ];
 for (const p of perms) {
   if (!m.includes(`"${p}"`)) m = m.replace("</manifest>", `    <uses-permission android:name="${p}" />\n</manifest>`);

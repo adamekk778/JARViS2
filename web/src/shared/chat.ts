@@ -5,6 +5,7 @@ import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
 import { Recorder } from "./recorder";
+import { guardApprove } from "./approve";
 import { Blob } from "../character/blob";
 
 const STATE_TEXT: Record<AgentState, string> = {
@@ -135,7 +136,7 @@ export class ChatView {
       this.renderHistory(m.history || []);
       this.setState(m.busy ? "thinking" : "idle");
       if (m.mood) this.emptyBlob?.setMood(m.mood.mood, m.mood);
-      if (m.settings?.character) this.emptyBlob?.setColor(m.settings.character.color, m.settings.character.glow || undefined);
+      if (m.settings?.character) { this.emptyBlob?.setColor(m.settings.character.color, m.settings.character.glow || undefined); this.emptyBlob?.setOutfit(m.settings.character.outfit); }
     });
     c.on("history", (m) => {
       if (m.prepend) this.prependHistory(m.messages);
@@ -353,7 +354,8 @@ export class ChatView {
       h("div", { class: "confirm-btns" },
         h("button", { class: "btn danger", type: "button", onclick: () => answer(false) }, "Ne"),
         h("button", { class: "btn primary", type: "button", onclick: () => answer(true) }, "Ano, proveď")));
-    const answer = (ok: boolean) => {
+    const answer = async (ok: boolean) => {
+      if (ok && !(await guardApprove(String(m.description || "Potvrdit akci")))) return;
       this.client.send("confirm_response", { id: m.id, approved: ok });
       card.classList.add("resolved");
     };

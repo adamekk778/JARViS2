@@ -30,6 +30,7 @@ CLIENT_TYPES = [
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
+    "whats_new_seen", "sounds_folder",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -41,7 +42,7 @@ SERVER_TYPES = [
     "memory_export_data", "memory_import_result", "audio_devices",
     "diagnostics", "diagnostics_file",
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
-    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks",
+    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -52,7 +53,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
-              "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply"}
+              "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder"}
 
 
 class Connection:
@@ -129,6 +130,7 @@ class Connection:
                         local_missing=rt.local.missing,
                         pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         claude_sessions=rt.claude.list(), claude_pending=rt.claude.pending_public(),
+                        whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(),
                         update=rt.updater.status if rt.updater else None)
 
     def _history(self, conv_id: str | None = None, before: float | None = None, limit: int = 60) -> list[dict]:
@@ -207,6 +209,12 @@ class Connection:
             if not res.get("ok"):
                 await self.send("error", message=res.get("message", ""))
             await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
+        elif t == "whats_new_seen":
+            rt.whats_new_seen()
+        elif t == "sounds_folder":
+            if m.get("open", True):
+                rt.open_sounds_folder()
+            rt.bus.publish("sounds", files=rt.custom_sounds())
         elif t == "claude_sessions_get":
             await self.send("claude_sessions", items=rt.claude.list())
         elif t == "claude_decision":

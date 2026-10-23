@@ -14,6 +14,7 @@ export const CLIENT_TYPES = [
   "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
   "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
   "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
+  "whats_new_seen", "sounds_folder",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -26,7 +27,7 @@ export const SERVER_TYPES = [
   "memory_export_data", "memory_import_result", "audio_devices",
   "diagnostics", "diagnostics_file",
   "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
-  "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks",
+  "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

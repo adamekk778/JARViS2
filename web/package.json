@@ -1,7 +1,7 @@
 {
   "name": "jarvis-web",
   "private": true,
-  "version": "2.1.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-native-biometric": "^8.9.1",
     "@capgo/capacitor-share-target": "^8.0.63",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",

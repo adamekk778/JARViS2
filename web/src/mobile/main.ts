@@ -1,4 +1,5 @@
 import { applyAppearance } from "../shared/base";
+import { setApproveGuard } from "../shared/approve";
 import "./style.css";
 import { ChatView, conversationList } from "../shared/chat";
 import { h, icon, toast } from "../shared/dom";
@@ -92,6 +93,20 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const stop = stopButton(c, "sm");
   stop.hidden = true;
   const taskCard = new TaskCard(c, { compact: true, hideWhenIdle: true });
+  // Claude Code on the PC waiting for an answer (3.0): Povolit needs the fingerprint
+  setApproveGuard((reason) => native.verify(reason));
+  let asks: any[] = [];
+  const asksBox = h("div", { class: "m-asks" });
+  const decideClaude = async (id: string, decision: string, label = "") => {
+    if ((decision === "allow" || decision === "always") && !(await native.verify(`Claude Code: ${label}`))) return;
+    c.send("claude_decision", { id, decision });
+    native.haptic();
+  };
+  const paintAsks = () => asksBox.replaceChildren(...asks.map((a) => h("div", { class: "card m-ask" },
+    h("div", { class: "m-ask-head" }, icon("terminal-window", "ph-fill"), h("div", {}, h("strong", {}, `${a.project} chce:`), h("span", {}, a.label))),
+    h("div", { class: "btn-row" },
+      h("button", { class: "btn danger", type: "button", onclick: () => decideClaude(a.id, "deny") }, "Zamítnout"),
+      h("button", { class: "btn primary", type: "button", onclick: () => decideClaude(a.id, "allow", a.label) }, icon("fingerprint"), "Povolit")))));
   const header = h("header", { class: "m-head" },
     h("button", { class: "icon-btn", type: "button", "aria-label": "Konverzace", onclick: openDrawer }, icon("list")),
     h("div", { class: "m-title" }, orb, h("div", {}, h("strong", {}, "JARVIS"), status)),
@@ -99,7 +114,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("button", { class: "icon-btn", type: "button", "aria-label": "Nová konverzace", onclick: () => c.send("new_chat") }, icon("note-pencil")));
 
   const views: Record<string, HTMLElement> = {
-    chat: h("section", { class: "m-view m-chat" }, taskCard.el, chat.el),
+    chat: h("section", { class: "m-view m-chat" }, asksBox, taskCard.el, chat.el),
     control: controlView(c),
     more: moreView(c, ep, pairing),
   };
@@ -119,9 +134,11 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     if (s !== "open") face.setMood("offline");
   });
   c.on("welcome", (m) => {
+    asks = m.claude_pending || [];
+    paintAsks();
     applyAppearance(m.settings);
     face.setMood(m.mood?.mood || "idle");
-    if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
+    if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); }
   });
   c.on("settings_changed", (m) => applyAppearance(m.settings));
   c.on("mood", (m) => {
@@ -135,7 +152,18 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     native.haptic();
   });
   c.on("assistant_done", (m) => { if (document.hidden) native.notify("JARVIS", String(m.text).slice(0, 180)); });
-  c.on("confirm_request", (m) => { if (document.hidden) native.notify("JARVIS potřebuje potvrzení", m.description); native.haptic(); });
+  c.on("confirm_request", (m) => { if (document.hidden) native.notifyApproval("JARVIS potřebuje potvrzení", m.description, { kind: "jarvis", id: m.id, label: m.description }); native.haptic(); });
+  c.on("claude_permission", (m) => {
+    asks.push(m); paintAsks(); show("chat"); native.haptic();
+    if (document.hidden) native.notifyApproval(`Claude Code · ${m.project} čeká`, m.label, { kind: "claude", id: m.id, label: m.label });
+  });
+  c.on("claude_permission_resolved", (m) => { asks = asks.filter((a) => a.id !== m.id); paintAsks(); });
+  native.onApprovalAction(async (action, extra) => {
+    if (action !== "allow" && action !== "deny") return;
+    if (extra.kind === "claude") return decideClaude(extra.id, action, extra.label);
+    if (action === "allow" && !(await native.verify(extra.label || "Potvrdit akci"))) return;
+    c.send("confirm_response", { id: extra.id, approved: action === "allow" });
+  });
   c.on("error", (m) => {
     if (m.auth) { savePairing(null); connectScreen(null, "Token už neplatí. Spáruj telefon znovu."); }
   });

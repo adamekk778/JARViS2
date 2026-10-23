@@ -1,4 +1,5 @@
 import "./blob.css";
+import { OUTFIT_SVG, resolveOutfit } from "./outfits";
 import { BODY_COLORS, EYES, LOOKS, type Accessory, type CharacterColor, type Eye, type Look, type Mood } from "./looks";
 
 export type { Mood, CharacterColor } from "./looks";
@@ -56,6 +57,8 @@ export class Blob {
   private raf = 0;
   private last = performance.now();
   private svgBody: SVGGElement;
+  private outfitG!: SVGGElement;
+  outfit = "none";
   private eyeL: SVGPathElement;
   private eyeR: SVGPathElement;
   private eyesG: SVGGElement;
@@ -126,7 +129,8 @@ export class Blob {
       this.eyesG.append(wrap);
     }
     this.svgBody = el("g", { class: "blob-body-g" });
-    this.svgBody.append(halo, bodyPath, spec, rimSoft, rim, this.eyesG);
+    this.outfitG = el("g", { class: "blob-outfit" });
+    this.svgBody.append(halo, bodyPath, spec, rimSoft, rim, this.eyesG, this.outfitG);
     svg.append(defs, this.shadow, contact, this.svgBody);
 
     this.acc = document.createElement("div");
@@ -156,6 +160,26 @@ export class Blob {
 
   setLevel(rms: number) {
     this.level = Math.max(this.level, clamp(rms * 4, 0, 1));
+  }
+
+  /** Dress him up: an outfit name or "auto" (the season decides). */
+  setOutfit(o: string | undefined) {
+    const name = resolveOutfit(o);
+    if (name === this.outfit) return;
+    this.outfit = name;
+    this.outfitG.innerHTML = name === "none" ? "" : OUTFIT_SVG[name];
+    this.el.dataset.outfit = name;
+  }
+
+  private pokes: number[] = [];
+  /** A poke (click): the 3rd quick one annoys him, the 6th makes his head spin. Returns the reaction, if any. */
+  poke(): "annoyed" | "dizzy" | null {
+    const now = performance.now();
+    this.pokes = this.pokes.filter((t) => now - t < 4000);
+    this.pokes.push(now);
+    if (this.pokes.length >= 6) { this.pokes = []; return "dizzy"; }
+    if (this.pokes.length >= 3) return "annoyed";
+    return null;
   }
 
   /** Rest the eyes towards a direction (-1..1) without counting as pointer movement, so the frame cap stays low. */
@@ -254,6 +278,12 @@ export class Blob {
         case "minus": add("minus", icon("minus-circle", "bold")); break;
         case "stars": add("stars", `<span>${icon("star-four")}</span><span>${icon("star-four")}</span><span>${icon("star-four")}</span><span>${icon("star-four")}</span>`); break;
         case "heart": add("heart", icon("heart")); break;
+        case "spiral": {
+          const sp = '<svg viewBox="-10 -10 20 20"><path d="M0 0 m0 -1.5 a1.5 1.5 0 1 1 -1.5 1.5 a3 3 0 1 1 3 3 a4.5 4.5 0 1 1 -4.5 -4.5 a6 6 0 1 1 6 6" /></svg>';
+          add("spiral", `<span>${sp}</span><span>${sp}</span>`);
+          break;
+        }
+        case "anger": add("anger", icon("lightning", "fill")); break;
       }
     }
     this.updateDynamic();
@@ -360,6 +390,7 @@ export class Blob {
         if (ph > 0.38 && ph < 0.48) { sy *= 0.9; sx *= 1.08; }
       }
       if (look.shake && since < 0.6) rot += Math.sin(since * 40) * 7 * (1 - since / 0.6);
+      if (look.wobble) { rot += Math.sin(t * 5) * 9; y += Math.sin(t * 10) * 1.5; }
     }
     const sq = look.squash;
     sx *= Math.sqrt(sq);

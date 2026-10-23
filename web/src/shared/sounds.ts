@@ -10,6 +10,13 @@ const TONES: Record<Sound, [number, number, number][]> = { // [frequency Hz, sta
 };
 
 let ctx: AudioContext | null = null;
+// your own sounds from the PC's sounds folder (3.0): name -> URL
+let custom: Partial<Record<Sound, string>> = {};
+
+export function setCustomSounds(files: Record<string, string> | undefined, base = "") {
+  custom = {};
+  for (const name of Object.keys(files || {})) custom[name as Sound] = `${base}/api/sounds/${name}?v=${encodeURIComponent(files![name])}`;
+}
 let enabled = true;
 let volume = 0.3;
 
@@ -20,6 +27,12 @@ export function configureSounds(appearance: { sounds?: boolean; sound_volume?: n
 
 export function play(name: Sound) {
   if (!enabled || volume <= 0) return;
+  if (custom[name]) {
+    const a = new Audio(custom[name]);
+    a.volume = Math.min(1, volume * 1.5);
+    a.play().catch(() => {});
+    return;
+  }
   try {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();

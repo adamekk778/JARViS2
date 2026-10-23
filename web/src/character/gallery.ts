@@ -1,6 +1,7 @@
 // Dev gallery: every mood side by side (used for screenshots / comparing with the reference picture).
 import { applyAppearance } from "../shared/base";
 import { Blob, MOOD_LABEL, MOODS, type CharacterColor } from "./blob";
+import { OUTFIT_LABEL, OUTFITS } from "./outfits";
 
 applyAppearance({ appearance: { theme: "stark", accent: "#4f8dff" } });
 const style = document.createElement("style");
@@ -39,4 +40,12 @@ colors.className = "colors";
   b.setMood("personalize");
   colors.append(b.el);
 });
-document.getElementById("app")!.append(grid, colors);
+const outfits = document.createElement("div");
+outfits.className = "colors";
+OUTFITS.filter((o) => o !== "auto" && o !== "none").forEach((o) => {
+  const b = new Blob({ size: 96, trackCursor: false });
+  b.setOutfit(o);
+  b.el.title = OUTFIT_LABEL[o];
+  outfits.append(b.el);
+});
+document.getElementById("app")!.append(grid, colors, outfits);

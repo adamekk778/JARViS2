@@ -1,5 +1,6 @@
 import { h, icon, toast, TOOL_ICON } from "../shared/dom";
 import { hero, HEROES } from "../shared/hero";
+import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 
@@ -302,7 +303,12 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]])),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
-          range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`)),
+          range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),
+          h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní zvuky"),
+            h("span", {}, "Dej do složky hotovo.mp3, chyba.wav, poslech.ogg… a JARVIS je použije místo svých.")),
+            h("div", { class: "btn-row" },
+              h("button", { class: "btn sm", type: "button", onclick: () => client.send("sounds_folder", { open: true }) }, icon("folder-open"), "Otevřít složku"),
+              h("button", { class: "btn sm", type: "button", onclick: () => { client.send("sounds_folder", { open: false }); toast("Zvuky načteny", "ok"); } }, icon("arrows-clockwise"), "Načíst")))),
         characterCard()];
     },
 
@@ -602,7 +608,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     const preview = new Character({ size: 110 });
     preview.setMood("personalize");
     preview.setColor(ch.color || "black", ch.glow || undefined);
-    const colors: [string, string][] = [["black", "Černá"], ["midnight", "Půlnoční"], ["violet", "Fialová"], ["rose", "Růžová"], ["white", "Bílá"]];
+    preview.setOutfit(ch.outfit);
+    const colors: [string, string][] = [["black", "Černá"], ["midnight", "Půlnoční"], ["violet", "Fialová"], ["rose", "Růžová"], ["white", "Bílá"],
+      ["blue", "Modrá"], ["orange", "Oranžová"], ["green", "Zelená"], ["amber", "Žlutá"], ["cyan", "Tyrkysová"]];
     const glow = h("input", { type: "color", value: ch.glow || DEFAULT_GLOW, "aria-label": "Barva záře" }) as HTMLInputElement;
     glow.onchange = () => set("character.glow", glow.value);
     return card("Postavička JARVIS", "Vzhled JARVISe v notchi, na ploše i v telefonu. Hlasem: „buď fialový“.",
@@ -612,6 +620,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
           h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
+          select("character.outfit", "Šatník", OUTFITS.map((o) => [o, OUTFIT_LABEL[o]] as [string, string]),
+            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."),
           select("character.size", "Velikost na ploše", [["S", "Malá"], ["M", "Střední"], ["L", "Velká"]]),
           sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
   }

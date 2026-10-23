@@ -5,6 +5,7 @@ export interface ShareEvent { title: string; texts: string[]; files: { uri: stri
 
 const isNative = Capacitor.isNativePlatform();
 let notifyId = 1;
+let actionsRegistered = false;
 
 export const native = {
   isNative,
@@ -42,6 +43,42 @@ export const native = {
         new Notification(title, { body });
       }
     } catch { /* ignore */ }
+  },
+
+  /** Fingerprint / face / screen lock before an "Allow" (3.0). In a plain browser there is nothing to check. */
+  async verify(reason: string): Promise<boolean> {
+    if (!isNative) return true;
+    try {
+      const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+      const av = await NativeBiometric.isAvailable({ useFallback: true }).catch(() => ({ isAvailable: false }));
+      if (!av.isAvailable) return window.confirm(`${reason}\n\nTelefon nemá nastavený otisk ani zámek obrazovky. Povolit i tak?`);
+      await NativeBiometric.verifyIdentity({ title: "Potvrdit v JARVISovi", subtitle: reason.slice(0, 90), negativeButtonText: "Zrušit", maxAttempts: 3 });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  /** A notification with Povolit / Zamítnout buttons; both open the app (Povolit then asks for the fingerprint). */
+  async notifyApproval(title: string, body: string, extra: Record<string, string>) {
+    if (localStorage.getItem("jarvis.notify") === "0") return;
+    try {
+      if (isNative) {
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
+        if (!actionsRegistered) {
+          actionsRegistered = true;
+          await LocalNotifications.registerActionTypes({ types: [{ id: "approve", actions: [
+            { id: "allow", title: "Povolit", foreground: true }, { id: "deny", title: "Zamítnout", foreground: true }] }] });
+        }
+        await LocalNotifications.schedule({ notifications: [{ id: notifyId++, title, body, actionTypeId: "approve", extra }] });
+      } else await this.notify(title, body);
+    } catch { /* ignore */ }
+  },
+
+  onApprovalAction(cb: (action: string, extra: Record<string, string>) => void) {
+    if (!isNative) return;
+    import("@capacitor/local-notifications").then(({ LocalNotifications }) =>
+      LocalNotifications.addListener("localNotificationActionPerformed", (ev: any) => cb(ev.actionId, ev.notification?.extra || {}))).catch(() => {});
   },
 
   haptic() {

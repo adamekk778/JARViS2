@@ -52,8 +52,10 @@ let hoverUntil = 0;
 let text = "";
 let bubbleTimer = 0;
 
+let pokeMood: Mood | null = null;
 function mood(): Mood {
   if (held) return "dragged";
+  if (pokeMood) return pokeMood;
   if (performance.now() < hoverUntil && (coreMood === "idle" || coreMood === "sleeping")) return "desktop_interact";
   if (action === "sleep" && coreMood === "idle") return "sleeping";
   return coreMood;
@@ -128,6 +130,8 @@ body.addEventListener("pointerup", async () => {
 });
 body.addEventListener("click", () => {
   if (suppressClick || held) return;
+  const poked = blob.poke();
+  if (poked) { window.clearTimeout(clickTimer); pokeMood = poked; blob.setMood(poked); setTimeout(() => { pokeMood = null; blob.setMood(mood()); }, poked === "dizzy" ? 3200 : 1600); return; }
   window.clearTimeout(clickTimer);
   clickTimer = window.setTimeout(() => client.send("push_to_talk"), 260); // wait: maybe it's a double-click
 });
@@ -151,11 +155,11 @@ function applySize(s?: string) {
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
   const ch = m.settings?.character;
-  if (ch) { blob.setColor(ch.color, ch.glow || undefined); applySize(ch.size); }
+  if (ch) { blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); applySize(ch.size); }
   if (m.mood) coreMood = m.mood.mood;
   update();
 });
-client.on("settings_changed", (m) => { const ch = m.settings?.character; if (ch) { blob.setColor(ch.color, ch.glow || undefined); applySize(ch.size); } });
+client.on("settings_changed", (m) => { const ch = m.settings?.character; if (ch) { blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); applySize(ch.size); } });
 client.on("mood", (m) => { coreMood = m.mood; blob.setMood(mood(), { badge: m.badge, progress: m.progress }); update(); });
 client.on("pet_state", (m) => { if (m.action !== "open_panel") { action = m.action; facing = m.facing; update(); } });
 client.on("level", (m) => blob.setLevel(m.rms || 0));

@@ -166,8 +166,9 @@ export function recapCard(r: any, onClose?: () => void): HTMLElement {
 export function recapOverlay(client: JarvisClient) {
   let shown = false;
   client.on("welcome", (m) => { if (m.recap_due && !shown) client.send("recap_get"); });
-  client.on("recap", (m) => {
+  client.on("recap", function show(m: any) {
     if (!m.due || shown) return;
+    if (document.querySelector(".whatsnew")) { setTimeout(() => show(m), 1500); return; }   // after "Co je nového"
     shown = true;
     const close = () => { root.remove(); window.removeEventListener("keydown", onKey); client.send("recap_seen"); };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };

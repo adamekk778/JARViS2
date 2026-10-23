@@ -163,6 +163,7 @@ export function buildPanel(ctx: PanelCtx) {
     const preview = (previewBlob ??= new Blob({ size: 64 }));
     preview.setMood("personalize");
     preview.setColor(settings.character?.color || "black", settings.character?.glow || undefined);
+    preview.setOutfit(settings.character?.outfit);
     settingsView.replaceChildren(
       h("div", { class: "p-col" },
         sw("voice.enabled", "Hlasové ovládání"), sw("voice.wake_word", "Probouzení „Hey Jarvis“"),

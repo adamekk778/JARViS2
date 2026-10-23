@@ -382,3 +382,13 @@ a.btn { text-decoration: none; }
 .cc-steps li:first-child { color: var(--text); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .chip-x { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0; display: inline-grid; }
+.whatsnew { display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; background: radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%), var(--surface); }
+.wn-item { display: flex; gap: 14px; align-items: flex-start; }
+.wn-item strong { font-size: 14.5px; }
+.wn-item p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.whatsnew .btn-row { justify-content: flex-end; }
+.swatch.char-blue { background: radial-gradient(circle at 35% 30%, #a9c8ff, #1d4fc4); }
+.swatch.char-orange { background: radial-gradient(circle at 35% 30%, #ffc89a, #b8520f); }
+.swatch.char-green { background: radial-gradient(circle at 35% 30%, #9df0c9, #0f8a5c); }
+.swatch.char-amber { background: radial-gradient(circle at 35% 30%, #ffe08a, #b07408); }
+.swatch.char-cyan { background: radial-gradient(circle at 35% 30%, #a5f3fc, #0e7f92); }

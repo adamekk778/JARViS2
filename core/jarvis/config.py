@@ -156,6 +156,7 @@ class MemoryCfg(BaseModel):
 class Character(BaseModel):
     color: Literal["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] = "black"
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
+    outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] = "auto"
     size: Literal["S", "M", "L"] = "M"
     pet_mode: bool = False    # living on the desktop instead of the notch
     pet_x: int = -1
@@ -244,7 +245,8 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.speak_mode", "voice.stt_language", "voice.followup",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
     "appearance.theme", "appearance.accent", "appearance.animations",
-    "character.color", "character.glow", "character.size", "agent.mode",
+    "character.color", "character.glow", "character.size", "character.outfit", "agent.mode",
+    "dictation.enabled", "dictation.cleanup",
 }
 
 # Never sent to remote clients.
