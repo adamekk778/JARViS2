@@ -64,6 +64,8 @@ jobs:
             Start-Sleep -Seconds 2
             try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
           }
+          Write-Host "== stdout"; Get-Content "$env:RUNNER_TEMP\out.txt" -ErrorAction SilentlyContinue | Select-Object -Last 60
+          Write-Host "== stderr"; Get-Content "$env:RUNNER_TEMP\err.txt" -ErrorAction SilentlyContinue | Select-Object -Last 80
           foreach ($f in "crash.log","fault.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 60 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           if (-not $ok) { throw "JARVIS.exe did not start" }
