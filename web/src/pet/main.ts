@@ -5,6 +5,7 @@ import { Blob, type Mood } from "../character/blob";
 import { h, icon } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
+import { domeOutline, regionSender, roundRect, type Poly } from "../shared/region";
 
 declare global {
   interface Window { pywebview?: { api: Record<string, (...a: any[]) => Promise<any>> } }
@@ -25,6 +26,23 @@ const menu = h("div", { class: "pet-menu", hidden: true },
   h("button", { type: "button", onclick: () => { hideMenu(); api("dock"); } }, icon("arrow-line-up"), "Zpět do notche"));
 const root = h("div", { class: "pet" }, bubble, body, menu);
 document.getElementById("pet-root")!.append(root);
+
+// ---------- window region (Windows): only the body, its accessories, the bubble and the menu exist ----------
+const sendRegion = regionSender();
+function syncRegion() {
+  const dpr = window.devicePixelRatio || 1;
+  const polys: Poly[] = [];
+  const bodyPath = blob.el.querySelector(".blob-body") as SVGGraphicsElement | null;
+  if (bodyPath) polys.push(domeOutline(bodyPath.getBoundingClientRect(), dpr));
+  blob.el.querySelectorAll<HTMLElement>(".blob-acc .acc").forEach((a) => {
+    const r = a.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && getComputedStyle(a).opacity !== "0") polys.push(roundRect(r, 8, dpr, 2));
+  });
+  for (const el of [bubble, menu]) if (!el.hidden) polys.push(roundRect(el.getBoundingClientRect(), 16, dpr));
+  sendRegion(polys);
+}
+if (window.pywebview) setInterval(syncRegion, 66);
+else window.addEventListener("pywebviewready", () => setInterval(syncRegion, 66));
 
 let coreMood: Mood = "idle";
 let action = "idle";

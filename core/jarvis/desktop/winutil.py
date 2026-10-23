@@ -79,3 +79,94 @@ def set_app_id() -> None:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("JARVIS.Assistant.2")
         except Exception:
             pass
+
+
+# ---------- window geometry, region, cursor (notch + pet windows) ----------
+_geom_typed = False
+
+
+def _geom_types() -> None:
+    global _geom_typed
+    if _geom_typed or not IS_WIN:
+        return
+    from ctypes import wintypes as W
+
+    u, g = ctypes.windll.user32, ctypes.windll.gdi32
+    u.SetWindowPos.argtypes = [W.HWND, W.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, W.UINT]
+    u.SetWindowRgn.argtypes = [W.HWND, W.HRGN, W.BOOL]
+    u.WindowFromPoint.argtypes = [W.POINT]
+    u.WindowFromPoint.restype = W.HWND
+    u.IsChild.argtypes = [W.HWND, W.HWND]
+    u.GetCursorPos.argtypes = [ctypes.POINTER(W.POINT)]
+    g.CreatePolygonRgn.argtypes = [ctypes.POINTER(W.POINT), ctypes.c_int, ctypes.c_int]
+    g.CreatePolygonRgn.restype = W.HRGN
+    g.CombineRgn.argtypes = [W.HRGN, W.HRGN, W.HRGN, ctypes.c_int]
+    g.DeleteObject.argtypes = [W.HGDIOBJ]
+    try:
+        u.GetDpiForWindow.argtypes = [W.HWND]
+    except AttributeError:
+        pass
+    _geom_typed = True
+
+
+def dpi_scale(hwnd: int) -> float:
+    """Physical pixels per CSS pixel for the window (1.25 at 125 % Windows scaling)."""
+    if not IS_WIN or not hwnd:
+        return 1.0
+    _geom_types()
+    try:
+        return (ctypes.windll.user32.GetDpiForWindow(hwnd) or 96) / 96
+    except Exception:
+        return 1.0
+
+
+def set_window_rect(hwnd: int, x: int, y: int, w: int, h: int) -> None:
+    """Move + resize in ONE call (physical pixels): no in-between frame where the page shifts under the cursor."""
+    if not IS_WIN or not hwnd:
+        return None
+    _geom_types()
+    SWP_NOZORDER, SWP_NOACTIVATE = 0x0004, 0x0010
+    ctypes.windll.user32.SetWindowPos(hwnd, None, int(x), int(y), int(w), int(h), SWP_NOZORDER | SWP_NOACTIVATE)
+    return None
+
+
+def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> None:
+    """Clip the window to these polygons (window coordinates, physical px). Outside them the window simply does not
+    exist: nothing is painted (no white/grey WinForms background) and the mouse goes to whatever is below."""
+    if not IS_WIN or not hwnd:
+        return None
+    _geom_types()
+    from ctypes import wintypes as W
+
+    u, g = ctypes.windll.user32, ctypes.windll.gdi32
+    polys = [p for p in polygons if len(p) >= 3]
+    if not polys:
+        u.SetWindowRgn(hwnd, None, True)
+        return None
+    rgn = None
+    for poly in polys:
+        pts = (W.POINT * len(poly))(*[W.POINT(int(x), int(y)) for x, y in poly])
+        r = g.CreatePolygonRgn(pts, len(poly), 2)  # WINDING
+        if rgn is None:
+            rgn = r
+        else:
+            g.CombineRgn(rgn, rgn, r, 2)  # RGN_OR
+            g.DeleteObject(r)
+    if not u.SetWindowRgn(hwnd, rgn, True):  # on success the system owns the region
+        g.DeleteObject(rgn)
+    return None
+
+
+def cursor_over(hwnd: int) -> bool:
+    """Is the real mouse cursor over this window (respecting its region)? Used to ignore spurious mouseleave events."""
+    if not IS_WIN or not hwnd:
+        return False
+    _geom_types()
+    from ctypes import wintypes as W
+
+    u = ctypes.windll.user32
+    pt = W.POINT()
+    if not u.GetCursorPos(ctypes.byref(pt)):
+        return False
+    under = u.WindowFromPoint(pt)
+    return bool(under) and (under == hwnd or bool(u.IsChild(hwnd, under)))

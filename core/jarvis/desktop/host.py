@@ -23,6 +23,13 @@ class NotchApi:
     def resize(self, w: int, h: int) -> None:
         self._host.place_notch(int(w), int(h))
 
+    def region(self, polygons: list) -> None:
+        """The page sends the notch outline (window coords, physical px) every frame while it animates."""
+        self._host.set_notch_region(polygons)
+
+    def cursor_inside(self) -> bool:
+        return winutil.cursor_over(winutil.find_window(NOTCH_TITLE))
+
     def open_chat(self, view: str = "chat") -> None:
         self._host.open_chat(view)
 
@@ -49,10 +56,26 @@ class DesktopHost:
         idx = self.rt.cfg.notch.monitor
         return screens[idx] if 0 <= idx < len(screens) else (screens[0] if screens else None)
 
+    def set_notch_region(self, polygons: list) -> None:
+        hwnd = winutil.find_window(NOTCH_TITLE)
+        winutil.set_region(hwnd, [[(round(x), round(y)) for x, y in poly] for poly in polygons or []])
+
     def place_notch(self, w: int, h: int) -> None:
         if not self.notch:
             return
         self._notch_size = (w, h)
+        hwnd = winutil.find_window(NOTCH_TITLE)
+        if hwnd:  # Windows: physical pixels, one SetWindowPos (pywebview's resize+move is two steps and DPI-scales x twice)
+            from . import platforms
+
+            mons = platforms.monitors()
+            i = self.rt.cfg.notch.monitor
+            mon = mons[i if 0 <= i < len(mons) else 0][0]
+            scale = winutil.dpi_scale(hwnd)
+            pw, ph = round(w * scale), round(h * scale)
+            x = int(mon.x + (mon.w - pw) // 2 + self.rt.cfg.notch.offset_x * scale)
+            winutil.set_window_rect(hwnd, x, mon.y, pw, ph)
+            return
         scr = self._screen()
         sx, sy, sw = (scr.x, scr.y, scr.width) if scr else (0, 0, 1920)
         x = int(sx + (sw - w) / 2 + self.rt.cfg.notch.offset_x)
@@ -70,8 +93,8 @@ class DesktopHost:
         if self.rt.cfg.notch.enabled:
             self.notch = webview.create_window(
                 NOTCH_TITLE, f"{self.base}/notch", js_api=NotchApi(self), width=w, height=h, x=0, y=0,
-                frameless=True, easy_drag=False, on_top=True, transparent=True, resizable=False, shadow=False,
-                background_color="#000000")
+                frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
+                background_color="#000000")  # not transparent: the page clips the window to the notch shape (region)
             self.notch.events.shown += self._on_notch_shown
         self.chat = webview.create_window(
             "JARVIS", f"{self.base}/#chat", width=1240, height=820, min_size=(420, 520), hidden=True,

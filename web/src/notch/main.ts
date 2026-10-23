@@ -7,6 +7,7 @@ import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
 import { configureSounds, play } from "../shared/sounds";
 import { stopButton, type Task } from "../shared/taskcard";
+import { notchOutline, regionSender } from "../shared/region";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -120,6 +121,32 @@ function liveHeight() {
   return Math.max(96, Math.min(300, content + 34));
 }
 
+// ---------- window region (Windows): clip the window to the notch shape, following its animation ----------
+const sendRegion = regionSender();
+let regionUntil = 0, regionRaf = 0;
+function syncRegion() {
+  const r = shape.getBoundingClientRect();
+  const radius = parseFloat(getComputedStyle(inner).borderBottomLeftRadius) || 0;
+  sendRegion([notchOutline(r, radius, 14, window.devicePixelRatio || 1)]);
+}
+function followRegion(ms = 800) {
+  if (!window.pywebview) return;
+  regionUntil = Math.max(regionUntil, performance.now() + ms);
+  if (regionRaf) return;
+  const tick = () => {
+    syncRegion();
+    regionRaf = performance.now() < regionUntil ? requestAnimationFrame(tick) : 0;
+  };
+  regionRaf = requestAnimationFrame(tick);
+}
+window.addEventListener("pywebviewready", () => followRegion(1500));
+window.addEventListener("resize", () => followRegion(300));
+
+/** Ask Windows where the cursor really is (WebView2 can fire mouseleave when the window moves under a still cursor). */
+async function cursorInside(): Promise<boolean> {
+  try { return !!(await window.pywebview?.api.cursor_inside?.()); } catch { return false; }
+}
+
 let lastSize = [0, 0];
 function apply(m: Mode) {
   const [w, hh] = sizeFor(m);
@@ -134,6 +161,7 @@ function apply(m: Mode) {
   }
   lastSize = [w, hh];
   updateBlob();
+  followRegion();
 }
 
 function setMode(m: Mode) {
@@ -181,8 +209,9 @@ function settle(force = false) {
 
 function scheduleClose() {
   window.clearTimeout(closeTimer);
-  closeTimer = window.setTimeout(() => {
+  closeTimer = window.setTimeout(async () => {
     if (hovering || pinned) return;
+    if (window.pywebview && await cursorInside()) { scheduleClose(); return; }
     if (busy()) setMode("live");
     else settle(true);
   }, cfg.close_delay_ms);
@@ -195,7 +224,9 @@ function openPanel(section?: Parameters<typeof panel.show>[0]) {
 }
 
 // ---------- mouse ----------
+let leaveCheck = 0;
 shape.addEventListener("mouseenter", () => {
+  window.clearTimeout(leaveCheck);
   hovering = true;
   window.clearTimeout(closeTimer);
   window.clearTimeout(openTimer);
@@ -204,10 +235,20 @@ shape.addEventListener("mouseenter", () => {
     openTimer = window.setTimeout(() => hovering && mode === "hover" && setMode("bar"), cfg.open_delay_ms + 220);
   }
 });
-shape.addEventListener("mouseleave", () => {
+function leave() {
   hovering = false;
   window.clearTimeout(openTimer);
   if (mode === "bar" || mode === "hover" || mode === "panel") scheduleClose();
+}
+shape.addEventListener("mouseleave", async () => {
+  if (window.pywebview && await cursorInside()) {
+    // spurious leave: keep it open and keep checking until the cursor really goes away
+    const recheck = async () => { if (await cursorInside()) leaveCheck = window.setTimeout(recheck, 300); else leave(); };
+    window.clearTimeout(leaveCheck);
+    leaveCheck = window.setTimeout(recheck, 300);
+    return;
+  }
+  leave();
 });
 blobBox.addEventListener("click", () => {
   if (justDragged) return;

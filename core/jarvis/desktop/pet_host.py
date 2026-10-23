@@ -50,6 +50,11 @@ class PetApi:
     def bubble(self, on: bool) -> None:
         self._c.big = bool(on)
 
+    def region(self, polygons: list) -> None:
+        """Body + accessories + speech bubble outline from the page → window region (no box around the pet)."""
+        hwnd = winutil.find_window(PET_TITLE)
+        winutil.set_region(hwnd, [[(round(x), round(y)) for x, y in poly] for poly in polygons or []])
+
     def open_chat(self, view: str = "chat") -> None:
         self._c.host.open_chat(view)
 
@@ -79,8 +84,8 @@ class PetController:
 
         self.win = webview.create_window(
             PET_TITLE, f"{self.host.base}/pet", js_api=PetApi(self), width=SMALL[0], height=SMALL[1], x=0, y=0,
-            frameless=True, easy_drag=False, on_top=True, transparent=True, resizable=False, shadow=False,
-            hidden=True, background_color="#000000")
+            frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
+            hidden=True, background_color="#000000")  # not transparent: clipped to the pet's shape by a window region
         self.win.events.shown += lambda: threading.Thread(target=self._fix_taskbar, daemon=True).start()
 
     def _fix_taskbar(self) -> None:
@@ -171,6 +176,11 @@ class PetController:
         x, y = int(round(self.sim.x - fx * self.scale)), int(round(self.sim.y - fy * self.scale))
         target = (x, y, w, h)
         if target == self._placed:
+            return
+        hwnd = winutil.find_window(PET_TITLE)
+        if hwnd:  # physical pixels, one call (pywebview's move() would DPI-scale our physical x/y a second time)
+            winutil.set_window_rect(hwnd, x, y, round(w * self.scale), round(h * self.scale))
+            self._placed = target
             return
         try:
             if not self._placed or self._placed[2:] != (w, h):
