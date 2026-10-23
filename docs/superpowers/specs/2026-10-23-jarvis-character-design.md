@@ -172,3 +172,13 @@ Stav (na ploše/v notchi, poslední pozice) se pamatuje v configu `character.pet
 
 - Ručně kreslené Rive/Lottie animace (přístup B), zvukové efekty postavičky, víc mazlíčků najednou,
   mazlíček na telefonu mimo aplikaci (overlay přes jiné aplikace).
+
+## Revize v2 – vzhled 1:1 podle `assets/jarvis-character-reference-v2.png`
+
+- Tělo: lesklá černá „želé kopule“ – téměř kruhová elipsa (rx 90, ry 86) seříznutá rovně dole se zaoblenými rohy.
+  Bez obrysu a bez tvrdého bílého odlesku; jen měkké světlo po horní hraně (rim light) a modrá záře na podlaze pod tělem.
+- Výchozí barva záře `#4f8dff` (modrá z obrázku), nezávislá na akcentu aplikace.
+- Oči: velké svítící bílé ovály níž v těle (66 % výšky); výrazy podle dlaždic – ◠ ◠ (radost/úspěch/tanec/hover),
+  přivřená víčka (přemýšlí/limit/fokus), ‿ ‿ (spí), smutná víčka (chyba), srpky ( ) (bez internetu), bez očí + kroužek (aktualizace).
+- Doplňky podle dlaždic: modré vlny / tečky / ekvalizér / noty, notebook, modrý ✓ v kroužku, červené ⓘ/⚠/mrak, kroužek aktualizace,
+  zvonek s červenou tečkou, čárkovaný rámeček + kurzor s plusem, kurzor, modré ⊖, modré čtyřcípé hvězdy, červené srdce.

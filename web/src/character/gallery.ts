@@ -6,9 +6,9 @@ applyAppearance({ appearance: { theme: "stark", accent: "#2ee6ff" } });
 const style = document.createElement("style");
 style.textContent = `
 body { background: radial-gradient(120% 80% at 50% 0%, #2b3a52 0%, #111821 45%, #07090c 100%); min-height: 100vh; }
-.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; padding: 24px; }
-.card { position: relative; height: 230px; border-radius: 16px; background: linear-gradient(180deg, rgb(255 255 255 / .04), rgb(0 0 0 / .25)); border: 1px solid rgb(255 255 255 / .07); display: grid; justify-items: center; align-content: end; padding: 12px; overflow: hidden; }
-.card .stage { flex: 1; display: grid; place-items: center; height: 150px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; padding: 24px; }
+.card { position: relative; min-height: 230px; border-radius: 16px; background: linear-gradient(180deg, rgb(255 255 255 / .04), rgb(0 0 0 / .25)); border: 1px solid rgb(255 255 255 / .07); display: grid; justify-items: center; align-content: end; padding: 12px; overflow: hidden; }
+.card .stage { flex: 1; display: grid; place-items: center; min-height: 150px; }
 .card h3 { margin: 6px 0 0; font: 600 14px var(--font); letter-spacing: .04em; text-transform: uppercase; color: #e8edf3; }
 .colors { display: flex; gap: 18px; justify-content: center; padding: 0 24px 24px; }
 `;
@@ -22,8 +22,8 @@ MOODS.filter((m) => !only || m === only).forEach((m, i) => {
   card.className = "card";
   const stage = document.createElement("div");
   stage.className = "stage";
-  const b = new Blob({ size: 110, trackCursor: false });
-  b.setMood(m, { badge: m === "notify" ? 3 : 0, progress: m === "working" ? 0.6 : m === "updating" ? 0.4 : null });
+  const b = new Blob({ size: Number(params.get("size")) || 110, trackCursor: false });
+  b.setMood(m, { badge: m === "notify" ? 3 : 0, progress: m === "working" ? 0.6 : null });
   if (m === "listening" || m === "speaking") setInterval(() => b.setLevel(0.08 + Math.random() * 0.12), 90);
   stage.append(b.el);
   const h = document.createElement("h3");

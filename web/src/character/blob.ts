@@ -5,9 +5,11 @@ export type { Mood, CharacterColor } from "./looks";
 export { MOODS, MOOD_LABEL } from "./looks";
 
 const SVG = "http://www.w3.org/2000/svg";
-const BODY = "M 10 150 C 10 84 50 40 100 40 C 150 40 190 84 190 150 C 190 168 170 175 100 175 C 30 175 10 168 10 150 Z";
-const EYE_X = 27;
-const EYE_Y = 116;
+// gumdrop: a near-circular ellipse (rx 90, ry 86) cut flat at the bottom, soft corners
+const BODY = "M 36 175 Q 22 175 17.8 166 A 90 86 0 1 1 182.2 166 Q 178 175 164 175 Z";
+const EYE_X = 35;
+const EYE_Y = 133;
+export const DEFAULT_GLOW = "#4f8dff";
 let uidSeq = 0;
 
 const el = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) => {
@@ -32,7 +34,7 @@ function reducedMotion(): boolean {
 export interface BlobOptions {
   size?: number;          // px
   color?: CharacterColor;
-  glow?: string;          // css colour; default = accent
+  glow?: string;          // css colour; default = JARVIS blue
   trackCursor?: boolean;  // eyes follow the mouse inside this window
 }
 
@@ -64,6 +66,7 @@ export class Blob {
   private badgeEl: HTMLElement | null = null;
   private grads: { light: SVGStopElement; mid: SVGStopElement; dark: SVGStopElement };
   private glowColor = "";
+  private cuts: { cut: SVGEllipseElement; side: 1 | -1 }[] = [];
 
   constructor(opts: BlobOptions = {}) {
     const uid = `b${++uidSeq}`;
@@ -75,9 +78,9 @@ export class Blob {
 
     const svg = el("svg", { viewBox: "0 0 200 200", class: "blob-svg", "aria-hidden": "true" });
     const defs = el("defs");
-    const grad = el("radialGradient", { id: `${uid}-g`, cx: "36%", cy: "26%", r: "80%" });
+    const grad = el("radialGradient", { id: `${uid}-g`, cx: "42%", cy: "18%", r: "85%" });
     const s1 = el("stop", { offset: "0%" });
-    const s2 = el("stop", { offset: "45%" });
+    const s2 = el("stop", { offset: "50%" });
     const s3 = el("stop", { offset: "100%" });
     grad.append(s1, s2, s3);
     this.grads = { light: s1, mid: s2, dark: s3 };
@@ -85,21 +88,46 @@ export class Blob {
     blur.append(el("feGaussianBlur", { stdDeviation: 6 }));
     const soft = el("filter", { id: `${uid}-soft`, x: "-50%", y: "-50%", width: "200%", height: "200%" });
     soft.append(el("feGaussianBlur", { stdDeviation: 2.2 }));
-    defs.append(grad, blur, soft);
+    // rim light: bright along the top edge, fading out toward the base
+    const rimGrad = el("linearGradient", { id: `${uid}-r`, x1: 0, y1: 0, x2: 0, y2: 1 });
+    rimGrad.append(el("stop", { offset: "0%", class: "blob-rim-a" }), el("stop", { offset: "55%", class: "blob-rim-b" }),
+      el("stop", { offset: "100%", class: "blob-rim-c" }));
+    const clip = el("clipPath", { id: `${uid}-c` });
+    clip.append(el("path", { d: BODY }));
+    const floor = el("radialGradient", { id: `${uid}-f` });
+    floor.append(el("stop", { offset: "0%", class: "blob-floor-a" }), el("stop", { offset: "55%", class: "blob-floor-b" }),
+      el("stop", { offset: "100%", class: "blob-floor-c" }));
+    // crescent eyes: each eye is masked by a black ellipse biting in from its inner side
+    const masks = ([1, -1] as const).map((side, i) => {
+      const m = el("mask", { id: `${uid}-m${i}`, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", x: -60, y: -60, width: 120, height: 120 });
+      const cut = el("ellipse", { cx: 0, cy: 0, rx: 0, ry: 0, fill: "#000" });
+      m.append(el("rect", { x: -60, y: -60, width: 120, height: 120, fill: "#fff" }), cut);
+      return { m, cut, side };
+    });
+    this.cuts = masks;
+    defs.append(grad, rimGrad, floor, clip, blur, soft, ...masks.map((x) => x.m));
 
-    this.shadow = el("ellipse", { cx: 100, cy: 180, rx: 80, ry: 9, class: "blob-shadow", filter: `url(#${uid}-blur)` });
-    const halo = el("path", { d: BODY, class: "blob-halo", filter: `url(#${uid}-blur)` });
-    const rim = el("path", { d: BODY, class: "blob-rim" });
+    // floor: blue light spilling out from under the body + dark contact shadow
+    this.shadow = el("ellipse", { cx: 100, cy: 175, rx: 130, ry: 4.5, fill: `url(#${uid}-f)`, class: "blob-shadow", filter: `url(#${uid}-soft)` });
+    const contact = el("ellipse", { cx: 100, cy: 177, rx: 78, ry: 4, class: "blob-contact", filter: `url(#${uid}-soft)` });
+    const halo = el("path", { d: BODY, class: "blob-halo", stroke: `url(#${uid}-r)`, filter: `url(#${uid}-blur)` });
     const bodyPath = el("path", { d: BODY, fill: `url(#${uid}-g)`, class: "blob-body" });
-    const spec = el("ellipse", { cx: 62, cy: 72, rx: 30, ry: 13, transform: "rotate(-24 62 72)", class: "blob-spec", filter: `url(#${uid}-soft)` });
-    const spec2 = el("ellipse", { cx: 54, cy: 68, rx: 8, ry: 4, transform: "rotate(-24 54 68)", class: "blob-spec2" });
-    this.eyeL = el("path", { class: "blob-eye" });
-    this.eyeR = el("path", { class: "blob-eye" });
+    // inner edge light (stroke clipped to the inside of the body) + soft sheen on the crown
+    const rim = el("path", { d: BODY, class: "blob-rim", stroke: `url(#${uid}-r)`, "clip-path": `url(#${uid}-c)` });
+    const rimSoft = el("path", { d: BODY, class: "blob-rim-soft", stroke: `url(#${uid}-r)`, "clip-path": `url(#${uid}-c)`, filter: `url(#${uid}-soft)` });
+    const spec = el("ellipse", { cx: 90, cy: 66, rx: 52, ry: 16, transform: "rotate(-8 90 66)", class: "blob-spec", filter: `url(#${uid}-blur)`, "clip-path": `url(#${uid}-c)` });
+    this.eyeL = el("path", { class: "blob-eye", mask: `url(#${uid}-m0)` });
+    this.eyeR = el("path", { class: "blob-eye", mask: `url(#${uid}-m1)` });
     this.eyesG = el("g");
-    this.eyesG.append(this.eyeL, this.eyeR);
+    // glow is filtered on a wrapper so it follows the masked (crescent) shape
+    for (const eye of [this.eyeL, this.eyeR]) {
+      const wrap = el("g", { class: "blob-eye-glow" });
+      wrap.append(eye);
+      this.eyesG.append(wrap);
+    }
     this.svgBody = el("g", { class: "blob-body-g" });
-    this.svgBody.append(halo, rim, bodyPath, spec, spec2, this.eyesG);
-    svg.append(defs, this.shadow, this.svgBody);
+    this.svgBody.append(halo, bodyPath, spec, rimSoft, rim, this.eyesG);
+    svg.append(defs, this.shadow, contact, this.svgBody);
 
     this.acc = document.createElement("div");
     this.acc.className = "blob-acc";
@@ -144,7 +172,7 @@ export class Blob {
     this.el.style.setProperty("--blob-rim", col.rim);
     this.el.dataset.color = c;
     this.glowColor = glow || "";
-    this.el.style.setProperty("--blob-glow", glow || "var(--accent, #2ee6ff)");
+    this.el.style.setProperty("--blob-glow", glow || DEFAULT_GLOW);
   }
 
   private onPointer = (e: PointerEvent) => this.lookAt(e.clientX, e.clientY);
@@ -194,21 +222,21 @@ export class Blob {
           break;
         }
         case "dots": add("dots", "<i></i><i></i><i></i>"); break;
-        case "notes": add("notes", `<span>${icon("music-note")}</span><span>${icon("music-notes")}</span><span>${icon("music-note")}</span><span>${icon("music-notes-simple")}</span>`); break;
+        case "wait": add("dots wait", "<i></i><i></i><i></i>"); break;
+        case "notes": add("notes", `<span>${icon("music-note")}</span><span>${icon("music-notes")}</span><span>${icon("music-note")}</span><span>${icon("music-note-simple")}</span>`); break;
         case "laptop": add("laptop", icon("laptop")); break;
-        case "progress": this.progressEl = add("progress", "<b></b>"); break;
-        case "sparkles": add("sparkles", `<span>${icon("sparkle")}</span><span>${icon("star-four")}</span><span>${icon("sparkle")}</span><span>${icon("star-four")}</span>`); break;
-        case "alert": add("alert", "!"); break;
+        case "check": add("check", icon("check-circle", "bold")); break;
+        case "warn": add("warn", icon("warning-circle", "bold")); break;
+        case "limit": add("limit", icon("warning", "bold")); break;
+        case "cloud": add("cloud", icon("cloud-slash", "bold")); break;
+        case "spinner": this.progressEl = add("spinner", '<svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="15"/><circle class="arc" cx="20" cy="20" r="15" pathLength="100"/></svg>'); break;
         case "zzz": add("zzz", "<span>z</span><span>z</span><span>Z</span>"); break;
-        case "limit": add("limit", icon("warning")); break;
-        case "wifi": add("wifi", icon("wifi-high", "bold")); break;
-        case "download": add("download", icon("download-simple", "bold")); break;
         case "bell": this.badgeEl = add("bell", `${icon("bell")}<em></em>`); break;
         case "cursor": add("cursor", icon("cursor")); break;
-        case "headphones": add("headphones", "<i></i><i></i>"); break;
-        case "clock": add("clock", icon("clock", "bold")); break;
-        case "hearts": add("hearts", `<span>${icon("heart")}</span><span>${icon("heart")}</span><span>${icon("heart")}</span>`); break;
-        case "ripple": add("ripple", "<i></i><i></i>"); break;
+        case "dragbox": add("dragbox", `<b></b><span>${icon("cursor")}<u>${icon("plus-circle")}</u></span>`); break;
+        case "minus": add("minus", icon("minus-circle", "bold")); break;
+        case "stars": add("stars", `<span>${icon("star-four")}</span><span>${icon("star-four")}</span><span>${icon("star-four")}</span><span>${icon("star-four")}</span>`); break;
+        case "heart": add("heart", icon("heart")); break;
       }
     }
     this.updateDynamic();
@@ -216,15 +244,15 @@ export class Blob {
 
   private updateDynamic() {
     if (this.progressEl) {
-      const b = this.progressEl.querySelector("b") as HTMLElement;
+      // ring: spins while the size is unknown, otherwise fills up with the progress
+      const arc = this.progressEl.querySelector(".arc") as SVGCircleElement;
       const p = this.progress;
       this.progressEl.classList.toggle("indet", p == null);
-      b.style.width = p == null ? "35%" : `${Math.round(clamp(p, 0, 1) * 100)}%`;
+      arc.style.strokeDasharray = p == null ? "" : `${Math.round(clamp(p, 0, 1) * 100)} 100`;
     }
     if (this.badgeEl) {
       const em = this.badgeEl.querySelector("em") as HTMLElement;
-      em.textContent = this.badge > 9 ? "9+" : String(this.badge || "");
-      em.hidden = !this.badge;
+      em.textContent = this.badge > 9 ? "9+" : this.badge > 1 ? String(this.badge) : "";
     }
   }
 
@@ -249,7 +277,7 @@ export class Blob {
 
     // eyes: morph toward the mood's shape, blink, gaze
     const target = EYES[look.eyes];
-    for (const key of ["w", "h", "top", "bottom", "tilt"] as const) this.eye[key] = lerp(this.eye[key], target[key], k);
+    for (const key of ["w", "h", "top", "bottom", "tilt", "cut"] as const) this.eye[key] = lerp(this.eye[key], target[key], k);
     if (look.blink && now > this.nextBlink && !reduce) {
       this.blinkUntil = now + 130;
       this.nextBlink = now + 2800 + Math.random() * 4500 + (Math.random() < 0.15 ? -2600 : 0); // sometimes double-blink
@@ -278,6 +306,13 @@ export class Blob {
     const ex = this.gaze.x * 9, ey = this.gaze.y * 7;
     this.eyeL.setAttribute("transform", `translate(${100 - EYE_X + ex} ${EYE_Y + ey}) rotate(${this.eye.tilt})`);
     this.eyeR.setAttribute("transform", `translate(${100 + EYE_X + ex} ${EYE_Y + ey}) rotate(${-this.eye.tilt})`);
+    const c = this.eye.cut;
+    for (const { cut, side } of this.cuts) {
+      cut.setAttribute("cx", (side * e.w * 0.9).toFixed(2));
+      cut.setAttribute("cy", (-e.h * 0.04).toFixed(2));
+      cut.setAttribute("rx", (e.w * 1.2 * c).toFixed(2));
+      cut.setAttribute("ry", (e.h * 0.72 * c).toFixed(2));
+    }
 
     // body motion
     this.level *= Math.exp(-dt * 6);
@@ -313,12 +348,13 @@ export class Blob {
     this.body.glow = lerp(this.body.glow, look.glow + (look.audio ? this.level * 0.3 : 0), k);
     this.body.dim = lerp(this.body.dim, look.dim ?? 0, k);
     this.svgBody.setAttribute("transform",
-      `translate(0 ${this.body.bob.toFixed(2)}) rotate(${this.body.tilt.toFixed(2)} 100 172) translate(100 172) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-100 -172)`);
-    this.shadow.setAttribute("rx", String(80 * (1 + Math.min(0, this.body.bob) / 60)));
+      `translate(0 ${this.body.bob.toFixed(2)}) rotate(${this.body.tilt.toFixed(2)} 100 175) translate(100 175) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-100 -175)`);
+    this.shadow.setAttribute("rx", String(130 * (1 + Math.min(0, this.body.bob) / 60)));
+    this.eyesG.style.opacity = look.noEyes ? "0" : "1";
     this.el.style.setProperty("--blob-glow-a", this.body.glow.toFixed(3));
     this.el.style.setProperty("--blob-dim", this.body.dim.toFixed(3));
     if (look.glowColor) this.el.style.setProperty("--blob-glow", look.glowColor);
-    else this.el.style.setProperty("--blob-glow", this.glowColor || "var(--accent, #2ee6ff)");
+    else this.el.style.setProperty("--blob-glow", this.glowColor || DEFAULT_GLOW);
 
     // audio bars
     if (this.bars.length) {

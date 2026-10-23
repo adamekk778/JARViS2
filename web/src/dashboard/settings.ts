@@ -1,5 +1,5 @@
 import { h, icon, toast, TOOL_ICON } from "../shared/dom";
-import { Blob as Character } from "../character/blob";
+import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 
 export type Section =
@@ -382,7 +382,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     preview.setMood("personalize");
     preview.setColor(ch.color || "black", ch.glow || undefined);
     const colors: [string, string][] = [["black", "Černá"], ["midnight", "Půlnoční"], ["violet", "Fialová"], ["rose", "Růžová"], ["white", "Bílá"]];
-    const glow = h("input", { type: "color", value: ch.glow || S.appearance.accent, "aria-label": "Barva záře" }) as HTMLInputElement;
+    const glow = h("input", { type: "color", value: ch.glow || DEFAULT_GLOW, "aria-label": "Barva záře" }) as HTMLInputElement;
     glow.onchange = () => set("character.glow", glow.value);
     return card("Postavička JARVIS", "Vzhled JARVISe v notchi, na ploše i v telefonu. Hlasem: „buď fialový“.",
       h("div", { class: "char-row" }, preview.el,
@@ -390,7 +390,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "field" }, "Barva těla", h("div", { class: "swatches" }, ...colors.map(([c, label]) =>
             h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
           h("div", { class: "field" }, "Záře", h("div", { class: "swatches" }, glow,
-            h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Podle akcentu"))),
+            h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
           select("character.size", "Velikost na ploše", [["S", "Malá"], ["M", "Střední"], ["L", "Velká"]]),
           sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
   }

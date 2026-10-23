@@ -30,12 +30,12 @@ html.native .n-inner { box-shadow: none !important; }
 
 /* ---- the character ---- */
 .n-blob { opacity: 1; pointer-events: auto; left: 50%; top: -19px; transform: translateX(-50%); cursor: pointer; transition: top .5s var(--spring), left .5s var(--spring), transform .45s var(--spring); touch-action: none; }
-.notch[data-mode="hover"] .n-blob { top: -10px; }
+.notch[data-mode="hover"] .n-blob { top: -15px; }
 .notch[data-mode="bar"] .n-blob { top: 22px; }
 .notch[data-mode="live"] .n-blob, .notch[data-mode="alert"] .n-blob { left: 54px; top: 18px; }
 .notch[data-mode="panel"] .n-blob { top: 6px; }
 .notch.pet-away .n-blob { opacity: 0 !important; pointer-events: none; }
-.notch[data-mood="dancing"][data-mode="closed"] .n-blob { top: -12px; }
+.notch[data-mood="dancing"][data-mode="closed"] .n-blob { top: -16px; }
 
 /* ---- closed: live activity text ---- */
 .act { right: 14px; top: 9px; font: 12px var(--mono); color: #cfd8e3; display: flex; gap: 6px; align-items: center; max-width: 40%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

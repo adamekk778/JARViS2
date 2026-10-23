@@ -15,23 +15,27 @@ export const MOOD_LABEL: Record<Mood, string> = {
   focus: "Režim fokus", personalize: "Personalizace", waiting: "Čeká", joy: "Radost",
 };
 
-// Eye shape: half-width, half-height, top curvature, bottom curvature (negative = curves the other way).
-export interface Eye { w: number; h: number; top: number; bottom: number; tilt: number }
+// Eye shape: half-width, half-height, top curvature, bottom curvature (negative = curves the other way),
+// tilt (deg, mirrored for the right eye) and cut (0..1: bite taken from the inner side → crescent "( )").
+export interface Eye { w: number; h: number; top: number; bottom: number; tilt: number; cut: number }
 
+const E = (w: number, h: number, top: number, bottom: number, tilt = 0, cut = 0): Eye => ({ w, h, top, bottom, tilt, cut });
 export const EYES: Record<string, Eye> = {
-  open: { w: 11, h: 15, top: 1.35, bottom: 1.35, tilt: 0 },
-  wide: { w: 13, h: 18, top: 1.35, bottom: 1.35, tilt: 0 },
-  happy: { w: 13, h: 11, top: 1.5, bottom: -0.55, tilt: 0 },     // ^ ^
-  sleepy: { w: 13, h: 9, top: -0.45, bottom: 1.35, tilt: 0 },   // ‿ ‿ (lids down)
-  closed: { w: 13, h: 3.5, top: 0.25, bottom: 0.25, tilt: 0 },    // — —
-  sad: { w: 11, h: 12, top: 0.45, bottom: 1.35, tilt: -16 },
-  focused: { w: 12, h: 10, top: 0.45, bottom: 1.2, tilt: 5 },
-  up: { w: 11, h: 10, top: 1.3, bottom: 0.4, tilt: 0 },            // thinking: looking up
+  open: E(14.5, 18, 1.3, 1.3),
+  wide: E(15.5, 20, 1.3, 1.3),
+  small: E(8, 10, 1.3, 1.3),                 // peeking from the closed notch
+  crescent: E(12.5, 19, 1.3, 1.3, 0, 1),       // ( ) offline
+  happy: E(14, 13, 1.55, -0.6),              // ◠ ◠
+  lidded: E(14, 14, 0.05, 1.3),              // half-closed, flat lid
+  pensive: E(14, 14, 0.05, 1.3, 7),          // thinking: lids slightly slanted
+  sleepy: E(14.5, 17, -0.15, 1.15),           // ‿ ‿
+  closed: E(13, 3.5, 0.25, 0.25),            // — —
+  sad: E(13.5, 16, 0.05, 1.3, -20),          // droopy lids, outer corners down
 };
 
 export type Accessory =
-  | "waves" | "dots" | "voice" | "notes" | "laptop" | "progress" | "sparkles" | "alert" | "zzz" | "limit"
-  | "wifi" | "download" | "bell" | "cursor" | "headphones" | "clock" | "hearts" | "ripple";
+  | "waves" | "dots" | "voice" | "notes" | "laptop" | "check" | "warn" | "zzz" | "limit" | "cloud"
+  | "spinner" | "bell" | "cursor" | "dragbox" | "minus" | "stars" | "wait" | "heart";
 
 export interface Look {
   eyes: keyof typeof EYES;
@@ -41,8 +45,9 @@ export interface Look {
   squash: number;           // >1 wide & short, <1 tall
   tilt: number;             // deg
   glow: number;             // 0..1
-  glowColor?: string;       // override (error/limit red)
-  dim?: number;             // 0..1 grey out (offline)
+  glowColor?: string;       // override
+  dim?: number;             // 0..1 grey out
+  noEyes?: boolean;         // eyes hidden (updating shows a ring instead)
   accessories: Accessory[];
   audio?: boolean;          // body pulses with level
   dance?: boolean;
@@ -54,37 +59,38 @@ export interface Look {
 const base: Look = { eyes: "open", gaze: [0, 0], bob: 1.5, bobSpeed: 0.25, squash: 1, tilt: 0, glow: 0.45, accessories: [], blink: true };
 const L = (o: Partial<Look>): Look => ({ ...base, ...o });
 
+// One entry per tile of docs/superpowers/specs/assets/jarvis-character-reference-v2.png
 export const LOOKS: Record<Mood, Look> = {
-  closed: L({ eyes: "closed", glow: 0.2, bob: 0.6, blink: false }),
+  closed: L({ eyes: "small", glow: 0.25, bob: 0.6 }),
   idle: L({}),
-  hover: L({ eyes: "wide", squash: 0.96, glow: 0.65 }),
-  opening: L({ eyes: "wide", squash: 0.92, glow: 0.7 }),
+  hover: L({ eyes: "happy", glow: 0.6 }),
+  opening: L({ eyes: "open", squash: 0.95, glow: 0.65 }),
   expanded: L({ eyes: "open", glow: 0.6 }),
   closing: L({ eyes: "happy", squash: 1.04, glow: 0.4 }),
-  listening: L({ eyes: "open", glow: 0.85, accessories: ["waves"], audio: true }),
-  thinking: L({ eyes: "up", gaze: [-0.5, -0.8], accessories: ["dots"], bob: 2, bobSpeed: 0.6, glow: 0.6, blink: false }),
-  speaking: L({ eyes: "happy", accessories: ["voice"], audio: true, glow: 0.8 }),
-  dancing: L({ eyes: "happy", accessories: ["notes"], dance: true, glow: 0.75, blink: false }),
-  working: L({ eyes: "focused", gaze: [0.35, 0.5], accessories: ["laptop", "progress"], tilt: -4, glow: 0.55 }),
-  success: L({ eyes: "happy", accessories: ["sparkles"], hop: true, glow: 0.9, blink: false }),
-  error: L({ eyes: "sad", accessories: ["alert"], shake: true, glow: 0.5, glowColor: "#ff4d57", squash: 1.04 }),
-  sleeping: L({ eyes: "closed", accessories: ["zzz"], bob: 2.5, bobSpeed: 0.18, squash: 1.08, glow: 0.25, blink: false }),
-  limit: L({ eyes: "happy", accessories: ["limit"], glow: 0.9, glowColor: "#ff3b3b", tilt: -3 }),
-  offline: L({ eyes: "open", accessories: ["wifi"], dim: 0.35, glow: 0.2 }),
-  updating: L({ eyes: "open", gaze: [0, 0.6], accessories: ["download", "progress"], glow: 0.6 }),
-  notify: L({ eyes: "wide", accessories: ["bell"], glow: 0.7 }),
-  dragged: L({ eyes: "wide", squash: 0.82, glow: 0.8, blink: false }),
-  desktop_interact: L({ eyes: "open", gaze: [0.6, 0.2], accessories: ["cursor", "ripple"], glow: 0.7 }),
-  focus: L({ eyes: "closed", accessories: ["headphones"], bob: 1, bobSpeed: 0.15, glow: 0.35, blink: false }),
-  personalize: L({ eyes: "happy", glow: 0.8 }),
-  waiting: L({ eyes: "open", accessories: ["clock"], bob: 2, bobSpeed: 0.35, tilt: 3 }),
-  joy: L({ eyes: "happy", accessories: ["hearts"], hop: true, glow: 0.9, blink: false }),
+  listening: L({ eyes: "open", glow: 0.8, accessories: ["waves"], audio: true }),
+  thinking: L({ eyes: "pensive", accessories: ["dots"], bob: 1.5, bobSpeed: 0.5, glow: 0.55, blink: false }),
+  speaking: L({ eyes: "open", accessories: ["voice"], audio: true, glow: 0.75 }),
+  dancing: L({ eyes: "happy", accessories: ["notes"], dance: true, glow: 0.7, blink: false }),
+  working: L({ eyes: "open", gaze: [0.6, 0.15], accessories: ["laptop"], glow: 0.55 }),
+  success: L({ eyes: "happy", accessories: ["check"], hop: true, glow: 0.8, blink: false }),
+  error: L({ eyes: "sad", accessories: ["warn"], shake: true, glow: 0.45, squash: 1.04, blink: false }),
+  sleeping: L({ eyes: "sleepy", accessories: ["zzz"], bob: 1.5, bobSpeed: 0.18, squash: 1.22, glow: 0.3, blink: false }),
+  limit: L({ eyes: "lidded", accessories: ["limit"], glow: 0.45, squash: 1.06, blink: false }),
+  offline: L({ eyes: "crescent", accessories: ["cloud"], dim: 0.12, glow: 0.3 }),
+  updating: L({ eyes: "open", noEyes: true, accessories: ["spinner"], glow: 0.6, blink: false }),
+  notify: L({ eyes: "open", accessories: ["bell"], glow: 0.65 }),
+  dragged: L({ eyes: "open", accessories: ["dragbox"], squash: 0.94, glow: 0.7 }),
+  desktop_interact: L({ eyes: "open", gaze: [0.6, 0.35], accessories: ["cursor"], glow: 0.6 }),
+  focus: L({ eyes: "lidded", accessories: ["minus"], bob: 1, bobSpeed: 0.15, glow: 0.35, blink: false }),
+  personalize: L({ eyes: "open", accessories: ["stars"], glow: 0.75 }),
+  waiting: L({ eyes: "open", accessories: ["wait"], bob: 1.5, bobSpeed: 0.3 }),
+  joy: L({ eyes: "happy", accessories: ["heart"], hop: true, glow: 0.8, blink: false }),
 };
 
 export type CharacterColor = "black" | "midnight" | "violet" | "rose" | "white";
 
 export const BODY_COLORS: Record<CharacterColor, { light: string; mid: string; dark: string; eye: string; rim: string }> = {
-  black: { light: "#3a414c", mid: "#14181e", dark: "#030405", eye: "#f4f8ff", rim: "#7fb8ff" },
+  black: { light: "#2c323d", mid: "#0e1116", dark: "#030405", eye: "#f6f9ff", rim: "#a9c8ff" },
   midnight: { light: "#3a4f82", mid: "#141d3b", dark: "#04060f", eye: "#f4f8ff", rim: "#6aa8ff" },
   violet: { light: "#6a4aa6", mid: "#2a1648", dark: "#0b0414", eye: "#f8f4ff", rim: "#b48cff" },
   rose: { light: "#a5507a", mid: "#45162d", dark: "#12040b", eye: "#fff4f8", rim: "#ff8cc0" },
