@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 
-from .base import Platform
+from .base import Platform, norm
 
 
 class NullPlatform(Platform):
@@ -40,6 +40,60 @@ class NullPlatform(Platform):
     def scroll(self, dy): self._rec("scroll", dy)
     def notify(self, title, body): self._rec("notify", title, body)
     def release_all_input(self): self._rec("release_all_input")
+    def drag(self, x1, y1, x2, y2): self._rec("drag", x1, y1, x2, y2)
+
+    # ---------- fake UI Automation tree: a calculator window ----------
+    _WINDOW = "Kalkulačka"
+
+    def _ui_nodes(self) -> list[dict]:
+        if not hasattr(self, "_nodes"):
+            self._nodes = [
+                {"ref": "w0:1", "role": "Button", "name": "Sedm", "automation_id": "num7Button", "value": None},
+                {"ref": "w0:2", "role": "Button", "name": "Krát", "automation_id": "multiplyButton", "value": None},
+                {"ref": "w0:3", "role": "Button", "name": "Rovná se", "automation_id": "equalButton", "value": None},
+                {"ref": "w0:4", "role": "Edit", "name": "Výsledek", "automation_id": "CalculatorResults", "value": "0"},
+            ]
+            for n in self._nodes:
+                n.update(enabled=True, rect=[0, 0, 40, 30], depth=1)
+        return self._nodes
+
+    def _win_ok(self, window: str) -> bool:
+        return not window or norm(window) in norm(self._WINDOW)
+
+    def ui_tree(self, window="", depth=4, limit=150):
+        return [dict(n) for n in self._ui_nodes()][:limit] if self._win_ok(window) else []
+
+    def ui_find(self, window="", name="", role="", automation_id="", timeout=0.0):
+        if not self._win_ok(window):
+            return None
+        for n in self._ui_nodes():
+            if name and norm(name) != norm(n["name"]):
+                continue
+            if role and norm(role) != norm(n["role"]):
+                continue
+            if automation_id and automation_id != n["automation_id"]:
+                continue
+            return dict(n)
+        return None
+
+    def ui_get(self, ref):
+        return next((dict(n) for n in self._ui_nodes() if n["ref"] == ref), None)
+
+    def ui_act(self, ref, action):
+        self._rec("ui_act", ref, action)
+        return action
+
+    def ui_set_text(self, ref, text):
+        self._rec("ui_set_text", ref, text)
+        for n in self._ui_nodes():
+            if n["ref"] == ref:
+                n["value"] = text
+
+    def ui_read(self, window="", limit=4000):
+        return " ".join(n["name"] for n in self._ui_nodes())[:limit] if self._win_ok(window) else ""
+
+    def ui_state(self, window=""):
+        return {"window": self._WINDOW, "focused": "Výsledek"}
     def set_dark_mode(self, dark): self._rec("set_dark_mode", dark)
 
     def screenshot(self) -> bytes:

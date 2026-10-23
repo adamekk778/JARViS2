@@ -9,7 +9,7 @@ PKGS = [
     "faster_whisper", "ctranslate2", "tokenizers", "huggingface_hub", "openwakeword", "onnxruntime", "piper",
     "webrtcvad", "sounddevice", "_sounddevice_data", "av", "edge_tts", "aiohttp", "certifi",
     "webview", "clr_loader", "pythonnet", "pystray", "keyboard", "pyautogui", "pyscreeze", "pymsgbox", "pytweening",
-    "mouseinfo", "mss", "pyperclip", "pycaw", "comtypes", "winsdk", "playwright", "keyring", "win32ctypes",
+    "mouseinfo", "mss", "pyperclip", "pycaw", "comtypes", "winsdk", "uiautomation", "playwright", "keyring", "win32ctypes",
     "trafilatura", "justext", "lxml", "htmldate", "courlan", "dateparser", "ddgs", "primp", "yt_dlp",
     "pypdf", "docx", "openpyxl", "pptx", "PIL", "qrcode", "psutil",
     "matplotlib", "numpy", "send2trash",

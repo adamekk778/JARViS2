@@ -4,7 +4,19 @@ import asyncio
 import base64
 import datetime as dt
 
+from contextlib import contextmanager
+
 from .base import ToolResult, tool
+
+
+@contextmanager
+def capturing(ctx, source: str):
+    """Tells the UI (red dot in the notch) that JARVIS is looking at the screen right now."""
+    ctx.bus.publish("screen_capture", active=True, source=source)
+    try:
+        yield
+    finally:
+        ctx.bus.publish("screen_capture", active=False, source=source)
 
 
 async def describe_image(ctx, png: bytes, question: str) -> str:
@@ -16,7 +28,8 @@ async def describe_image(ctx, png: bytes, question: str) -> str:
 
 @tool("screenshot", "Udělá snímek obrazovky PC, pošle ho do chatu a volitelně popíše, co je na obrazovce.", category="obrazovka")
 async def screenshot(ctx, describe: bool = False, question: str = "Popiš stručně česky, co je na obrazovce.") -> ToolResult:
-    png = await asyncio.to_thread(ctx.platform.screenshot)
+    with capturing(ctx, "screenshot"):
+        png = await asyncio.to_thread(ctx.platform.screenshot)
     att = await ctx.store.save(f"screenshot-{dt.datetime.now():%Y%m%d-%H%M%S}.png", png, "image/png")
     summary = "Snímek obrazovky pořízen"
     data = None

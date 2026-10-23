@@ -293,6 +293,40 @@ class WindowsPlatform(Platform):
     def hotkey(self, keys):
         self._pg().hotkey(*[k.lower() for k in keys])
 
+    # ---------- UI Automation ----------
+    def ui_tree(self, window="", depth=4, limit=150):
+        from . import uia_win
+        return uia_win.ui_tree(window, depth, limit)
+
+    def ui_find(self, window="", name="", role="", automation_id="", timeout=0.0):
+        from . import uia_win
+        return uia_win.ui_find(window, name, role, automation_id, timeout)
+
+    def ui_get(self, ref):
+        from . import uia_win
+        return uia_win.ui_get(ref)
+
+    def ui_act(self, ref, action):
+        from . import uia_win
+        return uia_win.ui_act(ref, action)
+
+    def ui_set_text(self, ref, text):
+        from . import uia_win
+        uia_win.ui_set_text(ref, text)
+
+    def ui_read(self, window="", limit=4000):
+        from . import uia_win
+        return uia_win.ui_read(window, limit)
+
+    def ui_state(self, window=""):
+        from . import uia_win
+        return uia_win.ui_state(window)
+
+    def drag(self, x1, y1, x2, y2):
+        pg = self._pg()
+        pg.moveTo(x1, y1)
+        pg.dragTo(x2, y2, duration=0.4, button="left")
+
     def release_all_input(self):
         pg = self._pg()
         for k in ("ctrl", "alt", "shift", "win"):

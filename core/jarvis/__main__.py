@@ -132,6 +132,19 @@ def main(argv: list[str] | None = None) -> int:
         sys.argv = argv[1:]
         runpy.run_path(argv[1], run_name="__main__")
         return 0
+    if argv[:1] == ["--selftest-uia"]:  # CI: is UI Automation packaged and working?
+        import json
+
+        try:
+            if sys.platform != "win32":
+                raise RuntimeError("UI Automation je jen na Windows")
+            from .tools.platform import uia_win
+
+            out = uia_win.selftest()
+        except Exception as e:
+            out = {"skipped": str(e)}
+        print(json.dumps(out, ensure_ascii=False))
+        return 0
     ap = argparse.ArgumentParser(prog="jarvis", description="JARVIS 2")
     ap.add_argument("--no-ui", action="store_true", help="jen server (bez oken)")
     ap.add_argument("--no-voice", action="store_true")

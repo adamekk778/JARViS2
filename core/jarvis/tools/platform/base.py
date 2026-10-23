@@ -1,11 +1,31 @@
 """OS abstraction so tools stay testable on Linux."""
 from __future__ import annotations
 
-from typing import Literal
+import unicodedata
+from typing import Literal, TypedDict
 
 MediaKey = Literal["play_pause", "next", "previous", "stop", "mute"]
 WindowAction = Literal["minimize_all", "maximize", "minimize", "focus", "close", "restore_all"]
 PowerAction = Literal["lock", "sleep", "shutdown", "restart", "cancel_shutdown", "logoff"]
+
+
+
+
+class UiNode(TypedDict, total=False):
+    ref: str
+    role: str
+    name: str
+    automation_id: str
+    value: str | None
+    enabled: bool
+    rect: list[int]
+    depth: int
+
+
+def norm(s: str) -> str:
+    """Case- and diacritics-insensitive form used to match window and control names ("Rovná se" == "rovna se")."""
+    s = unicodedata.normalize("NFKD", s or "")
+    return "".join(c for c in s if not unicodedata.combining(c)).casefold().strip()
 
 
 class Platform:
@@ -36,4 +56,14 @@ class Platform:
     def scroll(self, dy: int) -> None: raise NotImplementedError
     def notify(self, title: str, body: str) -> None: pass
     def release_all_input(self) -> None: pass
+    # ---------- UI Automation (spec §3.1) ----------
+    def ui_tree(self, window: str = "", depth: int = 4, limit: int = 150) -> list[UiNode]: raise NotImplementedError
+    def ui_find(self, window: str = "", name: str = "", role: str = "", automation_id: str = "",
+                timeout: float = 0.0) -> UiNode | None: raise NotImplementedError
+    def ui_get(self, ref: str) -> UiNode | None: raise NotImplementedError
+    def ui_act(self, ref: str, action: str) -> str: raise NotImplementedError
+    def ui_set_text(self, ref: str, text: str) -> None: raise NotImplementedError
+    def ui_read(self, window: str = "", limit: int = 4000) -> str: raise NotImplementedError
+    def ui_state(self, window: str = "") -> dict: return {"window": "", "focused": ""}
+    def drag(self, x1: int, y1: int, x2: int, y2: int) -> None: raise NotImplementedError
     def set_dark_mode(self, dark: bool) -> None: raise NotImplementedError

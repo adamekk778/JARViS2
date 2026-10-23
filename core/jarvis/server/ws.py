@@ -31,7 +31,7 @@ SERVER_TYPES = [
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
-    "tasks", "task", "stopped",
+    "tasks", "task", "stopped", "screen_capture",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",

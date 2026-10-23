@@ -18,9 +18,22 @@ SYSTEM = """Ovládáš Windows počítač uživatele pomocí myši a klávesnice
 {{"action":"key","keys":["ctrl","l"],"why":"..."}}   (klávesová zkratka; Enter = ["enter"], Windows = ["win"])
 {{"action":"scroll","dy":-5,"why":"..."}}            (záporné = dolů)
 {{"action":"wait","seconds":2,"why":"..."}}
+{{"action":"ui_click","target":"název prvku nebo <ref>","why":"..."}}   (klik přes UI Automation – PREFERUJ)
+{{"action":"ui_type","target":"název pole nebo <ref>","text":"...","why":"..."}}
 {{"action":"done","summary":"co se povedlo"}}
 {{"action":"fail","reason":"proč to nejde"}}
-Postupuj po malých krocích, po každé akci dostaneš nový snímek. Klikej doprostřed prvků. Nedělej nic, co úkol nevyžaduje."""
+Postupuj po malých krocích, po každé akci dostaneš nový snímek. Klikej doprostřed prvků. Nedělej nic, co úkol nevyžaduje.
+Preferuj prvky ze stromu (ui_click/ui_type); souřadnice jen když prvek ve stromu není."""
+
+
+def _ui_context(p) -> str:
+    try:
+        from .uia import tree_text
+
+        nodes = p.ui_tree("", 3, 80)
+    except Exception:
+        return ""
+    return ("\nPrvky okna v popředí (UI Automation):\n" + tree_text(nodes)) if nodes else ""
 
 
 def parse_action(text: str) -> dict:
@@ -57,14 +70,18 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
     p = ctx.platform
     history: list[str] = []
     for step in range(1, max_steps + 1):
-        png = await asyncio.to_thread(p.screenshot)
+        from .screenshot import capturing
+
+        with capturing(ctx, "computer_use"):
+            png = await asyncio.to_thread(p.screenshot)
+        ui = await asyncio.to_thread(_ui_context, p)
         url, scale = await asyncio.to_thread(_shrink, png)
         sw, sh = p.screen_size()
         w, h = int(sw * scale), int(sh * scale)
         msgs = [{"role": "system", "content": SYSTEM.format(w=w, h=h)},
                 {"role": "user", "content": [
                     {"type": "text", "text": f"Úkol: {task}\nDosavadní kroky:\n" + ("\n".join(history[-12:]) or "(žádné)")
-                     + "\nJaká je další akce?"},
+                     + ui + "\nJaká je další akce?"},
                     {"type": "image_url", "image_url": {"url": url}}]}]
         reply = await ctx.router.complete(msgs, need_vision=True)
         try:
@@ -88,6 +105,17 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
             await asyncio.to_thread(p.hotkey, [str(k) for k in a.get("keys", [])])
         elif act == "scroll":
             await asyncio.to_thread(p.scroll, int(a.get("dy", -3)) * 120)
+        elif act in ("ui_click", "ui_type"):
+            from .uia import _own, ui_click, ui_type
+
+            if _own(str(a.get("window", ""))):
+                history.append(f"{step}. (do oken JARVIS neklikám)")
+                continue
+            r = await (ui_click(ctx, str(a.get("target", ""))) if act == "ui_click"
+                       else ui_type(ctx, str(a.get("target", "")), str(a.get("text", ""))))
+            history.append(f"{step}. {act} {a.get('target')!r} → {r.summary}")
+            await asyncio.sleep(0.4)
+            continue
         elif act == "wait":
             await asyncio.sleep(min(10, float(a.get("seconds", 1))))
         history.append(f"{step}. {json.dumps(a, ensure_ascii=False)}")

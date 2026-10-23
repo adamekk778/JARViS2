@@ -41,6 +41,7 @@ desktop = [
   "pycaw>=20240210; sys_platform == 'win32'",
   "comtypes>=1.4; sys_platform == 'win32'",
   "winsdk>=1.0.0b10; sys_platform == 'win32'",
+  "uiautomation>=2.0.20; sys_platform == 'win32'",
   "playwright>=1.44",
   "matplotlib>=3.8",
   "send2trash>=1.8",
