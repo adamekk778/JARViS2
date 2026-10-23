@@ -29,8 +29,10 @@ zdarma**.
 2. Bez internetu JARVIS pořád funguje (Ollama + Whisper + Piper), jen hloupěji.
 3. Telefon spárovaný přes QR kód umí napsat/namluvit příkaz, který se
    provede na PC, i když je telefon na mobilních datech (přes Tailscale).
-4. Instalace na PC jedním skriptem, APK ke stažení z GitHub Releases.
-5. Provoz nic nestojí.
+4. Do chatu (PC i telefon) pošlu fotku, PDF nebo hlasovku a JARVIS ji
+   přečte/popíše/shrne; odpověď vidím v chatu a zároveň ji umí říct nahlas.
+5. Instalace na PC jedním skriptem, APK ke stažení z GitHub Releases.
+6. Provoz nic nestojí.
 
 ## 2. Architektura
 
@@ -69,6 +71,9 @@ core/                    Python balíček `jarvis`
     events.py            interní event bus (asyncio) — vše co jde do UI
     agent.py             agentní smyčka
     memory.py            SQLite: konverzace, fakta o uživateli
+    attachments/
+      store.py           ukládání souborů, metadata, náhledy
+      extract.py         text z PDF/Office/textu, OCR, přepis audia
     llm/
       base.py            rozhraní LLMProvider
       openai_compat.py   OpenAI-kompatibilní API (OmniRoute, OpenRouter,
@@ -137,7 +142,9 @@ docs/
 7. Přerušení: nové „Hey Jarvis“ nebo tlačítko stop zastaví TTS i probíhající
    generování.
 
-Paměť: tabulka `messages` (posledních N zpráv jako kontext, výchozí 20) a
+Paměť: tabulky `conversations`, `messages` (posledních N zpráv aktuální
+konverzace jako kontext, výchozí 20; hlas i chat jdou do stejné konverzace),
+`attachments` (sekce 6a) a
 `facts` (nástroj `remember(fact)` / `forget(fact)`, AI je sama ukládá, když
 řekneš „zapamatuj si…“).
 
@@ -151,7 +158,12 @@ Linux).
 | nástroj | co dělá | danger |
 |---|---|---|
 | open_app / close_app | spustí/zavře aplikaci (Start menu index, známé aliasy: „spotify“, „discord“, „steam“…) | close: ne |
-| open_url, web_search | otevře URL / hledání Google ve výchozím prohlížeči | |
+| open_url | otevře URL ve výchozím prohlížeči | |
+| web_search | vyhledá na webu (DuckDuckGo přes `ddgs`, zdarma, bez klíče) a vrátí AI výsledky — JARVIS tak odpovídá i na aktuální otázky | |
+| web_read | stáhne stránku a vytáhne čitelný text (`trafilatura`) — „shrň mi tenhle článek“ | |
+| read_attachment | přečte obsah přílohy podle id (pro dlouhé soubory po částech) | |
+| save_attachment | uloží přílohu do zvolené složky na PC a případně otevře | |
+| send_file | pošle soubor z PC do chatu (na telefon) jako přílohu | |
 | youtube_play | najde video (yt-dlp `ytsearch1:`, bez API klíče) a otevře `watch?v=…` s autoplay | |
 | media_control | play/pause/next/prev (media klávesy) | |
 | volume | nastavit/zvýšit/snížit/ztlumit (pycaw) | |
@@ -175,7 +187,10 @@ Endpoint `ws://<pc>:8765/ws?token=<token>`. Zprávy JSON
 
 Klient → jádro:
 - `hello {client: "pill"|"dashboard"|"mobile", name}`
-- `user_text {text}`
+- `user_text {text, attachments: [attachment_id]}` (přílohy se předem
+  nahrají přes HTTP `POST /api/upload`, viz sekce 6a)
+- `history_get {before?, limit}` (načtení starší historie chatu)
+- `new_chat {}` (nová konverzace; stará zůstane v historii)
 - `audio_chunk {pcm16_b64, sample_rate}` + `audio_end {}` (hlas z telefonu → STT na PC)
 - `confirm_response {id, approved}`
 - `stop {}`
@@ -187,7 +202,10 @@ Jádro → klienti (broadcast všem):
 - `state {state: "idle"|"listening"|"thinking"|"acting"|"speaking"}`
 - `level {rms}` (hlasitost mikrofonu/TTS pro animaci vln, ~20×/s)
 - `transcript {text, final}`
-- `assistant_delta {text}` / `assistant_done {text}`
+- `user_message {id, text, attachments, source}` (zpráva od uživatele z
+  libovolného zařízení — chat je synchronní na PC i telefonu)
+- `assistant_delta {text}` / `assistant_done {id, text, attachments}`
+- `history {messages}`
 - `tool_start {id, name, args}` / `tool_end {id, ok, summary}`
 - `confirm_request {id, description}`
 - `notify {title, body}`
@@ -196,6 +214,50 @@ Jádro → klienti (broadcast všem):
 
 Sdílené TS typy v `web/src/shared/protocol.ts` a Python modely v
 `server/ws.py` drží stejný tvar; test kontroluje, že se shodují.
+
+## 6a. Chat a přílohy
+
+JARVIS je plnohodnotný chat (jako ChatGPT/Claude) **a zároveň** mluví —
+obojí současně, jedna společná konverzace na PC i telefonu.
+
+**Chat:**
+- Stream odpovědi, Markdown (nadpisy, seznamy, tabulky, odkazy), bloky kódu
+  se zvýrazněním a tlačítkem Kopírovat.
+- U každé odpovědi tlačítko 🔊 „přečíst nahlas“; přepínač „mluvit vždy /
+  jen u hlasu / nikdy“.
+- Hlasové zprávy se v chatu zobrazí jako přepsaný text (s ikonou mikrofonu).
+- Karty nástrojů v chatu („▶ Pouštím YouTube: …“, „🔊 Hlasitost 40 %“).
+- Historie konverzací (seznam vlevo), nová konverzace, hledání v historii,
+  zastavit generování, znovu vygenerovat odpověď.
+
+**Přílohy — co můžeš poslat a co s tím JARVIS udělá:**
+| typ | zpracování |
+|---|---|
+| obrázky, fotky, screenshoty (png, jpg, webp, heic) | pošle se modelu jako obrázek (vision). Když aktuální model obrázky neumí, router zkusí dalšího poskytovatele s vision modelem; když žádný → lokální OCR (`rapidocr-onnxruntime`) a do AI jde text z obrázku |
+| PDF | text přes `pypdf`; stránky bez textu (sken) → OCR |
+| Word, Excel, PowerPoint (docx, xlsx, pptx) | text/tabulky přes `python-docx`, `openpyxl`, `python-pptx` |
+| textové soubory, kód, CSV, JSON, Markdown | obsah přímo |
+| audio (mp3, wav, m4a, ogg — i hlasovky) | přepis přes Whisper (STT) |
+| video | uloží se; ve verzi 1 bez analýzy obsahu (jen info o souboru) |
+| cokoli jiného | uloží se, AI dostane název/typ/velikost a umí soubor uložit nebo otevřít na PC |
+
+- Krátký obsah (do ~8 000 znaků) jde rovnou do zprávy pro AI; delší se
+  zkrátí a AI si zbytek dočte nástrojem `read_attachment` po částech.
+- Jak poslat: tlačítko 📎, přetažení (drag & drop) do chatu nebo na pilulku,
+  vložení Ctrl+V (obrázek ze schránky), na telefonu fotoaparát / galerie /
+  soubory a „Sdílet → JARVIS“ z jiných aplikací (fotky, PDF, odkazy).
+- JARVIS umí přílohy i posílat zpět: screenshot PC, soubor z PC
+  („pošli mi na mobil tu prezentaci z Plochy“) → přijde jako příloha do
+  chatu na telefonu a jde stáhnout.
+- Limit velikosti: 200 MB na soubor (nastavitelné).
+
+**HTTP API pro soubory** (stejný token jako WebSocket):
+- `POST /api/upload` (multipart) → `{id, name, mime, size, kind}`; zpracování
+  (extrakce textu, OCR, přepis) běží hned na pozadí.
+- `GET /api/files/{id}` → stažení; `GET /api/files/{id}/thumb` → náhled.
+- Uloženo v `%APPDATA%\JARVIS\files\`, metadata v SQLite tabulce
+  `attachments` (id, název, mime, velikost, cesta, extrahovaný text,
+  conversation_id). Mazání se starou konverzací.
 
 ## 7. Párování a vzdálený přístup
 
@@ -233,14 +295,20 @@ z `web/dist`.
   listening/thinking/speaking = plynulé roztažení (~520×64), animované vlny
   podle `level`, živý přepis, řádek „⚙ Otevírám YouTube…“ při nástroji;
   odpověď se ukáže a po 6 s se pilulka smrští. Potvrzovací dialog
-  (Ano/Ne) přímo v pilulce. Klik = psaní.
-- **Dashboard** (`/`): chat s historií a streamem, stav mozku, nastavení
+  (Ano/Ne) přímo v pilulce. Klik = psaní; přetažený soubor na pilulku =
+  příloha. Tlačítko „otevřít chat“.
+- **Dashboard / Chat** (`/`, otevře se i jako samostatné okno „JARVIS“
+  z traye nebo zkratkou Ctrl+Shift+J): plný chat dle sekce 6a (historie
+  konverzací, Markdown, přílohy, 🔊, mikrofon), stav mozku, nastavení
   (poskytovatelé + pořadí + klíče + test připojení, hlas, wake word, jméno,
-  město), párování (QR), seznam nástrojů.
+  město, „mluvit vždy“), párování (QR), seznam nástrojů.
 - **Mobil** (`/mobile`, zabalené do APK): obrazovka připojení (sken QR /
-  ruční zadání), chat, velké mikrofonní tlačítko (nahraje zvuk → pošle
-  `audio_chunk`), mřížka rychlých tlačítek (play/pause, další, hlasitost ±,
-  ztlumit, zamknout, screenshot PC), zobrazení potvrzení a notifikací.
+  ruční zadání), plný chat dle sekce 6a včetně příloh (📎 fotoaparát,
+  galerie, soubory), velké mikrofonní tlačítko (nahraje zvuk → pošle
+  `audio_chunk`), odpovědi umí přečíst nahlas přímo na telefonu (TTS audio
+  z PC se pošle jako příloha / stream), mřížka rychlých tlačítek
+  (play/pause, další, hlasitost ±, ztlumit, zamknout, screenshot PC),
+  zobrazení potvrzení a notifikací.
 - Vizuál: tmavý, „Stark HUD“ — černá/grafit, azurový akcent, jemná záře,
   plynulé animace; respektuje `prefers-reduced-motion`.
 
@@ -248,7 +316,8 @@ z `web/dist`.
 
 - Capacitor obal kolem `web/dist` (stránka mobile).
 - Pluginy: mikrofon (nahrávání), sken QR (kamera), lokální notifikace,
-  share intent („Sdílet → JARVIS“), uložení párování.
+  share intent („Sdílet → JARVIS“ pro odkazy, text, fotky, soubory),
+  výběr souborů a fotoaparát, stahování příloh, uložení párování.
 - Udržuje WebSocket, s auto-reconnect (exponenciální čekání max 10 s).
   Notifikace z PC chodí, dokud je aplikace aktivní/na pozadí; push notifikace
   při úplně zavřené aplikaci nejsou ve verzi 1.
@@ -285,7 +354,10 @@ Konfigurace: `%APPDATA%\JARVIS\config.toml` (+ `jarvis.db`).
   s falešným LLM (scénáře: text, volání nástroje, více kol, danger +
   potvrzení/zamítnutí, limit kol), router (fallback při chybě/429/timeoutu,
   vypnutí tools), WebSocket protokol + token autentizace (FastAPI
-  TestClient), paměť, nástroje s Null platformou.
+  TestClient), paměť, nástroje s Null platformou, přílohy (upload/download
+  s tokenem a bez, extrakce textu z ukázkového PDF/DOCX/TXT, obrázek →
+  vision zpráva / OCR fallback, zkrácení dlouhého obsahu, synchronizace
+  chatu mezi dvěma klienty).
 - **web**: typecheck + build; test, že TS protokol odpovídá Python modelům.
 - **CI**: GitHub Actions — pytest na Ubuntu i Windows (Windows runner ověří
   skutečné Windows importy), build webu, build APK.
