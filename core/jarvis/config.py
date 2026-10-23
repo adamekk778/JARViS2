@@ -142,6 +142,10 @@ class Character(BaseModel):
     pet_y: int = -1
 
 
+class AgentCfg(BaseModel):
+    mode: bool = False   # agent mode: plan first, up to 25 rounds
+
+
 class Permissions(BaseModel):
     apps: bool = True
     input: bool = True
@@ -166,6 +170,7 @@ class Config(BaseModel):
     phone: Phone = Field(default_factory=Phone)
     memory: MemoryCfg = Field(default_factory=MemoryCfg)
     permissions: Permissions = Field(default_factory=Permissions)
+    agent: AgentCfg = Field(default_factory=AgentCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -185,7 +190,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.speak_mode", "voice.stt_language",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
     "appearance.theme", "appearance.accent", "appearance.animations",
-    "character.color", "character.glow", "character.size",
+    "character.color", "character.glow", "character.size", "agent.mode",
 }
 
 # Never sent to remote clients.

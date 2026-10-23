@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 import uuid
 from typing import Any
 
@@ -14,6 +15,7 @@ from .prompt import build_system_prompt
 log = logging.getLogger(__name__)
 
 MAX_ROUNDS = 8
+MAX_ROUNDS_AGENT = 25
 CONFIRM_TIMEOUT = 30.0
 NO_LIMIT = ("Narazil jsem na limit u všech AI poskytovatelů. Chvíli počkej, nebo v Nastavení → Mozek přidej "
             "dalšího poskytovatele (třeba Groq nebo Gemini mají limity zdarma), případně zapni Ollamu pro offline režim.")
@@ -31,6 +33,17 @@ TOOL_LABELS = {
     "create_skill": "Učím se novou dovednost", "schedule_task": "Plánuji úlohu",
     "browser_open": "Otevírám stránku", "browser_click": "Klikám v prohlížeči", "browser_type": "Píšu do prohlížeče",
 }
+
+
+AGENT_MODE_RULE = ("Režim Agent: u úkolu s více kroky nejdřív zavolej update_plan se seznamem kroků, po každém kroku "
+                   "ho aktualizuj a na konci ověř výsledek.")
+
+
+def _first_sentence(text: str) -> str:
+    import re
+
+    m = re.match(r"\s*(.+?[.!?])(\s|$)", text or "", re.S)
+    return (m.group(1) if m else (text or "")).strip()[:300]
 
 
 def describe_call(name: str, args: dict) -> str:
@@ -54,6 +67,7 @@ class Agent:
         self._confirms: dict[str, asyncio.Future] = {}
         self._task: asyncio.Task | None = None
         self.busy = False
+        self._goal = ""
 
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
@@ -120,8 +134,14 @@ class Agent:
         finally:
             self._confirms.pop(cid, None)
 
+    def _rounds(self) -> int:
+        return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
+
     async def _run_call(self, call: ToolCall, tool_cards: list[dict], attachments: list[str]) -> dict:
         rt = self.rt
+        await rt.tasks.checkpoint()
+        if rt.tasks.current is None:
+            rt.tasks.begin(self._goal, rt.memory.current_conversation)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
         if spec is None or call.name in disabled:
@@ -130,16 +150,25 @@ class Agent:
             approved = True
             if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted):
                 rt.bus.publish("state", state="waiting")
-                approved = await self._ask_confirm(call)
+                rt.tasks.set_waiting(True)
+                try:
+                    approved = await self._ask_confirm(call)
+                finally:
+                    rt.tasks.set_waiting(False)
             if not approved:
                 res = tools.ToolResult(False, "Uživatel akci nepotvrdil – NEPROVEDENO. Nezkoušej to znovu.")
                 rt.bus.publish("tool_end", id=call.id, ok=False, summary="Zrušeno")
             else:
                 rt.bus.publish("state", state="acting")
-                rt.bus.publish("tool_start", id=call.id, name=call.name, args=call.arguments,
-                               label=describe_call(call.name, call.arguments))
+                label = describe_call(call.name, call.arguments)
+                rt.bus.publish("tool_start", id=call.id, name=call.name, args=call.arguments, label=label)
+                rt.tasks.action_started(label)
+                t0 = time.monotonic()
                 res = await tools.call(call.name, call.arguments, rt)
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary)
+                if call.name != "update_plan":
+                    rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,
+                                        int((time.monotonic() - t0) * 1000))
         attachments += [a for a in res.attachments if a not in attachments]
         tool_cards.append({"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok,
                            "summary": res.summary})
@@ -149,11 +178,15 @@ class Agent:
         rt = self.rt
         bus = rt.bus
         voice = source in ("voice", "mobile_voice")
+        self._goal = text or "(příloha)"
+        status = "done"
         if record_user:
             um = rt.memory.add_message("user", text, attachments, source)
             bus.publish("user_message", id=um["id"], text=text, source=source,
                         attachments=[rt.public_attachment(a) for a in attachments])
         bus.publish("state", state="thinking")
+        if rt.cfg.agent.mode:
+            extra = (extra + "\n" if extra else "") + AGENT_MODE_RULE
         msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
         schemas = tools.schemas(rt.cfg.tools.disabled, rt.cfg)
         full_text = ""
@@ -161,10 +194,13 @@ class Agent:
         out_atts: list[str] = []
         cancelled = False
         try:
-            for rnd in range(MAX_ROUNDS + 1):
+            rounds = self._rounds()
+            for rnd in range(rounds + 1):
+                if rnd:
+                    await rt.tasks.checkpoint()
                 round_text = ""
                 calls: list[ToolCall] | None = None
-                use_tools = schemas if rnd < MAX_ROUNDS else None
+                use_tools = schemas if rnd < rounds else None
                 async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision):
                     if ch.text:
                         if not round_text and full_text:
@@ -179,7 +215,7 @@ class Agent:
                     bus.publish("brain", provider=rt.router.last_used[0], model=rt.router.last_used[1])
                 if not calls:
                     break
-                if rnd >= MAX_ROUNDS:
+                if rnd >= rounds:
                     break
                 msgs.append({"role": "assistant", "content": round_text or None, "tool_calls": [
                     {"id": c.id, "type": "function",
@@ -202,17 +238,22 @@ class Agent:
                 full_text = "Hotovo." if tool_cards else "…"
                 bus.publish("assistant_delta", text=full_text)
         except AllProvidersFailed as e:
+            status = "failed"
             log.warning("all providers failed: %s", e)
             bus.publish("error", message=f"Žádný AI poskytovatel neodpověděl: {e}", kind="limit" if e.is_limit else "brain")
             msg = NO_LIMIT if e.is_limit else NO_BRAIN
             full_text = (full_text + "\n\n" if full_text else "") + msg
             bus.publish("assistant_delta", text=msg)
         except ProviderError as e:
+            status = "failed"
             bus.publish("error", message=str(e))
             full_text += f"\n\n(Spojení s AI se přerušilo: {e})"
         except asyncio.CancelledError:
             cancelled = True
+            status = "cancelled"
             full_text = (full_text + " …(přerušeno)").strip()
+        if rt.tasks.current is not None:
+            rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,
                                    meta={"tools": tool_cards, "brain": rt.router.last_used})
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards,

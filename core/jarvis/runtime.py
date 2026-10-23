@@ -10,6 +10,7 @@ import httpx
 from . import config as config_mod
 from . import paths, redact, secrets, tools
 from .agent import Agent
+from .tasks import TaskManager
 from .attachments import AttachmentStore
 from .events import Bus
 from .llm.router import Router
@@ -36,6 +37,7 @@ class Runtime:
         self.store = AttachmentStore(paths.sub("files"), self.db)
         self.router = Router(self.cfg.brain, secrets.get, llm_transport)
         self.agent = Agent(self)
+        self.tasks = TaskManager(self)
         self.timers = Timers(self._timer_fired)
         self.voice: Any = None        # voice.loop.VoiceLoop when available
         self.speaker: Any = None      # voice.tts.Speaker
