@@ -19,7 +19,15 @@ NO_BRAIN = ("Omlouvám se, teď nemám spojení s žádným AI mozkem. Zkontrolu
             "Ollama, případně přidej jiného poskytovatele v Nastavení → Mozek.")
 
 TOOL_LABELS = {
-    "youtube_play""Pouštím YouTube""open_app""Spouštím aplikaci""close_app""Zavírám aplikaci""web_search""Hledám na webu""web_read""Čtu stránku""weather""Zjišťuji počasí""volume""Hlasitost""media_control""Média""screenshot""Snímek obrazovky""system_power""Napájení""run_shell""PowerShell""computer_use""Ovládám počítač""run_python""Spouštím kód""generate_image""Kreslím obrázek""set_timer""Časovač""set_reminder""Připomínka""find_file""Hledám soubor""open_file""Otevírám soubor""remember""Pamatuji si""send_file""Posílám soubor""send_to_phone""Posílám na telefon""create_skill""Učím se novou dovednost""schedule_task""Plánuji úlohu",
+    "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
+    "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
+    "volume": "Hlasitost", "media_control": "Média", "screenshot": "Snímek obrazovky",
+    "system_power": "Napájení", "run_shell": "PowerShell", "computer_use": "Ovládám počítač",
+    "run_python": "Spouštím kód", "generate_image": "Kreslím obrázek", "set_timer": "Časovač",
+    "set_reminder": "Připomínka", "find_file": "Hledám soubor", "open_file": "Otevírám soubor",
+    "remember": "Pamatuji si", "send_file": "Posílám soubor", "send_to_phone": "Posílám na telefon",
+    "create_skill": "Učím se novou dovednost", "schedule_task": "Plánuji úlohu",
+    "browser_open": "Otevírám stránku", "browser_click": "Klikám v prohlížeči", "browser_type": "Píšu do prohlížeče",
 }
 
 
