@@ -51,6 +51,12 @@ class Runtime:
         self.bus.bind_loop(self.loop)
         self.store.transcribe = self._transcribe_file
         try:
+            from .tools.skills import load_all_skills
+
+            load_all_skills()
+        except Exception as e:  # pragma: no cover
+            log.warning("skills: %s", e)
+        try:
             from .scheduler import Scheduler
 
             self.scheduler = Scheduler(self)
@@ -58,7 +64,7 @@ class Runtime:
         except Exception as e:  # pragma: no cover
             log.warning("scheduler unavailable: %s", e)
         try:
-            from .mcp.client import McpManager
+            from .integrations.mcp_client import McpManager
 
             self.mcp = McpManager(self)
             asyncio.get_running_loop().create_task(self.mcp.start())

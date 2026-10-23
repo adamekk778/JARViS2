@@ -91,6 +91,13 @@ def start_extras(rt) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--run-python"] and len(argv) > 1:  # run_python tool inside the frozen exe
+        import runpy
+
+        sys.argv = argv[1:]
+        runpy.run_path(argv[1], run_name="__main__")
+        return 0
     ap = argparse.ArgumentParser(prog="jarvis", description="JARVIS 2")
     ap.add_argument("--no-ui", action="store_true", help="jen server (bez oken)")
     ap.add_argument("--no-voice", action="store_true")

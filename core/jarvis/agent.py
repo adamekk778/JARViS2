@@ -19,19 +19,12 @@ NO_BRAIN = ("Omlouvám se, teď nemám spojení s žádným AI mozkem. Zkontrolu
             "Ollama, případně přidej jiného poskytovatele v Nastavení → Mozek.")
 
 TOOL_LABELS = {
-    "youtube_play": "▶ Pouštím YouTube", "open_app": "🚀 Spouštím aplikaci", "close_app": "✖ Zavírám aplikaci",
-    "web_search": "🔎 Hledám na webu", "web_read": "📄 Čtu stránku", "weather": "⛅ Zjišťuji počasí",
-    "volume": "🔊 Hlasitost", "media_control": "⏯ Média", "screenshot": "📸 Snímek obrazovky",
-    "system_power": "⏻ Napájení", "run_shell": "⌨ PowerShell", "computer_use": "🖱 Ovládám počítač",
-    "run_python": "🐍 Spouštím kód", "generate_image": "🎨 Kreslím obrázek", "set_timer": "⏲ Časovač",
-    "set_reminder": "⏰ Připomínka", "find_file": "📁 Hledám soubor", "open_file": "📂 Otevírám soubor",
-    "remember": "🧠 Pamatuji si", "send_file": "📤 Posílám soubor", "send_to_phone": "📱 Posílám na telefon",
-    "create_skill": "🛠 Učím se novou dovednost", "schedule_task": "📅 Plánuji úlohu",
+    "youtube_play""Pouštím YouTube""open_app""Spouštím aplikaci""close_app""Zavírám aplikaci""web_search""Hledám na webu""web_read""Čtu stránku""weather""Zjišťuji počasí""volume""Hlasitost""media_control""Média""screenshot""Snímek obrazovky""system_power""Napájení""run_shell""PowerShell""computer_use""Ovládám počítač""run_python""Spouštím kód""generate_image""Kreslím obrázek""set_timer""Časovač""set_reminder""Připomínka""find_file""Hledám soubor""open_file""Otevírám soubor""remember""Pamatuji si""send_file""Posílám soubor""send_to_phone""Posílám na telefon""create_skill""Učím se novou dovednost""schedule_task""Plánuji úlohu",
 }
 
 
 def describe_call(name: str, args: dict) -> str:
-    label = TOOL_LABELS.get(name, f"⚙ {name}")
+    label = TOOL_LABELS.get(name, name)
     key = next((args[k] for k in ("query", "name", "text", "task", "prompt", "url", "command", "action", "path", "city")
                 if isinstance(args.get(k), (str, int)) and args.get(k) != ""), None)
     return f"{label}: {key}" if key is not None else label
