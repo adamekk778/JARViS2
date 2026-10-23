@@ -23,6 +23,10 @@ SR = 16000
 MIN_SECONDS = 0.35      # shorter = a normal key press (Ctrl+C with the right Ctrl), not a dictation
 MAX_SECONDS = 600
 TYPING_WPM = 40         # "time saved" compares with typing at this speed
+SPEECH_RMS = 0.012      # loudest 30 ms frame below this = nobody spoke (Ctrl + click, a hold by mistake)
+# What speech recognizers write for silence or noise: never paste these
+HALLUCINATIONS = ("titulky vytvořil", "titulky vytvořila", "děkuji za pozornost", "děkuji za sledování",
+                  "thank you for watching", "thanks for watching", "subtitles by", "www.", "amara.org", "♪")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS dictations (id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, text TEXT, raw TEXT,
@@ -48,6 +52,22 @@ def _norm(s: str) -> str:
     s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     return _norm_re.sub(" ", s).strip()
+
+
+def has_speech(pcm16: bytes) -> bool:
+    import numpy as np
+
+    a = np.frombuffer(pcm16, dtype=np.int16).astype(np.float32) / 32768.0
+    n = SR * 30 // 1000
+    if a.size < n:
+        return False
+    frames = a[: a.size // n * n].reshape(-1, n)
+    return float(np.sqrt((frames * frames).mean(axis=1)).max()) >= SPEECH_RMS
+
+
+def is_hallucination(text: str) -> bool:
+    t = text.strip().lower()
+    return not t or any(h in t for h in HALLUCINATIONS) and count_words(t) <= 8
 
 
 def count_words(text: str) -> int:
@@ -178,8 +198,14 @@ class Dictation:
 
     async def handle_audio(self, pcm: bytes, seconds: float, app: str = "") -> str:
         try:
+            if not has_speech(pcm):
+                self.state = "idle"
+                self._state("cancelled", quiet=True)
+                return ""
             prompt = ", ".join(w.strip() for w in self.cfg.words if w.strip())
             raw = await asyncio.to_thread(self._stt().transcribe, pcm, SR, prompt)
+            if is_hallucination(raw):
+                raw = ""
             text = await self.process(raw)
             if not text.strip():
                 self.state = "idle"

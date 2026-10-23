@@ -7,7 +7,14 @@ from conftest import FakeRouter, drain
 
 from jarvis import config
 from jarvis.desktop.dictation_keys import HOLD_S, DictationKeys
-from jarvis.dictation import apply_words, count_words, recap, week_bounds
+from jarvis.dictation import apply_words, count_words, has_speech, is_hallucination, recap, week_bounds
+
+
+def tone(seconds=1.0, amp=0.2):
+    import numpy as np
+
+    t = np.arange(int(16000 * seconds)) / 16000
+    return (np.sin(2 * np.pi * 220 * t) * amp * 32767).astype(np.int16).tobytes()
 
 
 def cfg(**kw):
@@ -45,7 +52,7 @@ async def test_dictation_pastes_and_restores_clipboard(rt):
     rt.dictation._own_stt = stt
     rt.platform.clipboard = "původní"
     rt.platform.front_app = "Discord"
-    out = await rt.dictation.handle_audio(b"\0" * 32000, 2.0, "Discord")
+    out = await rt.dictation.handle_audio(tone(1.0), 2.0, "Discord")
     assert out == "zavolej panu Bartókovi"
     assert stt.prompts == ["Bartók, OmniRoute"]
     calls = [c for c in rt.platform.calls if c[0] in ("clipboard_set", "hotkey")]
@@ -60,9 +67,9 @@ async def test_cleanup_uses_fast_ai_and_keeps_snippets(rt):
                                                        "snippets": [{"trigger": "adresa", "text": "Dlouhá 1, Praha"}]}})
     rt.router = FakeRouter(["Pošli mi to zítra, prosím."])
     rt.dictation._own_stt = FakeSTT("ehm pošli mi to jakoby zítra prosím")
-    assert await rt.dictation.handle_audio(b"\0" * 32000, 2.0) == "Pošli mi to zítra, prosím."
+    assert await rt.dictation.handle_audio(tone(1.0), 2.0) == "Pošli mi to zítra, prosím."
     rt.dictation._own_stt = FakeSTT("Adresa")
-    assert await rt.dictation.handle_audio(b"\0" * 32000, 1.0) == "Dlouhá 1, Praha"
+    assert await rt.dictation.handle_audio(tone(1.0), 1.0) == "Dlouhá 1, Praha"
     assert len(rt.router.calls) == 1   # the snippet did not go to the AI
 
 
@@ -70,13 +77,13 @@ async def test_cleanup_failure_keeps_raw_text(rt):
     rt.cfg = config.apply_patch(rt.cfg, {"dictation": {"cleanup": "polished"}})
     rt.router = FakeRouter([RuntimeError("offline")])
     rt.dictation._own_stt = FakeSTT("tohle je text bez úprav")
-    assert await rt.dictation.handle_audio(b"\0" * 32000, 2.0) == "tohle je text bez úprav"
+    assert await rt.dictation.handle_audio(tone(1.0), 2.0) == "tohle je text bez úprav"
 
 
 async def test_nothing_heard_pastes_nothing(rt):
     rt.dictation._own_stt = FakeSTT("  ")
     q = rt.bus.subscribe()
-    assert await rt.dictation.handle_audio(b"\0" * 3200, 1.0) == ""
+    assert await rt.dictation.handle_audio(tone(0.5), 1.0) == ""
     assert not any(c[0] == "hotkey" for c in rt.platform.calls)
     assert rt.dictation.state == "idle"
 
@@ -237,3 +244,23 @@ def test_recap_due_until_seen(rt, monkeypatch):
     assert rt.recap_due()
     rt.recap_seen()
     assert not rt.recap_due()
+
+
+async def test_silence_is_not_transcribed(rt):
+    stt = FakeSTT("Titulky vytvořil JohnyX")
+    rt.dictation._own_stt = stt
+    assert await rt.dictation.handle_audio(b"\0" * 32000, 2.0) == ""
+    assert stt.prompts == []                       # the recognizer was not even asked
+    assert not any(c[0] == "hotkey" for c in rt.platform.calls)
+
+
+async def test_hallucinations_are_not_pasted(rt):
+    rt.dictation._own_stt = FakeSTT("Titulky vytvořil JohnyX")
+    assert await rt.dictation.handle_audio(tone(1.0), 2.0) == ""
+    assert not any(c[0] == "hotkey" for c in rt.platform.calls)
+
+
+def test_speech_detection_and_hallucination_rules():
+    assert has_speech(tone(0.5)) and not has_speech(b"\0" * 16000) and not has_speech(tone(0.5, amp=0.002))
+    assert is_hallucination("Děkuji za pozornost.") and is_hallucination("")
+    assert not is_hallucination("Děkuji za pozornost, kterou jste věnovali mému návrhu rozpočtu na příští rok a plánu")

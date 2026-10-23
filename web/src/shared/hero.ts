@@ -40,8 +40,8 @@ function loop(now: number) {
   const live = [...bands].filter(visible);
   if (!live.length || document.hidden) return;
   raf = requestAnimationFrame(loop);
-  // ~30 fps is plenty for drifting particles; 12 fps with reduced motion
-  if (now - lastDraw < (reduced() ? 80 : 32)) return;
+  // ~30 fps is plenty for drifting particles; 12 fps with reduced motion or while you work in another window
+  if (now - lastDraw < (reduced() || !document.hasFocus() ? 80 : 32)) return;
   const dt = Math.min(0.06, (now - last) / 1000);
   last = lastDraw = now;
   for (const b of live) draw(b, dt, now / 1000);

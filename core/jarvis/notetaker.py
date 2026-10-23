@@ -61,6 +61,7 @@ class _Track:
     def _run(self):
         import numpy as np
 
+        com = _com_init()
         try:
             with wave.open(str(self.path), "wb") as w:
                 w.setnchannels(1)
@@ -85,6 +86,22 @@ class _Track:
         except Exception as e:
             log.warning("notetaker track %s: %s", self.path.stem, e)
             self.error = str(e)
+        finally:
+            if com:
+                import ctypes
+
+                ctypes.windll.ole32.CoUninitialize()
+
+
+def _com_init() -> bool:
+    """Windows audio (WASAPI) needs COM in the recording thread."""
+    import sys
+
+    if sys.platform != "win32":
+        return False
+    import ctypes
+
+    return ctypes.windll.ole32.CoInitializeEx(None, 0) in (0, 1)   # S_OK / S_FALSE → we must uninitialize
 
 
 def merge(mine: list[tuple], theirs: list[tuple]) -> list[dict]:
@@ -145,16 +162,29 @@ class Notetaker:
 
     # ---------- recording ----------
     def _recorders(self):
-        import soundcard as sc
+        """Recorder factories. The devices are looked up inside each recording thread (COM objects belong to the
+        thread that created them); importing here only fails early when the audio library is missing."""
+        import soundcard  # noqa: F401
 
-        mic = sc.default_microphone()
-        if self.rt.cfg.voice.input_device:
-            try:
-                mic = sc.get_microphone(self.rt.cfg.voice.input_device)
-            except Exception:
-                pass
-        loop = sc.get_microphone(str(sc.default_speaker().name), include_loopback=True)
-        return (lambda: mic.recorder(samplerate=SR, channels=1)), (lambda: loop.recorder(samplerate=SR, channels=1))
+        dev = self.rt.cfg.voice.input_device
+
+        def mic():
+            import soundcard as sc
+
+            m = sc.default_microphone()
+            if dev:
+                try:
+                    m = sc.get_microphone(dev)
+                except Exception:
+                    pass
+            return m.recorder(samplerate=SR, channels=1)
+
+        def loopback():
+            import soundcard as sc
+
+            return sc.get_microphone(str(sc.default_speaker().name), include_loopback=True).recorder(samplerate=SR, channels=1)
+
+        return mic, loopback
 
     def start(self) -> dict:
         if self.state != "idle":
