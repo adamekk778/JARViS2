@@ -11,7 +11,7 @@ PKGS = [
     "webview", "clr_loader", "pythonnet", "pystray", "keyboard", "pyautogui", "pyscreeze", "pymsgbox", "pytweening",
     "mouseinfo", "mss", "pyperclip", "pycaw", "comtypes", "winsdk", "playwright", "keyring", "win32ctypes",
     "trafilatura", "justext", "lxml", "htmldate", "courlan", "dateparser", "ddgs", "primp", "yt_dlp",
-    "pypdf", "docx", "openpyxl", "pptx", "PIL", "qrcode", "psutil", "mcp", "rapidocr_onnxruntime",
+    "pypdf", "docx", "openpyxl", "pptx", "PIL", "qrcode", "psutil",
     "matplotlib", "numpy", "send2trash",
 ]
 for pkg in PKGS:
@@ -22,6 +22,10 @@ for pkg in PKGS:
         hiddenimports += h
     except Exception as e:  # optional package not installed
         print(f"[spec] skip {pkg}: {e}")
+# mcp: skip the optional CLI (needs typer), keep the client
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
+hiddenimports += collect_submodules("mcp", filter=lambda n: not n.startswith(("mcp.cli", "mcp.server.fastmcp")))
+datas += collect_data_files("mcp") + copy_metadata("mcp")
 hiddenimports += collect_submodules("jarvis") + collect_submodules("uvicorn")
 
 web_dist = os.path.abspath(os.path.join(SPECPATH, "..", "web", "dist"))
@@ -34,8 +38,9 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
+    hookspath=[os.path.join(SPECPATH, "hooks")],
     excludes=["tkinter", "PyQt5", "PyQt6", "PySide2", "PySide6", "IPython", "jupyter", "pytest", "matplotlib.tests",
-              "numpy.tests", "torch", "tensorflow"],
+              "numpy.tests", "torch", "tensorflow", "cv2", "rapidocr_onnxruntime"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

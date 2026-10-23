@@ -89,7 +89,6 @@ jobs:
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "21" }
-      - uses: android-actions/setup-android@v3
       - run: bash mobile/build-android.sh
       - uses: actions/upload-artifact@v4
         with: { name: JARVIS-apk, path: mobile/JARVIS.apk }
