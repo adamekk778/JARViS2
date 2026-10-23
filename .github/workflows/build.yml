@@ -68,8 +68,33 @@ jobs:
           Write-Host "== stderr"; Get-Content "$env:RUNNER_TEMP\err.txt" -ErrorAction SilentlyContinue | Select-Object -Last 80
           foreach ($f in "crash.log","fault.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 60 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-          if (-not $ok) { throw "JARVIS.exe did not start" }
-          $html = Invoke-WebRequest http://127.0.0.1:8765/ -UseBasicParsing -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "JARVIS-debug.exe did not start" }
+      - name: Smoke test windowed JARVIS.exe
+        shell: pwsh
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome2"
+          $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-ui","--no-voice" -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 45; $i++) {
+            Start-Sleep -Seconds 2
+            if ($p.HasExited) { Write-Host "process exited with $($p.ExitCode)"; break }
+            try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
+          }
+          if (-not $ok) {
+            Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object ProcessName, MainWindowTitle | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
+            Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save("$env:RUNNER_TEMP\screen.png")
+            foreach ($f in "crash.log","fault.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 60 }
+          }
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          "$ok" | Out-File "$env:RUNNER_TEMP\windowed_ok.txt"
+          if (-not $ok) { throw "windowed JARVIS.exe did not start" }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png" }
       - name: Inno Setup
         shell: pwsh
         run: |
