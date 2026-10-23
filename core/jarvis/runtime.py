@@ -49,6 +49,7 @@ class Runtime:
         self.shelf: list[str] = []    # notch shelf attachment ids
         self.media_state: dict = {}
         self.ui_hook = None           # desktop host: show window (second launch)
+        self.voice_mode = False       # dashboard voice mode is open → follow-up listening on
         self.pet_hook = None          # desktop host: pet commands (undock, dock, …)
         from .mood import MoodEngine
 
@@ -173,14 +174,14 @@ class Runtime:
             self.scheduler.pause_for(600)
         self.bus.publish("stopped")
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, lang: str = "cs") -> None:
         if self.speaker:
-            asyncio.get_running_loop().create_task(self.speaker.say(text))
+            asyncio.get_running_loop().create_task(self.speaker.say(text, lang))
 
-    def maybe_speak(self, text: str, source: str) -> None:
+    def maybe_speak(self, text: str, source: str, lang: str = "cs") -> None:
         mode = self.cfg.voice.speak_mode
         if mode == "always" or (mode == "voice" and source in ("voice", "mobile_voice")):
-            self.speak(text)
+            self.speak(text, lang)
 
     def on_confirm_request(self, cid: str, desc: str) -> None:
         if self.speaker and self.cfg.voice.speak_mode != "never":

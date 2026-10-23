@@ -29,6 +29,7 @@ class Transcriber:
         self._model_name = None
         self._lock = threading.Lock()
         self.error: str | None = None
+        self.last_language = "cs"
 
     def update(self, cfg_voice) -> None:
         self.cfg = cfg_voice
@@ -87,7 +88,11 @@ class Transcriber:
         r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
                        files={"file": (filename, wav)}, data=data, timeout=60)
         r.raise_for_status()
-        return r.json().get("text", "").strip()
+        text = r.json().get("text", "").strip()
+        from ..lang import detect
+
+        self.last_language = detect(text)
+        return text
 
     def transcribe(self, pcm16: bytes, sr: int = 16000) -> str:
         if self.cfg.stt_provider == "groq":
@@ -114,6 +119,10 @@ class Transcriber:
 
     def _run(self, audio) -> str:
         model = self._local()
-        segments, _info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
-                                           condition_on_previous_text=False)
-        return " ".join(s.text.strip() for s in segments).strip()
+        segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
+                                          condition_on_previous_text=False)
+        text = " ".join(s.text.strip() for s in segments).strip()
+        from ..lang import detect
+
+        self.last_language = "en" if getattr(info, "language", "") == "en" or detect(text) == "en" else "cs"
+        return text

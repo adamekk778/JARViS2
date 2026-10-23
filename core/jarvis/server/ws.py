@@ -26,6 +26,7 @@ CLIENT_TYPES = [
     "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
+    "audio_devices_get", "voice_mode",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -34,7 +35,7 @@ SERVER_TYPES = [
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
-    "memory_export_data", "memory_import_result",
+    "memory_export_data", "memory_import_result", "audio_devices",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -151,7 +152,9 @@ class Connection:
             text = (m.get("text") or "").strip()
             atts = [a for a in (m.get("attachments") or []) if rt.store.get(a)]
             if text or atts:
-                self.spawn(rt.agent.handle(text, atts, self._source()))
+                from ..lang import detect
+
+                self.spawn(rt.agent.handle(text, atts, self._source(), lang=detect(text)))
         elif t == "audio_chunk":
             self.audio += base64.b64decode(m.get("pcm16_b64", ""))
             self.audio_sr = int(m.get("sample_rate", 16000))
@@ -231,6 +234,12 @@ class Connection:
                 return
             await self.send("memory_import_result", **res)
             rt.bus.publish("memory", facts=rt.memory.facts())
+        elif t == "audio_devices_get":
+            from ..voice import devices
+
+            await self.send("audio_devices", **await asyncio.to_thread(devices.list_devices))
+        elif t == "voice_mode":
+            rt.voice_mode = bool(m.get("on"))
         elif t == "quick_action":
             name = m.get("action", "")
             if name not in QUICK_ACTIONS:

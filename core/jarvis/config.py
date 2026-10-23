@@ -68,6 +68,10 @@ class Voice(BaseModel):
     tts_volume: str = "+0%"
     speak_mode: Literal["always", "voice", "never"] = "voice"
     silence_seconds: float = 0.8
+    followup: bool = False          # after an answer, listen 6 s more without the wake word
+    output_device: str = ""         # speaker name; empty = Windows default
+    tts_voice_en: str = "en-GB-RyanNeural"
+    piper_voice_en: str = "en_GB-alan-medium"
 
 
 class Notch(BaseModel):
@@ -191,7 +195,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "general.user_name", "general.address_as", "general.language", "general.personality", "general.city",
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
-    "voice.speak_mode", "voice.stt_language",
+    "voice.speak_mode", "voice.stt_language", "voice.followup",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "agent.mode",

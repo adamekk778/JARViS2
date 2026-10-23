@@ -13,6 +13,18 @@ from .tts import Speaker
 log = logging.getLogger(__name__)
 SR = 16000
 FRAME = 1280  # 80 ms, what openWakeWord expects
+FOLLOWUP_S = 6.0
+END_PHRASES = ("to je vse", "to je vsechno", "diky to je vse", "dekuji to je vse", "stop", "konec", "that's all",
+               "thats all", "that is all", "thank you that's all")
+
+
+def is_end_phrase(text: str) -> bool:
+    from ..tools.platform.base import norm
+    import re
+
+    t = re.sub(r"[^\w' ]+", " ", norm(text)).split()
+    s = " ".join(t)
+    return any(s == p or s.endswith(" " + p) or s.startswith(p + " ") and len(t) <= 6 for p in END_PHRASES)
 
 
 def load_wakeword(name: str):
@@ -45,6 +57,7 @@ class VoiceLoop:
         self._stream = None
         self._thread: threading.Thread | None = None
         self._restart = threading.Event()
+        self.followup_active = False
 
     # ---------- public ----------
     def start(self) -> None:
@@ -87,6 +100,11 @@ class VoiceLoop:
     def _after_speech(self) -> None:
         # JARVIS just asked "Ano, nebo ne?" → listen right away without the wake word
         if self._confirm_id and self.rt.agent.pending_confirm() == self._confirm_id:
+            self._ptt.set()
+            return
+        # follow-up: keep the conversation going for 6 s without the wake word (visible "listening" state)
+        if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False)) and not self.paused:
+            self.followup_active = True
             self._ptt.set()
 
     def _open_stream(self):
@@ -190,7 +208,9 @@ class VoiceLoop:
         self._beep(np)
         while not self._q.empty():  # drop audio from before the trigger
             self._q.get_nowait()
-        ep = Endpointer(FRAME / SR, self.rt.cfg.voice.silence_seconds)
+        ep = Endpointer(FRAME / SR, self.rt.cfg.voice.silence_seconds,
+                        no_speech_s=FOLLOWUP_S if self.followup_active else 6.0)
+        bus.publish_threadsafe("state", state="listening", followup=self.followup_active)
         audio = bytearray()
         result = None
         n = 0
@@ -210,6 +230,7 @@ class VoiceLoop:
                 bus.publish_threadsafe("level", rms=round(float(np.sqrt(np.mean(a ** 2))), 3))
         self.listening = False
         if result != "done":
+            self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
         self._beep(np, 660.0)
@@ -223,8 +244,13 @@ class VoiceLoop:
             return
         bus.publish_threadsafe("transcript", text=text, final=True)
         if not text.strip():
+            self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
+        self.handle_transcript(text, getattr(self.transcriber, "last_language", "cs"))
+
+    def handle_transcript(self, text: str, lang: str = "cs") -> None:
+        """What to do with a finished utterance: answer a pending confirmation, end a follow-up, or ask the agent."""
         cid = self.rt.agent.pending_confirm()
         if cid:
             yn = parse_yes_no(text)
@@ -232,4 +258,8 @@ class VoiceLoop:
                 self._confirm_id = None
                 self.rt.call_soon(self.rt.agent.confirm, cid, yn)
                 return
-        self.rt.submit(self.rt.agent.handle(text, [], "voice"))
+        if is_end_phrase(text):
+            self.followup_active = False
+            self.rt.bus.publish_threadsafe("state", state="idle")
+            return
+        self.rt.submit(self.rt.agent.handle(text, [], "voice", lang=lang))

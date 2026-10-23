@@ -73,14 +73,18 @@ class Agent:
         self._task: asyncio.Task | None = None
         self.busy = False
         self._goal = ""
+        self._lang = "cs"
 
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
-                     record_user: bool = True, extra_system: str = "") -> str:
+                     record_user: bool = True, extra_system: str = "", lang: str = "") -> str:
         async with self._lock:
             self._task = asyncio.current_task()
             self.busy = True
             try:
+                if lang == "en":
+                    extra_system = (extra_system + "\n" if extra_system else "") + "Odpověz anglicky."
+                self._lang = lang or "cs"
                 return await self._handle(text, attachments or [], source, record_user, extra_system)
             finally:
                 self.busy = False
@@ -271,5 +275,5 @@ class Agent:
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards,
                     attachments=[rt.public_attachment(a) for a in out_atts])
         if not cancelled:
-            rt.maybe_speak(full_text, source)
+            rt.maybe_speak(full_text, source, self._lang)
         return full_text

@@ -75,25 +75,30 @@ class Speaker:
         self._lock = asyncio.Lock()
         self.on_finished = None  # callback after speech ends (voice loop uses it)
 
-    async def synth(self, text: str) -> tuple[bytes, str]:
+    def _voice_for(self, lang: str) -> tuple[str, str]:
         v = self.rt.cfg.voice
-        spoken = strip_markdown(text)[:3000] or "Hotovo."
+        return (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
+
+    async def synth(self, text: str, lang: str = "cs") -> tuple[bytes, str]:
+        v = self.rt.cfg.voice
+        edge_voice, piper_voice = self._voice_for(lang)
+        spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")
         try:
-            return await edge_synth(spoken, v.tts_voice, v.tts_rate, v.tts_pitch, v.tts_volume), "audio/mpeg"
+            return await edge_synth(spoken, edge_voice, v.tts_rate, v.tts_pitch, v.tts_volume), "audio/mpeg"
         except Exception as e:
             log.info("edge-tts failed (%s), using piper", e)
-            return await asyncio.to_thread(piper_synth, spoken, v.piper_voice), "audio/wav"
+            return await asyncio.to_thread(piper_synth, spoken, piper_voice), "audio/wav"
 
     def stop(self) -> None:
         self._stop.set()
 
-    async def say(self, text: str) -> None:
+    async def say(self, text: str, lang: str = "cs") -> None:
         if not text.strip():
             return
         async with self._lock:
             self._stop.clear()
             try:
-                audio, _mime = await self.synth(text)
+                audio, _mime = await self.synth(text, lang)
             except Exception as e:
                 log.warning("tts failed: %s", e)
                 self.rt.bus.publish("error", message=f"Hlas selhal: {e}")
@@ -120,7 +125,10 @@ class Speaker:
 
         pcm, sr = decode_to_pcm(audio)
         block = int(sr * 0.05)
-        with sd.OutputStream(samplerate=sr, channels=1, dtype="float32") as out:
+        from .devices import output_index
+
+        dev = output_index(self.rt.cfg.voice.output_device)
+        with sd.OutputStream(samplerate=sr, channels=1, dtype="float32", device=dev) as out:
             for i in range(0, len(pcm), block):
                 if self._stop.is_set():
                     break
