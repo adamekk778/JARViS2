@@ -21,14 +21,29 @@ import httpx
 from . import __version__, config, paths
 
 
+def fix_windowed_stdio() -> None:
+    """A windowed (no console) exe has sys.stdout/stderr = None; libraries that print or call isatty() crash."""
+    import os
+
+    for name in ("stdout", "stderr"):
+        if getattr(sys, name) is None:
+            setattr(sys, name, open(os.devnull, "w", encoding="utf-8"))
+
+
 def setup_logging(debug: bool) -> None:
     logdir = paths.sub("logs")
     handlers: list[logging.Handler] = [logging.handlers.RotatingFileHandler(
         logdir / "jarvis.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8")]
     if sys.stderr and not getattr(sys, "frozen", False):
         handlers.append(logging.StreamHandler())
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, handlers=handlers,
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, handlers=handlers, force=True,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    def thread_hook(a):
+        logging.getLogger("jarvis").error("thread %s crashed", a.thread.name if a.thread else "?",
+                                          exc_info=(a.exc_type, a.exc_value, a.exc_traceback))
+
+    threading.excepthook = thread_hook
     for noisy in ("httpx", "httpcore", "uvicorn.access", "comtypes", "faster_whisper"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
@@ -65,7 +80,7 @@ def start_server(rt, port: int) -> threading.Thread:
 
     def run():
         cfg = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="warning", ws_max_size=32 * 2**20,
-                             timeout_keep_alive=30)
+                             timeout_keep_alive=30, log_config=None)  # our logging; uvicorn's needs a console
         server = uvicorn.Server(cfg)
         asyncio.run(server.serve())
 
@@ -105,6 +120,7 @@ def start_extras(rt) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    fix_windowed_stdio()
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["--run-python"] and len(argv) > 1:  # run_python tool inside the frozen exe
         import runpy
