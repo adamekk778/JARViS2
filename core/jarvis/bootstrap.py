@@ -25,7 +25,10 @@ def ensure_omniroute(base_url: str) -> str:
     root = base_url.rstrip("/").removesuffix("/v1")
     if _up(root + "/v1/models") or _up(root):
         return "běží"
-    exe = shutil.which("omniroute") or shutil.which("omniroute.cmd")
+    import os
+
+    npm_global = os.path.join(os.environ.get("APPDATA", ""), "npm", "omniroute.cmd")
+    exe = shutil.which("omniroute") or shutil.which("omniroute.cmd") or (npm_global if os.path.exists(npm_global) else None)
     if not exe:
         return "nenainstalováno"
     subprocess.Popen([exe], creationflags=NO_WINDOW, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

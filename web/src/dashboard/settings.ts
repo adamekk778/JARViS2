@@ -171,7 +171,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       card("Poslech", null,
         voiceStatus.available ? null : h("div", { class: "readonly-note" }, icon("warning"), " Hlasový modul teď neběží: ", voiceStatus.error || "chybí mikrofon nebo hlasové modely."),
         sw("voice.enabled", "Hlasové ovládání", "Mikrofon, rozpoznávání řeči a hlas"),
-        sw("voice.wake_word", "Probouzení slovem „Hey Jarvis“", "Bez toho funguje zkratka (výchozí Ctrl+Mezerník)"),
+        sw("voice.wake_word", "Probouzení slovem „Hey Jarvis“", "Bez toho funguje zkratka (výchozí Ctrl+Alt+Mezerník)"),
         range("voice.wake_threshold", "Citlivost probouzení", 0.2, 0.9, 0.05, (v) => (v < 0.4 ? "vysoká" : v > 0.65 ? "nízká" : "střední") + ` (${v.toFixed(2)})`),
         voiceStatus.devices?.length
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
@@ -223,7 +223,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]]))];
     },
 
-    hotkeys: () => [card("Klávesové zkratky", "Formát: ctrl+space, ctrl+shift+j, alt+j, f9…",
+    hotkeys: () => [card("Klávesové zkratky", "Formát: ctrl+alt+space, ctrl+alt+j, f9… (Esc zastaví JARVISe jen když mluví nebo pracuje)",
       text("hotkeys.talk", "Mluvit / psát JARVISovi"), text("hotkeys.chat", "Otevřít okno chatu"), text("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"))],
 
     tools: () => {

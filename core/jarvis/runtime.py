@@ -43,6 +43,7 @@ class Runtime:
         self.clients: dict[str, dict] = {}  # ws client id -> info
         self.shelf: list[str] = []    # notch shelf attachment ids
         self.media_state: dict = {}
+        self.ui_hook = None           # desktop host: show window (second launch)
         tools.load_builtin()
 
     # ---------- lifecycle ----------

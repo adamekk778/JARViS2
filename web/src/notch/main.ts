@@ -18,6 +18,8 @@ declare global {
 }
 
 const params = new URLSearchParams(location.search);
+window.addEventListener("pywebviewready", () => document.documentElement.classList.add("native"));
+if (window.pywebview) document.documentElement.classList.add("native");
 const demo = params.get("demo") as Mode | null;
 const client = new JarvisClient(localEndpoint(), "notch", "notch");
 
@@ -58,7 +60,7 @@ const brainLbl = h("span", { class: "brain-lbl" });
 const header = h("div", { class: "n-header" },
   h("div", { class: "orb", "data-state": "idle" }), h("strong", {}, "JARVIS"), clock, brainLbl,
   h("div", { class: "spacer" }),
-  h("button", { class: "n-btn", type: "button", title: "Chat (Ctrl+Shift+J)", "aria-label": "Otevřít chat", onclick: () => openChat("chat") }, icon("chat-circle-dots")),
+  h("button", { class: "n-btn", type: "button", title: "Chat (Ctrl+Alt+J)", "aria-label": "Otevřít chat", onclick: () => openChat("chat") }, icon("chat-circle-dots")),
   h("button", { class: "n-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openChat("general") }, icon("gear-six")),
   h("button", { class: "n-btn", type: "button", title: "Připnout otevřený", "aria-label": "Připnout", onclick: (e: Event) => { pinned = !pinned; (e.currentTarget as HTMLElement).classList.toggle("on", pinned); } }, icon("push-pin")));
 const strip = h("div", { class: "n-strip" });

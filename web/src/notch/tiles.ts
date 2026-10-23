@@ -54,7 +54,7 @@ export function buildTiles(ctx: TileCtx): Record<string, Tile> {
     const el = tile("ask", "Zeptej se", "sparkle", 300,
       h("div", { class: "ask-row" }, input,
         h("button", { class: "n-btn", type: "button", "aria-label": "Přiložit", onclick: () => file.click() }, icon("paperclip")),
-        h("button", { class: "n-btn", type: "button", "aria-label": "Mluvit", title: "Mluvit (Ctrl+Mezerník)", onclick: () => client.send("push_to_talk") }, icon("microphone")),
+        h("button", { class: "n-btn", type: "button", "aria-label": "Mluvit", title: "Mluvit (Ctrl+Alt+Mezerník)", onclick: () => client.send("push_to_talk") }, icon("microphone")),
         h("button", { class: "n-btn accent", type: "button", "aria-label": "Odeslat", onclick: send }, icon("arrow-up", "ph-bold")), file),
       attRow, answer);
     tiles.ask = {

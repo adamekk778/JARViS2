@@ -44,6 +44,7 @@ class McpManager:
                 for s in self.rt.cfg.integrations.mcp]
 
     async def start(self) -> None:
+        self._last_cfg = [s.model_dump() for s in self.rt.cfg.integrations.mcp]
         for s in self.rt.cfg.integrations.mcp:
             if s.enabled and (s.command or s.url) and s.name not in self._tasks:
                 self._stops[s.name] = asyncio.Event()
@@ -52,12 +53,19 @@ class McpManager:
     async def stop(self) -> None:
         for ev in self._stops.values():
             ev.set()
-        for t in self._tasks.values():
+        tasks = list(self._tasks.values())
+        for t in tasks:
             t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         self._tasks.clear()
         self._stops.clear()
 
     def on_config(self, cfg) -> None:
+        key = [s.model_dump() for s in cfg.integrations.mcp]
+        if key == getattr(self, "_last_cfg", None):
+            return
+        self._last_cfg = key
+
         async def restart():
             await self.stop()
             await self.start()

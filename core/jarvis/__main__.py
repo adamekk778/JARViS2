@@ -33,6 +33,13 @@ def setup_logging(debug: bool) -> None:
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
+def message_box(text: str) -> None:
+    if sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, text, "JARVIS", 0x10)
+
+
 def port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("127.0.0.1", port)) == 0
@@ -60,10 +67,13 @@ def start_server(rt, port: int) -> threading.Thread:
 
     t = threading.Thread(target=run, daemon=True, name="server")
     t.start()
-    for _ in range(100):
+    for _ in range(600):
         if rt.loop is not None and port_in_use(port):
             break
         time.sleep(0.1)
+    else:
+        message_box("JARVIS se nepodařilo spustit (server nenaběhl). Podrobnosti najdeš v %APPDATA%\\JARVIS\\logs\\jarvis.log.")
+        raise SystemExit(3)
     return t
 
 
@@ -112,10 +122,14 @@ def main(argv: list[str] | None = None) -> int:
     port = cfg.phone.port
     if port_in_use(port):
         if already_running(port):
-            log.info("JARVIS already running, opening chat")
-            webbrowser.open(f"http://127.0.0.1:{port}/")
+            log.info("JARVIS already running, showing its window")
+            try:
+                httpx.post(f"http://127.0.0.1:{port}/api/show", timeout=3)
+            except Exception:
+                webbrowser.open(f"http://127.0.0.1:{port}/")
             return 0
         log.error("port %s is used by another program", port)
+        message_box(f"Port {port} používá jiný program. Zavři ho, nebo změň port v %APPDATA%\\JARVIS\\config.toml (sekce [phone]).")
         return 2
 
     from .runtime import Runtime

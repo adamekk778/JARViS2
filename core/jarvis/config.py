@@ -89,8 +89,8 @@ class Appearance(BaseModel):
 
 
 class Hotkeys(BaseModel):
-    talk: str = "ctrl+space"
-    chat: str = "ctrl+shift+j"
+    talk: str = "ctrl+alt+space"
+    chat: str = "ctrl+alt+j"
     stop: str = "esc"
 
 

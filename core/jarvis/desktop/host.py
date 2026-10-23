@@ -77,13 +77,19 @@ class DesktopHost:
 
     def _on_notch_shown(self) -> None:
         time.sleep(0.3)
-        winutil.hide_from_taskbar(NOTCH_TITLE)
+        try:  # the tool-window style only drops the taskbar button if applied while hidden
+            self.notch.hide()
+            winutil.hide_from_taskbar(NOTCH_TITLE)
+            self.notch.show()
+        except Exception as e:
+            log.debug("taskbar: %s", e)
         self.place_notch(*self._notch_size)
 
     def _on_chat_closing(self):
         if self._quitting:
             return True
-        self.chat.hide()
+        # closing handlers block the GUI thread; hiding from here would deadlock → do it from another thread
+        threading.Thread(target=self.chat.hide, daemon=True).start()
         return False  # keep the window alive, just hidden
 
     def open_chat(self, view: str = "chat") -> None:
@@ -196,6 +202,7 @@ class DesktopHost:
             winutil.set_autostart(self.rt.cfg.general.autostart, f'"{exe}" --background' if getattr(sys, "frozen", False) else exe)
         except Exception as e:
             log.warning("autostart: %s", e)
+        self.rt.ui_hook = lambda view: self.open_chat(view)
         self.create_windows()
         threading.Thread(target=self._tray, daemon=True, name="tray").start()
         threading.Thread(target=self._hotkeys, daemon=True, name="hotkeys").start()

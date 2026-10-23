@@ -25,6 +25,24 @@ def _is_local(host: str | None) -> bool:
     return (host or "") in LOCAL_HOSTS
 
 
+def _local_request(conn: Any, port: int) -> bool:
+    """Local = from this PC AND not a web page from another origin (blocks drive-by sites and DNS rebinding)."""
+    if not _is_local(conn.client.host if conn.client else None):
+        return False
+    host = (conn.headers.get("host") or "").lower()
+    if host and host.split(":")[0] not in LOCAL_HOSTS | {"[::1]", "testserver"}:
+        return False
+    origin = conn.headers.get("origin")
+    if origin and origin.rstrip("/").lower() not in {f"http://127.0.0.1:{port}", f"http://localhost:{port}",
+                                                      "http://testserver"}:
+        return False
+    return True
+
+
+ACTIVE_MIME = ("text/html", "image/svg", "application/xhtml", "text/xml", "application/xml", "text/javascript",
+               "application/javascript")
+
+
 def _token_ok(rt: Any, supplied: str | None) -> bool:
     return bool(supplied) and hmac.compare_digest(supplied, rt.cfg.phone.token)
 
@@ -48,8 +66,11 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     app = FastAPI(title="JARVIS 2", version=__version__, lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+    def is_local(conn) -> bool:
+        return _local_request(conn, rt.cfg.phone.port)
+
     def require_auth(request: Request) -> None:
-        if _is_local(request.client.host if request.client else None):
+        if is_local(request):
             return
         if not _token_ok(rt, _req_token(request)):
             raise HTTPException(401, "Chybí nebo je špatný token – spáruj telefon znovu.")
@@ -60,9 +81,9 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket):
-        host = ws.client.host if ws.client else None
-        local = _is_local(host)
+        local = is_local(ws)
         if not local and not _token_ok(rt, ws.query_params.get("token")):
+            await ws.accept()  # accept first so the client really sees code 4401 (→ "pair again")
             await ws.close(code=4401)
             return
         await ws.accept()
@@ -85,8 +106,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         att = rt.store.get(aid)
         if not att or not Path(att.path).exists():
             raise HTTPException(404, "Soubor nenalezen")
-        return FileResponse(att.path, media_type=att.mime, filename=att.name,
-                            content_disposition_type="attachment" if download else "inline")
+        active = att.mime.lower().startswith(ACTIVE_MIME) or att.name.lower().endswith((".html", ".htm", ".svg", ".xml", ".js"))
+        return FileResponse(att.path, media_type="application/octet-stream" if active else att.mime, filename=att.name,
+                            content_disposition_type="attachment" if (download or active) else "inline",
+                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
 
     @app.get("/api/files/{aid}/thumb")
     async def get_thumb(aid: str, request: Request):
@@ -98,7 +121,7 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     @app.get("/api/pairing")
     async def pairing(request: Request):
-        if not _is_local(request.client.host if request.client else None):
+        if not is_local(request):
             raise HTTPException(403, "Jen z tohoto počítače")
         return pairing_info(rt.cfg.phone.token, rt.cfg.phone.port)
 
@@ -128,11 +151,24 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         if (dist / extra).exists():
             app.mount(f"/{extra}", StaticFiles(directory=dist / extra), name=extra)
 
+    dist_root = dist.resolve()
+
+    @app.post("/api/show")
+    async def show(request: Request, view: str = "chat"):
+        """A second launch of JARVIS.exe asks the running one to show its window."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        if rt.ui_hook:
+            rt.ui_hook(view)
+        return {"ok": True}
+
     @app.exception_handler(404)
     async def not_found(request: Request, exc):
-        f = dist / request.url.path.lstrip("/")
-        if request.url.path.count("..") == 0 and f.is_file():
-            return FileResponse(f)
+        rel = request.url.path.lstrip("/")
+        if rel and ":" not in rel and "\\" not in rel and ".." not in rel:
+            f = (dist_root / rel).resolve()
+            if f.is_relative_to(dist_root) and f.is_file():
+                return FileResponse(f)
         return JSONResponse({"detail": getattr(exc, "detail", "Not found")}, status_code=404)
 
     return app

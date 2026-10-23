@@ -20,6 +20,7 @@ html.notch-doc.demo body { background: linear-gradient(180deg, #1d2836, #3b4a5e 
 .notch::before { left: -12px; --cx: 0%; }
 .notch::after { right: -12px; --cx: 100%; }
 .notch[data-mode="open"], .notch[data-mode="live"], .notch[data-mode="alert"] { --r: 26px; box-shadow: 0 16px 40px rgb(0 0 0 / 0.55); }
+html.native .notch { box-shadow: none !important; }
 .notch > * { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .22s var(--ease); }
 .notch[data-mode="idle"] .n-collapsed,
 .notch[data-mode="open"] .n-panel,

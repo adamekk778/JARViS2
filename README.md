@@ -29,8 +29,8 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 ## Co umí
 
-- **Hlas:** „Hey Jarvis“ nebo Ctrl+Mezerník, česky, offline rozpoznávání (Whisper), hlas Microsoft Edge (zdarma) / Piper offline, dá se přerušit.
-- **Chat** jako ChatGPT (Ctrl+Shift+J): Markdown, kód, historie, hledání, 🔊 přečíst nahlas.
+- **Hlas:** „Hey Jarvis“ nebo Ctrl+Alt+Mezerník, česky, offline rozpoznávání (Whisper), hlas Microsoft Edge (zdarma) / Piper offline, dá se přerušit.
+- **Chat** jako ChatGPT (Ctrl+Alt+J): Markdown, kód, historie, hledání, 🔊 přečíst nahlas.
 - **Přílohy:** fotky (popíše), PDF, Word, Excel, PowerPoint, kód, hlasovky (přepíše), cokoli dalšího uloží/otevře.
 - **Notch:** najeď myší nahoru doprostřed obrazovky → Zeptej se, Právě hraje, Police na soubory, Rychlé akce, Časovače, Systém, Počasí, Telefon.
 - **Ovládání PC:** aplikace, YouTube, Spotify/média, hlasitost, okna, soubory, schránka, screenshot, vypnutí (s potvrzením), PowerShell.
@@ -46,7 +46,7 @@ Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvr
 ## Ruční test po instalaci
 
 - [ ] „Hey Jarvis, pusť na YouTube trailer na Avengers“ → rozevře se notch, JARVIS odpoví a pustí video.
-- [ ] Ctrl+Shift+J → chat, pošli fotku → JARVIS ji popíše.
+- [ ] Ctrl+Alt+J → chat, pošli fotku → JARVIS ji popíše.
 - [ ] „Ztlum zvuk“, „hlasitost na 30“, „jaké bude počasí“.
 - [ ] Najeď myší na notch → dlaždice, odjeď → zavře se.
 - [ ] Telefon na Wi-Fi: napiš „otevři Spotify“ → otevře se na PC. Pak přes mobilní data se zapnutým Tailscale.

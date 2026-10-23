@@ -115,3 +115,30 @@ def test_new_chat_and_history(app, rt):
         assert recv_until(ws, "history")["messages"] == []
         ws.send_json({"type": "conversations_get"})
         assert len(recv_until(ws, "conversations")["items"]) >= 2
+
+
+def test_path_traversal_blocked(app, tmp_path):
+    c = TestClient(app, client=LOCAL)
+    for p in ["/C:/Windows/win.ini", "/..%2f..%2fetc/passwd", "/%5c%5cevil%5cshare", "/etc/passwd"]:
+        r = c.get(p)
+        assert r.status_code == 404, p
+
+
+def test_foreign_origin_is_not_local(app, rt):
+    c = TestClient(app, client=LOCAL)
+    assert c.get("/api/pairing", headers={"Origin": "https://evil.example"}).status_code == 403
+    assert c.get("/api/pairing", headers={"Host": "evil.example:8765"}).status_code == 403
+    assert c.get("/api/pairing", headers={"Origin": "http://127.0.0.1:8765"}).status_code == 200
+    r = c.post("/api/upload", headers={"Origin": "https://evil.example"}, files={"file": ("a.txt", b"x", "text/plain")})
+    assert r.status_code == 401
+    with pytest.raises(Exception):
+        with c.websocket_connect("/ws", headers={"Origin": "https://evil.example"}) as ws:
+            ws.receive_json()
+
+
+def test_uploaded_html_is_not_executable(app, rt):
+    c = TestClient(app, client=LOCAL)
+    aid = c.post("/api/upload", files={"file": ("x.html", b"<script>alert(1)</script>", "text/html")}).json()["id"]
+    r = c.get(f"/api/files/{aid}")
+    assert r.headers["content-type"] == "application/octet-stream"
+    assert "attachment" in r.headers["content-disposition"] and r.headers["content-security-policy"] == "sandbox"

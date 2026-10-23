@@ -42,6 +42,9 @@ Source: "..\dist\JARVIS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 Name: "{autoprograms}\JARVIS"; Filename: "{app}\JARVIS.exe"
 Name: "{autodesktop}\JARVIS"; Filename: "{app}\JARVIS.exe"; Tasks: desktopicon
 
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "JARVIS"; ValueType: none; Flags: uninsdeletevalue
+
 [Run]
 Filename: "winget"; Parameters: "install -e --id OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements"; StatusMsg: "Instaluji Node.js (pro OmniRoute)…"; Flags: runhidden waituntilterminated; Tasks: omniroute
 Filename: "{cmd}"; Parameters: "/c ""set PATH=%PATH%;{commonpf64}\nodejs;{commonpf}\nodejs && npm install -g omniroute"""; StatusMsg: "Instaluji OmniRoute…"; Flags: runhidden waituntilterminated; Tasks: omniroute

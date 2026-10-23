@@ -60,8 +60,18 @@ class Transcriber:
                 except Exception:
                     pass
                 log.info("loading whisper %s on %s", name, device)
-                self._model = WhisperModel(name, device=device, compute_type=compute,
-                                           download_root=str(paths.sub("models") / "whisper"))
+                root = str(paths.sub("models") / "whisper")
+                model = None
+                if device == "cuda":
+                    try:  # needs cuBLAS/cuDNN DLLs, which most PCs don't have → test, else CPU
+                        import numpy as np
+
+                        model = WhisperModel(name, device="cuda", compute_type="float16", download_root=root)
+                        list(model.transcribe(np.zeros(16000, dtype=np.float32))[0])
+                    except Exception as e:
+                        log.info("CUDA whisper unavailable (%s), using CPU", e)
+                        model = None
+                self._model = model or WhisperModel(name, device="cpu", compute_type="int8", download_root=root)
                 self._model_name = name
             return self._model
 

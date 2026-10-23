@@ -31,6 +31,7 @@ DIRECT = {
 
 
 def _ps(command: str, timeout: int = 30) -> tuple[int, str]:
+    command = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $OutputEncoding=[Text.Encoding]::UTF8; " + command
     r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", command],
                        capture_output=True, text=True, timeout=timeout, creationflags=CREATE_NO_WINDOW,
                        encoding="utf-8", errors="replace")
