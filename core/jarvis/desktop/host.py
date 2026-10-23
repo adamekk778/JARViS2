@@ -177,7 +177,11 @@ class DesktopHost:
                 if self.rt.speaker:
                     self.rt.speaker.stop()
 
-        for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop)):
+        def stop_all():
+            self.rt.call_soon(self.rt.stop_all)
+
+        for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
+                          (hk.stop_all, stop_all)):
             try:
                 keyboard.add_hotkey(combo, fn, suppress=False)
             except Exception as e:

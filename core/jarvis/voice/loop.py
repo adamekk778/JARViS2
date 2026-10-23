@@ -67,6 +67,10 @@ class VoiceLoop:
         self.paused = paused
         self.rt.bus.publish_threadsafe("voice_status", **self.status())
 
+    def cancel_capture(self) -> None:
+        """STOP: drop the recording in progress (nothing gets transcribed)."""
+        self._cancel_capture = True
+
     def push_to_talk(self) -> None:
         if self.speaker.speaking:
             self.speaker.stop()
@@ -190,7 +194,10 @@ class VoiceLoop:
         audio = bytearray()
         result = None
         n = 0
+        self._cancel_capture = False
         while result is None:
+            if self._cancel_capture:
+                break
             try:
                 frame = self._q.get(timeout=1.0)
             except queue.Empty:

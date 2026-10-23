@@ -149,6 +149,22 @@ class Runtime:
             pass
         return self.mobile_clients()
 
+    def stop_all(self) -> None:
+        """Emergency STOP (spec §4.4): everything JARVIS is doing stops now."""
+        self.agent.cancel_confirms()
+        self.agent.stop()
+        if self.speaker:
+            self.speaker.stop()
+        if self.voice and hasattr(self.voice, "cancel_capture"):
+            self.voice.cancel_capture()
+        try:
+            self.platform.release_all_input()
+        except Exception as e:
+            log.warning("release input: %s", e)
+        if getattr(self, "scheduler", None):
+            self.scheduler.pause_for(600)
+        self.bus.publish("stopped")
+
     def speak(self, text: str) -> None:
         if self.speaker:
             asyncio.get_running_loop().create_task(self.speaker.say(text))

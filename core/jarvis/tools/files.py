@@ -81,13 +81,62 @@ async def write_text_file(ctx, path: str, content: str) -> ToolResult:
     return ToolResult(True, f"Uloženo {p}")
 
 
-@tool("move_file", "Přesune nebo přejmenuje soubor/složku.", danger=True, category="soubory")
+def _size(p: Path) -> str:
+    try:
+        n = p.stat().st_size if p.is_file() else sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
+    except OSError:
+        return "?"
+    for unit in ("B", "kB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+    return "?"
+
+
+def _path_line(a: dict, key: str = "path") -> list[str]:
+    p = resolve(a.get(key, ""))
+    return [f"{p} ({_size(p)})"]
+
+
+def _move_line(a: dict) -> list[str]:
+    return [f"{resolve(a.get('source', ''))} → {resolve(a.get('destination', ''))}"]
+
+
+@tool("move_files", "Přesune víc souborů najednou (např. roztřídění do složek). Uživatel nejdřív uvidí náhled všech "
+      "přesunů a schválí je. moves = seznam {src, dst}.", danger=True, category="soubory", perm="files_write",
+      details=lambda a: [f"{resolve(m.get('src', ''))} → {resolve(m.get('dst', ''))}" for m in a.get("moves") or []])
+async def move_files(ctx, moves: Annotated[list[dict], "seznam {src, dst} – cesty k souborům"],
+                     create_dirs: bool = True) -> ToolResult:
+    def run():
+        moved, failed = 0, []
+        for m in moves:
+            src, dst = resolve(str(m.get("src", ""))), resolve(str(m.get("dst", "")))
+            try:
+                if not src.exists():
+                    raise FileNotFoundError("zdroj neexistuje")
+                if create_dirs:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(src), str(dst))
+                if not dst.exists():
+                    raise OSError("cíl po přesunu neexistuje")
+                moved += 1
+            except Exception as e:
+                failed.append(f"{src}: {e}")
+        return moved, failed
+
+    moved, failed = await asyncio.to_thread(run)
+    summary = f"Přesunuto {moved} z {len(moves)}" + (f", selhalo {len(failed)}" if failed else "")
+    return ToolResult(not failed, summary, data={"moved": moved, "failed": failed})
+
+
+@tool("move_file", "Přesune nebo přejmenuje soubor/složku.", danger=True, category="soubory", details=_move_line)
 async def move_file(ctx, source: str, destination: str) -> ToolResult:
     dst = shutil.move(str(resolve(source)), str(resolve(destination)))
     return ToolResult(True, f"Přesunuto do {dst}")
 
 
-@tool("copy_file", "Zkopíruje soubor/složku.", category="soubory")
+@tool("copy_file", "Zkopíruje soubor/složku.", category="soubory",
+      details=lambda a: [f"{resolve(a.get('source', ''))} → {resolve(a.get('destination', ''))}"])
 async def copy_file(ctx, source: str, destination: str) -> ToolResult:
     s, d = resolve(source), resolve(destination)
     if s.is_dir():
@@ -97,7 +146,8 @@ async def copy_file(ctx, source: str, destination: str) -> ToolResult:
     return ToolResult(True, f"Zkopírováno do {d}")
 
 
-@tool("delete_file", "Smaže soubor nebo složku (do koše, pokud to jde).", danger=True, category="soubory")
+@tool("delete_file", "Smaže soubor nebo složku (do koše, pokud to jde).", danger=True, category="soubory",
+      details=_path_line)
 async def delete_file(ctx, path: str) -> ToolResult:
     p = resolve(path)
     try:

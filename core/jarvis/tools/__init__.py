@@ -2,7 +2,7 @@
 import importlib
 import logging
 
-from .base import REGISTRY, ToolResult, ToolSpec, call, is_dangerous, schemas, tool  # noqa: F401
+from .base import REGISTRY, ToolResult, ToolSpec, call, details_for, is_dangerous, schemas, tool  # noqa: F401
 
 BUILTIN = ["apps", "web", "youtube", "media", "system", "windows", "files", "clipboard", "info", "weather",
            "shell", "screenshot", "timers", "phone", "settings", "memory_tools", "attachment_tools",

@@ -93,6 +93,7 @@ class Hotkeys(BaseModel):
     talk: str = "ctrl+alt+space"
     chat: str = "ctrl+alt+j"
     stop: str = "esc"
+    stop_all: str = "ctrl+alt+x"
 
 
 class Tools(BaseModel):

@@ -85,7 +85,13 @@ class Scheduler:
         return self.db.exec("DELETE FROM jobs WHERE id=?", (jid,)).rowcount > 0
 
     # ---------- running ----------
+    def pause_for(self, seconds: float) -> None:
+        """Emergency STOP: no routine starts for a while."""
+        self._paused_until = time.monotonic() + seconds
+
     async def tick(self, now: dt.datetime | None = None) -> int:
+        if time.monotonic() < getattr(self, "_paused_until", 0.0):
+            return 0
         now = now or dt.datetime.now()
         due = self.db.all("SELECT id FROM jobs WHERE enabled=1 AND next_run<=?", (now.timestamp(),))
         for r in due:

@@ -39,6 +39,7 @@ class NullPlatform(Platform):
     def hotkey(self, keys): self._rec("hotkey", tuple(keys))
     def scroll(self, dy): self._rec("scroll", dy)
     def notify(self, title, body): self._rec("notify", title, body)
+    def release_all_input(self): self._rec("release_all_input")
     def set_dark_mode(self, dark): self._rec("set_dark_mode", dark)
 
     def screenshot(self) -> bytes:

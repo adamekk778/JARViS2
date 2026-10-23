@@ -41,6 +41,7 @@ class ToolSpec:
     category: str = "obecné"
     source: str = "builtin"
     perm: str | None = None   # permission category (jarvis.permissions); None = derived from category
+    details: Callable[[dict], list[str]] | None = None   # preview lines shown in the confirmation dialog
 
     def schema(self) -> dict:
         return {"type": "function", "function": {"name": self.name, "description": self.description,
@@ -98,12 +99,38 @@ def schema_for(func: Callable) -> dict:
 
 
 def tool(name: str, description: str, *, danger: bool = False,
-         danger_if: Callable[[dict], bool] | None = None, category: str = "obecné", perm: str | None = None):
+         danger_if: Callable[[dict], bool] | None = None, category: str = "obecné", perm: str | None = None,
+         details: Callable[[dict], list[str]] | None = None):
     def deco(func):
         REGISTRY[name] = ToolSpec(name, description, func, schema_for(func), danger, danger_if, category,
-                                  getattr(func, "__module__", "builtin"), perm)
+                                  getattr(func, "__module__", "builtin"), perm, _capped(details) if details else None)
         return func
     return deco
+
+
+MAX_DETAILS = 50
+
+
+def cap_details(lines: list[str]) -> list[str]:
+    lines = [str(x) for x in lines]
+    if len(lines) > MAX_DETAILS:
+        return lines[:MAX_DETAILS] + [f"…a dalších {len(lines) - MAX_DETAILS}"]
+    return lines
+
+
+def _capped(fn: Callable[[dict], list[str]]) -> Callable[[dict], list[str]]:
+    def wrapped(args: dict) -> list[str]:
+        return cap_details(fn(args or {}))
+    return wrapped
+
+
+def details_for(spec: ToolSpec, args: dict) -> list[str]:
+    if not spec.details:
+        return []
+    try:
+        return spec.details(args)
+    except Exception:
+        return []
 
 
 def register(spec: ToolSpec) -> None:

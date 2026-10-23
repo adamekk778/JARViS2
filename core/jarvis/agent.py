@@ -93,6 +93,10 @@ class Agent:
     def pending_confirm(self) -> str | None:
         return next((k for k, f in self._confirms.items() if not f.done()), None)
 
+    def cancel_confirms(self) -> None:
+        for cid in list(self._confirms):
+            self.confirm(cid, False)
+
     def stop(self) -> None:
         if self._task and not self._task.done():
             self._task.cancel()
@@ -124,7 +128,10 @@ class Agent:
         fut = asyncio.get_running_loop().create_future()
         self._confirms[cid] = fut
         desc = describe_call(call.name, call.arguments)
-        self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments)
+        spec = tools.REGISTRY.get(call.name)
+        details = tools.details_for(spec, call.arguments) if spec else []
+        self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
+                            details=details)
         self.rt.on_confirm_request(cid, desc)
         try:
             return await asyncio.wait_for(fut, CONFIRM_TIMEOUT)

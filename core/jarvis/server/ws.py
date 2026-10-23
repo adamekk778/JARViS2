@@ -23,6 +23,7 @@ CLIENT_TYPES = [
     "fact_delete", "memory_wipe", "pairing_get", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
+    "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -30,13 +31,14 @@ SERVER_TYPES = [
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
+    "tasks", "task", "stopped",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
-              "update_install"}
+              "update_install", "tasks_clear"}
 
 
 class Connection:
@@ -156,6 +158,26 @@ class Connection:
             rt.agent.stop()
             if rt.speaker:
                 rt.speaker.stop()
+        elif t == "stop_all":
+            rt.stop_all()
+        elif t == "tasks_get":
+            await self.send("tasks", items=rt.tasks.list(int(m.get("limit", 50)), m.get("q", ""), m.get("status", "")),
+                            current=rt.tasks.current)
+        elif t == "task_get":
+            await self.send("task", task=rt.tasks.get(m.get("id", "")))
+        elif t == "task_pause":
+            rt.tasks.pause()
+        elif t == "task_resume":
+            rt.tasks.resume()
+        elif t == "task_cancel":
+            rt.agent.stop()
+        elif t == "task_retry":
+            old = rt.tasks.get(m.get("id", ""))
+            if old:
+                self.spawn(rt.agent.handle(f"Zopakuj úkol: {old['goal']}", [], self._source()))
+        elif t == "tasks_clear":
+            rt.tasks.clear()
+            await self.send("tasks", items=rt.tasks.list(), current=rt.tasks.current)
         elif t == "quick_action":
             name = m.get("action", "")
             if name not in QUICK_ACTIONS:

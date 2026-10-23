@@ -293,6 +293,19 @@ class WindowsPlatform(Platform):
     def hotkey(self, keys):
         self._pg().hotkey(*[k.lower() for k in keys])
 
+    def release_all_input(self):
+        pg = self._pg()
+        for k in ("ctrl", "alt", "shift", "win"):
+            try:
+                pg.keyUp(k)
+            except Exception:
+                pass
+        for b in ("left", "right", "middle"):
+            try:
+                pg.mouseUp(button=b)
+            except Exception:
+                pass
+
     def scroll(self, dy):
         self._pg().scroll(int(dy))
 

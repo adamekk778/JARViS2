@@ -35,4 +35,5 @@ class Platform:
     def hotkey(self, keys: list[str]) -> None: raise NotImplementedError
     def scroll(self, dy: int) -> None: raise NotImplementedError
     def notify(self, title: str, body: str) -> None: pass
+    def release_all_input(self) -> None: pass
     def set_dark_mode(self, dark: bool) -> None: raise NotImplementedError
