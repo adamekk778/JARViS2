@@ -44,6 +44,11 @@ class Runtime:
         self.shelf: list[str] = []    # notch shelf attachment ids
         self.media_state: dict = {}
         self.ui_hook = None           # desktop host: show window (second launch)
+        self.pet_hook = None          # desktop host: pet commands (undock, dock, …)
+        from .mood import MoodEngine
+
+        self.mood = MoodEngine(self)
+        self.updater: Any = None
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -51,6 +56,14 @@ class Runtime:
         self.loop = asyncio.get_running_loop()
         self.bus.bind_loop(self.loop)
         self.store.transcribe = self._transcribe_file
+        self.mood.start()
+        try:
+            from .updater import Updater
+
+            self.updater = Updater(self)
+            self.updater.start()
+        except Exception as e:  # pragma: no cover
+            log.warning("updater: %s", e)
         try:
             from .tools.skills import load_all_skills
 
@@ -73,6 +86,7 @@ class Runtime:
             log.warning("mcp unavailable: %s", e)
 
     async def stop(self) -> None:
+        self.mood.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:

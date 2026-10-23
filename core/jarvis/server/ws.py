@@ -22,13 +22,14 @@ CLIENT_TYPES = [
     "regenerate", "settings_get", "settings_set", "secret_set", "provider_test", "memory_get", "fact_update",
     "fact_delete", "memory_wipe", "pairing_get", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
-    "voice_toggle", "ping",
+    "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
+    "mood", "pet_state", "update_status",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -103,7 +104,9 @@ class Connection:
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
                         media=rt.media_state, shelf=[rt.public_attachment(a) for a in rt.shelf],
                         timers=rt.timers.list(), voice=self._voice_status(),
-                        pending_confirm=rt.agent.pending_confirm())
+                        pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current,
+                        pet_mode=rt.cfg.character.pet_mode,
+                        update=rt.updater.status if rt.updater else None)
 
     def _history(self, conv_id: str | None = None, before: float | None = None, limit: int = 60) -> list[dict]:
         msgs = self.rt.memory.history(conv_id, before, limit)
@@ -270,6 +273,23 @@ class Connection:
         elif t == "push_to_talk":
             if rt.voice:
                 rt.voice.push_to_talk()
+        elif t == "mood_set":
+            if m.get("clear") == "notify":
+                rt.mood.clear_notify()
+            else:
+                rt.mood.set_manual(m.get("mood"))
+        elif t == "pet_command":
+            action = m.get("action", "")
+            if action in ("undock", "dock", "toggle") and rt.pet_hook:
+                rt.pet_hook(action)
+            elif action in ("undock", "dock", "toggle"):
+                rt.update_config({"character": {"pet_mode": action == "undock" or (action == "toggle" and not rt.cfg.character.pet_mode)}})
+        elif t == "update_check":
+            if rt.updater:
+                self.spawn(rt.updater.check(force=True))
+        elif t == "update_install":
+            if rt.updater:
+                self.spawn(rt.updater.download_and_install())
         elif t == "voice_toggle":
             if rt.voice:
                 rt.voice.set_paused(not rt.voice.paused)

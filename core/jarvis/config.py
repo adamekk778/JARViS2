@@ -37,6 +37,7 @@ class General(BaseModel):
     custom_prompt: str = ""
     autostart: bool = True
     city: str = "Praha"
+    update_url: str = "https://api.github.com/repos/adamekk778/JARViS2/releases/latest"
 
 
 class Brain(BaseModel):
@@ -132,12 +133,22 @@ class MemoryCfg(BaseModel):
     max_upload_mb: int = 200
 
 
+class Character(BaseModel):
+    color: Literal["black", "midnight", "violet", "rose", "white"] = "black"
+    glow: str = ""            # empty = accent colour
+    size: Literal["S", "M", "L"] = "M"
+    pet_mode: bool = False    # living on the desktop instead of the notch
+    pet_x: int = -1
+    pet_y: int = -1
+
+
 class Config(BaseModel):
     general: General = Field(default_factory=General)
     brain: Brain = Field(default_factory=Brain)
     voice: Voice = Field(default_factory=Voice)
     notch: Notch = Field(default_factory=Notch)
     appearance: Appearance = Field(default_factory=Appearance)
+    character: Character = Field(default_factory=Character)
     hotkeys: Hotkeys = Field(default_factory=Hotkeys)
     tools: Tools = Field(default_factory=Tools)
     integrations: Integrations = Field(default_factory=Integrations)
@@ -153,6 +164,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.speak_mode", "voice.stt_language",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
     "appearance.theme", "appearance.accent", "appearance.animations",
+    "character.color", "character.glow", "character.size",
 }
 
 # Never sent to remote clients.

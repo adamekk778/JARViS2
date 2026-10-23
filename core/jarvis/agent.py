@@ -15,6 +15,8 @@ log = logging.getLogger(__name__)
 
 MAX_ROUNDS = 8
 CONFIRM_TIMEOUT = 30.0
+NO_LIMIT = ("Narazil jsem na limit u všech AI poskytovatelů. Chvíli počkej, nebo v Nastavení → Mozek přidej "
+            "dalšího poskytovatele (třeba Groq nebo Gemini mají limity zdarma), případně zapni Ollamu pro offline režim.")
 NO_BRAIN = ("Omlouvám se, teď nemám spojení s žádným AI mozkem. Zkontroluj prosím, jestli běží OmniRoute nebo "
             "Ollama, případně přidej jiného poskytovatele v Nastavení → Mozek.")
 
@@ -200,9 +202,10 @@ class Agent:
                 bus.publish("assistant_delta", text=full_text)
         except AllProvidersFailed as e:
             log.warning("all providers failed: %s", e)
-            bus.publish("error", message=f"Žádný AI poskytovatel neodpověděl: {e}")
-            full_text = (full_text + "\n\n" if full_text else "") + NO_BRAIN
-            bus.publish("assistant_delta", text=NO_BRAIN)
+            bus.publish("error", message=f"Žádný AI poskytovatel neodpověděl: {e}", kind="limit" if e.is_limit else "brain")
+            msg = NO_LIMIT if e.is_limit else NO_BRAIN
+            full_text = (full_text + "\n\n" if full_text else "") + msg
+            bus.publish("assistant_delta", text=msg)
         except ProviderError as e:
             bus.publish("error", message=str(e))
             full_text += f"\n\n(Spojení s AI se přerušilo: {e})"

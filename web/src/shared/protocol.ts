@@ -6,7 +6,7 @@ export const CLIENT_TYPES = [
   "regenerate", "settings_get", "settings_set", "secret_set", "provider_test", "memory_get", "fact_update",
   "fact_delete", "memory_wipe", "pairing_get", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
   "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
-  "voice_toggle", "ping",
+  "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -14,6 +14,7 @@ export const SERVER_TYPES = [
   "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
   "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
   "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
+  "mood", "pet_state", "update_status",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -5,6 +5,7 @@ import pytest
 def jarvis_home(tmp_path, monkeypatch):
     monkeypatch.setenv("JARVIS_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("PYTHON_KEYRING_BACKEND", "keyring.backends.fail.Keyring")
+    monkeypatch.setenv("JARVIS_NO_NET", "1")
     return tmp_path / "home"
 
 

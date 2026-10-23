@@ -41,6 +41,13 @@ class AllProvidersFailed(Exception):
         super().__init__("; ".join(f"{k}: {v}" for k, v in errors.items()) or "žádný poskytovatel není nastaven")
         self.errors = errors
 
+    @property
+    def is_limit(self) -> bool:
+        """Every provider refused because of rate limits / quota."""
+        import re
+
+        return bool(self.errors) and all(re.search(r"429|rate.?limit|quota|limit|too many", v, re.I) for v in self.errors.values())
+
 
 class LLMProvider(Protocol):
     id: str
