@@ -6,6 +6,9 @@ import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { native } from "./native";
+import { Blob } from "../character/blob";
+
+const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
 const app = document.getElementById("app")!;
 let client: JarvisClient | null = null;
@@ -32,7 +35,7 @@ boot();
 async function boot() {
   const p = loadPairing();
   if (!p) return connectScreen();
-  app.replaceChildren(h("div", { class: "splash" }, h("div", { class: "orb", style: { "--s": "72px" } as any }), h("p", {}, "Hledám tvoje PC…")));
+  app.replaceChildren(h("div", { class: "splash" }, bigFace(96), h("p", {}, "Hledám tvoje PC…")));
   const ep = await resolveEndpoint(p);
   if (!ep) return connectScreen(p, "PC není dostupné. Běží JARVIS na PC? Jsi na stejné Wi-Fi nebo máš zapnutý Tailscale?");
   mainScreen(ep, p);
@@ -55,7 +58,7 @@ function connectScreen(prev?: Pairing | null, error?: string) {
     }
   };
   app.replaceChildren(h("div", { class: "connect" },
-    h("div", { class: "orb", style: { "--s": "84px" } as any }),
+    bigFace(110),
     h("h1", {}, "JARVIS"),
     h("p", { class: "lead" }, "Spáruj telefon s počítačem. Na PC otevři JARVIS → Telefon a naskenuj QR kód."),
     error ? h("div", { class: "readonly-note" }, icon("warning"), " ", error) : null,
@@ -73,7 +76,9 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   client = c;
   const chat = new ChatView(c, { compact: true, placeholder: "Napiš JARVISovi…" });
 
-  const orb = h("div", { class: "orb", "data-state": "offline" });
+  const face = new Blob({ size: 34 });
+  face.setMood("offline");
+  const orb = face.el;
   const status = h("span", { class: "m-status" }, "připojuji…");
   const drawer = h("aside", { class: "drawer", "aria-label": "Konverzace" },
     h("div", { class: "drawer-head" }, h("strong", {}, "Konverzace"),
@@ -106,11 +111,15 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
 
   c.onStatus((s) => {
     status.textContent = s === "open" ? "připojeno k PC" : s === "connecting" ? "připojuji…" : "odpojeno, zkouším znovu…";
-    if (s !== "open") orb.dataset.state = "offline";
+    if (s !== "open") face.setMood("offline");
   });
-  c.on("welcome", (m) => { applyAppearance(m.settings); orb.dataset.state = m.busy ? "thinking" : "idle"; });
+  c.on("welcome", (m) => {
+    applyAppearance(m.settings);
+    face.setMood(m.mood?.mood || "idle");
+    if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
+  });
   c.on("settings_changed", (m) => applyAppearance(m.settings));
-  c.on("state", (m) => (orb.dataset.state = m.state));
+  c.on("mood", (m) => face.setMood(m.mood, { badge: m.badge, progress: m.progress }));
   c.on("notify", (m) => {
     if (document.hidden) native.notify(m.title, m.body);
     else toast(`${m.title}: ${m.body}`, "info", 6000);

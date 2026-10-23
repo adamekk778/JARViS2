@@ -362,6 +362,7 @@ client.on("notify", (m) => showAlert(m.title, m.body));
 client.on("media", (m) => { media = m; updateActivity(); });
 client.on("timers", (m) => { timers = m.items || []; updateActivity(); });
 client.on("quick_result", (m) => { if (/timer/.test(m.action)) client.send("timers_get"); });
+client.on("pet_state", (m) => { if (m.action === "open_panel") setTimeout(() => openPanel("chat"), 300); });
 
 // ---------- demo (screenshots / browser preview) ----------
 if (demo) {

@@ -32,7 +32,10 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 - **Hlas:** „Hey Jarvis“ nebo Ctrl+Alt+Mezerník, česky, offline rozpoznávání (Whisper), hlas Microsoft Edge (zdarma) / Piper offline, dá se přerušit.
 - **Chat** jako ChatGPT (Ctrl+Alt+J): Markdown, kód, historie, hledání, 🔊 přečíst nahlas.
 - **Přílohy:** fotky (popíše), PDF, Word, Excel, PowerPoint, kód, hlasovky (přepíše), cokoli dalšího uloží/otevře.
-- **Notch:** najeď myší nahoru doprostřed obrazovky → Zeptej se, Právě hraje, Police na soubory, Rychlé akce, Časovače, Systém, Počasí, Telefon.
+- **Postavička JARVIS:** lesklý černý blob s očima, který bydlí v notchi a má 24 nálad (poslouchá, přemýšlí, mluví, tančí do hudby, pracuje, spí, chyba, limit, bez internetu, upozornění, radost…). Barvu a velikost změníš v Nastavení → Vzhled nebo hlasem.
+- **Notch:** najeď myší nahoru doprostřed obrazovky → JARVIS se probudí a vyjede lišta; klik na něj otevře velký panel (Chat, Rychlé akce, Systém, Soubory, Nástroje, Nastavení).
+- **Mazlíček na ploše:** chytni JARVISe v notchi a táhni dolů. Chodí po hlavním panelu a oknech, skáče, usíná; klik = poslouchej, dvojklik = zpět do notche, pravé tlačítko = menu.
+- **Aktualizace:** panel → Systém → Zkontrolovat / Aktualizovat (instaluje jen po potvrzení).
 - **Ovládání PC:** aplikace, YouTube, Spotify/média, hlasitost, okna, soubory, schránka, screenshot, vypnutí (s potvrzením), PowerShell.
 - **Internet:** vyhledávání a čtení stránek, počasí.
 - **Superschopnosti:** ovládání počítače jako člověk (vidí obrazovku a kliká), ovládání prohlížeče, spouštění Python kódu,
@@ -48,7 +51,9 @@ Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvr
 - [ ] „Hey Jarvis, pusť na YouTube trailer na Avengers“ → rozevře se notch, JARVIS odpoví a pustí video.
 - [ ] Ctrl+Alt+J → chat, pošli fotku → JARVIS ji popíše.
 - [ ] „Ztlum zvuk“, „hlasitost na 30“, „jaké bude počasí“.
-- [ ] Najeď myší na notch → dlaždice, odjeď → zavře se.
+- [ ] Najeď myší na notch → JARVIS se probudí, vyjede lišta; klik na něj → velký panel; odjeď → zavře se.
+- [ ] Táhni JARVISe z notche dolů → chodí po hlavním panelu, vyskočí na okno; dvojklik → zpět do notche.
+- [ ] Pusť hudbu → JARVIS v notchi tancuje; nech PC 10 min být → usne.
 - [ ] Telefon na Wi-Fi: napiš „otevři Spotify“ → otevře se na PC. Pak přes mobilní data se zapnutým Tailscale.
 - [ ] „Vypni počítač“ → JARVIS se zeptá na potvrzení, řekni „ne“.
 

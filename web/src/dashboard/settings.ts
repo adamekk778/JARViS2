@@ -1,4 +1,5 @@
 import { h, icon, toast, TOOL_ICON } from "../shared/dom";
+import { Blob as Character } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 
 export type Section =
@@ -220,7 +221,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
         h("div", { class: "field" }, "Akcent", h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
-        select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]]))];
+        select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]])),
+        characterCard()];
     },
 
     hotkeys: () => [card("Klávesové zkratky", "Formát: ctrl+alt+space, ctrl+alt+j, f9… (Esc zastaví JARVISe jen když mluví nebo pracuje)",
@@ -373,6 +375,25 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("button", { class: "btn", type: "button", onclick: () => file.click() }, icon("upload-simple"), "Importovat"), file))];
     },
   };
+
+  function characterCard() {
+    const ch = S.character || {};
+    const preview = new Character({ size: 110 });
+    preview.setMood("personalize");
+    preview.setColor(ch.color || "black", ch.glow || undefined);
+    const colors: [string, string][] = [["black", "Černá"], ["midnight", "Půlnoční"], ["violet", "Fialová"], ["rose", "Růžová"], ["white", "Bílá"]];
+    const glow = h("input", { type: "color", value: ch.glow || S.appearance.accent, "aria-label": "Barva záře" }) as HTMLInputElement;
+    glow.onchange = () => set("character.glow", glow.value);
+    return card("Postavička JARVIS", "Vzhled JARVISe v notchi, na ploše i v telefonu. Hlasem: „buď fialový“.",
+      h("div", { class: "char-row" }, preview.el,
+        h("div", { style: { display: "grid", gap: "12px" } },
+          h("div", { class: "field" }, "Barva těla", h("div", { class: "swatches" }, ...colors.map(([c, label]) =>
+            h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
+          h("div", { class: "field" }, "Záře", h("div", { class: "swatches" }, glow,
+            h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Podle akcentu"))),
+          select("character.size", "Velikost na ploše", [["S", "Malá"], ["M", "Střední"], ["L", "Velká"]]),
+          sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
+  }
 
   function render() {
     if (!S) {

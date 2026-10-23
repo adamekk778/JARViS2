@@ -142,3 +142,27 @@ def test_uploaded_html_is_not_executable(app, rt):
     r = c.get(f"/api/files/{aid}")
     assert r.headers["content-type"] == "application/octet-stream"
     assert "attachment" in r.headers["content-disposition"] and r.headers["content-security-policy"] == "sandbox"
+
+
+def test_pet_page_and_pet_command(app, rt):
+    c = TestClient(app, client=LOCAL)
+    assert c.get("/pet").status_code in (200, 503)  # 503 only when web/dist is not built
+    calls = []
+    rt.pet_hook = calls.append
+    with c.websocket_connect("/ws") as ws:
+        w = ws.receive_json()
+        assert w["mood"]["mood"] in ("idle", "offline") and "pet_mode" in w
+        ws.send_json({"type": "pet_command", "action": "undock"})
+        ws.send_json({"type": "mood_set", "mood": "focus"})
+        ws.send_json({"type": "ping"})
+        recv_until(ws, "pong")
+    assert calls == ["undock"] and rt.mood.manual == "focus"
+
+
+def test_pet_command_without_desktop_persists_mode(app, rt):
+    with TestClient(app, client=LOCAL).websocket_connect("/ws") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "pet_command", "action": "undock"})
+        ws.send_json({"type": "ping"})
+        recv_until(ws, "pong")
+    assert rt.cfg.character.pet_mode is True

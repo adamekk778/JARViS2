@@ -1,6 +1,7 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import { ChatView, conversationList } from "../shared/chat";
+import { Blob } from "../character/blob";
 import { h, icon, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildSettings, type Section } from "./settings";
@@ -8,7 +9,9 @@ import { buildSettings, type Section } from "./settings";
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);
 
-const orb = h("div", { class: "orb", "data-state": "offline" });
+const face = new Blob({ size: 34 });
+face.setMood("offline");
+const orb = face.el;
 const brainChip = h("span", { class: "chip brain-chip", title: "Aktuální AI mozek" }, icon("brain"), "připojuji…");
 const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslech (Hey Jarvis)", "aria-label": "Zapnout nebo vypnout poslech", onclick: () => client.send("voice_toggle") }, icon("microphone"));
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
@@ -61,18 +64,20 @@ const header = h("header", { class: "topbar" },
 document.getElementById("app")!.append(h("div", { class: "shell" }, header, nav, main));
 
 client.onStatus((s) => {
-  if (s !== "open") orb.dataset.state = "offline";
+  if (s !== "open") face.setMood("offline");
   if (s === "closed") brainChip.lastChild!.textContent = "odpojeno, zkouším znovu…";
 });
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
-  orb.dataset.state = m.busy ? "thinking" : "idle";
+  face.setMood(m.mood?.mood || "idle");
+  if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
   brainChip.lastChild!.textContent = m.brain ? `${m.brain[0]} · ${m.brain[1]}` : (m.settings?.brain?.chain?.[0] ?? "AI");
   voiceBtn.classList.toggle("on", !!m.voice?.listening);
   voiceBtn.hidden = !m.voice?.available;
 });
-client.on("settings_changed", (m) => applyAppearance(m.settings));
-client.on("state", (m) => (orb.dataset.state = m.state));
+client.on("settings_changed", (m) => { applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
+client.on("mood", (m) => face.setMood(m.mood, { badge: m.badge, progress: m.progress }));
+client.on("level", (m) => face.setLevel(m.rms || 0));
 client.on("brain", (m) => (brainChip.lastChild!.textContent = `${m.provider} · ${m.model}`));
 client.on("voice_status", (m) => { voiceBtn.classList.toggle("on", !!m.listening); voiceBtn.hidden = !m.available; });
 client.on("notify", (m) => toast(`${m.title}: ${m.body}`, "info", 6000));

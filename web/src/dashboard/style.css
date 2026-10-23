@@ -77,3 +77,10 @@
   .sidebar { display: none; }
   .grid2, .qr { grid-template-columns: 1fr; }
 }
+.brand .blob { margin: -4px 0; }
+.char-row { display: grid; grid-template-columns: 140px 1fr; gap: 20px; align-items: center; }
+.swatch.char-black { background: radial-gradient(circle at 35% 30%, #3a414c, #030405); }
+.swatch.char-midnight { background: radial-gradient(circle at 35% 30%, #3a4f82, #04060f); }
+.swatch.char-violet { background: radial-gradient(circle at 35% 30%, #6a4aa6, #0b0414); }
+.swatch.char-rose { background: radial-gradient(circle at 35% 30%, #a5507a, #12040b); }
+.swatch.char-white { background: radial-gradient(circle at 35% 30%, #fff, #9aa6b6); }
