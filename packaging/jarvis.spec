@@ -46,4 +46,7 @@ a = Analysis(
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="JARVIS", icon=os.path.join(SPECPATH, "jarvis.ico"),
           console=False, upx=False, version=None)
-coll = COLLECT(exe, a.binaries, a.datas, name="JARVIS", upx=False)
+# same program with a console window: shows errors when something goes wrong (and is used by CI)
+exe_debug = EXE(pyz, a.scripts, [], exclude_binaries=True, name="JARVIS-debug", icon=os.path.join(SPECPATH, "jarvis.ico"),
+                console=True, upx=False, version=None)
+coll = COLLECT(exe, exe_debug, a.binaries, a.datas, name="JARVIS", upx=False)

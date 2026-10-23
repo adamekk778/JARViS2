@@ -57,7 +57,7 @@ jobs:
         shell: pwsh
         run: |
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome"
-          $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-ui","--no-voice" -PassThru
+          $p = Start-Process -FilePath dist\JARVIS\JARVIS-debug.exe -ArgumentList "--no-ui","--no-voice","--debug" -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\out.txt" -RedirectStandardError "$env:RUNNER_TEMP\err.txt"
           $ok = $false
           for ($i = 0; $i -lt 45; $i++) {
             if ($p.HasExited) { Write-Host "process exited with $($p.ExitCode)"; break }
