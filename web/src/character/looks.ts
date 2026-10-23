@@ -87,7 +87,7 @@ export const LOOKS: Record<Mood, Look> = {
   joy: L({ eyes: "happy", accessories: ["heart"], hop: true, glow: 0.8, blink: false }),
 };
 
-export type CharacterColor = "black" | "midnight" | "violet" | "rose" | "white";
+export type CharacterColor = "black" | "midnight" | "violet" | "rose" | "white" | "blue" | "orange" | "green" | "amber" | "cyan";
 
 export const BODY_COLORS: Record<CharacterColor, { light: string; mid: string; dark: string; eye: string; rim: string }> = {
   black: { light: "#2c323d", mid: "#0e1116", dark: "#030405", eye: "#f6f9ff", rim: "#a9c8ff" },
@@ -95,4 +95,10 @@ export const BODY_COLORS: Record<CharacterColor, { light: string; mid: string; d
   violet: { light: "#6a4aa6", mid: "#2a1648", dark: "#0b0414", eye: "#f8f4ff", rim: "#b48cff" },
   rose: { light: "#a5507a", mid: "#45162d", dark: "#12040b", eye: "#fff4f8", rim: "#ff8cc0" },
   white: { light: "#ffffff", mid: "#dfe5ee", dark: "#9aa6b6", eye: "#0b0e13", rim: "#ffffff" },
+  // bright bodies with dark eyes (page bands, wardrobe)
+  blue: { light: "#a9c8ff", mid: "#4f8dff", dark: "#1d4fc4", eye: "#06101f", rim: "#cfe0ff" },
+  orange: { light: "#ffc89a", mid: "#fb923c", dark: "#b8520f", eye: "#1a0c03", rim: "#ffe0c4" },
+  green: { light: "#9df0c9", mid: "#34d399", dark: "#0f8a5c", eye: "#03140d", rim: "#cffae6" },
+  amber: { light: "#ffe08a", mid: "#f7b32b", dark: "#b07408", eye: "#1a1203", rim: "#fff0c2" },
+  cyan: { light: "#a5f3fc", mid: "#22d3ee", dark: "#0e7f92", eye: "#03161a", rim: "#d5fbff" },
 };

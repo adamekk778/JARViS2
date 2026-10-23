@@ -56,7 +56,9 @@ const nav = h("nav", { class: "rail", "aria-label": "Sekce" });
 const main = h("main", { class: "view" });
 const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
-  h("div", { class: "chat-wrap" }, missingModelCard(client), chat.el));
+  h("div", { class: "chat-wrap" },
+    h("header", { class: "chat-head" }, h("span", { class: "chat-head-title" }, "Chat"), brainChip, h("span", { class: "grow" }), stopBtn, voiceBtn),
+    missingModelCard(client), chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
@@ -105,12 +107,15 @@ const palette = commandPalette({
   search: (q) => { go("general"); settingsUI.search(q); },
 });
 const paletteBtn = h("button", { class: "palette-btn", type: "button", title: "Rychlé hledání (Ctrl+K)", onclick: () => palette.open() },
-  icon("magnifying-glass"), h("span", {}, "Hledat nebo přejít…"), h("kbd", {}, "Ctrl K"));
+  icon("magnifying-glass"), h("span", {}, "Hledat…"), h("kbd", {}, "Ctrl K"));
 
-const header = h("header", { class: "topbar" },
-  h("div", { class: "brand" }, orb, h("div", { class: "brand-text" }, h("strong", {}, "JARVIS"), statusText)),
+const versionText = h("div", { class: "side-version" });
+const side = h("aside", { class: "side" },
+  h("div", { class: "brand" }, orb, h("strong", {}, "JARVIS")),
   paletteBtn,
-  h("div", { class: "top-right" }, stopBtn, brainChip, voiceBtn));
+  nav,
+  h("div", { class: "side-status" }, statusText),
+  versionText);
 
 function greet(name?: string) {
   const hr = new Date().getHours();
@@ -119,7 +124,7 @@ function greet(name?: string) {
 }
 greet();
 
-document.getElementById("app")!.append(h("div", { class: "shell" }, header, nav, main));
+document.getElementById("app")!.append(h("div", { class: "shell" }, side, main));
 
 client.onStatus((s) => {
   if (s !== "open") { face.setMood("offline"); statusText.textContent = s === "closed" ? "Odpojeno, zkouším znovu…" : "Připojuji…"; }
@@ -129,6 +134,7 @@ client.on("welcome", (m) => {
   applyAppearance(m.settings);
   face.setMood(m.mood?.mood || "idle");
   statusText.textContent = MOOD_TEXT[m.mood?.mood || "idle"] || "Připraven";
+  versionText.textContent = m.version ? `JARVIS ${m.version}` : "";
   greet(m.settings?.general?.address_as || m.settings?.general?.user_name);
   if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
   brainChip.lastChild!.textContent = m.brain ? `${m.brain[0]} · ${m.brain[1]}` : (m.settings?.brain?.chain?.[0] ?? "AI");

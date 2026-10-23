@@ -34,7 +34,7 @@ MOODS.filter((m) => !only || m === only).forEach((m, i) => {
 });
 const colors = document.createElement("div");
 colors.className = "colors";
-(["black", "midnight", "violet", "rose", "white"] as CharacterColor[]).forEach((c) => {
+(["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] as CharacterColor[]).forEach((c) => {
   const b = new Blob({ size: 80, color: c, trackCursor: false });
   b.setMood("personalize");
   colors.append(b.el);

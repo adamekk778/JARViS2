@@ -154,7 +154,7 @@ class MemoryCfg(BaseModel):
 
 
 class Character(BaseModel):
-    color: Literal["black", "midnight", "violet", "rose", "white"] = "black"
+    color: Literal["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] = "black"
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
     size: Literal["S", "M", "L"] = "M"
     pet_mode: bool = False    # living on the desktop instead of the notch

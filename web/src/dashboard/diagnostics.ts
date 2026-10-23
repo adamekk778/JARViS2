@@ -1,4 +1,5 @@
 // Diagnostika (spec §8): what JARVIS itself costs, child processes, AI latency, voice, redacted log.
+import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 
@@ -37,14 +38,15 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
 
   const tick = () => { client.send("diagnostics_get"); client.send("system_get", { gpu: true }); };
   const el = h("section", { class: "diag-view" },
-    h("header", { class: "tasks-head" }, h("h2", {}, "Diagnostika"),
-      h("div", { class: "btn-row" },
-        h("button", { class: "btn", type: "button", onclick: () => ask("Proč je můj počítač pomalý? Použij performance_report.") }, icon("gauge"), "Proč je PC pomalý?"),
-        h("button", { class: "btn ghost", type: "button", onclick: () => client.send("diagnostics_export") }, icon("file-zip"), "Exportovat diagnostiku"))),
-    h("div", { class: "card" }, h("h2", {}, "JARVIS"), stats),
-    h("div", { class: "card" }, h("h2", {}, "Počítač"), sys),
-    h("div", { class: "grid2" }, h("div", { class: "card" }, h("h2", {}, "Podprocesy"), kids), h("div", { class: "card" }, h("h2", {}, "Rychlost AI (do prvního slova)"), ttft)),
-    h("div", { class: "card" }, h("h2", {}, "Log (bez hesel a klíčů)"), log));
+    hero(HEROES.diagnostics, "Diagnostika", "Jak se daří JARVISovi a tvému počítači.", [
+      h("button", { class: "btn primary", type: "button", onclick: () => ask("Proč je můj počítač pomalý? Použij performance_report.") }, icon("gauge"), "Proč je PC pomalý?"),
+      h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_export") }, icon("file-zip"), "Exportovat")]),
+    h("p", { class: "group-label" }, "JARVIS"), stats,
+    h("p", { class: "group-label" }, "Počítač"), sys,
+    h("div", { class: "grid2" },
+      h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),
+      h("div", {}, h("p", { class: "group-label" }, "Rychlost AI (do prvního slova)"), h("div", { class: "card" }, ttft))),
+    h("p", { class: "group-label" }, "Log (bez hesel a klíčů)"), h("div", { class: "card" }, log));
   return {
     el,
     show() { tick(); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },

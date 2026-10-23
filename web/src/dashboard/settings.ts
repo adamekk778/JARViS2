@@ -1,4 +1,5 @@
 import { h, icon, toast, TOOL_ICON } from "../shared/dom";
+import { hero, HEROES } from "../shared/hero";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 
@@ -47,6 +48,18 @@ const PERM_HELP: Record<string, string> = {
 const MODES: [string, string][] = [["eco", "Úsporný – malý kontext, málo vláken, rychle uvolní paměť"], ["balanced", "Vyvážený (doporučeno)"], ["performance", "Výkon – velký kontext, všechna jádra"]];
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+const KEY_NAMES: Record<string, string> = { ctrl: "Ctrl", alt: "Alt", shift: "Shift", windows: "Win", space: "Mezerník", enter: "Enter", esc: "Esc", tab: "Tab", backspace: "⌫", up: "↑", down: "↓", left: "←", right: "→" };
+const keyName = (k: string) => KEY_NAMES[k.trim()] ?? (k.length === 1 ? k.toUpperCase() : k.trim().replace(/^f(\d+)$/, "F$1"));
+function keyId(e: KeyboardEvent): string {
+  if (e.key === " ") return "space";
+  if (e.key === "Escape") return "esc";
+  const arrows: Record<string, string> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  if (arrows[e.key]) return arrows[e.key];
+  if (/^Key[A-Z]$/.test(e.code)) return e.code.slice(3).toLowerCase();
+  if (/^Digit\d$/.test(e.code)) return e.code.slice(5);
+  return e.key.toLowerCase();
+}
+
 const getPath = (o: any, path: string) => path.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
 function patchOf(path: string, value: unknown) {
   const out: any = {};
@@ -73,7 +86,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     client.send("settings_set", { patch: patchOf(path, value) });
   };
 
-  // ----- field helpers -----
+  // ----- field helpers (Coucou-style rows: text on the left, the control on the right) -----
+  const field = (label: string, control: Node, help = "", wide = false) =>
+    h("label", { class: `field ${wide ? "wide" : ""}` },
+      h("span", { class: "f-text" }, h("span", { class: "f-title" }, label), help ? h("span", { class: "help" }, help) : null), control);
   const sw = (path: string, title: string, desc = "") => {
     const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
     inp.checked = !!getPath(S, path);
@@ -84,15 +100,22 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   const text = (path: string, label: string, help = "", type = "text") => {
     const inp = h("input", { class: "input", type, value: getPath(S, path) ?? "" }) as HTMLInputElement;
     inp.onchange = () => set(path, type === "number" ? Number(inp.value) : inp.value);
-    return h("label", { class: "field" }, label, inp, help ? h("span", { class: "help" }, help) : null);
+    return field(label, inp, help);
   };
   const select = (path: string, label: string, options: [string, string][], help = "", onChange?: (v: string) => void) => {
-    const sel = h("select", { class: "input" }, ...options.map(([v, l]) => h("option", { value: v }, l))) as HTMLSelectElement;
     const cur = String(getPath(S, path) ?? "");
+    // two or three short choices: a segmented control instead of a list
+    if (options.length <= 3 && options.every(([, l]) => l.length <= 16) && options.some(([v]) => v === cur)) {
+      const seg = h("span", { class: "segmented", role: "radiogroup", "aria-label": label },
+        ...options.map(([v, l]) => h("button", { type: "button", role: "radio", "aria-checked": String(v === cur), class: v === cur ? "on" : "",
+          onclick: (e: Event) => { e.preventDefault(); if (v !== cur) { set(path, v); onChange?.(v); } } }, l)));
+      return field(label, seg, help);
+    }
+    const sel = h("select", { class: "input" }, ...options.map(([v, l]) => h("option", { value: v }, l))) as HTMLSelectElement;
     if (!options.some(([v]) => v === cur)) sel.append(h("option", { value: cur }, cur));
     sel.value = cur;
     sel.onchange = () => { set(path, sel.value); onChange?.(sel.value); };
-    return h("label", { class: "field" }, label, sel, help ? h("span", { class: "help" }, help) : null);
+    return field(label, sel, help);
   };
   const range = (path: string, label: string, min: number, max: number, step: number, fmt: (v: number) => string, parse?: (s: any) => number, out?: (v: number) => unknown) => {
     const raw = getPath(S, path);
@@ -101,10 +124,35 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     const o = h("output", {}, fmt(val));
     inp.oninput = () => (o.textContent = fmt(Number(inp.value)));
     inp.onchange = () => set(path, out ? out(Number(inp.value)) : Number(inp.value));
-    return h("label", { class: "field" }, label, h("div", { class: "range" }, inp, o));
+    return field(label, h("div", { class: "range" }, inp, o));
   };
+  // a titled group: the label above, the rows inside one card, thin lines between them
   const card = (title: string, help: string | null, ...kids: (Node | null)[]) =>
-    h("div", { class: "card" }, h("h2", {}, title), help ? h("p", { class: "help" }, help) : null, ...kids);
+    h("section", { class: "group" }, h("h2", { class: "group-label" }, title),
+      h("div", { class: "card list" }, help ? h("p", { class: "help card-help" }, help) : null, ...kids));
+  // a global shortcut shown as keycaps; click, press the new keys
+  const hotkey = (path: string, label: string, help = "") => {
+    const caps = h("button", { class: "keycaps", type: "button", title: "Klikni a stiskni novou zkratku" });
+    const show = (v: string) => caps.replaceChildren(...(v ? v.split("+").map((k) => h("kbd", {}, keyName(k))) : [h("span", { class: "help" }, "nenastaveno")]));
+    show(String(getPath(S, path) ?? ""));
+    caps.onclick = (e) => {
+      e.preventDefault();
+      caps.classList.add("rec");
+      caps.replaceChildren(h("span", {}, "Stiskni zkratku… (Esc = zrušit)"));
+      const onKey = (k: KeyboardEvent) => {
+        k.preventDefault(); k.stopPropagation();
+        if (["Control", "Alt", "Shift", "Meta"].includes(k.key)) return;
+        window.removeEventListener("keydown", onKey, true);
+        caps.classList.remove("rec");
+        if (k.key === "Escape") return show(String(getPath(S, path) ?? ""));
+        const combo = [k.ctrlKey && "ctrl", k.altKey && "alt", k.shiftKey && "shift", k.metaKey && "windows", keyId(k)].filter(Boolean).join("+");
+        show(combo);
+        set(path, combo);
+      };
+      window.addEventListener("keydown", onKey, true);
+    };
+    return field(label, caps, help);
+  };
   const pct = (s: string) => parseInt(String(s || "0").replace("%", ""), 10) || 0;
   const signed = (v: number, unit: string) => `${v >= 0 ? "+" : ""}${v}${unit}`;
 
@@ -120,7 +168,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         S.general.personality === "custom" ? (() => {
           const ta = h("textarea", { class: "input", rows: 6 }, S.general.custom_prompt) as HTMLTextAreaElement;
           ta.onchange = () => set("general.custom_prompt", ta.value);
-          return h("label", { class: "field" }, "Vlastní systémový prompt", ta);
+          return field("Vlastní systémový prompt", ta, "", true);
         })() : null),
       card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi")),
     ],
@@ -138,7 +186,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         const inp = (k: string, label: string, ph = "") => {
           const el = h("input", { class: "input", value: p[k] ?? "", placeholder: ph }) as HTMLInputElement;
           el.onchange = () => upd(k, el.value.trim());
-          return h("label", { class: "field" }, label, el);
+          return field(label, el);
         };
         const key = h("input", { class: "input", type: "password", placeholder: secretsFlags[p.id] ? "•••••• (uloženo)" : (presets[p.preset]?.needs_key ? "vlož API klíč" : "není potřeba"), autocomplete: "off" }) as HTMLInputElement;
         key.onchange = () => { client.send("secret_set", { name: p.id, value: key.value.trim() }); key.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok"); };
@@ -164,7 +212,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("button", { class: "icon-btn sm", type: "button", title: "Odebrat", "aria-label": "Odebrat poskytovatele", onclick: () => { if (confirm(`Odebrat ${p.id}?`)) saveProviders(ordered.filter((x) => x.id !== p.id)); } }, icon("trash"))),
           h("div", { class: "grid2" }, inp("base_url", "Adresa (base URL)", presets[p.preset]?.base_url), inp("model", "Model", presets[p.preset]?.model)),
           h("div", { class: "grid2" }, inp("vision_model", "Model pro obrázky (volitelné)"), inp("fast_model", "Rychlý model (volitelné)")),
-          h("label", { class: "field" }, "API klíč", key),
+          field("API klíč", key),
           h("div", { class: "row" }, out, h("button", { class: "btn", type: "button", onclick: () => { out.className = "test-out"; out.textContent = "testuji…"; client.send("provider_test", { id: p.id }); } }, icon("plugs"), "Otestovat"))));
       });
       const presetSel = h("select", { class: "input" }, ...Object.entries(presets).map(([k, v]: any) => h("option", { value: k }, v.label))) as HTMLSelectElement;
@@ -248,7 +296,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       picker.onchange = () => set("appearance.accent", picker.value);
       return [card("Barvy", null,
         select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
-        h("div", { class: "field" }, "Akcent", h("div", { class: "swatches" },
+        h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]])),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
@@ -256,9 +304,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         characterCard()];
     },
 
-    hotkeys: () => [card("Klávesové zkratky", "Formát: ctrl+alt+space, ctrl+alt+j, f9… (Esc zastaví JARVISe jen když mluví nebo pracuje)",
-      text("hotkeys.talk", "Mluvit / psát JARVISovi"), text("hotkeys.chat", "Otevřít okno chatu"), text("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"),
-      text("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."))],
+    hotkeys: () => [card("Klávesové zkratky", "Klikni na zkratku a stiskni nové klávesy. Esc zastaví JARVISe jen když mluví nebo pracuje.",
+      hotkey("hotkeys.talk", "Mluvit / psát JARVISovi"), hotkey("hotkeys.chat", "Otevřít okno chatu"), hotkey("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"),
+      hotkey("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."))],
 
     permissions: () => [
       card("Oblasti oprávnění", "Platí okamžitě. Nebezpečné akce (mazání, odesílání, instalace, PowerShell…) JARVIS vždy nejdřív potvrdí s tebou.",
@@ -301,7 +349,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       folders.onchange = () => set("tools.allowed_folders", folders.value.split("\n").map((s) => s.trim()).filter(Boolean));
       return [
         card("Povolené složky", "Další složky, kde smí hledat soubory, a projekty pro programování (git, záchytné body, testy). Jedna na řádek. Hlavní oprávnění najdeš v sekci Oprávnění.",
-          h("label", { class: "field" }, "Složky", folders)),
+          field("Složky", folders, "", true)),
         skillsCard(),
         card(`Všechny nástroje (${items.length})`, "Nebezpečné akce JARVIS vždy nejdřív potvrdí s tebou, pokud jim nedáš důvěru.", box),
       ];
@@ -323,7 +371,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             if (k === "env") { try { val = JSON.parse(el.value || "{}"); } catch { return toast("Env musí být JSON", "error"); } }
             save(servers.map((x, j) => (j === i ? { ...x, [k]: val } : x)));
           };
-          return h("label", { class: "field" }, label, el);
+          return field(label, el);
         };
         return h("div", { class: "provider" },
           h("div", { class: "provider-head" }, icon("plug"), h("strong", {}, s.name),
@@ -506,9 +554,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     return card("Postavička JARVIS", "Vzhled JARVISe v notchi, na ploše i v telefonu. Hlasem: „buď fialový“.",
       h("div", { class: "char-row" }, preview.el,
         h("div", { style: { display: "grid", gap: "12px" } },
-          h("div", { class: "field" }, "Barva těla", h("div", { class: "swatches" }, ...colors.map(([c, label]) =>
+          h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Barva těla")), h("div", { class: "swatches" }, ...colors.map(([c, label]) =>
             h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
-          h("div", { class: "field" }, "Záře", h("div", { class: "swatches" }, glow,
+          h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
           select("character.size", "Velikost na ploše", [["S", "Malá"], ["M", "Střední"], ["L", "Velká"]]),
           sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
@@ -519,30 +567,37 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let searchTimer = 0;
   searchInput.oninput = () => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => { query = searchInput.value; render(); searchInput.focus(); }, 200); };
 
+  const bands = new Map<Section, HTMLElement>();
+  const heroFor = (sec: Section) => {
+    let el = bands.get(sec);
+    if (!el) { const [, title, lead] = TITLES[sec]; el = hero(HEROES[sec], title, lead); bands.set(sec, el); }
+    return el;
+  };
+
   function render() {
     if (!S) {
       host.replaceChildren(h("div", { class: "set-page" }, h("p", { class: "help" }, "Načítám nastavení…")));
       return;
     }
-    const [ic, title, lead] = TITLES[current];
     const scroll = host.scrollTop;
     const q = norm(query.trim());
     let body: Node[];
     if (q) {
-      // search across every section: keep only cards (and their rows) that match
+      // search across every section: keep only groups (and their rows) that match
       body = [];
       for (const sec of Object.keys(sections) as Section[]) {
-        const cards = (sections[sec]() as HTMLElement[]).filter((c) => c instanceof HTMLElement && norm(c.textContent || "").includes(q));
-        for (const c of cards) {
-          c.querySelectorAll(".row, .field, .tool-row").forEach((r) => { if (!norm(r.textContent || "").includes(q) && !norm(c.querySelector("h2")?.textContent || "").includes(q)) (r as HTMLElement).hidden = true; });
+        const groups = (sections[sec]() as HTMLElement[]).filter((c) => c instanceof HTMLElement && norm(c.textContent || "").includes(q));
+        for (const c of groups) {
+          const title = norm(c.querySelector("h2")?.textContent || "");
+          c.querySelectorAll(".row, .field, .tool-row").forEach((r) => { if (!norm(r.textContent || "").includes(q) && !title.includes(q)) (r as HTMLElement).hidden = true; });
           body.push(h("p", { class: "search-sec" }, icon(TITLES[sec][0]), " ", TITLES[sec][1]), c);
         }
       }
       if (!body.length) body = [h("p", { class: "help" }, "Nic nenalezeno.")];
     } else body = sections[current]();
-    host.replaceChildren(searchBox, h("div", { class: "set-page" },
-      q ? h("h1", {}, icon("magnifying-glass"), `Hledání „${query.trim()}“`) : h("h1", {}, icon(ic), title),
-      q ? null : h("p", { class: "lead" }, lead),
+    const band = heroFor(current);
+    band.querySelector(".hero-copy")!.append(searchBox);
+    host.replaceChildren(h("div", { class: "set-page" }, band,
       local ? null : h("div", { class: "readonly-note" }, "Nastavení jde měnit jen přímo na počítači."),
       ...body));
     host.scrollTop = scroll;

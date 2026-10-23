@@ -158,6 +158,12 @@ export class Blob {
     this.level = Math.max(this.level, clamp(rms * 4, 0, 1));
   }
 
+  /** Rest the eyes towards a direction (-1..1) without counting as pointer movement, so the frame cap stays low. */
+  face(x: number, y = 0) {
+    this.facing = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };
+  }
+  private facing = { x: 0, y: 0 };
+
   /** Point the eyes at a position in this window's client coordinates. */
   lookAt(x: number, y: number) {
     this.cursor = { x, y, t: performance.now() };
@@ -310,6 +316,7 @@ export class Blob {
         this.glance = { x: (Math.random() * 2 - 1) * 0.8, y: (Math.random() - 0.6) * 0.5, until: now + 1300, next: now + 4000 + Math.random() * 6000 };
       }
       if (now < this.glance.until) { gx = this.glance.x; gy = this.glance.y; }
+      else if (look.gaze[0] === 0 && look.gaze[1] === 0) { gx = this.facing.x; gy = this.facing.y; }
     }
     this.gaze.x = lerp(this.gaze.x, gx, k * 0.8);
     this.gaze.y = lerp(this.gaze.y, gy, k * 0.8);

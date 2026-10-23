@@ -1,4 +1,5 @@
 // Dashboard → Úkoly (spec §4.5): the current task card + searchable history with details.
+import { hero, HEROES } from "../shared/hero";
 import { fmtTime, h, icon } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { TASK_STATUS, TaskCard, type Task } from "../shared/taskcard";
@@ -50,9 +51,9 @@ export function buildTasks(client: JarvisClient) {
   client.on("settings_changed", (m) => sync(m.settings));
 
   const el = h("section", { class: "tasks-view" },
-    h("header", { class: "tasks-head" }, h("h2", {}, "Úkoly"),
+    hero(HEROES.tasks, "Úkoly", "Co JARVIS dělá a co udělal: plán, kroky a každá akce.", [
       h("label", { class: "agent-toggle", title: "Režim Agent: JARVIS si u složitých úkolů nejdřív udělá plán a postupuje krok po kroku (až 25 kroků)." },
-        h("span", {}, "Režim Agent"), h("span", { class: "switch" }, agentSwitch, h("span")))),
+        h("span", {}, "Režim Agent"), h("span", { class: "switch" }, agentSwitch, h("span")))]),
     card.el,
     h("div", { class: "tasks-cols" },
       h("div", { class: "tasks-history" },
