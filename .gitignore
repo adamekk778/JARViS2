@@ -9,3 +9,5 @@ build/
 dist/
 *.egg-info/
 .pytest_cache/
+mobile/JARVIS.apk
+mobile/node_modules/

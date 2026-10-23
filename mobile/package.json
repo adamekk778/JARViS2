@@ -1,0 +1,23 @@
+{
+  "name": "jarvis-mobile",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "build": "bash build-android.sh"
+  },
+  "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.2.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-share-target": "^8.0.63"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3"
+  }
+}

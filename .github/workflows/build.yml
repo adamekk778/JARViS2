@@ -1,0 +1,117 @@
+name: Build JARVIS
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore: ["docs/**", "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JARVIS_VERSION: 2.0.${{ github.run_number }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -e "./core[dev]"
+      - run: cd core && pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: cd web && npm ci && npm run build
+      - uses: actions/upload-artifact@v4
+        with: { name: web-dist, path: web/dist }
+
+  windows:
+    needs: [web]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: web-dist, path: web/dist }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - name: Install JARVIS + PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install "./core[desktop,voice,dev]" pyinstaller
+      - name: Tests on Windows
+        run: cd core; pytest -q -x
+      - name: PyInstaller
+        run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
+      - name: Smoke test JARVIS.exe
+        shell: pwsh
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome"
+          $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-ui","--no-voice" -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
+          }
+          Get-Content "$env:JARVIS_HOME\logs\jarvis.log" -ErrorAction SilentlyContinue | Select-Object -Last 40
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "JARVIS.exe did not start" }
+          $html = Invoke-WebRequest http://127.0.0.1:8765/ -UseBasicParsing -ErrorAction SilentlyContinue
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DMyAppVersion=$env:JARVIS_VERSION" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+      - uses: actions/upload-artifact@v4
+        with: { name: JARVIS-Setup, path: dist/JARVIS-Setup.exe }
+
+  android:
+    needs: [web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: web-dist, path: web/dist }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: android-actions/setup-android@v3
+      - run: bash mobile/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: JARVIS-apk, path: mobile/JARVIS.apk }
+
+  release:
+    needs: [test, windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - run: ls -la out
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.JARVIS_VERSION }}
+          name: JARVIS ${{ env.JARVIS_VERSION }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            ## Stáhni a nainstaluj
+            - **PC (Windows 10/11):** `JARVIS-Setup.exe` → spusť a klikni Další.
+            - **Telefon (Android):** `JARVIS.apk` → otevři v telefonu, povol instalaci z tohoto zdroje.
+            - Spárování: na PC otevři JARVIS → Telefon a naskenuj QR kód v aplikaci.
+          files: |
+            out/JARVIS-Setup.exe
+            out/JARVIS.apk

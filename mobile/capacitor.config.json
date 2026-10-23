@@ -1,0 +1,16 @@
+{
+  "appId": "cz.adamekk.jarvis",
+  "appName": "JARVIS",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0a0c0f"
+  },
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#2EE6FF" }
+  }
+}

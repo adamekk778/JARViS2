@@ -122,6 +122,9 @@ def main(argv: list[str] | None = None) -> int:
 
     rt = Runtime(cfg)
     start_server(rt, port)
+    from .bootstrap import start_background
+
+    start_background(rt)
     if not args.no_voice and cfg.voice.enabled:
         start_extras(rt)
     elif sys.platform == "win32":

@@ -37,7 +37,7 @@ export const native = {
     try {
       if (isNative) {
         const { LocalNotifications } = await import("@capacitor/local-notifications");
-        await LocalNotifications.schedule({ notifications: [{ id: notifyId++, title, body, smallIcon: "ic_stat_jarvis" }] });
+        await LocalNotifications.schedule({ notifications: [{ id: notifyId++, title, body }] });
       } else if ("Notification" in window && Notification.permission === "granted") {
         new Notification(title, { body });
       }
