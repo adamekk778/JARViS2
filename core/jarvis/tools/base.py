@@ -40,6 +40,7 @@ class ToolSpec:
     danger_if: Callable[[dict], bool] | None = None
     category: str = "obecné"
     source: str = "builtin"
+    perm: str | None = None   # permission category (jarvis.permissions); None = derived from category
 
     def schema(self) -> dict:
         return {"type": "function", "function": {"name": self.name, "description": self.description,
@@ -97,10 +98,10 @@ def schema_for(func: Callable) -> dict:
 
 
 def tool(name: str, description: str, *, danger: bool = False,
-         danger_if: Callable[[dict], bool] | None = None, category: str = "obecné"):
+         danger_if: Callable[[dict], bool] | None = None, category: str = "obecné", perm: str | None = None):
     def deco(func):
         REGISTRY[name] = ToolSpec(name, description, func, schema_for(func), danger, danger_if, category,
-                                  getattr(func, "__module__", "builtin"))
+                                  getattr(func, "__module__", "builtin"), perm)
         return func
     return deco
 
@@ -127,14 +128,20 @@ def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), tru
     return spec.danger
 
 
-def schemas(disabled: list[str] | set[str] = ()) -> list[dict]:
-    return [s.schema() for s in REGISTRY.values() if s.name not in disabled]
+def schemas(disabled: list[str] | set[str] = (), cfg: Any = None) -> list[dict]:
+    from ..permissions import allowed
+
+    return [s.schema() for s in REGISTRY.values() if s.name not in disabled and (cfg is None or allowed(cfg, s))]
 
 
 async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
         return ToolResult(False, f"Neznámý nástroj: {name}")
+    from ..permissions import PERMS, allowed as perm_allowed, perm_of
+
+    if not perm_allowed(getattr(ctx, "cfg", None), spec):
+        return ToolResult(False, f"Oprávnění „{PERMS[perm_of(spec)]}“ je vypnuté (Nastavení → Oprávnění).")
     allowed = set(spec.parameters.get("properties", {}))
     clean = {k: v for k, v in (args or {}).items() if k in allowed}
     missing = [r for r in spec.parameters.get("required", []) if r not in clean]

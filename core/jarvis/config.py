@@ -7,7 +7,7 @@ import tomllib
 from typing import Any, Literal
 
 import tomli_w
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from . import paths
 
@@ -99,7 +99,7 @@ class Tools(BaseModel):
     disabled: list[str] = Field(default_factory=list)
     always_confirm: list[str] = Field(default_factory=list)
     trusted: list[str] = Field(default_factory=list)
-    computer_use: bool = True
+    computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
 
 
@@ -142,6 +142,17 @@ class Character(BaseModel):
     pet_y: int = -1
 
 
+class Permissions(BaseModel):
+    apps: bool = True
+    input: bool = True
+    screen: bool = True
+    files_read: bool = True
+    files_write: bool = True
+    shell: bool = True
+    network: bool = True
+    system: bool = True
+
+
 class Config(BaseModel):
     general: General = Field(default_factory=General)
     brain: Brain = Field(default_factory=Brain)
@@ -154,6 +165,16 @@ class Config(BaseModel):
     integrations: Integrations = Field(default_factory=Integrations)
     phone: Phone = Field(default_factory=Phone)
     memory: MemoryCfg = Field(default_factory=MemoryCfg)
+    permissions: Permissions = Field(default_factory=Permissions)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate(cls, data: Any) -> Any:
+        # 2.0 had a single tools.computer_use switch → permissions.input
+        if isinstance(data, dict) and "permissions" not in data:
+            if (data.get("tools") or {}).get("computer_use") is False:
+                data = {**data, "permissions": {"input": False}}
+        return data
 
 
 # Keys JARVIS may change by itself (voice "mluv rychleji", "přepni na Groq").

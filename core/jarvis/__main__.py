@@ -36,6 +36,10 @@ def setup_logging(debug: bool) -> None:
         logdir / "jarvis.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8")]
     if sys.stderr and not getattr(sys, "frozen", False):
         handlers.append(logging.StreamHandler())
+    from .redact import RedactFilter
+
+    for hd in handlers:
+        hd.addFilter(RedactFilter())
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, handlers=handlers, force=True,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 

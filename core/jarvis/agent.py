@@ -155,7 +155,7 @@ class Agent:
                         attachments=[rt.public_attachment(a) for a in attachments])
         bus.publish("state", state="thinking")
         msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
-        schemas = tools.schemas(rt.cfg.tools.disabled)
+        schemas = tools.schemas(rt.cfg.tools.disabled, rt.cfg)
         full_text = ""
         tool_cards: list[dict] = []
         out_atts: list[str] = []

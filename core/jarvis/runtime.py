@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 
 from . import config as config_mod
-from . import paths, secrets, tools
+from . import paths, redact, secrets, tools
 from .agent import Agent
 from .attachments import AttachmentStore
 from .events import Bus
@@ -26,6 +26,7 @@ class Runtime:
                  transport: httpx.AsyncBaseTransport | None = None, llm_transport: httpx.AsyncBaseTransport | None = None,
                  persist_config: bool = True):
         self.cfg = cfg or config_mod.load()
+        redact.add_literal(self.cfg.phone.token)
         self.persist_config = persist_config
         self.bus = Bus()
         self.platform = platform or get_platform()
