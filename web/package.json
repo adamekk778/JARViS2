@@ -1,0 +1,31 @@
+{
+  "name": "jarvis-web",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.2.1",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-share-target": "^8.0.63",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@phosphor-icons/web": "^2.1.2",
+    "dompurify": "^3.4.17",
+    "highlight.js": "^11.12.0",
+    "marked": "^18.1.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.3.5"
+  }
+}

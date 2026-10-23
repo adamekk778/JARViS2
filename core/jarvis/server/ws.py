@@ -32,7 +32,8 @@ SERVER_TYPES = [
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
-                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys"}
+                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
+                 "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get"}
 
 
