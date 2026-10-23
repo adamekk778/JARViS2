@@ -71,9 +71,10 @@ class Runtime:
         except Exception as e:  # pragma: no cover
             log.warning("updater: %s", e)
         try:
-            from .tools.skills import load_all_skills
+            from .tools.skills import load_all_skills, migrate_existing
 
-            load_all_skills()
+            migrate_existing(self)
+            load_all_skills(self.cfg.tools.approved_skills)
         except Exception as e:  # pragma: no cover
             log.warning("skills: %s", e)
         try:

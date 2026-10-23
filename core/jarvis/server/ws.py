@@ -26,7 +26,7 @@ CLIENT_TYPES = [
     "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
-    "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export",
+    "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -44,7 +44,8 @@ QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "windo
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
-              "local_unload", "local_gpu_test", "memory_import", "diagnostics_export"}
+              "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
+              "skill_approve"}
 
 
 class Connection:
@@ -252,6 +253,14 @@ class Connection:
             path = await asyncio.to_thread(diagnostics.export_zip, rt)
             att = await rt.store.save(path.name, path.read_bytes(), "application/zip")
             await self.send("diagnostics_file", attachment=rt.public_attachment(att.id))
+        elif t == "skill_approve":
+            from ..tools.skills import list_skills, load_all_skills
+
+            name, ok = m.get("name", ""), bool(m.get("approved"))
+            cur = [s for s in rt.cfg.tools.approved_skills if s != name] + ([name] if ok else [])
+            rt.update_config({"tools": {"approved_skills": cur}})
+            await asyncio.to_thread(load_all_skills, cur)
+            await self.send("skills", items=list_skills(cur))
         elif t == "quick_action":
             name = m.get("action", "")
             if name not in QUICK_ACTIONS:
@@ -364,7 +373,7 @@ class Connection:
         elif t == "skills_get":
             from ..tools.skills import list_skills
 
-            await self.send("skills", items=list_skills())
+            await self.send("skills", items=list_skills(rt.cfg.tools.approved_skills))
         elif t == "mcp_get":
             await self.send("mcp", items=rt.mcp.status() if rt.mcp else [])
         elif t == "push_to_talk":

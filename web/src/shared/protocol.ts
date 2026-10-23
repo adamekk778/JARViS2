@@ -10,7 +10,7 @@ export const CLIENT_TYPES = [
   "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
   "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
   "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
-  "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export",
+  "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
 ] as const;
 
 export const SERVER_TYPES = [

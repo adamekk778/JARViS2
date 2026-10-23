@@ -109,6 +109,7 @@ class Tools(BaseModel):
     trusted: list[str] = Field(default_factory=list)
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
+    approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)
 
 
 class McpServer(BaseModel):

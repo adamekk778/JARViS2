@@ -132,6 +132,14 @@ def main(argv: list[str] | None = None) -> int:
         sys.argv = argv[1:]
         runpy.run_path(argv[1], run_name="__main__")
         return 0
+    if argv[:1] == ["--run-skill"] and len(argv) > 2:  # one skill tool call in its own process (frozen exe)
+        from . import skill_runner
+
+        try:
+            return skill_runner.main(argv[1:])
+        except Exception as e:
+            print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            return 1
     if argv[:1] == ["--bench"]:  # CI / diagnostics: idle cost of the core, printed as JSON
         import json
 
