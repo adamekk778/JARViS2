@@ -59,11 +59,12 @@ jobs:
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome"
           $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-ui","--no-voice" -PassThru
           $ok = $false
-          for ($i = 0; $i -lt 60; $i++) {
+          for ($i = 0; $i -lt 45; $i++) {
+            if ($p.HasExited) { Write-Host "process exited with $($p.ExitCode)"; break }
             Start-Sleep -Seconds 2
             try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
           }
-          Get-Content "$env:JARVIS_HOME\logs\jarvis.log" -ErrorAction SilentlyContinue | Select-Object -Last 40
+          foreach ($f in "crash.log","fault.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 60 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           if (-not $ok) { throw "JARVIS.exe did not start" }
           $html = Invoke-WebRequest http://127.0.0.1:8765/ -UseBasicParsing -ErrorAction SilentlyContinue
