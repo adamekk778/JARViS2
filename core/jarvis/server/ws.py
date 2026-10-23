@@ -29,7 +29,7 @@ SERVER_TYPES = [
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
-    "mood", "pet_state", "update_status", "confirm_resolved",
+    "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
