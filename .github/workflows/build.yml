@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 2.0.${{ github.run_number }}
+  JARVIS_VERSION: 2.1.${{ github.run_number }}
 
 jobs:
   test:
@@ -92,6 +92,17 @@ jobs:
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           "$ok" | Out-File "$env:RUNNER_TEMP\windowed_ok.txt"
           if (-not $ok) { throw "windowed JARVIS.exe did not start" }
+      - name: Idle benchmark and UI Automation selftest
+        shell: pwsh
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome3"
+          $env:JARVIS_NO_NET = "1"
+          $bench = & dist\JARVIS\JARVIS-debug.exe --bench 30 --bench-gate 2>$null
+          $code = $LASTEXITCODE
+          Write-Host "BENCH (targets: CPU < 2 %, RAM < 400 MB; gate 2x): $($bench | Select-Object -Last 1)"
+          $uia = & dist\JARVIS\JARVIS-debug.exe --selftest-uia 2>$null
+          Write-Host "UIA SELFTEST: $($uia | Select-Object -Last 1)"
+          if ($code -ne 0) { throw "idle cost above 2x target" }
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png" }
