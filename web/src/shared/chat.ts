@@ -4,6 +4,7 @@ import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
 import { Recorder } from "./recorder";
+import { Blob } from "../character/blob";
 
 const STATE_TEXT: Record<AgentState, string> = {
   idle: "", listening: "Poslouchám", thinking: "Přemýšlím", acting: "Pracuji", speaking: "Mluvím",
@@ -21,7 +22,17 @@ interface Pending {
 export interface ChatOptions {
   compact?: boolean; // mobile
   placeholder?: string;
+  greeting?: string;        // empty-state headline
+  subtitle?: string;
+  suggestions?: string[];   // [] = none
+  emptyAvatar?: boolean;    // big character in the empty state (default true)
 }
+
+const DEFAULT_SUGGESTIONS = ["Pusť na YouTube nějakou dobrou hudbu", "Jaké bude zítra počasí?",
+  "Udělej screenshot a popiš, co je na obrazovce", "Najdi na webu dnešní zprávy z technologií"];
+
+/** Static little JARVIS for message avatars (the animated Blob is reserved for live places). */
+export const miniBlob = (live = false) => h("div", { class: `mini-blob ${live ? "live" : ""}`, "aria-hidden": "true" }, h("i"), h("i"));
 
 export class ChatView {
   el: HTMLElement;
@@ -41,14 +52,33 @@ export class ChatView {
   private audio: HTMLAudioElement | null = null;
   private stickBottom = true;
   private empty: HTMLElement;
+  private greetingEl!: HTMLElement;
+  emptyBlob: Blob | null = null;
+
+  setGreeting(text: string) {
+    this.greetingEl.textContent = text;
+  }
+
+  /** Put text into the composer (quick cards: "Otevři …"). */
+  prefill(text: string, file = false) {
+    this.input.value = text;
+    this.autosize();
+    this.input.focus();
+    this.input.setSelectionRange(text.length, text.length);
+    if (file) (this.el.querySelector('input[type="file"]') as HTMLInputElement | null)?.click();
+  }
 
   constructor(private client: JarvisClient, opts: ChatOptions = {}) {
     this.list = h("div", { class: "chat-list", role: "log", "aria-live": "polite" });
+    this.greetingEl = h("h2", {}, opts.greeting || "Jak můžu pomoct?");
+    const avatar = opts.emptyAvatar === false ? null : new Blob({ size: 96 });
+    if (avatar) this.emptyBlob = avatar;
     this.empty = h("div", { class: "chat-empty" },
-      h("div", { class: "orb", style: { "--s": "64px" } as any }),
-      h("h2", {}, "Jak můžu pomoct?"),
+      avatar ? avatar.el : null,
+      this.greetingEl,
+      opts.subtitle ? h("p", { class: "chat-sub" }, opts.subtitle) : null,
       h("div", { class: "chat-suggest" },
-        ...["Pusť na YouTube nějakou dobrou hudbu", "Jaké bude zítra počasí?", "Udělej screenshot a popiš, co je na obrazovce", "Najdi na webu dnešní zprávy z technologií"]
+        ...(opts.suggestions ?? DEFAULT_SUGGESTIONS)
           .map((s) => h("button", { class: "chip suggest", type: "button", onclick: () => this.sendText(s) }, s))));
     this.scroller = h("div", { class: "chat-scroll" }, this.empty, this.list);
     this.scroller.addEventListener("scroll", () => {
@@ -101,6 +131,8 @@ export class ChatView {
       this.conversation = m.conversation;
       this.renderHistory(m.history || []);
       this.setState(m.busy ? "thinking" : "idle");
+      if (m.mood) this.emptyBlob?.setMood(m.mood.mood, m.mood);
+      if (m.settings?.character) this.emptyBlob?.setColor(m.settings.character.color, m.settings.character.glow || undefined);
     });
     c.on("history", (m) => {
       if (m.prepend) this.prependHistory(m.messages);
@@ -114,6 +146,7 @@ export class ChatView {
       if (!m.final) this.statusLine.textContent = `„${m.text}“`;
     });
     c.on("state", (m) => this.setState(m.state));
+    c.on("mood", (m) => this.emptyBlob?.setMood(m.mood, { badge: m.badge, progress: m.progress }));
     c.on("assistant_delta", (m) => this.delta(m.text));
     c.on("tool_start", (m) => this.toolStart(m));
     c.on("tool_end", (m) => this.toolEnd(m));
@@ -210,7 +243,7 @@ export class ChatView {
     }
     const body = h("div", { class: "md", html: renderMarkdown(m.text) });
     return h("div", { class: "msg assistant", "data-id": m.id },
-      h("div", { class: "orb", "aria-hidden": "true" }),
+      miniBlob(),
       h("div", { class: "a-main" },
         this.toolsEl(m.meta?.tools),
         body,
@@ -231,7 +264,7 @@ export class ChatView {
     if (this.live) return this.live;
     const body = h("div", { class: "md" });
     const tools = h("div", { class: "tools" });
-    const el = h("div", { class: "msg assistant live" }, h("div", { class: "orb", "data-state": "thinking" }), h("div", { class: "a-main" }, tools, body));
+    const el = h("div", { class: "msg assistant live" }, miniBlob(true), h("div", { class: "a-main" }, tools, body));
     this.list.append(el);
     this.updateEmpty();
     this.live = { el, body, tools, text: "" };

@@ -72,9 +72,9 @@ class Notch(BaseModel):
     monitor: int = 0
     offset_x: int = 0
     width: int = 200
-    height: int = 32
-    expanded_width: int = 680
-    expanded_height: int = 240
+    height: int = 34
+    expanded_width: int = 1000
+    expanded_height: int = 410
     open_delay_ms: int = 150
     close_delay_ms: int = 400
     linger_s: float = 6.0
