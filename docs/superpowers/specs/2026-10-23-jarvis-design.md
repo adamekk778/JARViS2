@@ -24,7 +24,7 @@ zdarma**.
 
 ### Kritéria úspěchu (verze 1)
 1. Řeknu „Hey Jarvis, pusť na YouTube trailer na Avengers“ → nahoře se
-   roztáhne pilulka, ukáže přepis, JARVIS odpoví česky hlasem a video se
+   rozevře notch, ukáže přepis, JARVIS odpoví česky hlasem a video se
    přehraje v prohlížeči.
 2. Bez internetu JARVIS pořád funguje (Ollama + Whisper + Piper), jen hloupěji.
 3. Telefon spárovaný přes QR kód umí napsat/namluvit příkaz, který se
@@ -32,7 +32,12 @@ zdarma**.
 4. Do chatu (PC i telefon) pošlu fotku, PDF nebo hlasovku a JARVIS ji
    přečte/popíše/shrne; odpověď vidím v chatu a zároveň ji umí říct nahlas.
 5. Instalace na PC jedním skriptem, APK ke stažení z GitHub Releases.
-6. Provoz nic nestojí.
+6. Najedu myší na notch → plynule se rozevře panel (zeptej se, právě hraje,
+   police, rychlé akce…); odjedu → zavře se.
+7. Všechno jde nastavit v Nastavení, a základní věci i hlasem.
+8. „Nastav ve Windows tmavý režim“ → JARVIS to udělá sám přes ovládání
+   počítače (po potvrzení).
+9. Provoz nic nestojí.
 
 ## 2. Architektura
 
@@ -47,7 +52,7 @@ zdarma**.
 │   ├─ memory   SQLite                                 │
 │   └─ server   FastAPI + WebSocket :8765 + statické UI│
 │         ▲              ▲                             │
-│   Pilulka (pywebview  Dashboard (prohlížeč /         │
+│   Notch   (pywebview  Dashboard (prohlížeč /         │
 │   overlay okno)       pywebview okno)                │
 └─────────┼──────────────┼─────────────────────────────┘
           │  LAN / Tailscale, token z QR párování
@@ -57,7 +62,7 @@ zdarma**.
 └──────────────────────────────────────────────────────┘
 ```
 
-Všechny klienty (pilulka, dashboard, telefon) mluví s jádrem **jen** přes
+Všechny klienty (notch, dashboard, telefon) mluví s jádrem **jen** přes
 WebSocket protokol (sekce 6). Jádro o konkrétním UI nic neví → později lze
 přidat nativní klienty (Flutter, Tauri) beze změny jádra.
 
@@ -84,7 +89,11 @@ core/                    Python balíček `jarvis`
       base.py            @tool dekorátor, registr, JSON schéma, danger flag
       apps.py web.py youtube.py media.py system.py windows.py
       files.py clipboard.py info.py weather.py screenshot.py
-      timers.py shell.py phone.py
+      timers.py shell.py phone.py settings.py
+      computer_use.py browser.py code.py images.py
+      schedule.py skills.py
+    mcp/                 MCP klient (stdio + HTTP), načtení nástrojů
+    scheduler.py         rutiny a plánované úlohy
       platform/          Windows implementace + Null/mock implementace
     voice/
       audio.py           mikrofon (sounddevice), VAD
@@ -97,7 +106,7 @@ core/                    Python balíček `jarvis`
       pairing.py         tokeny, QR kód
   tests/
 web/                     Vite + TypeScript UI (bez frameworku)
-  src/pill/  src/dashboard/  src/mobile/  src/shared/ (ws klient, protokol)
+  src/notch/  src/dashboard/  src/mobile/  src/shared/ (ws klient, protokol)
 mobile/                  Capacitor projekt → Android APK
 install.ps1              instalace na Windows
 .github/workflows/       testy + sestavení APK + release
@@ -174,11 +183,31 @@ Linux).
 | system_info | CPU, RAM, disk, baterie, IP (psutil) | |
 | weather | Open-Meteo (zdarma, bez klíče), město z configu nebo z dotazu | |
 | screenshot | snímek obrazovky, uloží; když model umí obraz, popíše ho | |
-| set_timer / set_reminder | časovač/připomínka → hlas + pilulka + notifikace na telefon | |
+| set_timer / set_reminder | časovač/připomínka → hlas + notch + notifikace na telefon | |
 | run_shell | PowerShell příkaz, výstup zpět AI | ano |
 | send_to_phone | pošle text/odkaz/notifikaci na telefon | |
 | remember / forget | paměť faktů | |
 | get_time | datum a čas | |
+
+## 5a. Superschopnosti („umí úplně všechno“)
+
+Doslova „všechno“ nejde slíbit žádnému programu — ale tyhle schopnosti
+dohromady znamenají, že JARVIS zvládne prakticky cokoli, co by udělal
+člověk u počítače, a co neumí, to se naučí:
+
+| schopnost | jak | danger |
+|---|---|---|
+| **Ovládání počítače jako člověk** (`computer_use`) | vidí obrazovku (screenshot → vision model), kliká, píše, scrolluje, mačká zkratky (`pyautogui`) ve smyčce, dokud úkol nesplní („v Excelu udělej graf z tabulky“, „nastav ve Windows tmavý režim“). Zastavení: Esc nebo „stop“. Max 30 kroků. | ano (potvrzení na začátku úkolu; v nastavení lze „důvěřovat“) |
+| **Ovládání prohlížeče** (`browser_*`) | Playwright s vlastním profilem Edge/Chrome: otevřít, klikat, vyplňovat formuláře, číst stránky, stahovat („najdi na Alze nejlevnější sluchátka do 1000 Kč“) | odeslání formuláře / nákup = ano |
+| **Spouštění kódu** (`run_python`) | Python v odděleném procesu s timeoutem — výpočty, převody souborů, grafy, úprava obrázků, Excel; výsledné soubory přijdou jako přílohy | ne pro výpočty v sandbox složce; zápis mimo ni = ano |
+| **Generování obrázků** (`generate_image`) | Pollinations.ai (zdarma, bez klíče), volitelně jiný poskytovatel; výsledek jako příloha v chatu | |
+| **MCP integrace** | JARVIS je MCP klient: připojíš libovolný MCP server (Gmail, Kalendář, Spotify, GitHub, Notion, chytrá domácnost, …) a jeho nástroje se mu objeví | podle serveru |
+| **Učí se nové dovednosti** (`create_skill`) | když něco neumí, napíše si nový nástroj v Pythonu do `%APPDATA%\JARVIS\skills\`, ukáže ti kód, po schválení ho načte bez restartu a příště ho použije | ano (schválení kódu) |
+| **Rutiny a plánování** (`schedule`) | „každý den v 7:00 mi řekni počasí a co mám v plánu“, „v pátek v 18:00 vypni PC“, podmínky („až dojde baterie na 20 %…“); uloženo v SQLite, běží na pozadí | dle akce |
+| **Agent na pozadí** | dlouhé úkoly běží na pozadí (karta v notchi s průběhem), můžeš mezitím mluvit dál | |
+
+Pravidla bezpečnosti platí vždy: nebezpečné akce potvrzuješ ty (hlasem,
+klikem, z telefonu); vše, co JARVIS udělal, je vidět v logu akcí v chatu.
 
 ## 6. WebSocket protokol
 
@@ -186,7 +215,7 @@ Endpoint `ws://<pc>:8765/ws?token=<token>`. Zprávy JSON
 `{"type": "...", ...}`.
 
 Klient → jádro:
-- `hello {client: "pill"|"dashboard"|"mobile", name}`
+- `hello {client: "notch"|"dashboard"|"mobile", name}`
 - `user_text {text, attachments: [attachment_id]}` (přílohy se předem
   nahrají přes HTTP `POST /api/upload`, viz sekce 6a)
 - `history_get {before?, limit}` (načtení starší historie chatu)
@@ -210,6 +239,9 @@ Jádro → klienti (broadcast všem):
 - `confirm_request {id, description}`
 - `notify {title, body}`
 - `brain {provider, model}`
+- `settings_changed {patch}`
+- `task_progress {id, title, step, total, done}` (úlohy na pozadí, computer use)
+- `media {title, artist, thumb, playing}` (pro dlaždici Právě hraje)
 - `error {message}`
 
 Sdílené TS typy v `web/src/shared/protocol.ts` a Python modely v
@@ -243,7 +275,7 @@ obojí současně, jedna společná konverzace na PC i telefonu.
 
 - Krátký obsah (do ~8 000 znaků) jde rovnou do zprávy pro AI; delší se
   zkrátí a AI si zbytek dočte nástrojem `read_attachment` po částech.
-- Jak poslat: tlačítko 📎, přetažení (drag & drop) do chatu nebo na pilulku,
+- Jak poslat: tlačítko 📎, přetažení (drag & drop) do chatu nebo na notch,
   vložení Ctrl+V (obrázek ze schránky), na telefonu fotoaparát / galerie /
   soubory a „Sdílet → JARVIS“ z jiných aplikací (fotky, PDF, odkazy).
 - JARVIS umí přílohy i posílat zpět: screenshot PC, soubor z PC
@@ -275,7 +307,7 @@ obojí současně, jedna společná konverzace na PC i telefonu.
 
 - Mikrofon: `sounddevice`, 16 kHz mono.
 - Wake word: openWakeWord model `hey_jarvis` (běží na CPU), práh v configu.
-  Alternativa: zkratka **Ctrl+Space** (push-to-talk / otevře psaní v pilulce).
+  Alternativa: zkratka **Ctrl+Space** (push-to-talk / otevře psaní v notchi).
 - Konec věty: VAD (`webrtcvad-wheels`) — 0,8 s ticha.
 - STT: faster-whisper, model `small` (výchozí; `base` pro slabé PC,
   `large-v3-turbo` pro GPU), jazyk auto/cs. Volitelně STT přes Groq API
@@ -290,13 +322,8 @@ obojí současně, jedna společná konverzace na PC i telefonu.
 Jedno Vite + TypeScript UI, tři vstupní stránky; jádro je servíruje
 z `web/dist`.
 
-- **Pilulka** (`/pill`): průhledné, bezrámové, vždy navrchu pywebview okno
-  nahoře uprostřed. Stav idle = malá černá kapsle (~120×34 px) s tečkou;
-  listening/thinking/speaking = plynulé roztažení (~520×64), animované vlny
-  podle `level`, živý přepis, řádek „⚙ Otevírám YouTube…“ při nástroji;
-  odpověď se ukáže a po 6 s se pilulka smrští. Potvrzovací dialog
-  (Ano/Ne) přímo v pilulce. Klik = psaní; přetažený soubor na pilulku =
-  příloha. Tlačítko „otevřít chat“.
+- **Notch** (`/notch`) — hlavní tvář JARVISe na PC, ve stylu MacBook
+  notche / Dynamic Islandu. Detail v sekci 9a.
 - **Dashboard / Chat** (`/`, otevře se i jako samostatné okno „JARVIS“
   z traye nebo zkratkou Ctrl+Shift+J): plný chat dle sekce 6a (historie
   konverzací, Markdown, přílohy, 🔊, mikrofon), stav mozku, nastavení
@@ -311,6 +338,85 @@ z `web/dist`.
   zobrazení potvrzení a notifikací.
 - Vizuál: tmavý, „Stark HUD“ — černá/grafit, azurový akcent, jemná záře,
   plynulé animace; respektuje `prefers-reduced-motion`.
+
+## 9a. Notch (detail)
+
+Černý „výřez“ přilepený k hornímu okraji obrazovky uprostřed — rovný horní
+okraj, zaoblené spodní rohy a jemně prohnuté „ramena“ jako macOS notch.
+
+**Stavy:**
+1. **Klid** (~200×32 px): jen černý notch; vlevo malý dýchající JARVIS
+   orb (barva = stav: azurová připraven, fialová přemýšlí, zelená mluví,
+   červená chyba / offline), vpravo „live activity“ podle situace:
+   mini vlny když hraje hudba, odpočet timeru, počet nových notifikací
+   z telefonu, ikona 🎙 když poslouchá.
+2. **Najetí myší** (po 150 ms) → pružinová animace (spring) rozevře notch do
+   panelu ~680×240 px. Odjetí myši → po 400 ms se zavře (ne, pokud do něj
+   píšeš nebo běží potvrzení).
+3. **Hlasová aktivita** („Hey Jarvis“ / Ctrl+Space) → notch se rozevře do
+   „live“ režimu: animované vlny podle `level`, živý přepis, řádek
+   „⚙ Otevírám YouTube…“ (karty nástrojů), streamovaná odpověď. Po dokončení
+   ještě 6 s zobrazí odpověď a smrští se.
+4. **Upozornění** (timer, notifikace z telefonu, hotový úkol) → krátce
+   „vyskočí“ (pulz + rozšíření) s textem, pak zpět.
+
+**Rozevřený panel — dlaždice (zapnout/vypnout a řadit v nastavení):**
+- **Zeptej se**: vstupní pole + 🎙 + 📎 (rychlý chat, odpověď přímo v notchi;
+  „↗“ otevře celý chat).
+- **Právě hraje**: obal, název, interpret, ovládání ⏮ ⏯ ⏭ — čte Windows
+  media session (Spotify, YouTube v prohlížeči, cokoli) přes `winsdk`.
+- **Police (shelf)**: přetáhni sem soubory → odloží se (jako NotchNook) a
+  jde je pak přetáhnout jinam, poslat na telefon nebo „zeptat se JARVISe“.
+- **Rychlé akce**: hlasitost, ztlumit, screenshot, zámek, režim „nerušit“,
+  vlastní tlačítka (spouští příkaz/rutinu).
+- **Timery a připomínky**, **Systém** (CPU, RAM, GPU, baterie, síť),
+  **Počasí**, **Kalendář/rutiny dne**, **Telefon** (baterie telefonu,
+  poslední notifikace, „pošli na mobil“).
+- Ikona ⚙ → nastavení, ikona 💬 → plný chat.
+
+**Technicky:** bezrámové průhledné pywebview okno vždy navrchu bez ikony
+na liště. Okno samo mění velikost podle stavu (JS → Python API `resize`),
+takže v klidu zabírá jen plochu notche a nepřekáží klikání. Hover
+detekuje JS + polling pozice myši (pro spolehlivost i nad okrajem).
+Výběr monitoru, posun, velikost a průhlednost v nastavení. Automaticky se
+skryje při hře/videu na celou obrazovku (volitelné). Respektuje DPI
+škálování Windows.
+
+## 9b. Nastavení (vše nastavitelné)
+
+Okno Nastavení (dashboard, z notche ⚙ nebo z traye) + **JARVIS umí své
+nastavení měnit sám hlasem** („mluv rychleji“, „přepni na Groq“, „vypni
+wake word“) přes nástroj `update_setting` (jen povolené klíče; citlivé věci
+jako klíče a oprávnění jen ručně).
+
+Sekce:
+- **Obecné**: jméno uživatele, jak tě oslovuje, jazyk, osobnost (JARVIS
+  formální / kamarád / stručný / vlastní prompt), spuštění po startu Windows,
+  aktualizace.
+- **Mozek (AI)**: poskytovatelé (presety + vlastní), pořadí záložního řetězu,
+  model zvlášť pro chat / vidění (obrázky) / rychlé úlohy, kreativita
+  (temperature), max délka, tlačítko „Otestovat“, offline režim (jen
+  lokální modely).
+- **Hlas**: mikrofon, wake word (zap/vyp, citlivost, test), push-to-talk
+  zkratka, STT model a jazyk, TTS hlas (náhled poslechem), rychlost, výška,
+  hlasitost, kdy mluvit (vždy / jen u hlasu / nikdy).
+- **Notch**: monitor, pozice, velikost, zpoždění rozevření, dlaždice
+  (pořadí, zap/vyp), skrývat ve fullscreenu, barva akcentu.
+- **Vzhled**: motiv (Stark tmavý, světlý, vlastní akcent), animace
+  (plné / omezené).
+- **Zkratky**: všechny klávesové zkratky přenastavitelné.
+- **Nástroje a oprávnění**: každý nástroj zap/vyp, které chtějí potvrzení,
+  ovládání počítače (sekce 5a) zap/vyp, povolené složky pro soubory.
+- **Integrace**: MCP servery (přidat/odebrat/test), rutiny.
+- **Telefon**: spárovaná zařízení (přejmenovat, odpojit), nový QR,
+  přegenerovat token, stav Tailscale.
+- **Paměť**: co si o tobě pamatuje (zobrazit, upravit, smazat), historie
+  konverzací, smazat vše.
+- **Záloha**: export/import nastavení + paměti (jeden soubor).
+
+Nastavení se ukládá do `config.toml`, mění se okamžitě bez restartu
+(event `settings_changed` všem klientům), klíče API se ukládají do Windows
+Credential Manageru (`keyring`), ne do souboru.
 
 ## 10. Android aplikace (mobile/)
 
@@ -333,7 +439,7 @@ z `web/dist`.
 4. Vytvoří zástupce a volitelně spuštění po startu Windows.
 5. Odkaz na Tailscale.
 
-Spuštění: `python -m jarvis` → tray ikona, pilulka, server; dashboard
+Spuštění: `python -m jarvis` → tray ikona, notch, server; dashboard
 z menu traye.
 
 Konfigurace: `%APPDATA%\JARVIS\config.toml` (+ `jarvis.db`).
@@ -368,5 +474,23 @@ Konfigurace: `%APPDATA%\JARVIS\config.toml` (+ `jarvis.db`).
 
 - Samostatný JARVIS na telefonu bez PC, ovládání telefonu z PC.
 - Přenos velkých souborů, push notifikace při zavřené aplikaci (FCM).
-- Rutiny/scény („dobré ráno“), kamera, ovládání chytré domácnosti.
-- Pluginy nástrojů od třetích stran, nativní klienti (Flutter/Tauri).
+- Kamera (webkamera jako oči JARVISe), zrcadlení notifikací z telefonu na PC
+  (vyžaduje nativní Android NotificationListener).
+- Nativní klienti (Flutter/Tauri).
+
+## 15. Pořadí stavby (etapy)
+
+Vše výše je cílem; stavíme po etapách, každá končí funkčním a otestovaným
+stavem pushnutým do repa:
+
+1. **Jádro**: config, event bus, LLM router (OmniRoute → … → Ollama),
+   agent s nástroji, paměť, server + WebSocket + přílohy, základní nástroje.
+2. **Web UI**: chat (dashboard) + notch (všechny stavy a dlaždice) +
+   nastavení.
+3. **Hlas**: wake word, STT, TTS, přerušování.
+4. **Superschopnosti**: computer use, prohlížeč, kód, obrázky, MCP, skills,
+   rutiny.
+5. **Telefon**: mobilní UI, Capacitor projekt, CI build APK, párování
+   QR + Tailscale.
+6. **Instalace a doladění**: `install.ps1`, README s checklistem, CI na
+   Windows.
