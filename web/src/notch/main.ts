@@ -190,6 +190,8 @@ function flashUi(mood: Mood, ms: number) {
 /** Which mood the character shows: core mood, layered with UI-only moods (spec §3). */
 function displayMood(): Mood {
   if (demoMood) return demoMood;
+  if (dict.state === "listening") return "listening";
+  if (dict.state === "transcribing") return "thinking";
   const calm = coreMood === "idle" || coreMood === "sleeping";
   if (uiMood && calm) return uiMood;
   if (mode === "closed") return calm ? (coreMood === "sleeping" ? "sleeping" : "closed") : coreMood;
@@ -375,6 +377,29 @@ function showAlert(title: string, body: string) {
 // ---------- activity (closed notch) ----------
 let timers: any[] = [];
 let media: any = {};
+// dictation anywhere: listening (with a level meter), transcribing, then a short "pasted" note
+let dict: { state: string; level: number; text: string; until: number } = { state: "idle", level: 0, text: "", until: 0 };
+const dictBars = h("span", { class: "dbars" }, ...Array.from({ length: 5 }, () => h("i")));
+function dictActivity(): boolean {
+  if (dict.state === "listening") {
+    const lv = dict.level;
+    [...dictBars.children].forEach((b, i) => ((b as HTMLElement).style.transform = `scaleY(${Math.max(0.2, Math.min(1, lv * (1.6 - Math.abs(i - 2) * 0.35)))})`));
+    activity = "Poslouchám";
+    actText.replaceChildren(dictBars, " ", dict.text || "Poslouchám");
+    return true;
+  }
+  if (dict.state === "transcribing") {
+    activity = "Přepisuji";
+    actText.replaceChildren(icon("waveform"), " Přepisuji…");
+    return true;
+  }
+  if (dict.until > Date.now()) {
+    activity = dict.text;
+    actText.replaceChildren(icon(dict.state === "done" ? "check" : "x"), " ", dict.text);
+    return true;
+  }
+  return false;
+}
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
   shape.classList.toggle("has-task", !!(t && t.total));
@@ -382,7 +407,9 @@ function updateActivity() {
   const now = new Date();
   clock.textContent = now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
   if (!weatherText.dataset.w) weatherText.textContent = now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" });
-  if (timers.length) {
+  if (dictActivity()) {
+    // dictation wins while it runs
+  } else if (timers.length) {
     const r = Math.max(0, Math.round(timers[0].ends_at - Date.now() / 1000));
     activity = `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
     actText.replaceChildren(icon("timer"), " ", activity);
@@ -466,6 +493,16 @@ client.on("screen_capture", (m) => {
 });
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => { media = m; updateActivity(); });
+client.on("dictation", (m) => {
+  const was = dict.state;
+  if (m.state === "listening") dict = { state: "listening", level: m.level ?? 0, text: m.hands_free ? "Diktuji · ťukni pro vložení" : "Poslouchám", until: 0 };
+  else if (m.state === "transcribing") dict = { ...dict, state: "transcribing" };
+  else if (m.state === "done") dict = { state: "done", level: 0, text: `Vloženo · ${m.words} ${m.words === 1 ? "slovo" : m.words < 5 ? "slova" : "slov"}`, until: Date.now() + 2500 };
+  else if (m.state === "error" || (m.state === "cancelled" && m.message)) dict = { state: "error", level: 0, text: m.message || "Zrušeno", until: Date.now() + 3000 };
+  else dict = { state: "idle", level: 0, text: "", until: 0 };
+  if (was !== dict.state) { updateBlob(); if (dict.state === "listening") play("listen"); else if (dict.state === "done") play("done"); }
+  updateActivity();
+});
 let weatherAsked = 0;
 client.on("weather", (m) => {
   if (m.error) return;

@@ -227,6 +227,14 @@ class DesktopHost:
                 keyboard.add_hotkey(combo, fn, suppress=False)
             except Exception as e:
                 log.warning("hotkey %s failed: %s", combo, e)
+        # dictation anywhere: hold the dictation key (right Ctrl by default)
+        try:
+            from .dictation_keys import DictationKeys
+
+            self.dictation_keys = DictationKeys(self.rt)
+            self.dictation_keys.install()
+        except Exception as e:
+            log.warning("dictation keys: %s", e)
 
     def quit(self, *_):
         self._quitting = True

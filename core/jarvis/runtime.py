@@ -39,6 +39,12 @@ class Runtime:
         self.router = Router(self.cfg.brain, secrets.get, llm_transport)
         self.agent = Agent(self)
         self.tasks = TaskManager(self)
+        from .dictation import Dictation
+
+        self.dictation = Dictation(self)
+        from .notetaker import Notetaker
+
+        self.notetaker = Notetaker(self)
         self.local = LocalManager(self)
         self.timers = Timers(self._timer_fired)
         self.voice: Any = None        # voice.loop.VoiceLoop when available
@@ -111,6 +117,25 @@ class Runtime:
     def call_soon(self, fn, *args) -> None:
         if self.loop is not None:
             self.loop.call_soon_threadsafe(fn, *args)
+
+    # ---------- weekly recap (Mondays) ----------
+    def recap_due(self) -> bool:
+        """True from Monday until the recap of last week was opened (and only when there was something)."""
+        from .dictation import recap, week_bounds
+
+        start, _ = week_bounds()
+        row = self.db.one("SELECT v FROM kv WHERE k='recap_seen'")
+        if row and row["v"] == start.isoformat():
+            return False
+        try:
+            return not recap(self)["empty"]
+        except Exception:
+            return False
+
+    def recap_seen(self) -> None:
+        from .dictation import week_bounds
+
+        self.db.exec("INSERT OR REPLACE INTO kv VALUES ('recap_seen', ?)", (week_bounds()[0].isoformat(),))
 
     def _transcribe_file(self, path) -> str:
         stt = getattr(self.voice, "transcriber", None) if self.voice else None

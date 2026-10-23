@@ -11,6 +11,8 @@ export const CLIENT_TYPES = [
   "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
   "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
   "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
+  "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
+  "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -22,6 +24,7 @@ export const SERVER_TYPES = [
   "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
   "memory_export_data", "memory_import_result", "audio_devices",
   "diagnostics", "diagnostics_file",
+  "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

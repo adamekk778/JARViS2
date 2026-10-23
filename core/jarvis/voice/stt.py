@@ -76,7 +76,7 @@ class Transcriber:
                 self._model_name = name
             return self._model
 
-    def _groq(self, wav: bytes, filename: str = "audio.wav") -> str:
+    def _groq(self, wav: bytes, filename: str = "audio.wav", prompt: str = "") -> str:
         import httpx
 
         key = secrets.get("groq")
@@ -85,6 +85,8 @@ class Transcriber:
         data = {"model": "whisper-large-v3-turbo", "response_format": "json"}
         if self._language():
             data["language"] = self._language()
+        if prompt:
+            data["prompt"] = prompt[:800]
         r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
                        files={"file": (filename, wav)}, data=data, timeout=60)
         r.raise_for_status()
@@ -94,10 +96,11 @@ class Transcriber:
         self.last_language = detect(text)
         return text
 
-    def transcribe(self, pcm16: bytes, sr: int = 16000) -> str:
+    def transcribe(self, pcm16: bytes, sr: int = 16000, prompt: str = "") -> str:
+        """prompt: words the recognizer should expect (names from the dictation dictionary)."""
         if self.cfg.stt_provider == "groq":
             try:
-                return self._groq(pcm_to_wav(pcm16, sr))
+                return self._groq(pcm_to_wav(pcm16, sr), prompt=prompt)
             except Exception as e:
                 log.warning("groq stt failed, falling back to local: %s", e)
         import numpy as np
@@ -106,7 +109,7 @@ class Transcriber:
         if sr != 16000:
             idx = np.linspace(0, len(audio) - 1, int(len(audio) * 16000 / sr))
             audio = np.interp(idx, np.arange(len(audio)), audio).astype(np.float32)
-        return self._run(audio)
+        return self._run(audio, prompt)
 
     def transcribe_file(self, path: str) -> str:
         if self.cfg.stt_provider == "groq":
@@ -117,10 +120,44 @@ class Transcriber:
                 log.warning("groq stt failed, falling back to local: %s", e)
         return self._run(path)
 
-    def _run(self, audio) -> str:
+    def segments(self, path: str, progress=None) -> list[tuple[float, float, str]]:
+        """(start, end, text) for a whole recording (Notetaker). progress(fraction) is called as it goes."""
+        if self.cfg.stt_provider == "groq":
+            try:
+                return self._groq_segments(path)
+            except Exception as e:
+                log.warning("groq segments failed, falling back to local: %s", e)
+        model = self._local()
+        segs, info = model.transcribe(path, language=self._language(), beam_size=1, vad_filter=True,
+                                      condition_on_previous_text=False)
+        total = float(getattr(info, "duration", 0) or 0)
+        out = []
+        for s in segs:
+            if s.text.strip():
+                out.append((float(s.start), float(s.end), s.text.strip()))
+            if progress and total:
+                progress(min(1.0, float(s.end) / total))
+        return out
+
+    def _groq_segments(self, path: str) -> list[tuple[float, float, str]]:
+        import httpx
+
+        key = secrets.get("groq")
+        if not key:
+            raise RuntimeError("Groq API klíč není nastavený")
+        data = {"model": "whisper-large-v3-turbo", "response_format": "verbose_json"}
+        if self._language():
+            data["language"] = self._language()
+        with open(path, "rb") as f:
+            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+                           files={"file": ("audio.wav", f.read())}, data=data, timeout=600)
+        r.raise_for_status()
+        return [(float(s["start"]), float(s["end"]), s["text"].strip()) for s in r.json().get("segments", []) if s.get("text", "").strip()]
+
+    def _run(self, audio, prompt: str = "") -> str:
         model = self._local()
         segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
-                                          condition_on_previous_text=False)
+                                          condition_on_previous_text=False, initial_prompt=prompt or None)
         text = " ".join(s.text.strip() for s in segments).strip()
         from ..lang import detect
 

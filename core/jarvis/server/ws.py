@@ -27,6 +27,8 @@ CLIENT_TYPES = [
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
     "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
+    "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
+    "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -37,6 +39,7 @@ SERVER_TYPES = [
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
     "memory_export_data", "memory_import_result", "audio_devices",
     "diagnostics", "diagnostics_file",
+    "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -45,7 +48,8 @@ QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "windo
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
-              "skill_approve"}
+              "skill_approve", "dictation_delete", "dictation_clear",
+              "note_get", "note_delete", "note_start", "note_stop", "note_cancel"}
 
 
 class Connection:
@@ -120,7 +124,7 @@ class Connection:
                         timers=rt.timers.list(), voice=self._voice_status(),
                         pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current, task=rt.tasks.current,
                         local_missing=rt.local.missing,
-                        pet_mode=rt.cfg.character.pet_mode,
+                        pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         update=rt.updater.status if rt.updater else None)
 
     def _history(self, conv_id: str | None = None, before: float | None = None, limit: int = 60) -> list[dict]:
@@ -177,6 +181,34 @@ class Connection:
         elif t == "tasks_get":
             await self.send("tasks", items=rt.tasks.list(int(m.get("limit", 50)), m.get("q", ""), m.get("status", "")),
                             current=rt.tasks.current)
+        elif t == "dictation_get":
+            await self.send("dictation_data", stats=rt.dictation.stats(str(m.get("period", "month"))),
+                            history=rt.dictation.history(str(m.get("q", "")), int(m.get("limit", 200))) if self.local else [],
+                            state=rt.dictation.state)
+        elif t == "dictation_delete":
+            rt.dictation.delete(int(m.get("id", 0)))
+            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=rt.dictation.history(), state=rt.dictation.state)
+        elif t == "dictation_clear":
+            rt.dictation.clear()
+            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=[], state=rt.dictation.state)
+        elif t == "notes_get":
+            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
+        elif t == "note_get":
+            await self.send("note", note=rt.notetaker.get(str(m.get("id", ""))))
+        elif t == "note_delete":
+            rt.notetaker.delete(str(m.get("id", "")))
+            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
+        elif t in ("note_start", "note_stop", "note_cancel"):
+            res = rt.notetaker.start() if t == "note_start" else rt.notetaker.stop(cancel=t == "note_cancel")
+            if not res.get("ok"):
+                await self.send("error", message=res.get("message", ""))
+            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
+        elif t == "recap_get":
+            from ..dictation import recap
+
+            await self.send("recap", data=recap(rt), due=rt.recap_due())
+        elif t == "recap_seen":
+            rt.recap_seen()
         elif t == "task_get":
             await self.send("task", task=rt.tasks.get(m.get("id", "")))
         elif t == "task_pause":

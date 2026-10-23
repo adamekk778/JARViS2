@@ -9,6 +9,8 @@ import { stopButton } from "../shared/taskcard";
 import { buildTasks } from "./tasks";
 import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
+import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
+import { buildNotetaker } from "./notetaker";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
 
@@ -25,10 +27,11 @@ stopBtn.hidden = true;
 const BUSY = ["listening", "thinking", "working", "speaking", "waiting"];
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
   ["Hlavní", ["chat", "tasks", "voice-mode"]],
+  ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
 ];
@@ -36,6 +39,11 @@ const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
+  ["dictate", "microphone", "Diktování"],
+  ["notetaker", "record", "Nahrávání hovorů"],
+  ["stats", "chart-bar", "Statistiky"],
+  ["dictionary", "book-open", "Slovník a zkratky"],
+  ["dictation", "sliders", "Nastavení diktování"],
   ["general", "user-circle", "Obecné"],
   ["brain", "brain", "Mozek (AI)"],
   ["voice", "waveform", "Hlas"],
@@ -65,7 +73,11 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   tasks,
   "voice-mode": buildVoiceMode(client),
   diagnostics: buildDiagnostics(client, (text) => { go("chat"); client.send("user_text", { text, attachments: [] }); }),
+  dictate: buildDictation(client, (v) => go(v as View)),
+  stats: buildStats(client),
+  notetaker: buildNotetaker(client),
 };
+recapOverlay(client);
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
 
 const settingsUI = buildSettings(client, settingsHost);
@@ -97,6 +109,13 @@ const MOOD_TEXT: Record<string, string> = {
   dancing: "Tančím", joy: "Připraven", sleeping: "Odpočívám",
 };
 const statusText = h("span", { class: "brand-status" }, "Připojuji…");
+let lastSettings: any = null;
+let lastMood = "idle";
+function moodText(mood: string) {
+  lastMood = mood;
+  if ((mood === "idle" || mood === "joy") && lastSettings?.dictation?.enabled !== false) return `Připraven · drž ${dictKey(lastSettings)}`;
+  return MOOD_TEXT[mood] || "Připraven";
+}
 const palette = commandPalette({
   nav: NAV.map(([v, ic, label]) => ({ icon: ic, label, run: () => go(v) })),
   actions: [
@@ -133,7 +152,8 @@ client.onStatus((s) => {
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
   face.setMood(m.mood?.mood || "idle");
-  statusText.textContent = MOOD_TEXT[m.mood?.mood || "idle"] || "Připraven";
+  lastSettings = m.settings;
+  statusText.textContent = moodText(m.mood?.mood || "idle");
   versionText.textContent = m.version ? `JARVIS ${m.version}` : "";
   greet(m.settings?.general?.address_as || m.settings?.general?.user_name);
   if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined);
@@ -141,11 +161,11 @@ client.on("welcome", (m) => {
   voiceBtn.classList.toggle("on", !!m.voice?.listening);
   voiceBtn.hidden = !m.voice?.available;
 });
-client.on("settings_changed", (m) => { applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
+client.on("settings_changed", (m) => { lastSettings = m.settings; statusText.textContent = moodText(lastMood); applyAppearance(m.settings); if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
 client.on("mood", (m) => {
   face.setMood(m.mood, { badge: m.badge, progress: m.progress });
   stopBtn.hidden = !BUSY.includes(m.mood);
-  statusText.textContent = MOOD_TEXT[m.mood] || "Připraven";
+  statusText.textContent = moodText(m.mood);
   statusText.dataset.busy = String(BUSY.includes(m.mood));
 });
 client.on("stopped", () => toast("Zastaveno.", "ok"));

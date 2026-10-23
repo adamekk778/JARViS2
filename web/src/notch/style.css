@@ -274,3 +274,7 @@ html.native .notch:not([data-mode="closed"]):not([data-mode="hover"]) .n-inner {
 @media (prefers-reduced-motion: reduce) { .n-glow { animation: none !important; } .notch, .n-inner > * { transition-duration: .01s !important; } }
 :root[data-motion="reduced"] .n-glow { animation: none !important; }
 :root[data-motion="reduced"] .notch, :root[data-motion="reduced"] .n-inner > * { transition-duration: .01s !important; }
+
+/* 3.0 dictation anywhere: level meter in the activity capsule */
+.dbars { display: inline-flex; align-items: center; gap: 2px; height: 12px; }
+.dbars i { width: 3px; height: 12px; border-radius: 2px; background: var(--accent); transform: scaleY(.2); transition: transform .08s linear; }

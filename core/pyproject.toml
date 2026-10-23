@@ -45,6 +45,7 @@ desktop = [
   "playwright>=1.44",
   "matplotlib>=3.8",
   "send2trash>=1.8",
+  "soundcard>=0.4.6; sys_platform == 'win32'",
 ]
 voice = [
   "sounddevice>=0.4.6",

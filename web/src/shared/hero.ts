@@ -167,6 +167,11 @@ export function hero(spec: HeroSpec, title: string, subtitle: string | null, act
 
 /** Every page's colour and cast (the JARVIS window's palette). */
 export const HEROES: Record<string, HeroSpec> = {
+  dictate: { color: "#fb923c", cast: [{ color: "white", size: 62, start: 0.2 }, { color: "orange", size: 50, start: 0.65 }, { color: "rose", size: 42, start: 0.95 }] },
+  stats: { color: "#34d399", cast: [{ color: "amber", size: 60, start: 0.3 }, { color: "green", size: 48, start: 0.75 }, { color: "white", size: 40, start: 1 }] },
+  notetaker: { color: "#3b9eff", cast: [{ color: "blue", size: 58, start: 0.1 }, { color: "green", size: 48, start: 0.5 }, { color: "violet", size: 44, start: 0.9 }] },
+  dictation: { color: "#8e939c", cast: [{ color: "white", size: 56, start: 0.3 }, { color: "black", size: 46, start: 0.95, sleeps: true }] },
+  dictionary: { color: "#a78bfa", cast: [{ color: "violet", size: 58, start: 0.2 }, { color: "white", size: 46, start: 0.8 }] },
   chat: { color: "#4f8dff", cast: [{ color: "black", size: 58, start: 0.2 }, { color: "blue", size: 44, start: 0.7 }] },
   tasks: { color: "#34d399", cast: [{ color: "green", size: 52, start: 0.15 }, { color: "black", size: 60, start: 0.55 }, { color: "white", size: 40, start: 0.95 }] },
   "voice-mode": { color: "#f97316", cast: [{ color: "orange", size: 56, start: 0.3 }, { color: "black", size: 46, start: 0.85 }] },

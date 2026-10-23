@@ -293,6 +293,21 @@ class WindowsPlatform(Platform):
     def hotkey(self, keys):
         self._pg().hotkey(*[k.lower() for k in keys])
 
+    def foreground_app(self):
+        import ctypes
+        from ctypes import wintypes
+
+        import psutil
+
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        pid = wintypes.DWORD()
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        try:
+            name = psutil.Process(pid.value).name()
+        except Exception:
+            return ""
+        return friendly_app(name)
+
     # ---------- UI Automation ----------
     def ui_tree(self, window="", depth=4, limit=150):
         from . import uia_win
@@ -362,3 +377,17 @@ def png_bytes(img) -> bytes:
     buf = io.BytesIO()
     img.save(buf, "PNG")
     return buf.getvalue()
+
+
+APP_NAMES = {"chrome": "Chrome", "msedge": "Edge", "firefox": "Firefox", "brave": "Brave", "opera": "Opera",
+             "code": "VS Code", "cursor": "Cursor", "discord": "Discord", "whatsapp": "WhatsApp", "telegram": "Telegram",
+             "slack": "Slack", "teams": "Teams", "ms-teams": "Teams", "outlook": "Outlook", "olk": "Outlook",
+             "winword": "Word", "excel": "Excel", "powerpnt": "PowerPoint", "notepad": "Poznámkový blok",
+             "explorer": "Průzkumník", "windowsterminal": "Terminál", "spotify": "Spotify", "steam": "Steam",
+             "claude": "Claude", "jarvis": "JARVIS", "obsidian": "Obsidian", "notion": "Notion"}
+
+
+def friendly_app(exe: str) -> str:
+    base = exe.rsplit("\\", 1)[-1].lower().removesuffix(".exe")
+    return APP_NAMES.get(base, base[:1].upper() + base[1:])
+

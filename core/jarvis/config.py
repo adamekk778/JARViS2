@@ -162,6 +162,30 @@ class Character(BaseModel):
     pet_y: int = -1
 
 
+class Snippet(BaseModel):
+    trigger: str              # say this…
+    text: str                 # …and this whole text is pasted
+
+
+class Replacement(BaseModel):
+    src: str                  # what the recognizer writes
+    dst: str                  # what you want instead
+
+
+class Dictation(BaseModel):
+    """Hold a key anywhere, speak, let go: the words are pasted where you type (3.0)."""
+    enabled: bool = True
+    key: Literal["right ctrl", "right alt", "caps lock", "scroll lock", "f8", "f9", "f10"] = "right ctrl"
+    hands_free: bool = True           # tap twice: dictate without holding, tap once to paste
+    cleanup: Literal["off", "natural", "polished"] = "off"   # AI clean-up of what you said
+    keep_days: int = 30               # history (0 = keep nothing)
+    words: list[str] = Field(default_factory=list)            # names the recognizer must spell right
+    replacements: list[Replacement] = Field(default_factory=list)
+    snippets: list[Snippet] = Field(default_factory=list)
+    paste_again: str = "ctrl+alt+v"
+    sounds: bool = True
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -191,6 +215,7 @@ class Config(BaseModel):
     memory: MemoryCfg = Field(default_factory=MemoryCfg)
     permissions: Permissions = Field(default_factory=Permissions)
     agent: AgentCfg = Field(default_factory=AgentCfg)
+    dictation: Dictation = Field(default_factory=Dictation)
 
     @model_validator(mode="before")
     @classmethod

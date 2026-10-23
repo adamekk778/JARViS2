@@ -5,7 +5,7 @@ import type { JarvisClient } from "../shared/ws";
 
 export type Section =
   | "general" | "brain" | "voice" | "notch" | "appearance" | "hotkeys" | "permissions" | "tools" | "integrations"
-  | "phone" | "memory" | "jobs" | "backup";
+  | "phone" | "memory" | "jobs" | "backup" | "dictation" | "dictionary";
 
 const TITLES: Record<Section, [string, string, string]> = {
   general: ["user-circle", "Obecné", "Kdo jsi a jak se k tobě JARVIS chová."],
@@ -21,6 +21,8 @@ const TITLES: Record<Section, [string, string, string]> = {
   memory: ["database", "Paměť", "Co si o tobě JARVIS pamatuje."],
   jobs: ["calendar-check", "Rutiny a připomínky", "Naplánované úlohy. Vytváříš je hlasem nebo v chatu („každý den v 7:00 mi řekni počasí“)."],
   backup: ["floppy-disk", "Záloha", "Export a import nastavení a paměti."],
+  dictation: ["sliders", "Nastavení diktování", "Klávesa, diktování bez držení a úprava textu pomocí AI."],
+  dictionary: ["book-open", "Slovník a zkratky", "Jména, která má JARVIS psát správně, opravy a celé texty na jedno slovo."],
 };
 
 const TILE_NAMES: Record<string, string> = {
@@ -302,6 +304,58 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`)),
         characterCard()];
+    },
+
+    dictation: () => {
+      const keys: [string, string][] = [["right ctrl", "Pravý Ctrl"], ["right alt", "Pravý Alt"], ["caps lock", "Caps Lock"],
+        ["scroll lock", "Scroll Lock"], ["f8", "F8"], ["f9", "F9"], ["f10", "F10"]];
+      return [
+        card("Klávesy", null,
+          sw("dictation.enabled", "Diktovat kdekoli", "Drž klávesu v jakékoli aplikaci, mluv a pusť: text se vloží tam, kde píšeš."),
+          select("dictation.key", "Klávesa pro diktování", keys, "Když ji zmáčkneš spolu s jinou klávesou (třeba Ctrl+C), nic se nenahrává."),
+          sw("dictation.hands_free", "Bez držení", "Dvakrát ťukni, mluv jak dlouho chceš, jedním ťuknutím text vložíš."),
+          hotkey("dictation.paste_again", "Vložit poslední diktát znovu", "Když slova skončila na špatném místě."),
+          field("Zrušit diktát", h("span", { class: "keycaps" }, h("kbd", {}, "Esc")))),
+        card("Úprava textu pomocí AI", "Odstraní „ehm“, opakování a opravy, které uděláš při mluvení, a doplní interpunkci. Používá tvůj mozek (AI) z nastavení.",
+          select("dictation.cleanup", "Styl", [["off", "Jak řečeno"], ["natural", "Přirozeně"], ["polished", "Uhlazeně"]],
+            "Jak řečeno = přesně tvoje slova, nic se neposílá AI.")),
+        card("Soukromí", null,
+          select("dictation.keep_days", "Historie diktátů", [["0", "Neukládat"], ["7", "7 dní"], ["30", "30 dní"], ["365", "1 rok"]],
+            "Statistiky se počítají i bez historie. Všechno zůstává jen na tvém PC."),
+          h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Rozpoznávání řeči"),
+            h("span", {}, S.voice?.stt_provider === "groq" ? "Groq (cloud) – nastavíš v sekci Hlas" : "Lokálně, offline (Whisper) – nastavíš v sekci Hlas")))),
+      ];
+    },
+
+    dictionary: () => {
+      const D = S.dictation || {};
+      const words = h("textarea", { class: "input", rows: 4, placeholder: "Bartók\nOmniRoute\nŽaneta" }, (D.words || []).join("\n")) as HTMLTextAreaElement;
+      words.onchange = () => set("dictation.words", words.value.split("\n").map((w) => w.trim()).filter(Boolean));
+      const reps: any[] = D.replacements || [];
+      const repRows = reps.map((r, i) => {
+        const a = h("input", { class: "input", value: r.src, placeholder: "co slyší" }) as HTMLInputElement;
+        const b = h("input", { class: "input", value: r.dst, placeholder: "co napsat" }) as HTMLInputElement;
+        const save = () => set("dictation.replacements", reps.map((x, j) => (j === i ? { src: a.value, dst: b.value } : x)));
+        a.onchange = save; b.onchange = save;
+        return h("div", { class: "pair-row" }, a, icon("arrow-right"), b,
+          h("button", { class: "icon-btn sm", type: "button", "aria-label": "Smazat", onclick: () => set("dictation.replacements", reps.filter((_, j) => j !== i)) }, icon("x")));
+      });
+      const snips: any[] = D.snippets || [];
+      const snipRows = snips.map((sn, i) => {
+        const a = h("input", { class: "input", value: sn.trigger, placeholder: "když řeknu…" }) as HTMLInputElement;
+        const b = h("textarea", { class: "input", rows: 3, placeholder: "…vlož tenhle text" }, sn.text) as HTMLTextAreaElement;
+        const save = () => set("dictation.snippets", snips.map((x, j) => (j === i ? { trigger: a.value, text: b.value } : x)));
+        a.onchange = save; b.onchange = save;
+        return h("div", { class: "snip-row" }, h("div", { class: "snip-head" }, a,
+          h("button", { class: "icon-btn sm", type: "button", "aria-label": "Smazat", onclick: () => set("dictation.snippets", snips.filter((_, j) => j !== i)) }, icon("x"))), b);
+      });
+      return [
+        card("Slovník", "Jména a slova, která má rozpoznávání psát přesně takhle. Jedno na řádek.", field("Slova", words, "", true)),
+        card("Opravy", "Když JARVIS opakovaně napíše něco špatně, oprav to tady.",
+          ...repRows, h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: () => set("dictation.replacements", [...reps, { src: "", dst: "" }]) }, icon("plus"), "Přidat opravu"))),
+        card("Zkratky", "Řekni krátkou frázi a vloží se celý text – podpis, adresa, číslo účtu…",
+          ...snipRows, h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: () => set("dictation.snippets", [...snips, { trigger: "", text: "" }]) }, icon("plus"), "Přidat zkratku"))),
+      ];
     },
 
     hotkeys: () => [card("Klávesové zkratky", "Klikni na zkratku a stiskni nové klávesy. Esc zastaví JARVISe jen když mluví nebo pracuje.",

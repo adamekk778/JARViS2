@@ -12,7 +12,7 @@ PKGS = [
     "mouseinfo", "mss", "pyperclip", "pycaw", "comtypes", "winsdk", "uiautomation", "playwright", "keyring", "win32ctypes",
     "trafilatura", "justext", "lxml", "htmldate", "courlan", "dateparser", "ddgs", "primp", "yt_dlp",
     "pypdf", "docx", "openpyxl", "pptx", "PIL", "qrcode", "psutil",
-    "matplotlib", "numpy", "send2trash",
+    "matplotlib", "numpy", "send2trash", "soundcard", "cffi", "_cffi_backend",
 ]
 for pkg in PKGS:
     try:

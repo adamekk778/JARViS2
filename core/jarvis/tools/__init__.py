@@ -6,7 +6,7 @@ from .base import REGISTRY, ToolResult, ToolSpec, call, details_for, is_dangerou
 
 BUILTIN = ["apps", "web", "youtube", "media", "system", "windows", "files", "clipboard", "info", "weather",
            "shell", "screenshot", "timers", "phone", "settings", "memory_tools", "attachment_tools",
-           "computer_use", "browser", "code", "images", "schedule", "skills", "plan", "uia", "dev"]
+           "computer_use", "browser", "code", "images", "schedule", "skills", "plan", "uia", "dev", "notes"]
 
 
 def load_builtin() -> None:

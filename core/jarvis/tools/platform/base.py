@@ -42,6 +42,7 @@ class Platform:
     def set_mute(self, mute: bool) -> None: raise NotImplementedError
     def window_action(self, action: WindowAction, title: str = "") -> str: raise NotImplementedError
     def list_windows(self) -> list[str]: return []
+    def foreground_app(self) -> str: return ""  # friendly name of the app in front (dictation stats)
     def power(self, action: PowerAction) -> None: raise NotImplementedError
     def clipboard_get(self) -> str: raise NotImplementedError
     def clipboard_set(self, text: str) -> None: raise NotImplementedError

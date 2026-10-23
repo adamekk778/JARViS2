@@ -37,6 +37,7 @@ class NullPlatform(Platform):
     def move(self, x, y): self._rec("move", x, y)
     def type_text(self, text): self._rec("type_text", text)
     def hotkey(self, keys): self._rec("hotkey", tuple(keys))
+    def foreground_app(self): return getattr(self, "front_app", "Poznámkový blok")
     def scroll(self, dy): self._rec("scroll", dy)
     def notify(self, title, body): self._rec("notify", title, body)
     def release_all_input(self): self._rec("release_all_input")
