@@ -5,6 +5,10 @@ from .base import ToolResult, tool
 
 @tool("remember", "Zapamatuje si trvale fakt o uživateli (jméno, preference, důležité věci).", category="paměť")
 async def remember(ctx, fact: str) -> ToolResult:
+    from ..redact import looks_secret
+
+    if looks_secret(fact):
+        return ToolResult(False, "Hesla, PINy a klíče si z bezpečnostních důvodů nepamatuji.")
     ctx.memory.remember(fact)
     return ToolResult(True, f"Zapamatováno: {fact}")
 

@@ -9,7 +9,8 @@ import uuid
 from pathlib import Path
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS conversations (id TEXT PRIMARY KEY, title TEXT, created REAL, updated REAL);
+CREATE TABLE IF NOT EXISTS conversations (id TEXT PRIMARY KEY, title TEXT, created REAL, updated REAL,
+  folder TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, conv_id TEXT, role TEXT, content TEXT,
   attachments TEXT, source TEXT, created REAL, meta TEXT);
 CREATE INDEX IF NOT EXISTS ix_msg_conv ON messages(conv_id, created);
@@ -30,6 +31,10 @@ class DB:
         with self.lock:
             self.conn.executescript(SCHEMA)
             self.conn.execute("PRAGMA journal_mode=WAL")
+            cols = {r[1] for r in self.conn.execute("PRAGMA table_info(conversations)")}
+            if "folder" not in cols:  # 2.0 database
+                self.conn.execute("ALTER TABLE conversations ADD COLUMN folder TEXT DEFAULT ''")
+                self.conn.commit()
 
     def exec(self, sql: str, args: tuple = ()) -> sqlite3.Cursor:
         with self.lock:
@@ -61,7 +66,8 @@ class Memory:
     def new_conversation(self, title: str = "Nová konverzace") -> str:
         cid = uuid.uuid4().hex[:12]
         now = time.time()
-        self.db.exec("INSERT INTO conversations VALUES (?,?,?,?)", (cid, title, now, now))
+        self.db.exec("INSERT INTO conversations (id, title, created, updated, folder) VALUES (?,?,?,?,'')",
+                     (cid, title, now, now))
         self.db.exec("INSERT OR REPLACE INTO kv VALUES ('current_conv', ?)", (cid,))
         self.current_conversation = cid
         return cid
@@ -110,6 +116,66 @@ class Memory:
             self.db.exec("DELETE FROM messages WHERE id=?", (last["id"],))
         u = self.db.one("SELECT * FROM messages WHERE conv_id=? AND role='user' ORDER BY created DESC LIMIT 1", (cid,))
         return _msg(u) if u else None
+
+    def truncate_from(self, msg_id: str) -> dict | None:
+        """For editing a message: removes it and everything after it in its conversation; returns the removed one."""
+        row = self.db.one("SELECT * FROM messages WHERE id=?", (msg_id,))
+        if not row:
+            return None
+        self.db.exec("DELETE FROM messages WHERE conv_id=? AND created>=?", (row["conv_id"], row["created"]))
+        return _msg(row)
+
+    def rename(self, conv_id: str, title: str) -> bool:
+        title = (title or "").strip()[:120]
+        return bool(title) and self.db.exec("UPDATE conversations SET title=? WHERE id=?", (title, conv_id)).rowcount > 0
+
+    def move(self, conv_id: str, folder: str) -> bool:
+        return self.db.exec("UPDATE conversations SET folder=? WHERE id=?",
+                            ((folder or "").strip()[:60], conv_id)).rowcount > 0
+
+    def export(self, include_conversations: bool = False) -> dict:
+        import datetime as dt
+
+        out: dict = {"version": 1, "exported": dt.datetime.now().isoformat(timespec="seconds"),
+                     "facts": [{"text": f["text"], "created": f["created"]} for f in self.facts()]}
+        if include_conversations:
+            convs = []
+            for c in self.db.all("SELECT * FROM conversations ORDER BY created"):
+                msgs = self.db.all("SELECT role, content, created FROM messages WHERE conv_id=? ORDER BY created", (c["id"],))
+                convs.append({"id": c["id"], "title": c["title"], "folder": c.get("folder") or "", "created": c["created"],
+                              "messages": [{"role": m["role"], "text": m["content"], "ts": m["created"]} for m in msgs]})
+            out["conversations"] = convs
+        return out
+
+    def import_data(self, data: dict, merge: bool = True) -> dict:
+        if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("facts", []), list):
+            raise ValueError("Neplatný soubor paměti")
+        if not merge:
+            self.db.exec("DELETE FROM facts")
+        added = skipped = convs = 0
+        for f in data.get("facts", []):
+            text = (f.get("text") if isinstance(f, dict) else str(f) if f else "") or ""
+            if not text.strip():
+                continue
+            if self.db.one("SELECT id FROM facts WHERE text=?", (text,)):
+                skipped += 1
+            else:
+                self.db.exec("INSERT INTO facts(text, created) VALUES (?,?)",
+                             (text, (f.get("created") if isinstance(f, dict) else None) or time.time()))
+                added += 1
+        for c in data.get("conversations") or []:
+            cid = str(c.get("id") or uuid.uuid4().hex[:12])
+            if self.db.one("SELECT id FROM conversations WHERE id=?", (cid,)):
+                continue
+            created = c.get("created") or time.time()
+            self.db.exec("INSERT INTO conversations (id, title, created, updated, folder) VALUES (?,?,?,?,?)",
+                         (cid, c.get("title") or "Importováno", created, created, c.get("folder") or ""))
+            for m in c.get("messages") or []:
+                self.db.exec("INSERT INTO messages VALUES (?,?,?,?,?,?,?,?)",
+                             (uuid.uuid4().hex[:16], cid, m.get("role", "user"), m.get("text", ""), "[]", "import",
+                              m.get("ts") or created, "{}"))
+            convs += 1
+        return {"facts_added": added, "facts_skipped": skipped, "conversations_added": convs}
 
     def list_conversations(self, limit: int = 100) -> list[dict]:
         return self.db.all("SELECT * FROM conversations ORDER BY updated DESC LIMIT ?", (limit,))

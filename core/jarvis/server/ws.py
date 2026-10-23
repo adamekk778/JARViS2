@@ -25,6 +25,7 @@ CLIENT_TYPES = [
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
     "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
+    "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -33,6 +34,7 @@ SERVER_TYPES = [
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
+    "memory_export_data", "memory_import_result",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -40,7 +42,7 @@ QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "windo
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
-              "local_unload", "local_gpu_test"}
+              "local_unload", "local_gpu_test", "memory_import"}
 
 
 class Connection:
@@ -201,6 +203,34 @@ class Connection:
                 msg = await rt.local.gpu_test()
                 await self.send("local_info", **await rt.local.status(), gpu_message=msg)
             self.spawn(gpu())
+        elif t == "message_edit":
+            if rt.agent.busy:
+                await self.send("error", message="Počkej, až JARVIS dokončí odpověď.")
+                return
+            text = (m.get("text") or "").strip()
+            row = rt.memory.db.one("SELECT role FROM messages WHERE id=?", (m.get("id", ""),))
+            if not text or not row or row["role"] != "user":
+                await self.send("error", message="Tuhle zprávu nejde upravit.")
+                return
+            old = rt.memory.truncate_from(m["id"])
+            rt.bus.publish("history", conversation=rt.memory.current_conversation, messages=self._history())
+            self.spawn(rt.agent.handle(text, [a for a in old["attachments"] if rt.store.get(a)], self._source()))
+        elif t in ("conversation_rename", "conversation_move"):
+            if t == "conversation_rename":
+                rt.memory.rename(m.get("id", ""), m.get("title", ""))
+            else:
+                rt.memory.move(m.get("id", ""), m.get("folder", ""))
+            rt.bus.publish("conversations", items=rt.memory.list_conversations(), current=rt.memory.current_conversation)
+        elif t == "memory_export":
+            await self.send("memory_export_data", data=rt.memory.export(bool(m.get("conversations"))))
+        elif t == "memory_import":
+            try:
+                res = rt.memory.import_data(m.get("data") or {}, bool(m.get("merge", True)))
+            except ValueError as e:
+                await self.send("error", message=str(e))
+                return
+            await self.send("memory_import_result", **res)
+            rt.bus.publish("memory", facts=rt.memory.facts())
         elif t == "quick_action":
             name = m.get("action", "")
             if name not in QUICK_ACTIONS:
