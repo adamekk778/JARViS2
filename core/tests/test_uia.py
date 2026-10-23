@@ -66,11 +66,16 @@ async def test_screen_capture_events(ctx):
     assert [e["active"] for e in ev] == [True, False]
 
 
-def test_selftest_uia_skips_off_windows(capsys):
+def test_selftest_uia(capsys):
+    """Off Windows the selftest reports 'skipped'; on Windows it lists real windows (or skips without a desktop)."""
     import json
+    import sys
 
     from jarvis.__main__ import main
 
     assert main(["--selftest-uia"]) == 0
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
-    assert "skipped" in out
+    if sys.platform == "win32":
+        assert "skipped" in out or (out["windows"] and "nodes" in out)
+    else:
+        assert "skipped" in out
