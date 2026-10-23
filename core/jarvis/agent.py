@@ -34,6 +34,9 @@ TOOL_LABELS = {
     "browser_open": "Otevírám stránku", "browser_click": "Klikám v prohlížeči", "browser_type": "Píšu do prohlížeče",
     "ui_click": "Klikám", "ui_type": "Píšu do aplikace", "ui_inspect": "Prohlížím okno", "ui_read": "Čtu okno",
     "ui_wait": "Čekám na okno", "mouse": "Myš", "move_files": "Přesouvám soubory", "update_plan": "Plán",
+    "git_status": "Git stav", "git_diff": "Git změny", "git_commit": "Git commit", "git_push": "Git push",
+    "checkpoint": "Záchytný bod", "restore_checkpoint": "Obnovuji záchytný bod", "compare_files": "Porovnávám soubory",
+    "run_tests": "Spouštím testy", "claude_code": "Claude Code",
 }
 
 

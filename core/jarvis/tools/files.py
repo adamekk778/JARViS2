@@ -75,6 +75,9 @@ async def read_text_file(ctx, path: str, max_chars: int = 15000) -> ToolResult:
 @tool("write_text_file", "Vytvoří nebo přepíše textový soubor na PC.", danger_if=lambda a: Path(resolve(a.get("path", ""))).exists(),
       category="soubory")
 async def write_text_file(ctx, path: str, content: str) -> ToolResult:
+    from .dev import auto_checkpoint
+
+    await asyncio.to_thread(auto_checkpoint, ctx, resolve(path))
     p = resolve(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content, encoding="utf-8")
@@ -124,6 +127,10 @@ async def move_files(ctx, moves: Annotated[list[dict], "seznam {src, dst} – ce
                 failed.append(f"{src}: {e}")
         return moved, failed
 
+    from .dev import auto_checkpoint
+
+    for m in moves[:1]:
+        await asyncio.to_thread(auto_checkpoint, ctx, resolve(str(m.get("src", ""))))
     moved, failed = await asyncio.to_thread(run)
     summary = f"Přesunuto {moved} z {len(moves)}" + (f", selhalo {len(failed)}" if failed else "")
     return ToolResult(not failed, summary, data={"moved": moved, "failed": failed})

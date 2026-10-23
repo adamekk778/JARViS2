@@ -142,7 +142,12 @@ def unregister_source(source: str) -> None:
         del REGISTRY[k]
 
 
+NEVER_TRUSTED = {"claude_code", "delete_file"}   # always confirmed, even when the user marked them trusted
+
+
 def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), trusted: list[str] = ()) -> bool:
+    if spec.name in NEVER_TRUSTED:
+        return True
     if spec.name in trusted:
         return False
     if spec.name in always_confirm:
