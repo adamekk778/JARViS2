@@ -10,6 +10,7 @@ import httpx
 from . import config as config_mod
 from . import paths, redact, secrets, tools
 from .agent import Agent
+from .llm.local import LocalManager
 from .tasks import TaskManager
 from .attachments import AttachmentStore
 from .events import Bus
@@ -38,6 +39,7 @@ class Runtime:
         self.router = Router(self.cfg.brain, secrets.get, llm_transport)
         self.agent = Agent(self)
         self.tasks = TaskManager(self)
+        self.local = LocalManager(self)
         self.timers = Timers(self._timer_fired)
         self.voice: Any = None        # voice.loop.VoiceLoop when available
         self.speaker: Any = None      # voice.tts.Speaker
@@ -119,7 +121,13 @@ class Runtime:
         return httpx.AsyncClient(transport=self.transport, follow_redirects=True)
 
     def update_config(self, patch: dict) -> config_mod.Config:
+        was_local = self.cfg.brain.local_enabled
         self.cfg = config_mod.apply_patch(self.cfg, patch)
+        if was_local and not self.cfg.brain.local_enabled:
+            try:
+                asyncio.get_running_loop().create_task(self.local.unload())
+            except RuntimeError:
+                pass
         if self.persist_config:
             config_mod.save(self.cfg)
         self.router.update(self.cfg.brain)

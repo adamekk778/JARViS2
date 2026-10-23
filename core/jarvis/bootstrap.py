@@ -40,7 +40,8 @@ def ensure_omniroute(base_url: str) -> str:
     return "nepodařilo se spustit"
 
 
-def ensure_ollama_model(base_url: str, model: str) -> str:
+def ensure_ollama_model(base_url: str, model: str, publish=None) -> str:
+    """Starts Ollama if installed. Never downloads a model: a missing one is reported to the UI (spec §5.4)."""
     root = base_url.rstrip("/").removesuffix("/v1")
     if not _up(root + "/api/tags"):
         exe = shutil.which("ollama")
@@ -56,11 +57,12 @@ def ensure_ollama_model(base_url: str, model: str) -> str:
     tags = httpx.get(root + "/api/tags", timeout=5).json().get("models", [])
     if any(t.get("name", "").split(":latest")[0] == model.split(":latest")[0] for t in tags):
         return "připraveno"
-    log.info("pulling ollama model %s (first run)", model)
-    with httpx.stream("POST", root + "/api/pull", json={"model": model}, timeout=None) as r:
-        for _ in r.iter_lines():
-            pass
-    return "staženo"
+    from .llm.local import MODELS
+
+    size = next((m["size_gb"] for m in MODELS if m["name"] == model), None)
+    if publish:
+        publish("local_model_missing", name=model, size_gb=size)
+    return "chybí model"
 
 
 def start_background(rt) -> None:
@@ -71,8 +73,9 @@ def start_background(rt) -> None:
             try:
                 if p.preset == "omniroute":
                     log.info("omniroute: %s", ensure_omniroute(p.base_url or "http://localhost:20128/v1"))
-                elif p.preset == "ollama":
-                    log.info("ollama: %s", ensure_ollama_model(p.base_url or "http://localhost:11434", p.model or "qwen2.5:3b"))
+                elif p.preset == "ollama" and rt.cfg.brain.local_enabled:
+                    log.info("ollama: %s", ensure_ollama_model(p.base_url or "http://localhost:11434",
+                                                               p.model or "qwen2.5:3b", rt.bus.publish_threadsafe))
             except Exception as e:
                 log.warning("bootstrap %s: %s", p.id, e)
 

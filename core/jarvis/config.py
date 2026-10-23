@@ -47,6 +47,9 @@ class Brain(BaseModel):
     max_tokens: int = 2048
     offline_only: bool = False
     first_token_timeout: float = 15.0
+    local_enabled: bool = True     # off: local models (Ollama, LM Studio) are skipped and unloaded
+    local_mode: Literal["eco", "balanced", "performance"] = "balanced"
+    local_gpu: str = ""            # result of the last GPU test: "gpu" | "cpu" | ""
 
 
 class Voice(BaseModel):

@@ -40,17 +40,22 @@ def to_ollama_messages(messages: list[dict]) -> list[dict]:
 
 class Ollama:
     def __init__(self, id: str, base_url: str, model: str, *, temperature: float = 0.6,  # noqa: A002
-                 transport: httpx.AsyncBaseTransport | None = None, timeout: float = 300.0, **_):
+                 transport: httpx.AsyncBaseTransport | None = None, timeout: float = 300.0,
+                 options: dict | None = None, keep_alive: str | None = None, **_):
         self.id = id
         self.base_url = base_url.rstrip("/").removesuffix("/v1")
         self.model = model
         self.temperature = temperature
         self._transport = transport
         self._timeout = timeout
+        self.options = options or {}
+        self.keep_alive = keep_alive
 
     async def stream(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> AsyncIterator[Chunk]:
         body: dict = {"model": model or self.model, "messages": to_ollama_messages(messages), "stream": True,
-                      "options": {"temperature": self.temperature}}
+                      "options": {"temperature": self.temperature, **self.options}}
+        if self.keep_alive:
+            body["keep_alive"] = self.keep_alive
         if tools:
             body["tools"] = tools
         calls: list[ToolCall] = []

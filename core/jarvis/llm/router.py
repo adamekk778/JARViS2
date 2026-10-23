@@ -20,7 +20,13 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
     base = p.base_url or PRESETS.get(p.preset, {}).get("base_url", "")
     model = p.model or PRESETS.get(p.preset, {}).get("model", "")
     if p.preset == "ollama":
-        return Ollama(p.id, base, model, temperature=brain.temperature, transport=transport)
+        import os
+
+        from .local import mode_options
+
+        options, keep_alive = mode_options(brain.local_mode, os.cpu_count() or 4)
+        return Ollama(p.id, base, model, temperature=brain.temperature, transport=transport, options=options,
+                      keep_alive=keep_alive)
     return OpenAICompat(p.id, base, model, api_key, temperature=brain.temperature,
                         max_tokens=brain.max_tokens, transport=transport)
 
@@ -59,6 +65,8 @@ class Router:
         order += [p for p in by_id.values() if p not in order]
         if self.brain.offline_only:
             order = [p for p in order if PRESETS.get(p.preset, {}).get("local")]
+        if not self.brain.local_enabled:
+            order = [p for p in order if not PRESETS.get(p.preset, {}).get("local")]
         return order
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,

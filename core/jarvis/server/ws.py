@@ -24,6 +24,7 @@ CLIENT_TYPES = [
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
     "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+    "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -31,14 +32,15 @@ SERVER_TYPES = [
     "media", "history", "conversations", "settings", "provider_test_result", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
-    "tasks", "task", "stopped", "screen_capture",
+    "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
-              "update_install", "tasks_clear"}
+              "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
+              "local_unload", "local_gpu_test"}
 
 
 class Connection:
@@ -57,6 +59,10 @@ class Connection:
     async def send(self, type: str, **data) -> None:  # noqa: A002
         async with self.send_lock:
             await self.ws.send_json({"type": type, **data})
+
+    async def _local_then_status(self, coro) -> None:
+        await coro
+        await self.send("local_info", **await self.rt.local.status())
 
     def spawn(self, coro) -> None:
         t = asyncio.get_running_loop().create_task(coro)
@@ -178,6 +184,23 @@ class Connection:
         elif t == "tasks_clear":
             rt.tasks.clear()
             await self.send("tasks", items=rt.tasks.list(), current=rt.tasks.current)
+        elif t == "local_status":
+            await self.send("local_info", **await rt.local.status())
+        elif t == "local_pull":
+            name = m.get("name", "")
+            if name:
+                self.spawn(self._local_then_status(rt.local.pull(name)))
+        elif t == "local_pull_cancel":
+            rt.local.cancel_pull()
+        elif t == "local_delete":
+            self.spawn(self._local_then_status(rt.local.delete(m.get("name", ""))))
+        elif t == "local_unload":
+            self.spawn(self._local_then_status(rt.local.unload()))
+        elif t == "local_gpu_test":
+            async def gpu():
+                msg = await rt.local.gpu_test()
+                await self.send("local_info", **await rt.local.status(), gpu_message=msg)
+            self.spawn(gpu())
         elif t == "quick_action":
             name = m.get("action", "")
             if name not in QUICK_ACTIONS:
