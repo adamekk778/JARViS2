@@ -33,3 +33,51 @@ def ctx(tmp_path):
     ns.notify = notify
     ns.update_config = lambda patch: setattr(ns, "cfg", config.apply_patch(ns.cfg, patch))
     return ns
+
+
+class FakeRouter:
+    """Scripted LLM: each item is a str (answer) or list[(name, args)] (tool calls) or an Exception."""
+
+    def __init__(self, script):
+        self.script = list(script)
+        self.calls = []
+        self.last_used = ("fake", "fake-model")
+
+    def update(self, brain):
+        pass
+
+    async def stream(self, messages, tools, need_vision=False, fast=False):
+        from jarvis.llm.base import Chunk, ToolCall
+
+        self.calls.append({"messages": messages, "tools": tools, "need_vision": need_vision})
+        item = self.script.pop(0) if self.script else "konec"
+        if isinstance(item, Exception):
+            raise item
+        if isinstance(item, str):
+            for w in item.split(" "):
+                yield Chunk(text=w + " ")
+            yield Chunk(done=True)
+        else:
+            yield Chunk(tool_calls=[ToolCall(id=f"c{i}", name=n, arguments=a) for i, (n, a) in enumerate(item)], done=True)
+
+    async def complete(self, messages, need_vision=False, fast=False):
+        out = ""
+        async for ch in self.stream(messages, None, need_vision):
+            out += ch.text
+        return out
+
+
+@pytest.fixture
+def rt():
+    from jarvis.runtime import Runtime
+    from jarvis.tools.platform.null import NullPlatform
+
+    r = Runtime(platform=NullPlatform(), persist_config=False)
+    return r
+
+
+def drain(q):
+    out = []
+    while not q.empty():
+        out.append(q.get_nowait())
+    return out
