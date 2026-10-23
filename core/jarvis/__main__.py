@@ -132,6 +132,17 @@ def main(argv: list[str] | None = None) -> int:
         sys.argv = argv[1:]
         runpy.run_path(argv[1], run_name="__main__")
         return 0
+    if argv[:1] == ["--bench"]:  # CI / diagnostics: idle cost of the core, printed as JSON
+        import json
+
+        from . import diagnostics
+
+        secs = int(argv[1]) if len(argv) > 1 and argv[1].isdigit() else 30
+        res = diagnostics.bench(secs)
+        print(json.dumps(res))
+        if "--bench-gate" in argv and not diagnostics.gate(res):
+            return 1
+        return 0
     if argv[:1] == ["--selftest-uia"]:  # CI: is UI Automation packaged and working?
         import json
 

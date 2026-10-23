@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
+from collections import defaultdict, deque
 from typing import AsyncIterator, Callable
 
 import httpx
@@ -55,6 +57,7 @@ class Router:
         self.no_vision: set[str] = set()
         self.last_used: tuple[str, str] | None = None
         self.last_errors: dict[str, str] = {}
+        self.ttft: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))  # ms to first token, per provider
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -88,7 +91,9 @@ class Router:
                 started = False
                 try:
                     agen = prov.stream(msgs, use_tools, model=model)
+                    t_req = time.monotonic()
                     first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
+                    self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
                     started = True
                     self.last_used = (pcfg.id, model or prov.model)
                     yield first
