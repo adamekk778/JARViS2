@@ -111,6 +111,20 @@ jobs:
             [DllImport("user32.dll")] public static extern int GetWindowRgnBox(IntPtr h, out RECT r);
             [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
             [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+            public delegate bool EnumProc(IntPtr h, IntPtr l);
+            [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l);
+            [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n);
+            [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+            // the notch: a visible window of this process whose title contains "Notch"
+            public static IntPtr Notch(uint pid, System.Collections.Generic.List<string> seen) {
+              IntPtr found = IntPtr.Zero;
+              EnumWindows((h, l) => { uint p; GetWindowThreadProcessId(h, out p);
+                if (p == pid && IsWindowVisible(h)) { var sb = new System.Text.StringBuilder(256); GetWindowText(h, sb, 256);
+                  seen.Add(sb.ToString()); if (sb.ToString().Contains("Notch")) { found = h; return false; } }
+                return true; }, IntPtr.Zero);
+              return found;
+            }
           }
           "@
           function Shot($name) {
@@ -121,7 +135,9 @@ jobs:
             $bmp.Save("$shots\$name.png")
           }
           function Region($label) {
-            $h = [W]::FindWindow($null, "JARVIS Notch")
+            $seen = New-Object 'System.Collections.Generic.List[string]'
+            $h = [W]::Notch([uint32]$p.Id, $seen)
+            if ($h -eq [IntPtr]::Zero) { Write-Host "windows of JARVIS: $($seen -join ' | ')" }
             $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
             $rr = New-Object W+RECT; $kind = [W]::GetWindowRgnBox($h, [ref]$rr)
             $line = "$label hwnd=$h window=($($wr.L),$($wr.T))-($($wr.R),$($wr.B)) regionKind=$kind box=($($rr.L),$($rr.T))-($($rr.R),$($rr.B))"
@@ -138,7 +154,7 @@ jobs:
           foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
-          if ($k1 -lt 2) { Write-Host "::warning::the notch window has no region (box around the notch)" }
+          if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }
