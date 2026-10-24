@@ -14,7 +14,7 @@ html.notch-doc.demo body { background: linear-gradient(180deg, #1d2836 0%, #3b4a
 }
 .notch::before, .notch::after {
   content: ""; position: absolute; top: 0; width: 14px; height: 14px; pointer-events: none; z-index: 2;
-  background: radial-gradient(circle at var(--cx) 100%, transparent 13.5px, var(--ink) 14px);
+  background: radial-gradient(circle at var(--cx) 100%, transparent 13px, var(--ink) 14px);   /* 1 px ramp = anti-aliased curve */
 }
 .notch::before { left: -14px; --cx: 0%; }
 .notch::after { right: -14px; --cx: 100%; }
@@ -298,8 +298,13 @@ html.notch-doc.native, html.notch-doc.native body { background: #000 !important;
 html.notch-doc.native.alpha, html.notch-doc.native.alpha body { background: transparent !important; }
 
 /* the closed notch shows the WHOLE character, small; it grows into place when the notch opens */
-.n-blob { transform-origin: 50% 0; transition: top .5s var(--spring), left .5s var(--spring), transform .5s var(--spring), opacity .25s var(--ease); }
-.notch[data-mode="closed"] .n-blob, .notch[data-mode="hover"] .n-blob { top: 1px; transform: translateX(-50%) scale(.52); }
+/* 3.1: drawn at its real small size (the vector is re-rendered sharp) instead of shrinking a bitmap with scale() */
+.n-blob { transform-origin: 50% 0; transition: top .5s var(--spring), left .5s var(--spring), transform .45s var(--spring), opacity .25s var(--ease); }
+.n-blob .blob { transition: --blob-size .5s var(--spring); }
+.notch[data-mode="closed"] .n-blob, .notch[data-mode="hover"] .n-blob { top: 1px; transform: translateX(-50%); }
+.notch[data-mode="closed"] .n-blob .blob, .notch[data-mode="hover"] .n-blob .blob { --blob-size: 33px !important; }
+/* keep the rim light about one screen pixel wide when small (2.2 of 200 units would be a broken 0.4 px line) */
+.notch[data-mode="closed"] .blob-rim, .notch[data-mode="hover"] .blob-rim { stroke-width: 6; }
 .notch[data-mood="dancing"][data-mode="closed"] .n-blob { top: 0; }
 .notch.has-act[data-mode="closed"] .n-blob { left: 22%; }
 /* the content of each mode slides in a beat after the shape starts to grow */

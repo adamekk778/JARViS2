@@ -1,3 +1,5 @@
+/* animatable size: the notch grows the character by re-rendering the vector, never by scaling a bitmap */
+@property --blob-size { syntax: "<length>"; inherits: true; initial-value: 120px; }
 .blob {
   --blob-size: 120px;
   --blob-glow: #4f8dff;
