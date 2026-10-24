@@ -145,13 +145,42 @@ jobs:
             Write-Host $line; Add-Content "$shots\region.txt" $line
             return $kind
           }
+          function Zoom($label) {
+            # the notch window enlarged 6x without smoothing: jagged steps vs. anti-aliased edges are plain to see
+            $seen = New-Object 'System.Collections.Generic.List[string]'
+            $h = [W]::Notch([uint32]$p.Id, $seen)
+            $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
+            $w = $wr.R - $wr.L; $hh = [Math]::Min(140, $wr.B - $wr.T)
+            if ($w -le 0 -or $hh -le 0) { return }
+            $src = New-Object System.Drawing.Bitmap $w, $hh
+            [System.Drawing.Graphics]::FromImage($src).CopyFromScreen($wr.L, $wr.T, 0, 0, $src.Size)
+            # edge pixels that are neither the black notch nor the pink backdrop = anti-aliasing
+            $aa = 0
+            for ($y = 0; $y -lt $hh; $y++) { for ($x = 0; $x -lt $w; $x++) { $c = $src.GetPixel($x, $y)
+              if ($c.R -gt 40 -and $c.R -lt 215 -and [Math]::Abs($c.G - $c.R * 0.2) -lt 30 -and [Math]::Abs($c.B - $c.R * 0.4) -lt 30) { $aa++ } } }
+            $big = New-Object System.Drawing.Bitmap ($w * 6), ($hh * 6)
+            $g = [System.Drawing.Graphics]::FromImage($big)
+            $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+            $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+            $g.DrawImage($src, 0, 0, $big.Width, $big.Height); $big.Save("$shots\zoom-$label.png")
+            $line = "zoom $label antialiased-edge-pixels=$aa"; Write-Host $line; Add-Content "$shots\region.txt" $line
+          }
+          # a bright backdrop under the notch (black consoles would hide jagged or smooth edges alike)
+          $bd = New-Object System.Windows.Forms.Form
+          $bd.FormBorderStyle = 'None'; $bd.BackColor = [System.Drawing.Color]::FromArgb(255, 255, 51, 102); $bd.ShowInTaskbar = $false
+          $bd.StartPosition = 'Manual'; $bd.Bounds = New-Object System.Drawing.Rectangle 0, 0, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, 320
+          $bd.Show(); [System.Windows.Forms.Application]::DoEvents()
           $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
-          [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
-          Shot "1-closed"; $k1 = Region "closed"
+          [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2; [System.Windows.Forms.Application]::DoEvents()
+          Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"
           [W]::SetCursorPos([int]($sw / 2), 8) | Out-Null; Start-Sleep -Milliseconds 1500
-          Shot "2-hover"; $k2 = Region "hover"
+          [System.Windows.Forms.Application]::DoEvents()
+          Shot "2-hover"; $k2 = Region "hover"; Zoom "hover"
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
           Shot "3-after"; $k3 = Region "after"
+          $bd.Close()
+          $smooth = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "smooth edges" -ErrorAction SilentlyContinue | Select-Object -Last 1
+          $line = "smooth: $smooth"; Write-Host $line; Add-Content "$shots\region.txt" $line
           # 3.1: "Otevřít celý chat" creates a maximized window after start-up
           Invoke-RestMethod -Method Post "http://127.0.0.1:8765/api/show?view=full" | Out-Null
           $full = [IntPtr]::Zero; $seen = New-Object 'System.Collections.Generic.List[string]'

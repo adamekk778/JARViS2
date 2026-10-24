@@ -16,15 +16,16 @@ const scale = (poly: Pt[], k: number): Poly => poly.map(([x, y]) => [Math.round(
 const D = Math.PI / 180;
 
 /** Notch: flat top with concave "ears" on both sides, rounded bottom corners. */
-export function notchOutline(r: DOMRect, radius: number, ear: number, dpr: number): Poly {
-  const L = r.left, R = r.right, T = r.top, B = r.bottom;
-  const rad = Math.max(0, Math.min(radius, (B - T) / 2, (R - L) / 2));
+export function notchOutline(r: DOMRect, radius: number, ear: number, dpr: number, pad = 0): Poly {
+  // pad > 0: the window is per-pixel transparent, the region only catches the mouse, so it may hug the shape loosely
+  const L = r.left - pad, R = r.right + pad, T = r.top, B = r.bottom + pad;
+  const rad = Math.max(0, Math.min(radius + pad, (B - T) / 2, (R - L) / 2));
   const pts: Pt[] = [
     [L - ear, T], [R + ear, T],
-    ...arc(R + ear, T + ear, ear, -90 * D, -180 * D, 6),   // right ear (concave)
-    ...arc(R - rad, B - rad, rad, 0, 90 * D, 8),            // bottom-right corner
-    ...arc(L + rad, B - rad, rad, 90 * D, 180 * D, 8),      // bottom-left corner
-    ...arc(L - ear, T + ear, ear, 0, -90 * D, 6),           // left ear (concave)
+    ...arc(R + ear, T + ear, ear, -90 * D, -180 * D, 12),  // right ear (concave)
+    ...arc(R - rad, B - rad, rad, 0, 90 * D, 18),           // bottom-right corner
+    ...arc(L + rad, B - rad, rad, 90 * D, 180 * D, 18),     // bottom-left corner
+    ...arc(L - ear, T + ear, ear, 0, -90 * D, 12),          // left ear (concave)
   ];
   return scale(pts, dpr);
 }

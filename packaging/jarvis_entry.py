@@ -32,7 +32,10 @@ def _dpi_aware():
     import ctypes
 
     try:
-        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))  # DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
+        # per-monitor v2: sharp on every monitor and after a scaling change (pywebview sizes windows per monitor);
+        # system aware where that is not available
+        u = ctypes.windll.user32
+        u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)) or u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))
     except Exception:
         try:
             ctypes.windll.user32.SetProcessDPIAware()

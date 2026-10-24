@@ -26,7 +26,18 @@ const params = new URLSearchParams(location.search);
 const demo = params.get("demo") as Mode | null;
 const demoMood = params.get("mood") as Mood | null;
 const client = new JarvisClient(localEndpoint(), "notch", "notch");
-window.addEventListener("pywebviewready", () => document.documentElement.classList.add("native"));
+window.addEventListener("pywebviewready", () => {
+  document.documentElement.classList.add("native");
+  Promise.resolve((window as any).pywebview?.api?.smooth?.()).then((on) => on && setAlpha(true)).catch(() => {});
+});
+// 3.1: the host made the window per-pixel transparent → paint only the shape, anti-aliased against the desktop
+let regionPad = 0;
+function setAlpha(on: boolean) {
+  document.documentElement.classList.toggle("alpha", on);
+  regionPad = on ? 2 : 0;
+  syncRegion();
+}
+(window as any).__notchAlpha = setAlpha;
 if (window.pywebview) document.documentElement.classList.add("native");
 
 let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6 };
@@ -147,7 +158,7 @@ function syncRegion() {
   const box = shape.getBoundingClientRect();
   const cx = box.left + box.width / 2;
   const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
-  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1)]);
+  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1, regionPad)]);
 }
 function setBox(w: number, hh: number) {
   if (w === boxW && hh === boxH) return;

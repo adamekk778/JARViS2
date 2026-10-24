@@ -73,3 +73,11 @@ def test_window_handle_prefers_own_native_handle(monkeypatch):
     native = SimpleNamespace(native=SimpleNamespace(Handle=SimpleNamespace(ToInt64=lambda: 31337)))
     assert winutil.window_handle(native, "JARVIS Notch") == 31337
     assert winutil.window_handle(SimpleNamespace(), "JARVIS Notch") == 777   # no native handle → own-process lookup
+
+
+def test_smooth_edges_is_safe_off_windows_and_on_by_default():
+    from jarvis import config
+    from jarvis.desktop import winutil
+
+    assert winutil.enable_alpha(0) is False   # no window, no change (and off Windows it never touches DWM)
+    assert config.Config().notch.smooth_edges is True

@@ -129,7 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         import ctypes
 
         try:
-            ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))
+            u = ctypes.windll.user32   # per-monitor v2, else system aware (already set by the frozen entry → no-op)
+            u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)) or u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))
         except Exception:
             pass
     argv = sys.argv[1:] if argv is None else argv

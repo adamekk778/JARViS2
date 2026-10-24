@@ -87,6 +87,7 @@ class Notch(BaseModel):
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
     pinned: bool = False   # big panel stays open (also after restart)
+    smooth_edges: bool = True   # per-pixel alpha (anti-aliased curves); False = the 3.0 hard-edged window region
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
 

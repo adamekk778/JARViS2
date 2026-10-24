@@ -211,3 +211,26 @@ def cursor_over(hwnd: int) -> bool:
         return False
     under = u.WindowFromPoint(pt)
     return bool(under) and (under == hwnd or bool(u.IsChild(hwnd, under)))
+
+
+def enable_alpha(hwnd: int) -> bool:
+    """Per-pixel transparency for a top-level window: DWM "blur behind" with an empty blur area. Nothing is blurred,
+    but DWM now honours the alpha channel, so a transparent WebView2 shows the desktop through it with
+    anti-aliased edges (a window region can only cut whole pixels, which makes curves jagged)."""
+    if not IS_WIN or not hwnd:
+        return False
+
+    class DWM_BLURBEHIND(ctypes.Structure):
+        _fields_ = [("dwFlags", ctypes.c_uint32), ("fEnable", ctypes.c_int), ("hRgnBlur", ctypes.c_void_p),
+                    ("fTransitionOnMaximized", ctypes.c_int)]
+
+    g = ctypes.windll.gdi32
+    g.CreateRectRgn.restype = ctypes.c_void_p
+    try:
+        rgn = g.CreateRectRgn(0, 0, -1, -1)
+        bb = DWM_BLURBEHIND(0x1 | 0x2, 1, rgn, 0)   # DWM_BB_ENABLE | DWM_BB_BLURREGION
+        hr = ctypes.windll.dwmapi.DwmEnableBlurBehindWindow(ctypes.c_void_p(hwnd), ctypes.byref(bb))
+        g.DeleteObject(ctypes.c_void_p(rgn))
+        return hr == 0
+    except (AttributeError, OSError):
+        return False

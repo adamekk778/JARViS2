@@ -33,6 +33,10 @@ class NotchApi:
     def open_chat(self, view: str = "chat") -> None:
         self._host.open_chat(view)
 
+    def smooth(self) -> bool:
+        """Is the window per-pixel transparent? Then the page paints only the shape (see DesktopHost._smooth_edges)."""
+        return self._host.alpha
+
 
 class DesktopHost:
     def __init__(self, rt, base_url: str):
@@ -45,6 +49,7 @@ class DesktopHost:
         self._quitting = False
         self._notch_size = (rt.cfg.notch.width + PAD * 2, rt.cfg.notch.height + PAD)
         self._hidden_fullscreen = False
+        self.alpha = False
 
     # ---------- geometry ----------
     def _screen(self):
@@ -113,6 +118,31 @@ class DesktopHost:
         except Exception as e:
             log.debug("taskbar: %s", e)
         self.place_notch(*self._notch_size)
+        self._smooth_edges()
+
+    def _smooth_edges(self) -> None:
+        """Anti-aliased notch edges: a transparent WebView2 on a per-pixel-alpha window. The page then paints only the
+        shape and the region (slightly larger) is just for the mouse. Without it nothing changes: black + region."""
+        form = getattr(self.notch, "native", None)
+        if form is None or not winutil.IS_WIN or not self.rt.cfg.notch.smooth_edges:
+            return
+        try:
+            from System import Action
+            from System.Drawing import Color
+
+            def apply():
+                form.BackColor = Color.Black   # GDI black has alpha 0 on a blur-behind window → transparent
+                form.webview.DefaultBackgroundColor = Color.Transparent
+
+            form.Invoke(Action(apply))
+            if winutil.enable_alpha(self.notch_hwnd()):
+                self.alpha = True
+                self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
+                log.info("notch: smooth edges (per-pixel alpha) on")
+                return
+            form.Invoke(Action(lambda: setattr(form.webview, "DefaultBackgroundColor", Color.Black)))
+        except Exception as e:
+            log.warning("notch: smooth edges unavailable: %s", e)
 
     def _on_chat_closing(self):
         if self._quitting:
