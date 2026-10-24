@@ -115,6 +115,7 @@ jobs:
           & $iscc "/DMyAppVersion=$env:JARVIS_VERSION" packaging\installer.iss
           if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
       - name: Installer smoke test (fresh install, then an upgrade over it, then start)
+        timeout-minutes: 10
         shell: pwsh
         run: |
           $d = "$env:RUNNER_TEMP\jarvis-installed"
@@ -122,14 +123,16 @@ jobs:
           $env:JARVIS_NO_NET = "1"
           foreach ($i in 1..2) {
             $log = "$env:RUNNER_TEMP\setup$i.log"
-            $p = Start-Process dist\JARVIS-Setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=", "/DIR=`"$d`"", "/LOG=`"$log`"" -Wait -PassThru
+            # -Wait would also wait for the JARVIS the setup starts at the end: wait for the setup only
+            $p = Start-Process dist\JARVIS-Setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=", "/DIR=`"$d`"", "/LOG=`"$log`"" -PassThru
+            if (-not $p.WaitForExit(300000)) { Get-Content $log -Tail 60; throw "setup #$i did not finish in 5 minutes" }
             Start-Sleep -Seconds 3
             Get-Process JARVIS -ErrorAction SilentlyContinue | Stop-Process -Force
             if ($p.ExitCode -ne 0) { Get-Content $log -Tail 60; throw "setup #$i failed with exit code $($p.ExitCode)" }
           }
           if (-not (Test-Path "$d\JARVIS.exe")) { throw "JARVIS.exe missing after install" }
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\JARVIS.lnk")) { Write-Host "warning: Start menu shortcut missing" }
-          $out = & "$d\JARVIS-debug.exe" --bench 5 2>&1
+          $out = & "$d\JARVIS-debug.exe" --bench 5 2>&1 | Select-Object -Last 20
           $code = $LASTEXITCODE
           Write-Host ($out | Select-Object -Last 3)
           if ($code -ne 0) { Get-Content "$env:JARVIS_HOME\crash.log" -ErrorAction SilentlyContinue; throw "the installed JARVIS does not start" }
