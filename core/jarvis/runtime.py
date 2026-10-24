@@ -59,7 +59,6 @@ class Runtime:
         self.media_state: dict = {}
         self.ui_hook = None           # desktop host: show window (second launch)
         self.voice_mode = False       # dashboard voice mode is open → follow-up listening on
-        self.pet_hook = None          # desktop host: pet commands (undock, dock, …)
         from .mood import MoodEngine
 
         self.mood = MoodEngine(self)

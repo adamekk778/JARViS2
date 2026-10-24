@@ -1,0 +1,147 @@
+/* =====================================================================================
+   3.1 full-screen chat: ChatGPT-like layout in JARVIS colours. Neutral greys, one centred column,
+   a pill composer that sits in the middle until the first message and then docks at the bottom.
+   ===================================================================================== */
+:root { --fc-side: #111113; --fc-main: #1a1a1d; --fc-pill: #2a2a2e; --fc-hover: rgb(255 255 255 / .06); --fc-col: 780px; }
+:root[data-theme="light"] { --fc-side: #f4f4f6; --fc-main: #ffffff; --fc-pill: #f1f1f3; --fc-hover: rgb(0 0 0 / .05); }
+html.fc-doc, html.fc-doc body { height: 100%; margin: 0; background: var(--fc-main); overflow: hidden; }
+
+.fc { display: flex; height: 100dvh; font-size: 14.5px; }
+
+/* ---------- sidebar ---------- */
+.fc-side {
+  width: 264px; flex: 0 0 264px; display: flex; flex-direction: column; gap: 1px; padding: 10px 8px 8px;
+  background: var(--fc-side); min-height: 0; transition: margin-left .32s var(--ease), opacity .2s;
+}
+body.fc-side-closed .fc-side { margin-left: -264px; opacity: 0; pointer-events: none; }
+.fc-brand { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 10px; margin-bottom: 6px; }
+.fc-brand strong { flex: 1; font: 650 16px var(--font); letter-spacing: .04em; }
+.fc-logo .mini-blob { margin: 0; transform: scale(.92); }
+.fc-item {
+  display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 10px; border: 0; border-radius: 10px; flex: none;
+  background: transparent; color: var(--text); font: 500 14px var(--font); cursor: pointer; text-align: left; transition: background .15s;
+}
+.fc-item > i { font-size: 18px; color: var(--text-2); }
+.fc-item > span { flex: 1; }
+.fc-item kbd { font: 10.5px var(--font); color: var(--faint); opacity: 0; transition: opacity .15s; }
+.fc-item:hover { background: var(--fc-hover); }
+.fc-item:hover kbd { opacity: 1; }
+.fc-search { margin: 2px 4px 6px; height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--fc-main); color: var(--text); outline: 0; }
+.fc-search:focus { border-color: var(--accent-line); }
+.fc-label { font: 600 12px var(--font); color: var(--muted); padding: 18px 10px 6px; }
+.fc-convs { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
+.fc-convs .conv { border-radius: 10px; }
+.fc-convs .conv.active { background: var(--fc-hover); box-shadow: none; }
+.fc-convs .conv-open { padding: 8px 10px; }
+.fc-convs .conv-time { display: none; }
+.fc-convs .conv-title { font-size: 14px; color: var(--text); }
+.fc-user {
+  display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 10px; margin-top: 6px; border: 0; border-radius: 12px;
+  background: transparent; color: var(--text); font: 500 14px var(--font); cursor: pointer; text-align: left; flex: none;
+}
+.fc-user:hover { background: var(--fc-hover); }
+.fc-user > i { color: var(--muted); font-size: 18px; }
+.fc-avatar {
+  width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 50%, #a855f7));
+}
+.fc-user-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-scrim { display: none; }
+
+/* ---------- main column ---------- */
+.fc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--fc-main); position: relative; }
+.fc-head { display: flex; align-items: center; gap: 6px; height: 56px; flex: none; padding: 0 12px; }
+.fc-head .grow { flex: 1; }
+.fc-open-side { display: none; }
+body.fc-side-closed .fc-open-side { display: inline-grid; }
+.fc-head .icon-btn.on { color: var(--accent); background: var(--accent-soft); }
+.fc-mode { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--fc-pill); }
+.fc-mode button {
+  border: 0; border-radius: 999px; padding: 6px 18px; background: transparent; color: var(--text-2);
+  font: 600 13.5px var(--font); cursor: pointer; transition: background .2s, color .2s;
+}
+.fc-mode button.on { background: var(--fc-main); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .35); }
+.fc-main > .missing-model { width: min(var(--fc-col), calc(100% - 40px)); margin: 0 auto 8px; }
+.fc-main > .chat { flex: 1; min-height: 0; }
+
+/* messages: one centred column, grey user bubbles, plain assistant text */
+.fc .chat-list { width: min(var(--fc-col), 100%); gap: 26px; }
+.fc .msg.user .bubble {
+  background: var(--fc-pill); border: 0; box-shadow: none; border-radius: 22px; padding: 10px 18px; max-width: min(72%, 600px);
+}
+.fc .msg.assistant .mini-blob { margin-top: 1px; }
+.fc .md { font-size: 15.5px; line-height: 1.65; }
+.fc .chat-scroll { padding-top: 8px; }
+
+/* composer: a big pill like ChatGPT */
+.fc .composer { width: min(calc(var(--fc-col) + 40px), 100%); padding: 4px 20px 14px; }
+.fc .composer-row {
+  align-items: center; gap: 2px; padding: 8px 8px 8px 10px; border-radius: 28px; background: var(--fc-pill);
+  border: 1px solid transparent; box-shadow: 0 8px 30px -12px rgb(0 0 0 / .6); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.fc .composer-row:focus-within { border-color: var(--border-strong); box-shadow: 0 8px 30px -12px rgb(0 0 0 / .6); }
+.fc .chat-input { font-size: 16px; padding: 9px 8px; min-height: 40px; }
+.fc .composer-row > .icon-btn { width: 38px; height: 38px; font-size: 20px; color: var(--text-2); }
+.fc .composer-row > .icon-btn:hover { background: var(--fc-hover); color: var(--text); }
+.fc .send-btn { width: 40px; height: 40px; }
+.fc-model {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; max-width: 180px; padding: 0 12px; margin-right: 2px; flex: none;
+  border: 0; border-radius: 999px; background: transparent; color: var(--text-2); font: 500 13px var(--font); cursor: pointer;
+}
+.fc-model span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-model i { color: var(--accent); }
+.fc-model:hover { background: var(--fc-hover); color: var(--text); }
+.fc .chat-status { min-height: 20px; }
+
+/* empty state: greeting, composer and suggestions centred together (display:contents lets them share one column) */
+.fc .chat:has(.chat-empty:not([hidden])) { justify-content: center; padding-bottom: 8vh; }
+.fc .chat:has(.chat-empty:not([hidden])) .chat-scroll,
+.fc .chat:has(.chat-empty:not([hidden])) .chat-empty { display: contents; }
+.fc .chat:has(.chat-empty:not([hidden])) .chat-list { display: none; }
+.fc .chat-empty h2 {
+  order: 1; margin: 0 auto 26px; padding: 0 20px; text-align: center; font-size: clamp(26px, 3vw, 32px); font-weight: 560; letter-spacing: -0.02em;
+  background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--text);
+}
+.fc .chat-empty .chat-sub { display: none; }
+.fc .chat:has(.chat-empty:not([hidden])) .composer { order: 2; padding-bottom: 6px; }
+.fc .chat:has(.chat-empty:not([hidden])) .chat-status { order: 4; }
+.fc .chat-suggest {
+  order: 3; display: flex; flex-direction: column; gap: 0; width: min(var(--fc-col), calc(100% - 40px)); margin: 4px auto 0;
+}
+.fc .suggest {
+  display: flex; gap: 12px; padding: 12px 12px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
+  background: transparent; box-shadow: none; color: var(--text-2); font-size: 14.5px; transform: none;
+}
+.fc .suggest:last-child { border-bottom: 0; }
+.fc .suggest:hover { background: var(--fc-hover); border-radius: 12px; border-bottom-color: transparent; transform: none; color: var(--text); }
+.fc .suggest-ico { width: auto; height: auto; background: none; box-shadow: none; color: var(--muted); font-size: 18px; }
+.fc .suggest span:nth-child(2) { flex: 1; }
+
+/* website previews get the full column */
+.fc .site-prev .sp-stage { height: 520px; }
+
+/* websites dialog */
+.fc-dialog { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgb(0 0 0 / .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: msg-in .25s var(--ease); }
+.fc-dialog-box { width: min(720px, calc(100% - 32px)); max-height: 80vh; display: flex; flex-direction: column; border-radius: 20px; background: var(--fc-main); border: 1px solid var(--border-strong); box-shadow: var(--shadow); overflow: hidden; }
+.fc-dialog-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px 20px; border-bottom: 1px solid var(--border); }
+.fc-dialog-head strong { font-size: 17px; }
+.fc-dialog-head .help { flex: 1; margin: 0; color: var(--muted); font-size: 13px; }
+.fc-sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 16px 20px 20px; overflow-y: auto; }
+.fc-site {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left;
+  padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--fc-pill); color: var(--text); cursor: pointer;
+  transition: border-color .2s, transform .25s var(--spring);
+}
+.fc-site:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+.fc-site-ico { grid-row: span 2; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; color: var(--accent); background: var(--accent-soft); }
+.fc-site-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-site-time { font-size: 12px; color: var(--muted); }
+
+body.fc-offline .fc-head::after { content: "Připojuji se k JARVISovi…"; position: absolute; left: 50%; top: 60px; transform: translateX(-50%); font-size: 12.5px; color: var(--warn); }
+
+/* narrow window: the sidebar slides over the chat */
+@media (max-width: 860px) {
+  .fc-side { position: fixed; inset: 0 auto 0 0; z-index: 40; box-shadow: 20px 0 60px rgb(0 0 0 / .5); }
+  body:not(.fc-side-closed) .fc-scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgb(0 0 0 / .45); }
+  .fc .msg.user .bubble { max-width: 86%; }
+}

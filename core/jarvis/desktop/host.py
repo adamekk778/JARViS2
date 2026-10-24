@@ -40,6 +40,7 @@ class DesktopHost:
         self.base = base_url
         self.notch = None
         self.chat = None
+        self.full = None   # the full-screen ChatGPT-style chat, created on first use
         self.tray = None
         self._quitting = False
         self._notch_size = (rt.cfg.notch.width + PAD * 2, rt.cfg.notch.height + PAD)
@@ -120,7 +121,33 @@ class DesktopHost:
         threading.Thread(target=self.chat.hide, daemon=True).start()
         return False  # keep the window alive, just hidden
 
+    def _on_full_closing(self):
+        if self._quitting:
+            return True
+        threading.Thread(target=self.full.hide, daemon=True).start()
+        return False
+
+    def open_fullchat(self) -> None:
+        import webview
+
+        try:
+            if self.full is None:   # a new window shows itself; later opens just bring it back
+                self.full = webview.create_window(
+                    "JARVIS Chat", f"{self.base}/chat", width=1280, height=860, min_size=(520, 560), maximized=True,
+                    background_color="#0d0d0f", text_select=True)
+                self.full.events.closing += self._on_full_closing
+                return
+            self.full.show()
+            self.full.maximize()
+            self.full.on_top = True
+            self.full.on_top = False
+        except Exception as e:
+            log.warning("open_fullchat: %s", e)
+
     def open_chat(self, view: str = "chat") -> None:
+        if view == "full":   # off the caller's thread: creating a window waits for the GUI thread
+            threading.Thread(target=self.open_fullchat, daemon=True, name="fullchat").start()
+            return
         if not self.chat:
             return
         try:
@@ -171,6 +198,7 @@ class DesktopHost:
 
         menu = pystray.Menu(
             pystray.MenuItem("Otevřít JARVIS", lambda: self.open_chat("chat"), default=True),
+            pystray.MenuItem("Celý chat", lambda: self.open_fullchat()),
             pystray.MenuItem("Nastavení", lambda: self.open_chat("general")),
             pystray.MenuItem("Spárovat telefon", lambda: self.open_chat("phone")),
             pystray.MenuItem(voice_label, toggle_voice, visible=lambda _: self.rt.voice is not None),
@@ -242,7 +270,7 @@ class DesktopHost:
                 self.tray.stop()
         except Exception:
             pass
-        for w in (self.notch, self.chat):
+        for w in (self.notch, self.chat, self.full):
             try:
                 if w:
                     w.destroy()

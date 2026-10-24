@@ -54,6 +54,7 @@ export const KIND_ICON: Record<string, string> = {
 };
 
 export const TOOL_ICON: Record<string, string> = {
+  make_website: "browser", read_website: "browser", list_websites: "browsers",
   youtube_play: "youtube-logo", youtube_search: "youtube-logo", open_app: "rocket-launch", close_app: "x-square",
   web_search: "magnifying-glass", web_read: "article", google_search: "google-logo", open_url: "globe",
   weather: "cloud-sun", volume: "speaker-high", media_control: "play-pause", screenshot: "camera",

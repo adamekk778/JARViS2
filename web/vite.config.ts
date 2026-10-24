@@ -13,6 +13,7 @@ export default defineConfig({
         notch: resolve(__dirname, "notch.html"),
         mobile: resolve(__dirname, "mobile.html"),
         character: resolve(__dirname, "character.html"),
+        chat: resolve(__dirname, "chat.html"),
       },
     },
   },

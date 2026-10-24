@@ -82,7 +82,7 @@ const panelHead = h("div", { class: "p-head" },
   h("span", { class: "p-title" }, "J A R V I S"),
   h("div", { class: "p-head-r" },
     h("button", { class: "p-icon", type: "button", title: "Nová konverzace", "aria-label": "Nová konverzace", onclick: () => client.send("new_chat") }, icon("note-pencil")),
-    h("button", { class: "p-icon", type: "button", title: "Velké okno chatu", "aria-label": "Velké okno", onclick: () => openChat("chat") }, icon("arrows-out-simple")),
+    h("button", { class: "p-icon", type: "button", title: "Otevřít celý chat", "aria-label": "Otevřít celý chat", onclick: () => { openChat("full"); settle(true); } }, icon("arrows-out-simple")),
     (pinBtn = h("button", { class: "p-icon pin", type: "button", title: "Připnout (zůstane otevřený i po restartu)", "aria-label": "Připnout", onclick: () => setPinned(!pinned) }, icon("push-pin"))),
     h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { if (pinned) setPinned(false); settle(true); } }, icon("minus"))));
 const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
@@ -107,7 +107,7 @@ async function resizeWindow(w: number, hh: number) {
 }
 function openChat(view = "chat") {
   if (window.pywebview) window.pywebview.api.open_chat(view);
-  else window.open(`/#${view}`, "_blank");
+  else window.open(view === "full" ? "/chat" : `/#${view}`, "_blank");
 }
 
 function sizeFor(m: Mode): [number, number] {

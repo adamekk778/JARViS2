@@ -27,6 +27,8 @@ const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslec
 const stopBtn = stopButton(client);
 stopBtn.hidden = true;
 const BUSY = ["listening", "thinking", "working", "speaking", "waiting"];
+const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít chat přes celou obrazovku",
+  onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
 type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude";
@@ -68,7 +70,7 @@ const main = h("main", { class: "view" });
 const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
   h("div", { class: "chat-wrap" },
-    h("header", { class: "chat-head" }, h("span", { class: "chat-head-title" }, "Chat"), brainChip, h("span", { class: "grow" }), stopBtn, voiceBtn),
+    h("header", { class: "chat-head" }, h("span", { class: "chat-head-title" }, "Chat"), brainChip, h("span", { class: "grow" }), stopBtn, voiceBtn, fullBtn),
     missingModelCard(client), chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
@@ -125,6 +127,7 @@ const palette = commandPalette({
   nav: NAV.map(([v, ic, label]) => ({ icon: ic, label, run: () => go(v) })),
   actions: [
     { icon: "plus", label: "Nová konverzace", run: () => { go("chat"); client.send("new_chat"); } },
+    { icon: "arrows-out-simple", label: "Otevřít celý chat", run: () => fullBtn.click() },
     { icon: "stop-circle", label: "Zastavit vše (STOP)", run: () => client.send("stop_all") },
     { icon: "microphone", label: "Zapnout / vypnout poslech", run: () => client.send("voice_toggle") },
   ],

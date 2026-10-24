@@ -19,7 +19,7 @@ export class JarvisClient {
   status: ConnStatus = "closed";
   local = false;
 
-  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "pet", private name = "") {}
+  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat", private name = "") {}
 
   on(type: ServerType | "*", h: Handler): () => void {
     if (!this.handlers.has(type)) this.handlers.set(type, new Set());
@@ -88,6 +88,11 @@ export class JarvisClient {
     const payload = JSON.stringify({ type, ...data });
     if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(payload);
     else if (type !== "ping") this.queue.push(payload);
+  }
+
+  /** A link without the pairing token (pages JARVIS built must never see it). */
+  plainUrl(path: string): string {
+    return /^https?:/.test(path) ? path : `${this.ep.base}${path}`;
   }
 
   url(path: string, download = false): string {

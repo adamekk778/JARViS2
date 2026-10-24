@@ -12,6 +12,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from .. import config as config_mod
 from .. import secrets, tools
+from ..tools.sites import list_sites, site_path
 from ..tools.system import system_snapshot
 
 log = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ CLIENT_TYPES = [
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
-    "whats_new_seen", "sounds_folder",
+    "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -42,7 +43,7 @@ SERVER_TYPES = [
     "memory_export_data", "memory_import_result", "audio_devices",
     "diagnostics", "diagnostics_file",
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
-    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds",
+    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -53,7 +54,8 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
-              "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder"}
+              "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
+              "open_window", "site_open"}
 
 
 class Connection:
@@ -215,6 +217,19 @@ class Connection:
             if m.get("open", True):
                 rt.open_sounds_folder()
             rt.bus.publish("sounds", files=rt.custom_sounds())
+        elif t == "open_window":
+            if rt.ui_hook:
+                rt.ui_hook(str(m.get("view") or "chat"))
+        elif t == "sites_get":
+            await self.send("sites", items=list_sites())
+        elif t == "site_open":
+            root = site_path(str(m.get("id", "")))
+            if root is None:
+                await self.send("error", message="Ten web už neexistuje.")
+            elif m.get("how") == "folder":
+                await asyncio.to_thread(rt.platform.open_path, str(root))
+            else:
+                await asyncio.to_thread(rt.platform.open_url, f"http://127.0.0.1:{rt.cfg.phone.port}/sites/{root.name}/index.html")
         elif t == "claude_sessions_get":
             await self.send("claude_sessions", items=rt.claude.list())
         elif t == "claude_decision":

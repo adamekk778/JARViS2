@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from .. import __version__, paths
 from .pairing import pairing_info
 from .ws import Connection
+from ..tools.sites import safe_rel, site_path
 
 log = logging.getLogger(__name__)
 LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
@@ -144,6 +145,23 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     @app.get("/mobile")
     async def mobile():
         return page("mobile.html")
+
+    @app.get("/chat")
+    async def fullchat():
+        return page("chat.html")
+
+    @app.get("/sites/{site_id}/{rel:path}")
+    async def site_file(site_id: str, rel: str = ""):
+        """Websites JARVIS built. The unguessable id is the key; the sandbox CSP gives each page an opaque origin,
+        so its scripts can never use this server's local trust."""
+        root, rel = site_path(site_id), safe_rel(rel or "index.html")
+        if root is None or rel is None:
+            raise HTTPException(404, "Stránka nenalezena")
+        f = (root / rel).resolve()
+        if not f.is_relative_to(root.resolve()) or not f.is_file():
+            raise HTTPException(404, "Stránka nenalezena")
+        return FileResponse(f, headers={"Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff",
+                                        "Content-Security-Policy": "sandbox allow-scripts allow-forms allow-modals allow-popups"})
 
     if (dist / "assets").exists():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")

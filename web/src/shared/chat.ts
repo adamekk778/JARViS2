@@ -27,7 +27,10 @@ export interface ChatOptions {
   greeting?: string;        // empty-state headline
   subtitle?: string;
   suggestions?: string[];   // [] = none
+  suggestionIcons?: string[];
   emptyAvatar?: boolean;    // big character in the empty state (default true)
+  attachIcon?: string;      // composer "+" (full chat) instead of the paperclip
+  extraTools?: HTMLElement[]; // composer buttons before the microphone (full chat: model chip)
 }
 
 const DEFAULT_SUGGESTIONS = ["Pusť na YouTube nějakou dobrou hudbu", "Jaké bude zítra počasí?",
@@ -83,7 +86,7 @@ export class ChatView {
       h("p", { class: "chat-sub" }, opts.subtitle ?? (opts.compact ? "Napiš nebo nahraj hlasovou zprávu." : "Napiš, řekni „Hey Jarvis“, nebo vyber jeden z návrhů.")),
       suggestions.length ? h("div", { class: "chat-suggest" },
         ...suggestions.map((s, i) => h("button", { class: "suggest", type: "button", onclick: () => this.sendText(s) },
-          h("span", { class: "suggest-ico" }, icon(SUGGEST_ICON[i] || "sparkle")), h("span", {}, s), icon("arrow-up-right", "suggest-go")))) : null);
+          h("span", { class: "suggest-ico" }, icon((opts.suggestionIcons || SUGGEST_ICON)[i] || "sparkle")), h("span", {}, s), icon("arrow-up-right", "suggest-go")))) : null);
     this.scroller = h("div", { class: "chat-scroll" }, this.empty, this.list);
     this.scroller.addEventListener("scroll", () => {
       const s = this.scroller;
@@ -114,14 +117,14 @@ export class ChatView {
       [...(fileInput.files || [])].forEach((f) => this.addFile(f));
       fileInput.value = "";
     });
-    const attachBtn = h("button", { class: "icon-btn", type: "button", title: "Přiložit soubor", "aria-label": "Přiložit soubor", onclick: () => fileInput.click() }, icon("paperclip"));
+    const attachBtn = h("button", { class: "icon-btn", type: "button", title: "Přiložit soubor", "aria-label": "Přiložit soubor", onclick: () => fileInput.click() }, icon(opts.attachIcon || "paperclip"));
     this.micBtn = h("button", { class: "icon-btn", type: "button", title: "Nahrát hlasovou zprávu", "aria-label": "Hlasová zpráva", onclick: () => this.toggleMic() }, icon("microphone"));
     this.sendBtn = h("button", { class: "send-btn", type: "button", "aria-label": "Odeslat", onclick: () => this.submit() }, icon("arrow-up", "ph-bold"));
     this.pendingBox = h("div", { class: "pending" });
     this.statusLine = h("div", { class: "chat-status" });
     const composer = h("div", { class: "composer" },
       this.pendingBox,
-      h("div", { class: "composer-row" }, attachBtn, this.input, this.micBtn, this.sendBtn), fileInput);
+      h("div", { class: "composer-row" }, attachBtn, this.input, ...(opts.extraTools || []), this.micBtn, this.sendBtn), fileInput);
 
     this.el = h("div", { class: `chat ${opts.compact ? "compact" : ""}` }, this.scroller, this.statusLine, composer);
     this.setupDrop();
@@ -226,6 +229,12 @@ export class ChatView {
   private toolsEl(tools: ToolCard[] = []): HTMLElement {
     const box = h("div", { class: "tools" });
     for (const t of tools) box.append(this.toolChip(t.name, t.label, t.ok ? "ok" : "fail", t.summary));
+    const seen = new Set<string>();
+    for (const t of [...tools].reverse()) {   // one preview per site: the newest version
+      if (!t.preview || seen.has(sitePath(t.preview))) continue;
+      seen.add(sitePath(t.preview));
+      box.append(sitePreview(this.client, t.preview, t.label));
+    }
     return box;
   }
 
@@ -328,6 +337,11 @@ export class ChatView {
     const fresh = this.toolChip(chip.dataset.name || "", label, m.ok ? "ok" : "fail", m.summary);
     chip.replaceWith(fresh);
     this.liveTools.set(m.id, fresh);
+    if (m.preview && this.live) {
+      this.live.tools.querySelectorAll<HTMLElement>(".site-prev").forEach((p) => p.dataset.site === sitePath(m.preview) && p.remove());
+      this.live.tools.append(sitePreview(this.client, m.preview, label));
+      this.scrollBottom();
+    }
   }
 
   private done(m: ServerMsg) {
@@ -470,6 +484,51 @@ export class ChatView {
   get conversationId() {
     return this.conversation;
   }
+}
+
+const sitePath = (url: string) => url.replace(/[^/]*$/, "");
+
+/** Live preview of a website JARVIS built: a sandboxed frame with desktop/phone width, full screen and open buttons. */
+export function sitePreview(client: JarvisClient, url: string, label = ""): HTMLElement {
+  const id = url.split("/")[2] || "";
+  const src = client.plainUrl(url);
+  const frame = h("iframe", { class: "sp-frame", src, title: "Náhled webu", loading: "lazy",
+    sandbox: "allow-scripts allow-forms allow-modals allow-popups", referrerpolicy: "no-referrer" }) as HTMLIFrameElement;
+  const title = label.replace(/^[^:]*:\s*/, "") || "Web";
+  const btn = (ic: string, tip: string, fn: () => void) =>
+    h("button", { class: "icon-btn sm", type: "button", title: tip, "aria-label": tip, onclick: fn }, icon(ic));
+  const seg = h("div", { class: "sp-seg", role: "group", "aria-label": "Šířka náhledu" });
+  const setWidth = (w: "pc" | "phone") => {
+    card.dataset.width = w;
+    seg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.w === w));
+  };
+  seg.append(
+    h("button", { type: "button", "data-w": "pc", title: "Počítač", onclick: () => setWidth("pc") }, icon("desktop")),
+    h("button", { type: "button", "data-w": "phone", title: "Telefon", onclick: () => setWidth("phone") }, icon("device-mobile")));
+  const open = (how: "browser" | "folder") => {
+    if (client.local) client.send("site_open", { id, how });
+    else window.open(src, "_blank", "noopener");
+  };
+  const toggleMax = () => {
+    const max = card.classList.toggle("max");
+    document.body.classList.toggle("sp-max-open", max);
+    maxBtn.replaceChildren(icon(max ? "arrows-in" : "arrows-out"));
+    maxBtn.title = max ? "Zmenšit (Esc)" : "Na celou obrazovku";
+  };
+  const maxBtn = btn("arrows-out", "Na celou obrazovku", () => toggleMax());
+  const card = h("div", { class: "site-prev", "data-site": sitePath(url) },
+    h("div", { class: "sp-bar" },
+      h("span", { class: "sp-dots", "aria-hidden": "true" }, h("i"), h("i"), h("i")),
+      h("span", { class: "sp-title" }, icon("globe-simple"), h("span", {}, title)),
+      seg,
+      btn("arrows-clockwise", "Načíst znovu", () => { frame.src = src; }),
+      maxBtn,
+      btn("arrow-square-out", "Otevřít v prohlížeči", () => open("browser")),
+      client.local ? btn("folder-open", "Otevřít složku webu", () => open("folder")) : null),
+    h("div", { class: "sp-stage" }, frame));
+  card.addEventListener("keydown", (e) => { if (e.key === "Escape" && card.classList.contains("max")) toggleMax(); });
+  setWidth("pc");
+  return card;
 }
 
 /** Local (offline) providers by preset id prefix: Ollama, LM Studio. */

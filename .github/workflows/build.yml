@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 3.0.${{ github.run_number }}
+  JARVIS_VERSION: 3.1.${{ github.run_number }}
 
 jobs:
   test:
@@ -116,12 +116,13 @@ jobs:
             [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
             [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n);
             [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
-            // the notch: a visible window of this process whose title contains "Notch"
-            public static IntPtr Notch(uint pid, System.Collections.Generic.List<string> seen) {
+            // a visible window of this process whose title contains the needle ("Notch", "JARVIS Chat")
+            public static IntPtr Notch(uint pid, System.Collections.Generic.List<string> seen) { return Find(pid, seen, "Notch"); }
+            public static IntPtr Find(uint pid, System.Collections.Generic.List<string> seen, string needle) {
               IntPtr found = IntPtr.Zero;
               EnumWindows((h, l) => { uint p; GetWindowThreadProcessId(h, out p);
                 if (p == pid && IsWindowVisible(h)) { var sb = new System.Text.StringBuilder(256); GetWindowText(h, sb, 256);
-                  seen.Add(sb.ToString()); if (sb.ToString().Contains("Notch")) { found = h; return false; } }
+                  seen.Add(sb.ToString()); if (sb.ToString().Contains(needle)) { found = h; return false; } }
                 return true; }, IntPtr.Zero);
               return found;
             }
@@ -151,10 +152,23 @@ jobs:
           Shot "2-hover"; $k2 = Region "hover"
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
           Shot "3-after"; $k3 = Region "after"
+          # 3.1: "Otevřít celý chat" creates a maximized window after start-up
+          Invoke-RestMethod -Method Post "http://127.0.0.1:8765/api/show?view=full" | Out-Null
+          $full = [IntPtr]::Zero; $seen = New-Object 'System.Collections.Generic.List[string]'
+          for ($i = 0; $i -lt 20 -and $full -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $full = [W]::Find([uint32]$p.Id, $seen, "JARVIS Chat") }
+          Start-Sleep -Seconds 4
+          $sb = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $sb.Width, $sb.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save("$shots\4-full-chat.png")
+          $fr = New-Object W+RECT; [W]::GetWindowRect($full, [ref]$fr) | Out-Null
+          $fullLine = "full chat hwnd=$full window=($($fr.L),$($fr.T))-($($fr.R),$($fr.B)) windows=$($seen -join ' | ')"
+          Write-Host $fullLine; Add-Content "$shots\region.txt" $fullLine
           foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
+          if ($full -eq [IntPtr]::Zero) { throw "the full chat window did not open" }
+          if (($fr.R - $fr.L) -lt $sb.Width * 0.8) { throw "the full chat window is not maximized" }
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }

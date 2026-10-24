@@ -17,6 +17,7 @@ class ToolResult:
     summary: str
     data: Any = None
     attachments: list[str] = field(default_factory=list)
+    preview: str = ""   # a page the chat shows live under the answer (make_website)
 
     def for_llm(self) -> str:
         import json

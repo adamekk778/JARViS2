@@ -37,6 +37,7 @@ TOOL_LABELS = {
     "git_status": "Git stav", "git_diff": "Git změny", "git_commit": "Git commit", "git_push": "Git push",
     "checkpoint": "Záchytný bod", "restore_checkpoint": "Obnovuji záchytný bod", "compare_files": "Porovnávám soubory",
     "run_tests": "Spouštím testy", "claude_code": "Claude Code",
+    "make_website": "Stavím web", "read_website": "Čtu web", "list_websites": "Moje weby",
 }
 
 
@@ -53,7 +54,7 @@ def _first_sentence(text: str) -> str:
 
 def describe_call(name: str, args: dict) -> str:
     label = TOOL_LABELS.get(name, name)
-    key = next((args[k] for k in ("query", "name", "text", "task", "prompt", "url", "command", "action", "path", "city")
+    key = next((args[k] for k in ("query", "name", "text", "task", "prompt", "url", "command", "action", "path", "city", "title")
                 if isinstance(args.get(k), (str, int)) and args.get(k) != ""), None)
     return f"{label}: {key}" if key is not None else label
 
@@ -195,13 +196,15 @@ class Agent:
                     rt.tasks.action_started(label)
                 t0 = time.monotonic()
                 res = await tools.call(call.name, call.arguments, rt)
-                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary)
+                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
                 if call.name != "update_plan":
                     rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,
                                         int((time.monotonic() - t0) * 1000))
         attachments += [a for a in res.attachments if a not in attachments]
-        tool_cards.append({"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok,
-                           "summary": res.summary})
+        card = {"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok, "summary": res.summary}
+        if res.preview:
+            card["preview"] = res.preview
+        tool_cards.append(card)
         return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": res.for_llm()}
 
     async def _handle(self, text: str, attachments: list[str], source: str, record_user: bool, extra: str) -> str:

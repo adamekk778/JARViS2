@@ -3,6 +3,11 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.1": [
+    { icon: "arrows-out-simple", title: "Celý chat přes celou obrazovku", line: "Tlačítko v notchi, v okně i v liště: chat jako ChatGPT, s režimy Chat a Agent." },
+    { icon: "browser", title: "JARVIS staví weby", line: "Řekni „udělej mi web pro…“ a náhled uvidíš hned v chatu – i jak vypadá na telefonu." },
+    { icon: "sparkle", title: "Ostré a plynulé", line: "Notch a okna jsou ostré i při zvětšení ve Windows. Mazlíček na ploše je pryč." },
+  ],
   "3.0": [
     { icon: "microphone", title: "Diktování kdekoli", line: "Drž pravý Ctrl v jakékoli aplikaci, mluv a pusť – text se napíše sám." },
     { icon: "record", title: "Nahrávání hovorů", line: "Přepis po lidech, shrnutí a úkoly. Žádný bot v hovoru, zvuk se pak smaže." },
