@@ -62,6 +62,7 @@ export function buildStark(client: JarvisClient) {
   const grid = h("div", { class: "proto-grid" });
   const editor = h("div", { class: "proto-editor card", hidden: true });
   const switches = h("div", { class: "group" });
+  const powersBox = h("div", { class: "group" });
 
   function render() {
     grid.replaceChildren(...protocols.map((p) => h("div", { class: "proto-card card" },
@@ -166,6 +167,22 @@ export function buildStark(client: JarvisClient) {
       sw("guardian_speak", "Strážce mluví", "Upozornění řekne nahlas (jinak jen v notchi)."),
       num("battery_low", "Upozornit na baterii pod", "Procenta (pak ještě 10 % a 5 %).", 5, 80),
       num("disk_low_gb", "Upozornit na disk pod", "Gigabajty volného místa na disku C.", 1, 200));
+    const pw = settings?.powers || {};
+    const psw = (key: string, title: string, desc: string) => {
+      const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
+      inp.checked = !!pw[key];
+      inp.onchange = () => client.send("settings_set", { patch: { powers: { [key]: inp.checked } } });
+      return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)),
+        h("span", { class: "switch" }, inp, h("span")));
+    };
+    const brk = h("input", { class: "input sm", type: "number", min: 0, max: 600, value: pw.break_minutes ?? 90, "aria-label": "Připomenout pauzu po" }) as HTMLInputElement;
+    brk.onchange = () => client.send("settings_set", { patch: { powers: { break_minutes: Math.max(0, Math.min(600, +brk.value || 0)) } } });
+    powersBox.replaceChildren(
+      h("p", { class: "help" }, "Označený text: označ text v jakékoli aplikaci a zmáčkni Ctrl+Alt+E (opravit, přeložit, zkrátit, vysvětlit)."),
+      psw("clipboard_history", "Historie schránky", "Posledních 30 zkopírovaných textů, jen v paměti (po restartu zmizí). Hesla si nepamatuje."),
+      psw("screen_time", "Čas u PC", "Kolik minut jsi v které aplikaci. Zůstává jen v tomhle PC (30 dní)."),
+      h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připomenout pauzu po"),
+        h("span", { class: "help" }, "Minutách u PC bez přestávky. 0 = nepřipomínat.")), brk));
   }
 
   const sync = (s: any) => {
@@ -186,6 +203,8 @@ export function buildStark(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Protokoly"),
     grid, editor,
     h("h2", { class: "group-label" }, "Chování"),
-    switches);
+    switches,
+    h("h2", { class: "group-label" }, "Schopnosti"),
+    powersBox);
   return { el };
 }

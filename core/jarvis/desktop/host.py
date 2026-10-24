@@ -376,8 +376,13 @@ class DesktopHost:
         def stop_all():
             self.rt.call_soon(self.rt.stop_all)
 
+        def selection():   # 3.3: what to do with the selected text (fix, translate, explain…)
+            from .. import powers
+
+            self.rt.submit(powers.selection_menu(self.rt))
+
         for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
-                          (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud())):
+                          (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud()), (hk.selection, selection)):
             try:
                 keyboard.add_hotkey(combo, fn, suppress=False)
             except Exception as e:

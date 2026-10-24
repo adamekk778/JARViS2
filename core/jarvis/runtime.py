@@ -66,6 +66,10 @@ class Runtime:
         from .stark import Guardian
 
         self.guardian = Guardian(self)
+        from .powers import Activity
+
+        self.activity = Activity(self)
+        self.selection: dict = {}      # the last selected text JARVIS copied (and the window it came from)
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -75,6 +79,8 @@ class Runtime:
         self.store.transcribe = self._transcribe_file
         self.mood.start()
         self.guardian.start()
+        self.activity.start()
+        self.activity.prune()
         try:
             from .updater import Updater
 
@@ -107,6 +113,7 @@ class Runtime:
     async def stop(self) -> None:
         self.mood.stop()
         self.guardian.stop()
+        self.activity.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:

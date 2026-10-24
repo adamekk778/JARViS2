@@ -58,6 +58,12 @@ class Platform:
     def notify(self, title: str, body: str) -> None: pass
     def release_all_input(self) -> None: pass
     def idle_seconds(self) -> float: return 0.0   # since the last mouse/keyboard input (0 = unknown → present)
+    # 3.3: the window in front (hwnd, pid, app, title), bring one back to the front, clipboard change counter
+    def foreground_info(self) -> dict: return {}
+    def focus_window(self, hwnd: int) -> bool: return False
+    def clipboard_seq(self) -> int: return 0
+    def wait_keys_released(self, timeout: float = 1.5) -> None: pass   # Ctrl/Alt/Shift from the hotkey still held
+    def empty_recycle_bin(self) -> int: raise NotImplementedError   # → bytes freed (0 when unknown)
     # ---------- UI Automation (spec §3.1) ----------
     def ui_tree(self, window: str = "", depth: int = 4, limit: int = 150) -> list[UiNode]: raise NotImplementedError
     def ui_find(self, window: str = "", name: str = "", role: str = "", automation_id: str = "",

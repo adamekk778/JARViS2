@@ -111,6 +111,7 @@ class Hotkeys(BaseModel):
     talk: str = "ctrl+alt+space"
     chat: str = "ctrl+alt+j"
     hud: str = "ctrl+alt+h"
+    selection: str = "ctrl+alt+e"   # what to do with the selected text (fix, translate, explain…)
     stop: str = "esc"
     stop_all: str = "ctrl+alt+x"
 
@@ -254,6 +255,13 @@ class Stark(BaseModel):
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
 
+class Powers(BaseModel):
+    """3.3 everyday powers. Everything here stays on this PC."""
+    clipboard_history: bool = True   # the last 30 copied texts, in memory only (never written to disk)
+    screen_time: bool = True         # which app is in front, minutes per day (30 days)
+    break_minutes: int = 90          # remind a pause after this long at the PC without a break; 0 = off
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -286,6 +294,7 @@ class Config(BaseModel):
     dictation: Dictation = Field(default_factory=Dictation)
     claude: ClaudeCfg = Field(default_factory=ClaudeCfg)
     stark: Stark = Field(default_factory=Stark)
+    powers: Powers = Field(default_factory=Powers)
 
     @model_validator(mode="before")
     @classmethod
@@ -309,6 +318,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
     "stark.guardian", "stark.guardian_speak",
+    "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
 }
 
 # Never sent to remote clients.

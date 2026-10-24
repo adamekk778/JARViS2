@@ -3,6 +3,12 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.3": [
+    { icon: "text-aa", title: "Označený text kdekoli", line: "Označ text v jakékoli aplikaci a zmáčkni Ctrl+Alt+E: opravit, přeložit, zkrátit, vysvětlit. Nebo to řekni." },
+    { icon: "clipboard-text", title: "Historie schránky", line: "„Co jsem kopíroval před chvílí?“ – jen v paměti, hesla si nepamatuje." },
+    { icon: "eye", title: "Hlídání webu", line: "„Dej mi vědět, až bude na téhle stránce skladem.“" },
+    { icon: "broom", title: "Úklid, rychlost, čas u PC, e-maily", line: "„Co mi zabírá místo“, „ukliď počítač“, „jak rychlý mám internet“, „kolik jsem dnes hrál“, „napiš e-mail…“." },
+  ],
   "3.2": [
     { icon: "circle-notch", title: "Stark HUD", line: "Holografický přehled přes celou obrazovku s arc reaktorem: Ctrl+Alt+H, tlačítko v notchi nebo „ukaž HUD“." },
     { icon: "lightning", title: "Protokoly", line: "„Spusť protokol Párty“, „Dobrou noc“, „Pracovní režim“… a vlastní si poskládáš v sekci Stark." },

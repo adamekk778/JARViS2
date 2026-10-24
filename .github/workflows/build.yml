@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 3.2.${{ github.run_number }}
+  JARVIS_VERSION: 3.3.${{ github.run_number }}
 
 jobs:
   test:
@@ -224,6 +224,8 @@ jobs:
           Write-Host "BENCH (targets: CPU < 2 %, RAM < 400 MB; gate 2x): $($bench | Select-Object -Last 1)"
           $uia = & dist\JARVIS\JARVIS-debug.exe --selftest-uia 2>$null
           Write-Host "UIA SELFTEST: $($uia | Select-Object -Last 1)"
+          $pw = & dist\JARVIS\JARVIS-debug.exe --selftest-powers 2>$null
+          Write-Host "POWERS SELFTEST (selected text in Notepad): $($pw | Select-Object -Last 1)"
           if ($code -ne 0) { throw "idle cost above 2x target" }
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -36,8 +36,16 @@ class NullPlatform(Platform):
     def click(self, x, y, button="left", double=False): self._rec("click", x, y, button, double)
     def move(self, x, y): self._rec("move", x, y)
     def type_text(self, text): self._rec("type_text", text)
-    def hotkey(self, keys): self._rec("hotkey", tuple(keys))
+    def hotkey(self, keys):
+        self._rec("hotkey", tuple(keys))
+        if tuple(keys) == ("ctrl", "c") and getattr(self, "selection", None) is not None:
+            self.clipboard = self.selection   # the app in front copies its selected text
     def foreground_app(self): return getattr(self, "front_app", "Poznámkový blok")
+    def foreground_info(self): return getattr(self, "front", {"hwnd": 42, "pid": 4242, "app": self.foreground_app(), "title": "Dokument"})
+    def focus_window(self, hwnd): self._rec("focus_window", hwnd); return True
+    def clipboard_seq(self): return hash(self.clipboard) & 0xFFFFFFF
+    def empty_recycle_bin(self): self._rec("empty_recycle_bin"); return 1234
+    def idle_seconds(self): return getattr(self, "idle", 0.0)
     def scroll(self, dy): self._rec("scroll", dy)
     def notify(self, title, body): self._rec("notify", title, body)
     def release_all_input(self): self._rec("release_all_input")

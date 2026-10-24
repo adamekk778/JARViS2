@@ -372,6 +372,72 @@ class WindowsPlatform(Platform):
     def notify(self, title: str, body: str) -> None:
         pass
 
+    def foreground_info(self) -> dict:
+        import ctypes
+        from ctypes import wintypes
+
+        import psutil
+
+        u = ctypes.windll.user32
+        u.GetForegroundWindow.restype = ctypes.c_void_p
+        hwnd = u.GetForegroundWindow() or 0
+        if not hwnd:
+            return {}
+        pid = wintypes.DWORD()
+        u.GetWindowThreadProcessId(ctypes.c_void_p(hwnd), ctypes.byref(pid))
+        buf = ctypes.create_unicode_buffer(512)
+        u.GetWindowTextW(ctypes.c_void_p(hwnd), buf, 512)
+        try:
+            exe = psutil.Process(pid.value).name()
+        except Exception:
+            exe = ""
+        return {"hwnd": int(hwnd), "pid": int(pid.value), "exe": exe, "app": friendly_app(exe) if exe else "", "title": buf.value}
+
+    def focus_window(self, hwnd: int) -> bool:
+        import ctypes
+
+        u = ctypes.windll.user32
+        h = ctypes.c_void_p(hwnd)
+        if not u.IsWindow(h):
+            return False
+        if u.IsIconic(h):
+            u.ShowWindow(h, 9)   # SW_RESTORE
+        # Windows only lets the foreground app hand focus over; a tap of Alt counts as input and unlocks it
+        u.keybd_event(0x12, 0, 0, 0)
+        u.keybd_event(0x12, 0, 2, 0)
+        return bool(u.SetForegroundWindow(h))
+
+    def wait_keys_released(self, timeout: float = 1.5) -> None:
+        import ctypes
+        import time
+
+        u = ctypes.windll.user32
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            # VK_CONTROL, VK_MENU (Alt), VK_SHIFT, VK_LWIN, VK_RWIN
+            if not any(u.GetAsyncKeyState(k) & 0x8000 for k in (0x11, 0x12, 0x10, 0x5B, 0x5C)):
+                return
+            time.sleep(0.02)
+
+    def clipboard_seq(self) -> int:
+        import ctypes
+
+        return int(ctypes.windll.user32.GetClipboardSequenceNumber())
+
+    def empty_recycle_bin(self) -> int:
+        import ctypes
+
+        class SHQUERYRBINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint32), ("i64Size", ctypes.c_int64), ("i64NumItems", ctypes.c_int64)]
+
+        info = SHQUERYRBINFO(ctypes.sizeof(SHQUERYRBINFO), 0, 0)
+        shell = ctypes.windll.shell32
+        shell.SHQueryRecycleBinW(None, ctypes.byref(info))
+        if info.i64NumItems:
+            # SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND (JARVIS asked in the chat already)
+            shell.SHEmptyRecycleBinW(None, None, 0x1 | 0x2 | 0x4)
+        return int(info.i64Size)
+
     def idle_seconds(self) -> float:
         import ctypes
 

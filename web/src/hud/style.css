@@ -18,7 +18,7 @@ html.hud-doc.alpha, html.hud-doc.alpha body { background: transparent; }
 /* backdrop: glass, hex grid, scan line, vignette */
 .grid, .scan, .vignette { position: absolute; inset: 0; pointer-events: none; }
 .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(4 18 32 / .78) 0%, rgb(2 8 16 / .9) 55%, rgb(0 3 8 / .96) 100%); }
-html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 / .62) 0%, rgb(2 8 16 / .8) 60%, rgb(0 3 8 / .9) 100%); }
+html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 / .8) 0%, rgb(2 8 16 / .88) 60%, rgb(0 3 8 / .94) 100%); }
 .grid {
   opacity: .5;
   background-image: linear-gradient(var(--holo-faint) 1px, transparent 1px), linear-gradient(90deg, var(--holo-faint) 1px, transparent 1px);

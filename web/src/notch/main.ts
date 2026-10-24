@@ -50,6 +50,7 @@ let holding = false;     // you are writing in the panel's chat
 let pendingConfirm: string | null = null;
 let liveText = "";
 let alertTimer = 0, lingerTimer = 0, openTimer = 0, closeTimer = 0, uiMoodTimer = 0;
+let selAsk: any = null, selTimer = 0;   // 3.3 selected-text menu (Ctrl+Alt+E)
 let uiMood: Mood | null = null; // opening / closing / dragged flashes
 let activity = "";
 let pinBtn: HTMLElement;
@@ -256,7 +257,7 @@ function jarvisBusy() {
 }
 /** Something needs the live bubble open: JARVIS at work or Claude Code waiting for an answer. */
 function busy() {
-  return jarvisBusy() || claudeAsks.length > 0;
+  return jarvisBusy() || claudeAsks.length > 0 || !!selAsk;
 }
 
 function settle(force = false) {
@@ -343,7 +344,8 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "
 // ---------- live bubble ----------
 const STATE_LABEL: Partial<Record<Mood, string>> = { listening: "Poslouchám…", thinking: "Přemýšlím…", working: "Pracuji…", waiting: "Potřebuji potvrzení" };
 function renderLive() {
-  bubbleState.textContent = claudeAsks.length && !pendingConfirm ? `Claude Code · ${claudeAsks[0].project} čeká na tebe` : STATE_LABEL[coreMood] ?? "";
+  bubbleState.textContent = selAsk ? `Označený text${selAsk.app ? " · " + selAsk.app : ""} – co s ním?`
+    : claudeAsks.length && !pendingConfirm ? `Claude Code · ${claudeAsks[0].project} čeká na tebe` : STATE_LABEL[coreMood] ?? "";
   const activeTask = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
   if (activeTask && activeTask.total) {
     const cur = activeTask.steps.find((s) => s.status === "running") || activeTask.steps[Math.min(activeTask.done, activeTask.total - 1)];
@@ -428,6 +430,52 @@ function claudeActivity(): boolean {
   actText.replaceChildren(icon("terminal-window"), " ", s.state === "waiting" ? `${s.project} · čeká` : activity);
   return true;
 }
+
+// ---------- 3.3 selected text anywhere (Ctrl+Alt+E): fix, translate, explain… ----------
+function closeSelection() {
+  selAsk = null;
+  window.clearTimeout(selTimer);
+  bubbleConfirm.replaceChildren();
+  bubbleTranscript.textContent = "";
+  renderLive();
+  if (!busy()) settle();
+}
+client.on("selection", (m) => {
+  if (!m.text) return;
+  selAsk = m;
+  liveText = "";
+  bubbleTool.textContent = "";
+  const short = m.text.length > 150 ? m.text.slice(0, 150) + "…" : m.text;
+  bubbleTranscript.textContent = `„${short.replace(/\s+/g, " ")}“`;
+  bubbleConfirm.replaceChildren(
+    ...(m.actions || []).map((a: any) => h("button", { class: `n-pill ${a.replace ? "yes" : ""}`, type: "button",
+      title: a.replace ? "Výsledek se vloží místo označeného textu" : "Výsledek ukážu tady",
+      onclick: () => {
+        client.send("selection_action", { action: a.key });
+        bubbleConfirm.replaceChildren(h("span", { class: "muted" }, `${a.label}…`));
+        window.clearTimeout(selTimer);
+      } }, a.label)),
+    h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: closeSelection }, icon("x")));
+  play("listen");
+  renderLive();
+  if (mode !== "panel") setMode("live");
+  window.clearTimeout(selTimer);
+  selTimer = window.setTimeout(closeSelection, 25000);
+});
+client.on("selection_result", (m) => {
+  selAsk = null;
+  window.clearTimeout(selTimer);
+  bubbleConfirm.replaceChildren();
+  bubbleTranscript.textContent = "";
+  if (!m.ok) { renderLive(); showAlert("Označený text", m.text); play("error"); return; }
+  play("done");
+  if (m.replaced) { renderLive(); settle(); showAlert(m.label, "Hotovo – text jsem nahradil."); return; }
+  liveText = m.text;
+  renderLive();
+  if (mode !== "panel") setMode("live");
+  window.clearTimeout(lingerTimer);
+  lingerTimer = window.setTimeout(() => { if (!busy()) settle(); }, Math.max(cfg.linger_s, 12) * 1000);
+});
 
 // ---------- activity (closed notch) ----------
 let timers: any[] = [];

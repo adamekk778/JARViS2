@@ -109,6 +109,16 @@ class Scheduler:
         try:
             if job["kind"] == "notify":
                 self.rt.notify(p.get("title", "Připomínka"), p.get("body", ""), target="all")
+            elif job["kind"] == "watch":
+                from .powers import check_watch
+
+                fire, msg, new = await check_watch(self.rt, p)
+                if new != p:
+                    self.db.exec("UPDATE jobs SET payload=? WHERE id=?", (json.dumps(new, ensure_ascii=False), job["id"]))
+                if fire:
+                    self.rt.notify("Hlídání webu", msg, url=p["url"], target="all")
+                    if p.get("text"):     # waited for a text and it is there → done
+                        self.delete(job["id"])
             elif job["kind"] == "prompt":
                 text = await self.rt.agent.handle(
                     p["prompt"], [], "schedule",

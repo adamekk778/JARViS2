@@ -57,7 +57,7 @@ html.native .n-inner { box-shadow: none !important; }
 .b-tool .fail { color: var(--danger); }
 .b-answer { color: #f2f5f8; line-height: 1.45; max-height: 118px; overflow-y: auto; scrollbar-width: none; }
 .b-answer p { margin: 0 0 .3em; }
-.b-confirm { display: flex; align-items: center; gap: 8px; }
+.b-confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .b-confirm > span { flex: 1; color: var(--warn); }
 .n-bubble > :empty { display: none; }
 
