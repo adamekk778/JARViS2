@@ -450,7 +450,7 @@ def selftest_windows() -> dict:
             return {**out, "skipped": "Notepad window not found"}
         hwnd = found[0]
         out["focus"] = p.focus_window(hwnd)
-        time.sleep(0.5)
+        time.sleep(0.8)
         fg = p.foreground_info()
         out["foreground"] = {k: fg.get(k) for k in ("app", "exe", "title")}
         p.type_text("dobry den, posilam fakturu")

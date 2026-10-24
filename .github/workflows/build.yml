@@ -226,6 +226,8 @@ jobs:
           Write-Host "UIA SELFTEST: $($uia | Select-Object -Last 1)"
           $pw = & dist\JARVIS\JARVIS-debug.exe --selftest-powers 2>$null
           Write-Host "POWERS SELFTEST (selected text in Notepad): $($pw | Select-Object -Last 1)"
+          $pwr = ($pw | Select-Object -Last 1) | ConvertFrom-Json
+          if (-not $pwr.skipped -and -not $pwr.ok) { throw "selected text: JARVIS did not read or replace it correctly in Notepad" }
           if ($code -ne 0) { throw "idle cost above 2x target" }
       - uses: actions/upload-artifact@v4
         if: failure()

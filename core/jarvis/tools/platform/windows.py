@@ -394,18 +394,39 @@ class WindowsPlatform(Platform):
         return {"hwnd": int(hwnd), "pid": int(pid.value), "exe": exe, "app": friendly_app(exe) if exe else "", "title": buf.value}
 
     def focus_window(self, hwnd: int) -> bool:
+        """Bring a window to the front without side effects. (Tapping Alt to unlock focus opens the target's menu bar,
+        which then eats the next key – e.g. the Ctrl+V of a replacement.)"""
         import ctypes
+        import time
 
-        u = ctypes.windll.user32
+        u, k = ctypes.windll.user32, ctypes.windll.kernel32
+        u.GetForegroundWindow.restype = ctypes.c_void_p
         h = ctypes.c_void_p(hwnd)
         if not u.IsWindow(h):
             return False
         if u.IsIconic(h):
             u.ShowWindow(h, 9)   # SW_RESTORE
-        # Windows only lets the foreground app hand focus over; a tap of Alt counts as input and unlocks it
-        u.keybd_event(0x12, 0, 0, 0)
-        u.keybd_event(0x12, 0, 2, 0)
-        return bool(u.SetForegroundWindow(h))
+        if u.GetForegroundWindow() == hwnd:
+            return True
+        fg = u.GetForegroundWindow()
+        fg_tid = u.GetWindowThreadProcessId(ctypes.c_void_p(fg), None) if fg else 0
+        me = k.GetCurrentThreadId()
+        attached = bool(fg_tid and fg_tid != me and u.AttachThreadInput(me, fg_tid, True))
+        try:
+            u.BringWindowToTop(h)
+            ok = bool(u.SetForegroundWindow(h))
+        finally:
+            if attached:
+                u.AttachThreadInput(me, fg_tid, False)
+        if not ok:   # last resort: a key event that no app reacts to unlocks SetForegroundWindow
+            u.keybd_event(0, 0, 0, 0)
+            u.keybd_event(0, 0, 2, 0)
+            ok = bool(u.SetForegroundWindow(h))
+        for _ in range(20):
+            if u.GetForegroundWindow() == hwnd:
+                return True
+            time.sleep(0.02)
+        return ok
 
     def wait_keys_released(self, timeout: float = 1.5) -> None:
         import ctypes
