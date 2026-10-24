@@ -35,12 +35,16 @@ Name: "omniroute"; Description: "OmniRoute: brána k AI modelům zdarma (nainsta
 Name: "ollama"; Description: "Ollama: offline AI na tvém PC (stáhne ~2 GB model)"; GroupDescription: "AI mozek (doporučeno aspoň jedno):"; Flags: unchecked
 Name: "tailscale"; Description: "Tailscale: ovládání z telefonu i mimo domov (zdarma)"; GroupDescription: "Telefon:"; Flags: unchecked
 
+[InstallDelete]
+; the program folder of the previous version: never mix old and new libraries
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Files]
 Source: "..\dist\JARVIS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-[Icons]
-Name: "{autoprograms}\JARVIS"; Filename: "{app}\JARVIS.exe"
-Name: "{autodesktop}\JARVIS"; Filename: "{app}\JARVIS.exe"; Tasks: desktopicon
+[UninstallDelete]
+Type: files; Name: "{autoprograms}\JARVIS.lnk"
+Type: files; Name: "{autodesktop}\JARVIS.lnk"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "JARVIS"; ValueType: none; Flags: uninsdeletevalue
@@ -55,3 +59,28 @@ Filename: "{app}\JARVIS.exe"; Parameters: "--background"; Flags: nowait; Check: 
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/c taskkill /im JARVIS.exe /f"; Flags: runhidden; RunOnceId: "StopJarvis"
+
+[Code]
+// Shortcuts are made here instead of [Icons]: when Windows or an antivirus refuses to write a .lnk
+// ("IPersistFile::Save ... 0x80070005"), the installation must still finish, just without that shortcut.
+procedure MakeShortcut(const Path: String);
+begin
+  try
+    if FileExists(Path) then
+      DeleteFile(Path);
+    CreateShellLink(Path, 'JARVIS', ExpandConstant('{app}\JARVIS.exe'), '', ExpandConstant('{app}'), '', 0, SW_SHOWNORMAL);
+  except
+    Log('Shortcut not created: ' + Path + ': ' + GetExceptionMessage);
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    MakeShortcut(ExpandConstant('{autoprograms}\JARVIS.lnk'));
+    if WizardIsTaskSelected('desktopicon') then
+      MakeShortcut(ExpandConstant('{autodesktop}\JARVIS.lnk'));
+  end;
+end;
+
