@@ -168,7 +168,8 @@ jobs:
           # a bright backdrop under the notch (black consoles would hide jagged or smooth edges alike)
           $bd = New-Object System.Windows.Forms.Form
           $bd.FormBorderStyle = 'None'; $bd.BackColor = [System.Drawing.Color]::FromArgb(255, 255, 51, 102); $bd.ShowInTaskbar = $false
-          $bd.StartPosition = 'Manual'; $bd.Bounds = New-Object System.Drawing.Rectangle 0, 0, [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width, 320
+          $bdw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
+          $bd.StartPosition = 'Manual'; $bd.Bounds = New-Object System.Drawing.Rectangle 0, 0, $bdw, 320
           $bd.Show(); [System.Windows.Forms.Application]::DoEvents()
           $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2; [System.Windows.Forms.Application]::DoEvents()
