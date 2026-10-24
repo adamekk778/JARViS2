@@ -11,6 +11,7 @@ from . import winutil
 
 log = logging.getLogger(__name__)
 NOTCH_TITLE = "JARVIS Notch"
+HUD_TITLE = "JARVIS HUD"
 PAD = 28  # must match web/src/notch/main.ts
 
 
@@ -38,6 +39,23 @@ class NotchApi:
         return self._host.alpha
 
 
+class HudApi:
+    """Exposed to the HUD page as window.pywebview.api."""
+
+    def __init__(self, host: "DesktopHost"):
+        self._host = host
+
+    def close(self) -> None:
+        self._host.toggle_hud(False)
+
+    def smooth(self) -> bool:
+        return self._host.hud_alpha
+
+    def open_chat(self, view: str = "chat") -> None:
+        self._host.toggle_hud(False)
+        self._host.open_chat(view)
+
+
 class DesktopHost:
     def __init__(self, rt, base_url: str):
         self.rt = rt
@@ -50,6 +68,9 @@ class DesktopHost:
         self._notch_size = (rt.cfg.notch.width + PAD * 2, rt.cfg.notch.height + PAD)
         self._hidden_fullscreen = False
         self.alpha = False
+        self.hud = None
+        self.hud_visible = False
+        self.hud_alpha = False
 
     # ---------- geometry ----------
     def _screen(self):
@@ -123,9 +144,18 @@ class DesktopHost:
     def _smooth_edges(self) -> None:
         """Anti-aliased notch edges: a transparent WebView2 on a per-pixel-alpha window. The page then paints only the
         shape and the region (slightly larger) is just for the mouse. Without it nothing changes: black + region."""
-        form = getattr(self.notch, "native", None)
-        if form is None or not winutil.IS_WIN or not self.rt.cfg.notch.smooth_edges:
+        if not self.rt.cfg.notch.smooth_edges:
             return
+        if self._make_alpha(self.notch, self.notch_hwnd()):
+            self.alpha = True
+            self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
+            log.info("notch: smooth edges (per-pixel alpha) on")
+
+    def _make_alpha(self, win, hwnd: int) -> bool:
+        """Per-pixel transparency for a pywebview window (WebView2 background transparent + DWM blur-behind)."""
+        form = getattr(win, "native", None)
+        if form is None or not winutil.IS_WIN or not hwnd:
+            return False
         try:
             from System import Action
             from System.Drawing import Color
@@ -135,14 +165,68 @@ class DesktopHost:
                 form.webview.DefaultBackgroundColor = Color.Transparent
 
             form.Invoke(Action(apply))
-            if winutil.enable_alpha(self.notch_hwnd()):
-                self.alpha = True
-                self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
-                log.info("notch: smooth edges (per-pixel alpha) on")
-                return
+            if winutil.enable_alpha(hwnd):
+                return True
             form.Invoke(Action(lambda: setattr(form.webview, "DefaultBackgroundColor", Color.Black)))
         except Exception as e:
-            log.warning("notch: smooth edges unavailable: %s", e)
+            log.warning("per-pixel alpha unavailable: %s", e)
+        return False
+
+    # ---------- 3.2 Stark HUD: a holographic overlay over the whole screen ----------
+    def toggle_hud(self, show: bool | None = None) -> None:
+        threading.Thread(target=self._toggle_hud, args=(show,), daemon=True, name="hud").start()
+
+    def _toggle_hud(self, show: bool | None) -> None:
+        import webview
+
+        show = (not self.hud_visible) if show is None else show
+        try:
+            if not show:
+                if self.hud is not None and self.hud_visible:
+                    self.hud_visible = False
+                    self.hud.evaluate_js("window.__hud && window.__hud.close()")
+                    self.hud.hide()
+                return
+            scr = self._screen()
+            x, y, w, h = (scr.x, scr.y, scr.width, scr.height) if scr else (0, 0, 1920, 1080)
+            if self.hud is None:
+                self.hud = webview.create_window(
+                    HUD_TITLE, f"{self.base}/hud", js_api=HudApi(self), x=x, y=y, width=w, height=h,
+                    frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
+                    background_color="#02060c", focus=True)
+                self.hud.events.shown += self._on_hud_shown
+                self.hud_visible = True
+                return
+            self.hud.show()
+            self._place_hud()
+            self.hud_visible = True
+            self.hud.evaluate_js("window.__hud && window.__hud.open()")
+            self.hud.on_top = True
+        except Exception as e:
+            log.warning("hud: %s", e)
+
+    def _place_hud(self) -> int:
+        """Exactly over the notch's monitor, in physical pixels (pywebview would DPI-scale the size a second time)."""
+        hwnd = winutil.window_handle(self.hud, HUD_TITLE)
+        if hwnd:
+            from . import platforms
+
+            mons = platforms.monitors()
+            i = self.rt.cfg.notch.monitor
+            mon = mons[i if 0 <= i < len(mons) else 0][0]
+            winutil.set_window_rect(hwnd, mon.x, mon.y, mon.w, mon.h)
+            winutil.focus(hwnd)
+        return hwnd
+
+    def _on_hud_shown(self) -> None:
+        time.sleep(0.2)
+        hwnd = self._place_hud()
+        self.hud_alpha = self._make_alpha(self.hud, hwnd)
+        try:
+            self.hud.evaluate_js(f"window.__hud && window.__hud.alpha({'true' if self.hud_alpha else 'false'})")
+        except Exception:
+            pass
+        log.info("hud: shown (alpha %s)", self.hud_alpha)
 
     def _on_chat_closing(self):
         if self._quitting:
@@ -175,6 +259,8 @@ class DesktopHost:
             log.warning("open_fullchat: %s", e)
 
     def open_chat(self, view: str = "chat") -> None:
+        if view in ("hud", "hud-close"):
+            return self.toggle_hud(view == "hud")
         if view == "full":   # off the caller's thread: creating a window waits for the GUI thread
             threading.Thread(target=self.open_fullchat, daemon=True, name="fullchat").start()
             return
@@ -229,6 +315,7 @@ class DesktopHost:
         menu = pystray.Menu(
             pystray.MenuItem("Otevřít JARVIS", lambda: self.open_chat("chat"), default=True),
             pystray.MenuItem("Celý chat", lambda: self.open_fullchat()),
+            pystray.MenuItem("Stark HUD", lambda: self.toggle_hud()),
             pystray.MenuItem("Nastavení", lambda: self.open_chat("general")),
             pystray.MenuItem("Spárovat telefon", lambda: self.open_chat("phone")),
             pystray.MenuItem(voice_label, toggle_voice, visible=lambda _: self.rt.voice is not None),
@@ -279,7 +366,7 @@ class DesktopHost:
             self.rt.call_soon(self.rt.stop_all)
 
         for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
-                          (hk.stop_all, stop_all)):
+                          (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud())):
             try:
                 keyboard.add_hotkey(combo, fn, suppress=False)
             except Exception as e:
@@ -300,7 +387,7 @@ class DesktopHost:
                 self.tray.stop()
         except Exception:
             pass
-        for w in (self.notch, self.chat, self.full):
+        for w in (self.notch, self.chat, self.full, self.hud):
             try:
                 if w:
                     w.destroy()
@@ -327,6 +414,12 @@ class DesktopHost:
         def started():
             if open_chat:
                 self.open_chat("chat")
+            try:   # "JARVIS online", or the morning briefing when it is due
+                from .. import stark
+
+                self.rt.submit(stark.boot(self.rt))
+            except Exception as e:
+                log.debug("boot greeting: %s", e)
 
         webview.start(started, gui="edgechromium" if sys.platform == "win32" else None,
                       private_mode=False, storage_path=str(__import__("jarvis.paths", fromlist=["sub"]).sub("webview")))

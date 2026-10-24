@@ -57,6 +57,7 @@ class Platform:
     def scroll(self, dy: int) -> None: raise NotImplementedError
     def notify(self, title: str, body: str) -> None: pass
     def release_all_input(self) -> None: pass
+    def idle_seconds(self) -> float: return 0.0   # since the last mouse/keyboard input (0 = unknown → present)
     # ---------- UI Automation (spec §3.1) ----------
     def ui_tree(self, window: str = "", depth: int = 4, limit: int = 150) -> list[UiNode]: raise NotImplementedError
     def ui_find(self, window: str = "", name: str = "", role: str = "", automation_id: str = "",

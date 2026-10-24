@@ -12,6 +12,7 @@ import { buildDiagnostics } from "./diagnostics";
 import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
 import { buildNotetaker } from "./notetaker";
 import { buildClaude } from "./claude";
+import { buildStark } from "./stark";
 import { whatsNewOverlay } from "../shared/whatsnew";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
@@ -31,16 +32,17 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "tasks", "voice-mode", "claude"]],
+  ["Hlavní", ["chat", "stark", "tasks", "voice-mode", "claude"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
 ];
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
+  ["stark", "circle-notch", "Stark"],
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
   ["claude", "terminal-window", "Claude Code"],
@@ -82,6 +84,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   stats: buildStats(client),
   notetaker: buildNotetaker(client),
   claude: buildClaude(client),
+  stark: buildStark(client),
 };
 recapOverlay(client);
 whatsNewOverlay(client);
@@ -128,6 +131,8 @@ const palette = commandPalette({
   actions: [
     { icon: "plus", label: "Nová konverzace", run: () => { go("chat"); client.send("new_chat"); } },
     { icon: "arrows-out-simple", label: "Otevřít celý chat", run: () => fullBtn.click() },
+    { icon: "circle-notch", label: "Otevřít Stark HUD", run: () => client.send("open_window", { view: "hud" }) },
+    { icon: "sun-horizon", label: "Ranní brífink", run: () => { go("chat"); client.send("user_text", { text: "Brífink", attachments: [] }); } },
     { icon: "stop-circle", label: "Zastavit vše (STOP)", run: () => client.send("stop_all") },
     { icon: "microphone", label: "Zapnout / vypnout poslech", run: () => client.send("voice_toggle") },
   ],

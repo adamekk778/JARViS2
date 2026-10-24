@@ -38,7 +38,10 @@ TOOL_LABELS = {
     "checkpoint": "Záchytný bod", "restore_checkpoint": "Obnovuji záchytný bod", "compare_files": "Porovnávám soubory",
     "run_tests": "Spouštím testy", "claude_code": "Claude Code",
     "make_website": "Stavím web", "read_website": "Čtu web", "list_websites": "Moje weby",
+    "set_dark_mode": "Tmavý režim", "briefing": "Brífink", "run_protocol": "Protokol", "list_protocols": "Protokoly",
+    "show_hud": "Stark HUD", "system_info": "Stav systémů",
 }
+MEDIA_ACTIONS = {"play_pause": "přehrát / pauza", "next": "další", "previous": "předchozí", "stop": "stop"}
 
 
 AGENT_MODE_RULE = ("Režim Agent: u úkolu s více kroky nejdřív zavolej update_plan se seznamem kroků, po každém kroku "
@@ -54,6 +57,12 @@ def _first_sentence(text: str) -> str:
 
 def describe_call(name: str, args: dict) -> str:
     label = TOOL_LABELS.get(name, name)
+    if name == "volume" and args.get("action") == "set" and args.get("level") is not None:
+        return f"{label}: {args['level']} %"
+    if name == "media_control" and args.get("action") in MEDIA_ACTIONS:
+        return f"{label}: {MEDIA_ACTIONS[args['action']]}"
+    if name == "set_dark_mode" and "dark" in args:
+        return f"{label}: {'zapnout' if args['dark'] else 'vypnout'}"
     key = next((args[k] for k in ("query", "name", "text", "task", "prompt", "url", "command", "action", "path", "city", "title")
                 if isinstance(args.get(k), (str, int)) and args.get(k) != ""), None)
     return f"{label}: {key}" if key is not None else label
@@ -100,6 +109,60 @@ class Agent:
                 self.busy = False
                 self._task = None
                 self.rt.bus.publish("state", state="idle")
+
+    async def run_steps(self, title: str, steps: list, source: str = "protocol") -> str:
+        """A protocol segment: JARVIS lines and tool calls in order, without the AI. Tools go through the same path as
+        any AI tool call (permissions, confirmation of dangerous actions, STOP, task log, chips in the chat)."""
+        rt, bus = self.rt, self.rt.bus
+        gen = self._gen
+        async with self._lock:
+            if gen != self._gen:
+                return ""
+            self._task = asyncio.current_task()
+            self.busy = True
+            self._goal = title
+            cards: list[dict] = []
+            atts: list[str] = []
+            said: list[str] = []
+            status, cancelled = "done", False
+            try:
+                um = rt.memory.add_message("user", title, [], source)
+                bus.publish("user_message", id=um["id"], text=title, source=source, attachments=[])
+                bus.publish("state", state="acting")
+                for st in steps:
+                    if st.when == "playing" and not rt.media_state.get("playing"):
+                        continue
+                    if st.tool:
+                        await self._run_call(ToolCall(uuid.uuid4().hex[:12], st.tool, dict(st.args)), cards, atts)
+                        if st.tool == "briefing" and cards and cards[-1]["ok"]:
+                            said.append(cards[-1]["summary"])
+                    if st.say:
+                        said.append(st.say)
+                text = "\n\n".join(said) or f"{title}: hotovo."
+                failed = [c["label"] for c in cards if not c["ok"]]
+                if failed:
+                    text += "\n\nNepovedlo se: " + ", ".join(failed) + "."
+                bus.publish("assistant_delta", text=text)
+            except asyncio.CancelledError:
+                cancelled, status = True, "cancelled"
+                text = (" ".join(said) + " …(přerušeno)").strip()
+            except Exception as e:
+                log.exception("protocol failed")
+                status = "failed"
+                text = f"Omlouvám se, protokol se nepovedl: {e}"
+                bus.publish("error", message=text)
+            finally:
+                self.busy = False
+                self._task = None
+            if rt.tasks.current is not None:
+                rt.tasks.finish(status, _first_sentence(text))
+            am = rt.memory.add_message("assistant", text, atts, source, meta={"tools": cards, "brain": None})
+            bus.publish("assistant_done", id=am["id"], text=text, tools=cards,
+                        attachments=[rt.public_attachment(a) for a in atts])
+            bus.publish("state", state="idle")
+            if not cancelled and rt.cfg.voice.speak_mode != "never":
+                rt.speak(text)
+            return text
 
     def confirm(self, cid: str, approved: bool) -> bool:
         fut = self._confirms.get(cid)

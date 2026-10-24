@@ -1,5 +1,5 @@
 // Subtle interface sounds (spec §8), synthesised with WebAudio — no audio files, nothing to license.
-type Sound = "wake" | "listen" | "done" | "error" | "notify";
+type Sound = "wake" | "listen" | "done" | "error" | "notify" | "boot";
 
 const TONES: Record<Sound, [number, number, number][]> = { // [frequency Hz, start s, duration s]
   wake: [[660, 0, 0.09], [990, 0.07, 0.12]],
@@ -7,6 +7,7 @@ const TONES: Record<Sound, [number, number, number][]> = { // [frequency Hz, sta
   done: [[784, 0, 0.09], [1175, 0.08, 0.14]],
   error: [[330, 0, 0.12], [247, 0.1, 0.16]],
   notify: [[1047, 0, 0.08], [1319, 0.09, 0.1]],
+  boot: [[220, 0, 0.22], [330, 0.1, 0.22], [440, 0.2, 0.26], [660, 0.32, 0.3], [880, 0.46, 0.42]],   // HUD power-up
 };
 
 let ctx: AudioContext | null = null;

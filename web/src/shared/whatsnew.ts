@@ -3,6 +3,12 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.2": [
+    { icon: "circle-notch", title: "Stark HUD", line: "Holografický přehled přes celou obrazovku s arc reaktorem: Ctrl+Alt+H, tlačítko v notchi nebo „ukaž HUD“." },
+    { icon: "lightning", title: "Protokoly", line: "„Spusť protokol Párty“, „Dobrou noc“, „Pracovní režim“… a vlastní si poskládáš v sekci Stark." },
+    { icon: "sun-horizon", title: "Ranní brífink", line: "Ráno ti JARVIS sám řekne počasí, plány, stav PC a hlavní zprávy." },
+    { icon: "shield-check", title: "Strážce", line: "Sám upozorní na slabou baterii, přetížený procesor, plný disk nebo výpadek internetu." },
+  ],
   "3.1": [
     { icon: "arrows-out-simple", title: "Celý chat přes celou obrazovku", line: "Tlačítko v notchi, v okně i v liště: chat jako ChatGPT, s režimy Chat a Agent." },
     { icon: "browser", title: "JARVIS staví weby", line: "Řekni „udělej mi web pro…“ a náhled uvidíš hned v chatu – i jak vypadá na telefonu." },

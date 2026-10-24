@@ -372,6 +372,17 @@ class WindowsPlatform(Platform):
     def notify(self, title: str, body: str) -> None:
         pass
 
+    def idle_seconds(self) -> float:
+        import ctypes
+
+        class LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+
+        li = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(li)):
+            return 0.0
+        return max(0.0, ((ctypes.windll.kernel32.GetTickCount() - li.dwTime) & 0xFFFFFFFF) / 1000)
+
 
 def png_bytes(img) -> bytes:
     buf = io.BytesIO()

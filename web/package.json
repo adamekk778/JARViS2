@@ -1,7 +1,7 @@
 {
   "name": "jarvis-web",
   "private": true,
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,8 @@
     "@capgo/capacitor-share-target": "^8.0.63",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/orbitron": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
     "@phosphor-icons/web": "^2.1.2",
     "dompurify": "^3.4.17",
     "highlight.js": "^11.12.0",

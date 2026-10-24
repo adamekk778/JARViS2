@@ -63,6 +63,9 @@ class Runtime:
 
         self.mood = MoodEngine(self)
         self.updater: Any = None
+        from .stark import Guardian
+
+        self.guardian = Guardian(self)
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -71,6 +74,7 @@ class Runtime:
         self.bus.bind_loop(self.loop)
         self.store.transcribe = self._transcribe_file
         self.mood.start()
+        self.guardian.start()
         try:
             from .updater import Updater
 
@@ -102,6 +106,7 @@ class Runtime:
 
     async def stop(self) -> None:
         self.mood.stop()
+        self.guardian.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:

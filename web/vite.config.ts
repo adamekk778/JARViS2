@@ -14,6 +14,7 @@ export default defineConfig({
         mobile: resolve(__dirname, "mobile.html"),
         character: resolve(__dirname, "character.html"),
         chat: resolve(__dirname, "chat.html"),
+        hud: resolve(__dirname, "hud.html"),
       },
     },
   },

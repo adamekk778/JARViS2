@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 3.1.${{ github.run_number }}
+  JARVIS_VERSION: 3.2.${{ github.run_number }}
 
 jobs:
   test:
@@ -191,6 +191,16 @@ jobs:
           $bmp = New-Object System.Drawing.Bitmap $sb.Width, $sb.Height
           [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save("$shots\4-full-chat.png")
           $fr = New-Object W+RECT; [W]::GetWindowRect($full, [ref]$fr) | Out-Null
+          # 3.2: the Stark HUD overlay (Ctrl+Alt+H) over the whole screen
+          Invoke-RestMethod -Method Post "http://127.0.0.1:8765/api/show?view=hud" | Out-Null
+          $hud = [IntPtr]::Zero
+          for ($i = 0; $i -lt 20 -and $hud -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $hud = [W]::Find([uint32]$p.Id, $seen, "JARVIS HUD") }
+          Start-Sleep -Seconds 5
+          $bmp2 = New-Object System.Drawing.Bitmap $sb.Width, $sb.Height
+          [System.Drawing.Graphics]::FromImage($bmp2).CopyFromScreen(0, 0, 0, 0, $bmp2.Size); $bmp2.Save("$shots\5-hud.png")
+          $hr = New-Object W+RECT; [W]::GetWindowRect($hud, [ref]$hr) | Out-Null
+          $hudLine = "hud hwnd=$hud window=($($hr.L),$($hr.T))-($($hr.R),$($hr.B))"
+          Write-Host $hudLine; Add-Content "$shots\region.txt" $hudLine
           $fullLine = "full chat hwnd=$full window=($($fr.L),$($fr.T))-($($fr.R),$($fr.B)) windows=$($seen -join ' | ')"
           Write-Host $fullLine; Add-Content "$shots\region.txt" $fullLine
           foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
@@ -198,6 +208,8 @@ jobs:
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
           if ($full -eq [IntPtr]::Zero) { throw "the full chat window did not open" }
+          if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
+          if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }
           if (($fr.R - $fr.L) -lt $sb.Width * 0.8) { throw "the full chat window is not maximized" }
       - uses: actions/upload-artifact@v4
         if: always()

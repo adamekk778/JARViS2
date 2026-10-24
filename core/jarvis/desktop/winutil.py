@@ -234,3 +234,15 @@ def enable_alpha(hwnd: int) -> bool:
         return hr == 0
     except (AttributeError, OSError):
         return False
+
+
+def focus(hwnd: int) -> None:
+    """Bring a window to the front with keyboard focus (the HUD must get Esc)."""
+    if not IS_WIN or not hwnd:
+        return
+    u = ctypes.windll.user32
+    try:
+        u.ShowWindow(ctypes.c_void_p(hwnd), 5)   # SW_SHOW
+        u.SetForegroundWindow(ctypes.c_void_p(hwnd))
+    except (AttributeError, OSError):
+        pass

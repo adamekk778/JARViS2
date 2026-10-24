@@ -72,6 +72,7 @@ const barLeft = h("div", { class: "bar-side l" },
 const barStop = stopButton(client, "sm");
 const barRight = h("div", { class: "bar-side r" }, barStop,
   h("button", { class: "n-btn", type: "button", title: "Mluvit (Ctrl+Alt+Mezerník)", "aria-label": "Mluvit", onclick: () => client.send("push_to_talk") }, icon("microphone")),
+  h("button", { class: "n-btn", type: "button", title: "Stark HUD (Ctrl+Alt+H)", "aria-label": "Stark HUD", onclick: () => openChat("hud") }, icon("circle-notch")),
   h("button", { class: "n-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six")));
 
 const bubbleState = h("div", { class: "b-state" });
@@ -118,7 +119,7 @@ async function resizeWindow(w: number, hh: number) {
 }
 function openChat(view = "chat") {
   if (window.pywebview) window.pywebview.api.open_chat(view);
-  else window.open(view === "full" ? "/chat" : `/#${view}`, "_blank");
+  else window.open(view === "full" ? "/chat" : view === "hud" ? "/hud" : `/#${view}`, "_blank");
 }
 
 function sizeFor(m: Mode): [number, number] {

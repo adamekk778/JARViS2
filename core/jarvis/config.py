@@ -110,6 +110,7 @@ class Appearance(BaseModel):
 class Hotkeys(BaseModel):
     talk: str = "ctrl+alt+space"
     chat: str = "ctrl+alt+j"
+    hud: str = "ctrl+alt+h"
     stop: str = "esc"
     stop_all: str = "ctrl+alt+x"
 
@@ -201,6 +202,58 @@ class ClaudeCfg(BaseModel):
     always_allow: list[str] = Field(default_factory=list)   # tools allowed with "Vždy" (e.g. "Read")
 
 
+class ProtocolStep(BaseModel):
+    """One step of a protocol: JARVIS says something, runs one of his tools, or gets a task for the AI."""
+    say: str = ""
+    tool: str = ""
+    args: dict[str, Any] = Field(default_factory=dict)
+    ask: str = ""
+    when: Literal["", "playing"] = ""   # "playing": only while music/video plays (e.g. pause it)
+
+
+class Protocol(BaseModel):
+    id: str
+    name: str
+    icon: str = "lightning"
+    steps: list[ProtocolStep] = Field(default_factory=list)
+
+
+def _default_protocols() -> list[Protocol]:
+    S = ProtocolStep
+    return [
+        Protocol(id="rano", name="Ranní", icon="sun-horizon", steps=[S(tool="briefing")]),
+        Protocol(id="prace", name="Pracovní režim", icon="briefcase", steps=[
+            S(tool="media_control", args={"action": "play_pause"}, when="playing"),
+            S(tool="volume", args={"action": "set", "level": 25}),
+            S(say="Pracovní režim aktivní. Ztlumil jsem zvuk a hudbu jsem pozastavil. Soustřeďte se, pane.")]),
+        Protocol(id="hry", name="Herní režim", icon="game-controller", steps=[
+            S(tool="volume", args={"action": "set", "level": 60}),
+            S(say="Herní režim aktivní. Hlasitost na šedesát procent. Hodně štěstí, pane.")]),
+        Protocol(id="party", name="Párty", icon="confetti", steps=[
+            S(say="Spouštím protokol Párty."),
+            S(tool="volume", args={"action": "set", "level": 70}),
+            S(tool="youtube_play", args={"query": "party mix 2026"})]),
+        Protocol(id="noc", name="Dobrou noc", icon="moon-stars", steps=[
+            S(tool="media_control", args={"action": "play_pause"}, when="playing"),
+            S(tool="set_dark_mode", args={"dark": True}),
+            S(tool="volume", args={"action": "set", "level": 15}),
+            S(say="Dobrou noc, pane. Ztlumil jsem zvuk a přepnul na tmavý režim.")]),
+    ]
+
+
+class Stark(BaseModel):
+    """3.2 "Stark" features: protocols, the morning briefing, the guardian and the HUD."""
+    boot_greeting: bool = True          # "JARVIS online" when the PC app starts
+    briefing_auto: bool = True          # the first time you are at the PC in the morning
+    briefing_speak: bool = True
+    briefing_news: bool = True          # three headlines (Google News RSS)
+    guardian: bool = True               # warns about battery, CPU, RAM, disk, internet
+    guardian_speak: bool = True
+    battery_low: int = 20
+    disk_low_gb: int = 5
+    protocols: list[Protocol] = Field(default_factory=_default_protocols)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -232,6 +285,7 @@ class Config(BaseModel):
     agent: AgentCfg = Field(default_factory=AgentCfg)
     dictation: Dictation = Field(default_factory=Dictation)
     claude: ClaudeCfg = Field(default_factory=ClaudeCfg)
+    stark: Stark = Field(default_factory=Stark)
 
     @model_validator(mode="before")
     @classmethod
@@ -253,6 +307,8 @@ SETTABLE_BY_VOICE: set[str] = {
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "agent.mode",
     "dictation.enabled", "dictation.cleanup",
+    "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
+    "stark.guardian", "stark.guardian_speak",
 }
 
 # Never sent to remote clients.

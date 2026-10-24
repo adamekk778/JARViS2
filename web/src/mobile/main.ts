@@ -238,8 +238,16 @@ function controlView(c: JarvisClient): HTMLElement {
   const tile = (ic: string, label: string, fn: () => void, cls = "") =>
     h("button", { class: `ctl ${cls}`, type: "button", onclick: fn }, icon(ic), h("span", {}, label));
 
+  // 3.2 protocols: one tap runs "Párty", "Dobrou noc"… on the PC
+  const protoBox = h("div", { class: "ctl-grid" });
+  const renderProtos = (st: any) => protoBox.replaceChildren(...(st?.stark?.protocols || []).map((p: any) =>
+    tile(p.icon || "lightning", p.name, () => { native.haptic(); c.send("protocol_run", { id: p.id }); toast(`Protokol ${p.name}`, "ok", 1400); })));
+  c.on("welcome", (m) => renderProtos(m.settings));
+  c.on("settings_changed", (m) => renderProtos(m.settings));
+
   return h("section", { class: "m-view m-control", hidden: true },
     ptt,
+    h("div", { class: "card" }, h("h2", {}, "Protokoly"), protoBox),
     h("div", { class: "card" }, h("h2", {}, "Média"),
       h("div", { class: "media-row" },
         tile("skip-back", "Předchozí", () => quick("media_control", { action: "previous" })),

@@ -31,7 +31,7 @@ CLIENT_TYPES = [
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
-    "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get",
+    "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -43,7 +43,7 @@ SERVER_TYPES = [
     "memory_export_data", "memory_import_result", "audio_devices",
     "diagnostics", "diagnostics_file",
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
-    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites",
+    "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -58,11 +58,17 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "open_window", "site_open"}
 
 
+# answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
+SLOW = {"weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+        "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get"}
+
+
 class Connection:
     def __init__(self, ws: WebSocket, rt: Any, local: bool):
         self.ws = ws
         self.rt = rt
         self.local = local
+        self._slow: set[asyncio.Task] = set()
         self.id = uuid.uuid4().hex[:8]
         self.client = "unknown"
         self.name = ""
@@ -95,17 +101,32 @@ class Connection:
                 msg = await self.ws.receive_json()
                 if not isinstance(msg, dict) or "type" not in msg:
                     continue
-                try:
-                    await self.dispatch(msg)
-                except Exception as e:
-                    log.exception("ws handler %s failed", msg.get("type"))
-                    await self.send("error", message=f"{type(e).__name__}: {e}")
+                if msg["type"] in SLOW:   # network/system lookups must not hold up this window's other messages
+                    task = asyncio.get_running_loop().create_task(self._dispatch_safe(msg))
+                    self._slow.add(task)
+                    task.add_done_callback(self._slow.discard)
+                else:
+                    await self._dispatch_safe(msg)
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
+            for task in list(self._slow):
+                task.cancel()
             pump.cancel()
             self.rt.bus.unsubscribe(q)
             self.rt.clients.pop(self.id, None)
+
+    async def _dispatch_safe(self, msg: dict) -> None:
+        try:
+            await self.dispatch(msg)
+        except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+            pass
+        except Exception as e:
+            log.exception("ws handler %s failed", msg.get("type"))
+            try:
+                await self.send("error", message=f"{type(e).__name__}: {e}")
+            except (WebSocketDisconnect, RuntimeError):
+                pass
 
     async def _pump(self, q: asyncio.Queue) -> None:
         try:
@@ -220,6 +241,19 @@ class Connection:
         elif t == "open_window":
             if rt.ui_hook:
                 rt.ui_hook(str(m.get("view") or "chat"))
+        elif t == "protocol_run":
+            from .. import stark
+
+            p = stark.find_protocol(rt, str(m.get("id") or m.get("name") or ""))
+            if p is None:
+                await self.send("error", message="Ten protokol neexistuje.")
+            else:
+                stark.start_protocol(rt, p)
+        elif t == "briefing_get":
+            from .. import stark
+
+            b = await stark.briefing(rt, news=bool(m.get("news", rt.cfg.stark.briefing_news)))
+            await self.send("briefing", **b)
         elif t == "sites_get":
             await self.send("sites", items=list_sites())
         elif t == "site_open":

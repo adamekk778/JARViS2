@@ -150,6 +150,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     async def fullchat():
         return page("chat.html")
 
+    @app.get("/hud")
+    async def hud():
+        return page("hud.html")
+
     @app.get("/sites/{site_id}/{rel:path}")
     async def site_file(site_id: str, rel: str = ""):
         """Websites JARVIS built. The unguessable id is the key; the sandbox CSP gives each page an opaque origin,
