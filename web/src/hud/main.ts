@@ -278,6 +278,10 @@ client.on("system", (s) => {
 });
 const fmtRate = (k: number) => (k >= 1024 ? `${(k / 1024).toFixed(1)} MB/s` : `${Math.round(k || 0)} kB/s`);
 client.on("weather", (w) => {
+  if (w.error || w.temp == null) {
+    if (wTemp.textContent === "--°") wDesc.textContent = "POČASÍ NEDOSTUPNÉ";
+    return;
+  }
   wTemp.textContent = `${Math.round(w.temp)}°`;
   wDesc.textContent = `${w.city} · ${w.desc}`.toUpperCase();
   wDays.replaceChildren(...(w.days || []).slice(1, 4).map((d: any) => {

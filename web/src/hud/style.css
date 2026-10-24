@@ -8,7 +8,7 @@ html.hud-doc.alpha, html.hud-doc.alpha body { background: transparent; }
   --holo: #5fd4ff; --holo-2: #a7ecff; --holo-dim: rgb(95 212 255 / .22); --holo-faint: rgb(95 212 255 / .08);
   --amber: #ffb54a; --red: #ff5a5f; --lvl: 0;
   position: fixed; inset: 0; font: 500 16px/1.35 "Rajdhani", "Segoe UI", sans-serif; letter-spacing: .02em;
-  display: grid; grid-template-columns: minmax(300px, 25vw) 1fr minmax(300px, 25vw); grid-template-rows: auto 1fr auto;
+  display: grid; grid-template-columns: minmax(220px, 25vw) minmax(0, 1fr) minmax(220px, 25vw); grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 2vh 2.4vw; padding: 3.2vh 2.6vw 3vh;
 }
 .hud[data-mood="error"], .hud[data-mood="limit"] { --holo: #ff6b6b; --holo-2: #ffc2c2; --holo-dim: rgb(255 107 107 / .25); }
@@ -182,8 +182,28 @@ html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 
 @keyframes gridIn { from { opacity: 0; } }
 :root[data-motion="reduced"] .hud *, :root[data-motion="reduced"] .hud { animation: none !important; }
 
-@media (max-width: 1100px) {
-  .hud { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto auto; overflow-y: auto; }
+/* small laptops (1024–1366 × 700–800): everything a bit tighter, still three columns */
+@media (max-height: 860px), (max-width: 1400px) {
+  .hud { gap: 1.4vh 1.6vw; padding: 2.4vh 2vw 2.2vh; font-size: 15px; }
+  .clock, .w-temp { font-size: clamp(30px, 3.6vw, 56px); }
+  .greet { font-size: 17px; }
+  .panel { padding: 10px 12px 12px; }
+  .panel header { margin-bottom: 8px; font-size: 11px; }
+  .gauges { gap: 2px; }
+  .g-ring { width: min(64px, 4.6vw); }
+  .g-ring b { font-size: 11px; }
+  .spark { height: 34px; }
+  .log { max-height: 22vh; font-size: 13.5px; }
+  .reactor { width: min(40vmin, 440px); }
+  .answer { font-size: 17px; -webkit-line-clamp: 3; }
+  .proto { height: 36px; padding: 0 12px; font-size: 11px; }
+  .cmdbar { width: min(760px, 80vw); }
+  .cmd { height: 34px; font-size: 17px; }
+}
+@media (max-height: 700px) { .log, .spark-wrap, .w-days { display: none; } .you { display: none; } }
+/* phones (the HUD opened in a phone browser): one column, scrolls */
+@media (max-width: 760px) {
+  .hud { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-rows: auto; overflow-y: auto; }
   .corner.tl, .corner.tr, .col.left, .centre, .col.right, .bottom { grid-column: 1; grid-row: auto; text-align: left; }
-  .reactor { width: min(70vw, 360px); }
+  .reactor { width: min(70vw, 320px); }
 }

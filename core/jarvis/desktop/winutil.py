@@ -246,3 +246,15 @@ def focus(hwnd: int) -> None:
         u.SetForegroundWindow(ctypes.c_void_p(hwnd))
     except (AttributeError, OSError):
         pass
+
+
+def window_rect(hwnd: int) -> tuple[int, int, int, int] | None:
+    """(x, y, w, h) in physical pixels, for the log."""
+    if not IS_WIN or not hwnd:
+        return None
+    from ctypes import wintypes as W
+
+    r = W.RECT()
+    if not ctypes.windll.user32.GetWindowRect(ctypes.c_void_p(hwnd), ctypes.byref(r)):
+        return None
+    return (r.left, r.top, r.right - r.left, r.bottom - r.top)

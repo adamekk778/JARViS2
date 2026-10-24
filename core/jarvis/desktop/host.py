@@ -216,11 +216,13 @@ class DesktopHost:
             mon = mons[i if 0 <= i < len(mons) else 0][0]
             winutil.set_window_rect(hwnd, mon.x, mon.y, mon.w, mon.h)
             winutil.focus(hwnd)
+            log.info("hud: placed on %s (window %s)", (mon.x, mon.y, mon.w, mon.h), winutil.window_rect(hwnd))
         return hwnd
 
     def _on_hud_shown(self) -> None:
         time.sleep(0.2)
         hwnd = self._place_hud()
+        threading.Timer(0.8, self._place_hud).start()   # pywebview may still apply its own size right after "shown"
         self.hud_alpha = self._make_alpha(self.hud, hwnd)
         try:
             self.hud.evaluate_js(f"window.__hud && window.__hud.alpha({'true' if self.hud_alpha else 'false'})")

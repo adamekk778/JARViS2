@@ -201,9 +201,9 @@ jobs:
           $hr = New-Object W+RECT; [W]::GetWindowRect($hud, [ref]$hr) | Out-Null
           $hudLine = "hud hwnd=$hud window=($($hr.L),$($hr.T))-($($hr.R),$($hr.B))"
           Write-Host $hudLine; Add-Content "$shots\region.txt" $hudLine
+          foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
           $fullLine = "full chat hwnd=$full window=($($fr.L),$($fr.T))-($($fr.R),$($fr.B)) windows=$($seen -join ' | ')"
           Write-Host $fullLine; Add-Content "$shots\region.txt" $fullLine
-          foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
