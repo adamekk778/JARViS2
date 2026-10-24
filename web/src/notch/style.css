@@ -278,3 +278,32 @@ html.native .notch:not([data-mode="closed"]):not([data-mode="hover"]) .n-inner {
 /* 3.0 dictation anywhere: level meter in the activity capsule */
 .dbars { display: inline-flex; align-items: center; gap: 2px; height: 12px; }
 .dbars i { width: 3px; height: 12px; border-radius: 2px; background: var(--accent); transform: scaleY(.2); transition: transform .08s linear; }
+
+/* =====================================================================================
+   3.0.x motion: the shape is a clip-path driven by one spring in main.ts (no width/height transitions, no layout
+   per frame); the window region follows the same numbers. Ears follow the visible edges.
+   ===================================================================================== */
+.notch, .notch.shrinking { --cw: 200px; --ch: 34px; transition: none; }
+.n-inner {
+  border-radius: 0;
+  clip-path: inset(0 calc((100% - var(--cw)) / 2) calc(100% - var(--ch)) calc((100% - var(--cw)) / 2) round 0 0 var(--r) var(--r));
+  transition: background .4s var(--ease);
+  will-change: clip-path;
+}
+.notch::before { left: calc((100% - var(--cw)) / 2 - 14px); }
+.notch::after { right: calc((100% - var(--cw)) / 2 - 14px); }
+/* page background behind the shape: black (never the grey default) in case the window region is late */
+html.notch-doc.native, html.notch-doc.native body { background: #000 !important; color-scheme: dark; }
+
+/* the closed notch shows the WHOLE character, small; it grows into place when the notch opens */
+.n-blob { transform-origin: 50% 0; transition: top .5s var(--spring), left .5s var(--spring), transform .5s var(--spring), opacity .25s var(--ease); }
+.notch[data-mode="closed"] .n-blob, .notch[data-mode="hover"] .n-blob { top: 1px; transform: translateX(-50%) scale(.52); }
+.notch[data-mood="dancing"][data-mode="closed"] .n-blob { top: 0; }
+.notch.has-act[data-mode="closed"] .n-blob { left: 22%; }
+/* the content of each mode slides in a beat after the shape starts to grow */
+.notch[data-mode="bar"] .bar-side, .notch[data-mode="bar"] .bar-top { transition: opacity .28s var(--ease) .1s, transform .5s var(--spring) .06s; }
+.notch[data-mode="panel"] .n-panel { transition: opacity .3s var(--ease) .12s, transform .55s var(--spring) .08s; }
+/* the missing-model card in the narrow right column: text above, button below */
+.p-right .missing-model { flex-wrap: wrap; gap: 8px 10px; }
+.p-right .missing-model .mm-text { flex: 1 1 150px; }
+.p-right .missing-model .btn { width: 100%; }

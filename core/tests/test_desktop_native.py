@@ -12,6 +12,7 @@ from jarvis.desktop.pet import Rect
 def fake_win(monkeypatch):
     calls = []
     monkeypatch.setattr(winutil, "find_window", lambda title: 4242)
+    monkeypatch.setattr(winutil, "window_handle", lambda win, title: 4242)
     monkeypatch.setattr(winutil, "dpi_scale", lambda hwnd: 1.25)
     monkeypatch.setattr(winutil, "set_window_rect", lambda hwnd, x, y, w, h: calls.append(("rect", hwnd, x, y, w, h)))
     monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys: calls.append(("region", hwnd, polys)))
@@ -47,7 +48,7 @@ def test_notch_api_region_and_cursor(rt, fake_win):
 
 
 def test_notch_api_cursor_without_window(rt, monkeypatch):
-    monkeypatch.setattr(winutil, "find_window", lambda title: 0)
+    monkeypatch.setattr(winutil, "window_handle", lambda win, title: 0)
     assert host_mod.NotchApi(_host(rt)).cursor_inside() is False
 
 
@@ -84,3 +85,11 @@ def test_winutil_noops_off_windows():
     assert winutil.set_region(1, [[(0, 0), (1, 0), (1, 1)]]) is None
     assert winutil.cursor_over(1) is False
     assert winutil.dpi_scale(1) == 1.0
+
+
+def test_window_handle_prefers_own_native_handle(monkeypatch):
+    monkeypatch.setattr(winutil, "IS_WIN", True)
+    monkeypatch.setattr(winutil, "find_own_window", lambda title: 777)
+    native = SimpleNamespace(native=SimpleNamespace(Handle=SimpleNamespace(ToInt64=lambda: 31337)))
+    assert winutil.window_handle(native, "JARVIS Notch") == 31337
+    assert winutil.window_handle(SimpleNamespace(), "JARVIS Notch") == 777   # no native handle → own-process lookup

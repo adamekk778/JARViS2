@@ -17,8 +17,49 @@ def find_window(title: str) -> int:
     return ctypes.windll.user32.FindWindowW(None, title) or 0
 
 
+def find_own_window(title: str) -> int:
+    """A top-level window with this title that belongs to THIS process. FindWindow alone can return a window of
+    another JARVIS still running in the background (an old version), and then the region / size went to it."""
+    if not IS_WIN:
+        return 0
+    import os
+    from ctypes import wintypes as W
+
+    u = ctypes.windll.user32
+    pid = os.getpid()
+    found = [0]
+    buf = ctypes.create_unicode_buffer(256)
+
+    @ctypes.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
+    def cb(hwnd, _):
+        owner = W.DWORD()
+        u.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value == pid:
+            u.GetWindowTextW(hwnd, buf, 256)
+            if buf.value == title:
+                found[0] = hwnd or 0
+                return False
+        return True
+
+    u.EnumWindows(cb, 0)
+    return int(found[0] or 0)
+
+
+def window_handle(win, title: str) -> int:
+    """The HWND of a pywebview window: its own WinForms handle, else a window with this title in this process."""
+    if not IS_WIN:
+        return 0
+    try:
+        v = int(win.native.Handle.ToInt64())
+        if v:
+            return v
+    except Exception:
+        pass
+    return find_own_window(title)
+
+
 def hide_from_taskbar(title: str) -> bool:
-    hwnd = find_window(title)
+    hwnd = find_own_window(title) or find_window(title)
     if not hwnd:
         return False
     u = ctypes.windll.user32

@@ -92,6 +92,56 @@ jobs:
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           "$ok" | Out-File "$env:RUNNER_TEMP\windowed_ok.txt"
           if (-not $ok) { throw "windowed JARVIS.exe did not start" }
+      - name: Notch on real Windows (window region + screenshots)
+        shell: pwsh
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome5"
+          $env:JARVIS_NO_NET = "1"
+          $shots = "$env:RUNNER_TEMP\notch-shots"
+          New-Item -ItemType Directory -Force $shots | Out-Null
+          $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-voice" -PassThru
+          for ($i = 0; $i -lt 45; $i++) { Start-Sleep -Seconds 2; try { if ((Invoke-RestMethod http://127.0.0.1:8765/api/health).name -eq "JARVIS") { break } } catch {} }
+          Start-Sleep -Seconds 8
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          Add-Type @"
+          using System; using System.Runtime.InteropServices;
+          public static class W {
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string c, string t);
+            [DllImport("user32.dll")] public static extern int GetWindowRgnBox(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+          }
+          "@
+          function Shot($name) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $w = [Math]::Min(1200, $b.Width); $x = [int](($b.Width - $w) / 2)
+            $bmp = New-Object System.Drawing.Bitmap $w, 480
+            [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($x, 0, 0, 0, $bmp.Size)
+            $bmp.Save("$shots\$name.png")
+          }
+          function Region($label) {
+            $h = [W]::FindWindow($null, "JARVIS Notch")
+            $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
+            $rr = New-Object W+RECT; $kind = [W]::GetWindowRgnBox($h, [ref]$rr)
+            $line = "$label hwnd=$h window=($($wr.L),$($wr.T))-($($wr.R),$($wr.B)) regionKind=$kind box=($($rr.L),$($rr.T))-($($rr.R),$($rr.B))"
+            Write-Host $line; Add-Content "$shots\region.txt" $line
+            return $kind
+          }
+          $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
+          [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
+          Shot "1-closed"; $k1 = Region "closed"
+          [W]::SetCursorPos([int]($sw / 2), 8) | Out-Null; Start-Sleep -Milliseconds 1500
+          Shot "2-hover"; $k2 = Region "hover"
+          [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
+          Shot "3-after"; $k3 = Region "after"
+          foreach ($f in "crash.log","logs\jarvis.log") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 30 }
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
+          if ($k1 -lt 2) { Write-Host "::warning::the notch window has no region (box around the notch)" }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }
       - name: Idle benchmark and UI Automation selftest
         shell: pwsh
         run: |

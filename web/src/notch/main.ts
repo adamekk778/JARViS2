@@ -34,7 +34,8 @@ let mode: Mode = "closed";
 let coreMood: Mood = "idle";
 let moodInfo: { badge?: number; progress?: number | null; detail?: string } = {};
 let hovering = false;
-let pinned = false;
+let pinned = false;      // the pin button (stays open, also after a restart)
+let holding = false;     // you are writing in the panel's chat
 let pendingConfirm: string | null = null;
 let petMode = false;
 let liveText = "";
@@ -76,7 +77,7 @@ const capChip = h("span", { class: "n-capture", hidden: true, title: "JARVIS se 
 const panel = buildPanel({
   client,
   openChat,
-  pin: (v) => { pinned = v; if (!v) scheduleClose(); },
+  pin: (v) => { holding = v; if (!v && !hovering) scheduleClose(); },
   undock: () => client.send("pet_command", { action: "undock" }),
 });
 const panelHead = h("div", { class: "p-head" },
@@ -127,48 +128,83 @@ function liveHeight() {
   return Math.max(96, Math.min(300, content + 34));
 }
 
-// ---------- window region (Windows): clip the window to the notch shape, following its animation ----------
+// ---------- shape animation (3.0.x): one spring drives the visible shape AND the window region in the same frame ----------
+// The box (.notch) jumps to the bigger of the old/new size, the visible shape is a clip-path that springs from the
+// old size to the new one, and the window region follows those exact numbers. Nothing is laid out per frame, so
+// even the big panel opens and closes smoothly; after the animation the box and the window shrink to fit.
 const sendRegion = regionSender();
-let regionUntil = 0, regionRaf = 0;
+const RADIUS: Record<string, number> = { closed: 18, hover: 18, bar: 26, live: 26, alert: 26, panel: 26 };
+const S = { w: 200, h: 34, r: 18, vw: 0, vh: 0, vr: 0, tw: 200, th: 34, tr: 18, raf: 0, last: 0, grow: true };
+let boxW = 0, boxH = 0;
+const reducedMotion = () => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function paintShape() {
+  shape.style.setProperty("--cw", `${S.w.toFixed(2)}px`);
+  shape.style.setProperty("--ch", `${S.h.toFixed(2)}px`);
+  shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
+  syncRegion();
+}
 function syncRegion() {
-  const r = shape.getBoundingClientRect();
-  const radius = parseFloat(getComputedStyle(inner).borderBottomLeftRadius) || 0;
-  sendRegion([notchOutline(r, radius, 14, window.devicePixelRatio || 1)]);
-}
-function followRegion(ms = 800) {
   if (!window.pywebview) return;
-  regionUntil = Math.max(regionUntil, performance.now() + ms);
-  if (regionRaf) return;
-  const tick = () => {
-    syncRegion();
-    regionRaf = performance.now() < regionUntil ? requestAnimationFrame(tick) : 0;
-  };
-  regionRaf = requestAnimationFrame(tick);
+  const box = shape.getBoundingClientRect();
+  const cx = box.left + box.width / 2;
+  const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
+  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1)]);
 }
-window.addEventListener("pywebviewready", () => followRegion(1500));
-window.addEventListener("resize", () => followRegion(300));
+function setBox(w: number, hh: number) {
+  if (w === boxW && hh === boxH) return;
+  boxW = w; boxH = hh;
+  shape.style.setProperty("--w", `${w}px`);
+  shape.style.setProperty("--h", `${hh}px`);
+}
+function springStep(now: number) {
+  const dt = Math.min(0.034, (now - S.last) / 1000 || 0.016);
+  S.last = now;
+  // growing: lively with a little overshoot; shrinking: quicker and without bounce
+  const k = S.grow ? 340 : 520, c = S.grow ? 27 : 46;
+  let moving = false;
+  for (const [x, v, t] of [["w", "vw", "tw"], ["h", "vh", "th"], ["r", "vr", "tr"]] as const) {
+    const a = k * (S[t] - S[x]) - c * S[v];
+    S[v] += a * dt;
+    S[x] += S[v] * dt;
+    if (Math.abs(S[t] - S[x]) > 0.3 || Math.abs(S[v]) > 4) moving = true;
+  }
+  if (!moving) { S.w = S.tw; S.h = S.th; S.r = S.tr; S.vw = S.vh = S.vr = 0; }
+  paintShape();
+  if (moving) S.raf = requestAnimationFrame(springStep);
+  else { S.raf = 0; settleBox(); }
+}
+function settleBox() {
+  // after the animation: the box and the window fit the shape exactly
+  setBox(S.tw, S.th);
+  resizeWindow(S.tw + PAD * 2, S.th + PAD);
+  window.setTimeout(syncRegion, 60);
+}
+function animateShape(w: number, hh: number, r: number) {
+  S.grow = w >= S.w && hh >= S.h;
+  S.tw = w; S.th = hh; S.tr = r;
+  // the box is never smaller than what is on screen during the move
+  const bw = Math.max(w, Math.ceil(S.w)), bh = Math.max(hh, Math.ceil(S.h));
+  if (bw > boxW || bh > boxH) resizeWindow(Math.max(bw, boxW) + PAD * 2, Math.max(bh, boxH) + PAD);
+  setBox(Math.max(bw, boxW), Math.max(bh, boxH));
+  if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
+  if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(springStep); }
+}
+window.addEventListener("pywebviewready", () => { syncRegion(); window.setTimeout(syncRegion, 500); });
+window.addEventListener("resize", () => window.setTimeout(syncRegion, 30));
+// keep the region honest: if Windows ever drops it (DPI change, display change), it comes back within 2 s
+window.setInterval(() => { if (!S.raf) syncRegion(); }, 2000);
 
 /** Ask Windows where the cursor really is (WebView2 can fire mouseleave when the window moves under a still cursor). */
 async function cursorInside(): Promise<boolean> {
   try { return !!(await window.pywebview?.api.cursor_inside?.()); } catch { return false; }
 }
 
-let lastSize = [0, 0];
 function apply(m: Mode) {
   const [w, hh] = sizeFor(m);
-  const growing = w > lastSize[0] || hh > lastSize[1];
-  window.clearTimeout((apply as any)._t);
-  shape.classList.toggle("shrinking", !growing && (w < lastSize[0] || hh < lastSize[1]));
-  if (growing) resizeWindow(w + PAD * 2, hh + PAD);
-  shape.style.setProperty("--w", `${w}px`);
-  shape.style.setProperty("--h", `${hh}px`);
   shape.dataset.mode = m;
-  if (!growing) {
-    (apply as any)._t = window.setTimeout(() => resizeWindow(w + PAD * 2, hh + PAD), 460);
-  }
-  lastSize = [w, hh];
+  animateShape(w, hh, RADIUS[m] ?? 26);
   updateBlob();
-  followRegion();
 }
 
 function setMode(m: Mode) {
@@ -214,7 +250,7 @@ function busy() {
 }
 
 function settle(force = false) {
-  if (!force && (pinned || dragging)) return;
+  if (!force && (pinned || holding || dragging)) return;
   if (busy() && mode !== "panel") return setMode("live");
   if (mode === "panel" && !force && hovering) return;
   if (hovering && !force) return setMode("bar");
@@ -224,7 +260,7 @@ function settle(force = false) {
 function scheduleClose() {
   window.clearTimeout(closeTimer);
   closeTimer = window.setTimeout(async () => {
-    if (hovering || pinned) return;
+    if (hovering || pinned || holding) return;
     if (window.pywebview && await cursorInside()) { scheduleClose(); return; }
     if (busy()) setMode("live");
     else settle(true);
@@ -245,8 +281,8 @@ shape.addEventListener("mouseenter", () => {
   window.clearTimeout(closeTimer);
   window.clearTimeout(openTimer);
   if (mode === "closed" || mode === "alert") {
-    setMode("hover");
-    openTimer = window.setTimeout(() => hovering && mode === "hover" && setMode("bar"), cfg.open_delay_ms + 220);
+    // straight from the closed notch to the bar: no half-open step in between
+    openTimer = window.setTimeout(() => hovering && (mode === "closed" || mode === "alert") && setMode("bar"), cfg.open_delay_ms);
   }
 });
 function leave() {

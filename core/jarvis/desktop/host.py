@@ -28,7 +28,7 @@ class NotchApi:
         self._host.set_notch_region(polygons)
 
     def cursor_inside(self) -> bool:
-        return winutil.cursor_over(winutil.find_window(NOTCH_TITLE))
+        return winutil.cursor_over(self._host.notch_hwnd())
 
     def open_chat(self, view: str = "chat") -> None:
         self._host.open_chat(view)
@@ -56,15 +56,20 @@ class DesktopHost:
         idx = self.rt.cfg.notch.monitor
         return screens[idx] if 0 <= idx < len(screens) else (screens[0] if screens else None)
 
+    def notch_hwnd(self) -> int:
+        if not getattr(self, "_notch_hwnd", 0):
+            self._notch_hwnd = winutil.window_handle(self.notch, NOTCH_TITLE)
+        return self._notch_hwnd
+
     def set_notch_region(self, polygons: list) -> None:
-        hwnd = winutil.find_window(NOTCH_TITLE)
+        hwnd = self.notch_hwnd()
         winutil.set_region(hwnd, [[(round(x), round(y)) for x, y in poly] for poly in polygons or []])
 
     def place_notch(self, w: int, h: int) -> None:
         if not self.notch:
             return
         self._notch_size = (w, h)
-        hwnd = winutil.find_window(NOTCH_TITLE)
+        hwnd = self.notch_hwnd()
         if hwnd:  # Windows: physical pixels, one SetWindowPos (pywebview's resize+move is two steps and DPI-scales x twice)
             from . import platforms
 

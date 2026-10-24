@@ -52,7 +52,7 @@ class PetApi:
 
     def region(self, polygons: list) -> None:
         """Body + accessories + speech bubble outline from the page → window region (no box around the pet)."""
-        hwnd = winutil.find_window(PET_TITLE)
+        hwnd = self._c.hwnd()
         winutil.set_region(hwnd, [[(round(x), round(y)) for x, y in poly] for poly in polygons or []])
 
     def open_chat(self, view: str = "chat") -> None:
@@ -64,6 +64,11 @@ class PetApi:
 
 
 class PetController:
+    def hwnd(self) -> int:
+        if not getattr(self, "_hwnd", 0):
+            self._hwnd = winutil.window_handle(getattr(self, "win", None), PET_TITLE)
+        return self._hwnd
+
     def __init__(self, host, rt):
         self.host = host
         self.rt = rt
@@ -177,7 +182,7 @@ class PetController:
         target = (x, y, w, h)
         if target == self._placed:
             return
-        hwnd = winutil.find_window(PET_TITLE)
+        hwnd = self.hwnd()
         if hwnd:  # physical pixels, one call (pywebview's move() would DPI-scale our physical x/y a second time)
             winutil.set_window_rect(hwnd, x, y, round(w * self.scale), round(h * self.scale))
             self._placed = target

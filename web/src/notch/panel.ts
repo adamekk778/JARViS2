@@ -42,8 +42,10 @@ export function buildPanel(ctx: PanelCtx) {
     greeting: "Ahoj! Jak ti dnes můžu pomoct?", subtitle: "Mám pro tebe nápady, odpovědi i řešení.",
     placeholder: "Napiš mi něco…",
   });
-  chat.el.addEventListener("focusin", () => ctx.pin(true));
-  chat.el.addEventListener("focusout", () => ctx.pin(false));
+  // the panel stays open while you are writing something (not merely because the box has focus)
+  const typing = () => !!(chat.el.querySelector("textarea") as HTMLTextAreaElement | null)?.value.trim();
+  chat.el.addEventListener("input", () => ctx.pin(typing()));
+  chat.el.addEventListener("focusout", () => ctx.pin(typing()));
 
   // ---------- right column ----------
   const card = (ic: string, title: string, sub: string, fn: () => void) =>
