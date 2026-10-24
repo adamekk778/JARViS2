@@ -1,6 +1,6 @@
 // Dictation anywhere (3.0): the Diktování page (greeting band, history, numbers), the Statistiky page and the
 // weekly recap. Layout after the Coucou window: a band, history on the left, a narrow column of numbers.
-import { fmtTime, h, icon, toast } from "../shared/dom";
+import { copyText, fmtTime, h, icon } from "../shared/dom";
 import { hero, HEROES } from "../shared/hero";
 import type { JarvisClient } from "../shared/ws";
 
@@ -88,7 +88,7 @@ export function buildDictation(client: JarvisClient, go: (v: string) => void) {
         h("div", { class: "d-when" }, h("span", {}, fmtTime(it.ts).split(" ").pop()!), it.app ? h("span", { class: "tag" }, it.app) : null),
         h("div", { class: "d-words" }, it.text),
         h("div", { class: "d-tools" },
-          h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", onclick: () => { navigator.clipboard?.writeText(it.text); toast("Zkopírováno", "ok"); } }, icon("copy")),
+          h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", onclick: () => copyText(it.text) }, icon("copy")),
           h("button", { class: "icon-btn sm", type: "button", title: "Smazat", onclick: () => client.send("dictation_delete", { id: it.id }) }, icon("trash"))))))]));
   }
 

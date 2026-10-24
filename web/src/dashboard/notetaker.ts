@@ -1,6 +1,6 @@
 // Nahrávání hovorů (3.0 Notetaker): record a call (your mic + what the PC plays), then a transcript person by
 // person, a summary, the key points and the to-dos. The audio is deleted once the transcript is written.
-import { h, icon, toast } from "../shared/dom";
+import { copyText, h, icon } from "../shared/dom";
 import { hero, HEROES } from "../shared/hero";
 import type { JarvisClient } from "../shared/ws";
 
@@ -64,7 +64,7 @@ export function buildNotetaker(client: JarvisClient) {
       h("div", { class: "nt-head" }, h("div", {}, h("h2", {}, n.title),
         h("span", { class: "help" }, `${new Date(n.created * 1000).toLocaleString("cs-CZ")} · ${mins(n.seconds || 0)}`)),
         h("div", { class: "btn-row" },
-          h("button", { class: "btn sm", type: "button", onclick: () => { navigator.clipboard?.writeText(text); toast("Zkopírováno", "ok"); } }, icon("copy"), "Kopírovat"),
+          h("button", { class: "btn sm", type: "button", onclick: () => copyText(text) }, icon("copy"), "Kopírovat"),
           h("button", { class: "btn sm danger", type: "button", onclick: () => { if (confirm("Smazat tuhle nahrávku?")) { client.send("note_delete", { id: n.id }); selected = ""; detail.replaceChildren(); } } }, icon("trash")))),
       n.summary ? h("p", { class: "nt-summary" }, n.summary) : null,
       n.points.length ? h("div", {}, h("p", { class: "group-label" }, "Hlavní body"), h("ul", { class: "nt-points" }, ...n.points.map((p: string) => h("li", {}, p)))) : null,

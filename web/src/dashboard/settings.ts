@@ -1,4 +1,4 @@
-import { h, icon, toast, TOOL_ICON } from "../shared/dom";
+import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
 import { hero, HEROES } from "../shared/hero";
 import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
@@ -460,7 +460,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               h("div", {}, h("strong", {}, "Adresy PC"), h("div", { class: "mono" }, (p.hosts || []).join(", ") || "žádná síť")),
               h("div", {}, h("strong", {}, "Tailscale (odkudkoli)"), h("div", { class: "help" }, p.tailscale?.length ? `Aktivní: ${p.tailscale.join(", ")}` : "Nenalezen. Nainstaluj Tailscale (zdarma) na PC i telefon a přihlas se stejným účtem, pak se k JARVISovi připojíš i z mobilních dat.")),
               h("div", { class: "btn-row" },
-                h("button", { class: "btn", type: "button", onclick: () => { navigator.clipboard?.writeText(p.url); toast("Odkaz zkopírován", "ok"); } }, icon("link"), "Kopírovat odkaz"),
+                h("button", { class: "btn", type: "button", onclick: () => copyText(p.url, "Odkaz zkopírován") }, icon("link"), "Kopírovat odkaz"),
                 h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Vygenerovat nový token? Všechny telefony se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový token"))))
             : h("p", { class: "help" }, "Načítám…")),
         card("Připojená zařízení", null, ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" }, h("span", {}, icon("device-mobile"), " ", d.name || "Telefon"), h("span", { class: "chip" }, "online"))) : [h("p", { class: "help" }, "Teď není připojený žádný telefon.")])),

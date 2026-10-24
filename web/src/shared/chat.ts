@@ -1,6 +1,6 @@
 import "./chat.css";
 import "./taskcard.css";
-import { fmtSize, fmtTime, h, icon, KIND_ICON, toast, TOOL_ICON } from "./dom";
+import { copyText, fmtSize, fmtTime, h, icon, KIND_ICON, toast, TOOL_ICON } from "./dom";
 import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
@@ -290,7 +290,7 @@ export class ChatView {
 
   private actions(m: Message): HTMLElement {
     return h("div", { class: "actions" },
-      h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", "aria-label": "Kopírovat", onclick: () => { navigator.clipboard?.writeText(m.text); toast("Zkopírováno", "ok", 1500); } }, icon("copy")),
+      h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", "aria-label": "Kopírovat", onclick: () => copyText(m.text) }, icon("copy")),
       h("button", { class: "icon-btn sm", type: "button", title: "Přečíst nahlas", "aria-label": "Přečíst nahlas", onclick: () => this.speak(m) }, icon("speaker-high")),
       h("button", { class: "icon-btn sm regen", type: "button", title: "Vygenerovat znovu", "aria-label": "Vygenerovat znovu", onclick: () => this.client.send("regenerate") }, icon("arrows-clockwise")),
       m.meta?.brain ? h("span", { class: "brain", title: isLocalBrain(m.meta.brain[0]) ? "Odpověděl lokální model (offline, v tvém PC)" : "Odpověděl cloudový model (přes internet)" },

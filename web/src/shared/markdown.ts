@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { copyText } from "./dom";
 import hljs from "highlight.js/lib/common";
 import { Marked } from "marked";
 
@@ -26,7 +27,7 @@ export function wireCodeCopy(root: HTMLElement) {
     const btn = (e.target as HTMLElement).closest(".code-copy") as HTMLButtonElement | null;
     if (!btn) return;
     const code = btn.closest(".code")?.querySelector("code")?.textContent || "";
-    navigator.clipboard?.writeText(code);
+    copyText(code, "");
     btn.innerHTML = '<i class="ph ph-check"></i> Zkopírováno';
     setTimeout(() => (btn.innerHTML = '<i class="ph ph-copy"></i> Kopírovat'), 1500);
   });

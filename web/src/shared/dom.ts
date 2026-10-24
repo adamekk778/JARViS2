@@ -65,3 +65,22 @@ export const TOOL_ICON: Record<string, string> = {
   system_info: "cpu", window_control: "app-window", clipboard_get: "clipboard", clipboard_set: "clipboard",
   update_setting: "sliders", browser_open: "browser", browser_act: "browser", get_time: "clock",
 };
+
+/** Copy text and say so; falls back to a hidden textarea where the clipboard API is refused (phone WebView, http). */
+export async function copyText(text: string, done = "Zkopírováno"): Promise<boolean> {
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
+    document.body.append(ta);
+    ta.select();
+    try { ok = document.execCommand("copy"); } catch { ok = false; }
+    ta.remove();
+  }
+  if (done) toast(ok ? done : "Kopírování se nepovedlo – označ text a stiskni Ctrl+C", ok ? "ok" : "error", 1800);
+  return ok;
+}
