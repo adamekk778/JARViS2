@@ -37,7 +37,6 @@ let hovering = false;
 let pinned = false;      // the pin button (stays open, also after a restart)
 let holding = false;     // you are writing in the panel's chat
 let pendingConfirm: string | null = null;
-let petMode = false;
 let liveText = "";
 let alertTimer = 0, lingerTimer = 0, openTimer = 0, closeTimer = 0, uiMoodTimer = 0;
 let uiMood: Mood | null = null; // opening / closing / dragged flashes
@@ -78,7 +77,6 @@ const panel = buildPanel({
   client,
   openChat,
   pin: (v) => { holding = v; if (!v && !hovering) scheduleClose(); },
-  undock: () => client.send("pet_command", { action: "undock" }),
 });
 const panelHead = h("div", { class: "p-head" },
   h("span", { class: "p-title" }, "J A R V I S"),
@@ -308,39 +306,8 @@ blobBox.addEventListener("click", () => {
   else openPanel("chat");
 });
 
-// drag the character down out of the notch → desktop pet (spec §4)
-let dragging = false, justDragged = false, dragStart: { x: number; y: number } | null = null;
-blobBox.addEventListener("pointerdown", (e) => {
-  if (petMode || mode === "panel") return;
-  dragStart = { x: e.clientX, y: e.clientY };
-  blobBox.setPointerCapture(e.pointerId);
-});
-blobBox.addEventListener("pointermove", (e) => {
-  if (!dragStart) return;
-  const dy = e.clientY - dragStart.y;
-  if (dy > 8) {
-    dragging = true;
-    blobBox.style.transform = `translateY(${Math.min(dy, 80)}px)`;
-    blob.setMood("dragged");
-  }
-  if (dy > 60) {
-    dragStart = null;
-    dragging = false;
-    justDragged = true;
-    setTimeout(() => (justDragged = false), 300);
-    blobBox.style.transform = "";
-    client.send("pet_command", { action: "undock" });
-  }
-});
-const endDrag = () => {
-  if (dragging) { justDragged = true; setTimeout(() => (justDragged = false), 300); }
-  dragStart = null;
-  dragging = false;
-  blobBox.style.transform = "";
-  updateBlob();
-};
-blobBox.addEventListener("pointerup", endDrag);
-blobBox.addEventListener("pointercancel", endDrag);
+// 3.1: the character always stays in the notch (the desktop pet was removed)
+const dragging = false, justDragged = false;
 
 // files dropped on the notch go to the shelf (or to the chat when the chat is visible)
 let dragDepth = 0;
@@ -521,8 +488,6 @@ client.on("welcome", (m) => {
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); }
   upd = m.update;
   paintUpdate();
-  petMode = !!m.pet_mode;
-  shape.classList.toggle("pet-away", petMode);
   media = m.media || {};
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
@@ -538,8 +503,7 @@ client.on("settings_changed", (m) => {
   configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); }
-  petMode = !!ch?.pet_mode;
-  shape.classList.toggle("pet-away", petMode);
+
 });
 client.on("mood", onMood);
 client.on("level", (m) => blob.setLevel(m.rms || 0));

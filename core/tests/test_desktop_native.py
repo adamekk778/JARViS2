@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from jarvis.desktop import host as host_mod
-from jarvis.desktop import pet_host, platforms, winutil
+from jarvis.desktop import platforms, winutil
 from jarvis.desktop.pet import Rect
 
 
@@ -56,28 +56,8 @@ def test_notch_window_not_transparent():
     """A pywebview 'transparent' window shows the WinForms grey/white back colour around the page on Windows."""
     import inspect
 
-    src = inspect.getsource(host_mod.DesktopHost.create_windows) + inspect.getsource(pet_host.PetController.create_window)
+    src = inspect.getsource(host_mod.DesktopHost.create_windows)
     assert "transparent=True" not in src and 'background_color="#000000"' in src
-
-
-def test_pet_place_physical(rt, fake_win):
-    ctl = pet_host.PetController(SimpleNamespace(base="", _quitting=False), rt)
-    ctl.win = SimpleNamespace(resize=lambda *a: pytest.fail("pywebview resize used"),
-                              move=lambda *a: pytest.fail("pywebview move used"))
-    ctl.scale = 1.25
-    ctl.sim = SimpleNamespace(x=1000.0, y=900.0)
-    ctl._place()
-    fx, fy = pet_host.FOOT_SMALL
-    w, hh = pet_host.SMALL
-    assert fake_win == [("rect", 4242, round(1000 - fx * 1.25), round(900 - fy * 1.25), round(w * 1.25), round(hh * 1.25))]
-    ctl._place()  # unchanged → no second call
-    assert len(fake_win) == 1
-
-
-def test_pet_api_region(rt, fake_win):
-    ctl = pet_host.PetController(SimpleNamespace(base="", _quitting=False), rt)
-    pet_host.PetApi(ctl).region([[[0, 0], [5, 0], [5, 5]]])
-    assert fake_win[-1] == ("region", 4242, [[(0, 0), (5, 0), (5, 5)]])
 
 
 def test_winutil_noops_off_windows():

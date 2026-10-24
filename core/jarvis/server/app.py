@@ -141,10 +141,6 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     async def notch():
         return page("notch.html")
 
-    @app.get("/pet")
-    async def pet():
-        return page("pet.html")
-
     @app.get("/mobile")
     async def mobile():
         return page("mobile.html")

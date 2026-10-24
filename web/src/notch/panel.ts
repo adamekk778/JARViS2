@@ -22,7 +22,6 @@ export interface PanelCtx {
   client: JarvisClient;
   openChat: (view?: string) => void;
   pin: (v: boolean) => void;
-  undock: () => void;
 }
 
 export function buildPanel(ctx: PanelCtx) {
@@ -91,7 +90,6 @@ export function buildPanel(ctx: PanelCtx) {
       big("moon", "Tmavý režim", () => quick("set_dark_mode", { dark: true })),
       big("headphones", "Fokus zap/vyp", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "accent"),
       big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" })),
-      big("arrow-square-down", "Na plochu", () => ctx.undock()),
       big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" })),
       (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }))),
       big("microphone-stage", "Hlasový režim", () => ctx.openChat("voice-mode")),

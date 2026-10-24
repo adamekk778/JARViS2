@@ -44,9 +44,6 @@ class DesktopHost:
         self._quitting = False
         self._notch_size = (rt.cfg.notch.width + PAD * 2, rt.cfg.notch.height + PAD)
         self._hidden_fullscreen = False
-        from .pet_host import PetController
-
-        self.pet = PetController(self, rt)
 
     # ---------- geometry ----------
     def _screen(self):
@@ -105,7 +102,6 @@ class DesktopHost:
             "JARVIS", f"{self.base}/#chat", width=1240, height=820, min_size=(420, 520), hidden=True,
             background_color="#0a0c0f", text_select=True)
         self.chat.events.closing += self._on_chat_closing
-        self.pet.create_window()
 
     def _on_notch_shown(self) -> None:
         time.sleep(0.3)
@@ -177,8 +173,6 @@ class DesktopHost:
             pystray.MenuItem("Otevřít JARVIS", lambda: self.open_chat("chat"), default=True),
             pystray.MenuItem("Nastavení", lambda: self.open_chat("general")),
             pystray.MenuItem("Spárovat telefon", lambda: self.open_chat("phone")),
-            pystray.MenuItem(lambda _: "Vrátit JARVISe do notche" if self.pet.active else "Vytáhnout JARVISe na plochu",
-                             lambda: self.pet.command("toggle")),
             pystray.MenuItem(voice_label, toggle_voice, visible=lambda _: self.rt.voice is not None),
             pystray.MenuItem("Schránka", pystray.Menu(
                 pystray.MenuItem("Shrň schránku", lambda: self._clipboard("Shrň stručně tento text")),
@@ -267,19 +261,14 @@ class DesktopHost:
         except Exception as e:
             log.warning("autostart: %s", e)
         self.rt.ui_hook = lambda view: self.open_chat(view)
-        self.rt.pet_hook = self.pet.command
         self.create_windows()
         threading.Thread(target=self._tray, daemon=True, name="tray").start()
         threading.Thread(target=self._hotkeys, daemon=True, name="hotkeys").start()
         threading.Thread(target=self._fullscreen_watch, daemon=True, name="fullscreen").start()
-        threading.Thread(target=self.pet.run, daemon=True, name="pet").start()
 
         def started():
             if open_chat:
                 self.open_chat("chat")
-            if self.rt.cfg.character.pet_mode:
-                time.sleep(1.5)
-                self.pet.undock(restore=True)
 
         webview.start(started, gui="edgechromium" if sys.platform == "win32" else None,
                       private_mode=False, storage_path=str(__import__("jarvis.paths", fromlist=["sub"]).sub("webview")))

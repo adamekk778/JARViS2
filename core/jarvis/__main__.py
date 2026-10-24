@@ -125,6 +125,13 @@ def start_extras(rt) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     fix_windowed_stdio()
+    if sys.platform == "win32":  # sharp at 125 / 150 % scaling (the frozen exe already did this in jarvis_entry)
+        import ctypes
+
+        try:
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))
+        except Exception:
+            pass
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["--run-python"] and len(argv) > 1:  # run_python tool inside the frozen exe
         import runpy

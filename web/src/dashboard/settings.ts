@@ -621,9 +621,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
           select("character.outfit", "Šatník", OUTFITS.map((o) => [o, OUTFIT_LABEL[o]] as [string, string]),
-            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."),
-          select("character.size", "Velikost na ploše", [["S", "Malá"], ["M", "Střední"], ["L", "Velká"]]),
-          sw("character.pet_mode", "Mazlíček na ploše", "JARVIS chodí po hlavním panelu a oknech. Dvojklik ho vrátí do notche."))));
+            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."))));
   }
 
   const searchInput = h("input", { class: "input", type: "search", placeholder: "Hledat v nastavení…", "aria-label": "Hledat v nastavení" }) as HTMLInputElement;

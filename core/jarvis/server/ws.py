@@ -449,11 +449,7 @@ class Connection:
             else:
                 rt.mood.set_manual(m.get("mood"))
         elif t == "pet_command":
-            action = m.get("action", "")
-            if action in ("undock", "dock", "toggle") and rt.pet_hook:
-                await asyncio.to_thread(rt.pet_hook, action)  # pywebview calls block
-            elif action in ("undock", "dock", "toggle"):
-                rt.update_config({"character": {"pet_mode": action == "undock" or (action == "toggle" and not rt.cfg.character.pet_mode)}})
+            pass  # the desktop pet was removed in 3.1 (kept as a type so old clients do not error)
         elif t == "update_check":
             if rt.updater:
                 self.spawn(rt.updater.check(force=True))

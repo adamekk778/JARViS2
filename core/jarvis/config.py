@@ -158,7 +158,12 @@ class Character(BaseModel):
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
     outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] = "auto"
     size: Literal["S", "M", "L"] = "M"
-    pet_mode: bool = False    # living on the desktop instead of the notch
+    pet_mode: bool = False    # 3.1: the desktop pet was removed; always False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _no_pet(cls, data: Any) -> Any:
+        return {**data, "pet_mode": False} if isinstance(data, dict) and data.get("pet_mode") else data
     pet_x: int = -1
     pet_y: int = -1
 

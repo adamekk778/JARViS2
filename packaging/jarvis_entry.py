@@ -24,7 +24,24 @@ def _fault_file():
     return None
 
 
+def _dpi_aware():
+    """Before ANY window exists (tray, keyboard hooks, WebView2): tell Windows JARVIS draws at the real screen
+    resolution. Otherwise at 125 / 150 % scaling Windows stretches a low-resolution picture → blurry, pixelated."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    try:
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-2))  # DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+
 if __name__ == "__main__":
+    _dpi_aware()
     multiprocessing.freeze_support()
     crash_file = os.path.join(_crash_dir(), "crash.log")
     try:
