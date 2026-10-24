@@ -194,8 +194,11 @@ class DesktopHost:
                     HUD_TITLE, f"{self.base}/hud", js_api=HudApi(self), x=x, y=y, width=w, height=h,
                     frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
                     background_color="#02060c", focus=True)
-                self.hud.events.shown += self._on_hud_shown
                 self.hud_visible = True
+                # windows created after start-up never fire "shown" in pywebview 6 → wait for it here, then finish
+                if not self.hud.events.shown.wait(8):
+                    self.hud.events.loaded.wait(10)
+                self._on_hud_shown()
                 return
             self.hud.show()
             self._place_hud()
@@ -220,6 +223,12 @@ class DesktopHost:
         return hwnd
 
     def _on_hud_shown(self) -> None:
+        try:
+            self._finish_hud()
+        except Exception:
+            log.exception("hud: finishing the window failed")
+
+    def _finish_hud(self) -> None:
         time.sleep(0.2)
         hwnd = self._place_hud()
         threading.Timer(0.8, self._place_hud).start()   # pywebview may still apply its own size right after "shown"
