@@ -9,30 +9,30 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 152 | 74 |
-| 🟡 ČÁSTEČNĚ | 163 | 58 |
+| ✅ HOTOVO | 171 | 74 |
+| 🟡 ČÁSTEČNĚ | 160 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 10 | 10 |
+| 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
-| 🗓️ PLÁNOVÁNO | 34 | 4 |
-| ⬜ CHYBÍ | 436 | 17 |
+| 🗓️ PLÁNOVÁNO | 21 | 4 |
+| ⬜ CHYBÍ | 431 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
 
 ## 01. Super Intelligence
 
-✅ 1 · 🟡 3 · 🗓️ 6
+✅ 4 · 🟡 2 · 🔌 1 · 🗓️ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 001 | Goal Mode — z cíle sestaví reálný plán. | 🟡 ČÁSTEČNĚ | Režim Agent: plán update_plan + až 25 kroků (agent.py, tools/plan.py); chybí goal graph |
+| 001 | Goal Mode — z cíle sestaví reálný plán. | ✅ HOTOVO | goal_plan: z cíle fáze, kroky (kdo je udělá), akceptační kritéria a rizika → sledovaná mise v Úkolech |
 | 002 | Mission Control — řídí složité mise. | 🟡 ČÁSTEČNĚ | Mission Control = stránka Úkoly: plán, kroky, audit akcí, kritéria, artefakty, důkazy, pauza/zrušení (tasks.py, dashboard/tasks.ts, tests/test_omega.py); chybí DAG |
-| 003 | Deep Research — rozsáhlý výzkum s citacemi. | 🟡 ČÁSTEČNĚ | web_search, web_read, browser_* (tools/web.py, tools/browser.py); citace neformalizované |
+| 003 | Deep Research — rozsáhlý výzkum s citacemi. | ✅ HOTOVO | deep_research: víc dotazů, přečtené zdroje, report s citacemi [n], mechanická kontrola citací, uložený jako artefakt |
 | 004 | Autonomous Problem Solver — testování více řešení. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
-| 005 | Decision Simulator — simuluje důsledky rozhodnutí. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
-| 006 | AI Debate — porovnání argumentů modelů. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
-| 007 | Confidence Engine — vyjadřuje míru nejistoty. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
+| 005 | Decision Simulator — simuluje důsledky rozhodnutí. | 🟡 ČÁSTEČNĚ | compare_options: u každé varianty pravděpodobné důsledky a rizika (odhad AI, ne simulace) |
+| 006 | AI Debate — porovnání argumentů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: stejná otázka víc AI poskytovatelům a porovnání – potřebuje aspoň dva nastavené poskytovatele |
+| 007 | Confidence Engine — vyjadřuje míru nejistoty. | ✅ HOTOVO | jistota u doporučení (compare_options) a podle shody modelů (ask_models); research hlásí nesedící citace |
 | 008 | Error Prediction — předvídání pravděpodobných chyb. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
 | 009 | Dynamic Task Priorities — dynamické priority. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
 | 010 | Mission Replay — auditovatelná historie kroků. | ✅ HOTOVO | Přehrát průběh mise (dashboard/tasks.ts replay) + audit akcí |
@@ -117,18 +117,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 06. Agent Army
 
-🗓️ 10
+✅ 7 · 🟡 1 · 🗓️ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 061 | Architect Agent — software architektura. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 062 | QA Agent — testování aplikací. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 063 | Performance Agent — optimalizace výkonu. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 064 | Database Agent — databázový design. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 065 | DevOps Agent — infrastruktura. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 066 | Documentation Agent — dokumentace. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 067 | Accessibility Agent — přístupnost. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 068 | Localization Agent — překlady aplikací. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
+| 061 | Architect Agent — software architektura. | ✅ HOTOVO | specialista Architekt (projde projekt, git, web) přes delegate_to_agent |
+| 062 | QA Agent — testování aplikací. | ✅ HOTOVO | specialista Tester: run_tests, prohlížeč, kontrola přístupnosti, zápis testů se schválením |
+| 063 | Performance Agent — optimalizace výkonu. | ✅ HOTOVO | specialista Výkon: perf_check, benchmark, historie, procesy, diagnostika |
+| 064 | Database Agent — databázový design. | ✅ HOTOVO | specialista Databáze + sql_query (SQLite jen pro čtení – mode=ro, jen SELECT/PRAGMA/EXPLAIN) |
+| 065 | DevOps Agent — infrastruktura. | 🟡 ČÁSTEČNĚ | specialista DevOps: git, CI soubory, testy, dostupnost a certifikáty; nasazení do cloudu chybí |
+| 066 | Documentation Agent — dokumentace. | ✅ HOTOVO | specialista Dokumentace: čte kód, píše dokumentaci (zápis se schválením) |
+| 067 | Accessibility Agent — přístupnost. | ✅ HOTOVO | specialista Přístupnost + a11y_check (WCAG: alt, popisky polí, kontrast, nadpisy, odkazy, jazyk, klávesnice) |
+| 068 | Localization Agent — překlady aplikací. | ✅ HOTOVO | specialista Překlady + check_translation (chybějící klíče, rozbité zástupné znaky, nepřeložené texty) |
 | 069 | 3D Agent — modely a scény. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
 | 070 | Hardware Agent — elektronika. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
 
@@ -343,40 +343,40 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-🟡 5 · ⬜ 10
+✅ 7 · 🟡 2 · 🔌 1 · ⬜ 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 196 | Multi-Step Prediction — odhad možných dalších kroků. | ⬜ CHYBÍ | — |
-| 197 | Alternative Strategy Generator — několik plánů pro jeden cíl. | ⬜ CHYBÍ | — |
-| 198 | Intelligent Goal Decomposition — rozklad projektů do fází. | 🟡 ČÁSTEČNĚ | rozklad na kroky update_plan |
-| 199 | Assumption Checker — validace předpokladů. | ⬜ CHYBÍ | — |
-| 200 | Evidence Verifier — kontrola zdrojů a důkazů. | 🟡 ČÁSTEČNĚ | ověření výstupu mise proti souboru (pcreport.verify) |
+| 197 | Alternative Strategy Generator — několik plánů pro jeden cíl. | ✅ HOTOVO | compare_options: 3 různé cesty k cíli |
+| 198 | Intelligent Goal Decomposition — rozklad projektů do fází. | ✅ HOTOVO | goal_plan: rozklad na fáze a kroky |
+| 199 | Assumption Checker — validace předpokladů. | ✅ HOTOVO | check_assumptions: skryté předpoklady, riziko, jak ověřit |
+| 200 | Evidence Verifier — kontrola zdrojů a důkazů. | ✅ HOTOVO | kontrola citací výzkumu (neexistující a nepoužité zdroje, odstavce bez citace) |
 | 201 | Task Dependency Engine — závislosti mezi úkoly. | ⬜ CHYBÍ | — |
 | 202 | Adaptive Planning — průběžné aktualizace plánu. | 🟡 ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan) |
-| 203 | Risk Scoring — hodnocení rizika akcí. | 🟡 ČÁSTEČNĚ | nebezpečné akce označené a potvrzované (tools/base.py danger/danger_if) |
-| 204 | AI Consensus — porovnávání výstupů modelů. | ⬜ CHYBÍ | — |
+| 203 | Risk Scoring — hodnocení rizika akcí. | ✅ HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py) |
+| 204 | AI Consensus — porovnávání výstupů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: shoda/rozpory/společná odpověď – s aspoň dvěma poskytovateli |
 | 205 | Contradiction Detection — detekce rozporů. | ⬜ CHYBÍ | — |
-| 206 | Solution Ranking — řazení řešení. | ⬜ CHYBÍ | — |
-| 207 | Knowledge Gap Detection — identifikace chybějících dat. | ⬜ CHYBÍ | — |
+| 206 | Solution Ranking — řazení řešení. | ✅ HOTOVO | seřazení variant s odůvodněním |
+| 207 | Knowledge Gap Detection — identifikace chybějících dat. | ✅ HOTOVO | co chybí vědět (missing_info) u rozhodování |
 | 208 | Experiment Designer — návrh ověřovacích testů. | ⬜ CHYBÍ | — |
 | 209 | Outcome Evaluation — vyhodnocení dosažených cílů. | 🟡 ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence) |
 | 210 | Recursive Task Improvement — vylepšení na základě testů. | ⬜ CHYBÍ | — |
 
 ## 20. Autonomous Mission Engine
 
-✅ 12 · 🟡 1 · 🗓️ 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 211 | Mission Queue — fronta misí. | ✅ HOTOVO | fronta misí s časem spuštění (tasks.enqueue, missions.tick, Úkoly → Fronta misí) |
 | 212 | Mission Dependencies — vykonávání dle návazností. | ✅ HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps) |
 | 213 | Parallel Execution — paralelní kroky. | ✅ HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps) |
-| 214 | Agent Communication Bus — zprávy mezi agenty. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
+| 214 | Agent Communication Bus — zprávy mezi agenty. | ✅ HOTOVO | zadání a výsledek každého specialisty v misi jako důkazy (sběrnice agentů) |
 | 215 | Shared Mission Workspace — sdílené pracovní artefakty. | ✅ HOTOVO | pracovní složka mise + mission_save_file jako artefakt (missions.workspace) |
 | 216 | Mission Checkpoints — konzistentní checkpointy. | ✅ HOTOVO | kroky strukturované mise uložené (tasks.spec, task_steps) – navázání po přerušení |
 | 217 | Pause & Resume — pozastavení a obnovení. | ✅ HOTOVO | pauza/pokračování mise (tasks.py pause/resume, UI) |
-| 218 | Agent Handover — předání práce agentovi. | 🗓️ PLÁNOVÁNO | M3 |
+| 218 | Agent Handover — předání práce agentovi. | ✅ HOTOVO | agent_team: předání výsledku dalšímu specialistovi |
 | 219 | Approval Queue — fronta schválení. | ✅ HOTOVO | fronta schválení: víc čekajících potvrzení najednou (agent.confirm_info, taskcard) |
 | 220 | Deadline Awareness — hlídání termínů. | ✅ HOTOVO | termín mise: upozornění 15 min předem a po vypršení (missions.tick) |
 | 221 | Mission Budget — nákladové limity. | ✅ HOTOVO | rozpočet mise: max. akcí a minut, pak zastavení (tasks.over_budget, BudgetExceeded) |

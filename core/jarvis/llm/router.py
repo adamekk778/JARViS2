@@ -75,9 +75,11 @@ class Router:
         return order
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
-                     need_vision: bool = False, fast: bool = False) -> AsyncIterator[Chunk]:
+                     need_vision: bool = False, fast: bool = False, only: str | None = None) -> AsyncIterator[Chunk]:
         errors: dict[str, str] = {}
         cands = self.providers()
+        if only:   # OMEGA 204 / 006: ask one particular provider (to compare models)
+            cands = [p for p in cands if p.id == only]
         if need_vision:
             # Providers with an explicit vision model go first.
             cands = sorted(cands, key=lambda p: (p.id in self.no_vision, not p.vision_model))
@@ -138,8 +140,8 @@ class Router:
         self.last_errors = errors
         raise AllProvidersFailed(errors)
 
-    async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False) -> str:
+    async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None) -> str:
         out = []
-        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast):
+        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only):
             out.append(ch.text)
         return "".join(out)

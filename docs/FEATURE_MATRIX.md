@@ -11,23 +11,23 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `run_python` | 457, 766, 768, P5.12, P11.10 |
 | `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
+| `run_tests` | 058, 062, 339, 340, P5.08 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
-| `run_tests` | 058, 339, 340, P5.08 |
 | `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
-| `update_plan` | 001, 198, 202, P1.05 |
+| `ask_models` | 006, 007, 204 |
+| `compare_options` | 005, 007, 197 |
 | `home.py` | 165, 435, P13.01 |
 | `memory.py` | 039, 041, P1.03 |
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
+| `perf_check` | 063, 301, 718 |
 | `test_wave` | 041, 152, 177 |
 | `tests/test_omega.py` | 002, 025, 076 |
 | `tools/base.py` | 183, 203, 682 |
 | `tools/dev.py` | 046, 050, 058 |
-| `web_read` | 003, P6.03, P11.01 |
-| `web_search` | 003, P6.03, P11.01 |
 | `app_open` | 034, P12.06 |
 | `automations.py` | 034, 147 |
 | `browser_type` | 530, P11.03 |
@@ -38,6 +38,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `desktop/host.py` | 226, P8.01 |
 | `find_file` | P2.11, P11.11 |
 | `find_in_files` | 316, 322 |
+| `goal_plan` | 001, 198 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
 | `mail.py` | 541, P11.05 |
@@ -46,7 +47,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `open_app` | P2.01, P12.09 |
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
-| `perf_check` | 301, 718 |
 | `permissions.py` | 177, P14.01 |
 | `phone.py` | 145, 541 |
 | `run_steps` | 212, 213 |
@@ -57,12 +57,15 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/files.py` | 029, 511 |
 | `tools/uia.py` | 028, 274 |
 | `ui_inspect` | 028, P2.03 |
+| `update_plan` | 202, P1.05 |
 | `usage.py` | 178, 678 |
 | `wake_word` | 098, P3.01 |
+| `web_read` | P6.03, P11.01 |
+| `web_search` | P6.03, P11.01 |
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
-| `agent.py` | 001 |
+| `agent_team` | 218 |
 | `ai_usage` | 154 |
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
@@ -73,9 +76,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `break_minutes` | 077 |
 | `calendar_.py` | 171 |
 | `character/blob.ts` | 071 |
+| `check_assumptions` | 199 |
 | `check_download` | 398 |
 | `check_hardware` | 298 |
 | `check_link` | 397 |
+| `check_translation` | 068 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
@@ -85,10 +90,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `copy_file` | P2.11 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
-| `danger_if` | 203 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
 | `data_rescue_plan` | 300 |
+| `deep_research` | 003 |
+| `delegate_to_agent` | 061 |
 | `delete_file` | P14.02 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
@@ -124,6 +130,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_import` | 045 |
 | `memory_overview` | 040 |
 | `memory_timeline` | 036 |
+| `missing_info` | 207 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
 | `move_files` | P2.11 |
@@ -162,6 +169,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `sort_documents` | 319 |
 | `speak_mode` | P3.07 |
 | `speed_test` | 717 |
+| `sql_query` | 064 |
 | `stop_all` | 176 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
@@ -172,13 +180,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_agent.py` | 182 |
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
-| `tools/browser.py` | 003 |
 | `tools/list_tools.py` | 785 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
-| `tools/plan.py` | 001 |
 | `tools/shell.py` | 702 |
-| `tools/web.py` | 003 |
 | `top_processes` | P2.06 |
 | `typ_datum_firma` | 320 |
 | `type_text` | P2.02 |
@@ -191,6 +196,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
 | `write_text_file` | P5.05 |
+| `y_check` | 067 |
 
 ## Překryvy původního seznamu s katalogem
 

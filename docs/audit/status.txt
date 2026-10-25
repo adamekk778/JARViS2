@@ -465,3 +465,28 @@
 042 | HOTOVO | u každého faktu původ: ve které konverzaci a kdy to uživatel řekl / zapsal ručně
 043 | HOTOVO | rozpor s dřívějším faktem (např. dvě adresy) se zapíše a JARVIS se zeptá; vyřešení „platí nové / staré / obojí“
 044 | HOTOVO | project_resume: poslední konverzace a odpověď, rozdělané mise, nedávné soubory, fakta, doporučený další krok
+
+# Vlna 5 (3.9): agenti a „mozek“ – agents.py, thinking.py, devcheck.py, tools/brain_tools.py, tests/test_wave5.py
+001 | HOTOVO | goal_plan: z cíle fáze, kroky (kdo je udělá), akceptační kritéria a rizika → sledovaná mise v Úkolech
+003 | HOTOVO | deep_research: víc dotazů, přečtené zdroje, report s citacemi [n], mechanická kontrola citací, uložený jako artefakt
+005 | ČÁSTEČNĚ | compare_options: u každé varianty pravděpodobné důsledky a rizika (odhad AI, ne simulace)
+006 | VYŽADUJE_INTEGRACI | ask_models: stejná otázka víc AI poskytovatelům a porovnání – potřebuje aspoň dva nastavené poskytovatele
+007 | HOTOVO | jistota u doporučení (compare_options) a podle shody modelů (ask_models); research hlásí nesedící citace
+061 | HOTOVO | specialista Architekt (projde projekt, git, web) přes delegate_to_agent
+062 | HOTOVO | specialista Tester: run_tests, prohlížeč, kontrola přístupnosti, zápis testů se schválením
+063 | HOTOVO | specialista Výkon: perf_check, benchmark, historie, procesy, diagnostika
+064 | HOTOVO | specialista Databáze + sql_query (SQLite jen pro čtení – mode=ro, jen SELECT/PRAGMA/EXPLAIN)
+065 | ČÁSTEČNĚ | specialista DevOps: git, CI soubory, testy, dostupnost a certifikáty; nasazení do cloudu chybí
+066 | HOTOVO | specialista Dokumentace: čte kód, píše dokumentaci (zápis se schválením)
+067 | HOTOVO | specialista Přístupnost + a11y_check (WCAG: alt, popisky polí, kontrast, nadpisy, odkazy, jazyk, klávesnice)
+068 | HOTOVO | specialista Překlady + check_translation (chybějící klíče, rozbité zástupné znaky, nepřeložené texty)
+197 | HOTOVO | compare_options: 3 různé cesty k cíli
+198 | HOTOVO | goal_plan: rozklad na fáze a kroky
+199 | HOTOVO | check_assumptions: skryté předpoklady, riziko, jak ověřit
+200 | HOTOVO | kontrola citací výzkumu (neexistující a nepoužité zdroje, odstavce bez citace)
+203 | HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py)
+204 | VYŽADUJE_INTEGRACI | ask_models: shoda/rozpory/společná odpověď – s aspoň dvěma poskytovateli
+206 | HOTOVO | seřazení variant s odůvodněním
+207 | HOTOVO | co chybí vědět (missing_info) u rozhodování
+214 | HOTOVO | zadání a výsledek každého specialisty v misi jako důkazy (sběrnice agentů)
+218 | HOTOVO | agent_team: předání výsledku dalšímu specialistovi
