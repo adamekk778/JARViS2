@@ -68,3 +68,11 @@ cd core && pytest                          # testy
 
 Struktura: `core/` Python jádro (agent, nástroje, hlas, server), `web/` UI (notch, chat, mobil),
 `mobile/` Android obal (Capacitor), `packaging/` instalátor, návrh v `docs/superpowers/specs/`.
+
+## Dokumentace (OMEGA)
+- `docs/OMEGA_SPEC.md` – dlouhodobé zadání (katalog 001–795 + původních 110+ schopností)
+- `docs/FEATURE_AUDIT.md` – stav každé schopnosti s důkazem (generuje `python docs/audit/build_audit.py`)
+- `docs/FEATURE_MATRIX.md` – které moduly nesou které funkce, překryvy
+- `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/INTEGRATIONS.md`, `docs/ROADMAP.md`, `docs/TEST_REPORT.md`
+
+První mise k vyzkoušení: v aplikaci **Úkoly → Zkontrolovat PC**, nebo řekni „zjisti stav mého počítače a ulož report“.

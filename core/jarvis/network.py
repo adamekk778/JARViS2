@@ -5,7 +5,6 @@ import asyncio
 import json
 import re
 import socket
-import subprocess
 import sys
 
 from .stark import _fold
@@ -37,11 +36,12 @@ def parse_neighbors(text: str) -> list[dict]:
 
 
 def read_neighbors() -> list[dict]:
-    flags = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+    from .pcreport import run_quiet
+
     cmd = ["arp", "-a"] if sys.platform == "win32" else ["ip", "neigh"]
     try:
-        text = subprocess.run(cmd, capture_output=True, text=True, timeout=8, **flags).stdout
-    except (OSError, subprocess.SubprocessError):
+        _code, text, _err = run_quiet(cmd, 8)
+    except OSError:
         return []
     return parse_neighbors(text)
 

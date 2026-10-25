@@ -74,18 +74,42 @@ def _gb(n: float) -> str:
     return f"{n / 2**30:.1f} GB"
 
 
+def run_quiet(cmd: list[str], timeout: float) -> tuple[int | None, str, str]:
+    """Run a helper program with no stdin and output into temp files, then wait at most `timeout` seconds.
+    (Pipes + inherited stdin can hang forever: PowerShell waits for input, and a killed process's children may keep
+    the pipe open so reading it never ends.) → (exit code or None on timeout, stdout, stderr)"""
+    import tempfile
+
+    flags = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, **flags)
+        try:
+            code: int | None = p.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            code = None
+        out.seek(0)
+        err.seek(0)
+        return code, out.read().decode("utf-8", "replace"), err.read().decode("utf-8", "replace")
+
+
 def run_windows_probe(timeout: float = 90) -> dict:
     """One read-only PowerShell process → the parsed JSON (or {"error": …})."""
     if sys.platform != "win32":
         return {"error": "Jen na Windows"}
     enc = base64.b64encode(PS_SCRIPT.encode("utf-16-le")).decode()
     try:
-        r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc],
-                           capture_output=True, timeout=timeout, creationflags=0x08000000)
-        out = r.stdout.decode("utf-8", "replace").strip()
-        return json.loads(out[out.find("{"):]) if "{" in out else {"error": (r.stderr.decode("utf-8", "replace") or "bez výstupu")[:300]}
-    except (OSError, subprocess.SubprocessError, ValueError) as e:
+        code, out, err = run_quiet(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                                    "-EncodedCommand", enc], timeout)
+    except OSError as e:
         return {"error": f"{type(e).__name__}: {e}"[:300]}
+    if code is None:
+        return {"error": f"PowerShell neodpověděl do {timeout:.0f} s"}
+    out = out.strip()
+    try:
+        return json.loads(out[out.find("{"):]) if "{" in out else {"error": (err or "bez výstupu")[:300]}
+    except ValueError as e:
+        return {"error": f"Nečitelný výstup: {e}"[:300]}
 
 
 def _list(v: Any) -> list:

@@ -1,0 +1,363 @@
+# Stav funkcí z docs/OMEGA_SPEC.md (katalog 001–795).  Formát:  ID nebo ID-ID | STAV | důkaz / modul / omezení
+# Stavy: HOTOVO, ČÁSTEČNĚ, CHYBÍ, ROZBITÉ, BLOKOVÁNO_PLATFORMOU, VYŽADUJE_INTEGRACI, PLÁNOVÁNO
+# Co tu není uvedené, má stav CHYBÍ. Po úpravě spusť:  python docs/audit/build_audit.py
+
+# 01 Super Intelligence
+001 | ČÁSTEČNĚ | Režim Agent: plán update_plan + až 25 kroků (agent.py, tools/plan.py); chybí goal graph
+002 | ČÁSTEČNĚ | Mission Control = stránka Úkoly: plán, kroky, audit akcí, kritéria, artefakty, důkazy, pauza/zrušení (tasks.py, dashboard/tasks.ts, tests/test_omega.py); chybí DAG
+003 | ČÁSTEČNĚ | web_search, web_read, browser_* (tools/web.py, tools/browser.py); citace neformalizované
+004-009 | PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md
+010 | ČÁSTEČNĚ | auditní log akcí každé mise + Zopakovat (tasks.py task_actions, task_retry)
+
+# 02 Windows Superpowers
+011 | ČÁSTEČNĚ | report: zařízení s chybou ovladače (Win32_PnPEntity ConfigManagerErrorCode) – pcreport.py
+012 | ČÁSTEČNĚ | report: chyby systémového logu za 24 h podle zdroje (Get-WinEvent) – pcreport.py
+013 | ČÁSTEČNĚ | report: poslední nainstalovaná aktualizace a její stáří (Get-HotFix) – pcreport.py
+014 | ČÁSTEČNĚ | report: neočekávaná vypnutí za 30 dní (událost 41); analýza příčiny chybí
+015 | CHYBÍ | čtení minidumpů vyžaduje WinDbg/cdb – PLÁNOVÁNO v M4
+016 | ČÁSTEČNĚ | report: programy po spuštění (Win32_StartupCommand); časová osa startu chybí
+018 | ČÁSTEČNĚ | report: zdraví fyzických disků (Get-PhysicalDisk); výkon a historie chybí
+019 | ČÁSTEČNĚ | report: zařízení s chybou (kód ConfigManager)
+021 | ČÁSTEČNĚ | speed_test, network_devices, síťová rozhraní v reportu
+022 | BLOKOVÁNO_PLATFORMOU | Windows bez ovladače výrobce teploty CPU nehlásí; report píše „neznámá“
+025 | HOTOVO | pc_health_report: read-only diagnostika, HTML report, ověření 5 kritérií (pcreport.py, tools/mission_tools.py, tests/test_omega.py, CI --selftest-report)
+
+# 03 Context Awareness
+026 | HOTOVO | foreground_info + Activity sampler (powers.py), automatizace „když otevřu…“
+027 | HOTOVO | označený text Ctrl+Alt+E: opravit/přeložit/zkrátit/vysvětlit (powers.py; CI test v Notepadu)
+028 | ČÁSTEČNĚ | ui_inspect / ui_read přes UI Automation (tools/uia.py)
+029 | ČÁSTEČNĚ | compare_files (tools/files.py)
+033 | ČÁSTEČNĚ | screenshot + vision model, ui_read chybových dialogů
+034 | ČÁSTEČNĚ | protokoly Pracovní/Herní režim + automatizace app_open (stark.py, automations.py)
+
+# 04 Ultra Memory
+036 | ČÁSTEČNĚ | historie konverzací, úkolů, týdenní recap
+038 | ČÁSTEČNĚ | search_history, find_file (bez sémantiky)
+039 | HOTOVO | úprava a mazání faktů v paměti (memory.py, fact_update/fact_delete)
+045 | HOTOVO | export/import paměti (memory_export, memory_import)
+041 | PLÁNOVÁNO | režim bez ukládání – M5
+
+# 05 Ultimate Developer
+046 | VYŽADUJE_INTEGRACI | přes Claude Code CLI (tools/dev.py claude_code, claude_bridge.py)
+048 | VYŽADUJE_INTEGRACI | přes MCP server GitHubu (integrations/mcp_client)
+049 | VYŽADUJE_INTEGRACI | přes Claude Code
+050 | ČÁSTEČNĚ | git_log + AI shrnutí (tools/dev.py)
+058 | ČÁSTEČNĚ | run_tests (tools/dev.py)
+060 | ČÁSTEČNĚ | vlastní CI JARVISe staví EXE/APK; obecně pro cizí projekty chybí
+
+# 06 Agent Army
+061-070 | PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3
+
+# 07 Mochi 2.0 (postavička JARVIS – vlastní originální „blob“, viz DECISIONS.md)
+071 | HOTOVO | oči sledují kurzor (character/blob.ts lookAt)
+075 | ČÁSTEČNĚ | pravdivý průběh stahování aktualizace (mood update_progress)
+076 | HOTOVO | radost po ověřené misi / úspěchu (mood.py joy/success, tests/test_omega.py)
+077 | HOTOVO | připomínka pauzy po N minutách u PC (powers.py break_minutes)
+085 | ČÁSTEČNĚ | historie úkolů a mise; samostatná historie reakcí chybí
+
+# 08 Dynamic Island Pro
+086 | ČÁSTEČNĚ | rozbalovací panel notche (web/src/notch)
+087 | ČÁSTEČNĚ | karta aktuálního úkolu v notchi (shared/taskcard.ts)
+088 | HOTOVO | přetažení souborů do notche – police (shelf)
+090 | HOTOVO | konfigurovatelné zkratky (Nastavení → Zkratky)
+095 | ČÁSTEČNĚ | volitelné dlaždice notche
+
+# 09 Voice
+096 | ČÁSTEČNĚ | push-to-talk zkratka funguje i ve hře
+097 | HOTOVO | diktování kamkoli (dictation.py)
+098 | HOTOVO | vlastní aktivační fráze (voice.wake_word)
+100 | ČÁSTEČNĚ | více příkazů ve větě řeší jazykový model
+101 | HOTOVO | rychlost a hlasitost hlasu, osobnost
+103 | ČÁSTEČNĚ | potvrzení rizikových akcí v UI a otiskem na telefonu; hlasové potvrzení chybí
+104 | HOTOVO | hlasová makra = protokoly („spusť protokol …“)
+105 | HOTOVO | výběr mikrofonu (audio_devices)
+
+# 10 Teacher
+106 | ČÁSTEČNĚ | vysvětlení postupů přes AI chat
+111 | ČÁSTEČNĚ | hodnocení odpovědí přes AI chat
+
+# 11 Gaming & Development
+116-118 | VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace
+
+# 12 Creative Studio
+128 | ČÁSTEČNĚ | přepis řeči z nahrávek (notetaker.py)
+132 | ČÁSTEČNĚ | generate_image
+133 | ČÁSTEČNĚ | palety přes AI chat
+
+# 13 Mobile Super Assistant
+137 | ČÁSTEČNĚ | akce v notifikacích hovoru JARVISe (Přijmout/Odmítnout/Odpovědět)
+138 | ČÁSTEČNĚ | send_to_phone, clipboard_set z telefonu
+139 | HOTOVO | Ovládání v mobilu: protokoly, média, aplikace, napájení (web/src/mobile)
+140 | ČÁSTEČNĚ | stav úkolu v mobilu; stav PC jen přes chat
+141 | HOTOVO | hlasové zprávy z mobilu (push-to-talk upload)
+142 | ČÁSTEČNĚ | přílohy fotek do chatu
+143 | HOTOVO | otisk prstu pro citlivá schválení (mobile/native.ts verify)
+144 | HOTOVO | QR párování (server/pairing.py)
+145 | ČÁSTEČNĚ | fronta příkazů PC→telefon (phone.py)
+
+# 14 Automation of the Future
+147 | HOTOVO | automatizace „Když … tak …“ (automations.py, tests/test_automations.py)
+148 | HOTOVO | 11 spouštěčů: čas, start PC, aplikace, e-mail, zpráva/hovor na mobilu, baterie, nabíječka, odchod/návrat
+149 | ČÁSTEČNĚ | tlačítko Vyzkoušet spustí automatizaci se zkušebními daty (ne dry-run)
+150 | ČÁSTEČNĚ | verze a návrat zpět u protokolů (skillforge.py); automatizace zatím bez verzí
+151 | ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace
+152 | ČÁSTEČNĚ | přerušená mise → stav Přerušeno + Zopakovat (tasks.py recover)
+155 | HOTOVO | plánovač rutin a připomínek (scheduler.py)
+
+# 15 Hardware Lab
+165 | ČÁSTEČNĚ | Home Assistant + zařízení v síti (home.py, network.py)
+
+# 16 Business
+166-167 | ČÁSTEČNĚ | nahrávání a shrnutí hovorů/schůzek (notetaker.py)
+171 | ČÁSTEČNĚ | kalendář a připomínky (calendar_.py)
+175 | ČÁSTEČNĚ | týdenní recap diktování/úkolů
+
+# 17 Security & Control
+176 | HOTOVO | STOP vše (Ctrl+Alt+X, runtime.stop_all) – test_tasks/test_agent
+177 | ČÁSTEČNĚ | vypnutí oprávnění Změny souborů / PowerShell (permissions.py)
+179 | HOTOVO | redakce tokenů a hesel v logu a audit logu (redact.py)
+182 | ČÁSTEČNĚ | potvrzení + otisk prstu na telefonu
+183 | ČÁSTEČNĚ | data z e-mailů, zpráv a automatizací označena jako cizí, ne pokyny
+184 | ČÁSTEČNĚ | seznam připojených telefonů (pairing_get devices)
+185 | ČÁSTEČNĚ | nový párovací kód odpojí všechna zařízení naráz
+178 | PLÁNOVÁNO | limit nákladů AI – M3
+
+# 18 Iron Man — Future Tech
+186 | HOTOVO | Stark HUD přes celou obrazovku (web/src/hud, CI kontrola)
+190 | ČÁSTEČNĚ | system_snapshot + report stavu PC
+191 | ČÁSTEČNĚ | HUD na celou obrazovku
+194 | ČÁSTEČNĚ | seznam zařízení v síti (bez grafu)
+187-189 | PLÁNOVÁNO | AR / gesta kamerou – vize, M8
+
+# 19 Hyper Intelligence
+198 | ČÁSTEČNĚ | rozklad na kroky update_plan
+200 | ČÁSTEČNĚ | ověření výstupu mise proti souboru (pcreport.verify)
+202 | ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan)
+203 | ČÁSTEČNĚ | nebezpečné akce označené a potvrzované (tools/base.py danger/danger_if)
+209 | ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence)
+
+# 20 Autonomous Mission Engine
+211 | ČÁSTEČNĚ | fronta požadavků agenta (jeden po druhém)
+217 | HOTOVO | pauza/pokračování mise (tasks.py pause/resume, UI)
+219 | ČÁSTEČNĚ | potvrzovací dialog s detaily, jedno schválení naráz
+223 | HOTOVO | výsledky mise: artefakty se SHA-256 a důkazy (tasks.py)
+224 | HOTOVO | ověření dokončení proti kritériím (pc_health_report)
+225 | ČÁSTEČNĚ | po pádu „Přerušeno“ + Zopakovat; navázání od kroku chybí
+212-216 | PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3
+218 | PLÁNOVÁNO | M3
+220-222 | PLÁNOVÁNO | M3
+
+# 21 Next-Gen Desktop
+226 | HOTOVO | notch a HUD nad aplikacemi (desktop/host.py)
+231 | ČÁSTEČNĚ | náhled akce v potvrzovacím dialogu (details)
+232 | HOTOVO | časová osa akcí každé mise (audit)
+233 | HOTOVO | notch s postavičkou
+235 | HOTOVO | přetažení do notche
+236 | HOTOVO | historie schránky (powers.py)
+237 | ČÁSTEČNĚ | karty výsledků nástrojů v chatu
+238 | ČÁSTEČNĚ | HUD a notch na monitoru s kurzorem
+239 | ČÁSTEČNĚ | aria popisky, klávesnice
+240 | ČÁSTEČNĚ | vypnutí animací, úsporný režim místních modelů
+
+# 22 Mochi Ultra
+241 | HOTOVO | nálady postavičky (mood.py PRIORITY)
+243 | HOTOVO | plynulé přechody nálad
+244 | ČÁSTEČNĚ | tančí, když hraje hudba (bez synchronizace rytmu)
+245 | HOTOVO | pružná fyzika postavičky
+246 | HOTOVO | oči sledují kurzor
+248 | HOTOVO | doplňky postavičky (character.outfit)
+249 | HOTOVO | spánek při nečinnosti
+250-251 | HOTOVO | mikrointerakce a výrazy (character/looks.ts)
+252 | HOTOVO | vlastní zvuky (sounds)
+253 | ČÁSTEČNĚ | barvy postavičky
+255 | ČÁSTEČNĚ | vypnutí animací
+
+# 23 Voice & Audio
+259 | ČÁSTEČNĚ | detekce řeči v hlasové smyčce (voice/loop.py)
+261 | HOTOVO | rychlost hlasu
+262 | ČÁSTEČNĚ | výběr zvukových zařízení
+263 | HOTOVO | hlasové zkratky = protokoly
+264 | HOTOVO | slovník a zkratky diktování
+265 | HOTOVO | úprava přepisu diktování
+268 | ČÁSTEČNĚ | odpovědi nahlas
+269 | ČÁSTEČNĚ | překlad přes AI
+270 | ČÁSTEČNĚ | volitelné místní modely (stahování jen s potvrzením)
+
+# 24 Advanced Vision
+274 | HOTOVO | strom UI přes UI Automation (tools/uia.py, CI --selftest-uia)
+276-278 | ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu
+280 | ČÁSTEČNĚ | popis obrazovky přes vision model
+282 | ČÁSTEČNĚ | přes vision model
+
+# 25 PC Rescue
+289 | ČÁSTEČNĚ | oddíly a jejich zaplnění v reportu
+293 | ČÁSTEČNĚ | počet neočekávaných vypnutí
+297 | BLOKOVÁNO_PLATFORMOU | teploty bez ovladače výrobce nejsou dostupné
+300 | PLÁNOVÁNO | zásada: nejdřív ochrana dat, jen čtení – M4
+
+# 26 Extreme Performance
+303 | ČÁSTEČNĚ | strážce hlídá RAM (stark.py)
+304 | ČÁSTEČNĚ | využití GPU v system_snapshot (pokud dostupné)
+305 | ČÁSTEČNĚ | top_processes
+311 | ČÁSTEČNĚ | speed_test
+313 | ČÁSTEČNĚ | čas v aplikacích (screen_time)
+
+# 27 Intelligent File Universe
+316 | ČÁSTEČNĚ | find_file podle názvu (sémantika chybí)
+322 | ČÁSTEČNĚ | find_file
+325 | ČÁSTEČNĚ | move_files s náhledem a potvrzením
+327 | HOTOVO | storage_report (co zabírá místo)
+328 | ČÁSTEČNĚ | záchytné body checkpoint/restore_checkpoint
+329 | ČÁSTEČNĚ | SHA-256 artefaktů mise
+
+# 28 Developer God Mode
+331 | VYŽADUJE_INTEGRACI | Claude Code
+339-340 | ČÁSTEČNĚ | run_tests + Claude Code
+345 | ČÁSTEČNĚ | záchytné body + Claude Code
+
+# 29 AI Design Studio
+352-354 | ČÁSTEČNĚ | make_website s náhledem v chatu
+
+# 31 Internet Intelligence
+378 | HOTOVO | watch_website
+379 | ČÁSTEČNĚ | price / price_alert (finance.py)
+380 | ČÁSTEČNĚ | poznámky (tools/notes.py)
+386 | ČÁSTEČNĚ | přes AI
+390 | ČÁSTEČNĚ | závěry → úkoly přes AI
+
+# 32 Cybersecurity Center
+394 | ČÁSTEČNĚ | seznam programů po spuštění v reportu
+402 | ČÁSTEČNĚ | párování telefonu tokenem
+403 | ČÁSTEČNĚ | nový token = odpojení všech zařízení
+405 | ČÁSTEČNĚ | STOP vše + vypínače oprávnění
+
+# 33 Multi-Device
+406 | ČÁSTEČNĚ | zařízení v síti (network.py)
+407 | ČÁSTEČNĚ | párování tokenem; v LAN bez TLS (viz DECISIONS.md)
+408 | ČÁSTEČNĚ | send_to_phone
+410 | HOTOVO | přítomnost telefonu (phone.link_alive)
+411 | ČÁSTEČNĚ | průběh úkolu v mobilu
+412 | HOTOVO | směrování oznámení PC/telefon (runtime.notify target)
+416 | HOTOVO | wake_device (Wake-on-LAN)
+417 | ČÁSTEČNĚ | baterie PC + telefonu (phone_battery)
+420 | ČÁSTEČNĚ | najdi můj telefon (FindPhone.java)
+
+# 34 Smart Home
+423 | HOTOVO | scény Home Assistantu (home_scene)
+424 | ČÁSTEČNĚ | nastavení teploty (home_control climate)
+425 | ČÁSTEČNĚ | automatizace JARVISe; spouštěče ze senzorů HA chybí
+426 | HOTOVO | mapa domácí sítě = seznam zařízení (network_devices)
+428 | ČÁSTEČNĚ | zásuvky + časové automatizace
+429 | ČÁSTEČNĚ | přehrávače HA
+432 | HOTOVO | hlasové scény
+434 | HOTOVO | lokální REST Home Assistantu, bez cloudu
+435 | HOTOVO | zámky, alarm, garáž a brány vždy s potvrzením (home.py risky, tests/test_home.py)
+
+# 35 Business
+446 | ČÁSTEČNĚ | kalendář
+
+# 36 Learning Lab
+457 | ČÁSTEČNĚ | výpočty přes run_python
+462 | ČÁSTEČNĚ | test z přiloženého dokumentu přes AI
+
+# 38 Iron Man Experimental
+481 | ČÁSTEČNĚ | holografický styl HUD
+495 | ČÁSTEČNĚ | HUD + dashboard
+482-494 | PLÁNOVÁNO | vize, M8
+
+# 39 Proactive
+500 | ČÁSTEČNĚ | strážce mluví jen při důležitých věcech
+504 | ČÁSTEČNĚ | protokoly a automatizace
+508 | HOTOVO | strážce: baterie, CPU, RAM, disk, internet, nové zařízení v síti (stark.py)
+510 | ČÁSTEČNĚ | ranní brífink, recap
+
+# 40 Semantic OS
+511 | HOTOVO | soubory přirozenou řečí (tools/files.py)
+520 | ČÁSTEČNĚ | search_history
+
+# 41 Browser Agent
+526 | ČÁSTEČNĚ | browser_* nástroje
+530 | ČÁSTEČNĚ | browser_type + čtení
+531 | ČÁSTEČNĚ | computer_use předá uživateli, co samo nesmí (captcha, přihlášení)
+
+# 42 Communication
+541 | ČÁSTEČNĚ | e-mail + zprávy z telefonu (mail.py, phone.py)
+542 | ČÁSTEČNĚ | VIP odesílatelé
+547 | ČÁSTEČNĚ | formálnější/kratší přepis označeného textu
+548 | ČÁSTEČNĚ | překlad
+549 | HOTOVO | filtr newsletterů
+551 | ČÁSTEČNĚ | email_search
+554 | HOTOVO | odeslání e-mailu/SMS jen po schválení
+555 | ČÁSTEČNĚ | nepřečtené v brífinku
+
+# 43 Meetings
+559 | ČÁSTEČNĚ | zápisy z nahrávek
+565 | ČÁSTEČNĚ | kalendář
+566 | ČÁSTEČNĚ | hledání v poznámkách
+
+# 44 Local AI
+573 | ČÁSTEČNĚ | test GPU pro místní modely
+576 | HOTOVO | uvolnění místního modelu (local_unload)
+583 | ČÁSTEČNĚ | režimy úsporný/vyvážený/výkon
+585 | ČÁSTEČNĚ | stav místních modelů
+
+# 45 Integration Gateway
+586 | ČÁSTEČNĚ | MCP servery
+587 | ČÁSTEČNĚ | test poskytovatele AI (provider_test)
+591 | ČÁSTEČNĚ | stránka Oprávnění
+597 | HOTOVO | řetěz poskytovatelů AI s náhradou při výpadku (llm/router)
+
+# 47 Software Factory
+618 | ČÁSTEČNĚ | docs/DECISIONS.md
+626 | ČÁSTEČNĚ | vlastní CI (.github/workflows/build.yml)
+630 | ČÁSTEČNĚ | tento audit (docs/FEATURE_AUDIT.md)
+
+# 48 Testing Lab
+645 | ČÁSTEČNĚ | důkazy misí (task_evidence) + 410 testů
+
+# 51 Privacy Fortress
+679 | ČÁSTEČNĚ | viditelný stav naslouchání v notchi
+681 | HOTOVO | hesla a tokeny se do historie schránky neukládají (powers.looks_secret)
+689 | ČÁSTEČNĚ | potvrzení + otisk prstu
+690 | ČÁSTEČNĚ | stránka Oprávnění
+
+# 52 Advanced Hardware Rescue
+702 | PLÁNOVÁNO | zásada: JARVIS disky neformátuje; ochrana dat – M4
+
+# 53 Network & Cloud
+717 | ČÁSTEČNĚ | speed_test (internet, ne LAN)
+
+# 54 Next-Gen Mobile
+721 | ČÁSTEČNĚ | akce v notifikacích
+732 | ČÁSTEČNĚ | otevření odkazu na PC z mobilu
+735 | ČÁSTEČNĚ | schvalování Claude Code z telefonu s otiskem
+
+# 55 Mochi Reactive
+737 | HOTOVO | nálady podle skutečných událostí (mood.py)
+742 | HOTOVO | omezení animací
+744 | ČÁSTEČNĚ | nálada chyba při selhání
+745 | HOTOVO | radost po ověřené misi
+748 | HOTOVO | reakce na limit AI (mood limit)
+
+# 56 Interface
+757 | HOTOVO | příkazová paleta Ctrl+K (dashboard/palette.ts)
+760 | ČÁSTEČNĚ | animované stavy
+762 | ČÁSTEČNĚ | mobilní aplikace
+763 | HOTOVO | mini stav mise v notchi a mobilu (taskcard)
+764 | ČÁSTEČNĚ | vypnutí animací
+
+# 57 Science
+766 | ČÁSTEČNĚ | run_python / AI
+768 | ČÁSTEČNĚ | run_python
+
+# 58 Everyday
+783 | ČÁSTEČNĚ | počasí v brífinku
+784 | VYŽADUJE_INTEGRACI | veřejné API pro jízdní řády ČR chybí
+785 | HOTOVO | nákupní seznam (tools/list_tools.py)
+787 | ČÁSTEČNĚ | čas v aplikacích
+788 | ČÁSTEČNĚ | aria popisky
+791 | ČÁSTEČNĚ | vysvětlení / zjednodušení označeného textu
+792 | HOTOVO | čas u PC po aplikacích (screen_time)
+793 | HOTOVO | export paměti
+794 | ČÁSTEČNĚ | smazání paměti (memory_wipe); kompletní reset všech dat chybí
+795 | ČÁSTEČNĚ | Co je nového + nastavení; plný průvodce chybí

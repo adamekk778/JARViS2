@@ -415,4 +415,4 @@ Notch a všechno ostatní běží dál.
 - Kalendářové integrace (Google/Outlook) – JARVIS má vlastní připomínky a úlohy. Kalendář až jako MCP server.
 - GitHub API (issues/PR) mimo `git push` – lze přes MCP server GitHubu.
 - Lokalizace UI do angličtiny (anglicky JARVIS jen mluví a odpovídá).
-- Jakákoli značka nebo vazba na VexelOPS (v kódu žádná není a nebude).
+- Jakákoli značka nebo vazba na vyloučenou cizí platformu (v kódu žádná není a nebude).

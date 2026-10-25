@@ -215,6 +215,7 @@ jobs:
         if: always()
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }
       - name: Idle benchmark and UI Automation selftest
+        timeout-minutes: 15
         shell: pwsh
         run: |
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome3"
@@ -228,7 +229,10 @@ jobs:
           Write-Host "POWERS SELFTEST (selected text in Notepad): $($pw | Select-Object -Last 1)"
           $pwr = ($pw | Select-Object -Last 1) | ConvertFrom-Json
           if (-not $pwr.skipped -and -not $pwr.ok) { throw "selected text or running apps: JARVIS did not read, replace or see Notepad correctly" }
-          $rp = & dist\JARVIS\JARVIS-debug.exe --selftest-report 2>$null
+          $rpOut = "$env:RUNNER_TEMP\report-selftest.txt"
+          $rpProc = Start-Process -FilePath dist\JARVIS\JARVIS-debug.exe -ArgumentList "--selftest-report" -RedirectStandardOutput $rpOut -NoNewWindow -PassThru
+          if (-not $rpProc.WaitForExit(240000)) { $rpProc.Kill(); throw "PC report selftest hung (over 4 minutes)" }
+          $rp = Get-Content $rpOut
           Write-Host "PC REPORT SELFTEST (read-only diagnostics, verified file): $($rp | Select-Object -Last 1)"
           $rpr = ($rp | Select-Object -Last 1) | ConvertFrom-Json
           if (-not $rpr.ok -or $rpr.unknown.Count -gt 0) { throw "PC report: not verified or some part could not be measured on Windows" }
