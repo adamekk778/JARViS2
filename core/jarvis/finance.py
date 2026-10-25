@@ -87,7 +87,18 @@ async def stock(rt, symbol: str) -> dict:
 
 
 async def quote(rt, asset: str, vs: str = "czk") -> dict:
-    """Anything with a price: "bitcoin", "eth", "AAPL", "euro" (in CZK)."""
+    """Anything with a price: "bitcoin", "eth", "AAPL", "euro" (in CZK). Every quote is kept (OMEGA 379 price history)."""
+    q = await _quote(rt, asset, vs)
+    try:
+        from .webintel import record_price
+
+        record_price(rt, asset, q["price"], q["currency"])
+    except Exception:  # noqa: BLE001 – history is a bonus, the price is what was asked
+        pass
+    return q
+
+
+async def _quote(rt, asset: str, vs: str = "czk") -> dict:
     f = _fold(asset)
     if f in CRYPTO:
         return await crypto(rt, asset, vs)

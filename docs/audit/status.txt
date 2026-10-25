@@ -545,3 +545,12 @@
 507 | HOTOVO | what_next s minutes: jen úkoly, které stihneš (kartičky, krátké položky)
 509 | HOTOVO | project_resume (vlna 4) + nedořešené rozhovory
 510 | HOTOVO | day_summary: dokončené mise, zprávy, diktování, opakování, čas v aplikacích
+
+# Vlna 9 (3.9): internetová inteligence – webintel.py, tools/webintel_tools.py, tests/test_wave9.py
+376 | HOTOVO | source_reliability: instituce, akademická doména, HTTPS, autor, datum, placený obsah, bulvár, podezřelá adresa
+377 | HOTOVO | fact_check: tvrzení v několika nezávislých zdrojích, postoj každého s citací, verdikt
+379 | HOTOVO | price_history: každá zjištěná cena (dotaz i hlídání) se ukládá – min, max, změna
+381 | HOTOVO | save_web_evidence: HTML + text + hlavičky + čas UTC + SHA-256, pozná změnu proti minulému záznamu
+383 | HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení)
+388 | HOTOVO | website_audit: rychlost, velikost, komprese, cache, obrázky bez rozměrů, počet skriptů
+389 | HOTOVO | website_audit: titulek, popis, h1, viewport, og:title, jazyk, osnova nadpisů

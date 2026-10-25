@@ -67,6 +67,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `wake_word` | 098, P3.01 |
 | `web_read` | P6.03, P11.01 |
 | `web_search` | P6.03, P11.01 |
+| `website_audit` | 388, 389 |
 | `what_next` | 496, 507 |
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
@@ -80,6 +81,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `backup_folder` | 330 |
 | `backup_plan` | 330 |
 | `break_minutes` | 077 |
+| `broken_links` | 383 |
 | `calendar_.py` | 171 |
 | `calendar_check` | 558 |
 | `character/blob.ts` | 071 |
@@ -115,11 +117,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `export_all` | 793 |
 | `export_audit` | 687 |
 | `extract_archive` | 323 |
+| `fact_check` | 377 |
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
 | `file_metadata` | 326 |
 | `file_versions` | 328 |
-| `finance.py` | 379 |
 | `find_duplicates` | 317 |
 | `find_similar_photos` | 318 |
 | `flashcards_from` | 112 |
@@ -165,7 +167,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
 | `press_keys` | P2.02 |
-| `price_alert` | 379 |
+| `price_history` | 379 |
 | `privacy.py` | P14.10 |
 | `provider_test` | 587 |
 | `read_text_file` | P5.05 |
@@ -178,6 +180,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
 | `save_file_version` | 328 |
+| `save_web_evidence` | 381 |
 | `scan_secrets` | 401 |
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
@@ -191,6 +194,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
 | `sort_documents` | 319 |
+| `source_reliability` | 376 |
 | `speak_mode` | P3.07 |
 | `speed_test` | 717 |
 | `sql_query` | 064 |

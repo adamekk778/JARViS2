@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 214 | 74 |
-| 🟡 ČÁSTEČNĚ | 155 | 58 |
+| ✅ HOTOVO | 221 | 74 |
+| 🟡 ČÁSTEČNĚ | 154 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 393 | 17 |
+| ⬜ CHYBÍ | 387 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -607,24 +607,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 1 · 🟡 4 · ⬜ 10
+✅ 8 · 🟡 3 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 376 | Source Reliability Profiles — důvěryhodnost zdrojů. | ⬜ CHYBÍ | — |
-| 377 | Cross-Source Fact Checking — křížové ověření. | ⬜ CHYBÍ | — |
+| 376 | Source Reliability Profiles — důvěryhodnost zdrojů. | ✅ HOTOVO | source_reliability: instituce, akademická doména, HTTPS, autor, datum, placený obsah, bulvár, podezřelá adresa |
+| 377 | Cross-Source Fact Checking — křížové ověření. | ✅ HOTOVO | fact_check: tvrzení v několika nezávislých zdrojích, postoj každého s citací, verdikt |
 | 378 | Website Change Watcher — změny webu. | ✅ HOTOVO | watch_website |
-| 379 | Price History Analyzer — historie cen. | 🟡 ČÁSTEČNĚ | price / price_alert (finance.py) |
+| 379 | Price History Analyzer — historie cen. | ✅ HOTOVO | price_history: každá zjištěná cena (dotaz i hlídání) se ukládá – min, max, změna |
 | 380 | Research Notebook — poznámky výzkumu. | 🟡 ČÁSTEČNĚ | poznámky (tools/notes.py) |
-| 381 | Web Evidence Collector — archivace důkazů. | ⬜ CHYBÍ | — |
+| 381 | Web Evidence Collector — archivace důkazů. | ✅ HOTOVO | save_web_evidence: HTML + text + hlavičky + čas UTC + SHA-256, pozná změnu proti minulému záznamu |
 | 382 | Automated Website Testing — testy webů. | ⬜ CHYBÍ | — |
-| 383 | Broken Link Scanner — nefunkční odkazy. | ⬜ CHYBÍ | — |
+| 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
 | 384 | Competitor Feature Comparison — srovnání konkurence. | ⬜ CHYBÍ | — |
 | 385 | Search Query Optimizer — vyhledávací strategie. | ⬜ CHYBÍ | — |
 | 386 | Article Comparison — srovnání článků. | 🟡 ČÁSTEČNĚ | přes AI |
 | 387 | Domain Health Inspector — DNS/TLS/dostupnost. | ⬜ CHYBÍ | — |
-| 388 | Website Performance Audit — výkon webů. | ⬜ CHYBÍ | — |
-| 389 | Web Content Structure Analyzer — struktura obsahu. | ⬜ CHYBÍ | — |
+| 388 | Website Performance Audit — výkon webů. | ✅ HOTOVO | website_audit: rychlost, velikost, komprese, cache, obrázky bez rozměrů, počet skriptů |
+| 389 | Web Content Structure Analyzer — struktura obsahu. | ✅ HOTOVO | website_audit: titulek, popis, h1, viewport, og:title, jazyk, osnova nadpisů |
 | 390 | Research-to-Action — závěry na úkoly. | 🟡 ČÁSTEČNĚ | závěry → úkoly přes AI |
 
 ## 32. Cybersecurity Center
