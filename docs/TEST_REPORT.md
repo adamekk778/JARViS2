@@ -3,7 +3,7 @@
 Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené zvlášť.
 
 ## Automatické testy (Linux, `cd core && pytest`)
-- **413 testů prošlo** (0 selhalo). Nové pro OMEGA:
+- **413 testů prošlo** (0 selhalo) – stav k release v3.6.47. Nové pro OMEGA:
   - `tests/test_omega.py` – mise „stav PC“ end-to-end (plán 4 kroky, 5 kritérií, artefakt se SHA-256, 11 důkazů
     měření + 5 důkazů ověření, stav `verifying` → `done`); ověření odhalí změněný soubor; Windows sonda obsahuje
     jen povolené `Get-*` cmdlety; parsování výstupu sondy (chybná zařízení, neočekávaná vypnutí); restart → mise
@@ -25,6 +25,8 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
   Windows má kódovou stránku cp1252, česká písmena (č, ř, ě) ho shodila a ladicí build pak čekal na potvrzení
   chybového okna. Opraveno (ASCII výpis ve všech selftestech) a navíc zpevněno spouštění pomocných procesů (bez
   stdin, výstup do souboru, tvrdý limit) a pojistky v CI (4 min / 15 min).
+- **Výsledek po opravě (běh 40206274484, release v3.6.47): report na skutečném Windows ověřen 5/5 za 5,8 s, všech
+  11 částí změřeno (žádná „neznámá“), použité příkazy jen Get-*; build, instalátor i APK zelené.**
 
 ## Neověřeno / omezení
 - Report na Windows mimo CI (různé edice, bez práv správce) – čeká na zpětnou vazbu uživatele.
