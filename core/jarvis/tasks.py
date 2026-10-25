@@ -1,13 +1,19 @@
-"""Tasks (spec §4): every agent reply that uses tools becomes a task with a plan, steps and an action log.
+"""Tasks = missions (spec §4, OMEGA §4.5): every agent reply that uses tools becomes a task with a plan, steps and an
+action log (the audit trail). A mission may also carry acceptance criteria, artifacts (files it produced, with their
+SHA-256) and evidence (what was measured or checked, from which source, when).
 
-Stored in SQLite next to (but separate from) the conversation memory. The UI follows `task_update` events.
+States: running → (paused | waiting) → verifying → done / failed / cancelled; a restart turns anything unfinished into
+"interrupted" (it can be run again with Zopakovat). Stored in SQLite next to the conversation memory; the UI follows
+`task_update` events.
 """
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Literal
 
 from .redact import redact
@@ -18,7 +24,20 @@ CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, conv_id TEXT, goal TEXT, 
 CREATE TABLE IF NOT EXISTS task_steps (task_id TEXT, idx INT, title TEXT, status TEXT, note TEXT);
 CREATE TABLE IF NOT EXISTS task_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, ts REAL, tool TEXT,
   args TEXT, ok INT, summary TEXT, ms INT);
+CREATE TABLE IF NOT EXISTS task_artifacts (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, ts REAL, title TEXT,
+  path TEXT, sha256 TEXT, bytes INT);
+CREATE TABLE IF NOT EXISTS task_evidence (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, ts REAL, source TEXT,
+  claim TEXT, value TEXT, ok INT);
 """
+UNFINISHED = ("running", "paused", "waiting", "verifying")
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
 THROTTLE_S = 0.25  # task_update at most 4× per second for action-only changes
 
 
@@ -28,12 +47,23 @@ class TaskManager:
         self.db = rt.db
         with self.db.lock:
             self.db.conn.executescript(SCHEMA)
+            cols = {r[1] for r in self.db.conn.execute("PRAGMA table_info(tasks)")}
+            if "criteria" not in cols:     # 3.6 missions: acceptance criteria
+                self.db.conn.execute("ALTER TABLE tasks ADD COLUMN criteria TEXT DEFAULT '[]'")
         self._id: str | None = None
         self._running = asyncio.Event()
         self._running.set()
         self._current_action = ""
         self._last_pub = 0.0
         self._pending: asyncio.TimerHandle | None = None
+        self.recover()
+
+    def recover(self) -> int:
+        """After a crash or restart nothing is "running" any more: mark it interrupted (it can be repeated)."""
+        return self.db.exec(
+            f"UPDATE tasks SET status='interrupted', finished=?, summary=CASE WHEN summary='' OR summary IS NULL "
+            f"THEN 'Přerušeno ukončením nebo restartem JARVISe. Spusť znovu tlačítkem Zopakovat.' ELSE summary END "
+            f"WHERE status IN ({','.join('?' * len(UNFINISHED))})", (time.time(), *UNFINISHED)).rowcount
 
     # ---------- lifecycle ----------
     @property
@@ -44,7 +74,7 @@ class TaskManager:
         self._id = uuid.uuid4().hex[:12]
         self._current_action = ""
         self._running.set()
-        self.db.exec("INSERT INTO tasks VALUES (?,?,?,?,?,?,?)",
+        self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES (?,?,?,?,?,?,?)",
                      (self._id, conv_id, goal[:500], "running", time.time(), None, ""))
         self._publish(force=True)
         return self._id
@@ -68,6 +98,34 @@ class TaskManager:
         self.db.exec("INSERT INTO task_actions (task_id, ts, tool, args, ok, summary, ms) VALUES (?,?,?,?,?,?,?)",
                      (self._id, time.time(), tool, a, int(bool(ok)), redact(summary or "")[:500], int(ms)))
         self._publish()
+
+    # ---------- mission: criteria, artifacts, evidence ----------
+    def set_criteria(self, criteria: list[str]) -> None:
+        if self._id:
+            self.db.exec("UPDATE tasks SET criteria=? WHERE id=?",
+                         (json.dumps([str(c)[:200] for c in criteria][:20], ensure_ascii=False), self._id))
+            self._publish(force=True)
+
+    def add_artifact(self, path: Path, title: str = "") -> dict:
+        """A file the mission produced; its SHA-256 lets anyone check it later."""
+        path = Path(path)
+        art = {"title": title or path.name, "path": str(path), "sha256": sha256_file(path), "bytes": path.stat().st_size}
+        if self._id:
+            self.db.exec("INSERT INTO task_artifacts (task_id, ts, title, path, sha256, bytes) VALUES (?,?,?,?,?,?)",
+                         (self._id, time.time(), art["title"][:200], art["path"], art["sha256"], art["bytes"]))
+            self._publish()
+        return art
+
+    def add_evidence(self, source: str, claim: str, value: Any = "", ok: bool = True) -> None:
+        """What was measured / checked: the source (tool, command, file), the claim, the value, and whether it holds."""
+        if self._id:
+            self.db.exec("INSERT INTO task_evidence (task_id, ts, source, claim, value, ok) VALUES (?,?,?,?,?,?)",
+                         (self._id, time.time(), source[:200], redact(claim)[:300], redact(str(value))[:500], int(bool(ok))))
+            self._publish()
+
+    def set_verifying(self) -> None:
+        if self._id:
+            self._set_status("verifying")
 
     def action_started(self, label: str) -> None:
         self._current_action = label
@@ -123,7 +181,14 @@ class TaskManager:
         steps = self.db.all("SELECT idx, title, status, note FROM task_steps WHERE task_id=? ORDER BY idx", (task_id,))
         actions = self.db.all("SELECT ts, tool, args, ok, summary, ms FROM task_actions WHERE task_id=? ORDER BY id",
                               (task_id,))
-        return {**row, "steps": steps, "actions": actions, "total": len(steps),
+        arts = self.db.all("SELECT ts, title, path, sha256, bytes FROM task_artifacts WHERE task_id=? ORDER BY id", (task_id,))
+        ev = self.db.all("SELECT ts, source, claim, value, ok FROM task_evidence WHERE task_id=? ORDER BY id", (task_id,))
+        try:
+            criteria = json.loads(row.get("criteria") or "[]")
+        except ValueError:
+            criteria = []
+        return {**row, "criteria": criteria, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
+                "total": len(steps),
                 "done": sum(s["status"] == "done" for s in steps),
                 "current_action": self._current_action if task_id == self._id else ""}
 
@@ -144,6 +209,8 @@ class TaskManager:
         n = self.db.exec("DELETE FROM tasks WHERE id != ?", (keep,)).rowcount
         self.db.exec("DELETE FROM task_steps WHERE task_id != ?", (keep,))
         self.db.exec("DELETE FROM task_actions WHERE task_id != ?", (keep,))
+        self.db.exec("DELETE FROM task_artifacts WHERE task_id != ?", (keep,))
+        self.db.exec("DELETE FROM task_evidence WHERE task_id != ?", (keep,))
         return n
 
     # ---------- events ----------

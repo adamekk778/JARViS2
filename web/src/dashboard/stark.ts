@@ -116,6 +116,8 @@ export function buildStark(client: JarvisClient) {
       h("div", { class: "btn-row" },
         h("button", { class: "btn primary", type: "button", onclick: () => { client.send("protocol_run", { id: p.id }); toast(`Spouštím protokol ${p.name}`, "ok"); } }, icon("play", "ph-fill"), "Spustit"),
         h("button", { class: "btn", type: "button", onclick: () => edit(p) }, icon("pencil-simple"), "Upravit"),
+        h("button", { class: "btn ghost", type: "button", title: "Skill Forge: historie verzí a návrat zpět", "aria-label": `Verze protokolu ${p.name}`,
+          onclick: () => client.send("skill_versions_get", { id: p.id }) }, icon("clock-counter-clockwise")),
         h("button", { class: "btn ghost", type: "button", "aria-label": `Smazat protokol ${p.name}`, onclick: () => {
           if (confirm(`Smazat protokol ${p.name}?`)) save(protocols.filter((x) => x.id !== p.id));
         } }, icon("trash"))))),
@@ -197,6 +199,23 @@ export function buildStark(client: JarvisClient) {
       h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připomenout pauzu po"),
         h("span", { class: "help" }, "Minutách u PC bez přestávky. 0 = nepřipomínat.")), brk));
   }
+
+  client.on("skill_versions", (m) => {
+    const p = protocols.find((x) => x.id === m.id);
+    const items: any[] = m.items || [];
+    editor.hidden = false;
+    editor.replaceChildren(
+      h("h3", {}, `Verze: ${p?.name || m.id}`),
+      items.length ? h("ol", { class: "pe-steps", reversed: true }, ...items.map((v, i) => h("li", { class: "pe-version" },
+        h("strong", {}, `v${v.version}`), h("span", { class: "muted" }, `${new Date(v.ts * 1000).toLocaleString("cs-CZ")} · ${v.note || ""}`),
+        h("span", { class: "muted" }, (v.protocol.steps || []).map(stepText).join(" → ")),
+        i === 0 ? h("span", { class: "muted" }, "aktuální") : h("button", { class: "btn", type: "button", onclick: () => {
+          if (confirm(`Vrátit ${p?.name || m.id} na verzi ${v.version}?`)) client.send("skill_rollback", { id: m.id, version: v.version });
+        } }, icon("arrow-counter-clockwise"), "Vrátit"))))
+        : h("p", { class: "muted" }, "Zatím žádná uložená verze – vznikne při první úpravě."),
+      h("div", { class: "btn-row" }, h("button", { class: "btn ghost", type: "button", onclick: () => { editor.hidden = true; } }, "Zavřít")));
+    editor.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   const sync = (s: any) => {
     settings = s;

@@ -46,6 +46,8 @@ Pravidla:
   price, „dej vědět, až … klesne pod …“ → price_alert.
 - „Najdi můj telefon“ → find_phone, „kolik má mobil baterky“ → phone_battery. „Kdo je na Wi-Fi“ → network_devices,
   „zapni počítač v pracovně“ → wake_device.
+- Mise: „zjisti stav mého PC / proč se mi seká počítač / udělej report“ → pc_health_report (jen čtení, uloží a ověří
+  report). „Ulož to jako dovednost / nauč se to takhle dělat“ → save_mission_as_skill (uživatel kroky schválí).
 - Hry: přes computer_use zvládneš menu, nastavení a pomalé nebo tahové hry (šachy, karty, strategie). Rychlé akční
   hry v reálném čase nestihneš — řekni to na rovinu. Online hry s anti-cheatem za uživatele nehraj (porušuje to
   pravidla hry a hrozí ban účtu).

@@ -106,6 +106,15 @@ class MoodEngine:
         elif t == "notify":
             self.badge += 1
             self.notify_at = now
+        elif t == "task_update":          # missions: celebrate a verified result, frown at a failed one
+            task = m.get("task") or {}
+            st, tid = task.get("status"), task.get("id")
+            if st in ("done", "failed") and tid and tid != getattr(self, "_task_seen", None):
+                self._task_seen = tid
+                if st == "failed":
+                    self._flash("error", task.get("summary", ""))
+                elif task.get("artifacts") and all(e.get("ok") for e in task.get("evidence") or []):
+                    self._flash("joy")
         elif t == "task_progress":
             total = max(1, int(m.get("total") or 1))
             self.progress = None if m.get("done") else min(1.0, float(m.get("step", 0)) / total)

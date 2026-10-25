@@ -84,6 +84,7 @@ class Runtime:
         from .home import Home
 
         self.home = Home(self)                 # 3.5: Home Assistant
+        self.skill_note = ""                   # OMEGA Skill Forge: why the next skill version was saved
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -224,7 +225,12 @@ class Runtime:
 
     def update_config(self, patch: dict) -> config_mod.Config:
         was_local = self.cfg.brain.local_enabled
+        old_cfg = self.cfg
         self.cfg = config_mod.apply_patch(self.cfg, patch)
+        if "stark" in patch:
+            from . import skillforge
+
+            skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill = a new version
         if was_local and not self.cfg.brain.local_enabled:
             try:
                 asyncio.get_running_loop().create_task(self.local.unload())

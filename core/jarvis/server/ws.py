@@ -35,6 +35,7 @@ CLIENT_TYPES = [
     "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
     "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
     "lists_get", "list_update", "network_get", "network_wake", "network_name",
+    "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -48,7 +49,7 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions",
 ]
 
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -60,7 +61,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
-              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name"}
+              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
@@ -381,6 +382,43 @@ class Connection:
             try:
                 network.wake(str(m.get("mac") or ""))
                 await self.send("notify", title="Wake-on-LAN", body="Budicí signál odeslán.", url="", target="dashboard")
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "mission_start":        # Mission Control: a ready-made mission, no AI needed
+            from ..config import ProtocolStep
+
+            if m.get("template") != "pc_report":
+                await self.send("error", message="Neznámá mise.")
+            else:
+                asyncio.get_running_loop().create_task(rt.agent.run_steps(
+                    "Zjisti stav počítače, připrav report a ulož ho", [ProtocolStep(tool="pc_health_report")], source="mission"))
+        elif t == "artifact_open":        # only a file a mission really produced (and recorded) can be opened from here
+            task = rt.tasks.get(str(m.get("task_id") or ""))
+            path = str(m.get("path") or "")
+            if not task or path not in {a["path"] for a in task["artifacts"]}:
+                await self.send("error", message="Tenhle soubor mise nevytvořila.")
+            else:
+                await asyncio.to_thread(rt.platform.open_path, path)
+        elif t == "skill_from_task":      # Skill Forge: a draft for the editor; saving it is the user's approval
+            from .. import skillforge
+
+            try:
+                p = skillforge.from_task(rt, str(m.get("id") or ""), str(m.get("name") or ""))
+                await self.send("skill_draft", protocol=p, manifest=skillforge.manifest(rt, p))
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "skill_versions_get":
+            from .. import skillforge
+
+            pid = str(m.get("id") or "")
+            await self.send("skill_versions", id=pid, items=skillforge.history(rt, pid))
+        elif t == "skill_rollback":
+            from .. import skillforge
+
+            pid = str(m.get("id") or "")
+            try:
+                skillforge.rollback(rt, pid, int(m.get("version") or 0))
+                await self.send("skill_versions", id=pid, items=skillforge.history(rt, pid))
             except ValueError as e:
                 await self.send("error", message=str(e))
         elif t == "automations_get":

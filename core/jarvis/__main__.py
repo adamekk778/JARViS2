@@ -172,6 +172,25 @@ def main(argv: list[str] | None = None) -> int:
             out = {"skipped": str(e)}
         print(json.dumps(out, ensure_ascii=False))
         return 0
+    if argv[:1] == ["--selftest-report"]:  # CI: the read-only PC report on real Windows, verified
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from . import pcreport
+        from .tasks import sha256_file
+
+        try:
+            data = pcreport.collect()
+            path = pcreport.write_report(data, Path(tempfile.mkdtemp()))
+            checks = pcreport.verify(path, sha256_file(path))
+            out = {"ok": all(ok for _, ok, _ in checks), "checks": [[c, ok, v] for c, ok, v in checks],
+                   "sections": {s["id"]: s["ok"] for s in data["sections"]},
+                   "unknown": [s["id"] for s in data["sections"] if s["ok"] is None and not s["rows"]]}
+        except Exception as e:
+            out = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+        print(json.dumps(out, ensure_ascii=False))
+        return 0
     if argv[:1] == ["--selftest-powers"]:  # CI: selected text in a real app (Notepad), clipboard, focus
         import json
 

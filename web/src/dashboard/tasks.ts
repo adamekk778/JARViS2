@@ -1,6 +1,6 @@
 // Dashboard → Úkoly (spec §4.5): the current task card + searchable history with details.
 import { hero, HEROES } from "../shared/hero";
-import { fmtTime, h, icon } from "../shared/dom";
+import { fmtSize, fmtTime, h, icon, toast } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { TASK_STATUS, TaskCard, type Task } from "../shared/taskcard";
 import type { JarvisClient } from "../shared/ws";
@@ -22,19 +22,47 @@ export function buildTasks(client: JarvisClient) {
 
   const renderDetail = (t: Task | null) => {
     if (!t) { detail.replaceChildren(h("p", { class: "muted" }, "Úkol už neexistuje.")); return; }
+    const checks = (t.evidence || []).filter((e) => e.source === "ověření souboru");
+    const measured = (t.evidence || []).filter((e) => e.source !== "ověření souboru");
+    const crit = (t.criteria || []).map((c) => ({ c, e: checks.find((x) => x.claim === c) }));
     detail.replaceChildren(
       h("h3", {}, t.goal),
-      h("p", { class: "muted" }, `${TASK_STATUS[t.status] || t.status} · ${fmtTime(t.created)}`),
+      h("p", { class: "muted" }, `${TASK_STATUS[t.status] || t.status} · ${fmtTime(t.created)} · ID ${t.id}`),
       t.summary ? h("div", { class: "md", html: renderMarkdown(t.summary) }) : "",
+      crit.length ? h("div", { class: "mission-block" }, h("h4", {}, "Akceptační kritéria"),
+        h("ul", { class: "mission-crit" }, ...crit.map(({ c, e }) => h("li", { class: e ? (e.ok ? "ok" : "bad") : "wait", title: e?.value || "" },
+          icon(e ? (e.ok ? "check-circle" : "x-circle") : "circle", e ? "ph-fill" : ""), h("span", {}, c))))) : "",
+      (t.artifacts || []).length ? h("div", { class: "mission-block" }, h("h4", {}, "Výsledky (soubory)"),
+        ...(t.artifacts || []).map((a) => h("div", { class: "mission-art" }, icon("file-text"),
+          h("div", {}, h("strong", {}, a.title), h("span", { class: "muted mono", title: a.path }, `${fmtSize(a.bytes)} · SHA-256 ${a.sha256.slice(0, 12)}…`)),
+          client.local ? h("button", { class: "btn", type: "button", onclick: () => client.send("artifact_open", { task_id: t.id, path: a.path }) }, icon("arrow-square-out"), "Otevřít") : ""))) : "",
+      measured.length ? h("details", { class: "mission-block" }, h("summary", {}, `Důkazy – co se měřilo (${measured.length})`),
+        h("table", { class: "task-actions" }, h("tbody", {}, ...measured.map((e) => h("tr", { class: e.ok ? "" : "fail" },
+          h("td", {}, e.claim), h("td", {}, e.value), h("td", { class: "muted" }, e.source)))))) : "",
       t.steps.length ? h("ol", { class: "task-steps" }, ...t.steps.map((s) => h("li", { class: `s-${s.status}` }, s.title))) : "",
-      h("h4", {}, "Provedené akce"),
+      h("h4", {}, "Provedené akce (audit)"),
       (t.actions || []).length ? h("table", { class: "task-actions" },
         h("thead", {}, h("tr", {}, h("th", {}, "Čas"), h("th", {}, "Nástroj"), h("th", {}, "Výsledek"), h("th", {}, "ms"))),
         h("tbody", {}, ...(t.actions || []).map((a) => h("tr", { class: a.ok ? "" : "fail" },
           h("td", {}, fmtTime(a.ts)), h("td", { title: a.args }, a.tool), h("td", {}, a.summary), h("td", {}, String(a.ms))))))
         : h("p", { class: "muted" }, "Žádné akce."),
-      h("button", { class: "btn", type: "button", onclick: () => client.send("task_retry", { id: t.id }) }, icon("arrow-clockwise"), "Zopakovat"));
+      h("div", { class: "btn-row" },
+        h("button", { class: "btn", type: "button", onclick: () => client.send("task_retry", { id: t.id }) }, icon("arrow-clockwise"), "Zopakovat"),
+        t.status === "done" && (t.actions || []).some((a) => a.ok) ? h("button", { class: "btn", type: "button", title: "Skill Forge: z kroků této mise udělá dovednost, kterou spustíš jedním příkazem",
+          onclick: () => client.send("skill_from_task", { id: t.id }) }, icon("magic-wand"), "Uložit jako dovednost") : ""));
   };
+  client.on("skill_draft", (m) => {
+    const p = m.protocol, man = m.manifest;
+    if (man.problems?.length) { toast(man.problems.join(" "), "error", 6000); return; }
+    const steps = (p.steps || []).map((s: any, i: number) => `${i + 1}. ${s.tool}${s.args && Object.keys(s.args).length ? " " + JSON.stringify(s.args) : ""}`).join("\n");
+    const name = prompt(`Skill Forge – nová dovednost\n\nKroky:\n${steps}\n\nOprávnění: ${man.permissions.join(", ") || "–"}\nNebezpečné kroky se i tak vždy zeptají.\n\nNázev dovednosti (OK = uložit, Zrušit = neukládat):`, p.name);
+    if (!name?.trim()) return;
+    const id = name.trim().toLowerCase().normalize("NFKD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") || p.id;
+    const list = (settings?.stark?.protocols || []).filter((x: any) => x.id !== id);
+    client.send("settings_set", { patch: { stark: { protocols: [...list, { ...p, id, name: name.trim() }] } } });
+    toast(`Dovednost ${name.trim()} uložena – najdeš ji ve Stark → Protokoly. Spustíš ji „spusť protokol ${name.trim().toLowerCase()}“.`, "ok", 5000);
+  });
+  let settings: any = {};
 
   client.on("tasks", (m) => {
     const items: Task[] = m.items || [];
@@ -45,13 +73,18 @@ export function buildTasks(client: JarvisClient) {
       h("span", { class: "muted" }, fmtTime(t.created)))) : [h("p", { class: "muted" }, "Zatím žádné úkoly.")]));
   });
   client.on("task", (m) => { if (m.task?.id === selected || !selected) renderDetail(m.task); });
-  client.on("task_update", (m) => { if (!["running", "paused", "waiting"].includes(m.task?.status)) refresh(); });
-  const sync = (s: any) => { agentSwitch.checked = !!s?.agent?.mode; };
+  client.on("task_update", (m) => {
+    if (!["running", "paused", "waiting", "verifying"].includes(m.task?.status)) refresh();
+    if (m.task?.id === selected) renderDetail(m.task);
+  });
+  const sync = (s: any) => { settings = s; agentSwitch.checked = !!s?.agent?.mode; };
   client.on("welcome", (m) => sync(m.settings));
   client.on("settings_changed", (m) => sync(m.settings));
 
   const el = h("section", { class: "tasks-view" },
-    hero(HEROES.tasks, "Úkoly", "Co JARVIS dělá a co udělal: plán, kroky a každá akce.", [
+    hero(HEROES.tasks, "Úkoly a mise", "Mission Control: plán, kroky, každá akce, důkazy a výsledky – co JARVIS dělá a co opravdu udělal.", [
+      h("button", { class: "btn primary", type: "button", title: "Mise: jen čtení – zjistí stav PC, uloží report a ověří ho",
+        onclick: () => { client.send("mission_start", { template: "pc_report" }); toast("Mise spuštěna: stav počítače", "ok"); } }, icon("stethoscope"), "Zkontrolovat PC"),
       h("label", { class: "agent-toggle", title: "Režim Agent: JARVIS si u složitých úkolů nejdřív udělá plán a postupuje krok po kroku (až 25 kroků)." },
         h("span", {}, "Režim Agent"), h("span", { class: "switch" }, agentSwitch, h("span")))]),
     card.el,

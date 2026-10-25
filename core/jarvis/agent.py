@@ -46,7 +46,9 @@ TOOL_LABELS = {
     "list_clear": "Mažu seznam", "list_to_phone": "Seznam do mobilu", "exchange_rate": "Kurz ČNB", "price": "Cena",
     "price_alert": "Hlídám cenu", "network_devices": "Zařízení v síti", "name_device": "Pojmenovávám zařízení",
     "wake_device": "Budím počítač", "find_phone": "Hledám telefon", "phone_battery": "Baterie telefonu",
+    "pc_health_report": "Diagnostika PC (jen čtení)", "save_mission_as_skill": "Skill Forge: nová dovednost",
 }
+SAY_RESULT = {"briefing", "pc_health_report"}   # in a protocol/mission, JARVIS says what these found
 MEDIA_ACTIONS = {"play_pause": "přehrát / pauza", "next": "další", "previous": "předchozí", "stop": "stop"}
 
 
@@ -140,7 +142,7 @@ class Agent:
                         continue
                     if st.tool:
                         await self._run_call(ToolCall(uuid.uuid4().hex[:12], st.tool, dict(st.args)), cards, atts)
-                        if st.tool == "briefing" and cards and cards[-1]["ok"]:
+                        if st.tool in SAY_RESULT and cards:
                             said.append(cards[-1]["summary"])
                     if st.say:
                         said.append(st.say)

@@ -229,8 +229,8 @@ def test_recap_counts_last_week(rt):
     wed = datetime(2026, 10, 21, 10).timestamp()
     rt.db.exec("INSERT INTO dictations (ts, text, raw, words, seconds, app, style) VALUES (?,?,?,?,?,?,?)",
                (wed, "x", "x", 120, 60, "Chrome", "off"))
-    rt.db.exec("INSERT INTO tasks VALUES ('t1','c','pusť hudbu','done',?,?, '')", (wed, wed + 30))
-    rt.db.exec("INSERT INTO tasks VALUES ('t2','c','najdi','failed',?,?, '')", (wed - 86400 * 9, wed))  # week before
+    rt.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES ('t1','c','pusť hudbu','done',?,?, '')", (wed, wed + 30))
+    rt.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES ('t2','c','najdi','failed',?,?, '')", (wed - 86400 * 9, wed))  # week before
     r = recap(rt, date(2026, 10, 26))
     assert r["words"] == 120 and r["tasks"] == 1 and r["tasks_done"] == 1
     assert r["busiest_day"] == "středa" and r["top_app"] == "Chrome" and not r["empty"]

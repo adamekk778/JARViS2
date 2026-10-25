@@ -11,16 +11,19 @@ export interface Task {
   id: string; goal: string; status: string; created: number; finished?: number | null; summary?: string;
   steps: TaskStep[]; done: number; total: number; current_action?: string;
   actions?: { ts: number; tool: string; args: string; ok: number; summary: string; ms: number }[];
+  criteria?: string[];
+  artifacts?: { ts: number; title: string; path: string; sha256: string; bytes: number }[];
+  evidence?: { ts: number; source: string; claim: string; value: string; ok: number }[];
 }
 
 export const TASK_STATUS: Record<string, string> = {
-  running: "Probíhá", paused: "Pozastaveno", waiting: "Čeká na potvrzení", done: "Hotovo", failed: "Chyba",
-  cancelled: "Zrušeno",
+  running: "Probíhá", paused: "Pozastaveno", waiting: "Čeká na potvrzení", verifying: "Ověřuji", done: "Hotovo",
+  failed: "Chyba", cancelled: "Zrušeno", interrupted: "Přerušeno",
 };
 const STEP_ICON: Record<string, string> = {
   pending: "circle", running: "circle-notch", done: "check-circle", failed: "x-circle", skipped: "minus-circle",
 };
-export const isActive = (t?: Task | null) => !!t && ["running", "paused", "waiting"].includes(t.status);
+export const isActive = (t?: Task | null) => !!t && ["running", "paused", "waiting", "verifying"].includes(t.status);
 
 export class TaskCard {
   el: HTMLElement;
