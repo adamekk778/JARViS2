@@ -23,6 +23,7 @@ export const CLIENT_TYPES = [
   "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
   "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
   "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
+  "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -38,6 +39,7 @@ export const SERVER_TYPES = [
   "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot", "selection", "selection_result", "mail_status", "mail_new", "calendar",
   "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
   "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
+  "learn", "learn_card", "learn_result",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

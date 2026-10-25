@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 189 | 74 |
-| 🟡 ČÁSTEČNĚ | 157 | 58 |
+| ✅ HOTOVO | 204 | 74 |
+| 🟡 ČÁSTEČNĚ | 156 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 416 | 17 |
+| ⬜ CHYBÍ | 402 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -190,20 +190,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 10. JARVIS Teacher
 
-🟡 2 · ⬜ 8
+✅ 8 · 🟡 1 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 106 | Výuka matematických postupů. | 🟡 ČÁSTEČNĚ | vysvětlení postupů přes AI chat |
-| 107 | Procvičovací testy. | ⬜ CHYBÍ | — |
-| 108 | Detekce slabých míst při učení. | ⬜ CHYBÍ | — |
-| 109 | Flashcards. | ⬜ CHYBÍ | — |
-| 110 | Plán opakování učiva. | ⬜ CHYBÍ | — |
-| 111 | Vyhodnocení písemných odpovědí. | 🟡 ČÁSTEČNĚ | hodnocení odpovědí přes AI chat |
-| 112 | Učebnice na výukové materiály. | ⬜ CHYBÍ | — |
-| 113 | Myšlenkové mapy. | ⬜ CHYBÍ | — |
+| 106 | Výuka matematických postupů. | 🟡 ČÁSTEČNĚ | check_math_steps najde chybný krok výpočtu (skutečný výpočet); vysvětlení postupu dělá AI v chatu |
+| 107 | Procvičovací testy. | ✅ HOTOVO | quiz_from: procvičovací test z dokumentu (výběr i otevřené otázky) |
+| 108 | Detekce slabých míst při učení. | ✅ HOTOVO | learning_weak_spots: nejslabší témata, druhy chyb, zapomínané kartičky |
+| 109 | Flashcards. | ✅ HOTOVO | kartičky: přidání, z dokumentu, opakování na stránce Učení i hlasem |
+| 110 | Plán opakování učiva. | ✅ HOTOVO | časované opakování SM-2 + exam_plan s opakováním témat |
+| 111 | Vyhodnocení písemných odpovědí. | ✅ HOTOVO | check_answer: hodnocení 0–100, co chybí, druh chyby (zapisuje se) |
+| 112 | Učebnice na výukové materiály. | ✅ HOTOVO | flashcards_from / quiz_from / mind_map z vlastních materiálů (PDF, Word, poznámky) |
+| 113 | Myšlenkové mapy. | ✅ HOTOVO | mind_map: větve, pojmy, souvislosti, uloženo jako Markdown s diagramem |
 | 114 | Nácvik výslovnosti. | ⬜ CHYBÍ | — |
-| 115 | Simulace ústního zkoušení. | ⬜ CHYBÍ | — |
+| 115 | Simulace ústního zkoušení. | ✅ HOTOVO | oral_exam: otázky k tématu podle úrovně a slabých míst, odpovědi hodnotí check_answer |
 
 ## 11. Gaming & Development
 
@@ -717,24 +717,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 36. Learning Lab
 
-🟡 2 · ⬜ 13
+✅ 7 · 🟡 2 · ⬜ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 451 | Adaptive Difficulty — adaptivní náročnost. | ⬜ CHYBÍ | — |
-| 452 | Learning Path Builder — studijní cesta. | ⬜ CHYBÍ | — |
+| 452 | Learning Path Builder — studijní cesta. | 🟡 ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan |
 | 453 | Knowledge Prerequisite Map — předpoklady učiva. | ⬜ CHYBÍ | — |
-| 454 | Spaced Repetition Engine — časované opakování. | ⬜ CHYBÍ | — |
-| 455 | Mistake Classification — druhy chyb. | ⬜ CHYBÍ | — |
+| 454 | Spaced Repetition Engine — časované opakování. | ✅ HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní) |
+| 455 | Mistake Classification — druhy chyb. | ✅ HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná) |
 | 456 | Interactive Circuit Tutor — obvody. | ⬜ CHYBÍ | — |
-| 457 | Math Step Validator — kontrola výpočtů. | 🟡 ČÁSTEČNĚ | výpočty přes run_python |
+| 457 | Math Step Validator — kontrola výpočtů. | ✅ HOTOVO | Math Step Validator: výrazy i rovnice, bezpečný vlastní vyhodnocovač (žádné eval), česká desetinná čárka |
 | 458 | Programming Exercise Generator — úlohy. | ⬜ CHYBÍ | — |
-| 459 | Virtual Oral Exam — ústní zkoušení. | ⬜ CHYBÍ | — |
+| 459 | Virtual Oral Exam — ústní zkoušení. | ✅ HOTOVO | Virtual Oral Exam (oral_exam + check_answer, i hlasem) |
 | 460 | Formula Explorer — interaktivní vzorce. | ⬜ CHYBÍ | — |
-| 461 | Study Time Analytics — metriky učení. | ⬜ CHYBÍ | — |
-| 462 | Document-to-Quiz — test z dokumentu. | 🟡 ČÁSTEČNĚ | test z přiloženého dokumentu přes AI |
-| 463 | Exam Countdown Planner — plán před zkouškou. | ⬜ CHYBÍ | — |
-| 464 | Concept Connection Map — vztahy konceptů. | ⬜ CHYBÍ | — |
+| 461 | Study Time Analytics — metriky učení. | ✅ HOTOVO | study_stats: opakování, úspěšnost, odpovědi, dny v řadě |
+| 462 | Document-to-Quiz — test z dokumentu. | ✅ HOTOVO | Document-to-Quiz |
+| 463 | Exam Countdown Planner — plán před zkouškou. | ✅ HOTOVO | Exam Countdown Planner |
+| 464 | Concept Connection Map — vztahy konceptů. | 🟡 ČÁSTEČNĚ | souvislosti mezi pojmy v myšlenkové mapě |
 | 465 | Project-Based Learning — učení projekty. | ⬜ CHYBÍ | — |
 
 ## 37. Engineering & Robotics

@@ -511,3 +511,23 @@
 563 | HOTOVO | málo času na přesun mezi schůzkami na různých místech
 568 | HOTOVO | free_time: volné termíny jako text k poslání
 570 | HOTOVO | úkoly ze schůzky rovnou do seznamu (to_list)
+
+# Vlna 7 (3.9): učení – learning.py, tools/learning_tools.py, stránka Učení, tests/test_wave7.py
+106 | ČÁSTEČNĚ | check_math_steps najde chybný krok výpočtu (skutečný výpočet); vysvětlení postupu dělá AI v chatu
+107 | HOTOVO | quiz_from: procvičovací test z dokumentu (výběr i otevřené otázky)
+108 | HOTOVO | learning_weak_spots: nejslabší témata, druhy chyb, zapomínané kartičky
+109 | HOTOVO | kartičky: přidání, z dokumentu, opakování na stránce Učení i hlasem
+110 | HOTOVO | časované opakování SM-2 + exam_plan s opakováním témat
+111 | HOTOVO | check_answer: hodnocení 0–100, co chybí, druh chyby (zapisuje se)
+112 | HOTOVO | flashcards_from / quiz_from / mind_map z vlastních materiálů (PDF, Word, poznámky)
+113 | HOTOVO | mind_map: větve, pojmy, souvislosti, uloženo jako Markdown s diagramem
+115 | HOTOVO | oral_exam: otázky k tématu podle úrovně a slabých míst, odpovědi hodnotí check_answer
+452 | ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan
+454 | HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní)
+455 | HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná)
+457 | HOTOVO | Math Step Validator: výrazy i rovnice, bezpečný vlastní vyhodnocovač (žádné eval), česká desetinná čárka
+459 | HOTOVO | Virtual Oral Exam (oral_exam + check_answer, i hlasem)
+461 | HOTOVO | study_stats: opakování, úspěšnost, odpovědi, dny v řadě
+462 | HOTOVO | Document-to-Quiz
+463 | HOTOVO | Exam Countdown Planner
+464 | ČÁSTEČNĚ | souvislosti mezi pojmy v myšlenkové mapě

@@ -40,6 +40,7 @@ CLIENT_TYPES = [
     "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
     "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
     "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
+    "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -55,6 +56,7 @@ SERVER_TYPES = [
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
     "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
+    "learn", "learn_card", "learn_result",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -80,7 +82,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
 SLOW = {"privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
-        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get"}
+        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
 
 class Connection:
@@ -867,6 +869,33 @@ class Connection:
                 await self.send("knowledge", **self._knowledge())
             except ValueError as e:
                 await self.send("error", message=str(e))
+        elif t == "learn_get":
+            lr = rt.learning
+            await self.send("learn", decks=lr.decks(), stats=lr.stats(14), weak=lr.weak_spots(), exams=lr.exams())
+        elif t == "learn_next":
+            due = rt.learning.due(str(m.get("deck") or ""), 1)
+            await self.send("learn_card", card=({k: due[0][k] for k in ("id", "deck", "front", "back", "reps")} if due else None))
+        elif t == "learn_grade":
+            try:
+                rt.learning.review(str(m.get("id") or ""), int(m.get("grade") or 0))
+            except ValueError as e:
+                await self.send("error", message=str(e))
+            due = rt.learning.due(str(m.get("deck") or ""), 1)
+            await self.send("learn_card", card=({k: due[0][k] for k in ("id", "deck", "front", "back", "reps")} if due else None))
+        elif t == "learn_add":
+            try:
+                rt.learning.add_card(str(m.get("deck") or "Obecné"), str(m.get("front") or ""), str(m.get("back") or ""))
+                await self.send("learn", decks=rt.learning.decks(), stats=rt.learning.stats(14), weak=rt.learning.weak_spots(), exams=rt.learning.exams())
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "learn_tool":           # the page's buttons: the same tools as by voice
+            name, args = str(m.get("tool") or ""), m.get("args") or {}
+            if name not in ("flashcards_from", "check_math_steps", "exam_plan", "mind_map", "quiz_from") or not isinstance(args, dict):
+                await self.send("error", message="Tohle tady spustit nejde.")
+            else:
+                res = await tools.call(name, args, rt)
+                await self.send("learn_result", tool=name, ok=res.ok, summary=res.summary, data=res.data)
+                await self.send("learn", decks=rt.learning.decks(), stats=rt.learning.stats(14), weak=rt.learning.weak_spots(), exams=rt.learning.exams())
         elif t == "conflict_resolve":
             try:
                 rt.knowledge.resolve_conflict(int(m.get("id") or 0), str(m.get("keep") or ""))

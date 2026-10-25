@@ -98,6 +98,9 @@ class Runtime:
         from .perf import PerfHistory
 
         self.knowledge = Knowledge(self)       # OMEGA §04: categories, sources, projects, conflicts, timeline, search
+        from .learning import Learning
+
+        self.learning = Learning(self)         # OMEGA §10 / §36: flashcards, tests, weak spots, exam plans
 
         self.perf = PerfHistory(self)          # OMEGA 312: a light performance sample every 5 minutes
         self.memory.set_private(self.cfg.privacy.private_mode)

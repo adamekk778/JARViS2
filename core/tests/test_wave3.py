@@ -119,7 +119,7 @@ def test_similar_photos(work):
 async def test_rename_by_photo_date_with_preview_and_undo(rt, work):
     img(work / "IMG_2.jpg", date="2024:07:15 09:00:00")
     img(work / "IMG_1.jpg", date="2024:07:14 08:00:00")
-    (work / "pozn.txt").write_text("x")
+    (work / "pozn.txt").write_text("x", encoding="utf-8")
     details = tools.details_for(tools.REGISTRY["rename_files"], {"folder": str(work), "pattern": "Dovolená_{date}_{n}", "only_ext": "jpg"}, rt)
     assert "IMG_1.jpg → Dovolená_2024-07-14_01.jpg" in details
     r = await tools.call("rename_files", {"folder": str(work), "pattern": "Dovolená_{date}_{n}", "only_ext": "jpg"}, rt)
@@ -131,16 +131,16 @@ async def test_rename_by_photo_date_with_preview_and_undo(rt, work):
 
 def test_rename_chains_and_conflicts(work):
     for n in ("a.txt", "b.txt", "c.txt"):
-        (work / n).write_text(n)
-    (work / "x_1.txt").write_text("cizí")                            # not being renamed → must not be overwritten
+        (work / n).write_text(n, encoding="utf-8")
+    (work / "x_1.txt").write_text("cizí", encoding="utf-8")                            # not being renamed → must not be overwritten
     plan = fu.plan_rename(sorted(work.glob("[abc].txt")), "x_{name}", "a", "1")
     fu.apply_rename(plan)
-    assert (work / "x_1.txt").read_text() == "cizí" and (work / "x_1 (2).txt").read_text() == "a.txt"
+    assert (work / "x_1.txt").read_text(encoding="utf-8") == "cizí" and (work / "x_1 (2).txt").read_text(encoding="utf-8") == "a.txt"
     # swap: a → b, b → a works thanks to the two-phase rename
-    (work / "s1").write_text("1")
-    (work / "s2").write_text("2")
+    (work / "s1").write_text("1", encoding="utf-8")
+    (work / "s2").write_text("2", encoding="utf-8")
     fu.apply_rename([{"src": str(work / "s1"), "dst": str(work / "s2")}, {"src": str(work / "s2"), "dst": str(work / "s1")}])
-    assert (work / "s1").read_text() == "2" and (work / "s2").read_text() == "1"
+    assert (work / "s1").read_text(encoding="utf-8") == "2" and (work / "s2").read_text(encoding="utf-8") == "1"
 
 
 def _docx(path: Path, text: str):
@@ -172,7 +172,7 @@ def test_smart_name_from_content(work):
     p = _docx(work / "scan0001.docx", "FAKTURA\nDodavatel: Alza.cz a.s.\nDatum vystavení: 3. 10. 2026")
     assert fu.smart_name(p) == "Faktura_2026-10-03_Alza.cz.docx"
     q = work / "poznamky.txt"
-    q.write_text("nic zajímavého")
+    q.write_text("nic zajímavého", encoding="utf-8")
     assert fu.smart_name(q) == "poznamky.txt"
 
 
@@ -193,24 +193,24 @@ def test_archive_list_and_zip_slip_protection(work):
 def test_tar_and_make_zip_roundtrip(work):
     src = work / "projekt"
     (src / "sub").mkdir(parents=True)
-    (src / "a.txt").write_text("A")
-    (src / "sub" / "b.txt").write_text("B")
+    (src / "a.txt").write_text("A", encoding="utf-8")
+    (src / "sub" / "b.txt").write_text("B", encoding="utf-8")
     r = fu.make_zip([src], work / "p.zip")
     assert r["files"] == 2
     out = fu.safe_extract(work / "p.zip", work / "x")
-    assert (work / "x" / "projekt" / "sub" / "b.txt").read_text() == "B" and out["files"] == 2
+    assert (work / "x" / "projekt" / "sub" / "b.txt").read_text(encoding="utf-8") == "B" and out["files"] == 2
     t = work / "a.tar.gz"
     with tarfile.open(t, "w:gz") as tf:
         info = tarfile.TarInfo("data/c.txt")
         info.size = 1
         tf.addfile(info, io.BytesIO(b"C"))
     assert fu.archive_list(t)["files"] == 1
-    assert fu.safe_extract(t, work / "t")["files"] == 1 and (work / "t" / "data" / "c.txt").read_text() == "C"
+    assert fu.safe_extract(t, work / "t")["files"] == 1 and (work / "t" / "data" / "c.txt").read_text(encoding="utf-8") == "C"
     assert "error" in fu.archive_list(work / "projekt" / "a.txt")
 
 
 async def test_archive_tools(rt, work):
-    (work / "f.txt").write_text("x")
+    (work / "f.txt").write_text("x", encoding="utf-8")
     r = await tools.call("create_zip", {"paths": [str(work / "f.txt")]}, rt)
     assert r.ok and (work / "f.zip").exists()
     c = await tools.call("archive_contents", {"path": str(work / "f.zip")}, rt)
@@ -282,12 +282,12 @@ def test_metadata_overwrite_keeps_a_version(work):
 
 async def test_versions_save_list_restore(rt, work):
     p = work / "plan.txt"
-    p.write_text("v1")
+    p.write_text("v1", encoding="utf-8")
     await tools.call("save_file_version", {"path": str(p)}, rt)
     assert (await tools.call("save_file_version", {"path": str(p)}, rt)).summary.startswith("Soubor se od poslední verze nezměnil")
-    p.write_text("v2 – pokažené")
+    p.write_text("v2 – pokažené", encoding="utf-8")
     r = await tools.call("restore_file_version", {"path": str(p), "index": 0}, rt)
-    assert r.ok and p.read_text() == "v1" and "ověřeno" in r.summary
+    assert r.ok and p.read_text(encoding="utf-8") == "v1" and "ověřeno" in r.summary
     assert fu.list_versions(p)[0]["sha256"] == fu.sha256(p) or len(fu.list_versions(p)) == 2   # the broken state was saved too
     assert any(v["note"] == "před obnovením starší verze" for v in fu.list_versions(p))
 
@@ -312,7 +312,7 @@ def test_recent_and_content_search(work):
     import os
     import time
 
-    (work / "stary.txt").write_text("nic")
+    (work / "stary.txt").write_text("nic", encoding="utf-8")
     os.utime(work / "stary.txt", (time.time() - 10 * 86400,) * 2)
     _docx(work / "smlouva.docx", "Nájemní smlouva na byt v Brně, nájemné 15 000 Kč")
     rec = fu.recent_files([work], hours=1)
@@ -325,17 +325,17 @@ def test_recent_and_content_search(work):
 async def test_backup_incremental_and_verified(rt, work):
     src, dst = work / "Dokumenty", work / "Disk_E"
     (src / "sub").mkdir(parents=True)
-    (src / "a.txt").write_text("A")
-    (src / "sub" / "b.txt").write_text("B")
+    (src / "a.txt").write_text("A", encoding="utf-8")
+    (src / "sub" / "b.txt").write_text("B", encoding="utf-8")
     r1 = await tools.call("backup_folder", {"source": str(src), "destination": str(dst)}, rt)
-    assert r1.ok and r1.data["copied"] == 2 and (dst / "Dokumenty" / "sub" / "b.txt").read_text() == "B"
+    assert r1.ok and r1.data["copied"] == 2 and (dst / "Dokumenty" / "sub" / "b.txt").read_text(encoding="utf-8") == "B"
     import os
     import time
 
-    (src / "a.txt").write_text("A2")
+    (src / "a.txt").write_text("A2", encoding="utf-8")
     os.utime(src / "a.txt", (time.time() + 5,) * 2)
     r2 = await tools.call("backup_folder", {"source": str(src), "destination": str(dst)}, rt)
-    assert r2.data["copied"] == 1 and r2.data["unchanged"] == 1 and (dst / "Dokumenty" / "a.txt").read_text() == "A2"
+    assert r2.data["copied"] == 1 and r2.data["unchanged"] == 1 and (dst / "Dokumenty" / "a.txt").read_text(encoding="utf-8") == "A2"
     bad = await tools.call("backup_folder", {"source": str(src), "destination": str(src / "zaloha")}, rt)
     assert not bad.ok
 

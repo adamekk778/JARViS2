@@ -580,3 +580,11 @@ p.rs-f.bad { display: block; padding: 8px 12px; border-radius: 10px; }
 .br-resume { padding: 14px; display: grid; gap: 4px; }
 .br-resume p, .br-resume h4 { margin: 0; }
 @media (max-width: 640px) { .br-hit { grid-template-columns: 1fr; } .br-src { display: none; } }
+
+/* Učení (OMEGA wave 7) */
+.ln-decks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ln-due { margin-left: 6px; background: #34d399; color: #04130d; border-radius: 99px; padding: 0 7px; font-size: 11px; font-weight: 700; }
+.ln-review { padding: 22px; display: grid; gap: 12px; justify-items: start; }
+.ln-front { font-size: 22px; font-weight: 600; margin: 0; }
+.ln-back p { font-size: 18px; margin: 0 0 12px; }
+.ln-math { font-family: ui-monospace, Consolas, monospace; min-height: 96px; resize: vertical; }

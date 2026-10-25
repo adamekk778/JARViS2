@@ -64,7 +64,7 @@ async def test_projects_isolate_facts_in_the_prompt(rt):
 async def test_project_resume(rt, tmp_path):
     folder = tmp_path / "pekarna"
     folder.mkdir()
-    (folder / "menu.html").write_text("<h1>Chleba</h1>")
+    (folder / "menu.html").write_text("<h1>Chleba</h1>", encoding="utf-8")
     rt.knowledge.create_project("Pekárna", str(folder))
     cid = rt.memory.current_conversation
     rt.db.exec("UPDATE conversations SET folder='Pekárna', title='Návrh webu' WHERE id=?", (cid,))

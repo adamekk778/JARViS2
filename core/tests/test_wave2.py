@@ -330,9 +330,9 @@ def test_check_file_double_extension_and_fake_type(tmp_path):
 async def test_scan_secrets_never_returns_the_secret(rt, tmp_path):
     (tmp_path / "app").mkdir()
     key = "sk-ant-" + "A" * 40
-    (tmp_path / "app" / "config.py").write_text(f'API = "{key}"\npassword = "hunter22hunter"\n')
+    (tmp_path / "app" / "config.py").write_text(f'API = "{key}"\npassword = "hunter22hunter"\n', encoding="utf-8")
     (tmp_path / "app" / "node_modules").mkdir()
-    (tmp_path / "app" / "node_modules" / "x.js").write_text(f'k="{key}"')
+    (tmp_path / "app" / "node_modules" / "x.js").write_text(f'k="{key}"', encoding="utf-8")
     r = await tools.call("scan_secrets", {"folder": str(tmp_path / "app")}, rt)
     assert r.ok and "2 možných" in r.summary and key not in json.dumps(r.data) and key not in r.summary
 
@@ -341,14 +341,14 @@ async def test_verify_copy_finds_missing_and_changed(rt, tmp_path):
     a, b = tmp_path / "a", tmp_path / "b"
     for d in (a, b):
         (d / "sub").mkdir(parents=True)
-        (d / "sub" / "x.txt").write_text("stejné")
-    (a / "y.txt").write_text("1")
-    (b / "y.txt").write_text("2")
-    (a / "z.txt").write_text("chybí")
+        (d / "sub" / "x.txt").write_text("stejné", encoding="utf-8")
+    (a / "y.txt").write_text("1", encoding="utf-8")
+    (b / "y.txt").write_text("2", encoding="utf-8")
+    (a / "z.txt").write_text("chybí", encoding="utf-8")
     r = await tools.call("verify_copy", {"source": str(a), "copy": str(b)}, rt)
     assert not r.ok and "1 chybí, 1 se liší" in r.summary
-    (b / "z.txt").write_text("chybí")
-    (b / "y.txt").write_text("1")
+    (b / "z.txt").write_text("chybí", encoding="utf-8")
+    (b / "y.txt").write_text("1", encoding="utf-8")
     assert (await tools.call("verify_copy", {"source": str(a), "copy": str(b)}, rt)).ok
 
 
@@ -373,7 +373,7 @@ def test_rescue_plan_orders_by_recent_work(tmp_path, monkeypatch):
     for name, age in (("Documents", 10), ("Pictures", 1000)):
         (tmp_path / name).mkdir()
         f = tmp_path / name / "f"
-        f.write_text("x")
+        f.write_text("x", encoding="utf-8")
         os.utime(f, (1e9 - age, 1e9 - age))
     plan = secutils.rescue_plan(None)
     assert [os.path.basename(p["folder"]) for p in plan] == ["Documents", "Pictures"]
@@ -425,7 +425,7 @@ def test_page_runs_diagnostics_and_security_checks(rt, monkeypatch, tmp_path):
     monkeypatch.setattr(rescue, "diagnose", lambda areas: real(areas, fake_runner({"network": {"adapters": []}}), smart=False))
     opened = []
     rt.platform.open_path = lambda p: opened.append(p)
-    (tmp_path / "x.py").write_text('token = "abcdefghijkl1234"\n')
+    (tmp_path / "x.py").write_text('token = "abcdefghijkl1234"\n', encoding="utf-8")
     with _ws(rt) as c, c.websocket_connect("/ws") as ws:
         ws.send_json({"type": "rescue_run", "area": "network"})
         m = _recv(ws, "rescue")

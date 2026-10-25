@@ -37,7 +37,7 @@ async def test_delegate_runs_the_specialist_with_its_own_tools(rt, tmp_path):
 async def test_specialist_dangerous_step_still_needs_approval(rt, tmp_path):
     target = tmp_path / "docs.md"
     rt.router = FakeRouter([[("write_text_file", {"path": str(target), "content": "x"})], "hotovo"])
-    target.write_text("původní")
+    target.write_text("původní", encoding="utf-8")
     rt.tasks.begin("dok", rt.memory.current_conversation)
     task = __import__("asyncio").create_task(agents.run(rt, "dokumentace", "přepiš docs"))
     for _ in range(50):
@@ -48,7 +48,7 @@ async def test_specialist_dangerous_step_still_needs_approval(rt, tmp_path):
     assert cid
     rt.agent.confirm(cid, False)
     r = await task
-    assert target.read_text() == "původní" and r["tools"][0]["ok"] is False
+    assert target.read_text(encoding="utf-8") == "původní" and r["tools"][0]["ok"] is False
 
 
 async def test_team_hands_over_the_result(rt):

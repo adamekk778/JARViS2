@@ -9,16 +9,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `Home Assistant` | 165, 423, 434, P13.02, P13.05 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
-| `run_python` | 457, 766, 768, P5.12, P11.10 |
 | `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
 | `run_tests` | 058, 062, 339, 340, P5.08 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
+| `run_python` | 766, 768, P5.12, P11.10 |
 | `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `ask_models` | 006, 007, 204 |
+| `check_answer` | 111, 115, 459 |
 | `compare_options` | 005, 007, 197 |
+| `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
 | `memory.py` | 039, 041, P1.03 |
 | `notetaker.py` | 128, 166, 167 |
@@ -37,17 +39,20 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dashboard/tasks.ts` | 002, 010 |
 | `desktop/host.py` | 226, P8.01 |
 | `email_send` | 562, P11.06 |
+| `exam_plan` | 110, 452 |
 | `find_file` | P2.11, P11.11 |
 | `find_in_files` | 316, 322 |
-| `goal_plan` | 001, 198 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
+| `mind_map` | 112, 113 |
 | `network.py` | 165, 406 |
 | `network_check` | 021, 718 |
 | `open_app` | P2.01, P12.09 |
+| `oral_exam` | 115, 459 |
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
+| `quiz_from` | 107, 112 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `send_to_phone` | 138, 408 |
@@ -80,6 +85,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_download` | 398 |
 | `check_hardware` | 298 |
 | `check_link` | 397 |
+| `check_math_steps` | 106 |
 | `check_translation` | 068 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
@@ -111,6 +117,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `finance.py` | 379 |
 | `find_duplicates` | 317 |
 | `find_similar_photos` | 318 |
+| `flashcards_from` | 112 |
 | `folder_check` | 329 |
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
@@ -123,6 +130,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `inbox_overview` | 541 |
+| `learning_weak_spots` | 108 |
 | `link_alive` | 410 |
 | `list_folder` | P2.11 |
 | `local_unload` | 576 |
@@ -181,6 +189,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `speed_test` | 717 |
 | `sql_query` | 064 |
 | `stop_all` | 176 |
+| `study_stats` | 461 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
 | `task_evidence` | 645 |

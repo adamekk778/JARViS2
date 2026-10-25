@@ -34,7 +34,7 @@ READ_ONLY_OK = {
     "list_agents", "delegate_to_agent", "agent_team", "deep_research", "compare_options", "check_assumptions", "ask_models",
     "goal_plan", "sql_query", "a11y_check", "check_translation",
     "inbox_overview", "contact_card", "reply_context", "follow_up_check", "communication_digest", "calendar_check", "free_time",
-    "meeting_prep",
+    "meeting_prep", "learning_weak_spots", "study_stats", "check_math_steps", "quiz_from", "oral_exam",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
