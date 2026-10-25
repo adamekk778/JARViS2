@@ -78,6 +78,12 @@ class Runtime:
         from .phone import PhoneLink
 
         self.phone = PhoneLink(self)   # 3.4: rings, dials, SMS / WhatsApp, the phone's notifications
+        from .automations import Automations
+
+        self.automations = Automations(self)   # 3.5: "když … tak …"
+        from .home import Home
+
+        self.home = Home(self)                 # 3.5: Home Assistant
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -91,6 +97,7 @@ class Runtime:
         self.activity.prune()
         self.mail.start()
         self.calendar.start()
+        self.automations.start()
         try:
             from .updater import Updater
 
@@ -126,6 +133,7 @@ class Runtime:
         self.activity.stop()
         self.mail.stop()
         self.calendar.stop()
+        self.automations.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:

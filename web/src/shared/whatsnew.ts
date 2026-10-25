@@ -3,6 +3,12 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.5": [
+    { icon: "flow-arrow", title: "Automatizace „Když … tak …“", line: "„Když otevřu Spotify, dej hlasitost na 30“, „když mi napíše máma, řekni mi to“, „když odejdu od PC, pozastav hudbu“." },
+    { icon: "house-line", title: "Chytrá domácnost", line: "Připoj Home Assistant: „rozsviť v obýváku“, „zhasni všechno“, „nastav topení na 22“. Zámky a vrata vždy potvrdíš." },
+    { icon: "list-checks", title: "Seznamy a peníze", line: "„Přidej mléko na nákup“ (seznam máš i v mobilu), „kolik je euro“, „dej vědět, až bitcoin klesne pod…“." },
+    { icon: "device-mobile", title: "Najdi můj telefon a Wi-Fi", line: "„Najdi můj telefon“ ho rozezvučí naplno, „kdo je na Wi-Fi“, „zapni počítač v pracovně“." },
+  ],
   "3.4": [
     { icon: "envelope-simple", title: "JARVIS a tvůj e-mail", line: "Připoj Seznam nebo Gmail: „co mi přišlo“, „odpověz Petrovi…“. Nové e-maily hlásí hned, odeslání vždy potvrdíš." },
     { icon: "phone-call", title: "JARVIS ti zavolá", line: "Telefon zazvoní jako hovor a JARVIS řekne, co potřebuje. „Zavolej mi za 20 minut a připomeň…“." },

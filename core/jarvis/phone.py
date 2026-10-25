@@ -37,6 +37,7 @@ class PhoneLink:
         self.pending: dict[str, dict] = {}        # sent to the phone, waiting for an ack
         self.notifications: deque[dict] = deque(maxlen=100)
         self.last_poll = 0.0
+        self.battery: dict = {}           # 3.5: {"level": 54, "charging": False, "ts": …} from the phone's polls
         self._wake = asyncio.Event()
         self._acks: dict[str, asyncio.Future] = {}
 
@@ -46,7 +47,20 @@ class PhoneLink:
 
     def status(self) -> dict:
         return {"link": self.link_alive(), "last_poll": self.last_poll, "queued": len(self.queue),
-                "twilio": twilio_ready(self.rt), "notifications": len(self.notifications)}
+                "twilio": twilio_ready(self.rt), "notifications": len(self.notifications), "battery": self.battery}
+
+    def on_battery(self, level: int, charging: bool) -> None:
+        """Every poll carries the phone's battery; JARVIS says once when it gets low (and not charging)."""
+        level = max(0, min(100, int(level)))
+        was = self.battery.get("level")
+        self.battery = {"level": level, "charging": charging, "ts": time.time()}
+        if charging or was is None:
+            return
+        for mark in (15, 5):
+            if level <= mark < was:
+                self.rt.notify("Telefon", f"Telefonu zbývá {level} % baterie. Dejte ho nabít.",
+                               speak=self.rt.cfg.phone_link.speak, target="dashboard")
+                break
 
     # ---------- commands to the phone ----------
     def send(self, kind: str, **data: Any) -> dict:

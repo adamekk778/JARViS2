@@ -40,6 +40,12 @@ TOOL_LABELS = {
     "make_website": "Stavím web", "read_website": "Čtu web", "list_websites": "Moje weby",
     "set_dark_mode": "Tmavý režim", "briefing": "Brífink", "run_protocol": "Protokol", "list_protocols": "Protokoly",
     "show_hud": "Stark HUD", "system_info": "Stav systémů",
+    "create_automation": "Nová automatizace", "list_automations": "Automatizace", "delete_automation": "Mažu automatizaci",
+    "toggle_automation": "Automatizace", "home_devices": "Chytrá domácnost", "home_control": "Domácnost",
+    "home_scene": "Scéna", "list_add": "Přidávám na seznam", "list_show": "Seznam", "list_done": "Odškrtávám",
+    "list_clear": "Mažu seznam", "list_to_phone": "Seznam do mobilu", "exchange_rate": "Kurz ČNB", "price": "Cena",
+    "price_alert": "Hlídám cenu", "network_devices": "Zařízení v síti", "name_device": "Pojmenovávám zařízení",
+    "wake_device": "Budím počítač", "find_phone": "Hledám telefon", "phone_battery": "Baterie telefonu",
 }
 MEDIA_ACTIONS = {"play_pause": "přehrát / pauza", "next": "další", "previous": "předchozí", "stop": "stop"}
 

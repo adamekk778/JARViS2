@@ -121,6 +121,16 @@ class Scheduler:
                     self.rt.notify("Hlídání webu", msg, url=p["url"], target="all")
                     if p.get("text"):     # waited for a text and it is there → done
                         self.delete(job["id"])
+            elif job["kind"] == "price":      # "dej vědět, až bitcoin klesne pod …" (one-shot)
+                from .finance import check_alert
+
+                hit, msg = await check_alert(self.rt, p)
+                if hit:
+                    self.delete(job["id"])
+                    if p.get("call"):
+                        await self.rt.phone.ring(f"Pane, {msg}", reason="price")
+                    else:
+                        self.rt.notify("Hlídání ceny", msg, speak=True, target="all")
             elif job["kind"] == "prompt":
                 text = await self.rt.agent.handle(
                     p["prompt"], [], "schedule",

@@ -4,7 +4,7 @@ import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 
-interface Step { say?: string; tool?: string; args?: Record<string, any>; ask?: string; when?: string }
+export interface Step { say?: string; tool?: string; args?: Record<string, any>; ask?: string; when?: string }
 interface Protocol { id: string; name: string; icon: string; steps: Step[] }
 
 /** What a non-programmer can pick as an action. `param` = one value the user types. */
@@ -32,6 +32,12 @@ const ACTIONS: { key: string; label: string; param?: { label: string; type: "num
   { key: "timer", label: "Časovač na… minut", param: { label: "min", type: "number", def: "25" },
     make: (v) => ({ tool: "set_timer", args: { seconds: Math.max(1, Math.round(+v || 1)) * 60, label: `${Math.round(+v || 1)} min` } }),
     match: (s) => (s.tool === "set_timer" ? String(Math.round((s.args?.seconds || 60) / 60)) : null) },
+  { key: "proto", label: "Spustit protokol…", param: { label: "název", type: "text", def: "Pracovní režim" },
+    make: (v) => ({ tool: "run_protocol", args: { name: v } }), match: (s) => (s.tool === "run_protocol" ? s.args?.name ?? "" : null) },
+  { key: "phone", label: "Poslat na mobil…", param: { label: "text", type: "text", def: "Připomínka" },
+    make: (v) => ({ tool: "send_to_phone", args: { text: v } }), match: (s) => (s.tool === "send_to_phone" ? s.args?.text ?? "" : null) },
+  { key: "callme", label: "Zavolat mi na mobil…", param: { label: "co řekne", type: "text", def: "Pane, je čas." },
+    make: (v) => ({ tool: "call_me", args: { message: v } }), match: (s) => (s.tool === "call_me" ? s.args?.message ?? "" : null) },
   { key: "brief", label: "Ranní brífink", make: () => ({ tool: "briefing" }), match: (s) => (s.tool === "briefing" ? "" : null) },
   { key: "hud", label: "Otevřít Stark HUD", make: () => ({ tool: "show_hud" }), match: (s) => (s.tool === "show_hud" ? "" : null) },
   { key: "lock", label: "Zamknout počítač", make: () => ({ tool: "system_power", args: { action: "lock" } }),
@@ -52,6 +58,43 @@ export const stepText = (s: Step) => {
   const x = actionOf(s);
   return x ? `${x.a.label.replace("…", "")}${x.v ? " " + x.v : ""}`.replace(" na  ", " na ") : s.tool || "?";
 };
+
+/** The editable list of steps (shared by protocols and automations); edits `list` in place. */
+export function stepsEditor(list: Step[], sayHint = "Co JARVIS řekne"): HTMLElement {
+  const steps = h("ol", { class: "pe-steps" });
+  const renderSteps = () => steps.replaceChildren(...list.map((s, i) => stepRow(s, i)));
+  const stepRow = (s: Step, i: number) => {
+    const kind = s.say !== undefined && !s.tool && !s.ask ? "say" : s.ask !== undefined && !s.tool ? "ask" : "do";
+    const type = h("select", { class: "input", "aria-label": "Druh kroku" },
+      h("option", { value: "say" }, "JARVIS řekne"), h("option", { value: "do" }, "Akce"), h("option", { value: "ask" }, "Úkol pro AI")) as HTMLSelectElement;
+    type.value = kind;
+    type.onchange = () => { list[i] = type.value === "say" ? { say: "" } : type.value === "ask" ? { ask: "" } : ACTIONS[0].make(ACTIONS[0].param!.def); renderSteps(); };
+    let body: HTMLElement;
+    if (kind === "say" || kind === "ask") {
+      const t = h("input", { class: "input", value: (kind === "say" ? s.say : s.ask) || "",
+        placeholder: kind === "say" ? sayHint : "Co má AI udělat, např. najdi film na dnešní večer", "aria-label": "Text kroku" }) as HTMLInputElement;
+      t.oninput = () => { list[i] = kind === "say" ? { say: t.value } : { ask: t.value }; };
+      body = t;
+    } else {
+      const cur = actionOf(s);
+      const sel = h("select", { class: "input", "aria-label": "Akce" }, ...ACTIONS.map((a) => h("option", { value: a.key }, a.label))) as HTMLSelectElement;
+      sel.value = cur?.a.key || ACTIONS[0].key;
+      const a = ACTIONS.find((x) => x.key === sel.value)!;
+      const param = a.param ? h("input", { class: "input pe-param", type: a.param.type, value: cur?.v || a.param.def, placeholder: a.param.label, "aria-label": a.param.label }) as HTMLInputElement : null;
+      sel.onchange = () => { const na = ACTIONS.find((x) => x.key === sel.value)!; list[i] = na.make(na.param?.def || ""); renderSteps(); };
+      if (param) param.oninput = () => { list[i] = a.make(param.value); };
+      body = h("div", { class: "pe-do" }, sel, param);
+    }
+    const move = (d: number) => { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; renderSteps(); };
+    return h("li", { class: "pe-step" }, type, body,
+      h("button", { class: "icon-btn sm", type: "button", title: "Nahoru", "aria-label": "Krok nahoru", onclick: () => move(-1) }, icon("arrow-up")),
+      h("button", { class: "icon-btn sm", type: "button", title: "Dolů", "aria-label": "Krok dolů", onclick: () => move(1) }, icon("arrow-down")),
+      h("button", { class: "icon-btn sm", type: "button", title: "Odebrat", "aria-label": "Odebrat krok", onclick: () => { list.splice(i, 1); renderSteps(); } }, icon("x")));
+  };
+  renderSteps();
+  (steps as any).rerender = renderSteps;
+  return steps;
+}
 
 export function buildStark(client: JarvisClient) {
   let protocols: Protocol[] = [];
@@ -87,37 +130,7 @@ export function buildStark(client: JarvisClient) {
     const icons = h("div", { class: "pe-icons", role: "radiogroup", "aria-label": "Ikona" },
       ...ICONS.map((ic) => h("button", { type: "button", class: `pe-ic ${draft.icon === ic ? "on" : ""}`, "aria-label": ic,
         onclick: (e: Event) => { draft.icon = ic; icons.querySelectorAll(".pe-ic").forEach((b) => b.classList.toggle("on", b === e.currentTarget)); } }, icon(ic))));
-    const steps = h("ol", { class: "pe-steps" });
-    const renderSteps = () => steps.replaceChildren(...draft.steps.map((s, i) => stepRow(s, i)));
-    const stepRow = (s: Step, i: number) => {
-      const kind = s.say !== undefined && !s.tool && !s.ask ? "say" : s.ask !== undefined && !s.tool ? "ask" : "do";
-      const type = h("select", { class: "input", "aria-label": "Druh kroku" },
-        h("option", { value: "say" }, "JARVIS řekne"), h("option", { value: "do" }, "Akce"), h("option", { value: "ask" }, "Úkol pro AI")) as HTMLSelectElement;
-      type.value = kind;
-      type.onchange = () => { draft.steps[i] = type.value === "say" ? { say: "" } : type.value === "ask" ? { ask: "" } : ACTIONS[0].make(ACTIONS[0].param!.def); renderSteps(); };
-      let body: HTMLElement;
-      if (kind === "say" || kind === "ask") {
-        const t = h("input", { class: "input", value: (kind === "say" ? s.say : s.ask) || "",
-          placeholder: kind === "say" ? "Co JARVIS řekne" : "Co má AI udělat, např. najdi film na dnešní večer", "aria-label": "Text kroku" }) as HTMLInputElement;
-        t.oninput = () => { draft.steps[i] = kind === "say" ? { say: t.value } : { ask: t.value }; };
-        body = t;
-      } else {
-        const cur = actionOf(s);
-        const sel = h("select", { class: "input", "aria-label": "Akce" }, ...ACTIONS.map((a) => h("option", { value: a.key }, a.label))) as HTMLSelectElement;
-        sel.value = cur?.a.key || ACTIONS[0].key;
-        const a = ACTIONS.find((x) => x.key === sel.value)!;
-        const param = a.param ? h("input", { class: "input pe-param", type: a.param.type, value: cur?.v || a.param.def, placeholder: a.param.label, "aria-label": a.param.label }) as HTMLInputElement : null;
-        sel.onchange = () => { const na = ACTIONS.find((x) => x.key === sel.value)!; draft.steps[i] = na.make(na.param?.def || ""); renderSteps(); };
-        if (param) param.oninput = () => { draft.steps[i] = a.make(param.value); };
-        body = h("div", { class: "pe-do" }, sel, param);
-      }
-      const move = (d: number) => { const j = i + d; if (j < 0 || j >= draft.steps.length) return; [draft.steps[i], draft.steps[j]] = [draft.steps[j], draft.steps[i]]; renderSteps(); };
-      return h("li", { class: "pe-step" }, type, body,
-        h("button", { class: "icon-btn sm", type: "button", title: "Nahoru", "aria-label": "Krok nahoru", onclick: () => move(-1) }, icon("arrow-up")),
-        h("button", { class: "icon-btn sm", type: "button", title: "Dolů", "aria-label": "Krok dolů", onclick: () => move(1) }, icon("arrow-down")),
-        h("button", { class: "icon-btn sm", type: "button", title: "Odebrat", "aria-label": "Odebrat krok", onclick: () => { draft.steps.splice(i, 1); renderSteps(); } }, icon("x")));
-    };
-    renderSteps();
+    const steps = stepsEditor(draft.steps);
     const done = () => { editor.hidden = true; editing = null; };
     editor.hidden = false;
     editor.replaceChildren(
@@ -125,7 +138,7 @@ export function buildStark(client: JarvisClient) {
       h("label", { class: "pe-row" }, h("span", {}, "Název"), name),
       h("div", { class: "pe-row" }, h("span", {}, "Ikona"), icons),
       h("div", { class: "pe-row top" }, h("span", {}, "Kroky"), h("div", {}, steps,
-        h("button", { class: "btn ghost", type: "button", onclick: () => { draft.steps.push({ say: "" }); renderSteps(); } }, icon("plus"), "Přidat krok"))),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { draft.steps.push({ say: "" }); (steps as any).rerender(); } }, icon("plus"), "Přidat krok"))),
       h("p", { class: "help" }, "Akce, které něco mění (vypnutí, mazání…), se i v protokolu vždycky nejdřív zeptají."),
       h("div", { class: "btn-row" },
         h("button", { class: "btn ghost", type: "button", onclick: done }, "Zrušit"),

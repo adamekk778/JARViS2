@@ -47,18 +47,18 @@ def find_protocol(rt, name: str):
     return next((p for p in items if want in _fold(p.name) or _fold(p.name) in want), None)
 
 
-async def run_protocol(rt, proto) -> str:
+async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = "") -> str:
     """Runs the steps in order. Plain steps go in one go (no AI); an "ask" step is a normal request to the AI."""
-    title = f"▶ Protokol {proto.name}"
+    title = f"▶ {kind} {proto.name}"
     out: list[str] = []
     chunk: list = []
     for st in proto.steps:
         if st.ask:
             if chunk:
                 out.append(await rt.agent.run_steps(title, chunk))
-                chunk, title = [], f"▶ Protokol {proto.name} (pokračuje)"
+                chunk, title = [], f"▶ {kind} {proto.name} (pokračuje)"
             out.append(await rt.agent.handle(st.ask, [], "protocol", extra_system=(
-                f"Tohle je krok protokolu „{proto.name}“, který si uživatel spustil. Rovnou ho proveď, bez ptaní.")))
+                extra_system or f"Tohle je krok protokolu „{proto.name}“, který si uživatel spustil. Rovnou ho proveď, bez ptaní.")))
         else:
             chunk.append(st)
     if chunk or not out:
@@ -302,12 +302,29 @@ class Guardian:
             rt.notify(title, f"{text}", speak=rt.cfg.stark.guardian_speak and rt.cfg.voice.speak_mode != "never")
         return alerts
 
+    async def check_network(self) -> list[dict]:
+        """3.5: a device the PC has never seen joined the network → say who (its name, if it announces one)."""
+        from . import network
+
+        items = await network.devices(self.rt)
+        fresh = [d for d in items if d["new"]]
+        network.remember(self.rt, network.known(self.rt) | {d["mac"] for d in items})
+        for d in fresh[:3]:
+            text = f"Do sítě se připojilo nové zařízení{' ' + d['name'] if d['name'] else ''} ({d['ip']})."
+            self.rt.bus.publish("guardian", key="network", title="Síť", text=text)
+            self.rt.notify("Síť", text, speak=self.rt.cfg.stark.guardian_speak and self.rt.cfg.voice.speak_mode != "never")
+        return fresh
+
     async def _loop(self) -> None:
         await asyncio.sleep(60)          # let the PC settle after start-up
+        net_at = 0.0
         while True:
             try:
                 if self.rt.cfg.stark.guardian:
                     await self.check()
+                if self.rt.cfg.stark.network_watch and time.monotonic() - net_at > 600:
+                    net_at = time.monotonic()
+                    await self.check_network()
                 if briefing_due(self.rt) and _user_present(self.rt) and self.rt.clients:
                     await deliver_briefing(self.rt)
             except Exception as e:

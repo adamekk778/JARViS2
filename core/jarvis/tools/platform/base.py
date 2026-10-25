@@ -60,6 +60,19 @@ class Platform:
     def idle_seconds(self) -> float: return 0.0   # since the last mouse/keyboard input (0 = unknown → present)
     # 3.3: the window in front (hwnd, pid, app, title), bring one back to the front, clipboard change counter
     def foreground_info(self) -> dict: return {}
+
+    def running_apps(self) -> set[str]:
+        """3.5: friendly names of the running programs ("Spotify", "Chrome") for "když otevřu …" automations."""
+        import psutil
+
+        from .windows import friendly_app
+
+        out: set[str] = set()
+        for p in psutil.process_iter(["name"]):
+            name = p.info.get("name") or ""
+            if name:
+                out.add(friendly_app(name))
+        return out
     def focus_window(self, hwnd: int) -> bool: return False
     def clipboard_seq(self) -> int: return 0
     def wait_keys_released(self, timeout: float = 1.5) -> None: pass   # Ctrl/Alt/Shift from the hotkey still held

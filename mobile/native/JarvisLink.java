@@ -13,6 +13,7 @@ import android.database.Cursor;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -138,6 +139,12 @@ public final class JarvisLink {
                 case "ring":
                     ring(c, cmd.optString("id"), cmd.optString("text"), cmd.optString("caller", "JARVIS"), foreground);
                     return "ringing";
+                case "find":
+                    FindPhone.start(c);
+                    return "ringing";
+                case "find_stop":
+                    FindPhone.stop(c);
+                    return "done";
                 case "dial": {
                     String[] ct = contact(c, cmd.optString("who"));
                     if (ct == null) return "notfound";
@@ -241,8 +248,20 @@ public final class JarvisLink {
         }
     }
 
+    /** Battery level for "kolik má telefon baterky" (sent with every poll). */
+    static String batteryQuery(Context c) {
+        try {
+            BatteryManager bm = c.getSystemService(BatteryManager.class);
+            int level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+            boolean charging = Build.VERSION.SDK_INT >= 23 && bm.isCharging();
+            return level >= 0 && level <= 100 ? "&battery=" + level + "&charging=" + (charging ? 1 : 0) : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     static JSONArray poll(Context c) throws Exception {
-        String body = http(c, "GET", "/api/phone/poll?wait=25", null, 40000);
+        String body = http(c, "GET", "/api/phone/poll?wait=25" + batteryQuery(c), null, 40000);
         return new JSONObject(body).optJSONArray("commands");
     }
 }

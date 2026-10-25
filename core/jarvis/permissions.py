@@ -12,6 +12,7 @@ PERMS: dict[str, str] = {
     "shell": "PowerShell, Python a kód",
     "network": "Internet a prohlížeč",
     "system": "Systém a napájení",
+    "home": "Chytrá domácnost",
 }
 
 CATEGORY_PERM = {

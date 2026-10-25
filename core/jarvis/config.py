@@ -252,6 +252,7 @@ class Stark(BaseModel):
     guardian_speak: bool = True
     battery_low: int = 20
     disk_low_gb: int = 5
+    network_watch: bool = False         # 3.5: tell me when a device I have not seen joins the home network
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
 
@@ -299,6 +300,45 @@ class CalendarCfg(BaseModel):
     remind_minutes: int = 15
 
 
+class AutoTrigger(BaseModel):
+    """3.5 "Když …": what starts an automation."""
+    type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
+                  "away", "back"] = "time"
+    value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
+    text: str = ""     # …and the subject / message must contain this
+    days: list[int] = Field(default_factory=list)   # time: 0 = Monday … 6 = Sunday; empty = every day
+
+
+class Automation(BaseModel):
+    """3.5 "Když … tak …": a trigger and protocol-like steps ({sender}, {subject}, {text}, {app}, {percent} fill in)."""
+    id: str
+    name: str
+    enabled: bool = True
+    trigger: AutoTrigger = Field(default_factory=AutoTrigger)
+    steps: list[ProtocolStep] = Field(default_factory=list)
+
+
+def _default_automations() -> list[Automation]:
+    S, T = ProtocolStep, AutoTrigger
+    return [
+        Automation(id="zpet", name="Vítej zpět", enabled=False, trigger=T(type="back", value="30"), steps=[
+            S(say="Vítejte zpět, pane."),
+            S(ask="Stručně mi řekni, co se stalo, zatímco jsem byl pryč: nové e-maily a zprávy z telefonu. Když nic, řekni jen, že je klid.")]),
+        Automation(id="nabijecka", name="Nabíječka", enabled=False, trigger=T(type="power", value="in"), steps=[
+            S(say="Napájení připojeno.")]),
+    ]
+
+
+class AutomationsCfg(BaseModel):
+    enabled: bool = True
+    items: list[Automation] = Field(default_factory=_default_automations)
+
+
+class HomeCfg(BaseModel):
+    """3.5 smart home through Home Assistant (the long-lived access token is in the keyring)."""
+    url: str = ""                   # http://homeassistant.local:8123
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -312,6 +352,7 @@ class Permissions(BaseModel):
     shell: bool = True
     network: bool = True
     system: bool = True
+    home: bool = True
 
 
 class Config(BaseModel):
@@ -335,6 +376,8 @@ class Config(BaseModel):
     mail: MailCfg = Field(default_factory=MailCfg)
     calendar: CalendarCfg = Field(default_factory=CalendarCfg)
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
+    automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
+    home: HomeCfg = Field(default_factory=HomeCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -357,7 +400,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "character.color", "character.glow", "character.size", "character.outfit", "agent.mode",
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
-    "stark.guardian", "stark.guardian_speak",
+    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "automations.enabled",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",

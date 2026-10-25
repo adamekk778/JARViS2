@@ -198,8 +198,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     # ---------- 3.4 the phone app's background link ----------
     @app.get("/api/phone/poll")
-    async def phone_poll(request: Request, wait: float = 25.0):
+    async def phone_poll(request: Request, wait: float = 25.0, battery: int | None = None, charging: int = 0):
         require_auth(request)
+        if battery is not None:
+            rt.phone.on_battery(battery, bool(charging))
         return {"commands": await rt.phone.poll(max(0.0, min(wait, 50.0)))}
 
     @app.post("/api/phone/ack")

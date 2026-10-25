@@ -46,6 +46,7 @@ class NullPlatform(Platform):
     def clipboard_seq(self): return hash(self.clipboard) & 0xFFFFFFF
     def empty_recycle_bin(self): self._rec("empty_recycle_bin"); return 1234
     def idle_seconds(self): return getattr(self, "idle", 0.0)
+    def running_apps(self): return set(getattr(self, "apps_running", set()))
     def scroll(self, dy): self._rec("scroll", dy)
     def notify(self, title, body): self._rec("notify", title, body)
     def release_all_input(self): self._rec("release_all_input")

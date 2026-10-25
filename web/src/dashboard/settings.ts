@@ -47,6 +47,7 @@ const PERM_HELP: Record<string, string> = {
   shell: "PowerShell, Python, testy, Claude Code a skilly (vždy s potvrzením).",
   network: "Web, prohlížeč, stahování, MCP servery.",
   system: "Napájení, tmavý režim, stav a výkon PC.",
+  home: "Světla, zásuvky, topení a další zařízení přes Home Assistant (zámky a brány vždy s potvrzením).",
 };
 const MODES: [string, string][] = [["eco", "Úsporný – malý kontext, málo vláken, rychle uvolní paměť"], ["balanced", "Vyvážený (doporučeno)"], ["performance", "Výkon – velký kontext, všechna jádra"]];
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();

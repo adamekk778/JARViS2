@@ -167,6 +167,8 @@ export function hero(spec: HeroSpec, title: string, subtitle: string | null, act
 
 /** Every page's colour and cast (the JARVIS window's palette). */
 export const HEROES: Record<string, HeroSpec> = {
+  home: { color: "#34d399", cast: [{ color: "green", size: 56, start: 0.2 }, { color: "amber", size: 46, start: 0.6 }, { color: "white", size: 40, start: 0.95 }] },
+  auto: { color: "#a78bfa", cast: [{ color: "violet", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 0.95 }] },
   comms: { color: "#f59e0b", cast: [{ color: "amber", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.65 }, { color: "orange", size: 40, start: 1 }] },
   stark: { color: "#5fd4ff", cast: [{ color: "cyan", size: 58, start: 0.2 }, { color: "black", size: 50, start: 0.6 }, { color: "blue", size: 42, start: 0.95 }] },
   claude: { color: "#e07950", cast: [{ color: "orange", size: 58, start: 0.3 }, { color: "white", size: 48, start: 0.85 }] },

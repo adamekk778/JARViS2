@@ -33,7 +33,8 @@ CLIENT_TYPES = [
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
     "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
     "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
-    "phone_status_get", "phone_ack", "twilio_set",
+    "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
+    "lists_get", "list_update", "network_get", "network_wake", "network_name",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -47,7 +48,7 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network",
 ]
 
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -59,11 +60,11 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
-              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set"}
+              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get"}
 
 
@@ -84,6 +85,13 @@ class Connection:
     async def send(self, type: str, **data) -> None:  # noqa: A002
         async with self.send_lock:
             await self.ws.send_json({"type": type, **data})
+
+    async def _home_devices(self) -> list[dict]:
+        keep = ("light", "switch", "fan", "climate", "cover", "scene", "script", "lock", "input_boolean", "media_player")
+        items = await self.rt.home.states(fresh=True)
+        out = [e for e in items if e["domain"] in keep
+               or (e["domain"] == "sensor" and e.get("unit") in ("°C", "%") and e["state"] not in ("unavailable", "unknown"))]
+        return out[:120]
 
     async def _local_then_status(self, coro) -> None:
         await coro
@@ -283,6 +291,100 @@ class Connection:
                 await self.send("error", message="Ten protokol neexistuje.")
             else:
                 stark.start_protocol(rt, p)
+        elif t == "automation_run":       # "Vyzkoušet" in Settings → Automatizace
+            a = rt.automations.find(str(m.get("id") or ""))
+            if a is None:
+                await self.send("error", message="Ta automatizace neexistuje.")
+            else:
+                rt.automations.fire(a, {"sender": "Test", "subject": "Zkouška", "text": "Zkušební zpráva", "app": "Test",
+                                        "percent": 50, "minutes": 10, "time": "teď"}, reason="zkouška", force=True)
+        elif t == "home_set":             # Settings → Domov: address + token, tested before saving
+            from .. import home, secrets
+
+            url, token = str(m.get("url") or "").strip().rstrip("/"), str(m.get("token") or "").strip()
+            if url and not url.startswith(("http://", "https://")):
+                url = "http://" + url
+            if not url:
+                secrets.set(home.TOKEN_KEY, "")
+                rt.update_config({"home": {"url": ""}})
+                await self.send("home", ok=True, configured=False, devices=[])
+            else:
+                try:
+                    n = await rt.home.test(url, token or secrets.get(home.TOKEN_KEY))
+                except Exception as e:
+                    await self.send("home", ok=False, configured=home.configured(rt), error=str(e)[:300])
+                else:
+                    if token:
+                        secrets.set(home.TOKEN_KEY, token)
+                    rt.update_config({"home": {"url": url}})
+                    await self.send("home", ok=True, configured=True, count=n, devices=await self._home_devices())
+        elif t == "home_get":
+            from .. import home
+
+            if not home.configured(rt):
+                await self.send("home", ok=True, configured=False, devices=[])
+            else:
+                try:
+                    await self.send("home", ok=True, configured=True, devices=await self._home_devices())
+                except Exception as e:
+                    await self.send("home", ok=False, configured=True, error=str(e)[:300], devices=[])
+        elif t == "home_action":          # a tile in Settings → Domov (lights, switches, scenes; locks stay in HA)
+            from .. import home
+
+            eid, act = str(m.get("id") or ""), str(m.get("action") or "toggle")
+            dom = eid.split(".", 1)[0]
+            if dom not in ("light", "switch", "fan", "scene", "script", "input_boolean", "media_player", "cover", "climate"):
+                await self.send("error", message="Tohle zařízení ovládej v aplikaci Home Assistant.")
+            else:
+                try:
+                    if dom in ("scene", "script"):
+                        await rt.home.service(dom, "turn_on", {"entity_id": eid})
+                    elif dom == "climate":
+                        await rt.home.service(dom, "set_temperature", {"entity_id": eid, "temperature": float(m.get("value"))})
+                    elif dom == "cover":
+                        await rt.home.service(dom, {"open": "open_cover", "close": "close_cover"}.get(act, "stop_cover"), {"entity_id": eid})
+                    elif dom == "light" and m.get("value") is not None:
+                        await rt.home.service(dom, "turn_on", {"entity_id": eid, "brightness_pct": int(m.get("value"))})
+                    else:
+                        await rt.home.service(dom, {"on": "turn_on", "off": "turn_off"}.get(act, "toggle"), {"entity_id": eid})
+                    await self.send("home", ok=True, configured=True, devices=await self._home_devices())
+                except Exception as e:
+                    await self.send("home", ok=False, configured=home.configured(rt), error=str(e)[:300])
+        elif t == "lists_get":
+            from ..tools.list_tools import all_lists
+
+            await self.send("lists", lists=all_lists(rt))
+        elif t == "list_update":          # the phone or the PC ticks / adds an item
+            from ..tools import list_tools as lt
+
+            name = lt.list_name(str(m.get("list") or "nákup"))
+            if m.get("add"):
+                lt.add_items(rt, name, [str(x) for x in m["add"]][:50])
+            if m.get("remove"):
+                lt.remove_items(rt, name, [str(x) for x in m["remove"]][:50])
+            if m.get("clear"):
+                rt.db.exec("DELETE FROM lists WHERE list=?", (name,))
+            lt._changed(rt)
+        elif t == "network_get":
+            from .. import network
+
+            items = await network.devices(rt)
+            await self.send("network", devices=items)
+        elif t == "network_name":
+            from .. import network
+
+            network.set_name(rt, str(m.get("mac") or ""), str(m.get("name") or "").strip()[:60])
+            await self.send("network", devices=await network.devices(rt))
+        elif t == "network_wake":
+            from .. import network
+
+            try:
+                network.wake(str(m.get("mac") or ""))
+                await self.send("notify", title="Wake-on-LAN", body="Budicí signál odeslán.", url="", target="dashboard")
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "automations_get":
+            await self.send("automations", **rt.automations.status())
         elif t == "selection_action":
             from .. import powers
 

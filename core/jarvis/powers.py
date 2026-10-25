@@ -453,6 +453,10 @@ def selftest_windows() -> dict:
         time.sleep(0.8)
         fg = p.foreground_info()
         out["foreground"] = {k: fg.get(k) for k in ("app", "exe", "title")}
+        out["apps_has_notepad"] = "Poznámkový blok" in p.running_apps()     # 3.5 "když otevřu …" automations
+        from .network import read_neighbors
+
+        out["neighbors"] = len(read_neighbors())                              # 3.5 "kdo je na Wi-Fi" (arp -a)
         p.type_text("dobry den, posilam fakturu")
         time.sleep(0.3)
         p.hotkey(["ctrl", "a"])
@@ -464,7 +468,7 @@ def selftest_windows() -> dict:
         out["after"], _ = grab_selection(_Rt())
         out["clipboard_restored"] = p.clipboard_get() == "jarvis-selftest"
         out["ok"] = (out["grabbed"] == "dobry den, posilam fakturu" and out["after"] == "Dobrý den, posílám fakturu."
-                     and out["clipboard_restored"])
+                     and out["clipboard_restored"] and out["apps_has_notepad"])
         return out
     finally:
         proc.kill()

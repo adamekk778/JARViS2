@@ -116,10 +116,11 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const views: Record<string, HTMLElement> = {
     chat: h("section", { class: "m-view m-chat" }, asksBox, taskCard.el, chat.el),
     control: controlView(c),
+    home: homeView(c),
     more: moreView(c, ep, pairing),
   };
   const tabs = h("nav", { class: "tabs" },
-    ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["more", "dots-three-circle", "Více"]] as const)
+    ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
       .map(([k, ic, label]) => h("button", { type: "button", "data-tab": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
   const show = (k: string) => {
     Object.entries(views).forEach(([n, el]) => (el.hidden = n !== k));
@@ -282,6 +283,48 @@ function controlView(c: JarvisClient): HTMLElement {
         tile("timer", "Minutka 10 min", () => quick("set_timer", { seconds: 600, label: "10 min" })),
         tile("moon-stars", "Uspat", () => danger("system_power", { action: "sleep" }), "warn"),
         tile("power", "Vypnout", () => danger("system_power", { action: "shutdown" }), "warn"))));
+}
+
+// ---------------- 3.5 Domov: shared lists (shopping in the shop) and the smart home ----------------
+function homeView(c: JarvisClient): HTMLElement {
+  let lists: Record<string, string[]> = {};
+  let current = "nákup";
+  const listBox = h("div", { class: "m-list" });
+  const addInp = h("input", { class: "input", placeholder: "Přidat na seznam…", enterkeyhint: "done", "aria-label": "Nová položka" }) as HTMLInputElement;
+  const add = () => {
+    const items = addInp.value.split(",").map((x) => x.trim()).filter(Boolean);
+    if (items.length) { c.send("list_update", { list: current, add: items }); addInp.value = ""; native.haptic(); }
+  };
+  addInp.addEventListener("keydown", (e) => e.key === "Enter" && add());
+  const paintLists = () => {
+    const names = Array.from(new Set(["nákup", ...Object.keys(lists)]));
+    const items = lists[current] || [];
+    listBox.replaceChildren(
+      h("div", { class: "m-chips" }, ...names.map((n) => h("button", { type: "button", class: `chip ${n === current ? "on" : ""}`,
+        onclick: () => { current = n; paintLists(); } }, n, lists[n]?.length ? ` · ${lists[n].length}` : ""))),
+      h("ul", { class: "m-items" }, ...(items.length ? items.map((it) => h("li", {}, h("button", { type: "button", class: "m-item",
+        onclick: (e: Event) => { (e.currentTarget as HTMLElement).classList.add("done"); native.haptic(); setTimeout(() => c.send("list_update", { list: current, remove: [it] }), 250); } },
+        icon("circle"), h("span", {}, it))))
+        : [h("li", { class: "muted" }, "Prázdný seznam. Řekni JARVISovi „přidej mléko na nákup“.")])),
+      h("div", { class: "inline" }, addInp, h("button", { class: "btn primary", type: "button", "aria-label": "Přidat", onclick: add }, icon("plus"))));
+  };
+  c.on("lists", (m) => { lists = m.lists || {}; paintLists(); });
+
+  const homeBox = h("div", { class: "ctl-grid" });
+  const homeCard = h("div", { class: "card", hidden: true }, h("h2", {}, "Chytrá domácnost"), homeBox);
+  const icons: Record<string, string> = { light: "lightbulb", switch: "plug", fan: "fan", scene: "magic-wand", script: "play", input_boolean: "toggle-right", media_player: "speaker-high" };
+  c.on("home", (m) => {
+    const ds = (m.devices || []).filter((d: any) => icons[d.domain]);
+    homeCard.hidden = !m.configured || !ds.length;
+    homeBox.replaceChildren(...ds.slice(0, 30).map((d: any) => h("button", { type: "button", class: `ctl ${["on", "playing"].includes(d.state) ? "primary" : ""}`,
+      onclick: () => { native.haptic(); c.send("home_action", { id: d.id, action: d.domain === "scene" || d.domain === "script" ? "on" : "toggle" }); } },
+      icon(icons[d.domain], ["on", "playing"].includes(d.state) ? "ph-fill" : ""), h("span", {}, d.name))));
+  });
+  c.on("welcome", (m) => { c.send("lists_get", {}); if (m.settings?.home?.url) c.send("home_get", {}); });
+  paintLists();
+  return h("section", { class: "m-view m-home", hidden: true },
+    h("div", { class: "card" }, h("h2", {}, "Seznamy"), listBox),
+    homeCard);
 }
 
 // ---------------- 3.4 phone link: JARVIS calls you, dials, SMS, WhatsApp, your messages on the PC ----------------
