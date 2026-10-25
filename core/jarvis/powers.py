@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 USAGE_SQL = """
 CREATE TABLE IF NOT EXISTS app_usage (day TEXT, app TEXT, seconds REAL, PRIMARY KEY (day, app));
+CREATE TABLE IF NOT EXISTS app_hours (day TEXT, hour INTEGER, app TEXT, seconds REAL, PRIMARY KEY (day, hour, app));
 """
 SAMPLE_S = 3.0
 IDLE_AWAY_S = 120          # no input this long = not at the PC (no screen time, a break)
@@ -80,6 +81,9 @@ class Activity:
             day = dt.date.fromtimestamp(now).isoformat()
             self.rt.db.exec("INSERT INTO app_usage VALUES (?,?,?) ON CONFLICT(day, app) DO UPDATE SET seconds=seconds+excluded.seconds",
                             (day, fg["app"], dt_s))
+            # OMEGA 497: which app at which hour – the raw material for "you usually …" (kept 60 days)
+            self.rt.db.exec("INSERT INTO app_hours VALUES (?,?,?,?) ON CONFLICT(day, hour, app) DO UPDATE SET seconds=seconds+excluded.seconds",
+                            (day, dt.datetime.fromtimestamp(now).hour, fg["app"], dt_s))
         if cfg.clipboard_history:
             self._clipboard(now)
         self._breaks(now, idle, cfg.break_minutes)
@@ -126,6 +130,7 @@ class Activity:
 
     def prune(self, keep_days: int = 30) -> None:
         self.rt.db.exec("DELETE FROM app_usage WHERE day<?", ((dt.date.today() - dt.timedelta(days=keep_days)).isoformat(),))
+        self.rt.db.exec("DELETE FROM app_hours WHERE day<?", ((dt.date.today() - dt.timedelta(days=max(keep_days, 60))).isoformat(),))
 
 
 # ---------------------------------------------------------------------------------------------- selected text

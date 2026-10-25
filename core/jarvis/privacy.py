@@ -24,10 +24,11 @@ TABLES = {
     "projects": "projekty", "fact_conflicts": "rozpory v paměti", "search_idx": "vyhledávací rejstřík",
     "search_emb": "rejstřík podle významu", "perf_history": "historie výkonu", "perf_bench": "testy výkonu",
     "cards": "kartičky na učení", "card_reviews": "opakování kartiček", "quiz_answers": "odpovědi v testech", "exams": "plány zkoušek",
+    "app_hours": "aplikace podle hodin (rutiny)",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),
-          ("task_artifacts", "ts"), ("dictations", "ts"), ("app_usage", None), ("llm_usage", None), ("mic_log", "start")]
+          ("task_artifacts", "ts"), ("dictations", "ts"), ("app_usage", None), ("app_hours", None), ("llm_usage", None), ("mic_log", "start")]
 
 
 def _tables(rt) -> set[str]:

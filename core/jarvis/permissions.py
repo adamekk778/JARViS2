@@ -35,6 +35,7 @@ READ_ONLY_OK = {
     "goal_plan", "sql_query", "a11y_check", "check_translation",
     "inbox_overview", "contact_card", "reply_context", "follow_up_check", "communication_digest", "calendar_check", "free_time",
     "meeting_prep", "learning_weak_spots", "study_stats", "check_math_steps", "quiz_from", "oral_exam",
+    "what_next", "forgotten_work", "my_routines", "deadline_risks", "estimate_effort", "day_summary", "quiet_status",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

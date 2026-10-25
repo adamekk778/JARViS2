@@ -258,6 +258,7 @@ class Stark(BaseModel):
     network_watch: bool = False         # 3.5: tell me when a device I have not seen joins the home network
     hardware_watch: bool = True         # OMEGA 290: say when a USB device / monitor / disk is plugged in or removed
     perf_history: bool = True           # OMEGA 312: CPU / RAM / disk every 5 minutes, kept 30 days
+    smart_quiet: bool = True            # OMEGA 500: no speaking at night, in a meeting, in focus mode or over a fullscreen app
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
 
@@ -425,7 +426,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "character.color", "character.glow", "character.size", "character.outfit", "agent.mode",
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
-    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "automations.enabled",
+    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak",

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 204 | 74 |
-| 🟡 ČÁSTEČNĚ | 156 | 58 |
+| ✅ HOTOVO | 214 | 74 |
+| 🟡 ČÁSTEČNĚ | 155 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 402 | 17 |
+| ⬜ CHYBÍ | 393 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -783,25 +783,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 39. Proactive Intelligence
 
-✅ 1 · 🟡 3 · ⬜ 11
+✅ 11 · 🟡 2 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 496 | Next Action Prediction — návrh dalšího kroku. | ⬜ CHYBÍ | — |
-| 497 | Routine Discovery — rozpoznání rutin. | ⬜ CHYBÍ | — |
+| 496 | Next Action Prediction — návrh dalšího kroku. | ✅ HOTOVO | what_next: další krok s důvodem (termíny, kartičky, nedořešené, rutina v tuto hodinu, zapomenuté, seznamy) |
+| 497 | Routine Discovery — rozpoznání rutin. | ✅ HOTOVO | my_routines: aplikace ve stejnou hodinu v řadě dní (všední dny / víkend) z měření po hodinách |
 | 498 | Opportunity Alerts — možnosti zjednodušení. | ⬜ CHYBÍ | — |
-| 499 | Forgotten Task Detection — opuštěné projekty. | ⬜ CHYBÍ | — |
-| 500 | Intelligent Interruption Control — vhodný čas oznámení. | 🟡 ČÁSTEČNĚ | strážce mluví jen při důležitých věcech |
-| 501 | Contextual Suggestion Engine — kontextové funkce. | ⬜ CHYBÍ | — |
-| 502 | Deadline Risk Forecasting — rizika termínů. | ⬜ CHYBÍ | — |
-| 503 | Task Effort Estimator — odhad pracnosti. | ⬜ CHYBÍ | — |
-| 504 | Personal Routine Builder — osobní rutina. | 🟡 ČÁSTEČNĚ | protokoly a automatizace |
+| 499 | Forgotten Task Detection — opuštěné projekty. | ✅ HOTOVO | forgotten_work: stojící mise, projekty bez práce, staré položky seznamů |
+| 500 | Intelligent Interruption Control — vhodný čas oznámení. | ✅ HOTOVO | chytré ztišení: v noci, na schůzce, v soustředění a nad aplikací přes celou obrazovku se upozornění jen ukážou; budík, časovač a připomínky vždy nahlas |
+| 501 | Contextual Suggestion Engine — kontextové funkce. | 🟡 ČÁSTEČNĚ | návrhy podle hodiny a rutin; kontext podle otevřené aplikace zatím ne |
+| 502 | Deadline Risk Forecasting — rizika termínů. | ✅ HOTOVO | deadline_risks: mise (čas vs. zbývající kroky) a zkoušky bez opakování |
+| 503 | Task Effort Estimator — odhad pracnosti. | ✅ HOTOVO | estimate_effort: medián času a kroků z podobných dokončených misí |
+| 504 | Personal Routine Builder — osobní rutina. | 🟡 ČÁSTEČNĚ | rutiny se dají převést na automatizaci; skládání osobní rutiny zatím ne |
 | 505 | Automatic Priority Negotiation — změny priorit. | ⬜ CHYBÍ | — |
-| 506 | Unfinished Conversation Detection — nedořešené otázky. | ⬜ CHYBÍ | — |
-| 507 | Idle-Time Task Suggestions — vhodné krátké úkoly. | ⬜ CHYBÍ | — |
+| 506 | Unfinished Conversation Detection — nedořešené otázky. | ✅ HOTOVO | nedořešené rozhovory: tvoje otázka bez odpovědi / JARVISova otázka bez reakce |
+| 507 | Idle-Time Task Suggestions — vhodné krátké úkoly. | ✅ HOTOVO | what_next s minutes: jen úkoly, které stihneš (kartičky, krátké položky) |
 | 508 | Proactive Error Warnings — včasná varování. | ✅ HOTOVO | strážce: baterie, CPU, RAM, disk, internet, nové zařízení v síti (stark.py) |
-| 509 | Contextual Work Resumption — příprava pokračování. | ⬜ CHYBÍ | — |
-| 510 | Daily Achievement Timeline — přehled práce dne. | 🟡 ČÁSTEČNĚ | ranní brífink, recap |
+| 509 | Contextual Work Resumption — příprava pokračování. | ✅ HOTOVO | project_resume (vlna 4) + nedořešené rozhovory |
+| 510 | Daily Achievement Timeline — přehled práce dne. | ✅ HOTOVO | day_summary: dokončené mise, zprávy, diktování, opakování, čas v aplikacích |
 
 ## 40. Semantic Operating System
 

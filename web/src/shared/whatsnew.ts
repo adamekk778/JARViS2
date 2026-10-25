@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.9": [
+    { icon: "lightbulb", title: "JARVIS myslí dopředu", line: "„Co mám dělat teď?“ – hořící termíny, zapomenuté úkoly, nedořešené otázky a tvoje rutiny. V noci, na schůzce a ve hře mlčí (budík ale vždy zazvoní)." },
     { icon: "graduation-cap", title: "Učení", line: "Kartičky s chytrým opakováním, testy z tvých zápisků, kontrola výpočtů krok po kroku, ústní zkoušení a plán před zkouškou." },
     { icon: "tray", title: "Jedna schránka", line: "E-maily i zprávy z telefonu seřazené podle důležitosti, co po tobě kdo chce, na co ti neodpověděli, karty kontaktů a zápisy ze schůzek s úkoly." },
     { icon: "users-three", title: "Tým specialistů", line: "„Ať to otestuje tester“, „nech architekta posoudit projekt“ – a hloubkový výzkum, kde je každé tvrzení doložené zdrojem." },

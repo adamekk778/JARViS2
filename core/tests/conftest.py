@@ -27,7 +27,7 @@ def ctx(tmp_path):
                          store=AttachmentStore(tmp_path / "files", db), transport=None, notified=[])
     ns.http = lambda: httpx.AsyncClient(transport=ns.transport)
 
-    def notify(title, body, url="", speak=True, target="all"):
+    def notify(title, body, url="", speak=True, target="all", urgent=False):
         ns.notified.append((title, body, target))
         return 1
 
@@ -74,6 +74,7 @@ def rt():
     from jarvis.tools.platform.null import NullPlatform
 
     r = Runtime(platform=NullPlatform(), persist_config=False)
+    r.cfg.stark.smart_quiet = False      # speaking must not depend on the hour the tests run; test_wave8 turns it on
     return r
 
 

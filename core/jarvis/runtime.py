@@ -287,8 +287,16 @@ class Runtime:
     def mobile_clients(self) -> int:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
-    def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all") -> int:
+    def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False) -> int:
+        """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
         self.bus.publish("notify", title=title, body=body, url=url, target=target)
+        if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
+            from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
+
+            try:
+                speak = not quiet_reason(self)
+            except Exception:  # noqa: BLE001 – never lose a notification over this
+                pass
         if speak:
             self.speak(body)
         try:
@@ -329,4 +337,4 @@ class Runtime:
             self.voice.expect_confirmation(cid)
 
     def _timer_fired(self, label: str) -> None:
-        self.notify("⏲ " + label, f"{label} – čas vypršel!", target="all")
+        self.notify("⏲ " + label, f"{label} – čas vypršel!", target="all", urgent=True)

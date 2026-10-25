@@ -108,7 +108,7 @@ class Scheduler:
         p = job["payload"]
         try:
             if job["kind"] == "notify":
-                self.rt.notify(p.get("title", "Připomínka"), p.get("body", ""), target="all")
+                self.rt.notify(p.get("title", "Připomínka"), p.get("body", ""), target="all", urgent=True)
             elif job["kind"] == "ring":       # "zavolej mi v 7 a připomeň…"
                 await self.rt.phone.ring(p.get("text", "Připomínka."), reason="schedule")
             elif job["kind"] == "watch":

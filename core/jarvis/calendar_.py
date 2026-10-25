@@ -125,7 +125,7 @@ class Calendar:
                 when = "teď" if left < 1 else f"za {round(left)} min"
                 where = f" ({e['location']})" if e.get("location") else ""
                 text = f"{when.capitalize()}: {e['title']}{where}."
-                self.rt.notify("Kalendář", text, speak=self.rt.cfg.voice.speak_mode != "never")
+                self.rt.notify("Kalendář", text, speak=self.rt.cfg.voice.speak_mode != "never", urgent=True)
                 if e.get("ring") and getattr(self.rt, "phone", None):
                     await self.rt.phone.ring(f"Pane, připomínám: {e['title']} {when}.", reason="calendar")
         return due

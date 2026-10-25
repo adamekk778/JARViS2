@@ -531,3 +531,17 @@
 462 | HOTOVO | Document-to-Quiz
 463 | HOTOVO | Exam Countdown Planner
 464 | ČÁSTEČNĚ | souvislosti mezi pojmy v myšlenkové mapě
+
+# Vlna 8 (3.9): proaktivita – proactive.py, tools/proactive_tools.py, powers.Activity (aplikace po hodinách), tests/test_wave8.py
+496 | HOTOVO | what_next: další krok s důvodem (termíny, kartičky, nedořešené, rutina v tuto hodinu, zapomenuté, seznamy)
+497 | HOTOVO | my_routines: aplikace ve stejnou hodinu v řadě dní (všední dny / víkend) z měření po hodinách
+499 | HOTOVO | forgotten_work: stojící mise, projekty bez práce, staré položky seznamů
+500 | HOTOVO | chytré ztišení: v noci, na schůzce, v soustředění a nad aplikací přes celou obrazovku se upozornění jen ukážou; budík, časovač a připomínky vždy nahlas
+501 | ČÁSTEČNĚ | návrhy podle hodiny a rutin; kontext podle otevřené aplikace zatím ne
+502 | HOTOVO | deadline_risks: mise (čas vs. zbývající kroky) a zkoušky bez opakování
+503 | HOTOVO | estimate_effort: medián času a kroků z podobných dokončených misí
+504 | ČÁSTEČNĚ | rutiny se dají převést na automatizaci; skládání osobní rutiny zatím ne
+506 | HOTOVO | nedořešené rozhovory: tvoje otázka bez odpovědi / JARVISova otázka bez reakce
+507 | HOTOVO | what_next s minutes: jen úkoly, které stihneš (kartičky, krátké položky)
+509 | HOTOVO | project_resume (vlna 4) + nedořešené rozhovory
+510 | HOTOVO | day_summary: dokončené mise, zprávy, diktování, opakování, čas v aplikacích

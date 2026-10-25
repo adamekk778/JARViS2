@@ -52,6 +52,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
+| `project_resume` | 044, 509 |
 | `quiz_from` | 107, 112 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
@@ -66,6 +67,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `wake_word` | 098, P3.01 |
 | `web_read` | P6.03, P11.01 |
 | `web_search` | P6.03, P11.01 |
+| `what_next` | 496, 507 |
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
@@ -101,11 +103,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
 | `data_rescue_plan` | 300 |
+| `day_summary` | 510 |
+| `deadline_risks` | 502 |
 | `deep_research` | 003 |
 | `delegate_to_agent` | 061 |
 | `delete_file` | P14.02 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
+| `estimate_effort` | 503 |
 | `explain_crash_code` | 014 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
@@ -122,6 +127,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
 | `foreground_info` | 026 |
+| `forgotten_work` | 499 |
 | `free_time` | 568 |
 | `generate_image` | 132 |
 | `git_log` | 050 |
@@ -150,6 +156,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
 | `move_files` | P2.11 |
+| `my_routines` | 497 |
 | `network_devices` | 426 |
 | `over_budget` | 221 |
 | `pairing_get` | 184 |
@@ -160,7 +167,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `press_keys` | P2.02 |
 | `price_alert` | 379 |
 | `privacy.py` | P14.10 |
-| `project_resume` | 044 |
 | `provider_test` | 587 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
