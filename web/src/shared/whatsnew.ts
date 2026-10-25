@@ -3,6 +3,11 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.6": [
+    { icon: "stethoscope", title: "Mise: stav počítače", line: "Úkoly → Zkontrolovat PC (nebo „zjisti stav mého počítače“): jen čte, uloží report a ověří ho – kritéria, důkazy a soubor uvidíš v Úkolech." },
+    { icon: "magic-wand", title: "Skill Forge", line: "Z hotové mise udělej dovednost („ulož to jako dovednost“). Každá úprava má verzi a jde vrátit zpět." },
+    { icon: "shield-check", title: "Mise přežijí restart", line: "Když se JARVIS vypne uprostřed práce, mise se označí jako Přerušená a jde jedním klikem zopakovat." },
+  ],
   "3.5": [
     { icon: "flow-arrow", title: "Automatizace „Když … tak …“", line: "„Když otevřu Spotify, dej hlasitost na 30“, „když mi napíše máma, řekni mi to“, „když odejdu od PC, pozastav hudbu“." },
     { icon: "house-line", title: "Chytrá domácnost", line: "Připoj Home Assistant: „rozsviť v obýváku“, „zhasni všechno“, „nastav topení na 22“. Zámky a vrata vždy potvrdíš." },

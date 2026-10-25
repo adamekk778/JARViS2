@@ -20,9 +20,11 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
 ## Na skutečném Windows (GitHub Actions, windows-latest)
 - Notch, celý chat, HUD, UI Automation, označený text v Notepadu (oprava a nahrazení), seznam běžících aplikací,
   `arp -a`, benchmark nečinnosti (CPU ~1 %, RAM ~73 MB) – **prošlo**.
-- `--selftest-report` (read-only diagnostika + ověření souboru): první dvě verze se na Windows **zasekly**
-  (krok zrušen / ukončen pojistkou po 4 minutách). Opraveno spouštění pomocných procesů (bez stdin, výstup do
-  souboru, tvrdý limit) a přidán výpis jednotlivých fází; výsledek dalšího běhu je doplněn níže.
+- `--selftest-report` (read-only diagnostika + ověření souboru): první verze se na Windows **zasekly**. Výpis fází
+  ukázal, že sběr dat i zápis reportu trvají jen 4,5 s; zasekl se až konečný výpis výsledku – přesměrovaný výstup na
+  Windows má kódovou stránku cp1252, česká písmena (č, ř, ě) ho shodila a ladicí build pak čekal na potvrzení
+  chybového okna. Opraveno (ASCII výpis ve všech selftestech) a navíc zpevněno spouštění pomocných procesů (bez
+  stdin, výstup do souboru, tvrdý limit) a pojistky v CI (4 min / 15 min).
 
 ## Neověřeno / omezení
 - Report na Windows mimo CI (různé edice, bez práv správce) – čeká na zpětnou vazbu uživatele.
