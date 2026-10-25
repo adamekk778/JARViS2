@@ -80,6 +80,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
 | `backup_plan` | 330 |
+| `best_time_outside` | 783 |
 | `break_minutes` | 077 |
 | `broken_links` | 383 |
 | `calendar_.py` | 171 |
@@ -125,6 +126,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_duplicates` | 317 |
 | `find_similar_photos` | 318 |
 | `flashcards_from` | 112 |
+| `focus_report` | 787 |
 | `folder_check` | 329 |
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
@@ -138,7 +140,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `inbox_overview` | 541 |
+| `ingredient_substitute` | 786 |
 | `learning_weak_spots` | 108 |
+| `life_event_plan` | 781 |
 | `link_alive` | 410 |
 | `list_folder` | P2.11 |
 | `local_unload` | 576 |
@@ -161,6 +165,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `my_routines` | 497 |
 | `network_devices` | 426 |
 | `over_budget` | 221 |
+| `packing_list` | 782 |
 | `pairing_get` | 184 |
 | `pc_diagnose` | 011 |
 | `perf_history` | 312 |
@@ -172,6 +177,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `provider_test` | 587 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
+| `reading_level` | 791 |
 | `recent_files` | 322 |
 | `redact.py` | 179 |
 | `remove_duplicates` | 317 |
@@ -189,7 +195,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
 | `set_private` | 041 |
+| `setup_check` | 795 |
 | `shared/taskcard.ts` | 087 |
+| `shopping_by_aisle` | 785 |
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
@@ -210,7 +218,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
 | `to_list` | 570 |
-| `tools/list_tools.py` | 785 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
 | `tools/shell.py` | 702 |

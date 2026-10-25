@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 221 | 74 |
-| 🟡 ČÁSTEČNĚ | 154 | 58 |
+| ✅ HOTOVO | 227 | 74 |
+| 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 387 | 17 |
+| ⬜ CHYBÍ | 384 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -1201,25 +1201,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 58. Everyday Intelligence & Accessibility
 
-✅ 4 · 🟡 5 · 🔌 1 · ⬜ 5
+✅ 10 · 🟡 2 · 🔌 1 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 781 | Life Event Planner — osobní události. | ⬜ CHYBÍ | — |
-| 782 | Travel Packing Assistant — balení na cesty. | ⬜ CHYBÍ | — |
-| 783 | Weather-Aware Planning — plány podle počasí. | 🟡 ČÁSTEČNĚ | počasí v brífinku |
+| 781 | Life Event Planner — osobní události. | ✅ HOTOVO | life_event_plan: stěhování, svatba, miminko, dovolená, nová práce, narozeniny, STK – kroky na časové ose, do seznamu |
+| 782 | Travel Packing Assistant — balení na cesty. | ✅ HOTOVO | packing_list: podle nocí, skutečné předpovědi v cíli (zima, déšť, UV, horko) a aktivit, do seznamu |
+| 783 | Weather-Aware Planning — plány podle počasí. | ✅ HOTOVO | best_time_outside: nejlepší hodina/den podle hodinové předpovědi (déšť, teplota, vítr) pro aktivitu |
 | 784 | Public Transport Connector — dopravní spojení. | 🔌 VYŽADUJE_INTEGRACI | veřejné API pro jízdní řády ČR chybí |
-| 785 | Smart Grocery List — nákupní seznam. | ✅ HOTOVO | nákupní seznam (tools/list_tools.py) |
-| 786 | Recipe Ingredient Substitution — náhrady surovin. | ⬜ CHYBÍ | — |
-| 787 | Daily Focus Report — soustředění. | 🟡 ČÁSTEČNĚ | čas v aplikacích |
+| 785 | Smart Grocery List — nákupní seznam. | ✅ HOTOVO | nákupní seznam + shopping_by_aisle (seřazení podle oddělení) |
+| 786 | Recipe Ingredient Substitution — náhrady surovin. | ✅ HOTOVO | ingredient_substitute: ověřené náhrady surovin vč. veganských/bezlepkových |
+| 787 | Daily Focus Report — soustředění. | ✅ HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina |
 | 788 | Screen Reader Optimization — čtečky. | 🟡 ČÁSTEČNĚ | aria popisky |
 | 789 | One-Handed Control Profiles — jedna ruka. | ⬜ CHYBÍ | — |
 | 790 | Live Caption Accessibility — živé titulky. | ⬜ CHYBÍ | — |
-| 791 | Reading Assistance Mode — jednodušší text. | 🟡 ČÁSTEČNĚ | vysvětlení / zjednodušení označeného textu |
+| 791 | Reading Assistance Mode — jednodušší text. | ✅ HOTOVO | reading_level: náročnost textu (věty, dlouhá slova, čas čtení) + zjednodušení textu přes AI |
 | 792 | Digital Wellbeing Dashboard — využití aplikací. | ✅ HOTOVO | čas u PC po aplikacích (screen_time) |
 | 793 | Personal Data Portability — export dat. | ✅ HOTOVO | export všech dat do ZIP bez hesel (privacy.export_all) |
 | 794 | Complete Local Memory Reset — vymazání lokální paměti. | ✅ HOTOVO | úplné smazání po napsání SMAZAT, odpojí telefony (privacy.reset_all) |
-| 795 | JARVIS Setup Wizard — kompletní průvodce nastavením. | 🟡 ČÁSTEČNĚ | Co je nového + nastavení; plný průvodce chybí |
+| 795 | JARVIS Setup Wizard — kompletní průvodce nastavením. | 🟡 ČÁSTEČNĚ | setup_check: co je nastavené a další krok ke každé věci; interaktivní průvodce v okně zatím ne |
 
 ## Původní seznam 110+ schopností
 

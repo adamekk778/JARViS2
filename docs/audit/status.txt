@@ -554,3 +554,13 @@
 383 | HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení)
 388 | HOTOVO | website_audit: rychlost, velikost, komprese, cache, obrázky bez rozměrů, počet skriptů
 389 | HOTOVO | website_audit: titulek, popis, h1, viewport, og:title, jazyk, osnova nadpisů
+
+# Vlna 10 (3.9): každý den – everyday.py, tools/everyday_tools.py, tests/test_wave10.py
+781 | HOTOVO | life_event_plan: stěhování, svatba, miminko, dovolená, nová práce, narozeniny, STK – kroky na časové ose, do seznamu
+782 | HOTOVO | packing_list: podle nocí, skutečné předpovědi v cíli (zima, déšť, UV, horko) a aktivit, do seznamu
+783 | HOTOVO | best_time_outside: nejlepší hodina/den podle hodinové předpovědi (déšť, teplota, vítr) pro aktivitu
+785 | HOTOVO | nákupní seznam + shopping_by_aisle (seřazení podle oddělení)
+786 | HOTOVO | ingredient_substitute: ověřené náhrady surovin vč. veganských/bezlepkových
+787 | HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina
+791 | HOTOVO | reading_level: náročnost textu (věty, dlouhá slova, čas čtení) + zjednodušení textu přes AI
+795 | ČÁSTEČNĚ | setup_check: co je nastavené a další krok ke každé věci; interaktivní průvodce v okně zatím ne
