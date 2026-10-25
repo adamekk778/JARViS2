@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 171 | 74 |
-| 🟡 ČÁSTEČNĚ | 160 | 58 |
+| ✅ HOTOVO | 189 | 74 |
+| 🟡 ČÁSTEČNĚ | 157 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 431 | 17 |
+| ⬜ CHYBÍ | 416 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -849,47 +849,47 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 42. Communication
 
-✅ 2 · 🟡 6 · ⬜ 7
+✅ 10 · 🟡 4 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 541 | Unified Message Inbox — sloučené zprávy. | 🟡 ČÁSTEČNĚ | e-mail + zprávy z telefonu (mail.py, phone.py) |
-| 542 | Message Importance Ranking — priority komunikace. | 🟡 ČÁSTEČNĚ | VIP odesílatelé |
-| 543 | Reply Context Builder — podklady odpovědi. | ⬜ CHYBÍ | — |
-| 544 | Conversation Action Extraction — úkoly ze zpráv. | ⬜ CHYBÍ | — |
-| 545 | Attachment Relationship Finder — související přílohy. | ⬜ CHYBÍ | — |
-| 546 | Conversation Follow-Up Tracker — navazující komunikace. | ⬜ CHYBÍ | — |
+| 541 | Unified Message Inbox — sloučené zprávy. | ✅ HOTOVO | inbox_overview: e-maily ze všech účtů + zprávy a zmeškané hovory z telefonu v jednom seznamu |
+| 542 | Message Importance Ranking — priority komunikace. | ✅ HOTOVO | pořadí podle důležitosti s důvodem (důležitý kontakt, termín, požadavek, peníze, otázka, newsletter) |
+| 543 | Reply Context Builder — podklady odpovědi. | ✅ HOTOVO | reply_context: vlákno, karta odesílatele, přílohy, co chce – podklady před odpovědí |
+| 544 | Conversation Action Extraction — úkoly ze zpráv. | ✅ HOTOVO | message_actions: požadavky a termíny ze zpráv (do pátku, zítra, do 3. 11.), volitelně do seznamu úkolů |
+| 545 | Attachment Relationship Finder — související přílohy. | 🟡 ČÁSTEČNĚ | k přílohám e-mailu najde v PC soubory se stejným názvem; podobnost obsahu ne |
+| 546 | Conversation Follow-Up Tracker — navazující komunikace. | ✅ HOTOVO | follow_up_check: na co ti nikdo neodpověděl a na co jsi neodpověděl ty |
 | 547 | Tone Adjustment — styl odpovědi. | 🟡 ČÁSTEČNĚ | formálnější/kratší přepis označeného textu |
 | 548 | Multilingual Message Drafting — různé jazyky. | 🟡 ČÁSTEČNĚ | překlad |
 | 549 | Inbox Noise Reduction — méně spamu. | ✅ HOTOVO | filtr newsletterů |
 | 550 | Message Source Linking — zdroje konverzací. | ⬜ CHYBÍ | — |
 | 551 | Communication Search Assistant — vyhledání rozhodnutí. | 🟡 ČÁSTEČNĚ | email_search |
-| 552 | Response Time Analytics — doby odpovědí. | ⬜ CHYBÍ | — |
-| 553 | Contact Context Cards — přehled kontaktů. | ⬜ CHYBÍ | — |
+| 552 | Response Time Analytics — doby odpovědí. | ✅ HOTOVO | průměrná doba tvé odpovědi (odeslaná pošta vs. doručená) |
+| 553 | Contact Context Cards — přehled kontaktů. | ✅ HOTOVO | contact_card: zprávy, poslední kontakt, adresy, co o něm JARVIS ví, společné události |
 | 554 | Draft Approval System — schválení odeslání. | ✅ HOTOVO | odeslání e-mailu/SMS jen po schválení |
-| 555 | Communication Digest — souhrny komunikace. | 🟡 ČÁSTEČNĚ | nepřečtené v brífinku |
+| 555 | Communication Digest — souhrny komunikace. | ✅ HOTOVO | communication_digest: kolik čeho přišlo, co je důležité, co po tobě kdo chce |
 
 ## 43. Meetings
 
-🟡 3 · ⬜ 12
+✅ 10 · 🟡 2 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 556 | Meeting Preparation Engine — podklady schůzek. | ⬜ CHYBÍ | — |
-| 557 | Agenda Builder — program jednání. | ⬜ CHYBÍ | — |
-| 558 | Availability Conflict Resolver — řešení konfliktů. | ⬜ CHYBÍ | — |
-| 559 | Meeting Decision Log — rozhodnutí schůzky. | 🟡 ČÁSTEČNĚ | zápisy z nahrávek |
-| 560 | Speaker Contribution Summary — příspěvky řečníků. | ⬜ CHYBÍ | — |
-| 561 | Action Owner Assignment — přiřazení vlastníků úkolů. | ⬜ CHYBÍ | — |
-| 562 | Meeting Follow-Up Generator — následné zprávy. | ⬜ CHYBÍ | — |
-| 563 | Calendar Travel Buffer — cestovní rezerva. | ⬜ CHYBÍ | — |
+| 556 | Meeting Preparation Engine — podklady schůzek. | ✅ HOTOVO | meeting_prep: podklady z paměti a e-mailů k nejbližší / zadané schůzce |
+| 557 | Agenda Builder — program jednání. | ✅ HOTOVO | návrh programu schůzky z podkladů |
+| 558 | Availability Conflict Resolver — řešení konfliktů. | ✅ HOTOVO | calendar_check: překrývající se schůzky |
+| 559 | Meeting Decision Log — rozhodnutí schůzky. | ✅ HOTOVO | meeting_minutes: rozhodnutí z přepisu nahrávky |
+| 560 | Speaker Contribution Summary — příspěvky řečníků. | ✅ HOTOVO | kdo kolik mluvil (podíl slov podle přepisu) |
+| 561 | Action Owner Assignment — přiřazení vlastníků úkolů. | ✅ HOTOVO | úkoly ze schůzky s vlastníkem a termínem |
+| 562 | Meeting Follow-Up Generator — následné zprávy. | ✅ HOTOVO | návrh následného e-mailu (odešle se až po schválení přes email_send) |
+| 563 | Calendar Travel Buffer — cestovní rezerva. | ✅ HOTOVO | málo času na přesun mezi schůzkami na různých místech |
 | 564 | Meeting Relevance Checker — opakující se schůzky. | ⬜ CHYBÍ | — |
 | 565 | Project Milestone Calendar — kalendář milníků. | 🟡 ČÁSTEČNĚ | kalendář |
 | 566 | Meeting Notes Search — hledání poznámek. | 🟡 ČÁSTEČNĚ | hledání v poznámkách |
 | 567 | Recurring Meeting Review — hodnocení schůzek. | ⬜ CHYBÍ | — |
-| 568 | Availability Sharing Assistant — sdílení možností termínů. | ⬜ CHYBÍ | — |
+| 568 | Availability Sharing Assistant — sdílení možností termínů. | ✅ HOTOVO | free_time: volné termíny jako text k poslání |
 | 569 | Meeting Document Organizer — soubory schůzek. | ⬜ CHYBÍ | — |
-| 570 | Decision-to-Task Converter — rozhodnutí na úkoly. | ⬜ CHYBÍ | — |
+| 570 | Decision-to-Task Converter — rozhodnutí na úkoly. | ✅ HOTOVO | úkoly ze schůzky rovnou do seznamu (to_list) |
 
 ## 44. Local AI Supercomputer
 

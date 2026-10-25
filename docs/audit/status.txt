@@ -490,3 +490,24 @@
 207 | HOTOVO | co chybí vědět (missing_info) u rozhodování
 214 | HOTOVO | zadání a výsledek každého specialisty v misi jako důkazy (sběrnice agentů)
 218 | HOTOVO | agent_team: předání výsledku dalšímu specialistovi
+
+# Vlna 6 (3.9): komunikace a schůzky – comms.py, tools/comms_tools.py, tests/test_wave6.py
+541 | HOTOVO | inbox_overview: e-maily ze všech účtů + zprávy a zmeškané hovory z telefonu v jednom seznamu
+542 | HOTOVO | pořadí podle důležitosti s důvodem (důležitý kontakt, termín, požadavek, peníze, otázka, newsletter)
+543 | HOTOVO | reply_context: vlákno, karta odesílatele, přílohy, co chce – podklady před odpovědí
+544 | HOTOVO | message_actions: požadavky a termíny ze zpráv (do pátku, zítra, do 3. 11.), volitelně do seznamu úkolů
+545 | ČÁSTEČNĚ | k přílohám e-mailu najde v PC soubory se stejným názvem; podobnost obsahu ne
+546 | HOTOVO | follow_up_check: na co ti nikdo neodpověděl a na co jsi neodpověděl ty
+552 | HOTOVO | průměrná doba tvé odpovědi (odeslaná pošta vs. doručená)
+553 | HOTOVO | contact_card: zprávy, poslední kontakt, adresy, co o něm JARVIS ví, společné události
+555 | HOTOVO | communication_digest: kolik čeho přišlo, co je důležité, co po tobě kdo chce
+556 | HOTOVO | meeting_prep: podklady z paměti a e-mailů k nejbližší / zadané schůzce
+557 | HOTOVO | návrh programu schůzky z podkladů
+558 | HOTOVO | calendar_check: překrývající se schůzky
+559 | HOTOVO | meeting_minutes: rozhodnutí z přepisu nahrávky
+560 | HOTOVO | kdo kolik mluvil (podíl slov podle přepisu)
+561 | HOTOVO | úkoly ze schůzky s vlastníkem a termínem
+562 | HOTOVO | návrh následného e-mailu (odešle se až po schválení přes email_send)
+563 | HOTOVO | málo času na přesun mezi schůzkami na různých místech
+568 | HOTOVO | free_time: volné termíny jako text k poslání
+570 | HOTOVO | úkoly ze schůzky rovnou do seznamu (to_list)

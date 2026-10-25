@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.9": [
+    { icon: "tray", title: "Jedna schránka", line: "E-maily i zprávy z telefonu seřazené podle důležitosti, co po tobě kdo chce, na co ti neodpověděli, karty kontaktů a zápisy ze schůzek s úkoly." },
     { icon: "users-three", title: "Tým specialistů", line: "„Ať to otestuje tester“, „nech architekta posoudit projekt“ – a hloubkový výzkum, kde je každé tvrzení doložené zdrojem." },
     { icon: "brain", title: "Paměť a projekty", line: "Najdi cokoli, o čem jste mluvili (i bez háčků), časová osa dne, projekty s vlastní pamětí a „navaž, kde jsme skončili“. JARVIS pozná, když si něco odporuje." },
     { icon: "folders", title: "Soubory", line: "Duplicity do koše, podobné fotky, roztřídění Stažených podle obsahu, hromadné přejmenování s vrácením, převody formátů a záloha s ověřením." },

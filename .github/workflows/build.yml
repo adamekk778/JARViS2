@@ -52,6 +52,7 @@ jobs:
       - name: Tests on Windows
         run: cd core; pytest -q -x
       - name: PyInstaller
+        timeout-minutes: 25      # normally 4–5 min; a hang must end with a log, not after 6 hours
         run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
       - name: Smoke test JARVIS.exe
         shell: pwsh

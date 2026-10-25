@@ -36,19 +36,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
 | `desktop/host.py` | 226, P8.01 |
+| `email_send` | 562, P11.06 |
 | `find_file` | P2.11, P11.11 |
 | `find_in_files` | 316, 322 |
 | `goal_plan` | 001, 198 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
-| `mail.py` | 541, P11.05 |
 | `network.py` | 165, 406 |
 | `network_check` | 021, 718 |
 | `open_app` | P2.01, P12.09 |
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
-| `phone.py` | 145, 541 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `send_to_phone` | 138, 408 |
@@ -75,6 +74,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `backup_plan` | 330 |
 | `break_minutes` | 077 |
 | `calendar_.py` | 171 |
+| `calendar_check` | 558 |
 | `character/blob.ts` | 071 |
 | `check_assumptions` | 199 |
 | `check_download` | 398 |
@@ -84,8 +84,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
+| `communication_digest` | 555 |
 | `compare_files` | 029 |
 | `confirm_info` | 219 |
+| `contact_card` | 553 |
 | `convert_file` | 324 |
 | `copy_file` | P2.11 |
 | `create_restore_point` | 020 |
@@ -98,7 +100,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `delete_file` | P14.02 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
-| `email_send` | P11.06 |
 | `explain_crash_code` | 014 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
@@ -112,24 +113,31 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_similar_photos` | 318 |
 | `folder_check` | 329 |
 | `folder_fingerprint` | 329 |
+| `follow_up_check` | 546 |
 | `foreground_info` | 026 |
+| `free_time` | 568 |
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
 | `hardware_changes` | 298 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
+| `inbox_overview` | 541 |
 | `link_alive` | 410 |
 | `list_folder` | P2.11 |
 | `local_unload` | 576 |
 | `looks_secret` | 681 |
+| `mail.py` | P11.05 |
 | `mcp_client` | 048 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
+| `meeting_minutes` | 559 |
+| `meeting_prep` | 556 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
 | `memory_overview` | 040 |
 | `memory_timeline` | 036 |
+| `message_actions` | 544 |
 | `missing_info` | 207 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
@@ -139,6 +147,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pairing_get` | 184 |
 | `pc_diagnose` | 011 |
 | `perf_history` | 312 |
+| `phone.py` | 145 |
 | `phone_battery` | 417 |
 | `press_keys` | P2.02 |
 | `price_alert` | 379 |
@@ -151,6 +160,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `redact.py` | 179 |
 | `remove_duplicates` | 317 |
 | `rename_files` | 325 |
+| `reply_context` | 543 |
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
 | `save_file_version` | 328 |
@@ -180,6 +190,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_agent.py` | 182 |
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
+| `to_list` | 570 |
 | `tools/list_tools.py` | 785 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
