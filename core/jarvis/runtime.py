@@ -70,6 +70,12 @@ class Runtime:
 
         self.activity = Activity(self)
         self.selection: dict = {}      # the last selected text JARVIS copied (and the window it came from)
+        from .calendar_ import Calendar
+        from .mail import Mail
+
+        self.mail = Mail(self)
+        self.calendar = Calendar(self)
+        self.phone: Any = None         # 3.4 phone link (rings, dials, SMS) – set up in start()
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -81,6 +87,8 @@ class Runtime:
         self.guardian.start()
         self.activity.start()
         self.activity.prune()
+        self.mail.start()
+        self.calendar.start()
         try:
             from .updater import Updater
 
@@ -114,6 +122,8 @@ class Runtime:
         self.mood.stop()
         self.guardian.stop()
         self.activity.stop()
+        self.mail.stop()
+        self.calendar.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:
@@ -213,6 +223,7 @@ class Runtime:
         if self.persist_config:
             config_mod.save(self.cfg)
         self.router.update(self.cfg.brain)
+        self.mail.sync()
         self.bus.publish("settings_changed", settings=config_mod.public_dump(self.cfg))
         for hook in (self.voice, self.mcp):
             if hook and hasattr(hook, "on_config"):

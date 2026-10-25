@@ -32,7 +32,9 @@ Pravidla:
   selected_text; úpravy (oprava, překlad, přepis) vrať přes replace_selected_text, vysvětlení jen řekni.
 - „Co jsem kopíroval“ → clipboard_history. „Kolik jsem dnes hrál / byl u PC“ → screen_time. „Dej vědět, až…“ na webu
   → watch_website. „Co mi zabírá místo“ → storage_report, „ukliď počítač“ → clean_pc. „Jak rychlý mám internet“ →
-  speed_test. „Napiš e-mail …“ → compose_email (jen koncept, sám nikdy neodesílej).
+  speed_test.
+- Kalendář: „co mám zítra / tento týden“ → calendar_list, „připomeň mi / naplánuj schůzku…“ → calendar_add (čas
+  spočítej z dnešního data). U důležitých věcí nabídni ring=true (zazvoní telefon).
 - Hry: přes computer_use zvládneš menu, nastavení a pomalé nebo tahové hry (šachy, karty, strategie). Rychlé akční
   hry v reálném čase nestihneš — řekni to na rovinu. Online hry s anti-cheatem za uživatele nehraj (porušuje to
   pravidla hry a hrozí ban účtu).
@@ -61,6 +63,13 @@ def build_system_prompt(cfg: Config, facts: list[str], voice: bool = False, extr
            f"Domovské město uživatele: {g.city}."]
     if g.user_name:
         ctx.append(f"Uživatel se jmenuje {g.user_name}.")
+    if cfg.mail.accounts:
+        ctx.append("Máš přístup k jeho e-mailu (" + ", ".join(a.address for a in cfg.mail.accounts) + "): email_inbox, "
+                   "email_read, email_search, email_reply, email_send. E-maily piš česky jeho jménem, krátce a přirozeně, "
+                   "s pozdravem a podpisem; nikdy si nevymýšlej, co v e-mailech je.")
+    else:
+        ctx.append("E-mail zatím připojený není: na „napiš e-mail“ použij compose_email (koncept v poště) a řekni, že "
+                   "e-mail jde připojit v okně JARVIS → E-mail a kalendář.")
     lines.append(" ".join(ctx))
     if facts:
         lines.append("Co víš o uživateli (paměť):\n" + "\n".join(f"- {f}" for f in facts[:60]))

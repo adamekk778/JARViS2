@@ -262,6 +262,33 @@ class Powers(BaseModel):
     break_minutes: int = 90          # remind a pause after this long at the PC without a break; 0 = off
 
 
+class MailAccount(BaseModel):
+    id: str
+    address: str
+    name: str = ""                 # your name in "From:"
+    provider: str = "custom"       # seznam, gmail, centrum, atlas, icloud, custom
+    imap_host: str = ""
+    imap_port: int = 993
+    smtp_host: str = ""
+    smtp_port: int = 465
+    # the password lives in the system keyring (secrets "mail:<id>"), never here
+
+
+class MailCfg(BaseModel):
+    accounts: list[MailAccount] = Field(default_factory=list)
+    notify: bool = True            # announce new e-mails (notch, phone)
+    speak: bool = True             # …and say it
+    ignore_newsletters: bool = True
+    vip: list[str] = Field(default_factory=list)   # names or addresses that always get through
+    call_vip: bool = False         # an e-mail from a VIP rings your phone (3.4 phone)
+    check_seconds: int = 20
+
+
+class CalendarCfg(BaseModel):
+    ics_urls: list[str] = Field(default_factory=list)   # read-only calendars ("tajná adresa ve formátu iCal")
+    remind_minutes: int = 15
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -295,6 +322,8 @@ class Config(BaseModel):
     claude: ClaudeCfg = Field(default_factory=ClaudeCfg)
     stark: Stark = Field(default_factory=Stark)
     powers: Powers = Field(default_factory=Powers)
+    mail: MailCfg = Field(default_factory=MailCfg)
+    calendar: CalendarCfg = Field(default_factory=CalendarCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -319,6 +348,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
     "stark.guardian", "stark.guardian_speak",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
+    "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 
 # Never sent to remote clients.

@@ -32,6 +32,7 @@ CLIENT_TYPES = [
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
     "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
+    "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -44,7 +45,7 @@ SERVER_TYPES = [
     "diagnostics", "diagnostics_file",
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
-    "selection", "selection_result",
+    "selection", "selection_result", "mail_status", "mail_new", "calendar",
 ]
 
 QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -56,11 +57,11 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
-              "open_window", "site_open", "selection_action"}
+              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get"}
 
 
@@ -116,6 +117,36 @@ class Connection:
             pump.cancel()
             self.rt.bus.unsubscribe(q)
             self.rt.clients.pop(self.id, None)
+
+    async def _mail_status(self, **extra) -> None:
+        from ..mail import PRESETS
+
+        await self.send("mail_status", accounts=self.rt.mail.status(), presets=PRESETS, **extra)
+
+    async def _mail_add(self, m: dict) -> None:
+        """Add an account: test the login first, then keep the password in the keyring and the rest in the config."""
+        from .. import config as cfgmod
+        from ..mail import PRESETS, guess_provider, new_account_id, test_login
+
+        address = str(m.get("address", "")).strip()
+        password = str(m.get("password", ""))
+        provider = str(m.get("provider") or guess_provider(address))
+        pre = PRESETS.get(provider, PRESETS["custom"])
+        acc = cfgmod.MailAccount(id=new_account_id(), address=address, name=str(m.get("name", "")).strip(), provider=provider,
+                                 imap_host=str(m.get("imap_host") or pre["imap_host"]), imap_port=int(m.get("imap_port") or pre["imap_port"]),
+                                 smtp_host=str(m.get("smtp_host") or pre["smtp_host"]), smtp_port=int(m.get("smtp_port") or pre["smtp_port"]))
+        if not address or "@" not in address or not password or not acc.imap_host or not acc.smtp_host:
+            await self._mail_status(error="Vyplň e-mail, heslo pro aplikace (a u jiného poskytovatele servery).")
+            return
+        try:
+            await asyncio.to_thread(test_login, acc, password)
+        except ValueError as e:
+            await self._mail_status(error=str(e))
+            return
+        secrets.set(f"mail:{acc.id}", password)
+        others = [a.model_dump() for a in self.rt.cfg.mail.accounts if a.address.lower() != address.lower()]
+        self.rt.update_config({"mail": {"accounts": others + [acc.model_dump()]}})
+        await self._mail_status(added=address)
 
     async def _dispatch_safe(self, msg: dict) -> None:
         try:
@@ -254,6 +285,21 @@ class Connection:
             from .. import powers
 
             asyncio.get_running_loop().create_task(powers.run_selection_action(rt, str(m.get("action", ""))))
+        elif t == "mail_status_get":
+            await self._mail_status()
+        elif t == "mail_account_add":
+            await self._mail_add(m)
+        elif t == "mail_account_remove":
+            aid = str(m.get("id", ""))
+            rt.update_config({"mail": {"accounts": [a.model_dump() for a in rt.cfg.mail.accounts if a.id != aid]}})
+            secrets.set(f"mail:{aid}", "")
+            await self._mail_status()
+        elif t == "calendar_get":
+            import datetime as _dt
+
+            start = _dt.datetime.combine(_dt.date.today(), _dt.time())
+            evs = await rt.calendar.events(start, start + _dt.timedelta(days=max(1, min(31, int(m.get("days", 7))))))
+            await self.send("calendar", items=evs)
         elif t == "briefing_get":
             from .. import stark
 

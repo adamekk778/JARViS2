@@ -419,3 +419,18 @@ a.btn { text-decoration: none; }
 .pe-do select { flex: 1; }
 .pe-param { width: 160px; flex: none; }
 @media (max-width: 760px) { .pe-step { grid-template-columns: 1fr auto auto auto; } .pe-step > select:first-child { grid-column: 1 / -1; } }
+
+/* ---------- 3.4 e-mail & calendar ---------- */
+.comms-add { padding: 18px; display: grid; gap: 12px; }
+.comms-add h3 { margin: 0; }
+.comms-grid, .comms-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.comms-ics { display: flex; gap: 8px; }
+.comms-ics .input { flex: 1; }
+.comms-events { display: grid; gap: 4px; }
+.comms-events h4 { margin: 10px 0 2px; font-size: 12px; text-transform: capitalize; color: var(--muted); }
+.comms-ev { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; background: var(--surface); }
+.comms-ev b { min-width: 52px; font-variant-numeric: tabular-nums; }
+.comms-ev span:nth-child(2) { flex: 1; }
+.row.wide .input { width: min(380px, 50%); }
+.mono { font-family: var(--mono); font-size: 11.5px; }
+@media (max-width: 760px) { .comms-grid, .comms-custom { grid-template-columns: 1fr; } }

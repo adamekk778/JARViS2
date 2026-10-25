@@ -28,6 +28,8 @@ dependencies = [
   "edge-tts>=6.1",
   "mcp>=1.2",
   "numpy>=1.26",
+  "icalendar>=6",
+  "recurring-ical-events>=3",
 ]
 
 [project.optional-dependencies]

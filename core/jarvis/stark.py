@@ -116,6 +116,30 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
     except Exception as e:
         log.debug("briefing weather: %s", e)
 
+    cal = getattr(rt, "calendar", None)
+    if cal is not None:
+        try:
+            from .calendar_ import fmt_event
+
+            evs = await asyncio.wait_for(cal.day(now.date()), 8)
+            evs = [e for e in evs if e["end"] >= now.timestamp()]
+            if evs:
+                parts.append("V kalendáři: " + "; ".join(fmt_event(e) for e in evs[:5]) + ".")
+            data["calendar"] = evs
+        except Exception as e:
+            log.debug("briefing calendar: %s", e)
+    mail = getattr(rt, "mail", None)
+    if mail is not None and rt.cfg.mail.accounts:
+        try:
+            unread = await asyncio.wait_for(asyncio.to_thread(mail.account().list, True, 30), 10)
+            real = [m for m in unread if not m["newsletter"]]
+            if real:
+                who = ", ".join(dict.fromkeys(m["from_name"] for m in real[:3]))
+                parts.append(f"Máte {len(real)} nepřečtených e-mailů, mimo jiné od: {who}.")
+            data["mail_unread"] = len(real)
+        except Exception as e:
+            log.debug("briefing mail: %s", e)
+
     jobs = _today_jobs(rt, now)
     timers = rt.timers.list()
     if jobs or timers:

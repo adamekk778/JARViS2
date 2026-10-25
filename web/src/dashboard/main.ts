@@ -13,6 +13,7 @@ import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
 import { buildNotetaker } from "./notetaker";
 import { buildClaude } from "./claude";
 import { buildStark } from "./stark";
+import { buildComms } from "./comms";
 import { whatsNewOverlay } from "../shared/whatsnew";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
@@ -32,10 +33,10 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "stark", "tasks", "voice-mode", "claude"]],
+  ["Hlavní", ["chat", "stark", "comms", "tasks", "voice-mode", "claude"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
@@ -43,6 +44,7 @@ const GROUPS: [string, View[]][] = [
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["stark", "circle-notch", "Stark"],
+  ["comms", "envelope-simple", "E-mail a kalendář"],
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
   ["claude", "terminal-window", "Claude Code"],
@@ -85,6 +87,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   notetaker: buildNotetaker(client),
   claude: buildClaude(client),
   stark: buildStark(client),
+  comms: buildComms(client),
 };
 recapOverlay(client);
 whatsNewOverlay(client);
