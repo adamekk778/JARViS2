@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 227 | 74 |
-| 🟡 ČÁSTEČNĚ | 151 | 58 |
+| ✅ HOTOVO | 236 | 74 |
+| 🟡 ČÁSTEČNĚ | 150 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 384 | 17 |
+| ⬜ CHYBÍ | 376 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -387,14 +387,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 21. Next-Gen Desktop
 
-✅ 5 · 🟡 5 · ⬜ 5
+✅ 8 · 🟡 4 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 226 | Universal Overlay — rozhraní nad aplikacemi. | ✅ HOTOVO | notch a HUD nad aplikacemi (desktop/host.py) |
 | 227 | Smart Screen Regions — práce s výřezem obrazovky. | ⬜ CHYBÍ | — |
-| 228 | Window Grouping — seskupování oken. | ⬜ CHYBÍ | — |
-| 229 | Workspace Profiles — profily prostředí. | ⬜ CHYBÍ | — |
+| 228 | Window Grouping — seskupování oken. | ✅ HOTOVO | profil = skupina oken (programy + pozice), uložení a obnovení jedním příkazem |
+| 229 | Workspace Profiles — profily prostředí. | ✅ HOTOVO | workspace_save / workspace_restore: spustí chybějící programy a rozmístí okna jako minule |
 | 230 | Spatial Window Navigator — prostorová navigace. | ⬜ CHYBÍ | — |
 | 231 | Command Preview — náhled příkazů. | 🟡 ČÁSTEČNĚ | náhled akce v potvrzovacím dialogu (details) |
 | 232 | Interactive Action Timeline — historie operací. | ✅ HOTOVO | časová osa akcí každé mise (audit) |
@@ -403,7 +403,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 235 | Drag-to-JARVIS — přetažení obsahu. | ✅ HOTOVO | přetažení do notche |
 | 236 | Smart Clipboard Panel — historie schránky. | ✅ HOTOVO | historie schránky (powers.py) |
 | 237 | Animated Context Cards — kontextové karty. | 🟡 ČÁSTEČNĚ | karty výsledků nástrojů v chatu |
-| 238 | Cross-Monitor Docking — přesun mezi monitory. | 🟡 ČÁSTEČNĚ | HUD a notch na monitoru s kurzorem |
+| 238 | Cross-Monitor Docking — přesun mezi monitory. | ✅ HOTOVO | window_to_monitor: okno na jiný monitor |
 | 239 | Accessibility Interface — podporované asistivní ovládání. | 🟡 ČÁSTEČNĚ | aria popisky, klávesnice |
 | 240 | Low-Power UI — úsporné vykreslování. | 🟡 ČÁSTEČNĚ | vypnutí animací, úsporný režim místních modelů |
 
@@ -805,7 +805,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 40. Semantic Operating System
 
-✅ 1 · 🟡 1 · ⬜ 13
+✅ 7 · 🟡 1 · ⬜ 7
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -814,16 +814,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 513 | Cross-App Actions — navazující operace mezi aplikacemi. | ⬜ CHYBÍ | — |
 | 514 | App Capability Discovery — zjištění schopností aplikací. | ⬜ CHYBÍ | — |
 | 515 | Semantic Desktop Index — propojování desktopových dat. | ⬜ CHYBÍ | — |
-| 516 | Virtual App Groups — logické skupiny aplikací. | ⬜ CHYBÍ | — |
+| 516 | Virtual App Groups — logické skupiny aplikací. | ✅ HOTOVO | logické skupiny aplikací = pracovní profily (Práce, Hraní…) |
 | 517 | Smart Window Naming — názvy skupin oken. | ⬜ CHYBÍ | — |
-| 518 | Workspace State Comparison — porovnání pracovního prostředí. | ⬜ CHYBÍ | — |
-| 519 | App Recovery Assistant — obnova po pádu aplikace. | ⬜ CHYBÍ | — |
-| 520 | Universal Command History — hledání příkazů. | 🟡 ČÁSTEČNĚ | search_history |
-| 521 | Keyboard Shortcut Discovery — klávesové zkratky. | ⬜ CHYBÍ | — |
+| 518 | Workspace State Comparison — porovnání pracovního prostředí. | ✅ HOTOVO | workspace_compare: co chybí, co přibylo, co se posunulo |
+| 519 | App Recovery Assistant — obnova po pádu aplikace. | ✅ HOTOVO | reopen_crashed: znovu otevře programy, které za poslední hodinu spadly (událost 1000) a neběží |
+| 520 | Universal Command History — hledání příkazů. | ✅ HOTOVO | command_history: co jsi JARVISovi řekl a co udělal, podle slova |
+| 521 | Keyboard Shortcut Discovery — klávesové zkratky. | ✅ HOTOVO | shortcuts: zkratky pro program v popředí (Windows, prohlížeče, Word, Excel, VS Code, Průzkumník, Outlook, JARVIS) |
 | 522 | Adaptive Input Controller — myš/touch/hlas. | ⬜ CHYBÍ | — |
-| 523 | Virtual Workspace Snapshots — snímky pracovních ploch. | ⬜ CHYBÍ | — |
+| 523 | Virtual Workspace Snapshots — snímky pracovních ploch. | ✅ HOTOVO | snímky pracovních ploch = uložené profily oken |
 | 524 | Desktop Workflow Search — vyhledání pracovního postupu. | ⬜ CHYBÍ | — |
-| 525 | Task-Centric Desktop — aplikace seskupené podle úkolu. | ⬜ CHYBÍ | — |
+| 525 | Task-Centric Desktop — aplikace seskupené podle úkolu. | 🟡 ČÁSTEČNĚ | profil lze svázat s projektem (project); automatické přepnutí podle úkolu zatím ne |
 
 ## 41. Super Browser Agent
 

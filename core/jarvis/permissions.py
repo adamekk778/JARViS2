@@ -38,6 +38,7 @@ READ_ONLY_OK = {
     "what_next", "forgotten_work", "my_routines", "deadline_risks", "estimate_effort", "day_summary", "quiet_status",
     "broken_links", "website_audit", "source_reliability", "price_history", "fact_check",
     "best_time_outside", "ingredient_substitute", "shopping_by_aisle", "focus_report", "reading_level", "setup_check",
+    "workspace_compare", "workspace_list", "shortcuts", "command_history",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

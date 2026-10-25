@@ -95,6 +95,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
+| `command_history` | 520 |
 | `communication_digest` | 555 |
 | `compare_files` | 029 |
 | `confirm_info` | 219 |
@@ -182,6 +183,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `redact.py` | 179 |
 | `remove_duplicates` | 317 |
 | `rename_files` | 325 |
+| `reopen_crashed` | 519 |
 | `reply_context` | 543 |
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
@@ -190,7 +192,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `scan_secrets` | 401 |
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
-| `search_history` | 520 |
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
@@ -232,6 +233,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `wake_device` | 416 |
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
+| `window_to_monitor` | 238 |
+| `workspace_compare` | 518 |
+| `workspace_restore` | 229 |
+| `workspace_save` | 229 |
 | `write_text_file` | P5.05 |
 | `y_check` | 067 |
 

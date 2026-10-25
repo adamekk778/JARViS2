@@ -472,8 +472,18 @@ def selftest_windows() -> dict:
         p.hotkey(["ctrl", "a"])
         out["after"], _ = grab_selection(_Rt())
         out["clipboard_restored"] = p.clipboard_get() == "jarvis-selftest"
+        # OMEGA 229: the window layout sees Notepad and can move it (workspace profiles)
+        lay = [w for w in p.window_layout() if w["hwnd"] == hwnd]
+        out["layout_sees_notepad"] = bool(lay)
+        out["layout_moved"] = False
+        if lay:
+            p.place_window(hwnd, 120, 130, 700, 500, "normal")
+            time.sleep(0.4)
+            again = next((w for w in p.window_layout() if w["hwnd"] == hwnd), {})
+            out["layout_moved"] = abs(again.get("x", 0) - 120) <= 2 and abs(again.get("w", 0) - 700) <= 2
+            out["layout_rect"] = {k: again.get(k) for k in ("x", "y", "w", "h", "state")}
         out["ok"] = (out["grabbed"] == "dobry den, posilam fakturu" and out["after"] == "Dobrý den, posílám fakturu."
-                     and out["clipboard_restored"] and out["apps_has_notepad"])
+                     and out["clipboard_restored"] and out["apps_has_notepad"] and out["layout_sees_notepad"] and out["layout_moved"])
         return out
     finally:
         proc.kill()

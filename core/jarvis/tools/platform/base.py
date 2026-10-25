@@ -74,6 +74,8 @@ class Platform:
                 out.add(friendly_app(name))
         return out
     def focus_window(self, hwnd: int) -> bool: return False
+    def window_layout(self) -> list[dict]: return []   # [{hwnd, title, exe, path, app, x, y, w, h, state}]
+    def place_window(self, hwnd: int, x: int, y: int, w: int, h: int, state: str = "normal") -> bool: return False
     def clipboard_seq(self) -> int: return 0
     def wait_keys_released(self, timeout: float = 1.5) -> None: pass   # Ctrl/Alt/Shift from the hotkey still held
     def empty_recycle_bin(self) -> int: raise NotImplementedError   # → bytes freed (0 when unknown)

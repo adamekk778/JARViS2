@@ -184,6 +184,51 @@ class WindowsPlatform(Platform):
     def list_windows(self) -> list[str]:
         return [t for _, t in self._windows()]
 
+    # OMEGA 229 / 523: window layout snapshots (position, size, state, program) and putting windows back
+    class _WP(ctypes.Structure):
+        _fields_ = [("length", ctypes.c_uint), ("flags", ctypes.c_uint), ("showCmd", ctypes.c_uint),
+                    ("ptMin", ctypes.c_long * 2), ("ptMax", ctypes.c_long * 2), ("rc", ctypes.c_long * 4)]
+
+    def window_layout(self) -> list[dict]:
+        from ctypes import wintypes
+
+        import psutil
+
+        u = ctypes.windll.user32
+        out = []
+        for hwnd, title in self._windows():
+            if u.GetWindow(ctypes.c_void_p(hwnd), 4):          # GW_OWNER: dialogs and tool windows are not layout
+                continue
+            wp = self._WP()
+            wp.length = ctypes.sizeof(self._WP)
+            if not u.GetWindowPlacement(ctypes.c_void_p(hwnd), ctypes.byref(wp)):
+                continue
+            pid = wintypes.DWORD()
+            u.GetWindowThreadProcessId(ctypes.c_void_p(hwnd), ctypes.byref(pid))
+            try:
+                proc = psutil.Process(pid.value)
+                exe, path = proc.name(), proc.exe()
+            except Exception:
+                exe, path = "", ""
+            if exe.lower() in ("jarvis.exe", "jarvis-debug.exe", "textinputhost.exe", "applicationframehost.exe", "shellexperiencehost.exe"):
+                continue
+            l, t, r, b = list(wp.rc)
+            state = {2: "minimized", 3: "maximized"}.get(wp.showCmd, "normal")
+            out.append({"hwnd": int(hwnd), "title": title, "exe": exe, "path": path, "app": friendly_app(exe) if exe else "",
+                        "x": l, "y": t, "w": r - l, "h": b - t, "state": state})
+        return out
+
+    def place_window(self, hwnd: int, x: int, y: int, w: int, h: int, state: str = "normal") -> bool:
+        u = ctypes.windll.user32
+        wp = self._WP()
+        wp.length = ctypes.sizeof(self._WP)
+        if not u.GetWindowPlacement(ctypes.c_void_p(hwnd), ctypes.byref(wp)):
+            return False
+        wp.rc[0], wp.rc[1], wp.rc[2], wp.rc[3] = int(x), int(y), int(x + w), int(y + h)
+        wp.showCmd = {"minimized": 2, "maximized": 3}.get(state, 1)
+        wp.flags = 0
+        return bool(u.SetWindowPlacement(ctypes.c_void_p(hwnd), ctypes.byref(wp)))
+
     def window_action(self, action, title: str = "") -> str:
         u = ctypes.windll.user32
         if action in ("minimize_all", "restore_all"):

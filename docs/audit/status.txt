@@ -564,3 +564,15 @@
 787 | HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina
 791 | HOTOVO | reading_level: náročnost textu (věty, dlouhá slova, čas čtení) + zjednodušení textu přes AI
 795 | ČÁSTEČNĚ | setup_check: co je nastavené a další krok ke každé věci; interaktivní průvodce v okně zatím ne
+
+# Vlna 11 (3.9): pracovní prostředí – workspace.py, tools/workspace_tools.py, platform window_layout/place_window, tests/test_wave11.py, CI --selftest-powers (Notepad: vidí okno a přesune ho)
+228 | HOTOVO | profil = skupina oken (programy + pozice), uložení a obnovení jedním příkazem
+229 | HOTOVO | workspace_save / workspace_restore: spustí chybějící programy a rozmístí okna jako minule
+238 | HOTOVO | window_to_monitor: okno na jiný monitor
+516 | HOTOVO | logické skupiny aplikací = pracovní profily (Práce, Hraní…)
+518 | HOTOVO | workspace_compare: co chybí, co přibylo, co se posunulo
+519 | HOTOVO | reopen_crashed: znovu otevře programy, které za poslední hodinu spadly (událost 1000) a neběží
+520 | HOTOVO | command_history: co jsi JARVISovi řekl a co udělal, podle slova
+521 | HOTOVO | shortcuts: zkratky pro program v popředí (Windows, prohlížeče, Word, Excel, VS Code, Průzkumník, Outlook, JARVIS)
+523 | HOTOVO | snímky pracovních ploch = uložené profily oken
+525 | ČÁSTEČNĚ | profil lze svázat s projektem (project); automatické přepnutí podle úkolu zatím ne
