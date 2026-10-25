@@ -62,7 +62,7 @@ jobs:
           for ($i = 0; $i -lt 45; $i++) {
             if ($p.HasExited) { Write-Host "process exited with $($p.ExitCode)"; break }
             Start-Sleep -Seconds 2
-            try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
+            try { $r = Invoke-RestMethod -TimeoutSec 30 http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
           }
           Write-Host "== stdout"; Get-Content "$env:RUNNER_TEMP\out.txt" -ErrorAction SilentlyContinue | Select-Object -Last 60
           Write-Host "== stderr"; Get-Content "$env:RUNNER_TEMP\err.txt" -ErrorAction SilentlyContinue | Select-Object -Last 80
@@ -78,7 +78,7 @@ jobs:
           for ($i = 0; $i -lt 45; $i++) {
             Start-Sleep -Seconds 2
             if ($p.HasExited) { Write-Host "process exited with $($p.ExitCode)"; break }
-            try { $r = Invoke-RestMethod http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
+            try { $r = Invoke-RestMethod -TimeoutSec 30 http://127.0.0.1:8765/api/health; if ($r.name -eq "JARVIS") { $ok = $true; break } } catch {}
           }
           if (-not $ok) {
             Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object ProcessName, MainWindowTitle | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
@@ -93,6 +93,7 @@ jobs:
           "$ok" | Out-File "$env:RUNNER_TEMP\windowed_ok.txt"
           if (-not $ok) { throw "windowed JARVIS.exe did not start" }
       - name: Notch on real Windows (window region + screenshots)
+        timeout-minutes: 15
         shell: pwsh
         run: |
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome5"
@@ -100,7 +101,7 @@ jobs:
           $shots = "$env:RUNNER_TEMP\notch-shots"
           New-Item -ItemType Directory -Force $shots | Out-Null
           $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-voice" -PassThru
-          for ($i = 0; $i -lt 45; $i++) { Start-Sleep -Seconds 2; try { if ((Invoke-RestMethod http://127.0.0.1:8765/api/health).name -eq "JARVIS") { break } } catch {} }
+          for ($i = 0; $i -lt 45; $i++) { Start-Sleep -Seconds 2; try { if ((Invoke-RestMethod -TimeoutSec 30 http://127.0.0.1:8765/api/health).name -eq "JARVIS") { break } } catch {} }
           Start-Sleep -Seconds 8
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           Add-Type @"
@@ -183,7 +184,7 @@ jobs:
           $smooth = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "smooth edges" -ErrorAction SilentlyContinue | Select-Object -Last 1
           $line = "smooth: $smooth"; Write-Host $line; Add-Content "$shots\region.txt" $line
           # 3.1: "Otevřít celý chat" creates a maximized window after start-up
-          Invoke-RestMethod -Method Post "http://127.0.0.1:8765/api/show?view=full" | Out-Null
+          Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=full" | Out-Null
           $full = [IntPtr]::Zero; $seen = New-Object 'System.Collections.Generic.List[string]'
           for ($i = 0; $i -lt 20 -and $full -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $full = [W]::Find([uint32]$p.Id, $seen, "JARVIS Chat") }
           Start-Sleep -Seconds 4
@@ -192,7 +193,7 @@ jobs:
           [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save("$shots\4-full-chat.png")
           $fr = New-Object W+RECT; [W]::GetWindowRect($full, [ref]$fr) | Out-Null
           # 3.2: the Stark HUD overlay (Ctrl+Alt+H) over the whole screen
-          Invoke-RestMethod -Method Post "http://127.0.0.1:8765/api/show?view=hud" | Out-Null
+          Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=hud" | Out-Null
           $hud = [IntPtr]::Zero
           for ($i = 0; $i -lt 20 -and $hud -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $hud = [W]::Find([uint32]$p.Id, $seen, "JARVIS HUD") }
           Start-Sleep -Seconds 5
