@@ -8,7 +8,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
 | `Home Assistant` | 165, 423, 434, P13.02, P13.05 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
-| `find_file` | 038, 316, 322, P2.11, P11.11 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `run_python` | 457, 766, 768, P5.12, P11.10 |
 | `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
@@ -37,10 +36,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
 | `desktop/host.py` | 226, P8.01 |
+| `find_file` | P2.11, P11.11 |
+| `find_in_files` | 316, 322 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
 | `mail.py` | 541, P11.05 |
-| `move_files` | 325, P2.11 |
 | `network.py` | 165, 406 |
 | `network_check` | 021, 718 |
 | `open_app` | P2.01, P12.09 |
@@ -51,7 +51,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `phone.py` | 145, 541 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
-| `search_history` | 038, 520 |
 | `send_to_phone` | 138, 408 |
 | `stark.py` | 034, 508 |
 | `storage_report` | 327, P2.11 |
@@ -66,8 +65,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `agent.py` | 001 |
 | `ai_usage` | 154 |
 | `app_allowlist` | 682 |
+| `archive_contents` | 323 |
 | `audio_devices` | 105 |
 | `backup_encrypted` | 685 |
+| `backup_folder` | 330 |
+| `backup_plan` | 330 |
 | `break_minutes` | 077 |
 | `calendar_.py` | 171 |
 | `character/blob.ts` | 071 |
@@ -75,11 +77,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_hardware` | 298 |
 | `check_link` | 397 |
 | `claude_code` | 046 |
+| `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
 | `compare_files` | 029 |
 | `confirm_info` | 219 |
+| `convert_file` | 324 |
 | `copy_file` | P2.11 |
 | `create_restore_point` | 020 |
+| `create_zip` | 323 |
 | `danger_if` | 203 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
@@ -91,9 +96,16 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `explain_crash_code` | 014 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
+| `extract_archive` | 323 |
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
+| `file_metadata` | 326 |
+| `file_versions` | 328 |
 | `finance.py` | 379 |
+| `find_duplicates` | 317 |
+| `find_similar_photos` | 318 |
+| `folder_check` | 329 |
+| `folder_fingerprint` | 329 |
 | `foreground_info` | 026 |
 | `generate_image` | 132 |
 | `git_log` | 050 |
@@ -110,8 +122,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `media_player` | P13.03 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
+| `memory_overview` | 040 |
+| `memory_timeline` | 036 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
+| `move_files` | P2.11 |
 | `network_devices` | 426 |
 | `over_budget` | 221 |
 | `pairing_get` | 184 |
@@ -121,21 +136,30 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `press_keys` | P2.02 |
 | `price_alert` | 379 |
 | `privacy.py` | P14.10 |
+| `project_resume` | 044 |
 | `provider_test` | 587 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
+| `recent_files` | 322 |
 | `redact.py` | 179 |
+| `remove_duplicates` | 317 |
+| `rename_files` | 325 |
 | `reset_all` | 794 |
-| `restore_checkpoint` | 328 |
+| `restore_file_version` | 328 |
+| `save_file_version` | 328 |
 | `scan_secrets` | 401 |
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
+| `search_history` | 520 |
+| `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
 | `set_private` | 041 |
 | `shared/taskcard.ts` | 087 |
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
+| `smart_rename` | 320 |
+| `sort_documents` | 319 |
 | `speak_mode` | P3.07 |
 | `speed_test` | 717 |
 | `stop_all` | 176 |
@@ -156,8 +180,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/shell.py` | 702 |
 | `tools/web.py` | 003 |
 | `top_processes` | P2.06 |
+| `typ_datum_firma` | 320 |
 | `type_text` | P2.02 |
 | `ui_click` | P2.02 |
+| `undo_rename` | 325 |
 | `update_progress` | 075 |
 | `verify_copy` | 700 |
 | `voice/loop.py` | 259 |

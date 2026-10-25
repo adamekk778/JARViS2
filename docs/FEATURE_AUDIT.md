@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 136 | 74 |
-| 🟡 ČÁSTEČNĚ | 167 | 58 |
+| ✅ HOTOVO | 152 | 74 |
+| 🟡 ČÁSTEČNĚ | 163 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 9 | 10 |
+| 🔌 VYŽADUJE_INTEGRACI | 10 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 34 | 4 |
-| ⬜ CHYBÍ | 449 | 17 |
+| ⬜ CHYBÍ | 436 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -78,19 +78,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 04. Ultra Memory
 
-✅ 3 · 🟡 2 · ⬜ 5
+✅ 9 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 036 | Memory Timeline — časová osa práce. | 🟡 ČÁSTEČNĚ | historie konverzací, úkolů, týdenní recap |
-| 037 | Project Memories — oddělená paměť projektů. | ⬜ CHYBÍ | — |
-| 038 | Search Everything — sémantické hledání v povolených datech. | 🟡 ČÁSTEČNĚ | search_history, find_file (bez sémantiky) |
+| 036 | Memory Timeline — časová osa práce. | ✅ HOTOVO | memory_timeline + stránka: konverzace, mise, diktování, hovory, co si zapamatoval, čas v aplikacích za zvolený den |
+| 037 | Project Memories — oddělená paměť projektů. | ✅ HOTOVO | projekty s vlastními fakty; do odpovědí jde jen paměť aktuálního projektu + obecná (izolace), poznámka a složka projektu |
+| 038 | Search Everything — sémantické hledání v povolených datech. | 🔌 VYŽADUJE_INTEGRACI | search_memory: fulltext přes konverzace, fakta, diktování, hovory a mise (bez diakritiky, české tvary slov) funguje vždy; podle významu s místním modelem na embeddingy v Ollamě (nic se samo nestahuje) |
 | 039 | Memory Correction — opravy vzpomínek. | ✅ HOTOVO | úprava a mazání faktů v paměti (memory.py, fact_update/fact_delete) |
-| 040 | Memory Categories — tematické třídění. | ⬜ CHYBÍ | — |
+| 040 | Memory Categories — tematické třídění. | ✅ HOTOVO | fakta tříděná do kategorií (Rodina, Zdraví, Práce, Domov, Preference…), přehled memory_overview, úprava kategorie |
 | 041 | Memory Privacy — režim bez ukládání. | ✅ HOTOVO | Soukromý režim: konverzace jen v RAM, fakta se neukládají (memory.py set_private, tests/test_wave1.py) |
-| 042 | Source Memory — původ uložených poznatků. | ⬜ CHYBÍ | — |
-| 043 | Memory Conflicts — detekce rozporů. | ⬜ CHYBÍ | — |
-| 044 | Project Resume — navázání na projekt. | ⬜ CHYBÍ | — |
+| 042 | Source Memory — původ uložených poznatků. | ✅ HOTOVO | u každého faktu původ: ve které konverzaci a kdy to uživatel řekl / zapsal ručně |
+| 043 | Memory Conflicts — detekce rozporů. | ✅ HOTOVO | rozpor s dřívějším faktem (např. dvě adresy) se zapíše a JARVIS se zeptá; vyřešení „platí nové / staré / obojí“ |
+| 044 | Project Resume — navázání na projekt. | ✅ HOTOVO | project_resume: poslední konverzace a odpověď, rozdělané mise, nedávné soubory, fakta, doporučený další krok |
 | 045 | Memory Export — export paměti. | ✅ HOTOVO | export/import paměti (memory_export, memory_import) |
 
 ## 05. Ultimate Developer
@@ -519,25 +519,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 27. Intelligent File Universe
 
-✅ 1 · 🟡 5 · ⬜ 9
+✅ 11 · 🟡 3 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 316 | Semantic File Search — hledání podle významu. | 🟡 ČÁSTEČNĚ | find_file podle názvu (sémantika chybí) |
-| 317 | Duplicate Detection — duplicity souborů. | ⬜ CHYBÍ | — |
-| 318 | Similar Image Finder — podobné snímky. | ⬜ CHYBÍ | — |
-| 319 | Document Classification — třídění. | ⬜ CHYBÍ | — |
-| 320 | Smart File Naming — chytré názvy. | ⬜ CHYBÍ | — |
+| 316 | Semantic File Search — hledání podle významu. | 🟡 ČÁSTEČNĚ | find_in_files hledá v textu PDF/Word/txt podle slov; hledání podle významu (embeddingy) chybí |
+| 317 | Duplicate Detection — duplicity souborů. | ✅ HOTOVO | find_duplicates / remove_duplicates: stejný obsah (SHA-256), ponechá nejstarší, jen do koše, ověří ponechanou kopii |
+| 318 | Similar Image Finder — podobné snímky. | ✅ HOTOVO | find_similar_photos: rozdílový hash – najde zmenšené, překomprimované a upravené kopie |
+| 319 | Document Classification — třídění. | ✅ HOTOVO | sort_documents: faktury, smlouvy, výpisy, úřady, zdraví, práce, pojištění, účtenky, škola podle obsahu, jinak podle typu; jde vrátit |
+| 320 | Smart File Naming — chytré názvy. | 🟡 ČÁSTEČNĚ | smart_rename: typ_datum_firma z obsahu dokumentu (bez AI); u jiných souborů název zůstane |
 | 321 | File Relationship Graph — vztahy souborů. | ⬜ CHYBÍ | — |
-| 322 | Lost File Finder — hledání ztracených souborů. | 🟡 ČÁSTEČNĚ | find_file |
-| 323 | Archive Explorer — obsah archivů. | ⬜ CHYBÍ | — |
-| 324 | File Format Conversion — konverze formátů. | ⬜ CHYBÍ | — |
-| 325 | Bulk Rename Planner — hromadné názvy. | 🟡 ČÁSTEČNĚ | move_files s náhledem a potvrzením |
-| 326 | Metadata Cleaner — čištění metadat. | ⬜ CHYBÍ | — |
+| 322 | Lost File Finder — hledání ztracených souborů. | ✅ HOTOVO | recent_files (na čem jsem pracoval) + find_in_files (podle obsahu) |
+| 323 | Archive Explorer — obsah archivů. | ✅ HOTOVO | archive_contents / extract_archive (ZIP, TAR; 7Z a RAR se 7-Zipem), ochrana proti „zip slip“, jen do nové složky; create_zip s ověřením |
+| 324 | File Format Conversion — konverze formátů. | ✅ HOTOVO | convert_file: obrázky mezi sebou, do PDF, zmenšení; PDF → txt; Word → txt/md; Excel ↔ CSV; txt/md → Word |
+| 325 | Bulk Rename Planner — hromadné názvy. | ✅ HOTOVO | rename_files: vzor s datem pořízení, pořadím, najdi/nahraď; náhled, dvoufázové přejmenování, undo_rename |
+| 326 | Metadata Cleaner — čištění metadat. | ✅ HOTOVO | file_metadata / clean_metadata: GPS, fotoaparát, autor, program z fotek, Wordu a PDF; ověří výsledek |
 | 327 | Folder Size Explorer — využití místa. | ✅ HOTOVO | storage_report (co zabírá místo) |
-| 328 | Automatic Version Snapshots — verzování souborů. | 🟡 ČÁSTEČNĚ | záchytné body checkpoint/restore_checkpoint |
-| 329 | File Integrity Checker — hash/integrita. | 🟡 ČÁSTEČNĚ | SHA-256 artefaktů mise |
-| 330 | Intelligent Backup Selection — výběr záloh. | ⬜ CHYBÍ | — |
+| 328 | Automatic Version Snapshots — verzování souborů. | 🟡 ČÁSTEČNĚ | save_file_version / file_versions / restore_file_version (otisk, 50 verzí); verze se uloží i před přepsáním; automatické sledování změn chybí |
+| 329 | File Integrity Checker — hash/integrita. | ✅ HOTOVO | folder_fingerprint / folder_check: co se změnilo, chybí, přibylo (SHA-256) |
+| 330 | Intelligent Backup Selection — výběr záloh. | ✅ HOTOVO | backup_plan (co zálohovat první) + backup_folder (jen nové/změněné, ověření SHA-256) |
 
 ## 28. Developer God Mode
 

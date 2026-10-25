@@ -154,6 +154,7 @@ class Phone(BaseModel):
 class MemoryCfg(BaseModel):
     context_messages: int = 20
     max_upload_mb: int = 200
+    embed_model: str = ""        # OMEGA 038: a LOCAL Ollama embedding model for search by meaning ("" = any installed one)
 
 
 class Character(BaseModel):

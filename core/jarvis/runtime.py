@@ -94,7 +94,10 @@ class Runtime:
         self.router.gate = self.usage.blocked
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
+        from .knowledge import Knowledge
         from .perf import PerfHistory
+
+        self.knowledge = Knowledge(self)       # OMEGA §04: categories, sources, projects, conflicts, timeline, search
 
         self.perf = PerfHistory(self)          # OMEGA 312: a light performance sample every 5 minutes
         self.memory.set_private(self.cfg.privacy.private_mode)

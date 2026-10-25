@@ -16,6 +16,8 @@ import { buildStark } from "./stark";
 import { buildComms } from "./comms";
 import { buildAutomations } from "./automations";
 import { buildHome } from "./home";
+import { buildBrain } from "./brain";
+import { buildFiles } from "./files";
 import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
 import { whatsNewOverlay } from "../shared/whatsnew";
@@ -37,10 +39,10 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "rescue", "security", "voice-mode", "claude"]],
+  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "knowledge", "files", "rescue", "security", "voice-mode", "claude"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
@@ -50,6 +52,8 @@ const NAV: [View, string, string][] = [
   ["stark", "circle-notch", "Stark"],
   ["auto", "flow-arrow", "Automatizace"],
   ["home", "house-line", "Domov"],
+  ["knowledge", "brain", "Paměť a projekty"],
+  ["files", "folders", "Soubory"],
   ["rescue", "first-aid-kit", "Záchrana a výkon"],
   ["security", "shield-check", "Bezpečí a soukromí"],
   ["comms", "envelope-simple", "E-mail a telefon"],
@@ -100,6 +104,8 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   home: buildHome(client),
   security: buildSecurity(client),
   rescue: buildRescue(client),
+  files: buildFiles(client),
+  knowledge: buildBrain(client),
 };
 recapOverlay(client);
 whatsNewOverlay(client);

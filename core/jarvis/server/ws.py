@@ -38,7 +38,8 @@ CLIENT_TYPES = [
     "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
     "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
     "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
-    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck",
+    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
+    "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -53,9 +54,16 @@ SERVER_TYPES = [
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
-    "rescue", "perf", "netcheck", "seccheck",
+    "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
 ]
 
+# the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
+FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Duplicity do koše", "find_similar_photos": "Podobné fotky",
+              "sort_documents": "Roztřídit složku", "rename_files": "Hromadně přejmenovat", "smart_rename": "Pojmenovat podle obsahu",
+              "undo_rename": "Vrátit přejmenování", "archive_contents": "Obsah archivu", "extract_archive": "Rozbalit archiv",
+              "convert_file": "Převést soubor", "file_metadata": "Metadata", "clean_metadata": "Vyčistit metadata",
+              "folder_fingerprint": "Uložit otisky složky", "folder_check": "Zkontrolovat složku", "recent_files": "Nedávné soubory",
+              "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
@@ -66,13 +74,13 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
               "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback", "audit_export", "data_export", "backup_create",
-              "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open"}
+              "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open", "files_run", "project_set", "conflict_resolve"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
 SLOW = {"privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
-        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck"}
+        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get"}
 
 
 class Connection:
@@ -92,6 +100,10 @@ class Connection:
     async def send(self, type: str, **data) -> None:  # noqa: A002
         async with self.send_lock:
             await self.ws.send_json({"type": type, **data})
+
+    def _knowledge(self) -> dict:
+        k = self.rt.knowledge
+        return {"facts": k.facts(), "conflicts": k.open_conflicts(), "projects": k.projects(), "current": k.current_project()}
 
     async def _seccheck(self, m: dict) -> dict:
         """The security center's buttons (local window only). Results only; the password is not stored or logged."""
@@ -544,6 +556,19 @@ class Connection:
 
             r = await network_check(rt, target=str(m.get("target") or "")[:255], route=bool(m.get("route")))
             await self.send("netcheck", ok=r.ok, summary=r.summary, data=r.data)
+        elif t == "files_run":
+            name, args = str(m.get("tool") or ""), m.get("args") or {}
+            spec = tools.REGISTRY.get(name)
+            if name not in FILE_TOOLS or spec is None or not isinstance(args, dict):
+                await self.send("error", message="Tohle tady spustit nejde.")
+            elif tools.is_dangerous(spec, args, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt):
+                from ..config import ProtocolStep
+
+                text = await rt.agent.run_steps(FILE_TOOLS[name], [ProtocolStep(tool=name, args=args)], source="files", track=True)
+                await self.send("files_result", tool=name, ok=True, summary=text or "Hotovo.", data=None)
+            else:
+                res = await tools.call(name, args, rt)
+                await self.send("files_result", tool=name, ok=res.ok, summary=res.summary, data=res.data)
         elif t == "seccheck":              # security center; a password checked here never reaches the AI or the log
             await self.send("seccheck", **(await self._seccheck(m)))
         elif t == "perm_grant":            # OMEGA 181: a switched-off area allowed for a while (by the user, in the UI)
@@ -786,16 +811,68 @@ class Connection:
         elif t == "provider_test":
             await self.send("provider_test_result", **(await self._provider_test(m.get("id", ""))))
         elif t == "memory_get":
-            await self.send("memory", facts=rt.memory.facts())
+            await self.send("memory", facts=rt.knowledge.facts())
         elif t == "fact_update":
             if m.get("id"):
                 rt.memory.update_fact(int(m["id"]), m.get("text", ""))
+                if m.get("category"):
+                    rt.knowledge.set_fact_category(int(m["id"]), str(m["category"]))
             else:
-                rt.memory.remember(m.get("text", ""))
-            await self.send("memory", facts=rt.memory.facts())
+                rt.knowledge.add_fact(str(m.get("text", "")), "zapsáno ručně v okně JARVIS")
+            await self.send("memory", facts=rt.knowledge.facts())
+            if m.get("full"):
+                await self.send("knowledge", **self._knowledge())
         elif t == "fact_delete":
             rt.memory.delete_fact(int(m["id"]))
-            await self.send("memory", facts=rt.memory.facts())
+            await self.send("memory", facts=rt.knowledge.facts())
+            if m.get("full"):
+                await self.send("knowledge", **self._knowledge())
+        elif t == "knowledge_get":
+            out = self._knowledge()
+            out["embed"] = await rt.knowledge.embed_model()
+            await self.send("knowledge", **out)
+        elif t == "knowledge_search":
+            q = str(m.get("q") or "")[:200]
+            hits = await asyncio.to_thread(rt.knowledge.search, q, 30)
+            sem = await rt.knowledge.semantic(q, 10) if m.get("meaning") else {"available": False, "hits": []}
+            await self.send("knowledge_hits", q=q, hits=hits, meaning=sem["hits"], meaning_available=sem["available"])
+        elif t == "timeline_get":
+            import datetime as _dt
+
+            try:
+                day = _dt.date.fromisoformat(str(m.get("day") or _dt.date.today().isoformat()))
+            except ValueError:
+                day = _dt.date.today()
+            await self.send("timeline", day=day.isoformat(), events=await asyncio.to_thread(rt.knowledge.timeline, day))
+        elif t == "project_set":
+            k, act, name = rt.knowledge, str(m.get("action") or ""), str(m.get("name") or "")
+            try:
+                if act == "create":
+                    k.create_project(name, str(m.get("folder") or ""), str(m.get("note") or ""))
+                    k.switch(name)
+                elif act == "switch":
+                    k.switch(name)
+                elif act == "archive":
+                    p = k.project(name)
+                    if p:
+                        rt.db.exec("UPDATE projects SET archived=1 WHERE id=?", (p["id"],))
+                        if k.current_project() == p["name"]:
+                            k.switch("")
+                elif act == "note":
+                    p = k.project(name)
+                    if p:
+                        rt.db.exec("UPDATE projects SET note=?, folder=? WHERE id=?", (str(m.get("note") or "")[:2000], str(m.get("folder") or p["folder"])[:400], p["id"]))
+                elif act == "resume":
+                    await self.send("project_resume", **k.resume(name))
+                await self.send("knowledge", **self._knowledge())
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "conflict_resolve":
+            try:
+                rt.knowledge.resolve_conflict(int(m.get("id") or 0), str(m.get("keep") or ""))
+            except ValueError as e:
+                await self.send("error", message=str(e))
+            await self.send("knowledge", **self._knowledge())
         elif t == "memory_wipe":
             rt.memory.wipe()
             await self.send("memory", facts=[])

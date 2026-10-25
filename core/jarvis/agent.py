@@ -270,7 +270,10 @@ class Agent:
     # ---------- internals ----------
     async def _build_messages(self, text: str, attachments: list[str], voice: bool, extra: str) -> tuple[list[dict], bool]:
         rt = self.rt
-        facts = [f["text"] for f in rt.memory.facts()]
+        know = getattr(rt, "knowledge", None)
+        facts = know.for_prompt() if know else [f["text"] for f in rt.memory.facts()]
+        proj = know.project_prompt() if know else ""
+        extra = "\n\n".join(x for x in (proj, extra) if x)
         msgs: list[dict] = [{"role": "system", "content": build_system_prompt(rt.cfg, facts, voice, extra)}]
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:

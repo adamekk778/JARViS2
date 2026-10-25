@@ -28,6 +28,8 @@ READ_ONLY_OK = {
     "email_search", "price", "exchange_rate",
     "pc_diagnose", "explain_crash_code", "perf_check", "perf_benchmark", "perf_history", "network_check", "check_link",
     "check_download", "scan_secrets", "verify_copy", "data_rescue_plan", "system_integrity_check", "hardware_changes",
+    "find_duplicates", "find_similar_photos", "archive_contents", "file_metadata", "file_versions", "folder_fingerprint",
+    "folder_check", "recent_files", "find_in_files", "backup_plan",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

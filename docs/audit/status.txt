@@ -441,3 +441,27 @@
 709 | ČÁSTEČNĚ | dostupnost webu/API na požádání; průběžné hlídání chybí
 718 | HOTOVO | kolísání latence (jitter) v perf_check a network_check
 719 | ČÁSTEČNĚ | ztráta paketů při měření; historie jen z měření na požádání
+
+# Vlna 3 (3.9): soubory – fileuniverse.py, tools/fileverse_tools.py, stránka Soubory, tests/test_wave3.py
+316 | ČÁSTEČNĚ | find_in_files hledá v textu PDF/Word/txt podle slov; hledání podle významu (embeddingy) chybí
+317 | HOTOVO | find_duplicates / remove_duplicates: stejný obsah (SHA-256), ponechá nejstarší, jen do koše, ověří ponechanou kopii
+318 | HOTOVO | find_similar_photos: rozdílový hash – najde zmenšené, překomprimované a upravené kopie
+319 | HOTOVO | sort_documents: faktury, smlouvy, výpisy, úřady, zdraví, práce, pojištění, účtenky, škola podle obsahu, jinak podle typu; jde vrátit
+320 | ČÁSTEČNĚ | smart_rename: typ_datum_firma z obsahu dokumentu (bez AI); u jiných souborů název zůstane
+322 | HOTOVO | recent_files (na čem jsem pracoval) + find_in_files (podle obsahu)
+323 | HOTOVO | archive_contents / extract_archive (ZIP, TAR; 7Z a RAR se 7-Zipem), ochrana proti „zip slip“, jen do nové složky; create_zip s ověřením
+324 | HOTOVO | convert_file: obrázky mezi sebou, do PDF, zmenšení; PDF → txt; Word → txt/md; Excel ↔ CSV; txt/md → Word
+325 | HOTOVO | rename_files: vzor s datem pořízení, pořadím, najdi/nahraď; náhled, dvoufázové přejmenování, undo_rename
+326 | HOTOVO | file_metadata / clean_metadata: GPS, fotoaparát, autor, program z fotek, Wordu a PDF; ověří výsledek
+328 | ČÁSTEČNĚ | save_file_version / file_versions / restore_file_version (otisk, 50 verzí); verze se uloží i před přepsáním; automatické sledování změn chybí
+329 | HOTOVO | folder_fingerprint / folder_check: co se změnilo, chybí, přibylo (SHA-256)
+330 | HOTOVO | backup_plan (co zálohovat první) + backup_folder (jen nové/změněné, ověření SHA-256)
+
+# Vlna 4 (3.9): paměť a znalosti – knowledge.py, tools/memory_tools.py, stránka Paměť a projekty, tests/test_wave4.py
+036 | HOTOVO | memory_timeline + stránka: konverzace, mise, diktování, hovory, co si zapamatoval, čas v aplikacích za zvolený den
+037 | HOTOVO | projekty s vlastními fakty; do odpovědí jde jen paměť aktuálního projektu + obecná (izolace), poznámka a složka projektu
+038 | VYŽADUJE_INTEGRACI | search_memory: fulltext přes konverzace, fakta, diktování, hovory a mise (bez diakritiky, české tvary slov) funguje vždy; podle významu s místním modelem na embeddingy v Ollamě (nic se samo nestahuje)
+040 | HOTOVO | fakta tříděná do kategorií (Rodina, Zdraví, Práce, Domov, Preference…), přehled memory_overview, úprava kategorie
+042 | HOTOVO | u každého faktu původ: ve které konverzaci a kdy to uživatel řekl / zapsal ručně
+043 | HOTOVO | rozpor s dřívějším faktem (např. dvě adresy) se zapíše a JARVIS se zeptá; vyřešení „platí nové / staré / obojí“
+044 | HOTOVO | project_resume: poslední konverzace a odpověď, rozdělané mise, nedávné soubory, fakta, doporučený další krok

@@ -21,6 +21,8 @@ TABLES = {
     "task_steps": "kroky misí", "jobs": "naplánované rutiny", "dictations": "diktování", "notes": "poznámky a nahrávky",
     "app_usage": "čas v aplikacích", "cal_events": "události kalendáře", "llm_usage": "spotřeba AI", "lists": "seznamy",
     "skill_versions": "verze dovedností", "mic_log": "kdy byl zapnutý mikrofon", "attachments": "přílohy",
+    "projects": "projekty", "fact_conflicts": "rozpory v paměti", "search_idx": "vyhledávací rejstřík",
+    "search_emb": "rejstřík podle významu", "perf_history": "historie výkonu", "perf_bench": "testy výkonu",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),
@@ -83,7 +85,17 @@ def prune(rt, keep_days: int | None = None, now: float | None = None) -> dict:
             out[table] = n
     rt.db.exec("DELETE FROM task_steps WHERE task_id NOT IN (SELECT id FROM tasks)")
     rt.db.exec("DELETE FROM conversations WHERE id NOT IN (SELECT DISTINCT conv_id FROM messages) AND updated < ?", (cutoff,))
+    if out:
+        drop_search_index(rt)
     return out
+
+
+def drop_search_index(rt) -> None:
+    """The search index is rebuilt from what is left (so deleted things cannot be found any more)."""
+    for t in ("search_idx", "search_emb"):
+        if t in _tables(rt):
+            rt.db.exec(f"DELETE FROM {t}")
+    rt.db.exec("DELETE FROM kv WHERE k LIKE 'idx_%'")
 
 
 # ---------------------------------------------------------------------------------------------- microphone

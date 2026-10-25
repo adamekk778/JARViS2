@@ -3,6 +3,11 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.9": [
+    { icon: "brain", title: "Paměť a projekty", line: "Najdi cokoli, o čem jste mluvili (i bez háčků), časová osa dne, projekty s vlastní pamětí a „navaž, kde jsme skončili“. JARVIS pozná, když si něco odporuje." },
+    { icon: "folders", title: "Soubory", line: "Duplicity do koše, podobné fotky, roztřídění Stažených podle obsahu, hromadné přejmenování s vrácením, převody formátů a záloha s ověřením." },
+    { icon: "eraser", title: "Fotky bez polohy", line: "Před sdílením odstraní z fotek GPS, fotoaparát i autora dokumentů – originál zůstane." },
+  ],
   "3.8": [
     { icon: "first-aid-kit", title: "Záchrana a výkon", line: "Nová stránka: proč PC padá (modré obrazovky česky), ovladače, USB, disky, pomalý start, služby – jen čte a radí, report ověří." },
     { icon: "gauge", title: "Co brzdí počítač", line: "Procesor, grafika, RAM, disk i odezva internetu v jednom měření. Test výkonu s porovnáním před/po a graf za 24 hodin." },
