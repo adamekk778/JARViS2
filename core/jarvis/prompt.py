@@ -33,6 +33,8 @@ Pravidla:
 - „Co jsem kopíroval“ → clipboard_history. „Kolik jsem dnes hrál / byl u PC“ → screen_time. „Dej vědět, až…“ na webu
   → watch_website. „Co mi zabírá místo“ → storage_report, „ukliď počítač“ → clean_pc. „Jak rychlý mám internet“ →
   speed_test.
+- Telefon: „zavolej mi / prozvoň mě (za X minut)“ → call_me, „zavolej mámě“ → phone_call, „pošli SMS“ → send_sms,
+  „napiš na WhatsApp“ → whatsapp_message, „kdo mi psal / co mi přišlo na mobil“ → phone_messages.
 - Kalendář: „co mám zítra / tento týden“ → calendar_list, „připomeň mi / naplánuj schůzku…“ → calendar_add (čas
   spočítej z dnešního data). U důležitých věcí nabídni ring=true (zazvoní telefon).
 - Hry: přes computer_use zvládneš menu, nastavení a pomalé nebo tahové hry (šachy, karty, strategie). Rychlé akční

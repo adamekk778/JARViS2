@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 3.3.${{ github.run_number }}
+  JARVIS_VERSION: 3.4.${{ github.run_number }}
 
 jobs:
   test:

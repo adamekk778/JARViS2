@@ -33,6 +33,7 @@ CLIENT_TYPES = [
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
     "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
     "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
+    "phone_status_get", "phone_ack", "twilio_set",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -46,9 +47,10 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status",
 ]
 
-QUICK_ACTIONS = {"media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
+QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
@@ -57,7 +59,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
-              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove"}
+              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
@@ -285,6 +287,15 @@ class Connection:
             from .. import powers
 
             asyncio.get_running_loop().create_task(powers.run_selection_action(rt, str(m.get("action", ""))))
+        elif t == "phone_status_get":
+            await self.send("phone_status", **rt.phone.status())
+        elif t == "phone_ack":      # the app in the foreground handled a command
+            rt.phone.ack(str(m.get("id", "")), str(m.get("state", "done")), str(m.get("detail", ""))[:2000])
+        elif t == "twilio_set":
+            rt.update_config({"phone_link": {k: str(m.get(k, "")).strip() for k in ("twilio_sid", "twilio_from", "my_number")}})
+            if "token" in m:
+                secrets.set("twilio_token", str(m.get("token", "")).strip())
+            await self.send("phone_status", **rt.phone.status())
         elif t == "mail_status_get":
             await self._mail_status()
         elif t == "mail_account_add":

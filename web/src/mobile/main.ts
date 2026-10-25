@@ -6,7 +6,7 @@ import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing } from "./connect";
-import { native } from "./native";
+import { native, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
 
@@ -128,6 +128,18 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   };
   app.replaceChildren(h("div", { class: "m-shell" }, header, ...Object.values(views), tabs), drawer, scrim);
   show("chat");
+
+  // 3.4 phone link: keep the phone reachable for JARVIS (ring, dial, SMS) and answer his calls
+  if (native.phone.available) {
+    native.phone.configure({ base: ep.base, token: ep.token, enabled: localStorage.getItem("jarvis.link") !== "0" }).catch(() => {});
+    native.phone.onReply(() => { show("chat"); chat.focus(); toast("Řekni nebo napiš JARVISovi odpověď", "ok", 3500); });
+    c.on("phone_cmd", async (cmd) => {
+      try {
+        const r = await native.phone.handle(cmd);
+        if (r.state !== "ringing") c.send("phone_ack", { id: cmd.id, state: r.state });
+      } catch (e: any) { c.send("phone_ack", { id: cmd.id, state: "error", detail: String(e?.message || e) }); }
+    });
+  }
 
   c.onStatus((s) => {
     status.textContent = s === "open" ? "připojeno k PC" : s === "connecting" ? "připojuji…" : "odpojeno, zkouším znovu…";
@@ -272,6 +284,43 @@ function controlView(c: JarvisClient): HTMLElement {
         tile("power", "Vypnout", () => danger("system_power", { action: "shutdown" }), "warn"))));
 }
 
+// ---------------- 3.4 phone link: JARVIS calls you, dials, SMS, WhatsApp, your messages on the PC ----------------
+function phoneCard(c: JarvisClient): HTMLElement {
+  if (!native.phone.available) return h("p", { class: "help" }, "Volání, SMS a zprávy z telefonu fungují v aplikaci JARVIS pro Android.");
+  const box = h("div", { class: "m-phone" });
+  const sw = (on: boolean, fn: (v: boolean) => void, label: string) => {
+    const inp = h("input", { type: "checkbox", role: "switch", "aria-label": label }) as HTMLInputElement;
+    inp.checked = on;
+    inp.onchange = () => fn(inp.checked);
+    return h("label", { class: "switch" }, inp, h("span"));
+  };
+  const step = (ok: boolean, title: string, desc: string, action: string, fn: () => void) =>
+    h("div", { class: `row m-step ${ok ? "ok" : ""}` }, icon(ok ? "check-circle" : "circle", ok ? "ph-fill" : ""),
+      h("div", { class: "row-text" }, h("strong", {}, title), h("span", {}, desc)),
+      ok ? null : h("button", { class: "btn sm", type: "button", onclick: fn }, action));
+  const render = (st: PhoneStatus) => box.replaceChildren(
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Spojení na pozadí"),
+      h("span", {}, st.running ? "Běží – JARVIS ti může zavolat i se zavřenou aplikací." : "Vypnuto – JARVIS tě zastihne, jen když máš aplikaci otevřenou.")),
+      sw(st.enabled, async (v) => { localStorage.setItem("jarvis.link", v ? "1" : "0"); render(await native.phone.configure({ enabled: v })); }, "Spojení na pozadí")),
+    step(st.phone, "Volání, SMS a kontakty", "„Zavolej mámě“, „pošli SMS…“", "Povolit", async () => render(await native.phone.requestPhone())),
+    step(st.fullScreen, "Zvonění přes zamčenou obrazovku", "Aby JARVISův hovor zazvonil jako opravdový.", "Nastavit", () => native.phone.openFullScreen()),
+    step(st.overlay, "Volat a ukázat hovor hned", "„Zobrazovat přes jiné aplikace“ – JARVIS vytočí číslo bez klepnutí.", "Povolit", () => native.phone.openOverlay()),
+    step(st.battery, "Bez uspávání baterií", "Jinak Android spojení v noci uspí.", "Povolit", () => native.phone.openBattery()),
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Zprávy z telefonu na PC"),
+      h("span", {}, st.notifAccess ? "JARVIS ti na PC řekne, kdo ti píše (WhatsApp, SMS, Messenger…) a kdo volá."
+        : "Vyžaduje povolit „Přístup k oznámením“ pro JARVIS.")),
+      st.notifAccess ? sw(st.mirror, async (v) => render(await native.phone.configure({ mirror: v })), "Zprávy z telefonu na PC")
+        : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openNotificationAccess() }, "Povolit")),
+    h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => {
+      c.send("quick_action", { action: "call_me", args: { message: "Dobrý den, pane. Tady JARVIS. Zkouška spojení proběhla v pořádku, umím vám zavolat." } });
+      toast("JARVIS za chvilku zavolá", "ok");
+    } }, icon("phone-call"), "Vyzkoušet hovor od JARVISe")));
+  const refresh = () => native.phone.status().then(render).catch(() => {});
+  refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });   // back from Android settings
+  return box;
+}
+
 // ---------------- more tab ----------------
 function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElement {
   const notif = h("input", { type: "checkbox", role: "switch", "aria-label": "Notifikace" }) as HTMLInputElement;
@@ -291,6 +340,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     h("div", { class: "card" }, h("h2", {}, "Telefon"),
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Notifikace z PC"), h("span", {}, "Časovače, připomínky, odpovědi na pozadí")),
         h("label", { class: "switch" }, notif, h("span"))),
+      phoneCard(c),
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche.")),
     h("div", { class: "card" }, h("h2", {}, "O aplikaci"), h("p", { class: "help" }, "JARVIS 2 · nastavení najdeš na PC v okně JARVIS.")));
 }

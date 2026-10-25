@@ -44,7 +44,7 @@ const GROUPS: [string, View[]][] = [
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["stark", "circle-notch", "Stark"],
-  ["comms", "envelope-simple", "E-mail a kalendář"],
+  ["comms", "envelope-simple", "E-mail a telefon"],
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
   ["claude", "terminal-window", "Claude Code"],

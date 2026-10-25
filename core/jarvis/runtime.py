@@ -75,7 +75,9 @@ class Runtime:
 
         self.mail = Mail(self)
         self.calendar = Calendar(self)
-        self.phone: Any = None         # 3.4 phone link (rings, dials, SMS) – set up in start()
+        from .phone import PhoneLink
+
+        self.phone = PhoneLink(self)   # 3.4: rings, dials, SMS / WhatsApp, the phone's notifications
         tools.load_builtin()
 
     # ---------- lifecycle ----------

@@ -3,6 +3,12 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.4": [
+    { icon: "envelope-simple", title: "JARVIS a tvůj e-mail", line: "Připoj Seznam nebo Gmail: „co mi přišlo“, „odpověz Petrovi…“. Nové e-maily hlásí hned, odeslání vždy potvrdíš." },
+    { icon: "phone-call", title: "JARVIS ti zavolá", line: "Telefon zazvoní jako hovor a JARVIS řekne, co potřebuje. „Zavolej mi za 20 minut a připomeň…“." },
+    { icon: "chat-circle-text", title: "Volání, SMS, WhatsApp", line: "„Zavolej mámě“, „pošli Petrovi SMS“, a na PC uvidíš, kdo ti píše na telefon." },
+    { icon: "calendar-check", title: "Kalendář", line: "„Co mám zítra?“, „naplánuj schůzku ve 3“ – i Google a Seznam kalendář, s připomínkou." },
+  ],
   "3.3": [
     { icon: "text-aa", title: "Označený text kdekoli", line: "Označ text v jakékoli aplikaci a zmáčkni Ctrl+Alt+E: opravit, přeložit, zkrátit, vysvětlit. Nebo to řekni." },
     { icon: "clipboard-text", title: "Historie schránky", line: "„Co jsem kopíroval před chvílí?“ – jen v paměti, hesla si nepamatuje." },

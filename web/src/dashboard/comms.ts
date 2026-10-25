@@ -112,17 +112,53 @@ export function buildComms(client: JarvisClient) {
       return out;
     }) : [h("p", { class: "help" }, "Na příštích 7 dní nic. Zkus říct: „připomeň mi zítra v 10 zubaře“.")]));
   });
-  const sync = (s: any) => { settings = s; renderBehaviour(); renderIcs(); };
+  // ---------- phone (3.4) ----------
+  const phoneBox = h("div", { class: "group" });
+  let phone: any = {};
+  function renderPhone() {
+    const pl = settings?.phone_link || {};
+    const sw = (key: string, title: string, desc: string) => {
+      const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
+      inp.checked = !!pl[key];
+      inp.onchange = () => client.send("settings_set", { patch: { phone_link: { [key]: inp.checked } } });
+      return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)), h("span", { class: "switch" }, inp, h("span")));
+    };
+    const sid = h("input", { class: "input", value: pl.twilio_sid || "", placeholder: "Account SID (AC…)", "aria-label": "Twilio Account SID" }) as HTMLInputElement;
+    const tok = h("input", { class: "input", type: "password", placeholder: phone.twilio ? "•••••• (uloženo)" : "Auth Token", "aria-label": "Twilio Auth Token" }) as HTMLInputElement;
+    const from = h("input", { class: "input", value: pl.twilio_from || "", placeholder: "Číslo Twilio (+1…)", "aria-label": "Twilio číslo" }) as HTMLInputElement;
+    const mine = h("input", { class: "input", value: pl.my_number || "", placeholder: "Tvůj mobil (+420…)", "aria-label": "Tvůj mobil" }) as HTMLInputElement;
+    phoneBox.replaceChildren(
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, icon(phone.link ? "check-circle" : "warning-circle"), " Aplikace v telefonu"),
+        h("span", { class: "help" }, phone.link ? "Připojená na pozadí – JARVIS ti může zavolat, vytočit číslo a poslat SMS."
+          : "Nepřipojená. V aplikaci JARVIS v telefonu: Více → Telefon → zapni Spojení na pozadí a povol volání.")),
+        h("button", { class: "btn", type: "button", onclick: () => client.send("quick_action", { action: "call_me", args: { message: "Dobrý den, pane. Tady JARVIS. Zkouška spojení proběhla v pořádku." } }) },
+          icon("phone-call"), "Zavolej mi")),
+      sw("announce", "Zprávy z telefonu na PC", "Když ti někdo napíše (WhatsApp, SMS, Messenger…) nebo volá, JARVIS to řekne i na PC."),
+      sw("speak", "Říct to nahlas", "Jinak jen jako upozornění v notchi."),
+      h("details", { class: "card comms-add" }, h("summary", {}, icon("phone-outgoing"), " Skutečný hovor na tvoje číslo i mimo domov (volitelné, placené)"),
+        h("p", { class: "help" }, "Když se telefon s aplikací nedá zastihnout, JARVIS ti zavolá opravdovým hovorem přes službu Twilio a přečte vzkaz. Účet na twilio.com, číslo stojí asi 1 $ měsíčně + pár korun za minutu. Token se uloží do trezoru Windows."),
+        h("div", { class: "comms-grid" }, sid, tok, from, mine),
+        h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: () => {
+          const msg: any = { twilio_sid: sid.value, twilio_from: from.value, my_number: mine.value };
+          if (tok.value) msg.token = tok.value;
+          client.send("twilio_set", msg);
+          toast("Uloženo", "ok");
+        } }, icon("floppy-disk"), "Uložit"))));
+  }
+  client.on("phone_status", (m) => { phone = m; renderPhone(); });
+
+  const sync = (s: any) => { settings = s; renderBehaviour(); renderIcs(); renderPhone(); };
   client.on("welcome", (m) => sync(m.settings));
   client.on("settings_changed", (m) => sync(m.settings));
 
   const el = h("section", { class: "tasks-view comms-view" },
-    hero(HEROES.comms, "E-mail a kalendář", "JARVIS čte, hlídá a píše tvoje e-maily, ví, co tě čeká, a připomene to.", []),
+    hero(HEROES.comms, "E-mail, telefon a kalendář", "JARVIS čte a píše tvoje e-maily, volá ti, vytáčí, posílá SMS, ví, co tě čeká, a připomene to.", []),
     h("h2", { class: "group-label" }, "E-mailové účty"), status, accountsBox, addForm,
     h("h2", { class: "group-label" }, "Nové e-maily"), behaviour,
+    h("h2", { class: "group-label" }, "Telefon"), phoneBox,
     h("h2", { class: "group-label" }, "Kalendář"),
     h("p", { class: "help" }, "Vlastní události JARVIS uloží sám („naplánuj schůzku ve 3“). Google, Seznam nebo Outlook kalendář připojíš přes „tajnou adresu ve formátu iCal“ z jeho nastavení."),
     icsList, h("div", { class: "comms-ics" }, icsInput, h("button", { class: "btn", type: "button", onclick: addIcs }, icon("plus"), "Přidat kalendář")),
     h("h2", { class: "group-label" }, "Příštích 7 dní"), upcoming);
-  return { el, show: () => { client.send("mail_status_get"); client.send("calendar_get", { days: 7 }); } };
+  return { el, show: () => { client.send("mail_status_get"); client.send("calendar_get", { days: 7 }); client.send("phone_status_get"); } };
 }

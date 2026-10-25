@@ -16,6 +16,7 @@ export const CLIENT_TYPES = [
   "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
   "whats_new_seen", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
   "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
+  "phone_status_get", "phone_ack", "twilio_set",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -29,6 +30,7 @@ export const SERVER_TYPES = [
   "diagnostics", "diagnostics_file",
   "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
   "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot", "selection", "selection_result", "mail_status", "mail_new", "calendar",
+  "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

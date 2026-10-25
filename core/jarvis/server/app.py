@@ -196,6 +196,25 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Žádný vlastní zvuk")
         return FileResponse(rt.sounds_dir() / fname)
 
+    # ---------- 3.4 the phone app's background link ----------
+    @app.get("/api/phone/poll")
+    async def phone_poll(request: Request, wait: float = 25.0):
+        require_auth(request)
+        return {"commands": await rt.phone.poll(max(0.0, min(wait, 50.0)))}
+
+    @app.post("/api/phone/ack")
+    async def phone_ack(request: Request):
+        require_auth(request)
+        body = await request.json()
+        rt.phone.ack(str(body.get("id", "")), str(body.get("state", "done")), str(body.get("detail", ""))[:2000])
+        return {"ok": True}
+
+    @app.post("/api/phone/notification")
+    async def phone_notification(request: Request):
+        require_auth(request)
+        rt.phone.on_notification(await request.json())
+        return {"ok": True}
+
     @app.post("/api/show")
     async def show(request: Request, view: str = "chat"):
         """A second launch of JARVIS.exe asks the running one to show its window."""

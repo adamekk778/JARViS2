@@ -109,6 +109,8 @@ class Scheduler:
         try:
             if job["kind"] == "notify":
                 self.rt.notify(p.get("title", "Připomínka"), p.get("body", ""), target="all")
+            elif job["kind"] == "ring":       # "zavolej mi v 7 a připomeň…"
+                await self.rt.phone.ring(p.get("text", "Připomínka."), reason="schedule")
             elif job["kind"] == "watch":
                 from .powers import check_watch
 

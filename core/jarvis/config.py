@@ -284,6 +284,16 @@ class MailCfg(BaseModel):
     check_seconds: int = 20
 
 
+class PhoneLinkCfg(BaseModel):
+    """3.4 the JARVIS app on your phone: it rings, dials, sends SMS and mirrors your phone's notifications."""
+    announce: bool = True        # someone writes to you on WhatsApp / SMS / Messenger or calls → JARVIS tells you on the PC
+    speak: bool = False          # …aloud
+    # optional real phone calls when the phone app cannot be reached (Twilio; the token is in the keyring)
+    twilio_sid: str = ""
+    twilio_from: str = ""        # your Twilio number, +1…
+    my_number: str = ""          # your mobile, +420…
+
+
 class CalendarCfg(BaseModel):
     ics_urls: list[str] = Field(default_factory=list)   # read-only calendars ("tajná adresa ve formátu iCal")
     remind_minutes: int = 15
@@ -324,6 +334,7 @@ class Config(BaseModel):
     powers: Powers = Field(default_factory=Powers)
     mail: MailCfg = Field(default_factory=MailCfg)
     calendar: CalendarCfg = Field(default_factory=CalendarCfg)
+    phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -348,6 +359,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
     "stark.guardian", "stark.guardian_speak",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
+    "phone_link.announce", "phone_link.speak",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 
