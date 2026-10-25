@@ -180,8 +180,19 @@ def main(argv: list[str] | None = None) -> int:
         from . import pcreport
         from .tasks import sha256_file
 
+        import time as _t
+
+        t0 = _t.monotonic()
+
+        def stage(name: str) -> None:   # progress on stdout, so a hang shows where it is
+            print(json.dumps({"stage": name, "s": round(_t.monotonic() - t0, 1)}), flush=True)
+
         try:
-            data = pcreport.collect()
+            stage("probe")
+            win = pcreport.run_windows_probe()
+            stage("probe done" + (f": {win['error'][:120]}" if isinstance(win.get("error"), str) else ""))
+            data = pcreport.collect(win, trace=stage)
+            stage("write")
             path = pcreport.write_report(data, Path(tempfile.mkdtemp()))
             checks = pcreport.verify(path, sha256_file(path))
             out = {"ok": all(ok for _, ok, _ in checks), "checks": [[c, ok, v] for c, ok, v in checks],

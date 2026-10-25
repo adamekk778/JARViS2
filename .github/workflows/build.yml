@@ -231,7 +231,8 @@ jobs:
           if (-not $pwr.skipped -and -not $pwr.ok) { throw "selected text or running apps: JARVIS did not read, replace or see Notepad correctly" }
           $rpOut = "$env:RUNNER_TEMP\report-selftest.txt"
           $rpProc = Start-Process -FilePath dist\JARVIS\JARVIS-debug.exe -ArgumentList "--selftest-report" -RedirectStandardOutput $rpOut -NoNewWindow -PassThru
-          if (-not $rpProc.WaitForExit(240000)) { $rpProc.Kill(); throw "PC report selftest hung (over 4 minutes)" }
+          if (-not $rpProc.WaitForExit(240000)) { $rpProc.Kill(); Get-Content $rpOut | Write-Host; throw "PC report selftest hung (over 4 minutes); the last stage above is where" }
+          Get-Content $rpOut | Select-Object -SkipLast 1 | Write-Host
           $rp = Get-Content $rpOut
           Write-Host "PC REPORT SELFTEST (read-only diagnostics, verified file): $($rp | Select-Object -Last 1)"
           $rpr = ($rp | Select-Object -Last 1) | ConvertFrom-Json

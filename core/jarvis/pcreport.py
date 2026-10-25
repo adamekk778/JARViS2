@@ -124,8 +124,10 @@ def _sec(sid: str, rows: list[tuple[str, str]], source: str, ok: bool | None = T
             "ok": ok, "note": note}
 
 
-def collect(win: dict | None = None) -> dict:
-    """All sections. `win` = the Windows probe result (None → run it here; {} on other systems)."""
+def collect(win: dict | None = None, trace=None) -> dict:
+    """All sections. `win` = the Windows probe result (None → run it here; {} on other systems).
+    `trace(name)` is called before each measurement (the CI selftest uses it to show where time goes)."""
+    trace = trace or (lambda _name: None)
     import platform as pf
     import socket
 
@@ -146,6 +148,7 @@ def collect(win: dict | None = None) -> dict:
             secs.append(build(v))
 
     # ---- system ----
+    trace("system")
     osv = win.get("os") if isinstance(win.get("os"), dict) and not win["os"].get("error") else {}
     boot = dt.datetime.fromtimestamp(psutil.boot_time())
     rows = [("Počítač", socket.gethostname()), ("Systém", osv.get("Caption") or f"{pf.system()} {pf.release()}"),
@@ -154,6 +157,7 @@ def collect(win: dict | None = None) -> dict:
     secs.append(_sec("system", rows, "psutil.boot_time, platform" + (", Get-CimInstance Win32_OperatingSystem" if osv else "")))
 
     # ---- cpu ----
+    trace("cpu")
     load = psutil.cpu_percent(interval=1.0)
     cpu_rows = [("Vytížení (1 s)", f"{load:.0f} %"), ("Jádra / vlákna", f"{psutil.cpu_count(False)} / {psutil.cpu_count()}")]
     wc = _list(win.get("cpu")) if not werr and not (isinstance(win.get("cpu"), dict) and win["cpu"].get("error")) else []
@@ -171,11 +175,13 @@ def collect(win: dict | None = None) -> dict:
                      load < 90))
 
     # ---- memory ----
+    trace("memory")
     vm = psutil.virtual_memory()
     secs.append(_sec("memory", [("Celkem", _gb(vm.total)), ("Použito", f"{vm.percent:.0f} % ({_gb(vm.used)})"),
                                 ("Volné", _gb(vm.available))], "psutil.virtual_memory", vm.percent < 85))
 
     # ---- disks ----
+    trace("disks")
     drows, dok = [], True
     for part in psutil.disk_partitions(all=False):
         if "cdrom" in part.opts or not part.fstype:
@@ -195,6 +201,7 @@ def collect(win: dict | None = None) -> dict:
                      "" if phys else "Zdraví fyzických disků (SMART) jen na Windows."))
 
     # ---- battery ----
+    trace("battery")
     bat = psutil.sensors_battery() if hasattr(psutil, "sensors_battery") else None
     if bat is None:
         secs.append(_sec("battery", [("Baterie", "není (stolní PC) nebo ji systém nehlásí")], "psutil.sensors_battery", None))
@@ -203,6 +210,7 @@ def collect(win: dict | None = None) -> dict:
                          "psutil.sensors_battery", bat.percent > 15 or bool(bat.power_plugged)))
 
     # ---- network ----
+    trace("network")
     nrows = []
     for name, st in psutil.net_if_stats().items():
         if st.isup and not name.lower().startswith(("lo", "loopback")):
@@ -211,6 +219,7 @@ def collect(win: dict | None = None) -> dict:
     secs.append(_sec("network", nrows[:8], "psutil.net_if_stats, psutil.net_if_addrs", bool(nrows)))
 
     # ---- processes ----
+    trace("processes")
     procs = []
     for p in psutil.process_iter(["name", "memory_info"]):
         try:
@@ -221,6 +230,7 @@ def collect(win: dict | None = None) -> dict:
     secs.append(_sec("processes", [(n, f"{m / 2**20:.0f} MB RAM") for n, m in procs[:6]], "psutil.process_iter (paměť)"))
 
     # ---- Windows-only parts ----
+    trace("windows parts")
     def ev(v):
         groups = _list(v)
         n = sum(int(g.get("Count", 0)) for g in groups)
