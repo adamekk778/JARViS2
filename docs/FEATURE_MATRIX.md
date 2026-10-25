@@ -10,12 +10,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `find_file` | 038, 316, 322, P2.11, P11.11 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
-| `pcreport.py` | 011, 012, 013, 025, P2.08 |
 | `run_python` | 457, 766, 768, P5.12, P11.10 |
+| `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
-| `run_shell` | P2.05, P2.13, P5.11, P5.12 |
 | `run_tests` | 058, 339, 340, P5.08 |
 | `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
@@ -24,8 +23,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory.py` | 039, 041, P1.03 |
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
-| `speed_test` | 021, 311, 717 |
-| `stark.py` | 034, 303, 508 |
 | `test_wave` | 041, 152, 177 |
 | `tests/test_omega.py` | 002, 025, 076 |
 | `tools/base.py` | 183, 203, 682 |
@@ -45,22 +42,26 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mail.py` | 541, P11.05 |
 | `move_files` | 325, P2.11 |
 | `network.py` | 165, 406 |
-| `network_devices` | 021, 426 |
+| `network_check` | 021, 718 |
 | `open_app` | P2.01, P12.09 |
+| `pcreport.py` | 025, P2.08 |
+| `perf_benchmark` | 018, 314 |
+| `perf_check` | 301, 718 |
 | `permissions.py` | 177, P14.01 |
 | `phone.py` | 145, 541 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `search_history` | 038, 520 |
 | `send_to_phone` | 138, 408 |
+| `stark.py` | 034, 508 |
 | `storage_report` | 327, P2.11 |
-| `system_snapshot` | 190, 304 |
 | `tools/files.py` | 029, 511 |
 | `tools/uia.py` | 028, 274 |
-| `top_processes` | 305, P2.06 |
 | `ui_inspect` | 028, P2.03 |
 | `usage.py` | 178, 678 |
 | `wake_word` | 098, P3.01 |
+| `_an_drivers` | 011 |
+| `_an_usb` | 017 |
 | `_needs_second` | 182 |
 | `agent.py` | 001 |
 | `ai_usage` | 154 |
@@ -70,18 +71,24 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `break_minutes` | 077 |
 | `calendar_.py` | 171 |
 | `character/blob.ts` | 071 |
+| `check_download` | 398 |
+| `check_hardware` | 298 |
+| `check_link` | 397 |
 | `claude_code` | 046 |
 | `clipboard_set` | 138 |
 | `compare_files` | 029 |
 | `confirm_info` | 219 |
 | `copy_file` | P2.11 |
+| `create_restore_point` | 020 |
 | `danger_if` | 203 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
+| `data_rescue_plan` | 300 |
 | `delete_file` | P14.02 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
 | `email_send` | P11.06 |
+| `explain_crash_code` | 014 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
 | `fact_delete` | 039 |
@@ -91,6 +98,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
+| `hardware_changes` | 298 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `link_alive` | 410 |
@@ -104,8 +112,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_import` | 045 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
+| `network_devices` | 426 |
 | `over_budget` | 221 |
 | `pairing_get` | 184 |
+| `pc_diagnose` | 011 |
+| `perf_history` | 312 |
 | `phone_battery` | 417 |
 | `press_keys` | P2.02 |
 | `price_alert` | 379 |
@@ -116,14 +127,20 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `redact.py` | 179 |
 | `reset_all` | 794 |
 | `restore_checkpoint` | 328 |
+| `scan_secrets` | 401 |
+| `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
 | `set_private` | 041 |
 | `shared/taskcard.ts` | 087 |
 | `skillforge.py` | 150 |
+| `smart_data` | 697 |
 | `speak_mode` | P3.07 |
+| `speed_test` | 717 |
 | `stop_all` | 176 |
+| `system_integrity_check` | 286 |
+| `system_snapshot` | 190 |
 | `task_evidence` | 645 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |
@@ -136,10 +153,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
 | `tools/plan.py` | 001 |
+| `tools/shell.py` | 702 |
 | `tools/web.py` | 003 |
+| `top_processes` | P2.06 |
 | `type_text` | P2.02 |
 | `ui_click` | P2.02 |
 | `update_progress` | 075 |
+| `verify_copy` | 700 |
 | `voice/loop.py` | 259 |
 | `wake_device` | 416 |
 | `watch_website` | 378 |

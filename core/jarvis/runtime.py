@@ -94,6 +94,9 @@ class Runtime:
         self.router.gate = self.usage.blocked
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
+        from .perf import PerfHistory
+
+        self.perf = PerfHistory(self)          # OMEGA 312: a light performance sample every 5 minutes
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -101,6 +104,9 @@ class Runtime:
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
         self.bus.bind_loop(self.loop)
+        from . import diagnostics
+
+        diagnostics.start_stall_watch(self, self.loop)   # a stuck loop logs where it is stuck
         self.store.transcribe = self._transcribe_file
         self.mood.start()
         self.guardian.start()

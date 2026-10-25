@@ -4,8 +4,12 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import json
+import logging
 import os
+import sys
+import threading
 import time
+import traceback
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -15,6 +19,8 @@ import psutil
 from . import config as config_mod
 from . import paths
 from .redact import redact
+
+log = logging.getLogger(__name__)
 
 TARGETS = {"cpu_pct": 2.0, "ram_mb": 400}
 GATE_FACTOR = 2.0  # CI fails only above 2× the target, so a noisy runner does not flake
@@ -50,6 +56,37 @@ def ensure_lag_probe(rt: Any) -> None:
         rt._diag_task = asyncio.get_running_loop().create_task(probe())
     except RuntimeError:
         rt._diag_task = None
+
+
+def start_stall_watch(rt: Any, loop: asyncio.AbstractEventLoop, limit_s: float = 8.0) -> threading.Thread:
+    """When the event loop stops answering for limit_s, write where its thread is stuck to the log (once per stall).
+    Everything – the window's messages, the phone, /api/show – waits on that loop, so this is the clue a hang needs."""
+    loop_thread = threading.get_ident()
+    state = {"pong": time.monotonic(), "reported": False}
+
+    def pong() -> None:
+        state["pong"] = time.monotonic()
+        if state["reported"]:
+            log.warning("event loop answers again")
+            state["reported"] = False
+
+    def watch() -> None:
+        while not loop.is_closed():
+            try:
+                loop.call_soon_threadsafe(pong)
+            except RuntimeError:
+                return
+            time.sleep(2)
+            stuck = time.monotonic() - state["pong"]
+            if stuck > limit_s and not state["reported"]:
+                state["reported"] = True
+                frame = sys._current_frames().get(loop_thread)
+                where = "".join(traceback.format_stack(frame)[-12:]) if frame else "?"
+                log.warning("event loop stuck for %.0f s, at:\n%s", stuck, where)
+
+    t = threading.Thread(target=watch, daemon=True, name="stall-watch")
+    t.start()
+    return t
 
 
 def snapshot(rt: Any) -> dict:

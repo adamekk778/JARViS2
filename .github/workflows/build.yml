@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JARVIS_VERSION: 3.7.${{ github.run_number }}
+  JARVIS_VERSION: 3.8.${{ github.run_number }}
 
 jobs:
   test:
@@ -183,8 +183,18 @@ jobs:
           $bd.Close()
           $smooth = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "smooth edges" -ErrorAction SilentlyContinue | Select-Object -Last 1
           $line = "smooth: $smooth"; Write-Host $line; Add-Content "$shots\region.txt" $line
+          function Show($view) {   # on a hang: is the server alive at all, and where is its loop stuck (stall watch)
+            try { Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=$view" | Out-Null }
+            catch {
+              Write-Host "show $view failed: $_"
+              try { Write-Host "health: $((Invoke-RestMethod -TimeoutSec 10 http://127.0.0.1:8765/api/health) | ConvertTo-Json -Compress)" } catch { Write-Host "health also failed: $_" }
+              Start-Sleep -Seconds 12
+              Get-Content "$env:JARVIS_HOME\logs\jarvis.log" -ErrorAction SilentlyContinue | Select-Object -Last 60 | Write-Host
+              throw "POST /api/show?view=$view did not answer"
+            }
+          }
           # 3.1: "Otevřít celý chat" creates a maximized window after start-up
-          Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=full" | Out-Null
+          Show "full"
           $full = [IntPtr]::Zero; $seen = New-Object 'System.Collections.Generic.List[string]'
           for ($i = 0; $i -lt 20 -and $full -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $full = [W]::Find([uint32]$p.Id, $seen, "JARVIS Chat") }
           Start-Sleep -Seconds 4
@@ -193,7 +203,7 @@ jobs:
           [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size); $bmp.Save("$shots\4-full-chat.png")
           $fr = New-Object W+RECT; [W]::GetWindowRect($full, [ref]$fr) | Out-Null
           # 3.2: the Stark HUD overlay (Ctrl+Alt+H) over the whole screen
-          Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=hud" | Out-Null
+          Show "hud"
           $hud = [IntPtr]::Zero
           for ($i = 0; $i -lt 20 -and $hud -eq [IntPtr]::Zero; $i++) { Start-Sleep -Seconds 1; $seen.Clear(); $hud = [W]::Find([uint32]$p.Id, $seen, "JARVIS HUD") }
           Start-Sleep -Seconds 5
@@ -216,7 +226,7 @@ jobs:
         if: always()
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }
       - name: Idle benchmark and UI Automation selftest
-        timeout-minutes: 15
+        timeout-minutes: 22
         shell: pwsh
         run: |
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome3"
@@ -238,6 +248,13 @@ jobs:
           Write-Host "PC REPORT SELFTEST (read-only diagnostics, verified file): $($rp | Select-Object -Last 1)"
           $rpr = ($rp | Select-Object -Last 1) | ConvertFrom-Json
           if (-not $rpr.ok -or $rpr.unknown.Count -gt 0) { throw "PC report: not verified or some part could not be measured on Windows" }
+          $rsOut = "$env:RUNNER_TEMP\rescue-selftest.txt"
+          $rsProc = Start-Process -FilePath dist\JARVIS\JARVIS-debug.exe -ArgumentList "--selftest-rescue" -RedirectStandardOutput $rsOut -NoNewWindow -PassThru
+          if (-not $rsProc.WaitForExit(480000)) { $rsProc.Kill(); Get-Content $rsOut | Write-Host; throw "PC rescue selftest hung (over 8 minutes); the last stage above is where" }
+          $rs = Get-Content $rsOut
+          Write-Host "PC RESCUE SELFTEST (11 read-only probes, verified report, performance): $($rs | Select-Object -Last 1)"
+          $rsr = ($rs | Select-Object -Last 1) | ConvertFrom-Json
+          if (-not $rsr.ok) { throw "PC rescue: a probe did not return data or the report was not verified" }
           if ($code -ne 0) { throw "idle cost above 2x target" }
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -3,6 +3,11 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.8": [
+    { icon: "first-aid-kit", title: "Záchrana a výkon", line: "Nová stránka: proč PC padá (modré obrazovky česky), ovladače, USB, disky, pomalý start, služby – jen čte a radí, report ověří." },
+    { icon: "gauge", title: "Co brzdí počítač", line: "Procesor, grafika, RAM, disk i odezva internetu v jednom měření. Test výkonu s porovnáním před/po a graf za 24 hodin." },
+    { icon: "shield-warning", title: "Bezpečnostní centrum", line: "Je odkaz podvod? Je stažený soubor bezpečný? Uniklo heslo? Klíče v kódu, ověření zálohy a bod obnovy jedním klikem." },
+  ],
   "3.7": [
     { icon: "shield-check", title: "Bezpečí a soukromí", line: "Nová stránka: režim jen pro čtení, dvojí potvrzení, dočasná oprávnění, soukromý režim, mazání starých dat, šifrovaná záloha a export." },
     { icon: "queue", title: "Fronta misí", line: "Úkoly → Fronta misí: naplánuj misi na čas, s termínem. Přerušená mise jde Pokračovat od místa, kde skončila." },

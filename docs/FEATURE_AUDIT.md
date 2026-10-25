@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 102 | 74 |
-| 🟡 ČÁSTEČNĚ | 158 | 58 |
+| ✅ HOTOVO | 136 | 74 |
+| 🟡 ČÁSTEČNĚ | 167 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 8 | 10 |
-| ⛔ BLOKOVÁNO_PLATFORMOU | 2 | 0 |
-| 🗓️ PLÁNOVÁNO | 36 | 4 |
-| ⬜ CHYBÍ | 489 | 17 |
+| 🔌 VYŽADUJE_INTEGRACI | 9 | 10 |
+| ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
+| 🗓️ PLÁNOVÁNO | 34 | 4 |
+| ⬜ CHYBÍ | 449 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -39,24 +39,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 1 · 🟡 8 · ⛔ 1 · ⬜ 5
+✅ 9 · 🟡 5 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 011 | Automatické hledání vadných nebo chybějících ovladačů. | 🟡 ČÁSTEČNĚ | report: zařízení s chybou ovladače (Win32_PnPEntity ConfigManagerErrorCode) – pcreport.py |
-| 012 | Vyhodnocení Windows Event Viewer. | 🟡 ČÁSTEČNĚ | report: chyby systémového logu za 24 h podle zdroje (Get-WinEvent) – pcreport.py |
-| 013 | Sledování Windows Update. | 🟡 ČÁSTEČNĚ | report: poslední nainstalovaná aktualizace a její stáří (Get-HotFix) – pcreport.py |
-| 014 | Analýza příčin BSOD. | 🟡 ČÁSTEČNĚ | report: neočekávaná vypnutí za 30 dní (událost 41); analýza příčiny chybí |
-| 015 | Analýza minidump po pádu. | ⬜ CHYBÍ | čtení minidumpů vyžaduje WinDbg/cdb – PLÁNOVÁNO v M4 |
-| 016 | Diagnostika pomalého startu Windows. | 🟡 ČÁSTEČNĚ | report: programy po spuštění (Win32_StartupCommand); časová osa startu chybí |
-| 017 | Diagnostika nefunkčních USB. | ⬜ CHYBÍ | — |
-| 018 | Měření diskového výkonu a historie chyb. | 🟡 ČÁSTEČNĚ | report: zdraví fyzických disků (Get-PhysicalDisk); výkon a historie chybí |
-| 019 | Rozpoznávání konfliktů zařízení a ovladačů. | 🟡 ČÁSTEČNĚ | report: zařízení s chybou (kód ConfigManager) |
-| 020 | Bezpečné body obnovy před zásahy. | ⬜ CHYBÍ | — |
-| 021 | Diagnostika sítí, DNS a Wi-Fi. | 🟡 ČÁSTEČNĚ | speed_test, network_devices, síťová rozhraní v reportu |
-| 022 | Sledování thermal throttlingu. | ⛔ BLOKOVÁNO_PLATFORMOU | Windows bez ovladače výrobce teploty CPU nehlásí; report píše „neznámá“ |
+| 011 | Automatické hledání vadných nebo chybějících ovladačů. | ✅ HOTOVO | pc_diagnose drivers: zařízení s chybovým kódem (česky co znamená), nepodepsané a staré ovladače (rescue._an_drivers) |
+| 012 | Vyhodnocení Windows Event Viewer. | ✅ HOTOVO | logy System/Application vyhodnocené po oblastech: pády, aplikace, služby, disky (rescue.PROBES) |
+| 013 | Sledování Windows Update. | 🟡 ČÁSTEČNĚ | stáří poslední aktualizace a virových definic (oblast security); čekající aktualizace se nesledují |
+| 014 | Analýza příčin BSOD. | ✅ HOTOVO | kódy modrých obrazovek z událostí 1001 → název + česká příčina + rada, opakování, nečekaná vypnutí (rescue.BUGCHECKS, explain_crash_code) |
+| 015 | Analýza minidump po pádu. | 🟡 ČÁSTEČNĚ | seznam výpisů pádů (Minidump) a kód z logu; rozbor obsahu výpisu potřebuje ladicí nástroj Windows (cdb) – zatím ne |
+| 016 | Diagnostika pomalého startu Windows. | ✅ HOTOVO | časy startu a co ho zdržuje (Diagnostics-Performance 100–109), počet programů po spuštění, rychlé spuštění |
+| 017 | Diagnostika nefunkčních USB. | ✅ HOTOVO | USB zařízení s chybou, opakované odpojování (Kernel-PnP), offline/RAW disky, USB rámečky (rescue._an_usb) |
+| 018 | Měření diskového výkonu a historie chyb. | ✅ HOTOVO | test zápisu/čtení disku s historií měření (perf_benchmark) + chyby disku z logu za 30 dní |
+| 019 | Rozpoznávání konfliktů zařízení a ovladačů. | 🟡 ČÁSTEČNĚ | kódy ConfigManager vč. konfliktu prostředků (12); mapa konfliktů chybí |
+| 020 | Bezpečné body obnovy před zásahy. | ✅ HOTOVO | create_restore_point – se schválením, srozumitelné chyby (správce, 24 h, vypnutá ochrana) + přehled bodů obnovy |
+| 021 | Diagnostika sítí, DNS a Wi-Fi. | ✅ HOTOVO | network_check: Wi-Fi signál, DNS, odezva, ztráta, trasa, certifikát, dostupnost webu, veřejné DNS |
+| 022 | Sledování thermal throttlingu. | 🟡 ČÁSTEČNĚ | škrcení poznám podle frekvence CPU pod zátěží (perf.bottlenecks); teplotu CPU Windows bez ovladače výrobce nehlásí |
 | 023 | Graf závislostí služeb a procesů. | ⬜ CHYBÍ | — |
-| 024 | Kontrola podezřelých aplikací a oprávnění. | ⬜ CHYBÍ | — |
+| 024 | Kontrola podezřelých aplikací a oprávnění. | 🟡 ČÁSTEČNĚ | podezřelý autostart (nepodepsané z AppData/Temp), skryté naplánované úlohy, programy otevřené do sítě; oprávnění aplikací ne |
 | 025 | Technická zpráva o stavu PC. | ✅ HOTOVO | pc_health_report: read-only diagnostika, HTML report, ověření 5 kritérií (pcreport.py, tools/mission_tools.py, tests/test_omega.py, CI --selftest-report) |
 
 ## 03. Context Awareness
@@ -475,47 +475,47 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 25. JARVIS PC Rescue
 
-🟡 2 · ⛔ 1 · 🗓️ 1 · ⬜ 11
+✅ 7 · 🟡 5 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 286 | Windows Integrity Inspector — integrita Windows. | ⬜ CHYBÍ | — |
+| 286 | Windows Integrity Inspector — integrita Windows. | 🟡 ČÁSTEČNĚ | system_integrity_check: DISM /CheckHealth + SFC /VERIFYONLY (jen kontrola); CI ho nespouští (trvá minuty) |
 | 287 | Driver Rollback Assistant — návrat ovladače. | ⬜ CHYBÍ | — |
-| 288 | Boot Problem Analyzer — chyby startu. | ⬜ CHYBÍ | — |
+| 288 | Boot Problem Analyzer — chyby startu. | ✅ HOTOVO | Boot Problem Analyzer = oblast boot |
 | 289 | Disk Partition Inspector — přehled oddílů. | 🟡 ČÁSTEČNĚ | oddíly a jejich zaplnění v reportu |
-| 290 | USB Connection Analyzer — diagnostika USB. | ⬜ CHYBÍ | — |
-| 291 | Storage Error Correlation — souvislosti diskových chyb. | ⬜ CHYBÍ | — |
-| 292 | File System Health — souborový systém. | ⬜ CHYBÍ | — |
-| 293 | Crash Pattern Detector — opakující se pády. | 🟡 ČÁSTEČNĚ | počet neočekávaných vypnutí |
-| 294 | Service Dependency Inspector — závislosti služeb. | ⬜ CHYBÍ | — |
+| 290 | USB Connection Analyzer — diagnostika USB. | ✅ HOTOVO | USB Connection Analyzer = oblast usb |
+| 291 | Storage Error Correlation — souvislosti diskových chyb. | 🟡 ČÁSTEČNĚ | chyby disku seskupené podle druhu (vadné sektory, timeouty, NTFS); časová souvislost s pády chybí |
+| 292 | File System Health — souborový systém. | ✅ HOTOVO | stav svazků + chyby NTFS (55/98/140) z logu |
+| 293 | Crash Pattern Detector — opakující se pády. | ✅ HOTOVO | opakující se pády podle kódu a podle aplikace + modulu (grafický ovladač, systémová knihovna) |
+| 294 | Service Dependency Inspector — závislosti služeb. | 🟡 ČÁSTEČNĚ | automatické služby, které neběží, a chyby spouštění; graf závislostí chybí |
 | 295 | Power Plan Diagnostics — energetické plány. | ⬜ CHYBÍ | — |
-| 296 | Memory Error Testing Assistant — test RAM. | ⬜ CHYBÍ | — |
-| 297 | Thermal Health Report — teploty. | ⛔ BLOKOVÁNO_PLATFORMOU | teploty bez ovladače výrobce nejsou dostupné |
-| 298 | Hardware Change Detector — změny zařízení. | ⬜ CHYBÍ | — |
+| 296 | Memory Error Testing Assistant — test RAM. | ✅ HOTOVO | schedule_memory_test (Diagnostika paměti Windows, se schválením) + čtení výsledku testu (MemoryDiagnostics-Results) |
+| 297 | Thermal Health Report — teploty. | 🟡 ČÁSTEČNĚ | teploty disků (StorageReliabilityCounter, SMART); teplotu CPU Windows bez ovladače výrobce nehlásí |
+| 298 | Hardware Change Detector — změny zařízení. | ✅ HOTOVO | strážce každých 5 min porovná zařízení a řekne, co se připojilo/odpojilo (stark.Guardian.check_hardware, hardware_changes) |
 | 299 | Recovery Media Assistant — záchranné médium. | ⬜ CHYBÍ | — |
-| 300 | Data Rescue Priority Mode — přednost ochrany dat. | 🗓️ PLÁNOVÁNO | zásada: nejdřív ochrana dat, jen čtení – M4 |
+| 300 | Data Rescue Priority Mode — přednost ochrany dat. | ✅ HOTOVO | data_rescue_plan: pořadí záchrany složek, nic nekopíruje ani nemaže; u RAW/offline disku „NEFORMÁTUJ“ |
 
 ## 26. Extreme Performance
 
-🟡 5 · ⬜ 10
+✅ 8 · 🟡 4 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 301 | CPU Bottleneck Detector — limit procesoru. | ⬜ CHYBÍ | — |
-| 302 | GPU Bottleneck Detector — limit grafiky. | ⬜ CHYBÍ | — |
-| 303 | RAM Pressure Analyzer — tlak na RAM. | 🟡 ČÁSTEČNĚ | strážce hlídá RAM (stark.py) |
-| 304 | VRAM Usage Tracking — využití VRAM. | 🟡 ČÁSTEČNĚ | využití GPU v system_snapshot (pokud dostupné) |
-| 305 | Background Task Profiler — procesy na pozadí. | 🟡 ČÁSTEČNĚ | top_processes |
+| 301 | CPU Bottleneck Detector — limit procesoru. | ✅ HOTOVO | perf_check: vytížení CPU po jádrech + kdo ho bere |
+| 302 | GPU Bottleneck Detector — limit grafiky. | ✅ HOTOVO | vytížení grafiky (čítače GPU Engine) a „brzdí grafika, ne procesor“ |
+| 303 | RAM Pressure Analyzer — tlak na RAM. | ✅ HOTOVO | tlak na RAM + nejnáročnější programy |
+| 304 | VRAM Usage Tracking — využití VRAM. | ✅ HOTOVO | využití VRAM (GPU Adapter Memory) |
+| 305 | Background Task Profiler — procesy na pozadí. | 🟡 ČÁSTEČNĚ | nejnáročnější procesy během měření; profil v čase chybí |
 | 306 | Frame-Time Analyzer — nepravidelnosti snímků. | ⬜ CHYBÍ | — |
-| 307 | Startup Performance Timeline — start systému. | ⬜ CHYBÍ | — |
+| 307 | Startup Performance Timeline — start systému. | ✅ HOTOVO | časová osa startu z Diagnostics-Performance |
 | 308 | App Launch Benchmarking — rychlost spouštění. | ⬜ CHYBÍ | — |
-| 309 | Disk I/O Visualizer — diskové I/O. | ⬜ CHYBÍ | — |
+| 309 | Disk I/O Visualizer — diskové I/O. | 🟡 ČÁSTEČNĚ | čtení/zápis/vytížení každého disku během měření; graf chybí |
 | 310 | Resource Priority Profiles — profily výkonu. | ⬜ CHYBÍ | — |
-| 311 | Network Latency Monitor — síťová odezva. | 🟡 ČÁSTEČNĚ | speed_test |
-| 312 | Performance History — historie výkonu. | ⬜ CHYBÍ | — |
+| 311 | Network Latency Monitor — síťová odezva. | ✅ HOTOVO | odezva, kolísání a ztráta (TCP handshake, bez práv správce) |
+| 312 | Performance History — historie výkonu. | ✅ HOTOVO | historie výkonu každých 5 min, 30 dní, graf na stránce, perf_history |
 | 313 | Gaming Session Analyzer — analýza hraní. | 🟡 ČÁSTEČNĚ | čas v aplikacích (screen_time) |
-| 314 | Optimization Before/After — A/B měření změn. | ⬜ CHYBÍ | — |
-| 315 | Safe Optimization Advisor — bezpečná doporučení. | ⬜ CHYBÍ | — |
+| 314 | Optimization Before/After — A/B měření změn. | ✅ HOTOVO | perf_benchmark s popiskem a porovnáním s minulým měřením (před/po) |
+| 315 | Safe Optimization Advisor — bezpečná doporučení. | 🟡 ČÁSTEČNĚ | ke každému zjištění bezpečná rada; JARVIS sám nic neladí |
 
 ## 27. Intelligent File Universe
 
@@ -629,21 +629,21 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 32. Cybersecurity Center
 
-🟡 4 · ⬜ 11
+✅ 6 · 🟡 6 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 391 | Permission Audit — aplikace a oprávnění. | ⬜ CHYBÍ | — |
-| 392 | Local Port Inspector — místní porty. | ⬜ CHYBÍ | — |
-| 393 | Firewall Rule Explorer — firewall. | ⬜ CHYBÍ | — |
-| 394 | Suspicious Startup Detector — podezřelé položky startu. | 🟡 ČÁSTEČNĚ | seznam programů po spuštění v reportu |
-| 395 | Security Update Tracker — bezpečnostní aktualizace. | ⬜ CHYBÍ | — |
-| 396 | Credential Exposure Checker — kontrola známých úniků. | ⬜ CHYBÍ | — |
-| 397 | Phishing Link Analyzer — rizika URL. | ⬜ CHYBÍ | — |
-| 398 | Download Safety Inspector — kontrola downloadů. | ⬜ CHYBÍ | — |
+| 392 | Local Port Inspector — místní porty. | ✅ HOTOVO | porty otevřené do sítě a jejich programy (Get-NetTCPConnection) |
+| 393 | Firewall Rule Explorer — firewall. | 🟡 ČÁSTEČNĚ | firewall zapnutý/vypnutý po profilech; pravidla neprocházím |
+| 394 | Suspicious Startup Detector — podezřelé položky startu. | ✅ HOTOVO | podezřelé položky startu (podpis, umístění) a naplánované úlohy (skryté PowerShell, AppData) |
+| 395 | Security Update Tracker — bezpečnostní aktualizace. | 🟡 ČÁSTEČNĚ | stáří aktualizací Windows a definic Defenderu |
+| 396 | Credential Exposure Checker — kontrola známých úniků. | ✅ HOTOVO | uniklé heslo přes Have I Been Pwned (k-anonymita: odejde 5 znaků otisku), jen ze stránky, nikdy přes AI |
+| 397 | Phishing Link Analyzer — rizika URL. | ✅ HOTOVO | check_link: podvodné domény, napodobení bank/obchodů, IP, punycode, zkracovače – bez otevření |
+| 398 | Download Safety Inspector — kontrola downloadů. | ✅ HOTOVO | check_download: původ (Zone.Identifier), skutečný typ, dvojitá přípona, podpis, SHA-256, sken Defenderem |
 | 399 | Ransomware Recovery Planner — plán obnovy. | ⬜ CHYBÍ | — |
-| 400 | Local Security Dashboard — bezpečnostní přehled. | ⬜ CHYBÍ | — |
-| 401 | Secret Detection — úniky API klíčů v kódu. | ⬜ CHYBÍ | — |
+| 400 | Local Security Dashboard — bezpečnostní přehled. | 🟡 ČÁSTEČNĚ | Bezpečnostní centrum na stránce Záchrana a výkon + oblast security |
+| 401 | Secret Detection — úniky API klíčů v kódu. | ✅ HOTOVO | scan_secrets: klíče a hesla v kódu, tajemství nikdy nevypíše celé |
 | 402 | Device Trust Manager — důvěryhodná zařízení. | 🟡 ČÁSTEČNĚ | párování telefonu tokenem |
 | 403 | Session Revocation Center — odpojení sessions. | 🟡 ČÁSTEČNĚ | nový token = odpojení všech zařízení |
 | 404 | Security Incident Timeline — časová osa incidentů. | ⬜ CHYBÍ | — |
@@ -1069,36 +1069,36 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 52. Advanced Hardware Rescue
 
-🗓️ 1 · ⬜ 14
+✅ 3 · 🟡 4 · 🔌 1 · ⬜ 7
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 691 | USB Power Diagnostics — napájení USB. | ⬜ CHYBÍ | — |
 | 692 | USB Controller Mapping — řadiče USB. | ⬜ CHYBÍ | — |
-| 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | ⬜ CHYBÍ | — |
-| 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | ⬜ CHYBÍ | — |
+| 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | 🟡 ČÁSTEČNĚ | rada u disků v USB rámečku a opakovaného odpojování |
+| 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | 🟡 ČÁSTEČNĚ | rozpoznání USB rámečku podle názvu (JMicron, ASMedia, Realtek…) |
 | 695 | NVMe Enumeration Inspector — enumerace NVMe. | ⬜ CHYBÍ | — |
 | 696 | SATA Error Log Reader — SATA logy. | ⬜ CHYBÍ | — |
-| 697 | SMART Passthrough Tester — SMART přes USB. | ⬜ CHYBÍ | — |
-| 698 | Invisible Disk Triage — disky nedetekované systémem. | ⬜ CHYBÍ | — |
+| 697 | SMART Passthrough Tester — SMART přes USB. | 🔌 VYŽADUJE_INTEGRACI | plný SMART přes smartctl, když je nainstalovaný smartmontools (rescue.smart_data) |
+| 698 | Invisible Disk Triage — disky nedetekované systémem. | 🟡 ČÁSTEČNĚ | disky offline / RAW / bez oddílů (Get-Disk) |
 | 699 | Read-Only Imaging Planner — image dat v read-only režimu. | ⬜ CHYBÍ | — |
-| 700 | Clone Verification Assistant — integrita klonu. | ⬜ CHYBÍ | — |
+| 700 | Clone Verification Assistant — integrita klonu. | ✅ HOTOVO | verify_copy: SHA-256 každého souboru, chybějící a odlišné |
 | 701 | Read Error Heatmap — vadné oblasti dle logů. | ⬜ CHYBÍ | — |
-| 702 | Accidental Format Protection — ochrana před formátem. | 🗓️ PLÁNOVÁNO | zásada: JARVIS disky neformátuje; ochrana dat – M4 |
-| 703 | Recovery Viability Assessment — možnosti obnovy. | ⬜ CHYBÍ | — |
-| 704 | I/O Timeout Analyzer — timeouty disků. | ⬜ CHYBÍ | — |
+| 702 | Accidental Format Protection — ochrana před formátem. | ✅ HOTOVO | run_shell nikdy nespustí format, diskpart, Clear-Disk, mazání stínových kopií… ani se schválením (tools/shell.py) |
+| 703 | Recovery Viability Assessment — možnosti obnovy. | 🟡 ČÁSTEČNĚ | plán záchrany dat podle priorit; odhad úspěšnosti obnovy chybí |
+| 704 | I/O Timeout Analyzer — timeouty disků. | ✅ HOTOVO | timeouty a resety řadiče (129, 153, 11) z logu |
 | 705 | Hardware Incident Report — report pro servis. | ⬜ CHYBÍ | — |
 
 ## 53. Network & Cloud Command Center
 
-🟡 1 · ⬜ 14
+✅ 2 · 🟡 5 · ⬜ 8
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 706 | Visual Traceroute — mapa síťové cesty. | ⬜ CHYBÍ | — |
-| 707 | DNS Propagation Tracker — DNS propagace. | ⬜ CHYBÍ | — |
-| 708 | TLS Certificate Watch — certifikáty. | ⬜ CHYBÍ | — |
-| 709 | HTTP Synthetic Monitoring — dostupnost API. | ⬜ CHYBÍ | — |
+| 706 | Visual Traceroute — mapa síťové cesty. | 🟡 ČÁSTEČNĚ | trasa po skocích (tracert); grafická mapa chybí |
+| 707 | DNS Propagation Tracker — DNS propagace. | ✅ HOTOVO | co o doméně říká Google DNS, Cloudflare a tento PC |
+| 708 | TLS Certificate Watch — certifikáty. | 🟡 ČÁSTEČNĚ | kontrola certifikátu na požádání (platnost, vydavatel, protokol); průběžné hlídání chybí |
+| 709 | HTTP Synthetic Monitoring — dostupnost API. | 🟡 ČÁSTEČNĚ | dostupnost webu/API na požádání; průběžné hlídání chybí |
 | 710 | Cloud Resource Inventory — cloud zdroje. | ⬜ CHYBÍ | — |
 | 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ⬜ CHYBÍ | — |
 | 712 | Hosting Health Inspector — stav hostingu. | ⬜ CHYBÍ | — |
@@ -1107,8 +1107,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 715 | Infrastructure Rollback Rehearsal — cvičná obnova. | ⬜ CHYBÍ | — |
 | 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ⬜ CHYBÍ | — |
 | 717 | Local Network Throughput Tester — propustnost vlastní sítě. | 🟡 ČÁSTEČNĚ | speed_test (internet, ne LAN) |
-| 718 | Jitter Analysis — kolísání latence. | ⬜ CHYBÍ | — |
-| 719 | Packet Loss History — ztrátovost paketů. | ⬜ CHYBÍ | — |
+| 718 | Jitter Analysis — kolísání latence. | ✅ HOTOVO | kolísání latence (jitter) v perf_check a network_check |
+| 719 | Packet Loss History — ztrátovost paketů. | 🟡 ČÁSTEČNĚ | ztráta paketů při měření; historie jen z měření na požádání |
 | 720 | Infrastructure Outage Timeline — historie výpadků. | ⬜ CHYBÍ | — |
 
 ## 54. Next-Gen Mobile

@@ -16,6 +16,7 @@ import { buildStark } from "./stark";
 import { buildComms } from "./comms";
 import { buildAutomations } from "./automations";
 import { buildHome } from "./home";
+import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
 import { whatsNewOverlay } from "../shared/whatsnew";
 import { missingModelCard } from "../shared/localmissing";
@@ -36,10 +37,10 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security";
+type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "security", "voice-mode", "claude"]],
+  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "rescue", "security", "voice-mode", "claude"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
@@ -49,6 +50,7 @@ const NAV: [View, string, string][] = [
   ["stark", "circle-notch", "Stark"],
   ["auto", "flow-arrow", "Automatizace"],
   ["home", "house-line", "Domov"],
+  ["rescue", "first-aid-kit", "Záchrana a výkon"],
   ["security", "shield-check", "Bezpečí a soukromí"],
   ["comms", "envelope-simple", "E-mail a telefon"],
   ["tasks", "list-checks", "Úkoly"],
@@ -97,6 +99,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   auto: buildAutomations(client),
   home: buildHome(client),
   security: buildSecurity(client),
+  rescue: buildRescue(client),
 };
 recapOverlay(client);
 whatsNewOverlay(client);

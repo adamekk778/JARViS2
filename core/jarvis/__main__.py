@@ -202,6 +202,39 @@ def main(argv: list[str] | None = None) -> int:
             out = {"ok": False, "error": f"{type(e).__name__}: {e}"}
         print(json.dumps(out))   # ASCII: a redirected stdout on Windows is cp1252 and cannot encode "č", "ř", "ě"
         return 0
+    if argv[:1] == ["--selftest-rescue"]:  # CI: every PC-rescue probe on real Windows + the verified report + perf
+        import json
+        import tempfile
+        import time as _t
+        from pathlib import Path
+
+        from . import perf, rescue
+        from .tasks import sha256_file
+
+        t0 = _t.monotonic()
+        out: dict = {"probes": {}}
+        try:
+            for name in rescue.PROBES:
+                print(json.dumps({"stage": name, "s": round(_t.monotonic() - t0, 1)}), flush=True)
+                r = rescue.run_probe(name)
+                subs = {k: (v.get("error", "")[:80] if isinstance(v, dict) and set(v) == {"error"} else "ok") for k, v in r["data"].items()}
+                out["probes"][name] = {"ok": r["ok"], "ms": r["ms"], "error": r["error"][:160], "parts": subs,
+                                       "findings": len(rescue.analyze(name, r["data"])) if r["ok"] else 0}
+            print(json.dumps({"stage": "report", "s": round(_t.monotonic() - t0, 1)}), flush=True)
+            data = rescue.diagnose(["crashes", "usb", "services"])
+            path = rescue.write_report(data, Path(tempfile.mkdtemp()))
+            checks = rescue.verify_report(path, sha256_file(path))
+            out["report"] = [[c, ok, v] for c, ok, v in checks]
+            s = perf.sample(1.0)
+            out["perf"] = {"cpu": s["cpu"], "ram": s["ram_pct"], "gpu": s.get("gpu"), "findings": len(perf.bottlenecks(s))}
+            out["bench"] = perf.benchmark("ci")
+            out["smart"] = rescue.smart_data().get("available", False)
+            out["ok"] = all(p["ok"] for p in out["probes"].values()) and all(ok for _c, ok, _v in checks)
+        except Exception as e:
+            out.update(ok=False, error=f"{type(e).__name__}: {e}")
+        out["s"] = round(_t.monotonic() - t0, 1)
+        print(json.dumps(out))   # ASCII for the cp1252 console
+        return 0
     if argv[:1] == ["--selftest-powers"]:  # CI: selected text in a real app (Notepad), clipboard, focus
         import json
 

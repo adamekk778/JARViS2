@@ -532,3 +532,33 @@ button.home-tile:active { transform: scale(.98); }
 @keyframes rp-in { from { opacity: 0; transform: translateY(6px); } }
 .tc-more { margin-left: auto; font-size: 12px; color: var(--text-2); }
 .st-queued { background: rgb(167 139 250 / .18); color: #c4b5fd; }
+
+/* Záchrana a výkon (OMEGA wave 2) */
+.rs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--border);
+  background: var(--glass-2); color: var(--text-2); font: inherit; font-size: 13px; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.rs-chip.on { border-color: #f87171; color: var(--text); background: rgb(248 113 113 / .14); }
+.rs-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rs-out { display: grid; gap: 10px; }
+.rs-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.rs-summary strong { font-size: 16px; }
+.rs-area { border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; }
+.rs-area summary { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.rs-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.rs-f { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; font-size: 13px; }
+.rs-f p { margin: 0; }
+.rs-fix { color: var(--text-2); margin-top: 2px !important; }
+.rs-src { font-size: 11px; }
+.rs-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.rs-badge.bad, p.rs-f.bad { background: rgb(239 68 68 / .16); color: #fca5a5; }
+.rs-badge.warn { background: rgb(245 158 11 / .16); color: #fde68a; }
+.rs-badge.ok { background: rgb(34 197 94 / .16); color: #86efac; }
+.rs-badge.info { background: var(--glass-2); color: var(--text-2); }
+p.rs-f.bad { display: block; padding: 8px 12px; border-radius: 10px; }
+.rs-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.rs-stats div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--glass-2); }
+.rs-stats strong { font-size: 20px; }
+.rs-hist { display: flex; align-items: flex-end; gap: 2px; height: 70px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.rs-hist i { flex: 1; min-width: 2px; border-radius: 2px 2px 0 0; background: linear-gradient(#f87171, #ef4444); opacity: .8; }
+.rs-trace { margin: 0; padding-left: 20px; font-size: 13px; display: grid; gap: 2px; }
+.rs-check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--text-2); }

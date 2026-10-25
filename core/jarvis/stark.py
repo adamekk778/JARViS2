@@ -8,6 +8,7 @@ import asyncio
 import datetime as dt
 import logging
 import re
+import sys
 import time
 import unicodedata
 from dataclasses import dataclass, field
@@ -280,6 +281,7 @@ class Guardian:
         self.rt = rt
         self.state = GuardState()
         self._task: asyncio.Task | None = None
+        self.last_snap: dict = {}
 
     def start(self) -> None:
         self._task = asyncio.get_running_loop().create_task(self._loop())
@@ -293,6 +295,7 @@ class Guardian:
 
         rt = self.rt
         snap = await asyncio.to_thread(system_snapshot)
+        self.last_snap = snap
         if (snap.get("cpu_percent") or 0) >= 90:
             snap["top_cpu"] = await asyncio.to_thread(_top_cpu_name)
         alerts = evaluate(self.state, snap, time.monotonic(), rt.cfg.stark, getattr(rt.mood, "offline", False),
@@ -315,9 +318,36 @@ class Guardian:
             self.rt.notify("Síť", text, speak=self.rt.cfg.stark.guardian_speak and self.rt.cfg.voice.speak_mode != "never")
         return fresh
 
+    async def record_perf(self) -> dict:
+        """OMEGA 312: one row of the performance history (reuses the guardian's last snapshot when fresh)."""
+        from .tools.system import system_snapshot
+
+        snap = self.last_snap or await asyncio.to_thread(system_snapshot)
+        self.last_snap = {}
+        g = (snap.get("gpu") or {}).get("util") if isinstance(snap.get("gpu"), dict) else None
+        return self.rt.perf.record(snap.get("cpu_percent"), snap.get("ram_percent"), g)
+
+    async def check_hardware(self) -> tuple[list[str], list[str]]:
+        """OMEGA 290: a device was plugged in or removed since the last look → say which."""
+        from . import rescue
+        from .tools.rescue_tools import hw_diff
+
+        r = await asyncio.to_thread(rescue.run_probe, "devices")
+        if not r["ok"]:
+            return [], []
+        added, removed, _now = hw_diff(self.rt, rescue.device_snapshot(r["data"]))
+        if not added and not removed:
+            return [], []
+        parts = ([f"Připojeno: {', '.join(a.split(': ', 1)[-1] for a in added[:3])}"] if added else []) + \
+                ([f"Odpojeno: {', '.join(x.split(': ', 1)[-1] for x in removed[:3])}"] if removed else [])
+        text = ". ".join(parts) + "."
+        self.rt.bus.publish("guardian", key="hardware", title="Zařízení", text=text)
+        self.rt.notify("Zařízení", text, speak=False)     # the character shows the notification badge
+        return added, removed
+
     async def _loop(self) -> None:
         await asyncio.sleep(60)          # let the PC settle after start-up
-        net_at = 0.0
+        net_at = perf_at = hw_at = 0.0
         while True:
             try:
                 if self.rt.cfg.stark.guardian:
@@ -325,6 +355,12 @@ class Guardian:
                 if self.rt.cfg.stark.network_watch and time.monotonic() - net_at > 600:
                     net_at = time.monotonic()
                     await self.check_network()
+                if self.rt.cfg.stark.perf_history and time.monotonic() - perf_at > 300:
+                    perf_at = time.monotonic()
+                    await self.record_perf()
+                if self.rt.cfg.stark.hardware_watch and sys.platform == "win32" and time.monotonic() - hw_at > 300:
+                    hw_at = time.monotonic()
+                    await self.check_hardware()
                 if briefing_due(self.rt) and _user_present(self.rt) and self.rt.clients:
                     await deliver_briefing(self.rt)
             except Exception as e:

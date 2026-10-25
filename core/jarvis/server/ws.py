@@ -38,6 +38,7 @@ CLIENT_TYPES = [
     "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
     "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
     "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
+    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -52,6 +53,7 @@ SERVER_TYPES = [
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
+    "rescue", "perf", "netcheck", "seccheck",
 ]
 
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -64,12 +66,13 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
               "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback", "audit_export", "data_export", "backup_create",
-              "backup_restore", "reset_all", "perm_grant"}
+              "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
 SLOW = {"privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
-        "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get"}
+        "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
+        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck"}
 
 
 class Connection:
@@ -89,6 +92,38 @@ class Connection:
     async def send(self, type: str, **data) -> None:  # noqa: A002
         async with self.send_lock:
             await self.ws.send_json({"type": type, **data})
+
+    async def _seccheck(self, m: dict) -> dict:
+        """The security center's buttons (local window only). Results only; the password is not stored or logged."""
+        from .. import rescue, secutils
+
+        kind = str(m.get("kind") or "")
+        arg = str(m.get("value") or "").strip()
+        try:
+            if kind == "link":
+                return {"kind": kind, "result": secutils.check_link(arg)}
+            if kind == "file":
+                r = await asyncio.to_thread(secutils.check_file, arg)
+                if "error" not in r and m.get("scan"):
+                    r["defender"] = await asyncio.to_thread(secutils.defender_scan, r["path"])
+                return {"kind": kind, "result": r}
+            if kind == "secrets":
+                return {"kind": kind, "result": {"hits": await asyncio.to_thread(secutils.scan_secrets, arg)}}
+            if kind == "copy":
+                return {"kind": kind, "result": await asyncio.to_thread(secutils.verify_copy, arg, str(m.get("value2") or ""))}
+            if kind == "pwned":
+                return {"kind": kind, "result": {"count": await secutils.pwned_count(self.rt, arg)}}
+            if kind == "rescue_plan":
+                return {"kind": kind, "result": {"folders": await asyncio.to_thread(secutils.rescue_plan, self.rt)}}
+            if kind == "integrity":
+                r = await asyncio.to_thread(rescue.integrity_check)
+                return {"kind": kind, "result": {"findings": r.get("findings") or [rescue.F("info", r.get("error", ""))]}}
+            if kind == "restore_point":       # the button sits behind a confirmation dialog in the page
+                ok, msg = await asyncio.to_thread(rescue.create_restore_point, arg or "JARVIS")
+                return {"kind": kind, "result": {"ok": ok, "text": msg}}
+        except Exception as e:   # noqa: BLE001 – shown to the user, never retried silently
+            return {"kind": kind, "error": f"{type(e).__name__}: {str(e)[:200]}"}
+        return {"kind": kind, "error": "Neznámá kontrola."}
 
     async def _home_devices(self) -> list[dict]:
         keep = ("light", "switch", "fan", "climate", "cover", "scene", "script", "lock", "input_boolean", "media_player")
@@ -469,6 +504,48 @@ class Connection:
             else:
                 r = await asyncio.to_thread(privacy.reset_all, rt)
                 await self.send("export_done", kind="reset", path="", detail=f"smazáno {sum(r.values())} záznamů")
+        elif t == "rescue_run":            # OMEGA wave 2: the "Záchrana a výkon" page – read-only probes, a verified report
+            from .. import rescue
+            from ..tasks import sha256_file
+            from ..tools.rescue_tools import _areas
+
+            areas = _areas(str(m.get("area") or "all"))
+            data = await asyncio.to_thread(rescue.diagnose, areas)
+            path = await asyncio.to_thread(rescue.write_report, data)
+            checks = await asyncio.to_thread(rescue.verify_report, path, sha256_file(path))
+            await self.send("rescue", results=data["results"], top=data["top"], path=str(path), created=data["created"],
+                            verified=all(ok for _c, ok, _v in checks))
+        elif t == "rescue_open":           # only a diagnostics report JARVIS wrote into its reports folder
+            from pathlib import Path
+
+            from ..pcreport import reports_dir
+
+            p = Path(str(m.get("path") or ""))
+            if p.parent.resolve() != reports_dir().resolve() or not p.name.startswith("diagnostika_") or not p.is_file():
+                await self.send("error", message="Tenhle soubor JARVIS nevytvořil.")
+            else:
+                await asyncio.to_thread(rt.platform.open_path, str(p))
+        elif t in ("perf_get", "perf_bench"):
+            from .. import perf
+
+            out: dict = {"history": rt.perf.series(float(m.get("hours") or 24)), "benches": rt.perf.benches(10)}
+            if t == "perf_bench":
+                prev = rt.perf.benches(1)
+                b = await asyncio.to_thread(perf.benchmark, str(m.get("label") or "")[:60])
+                rt.perf.save_bench(b)
+                out.update(bench=b, compare=perf.compare(prev[0], b) if prev else [], benches=rt.perf.benches(10))
+            else:
+                s_ = await asyncio.to_thread(perf.sample, 3.0)
+                lat = await asyncio.to_thread(perf.tcp_latency, "1.1.1.1", 443, 5)
+                out.update(sample=s_, findings=perf.bottlenecks(s_), latency=lat)
+            await self.send("perf", **out)
+        elif t == "netcheck":
+            from ..tools.rescue_tools import network_check
+
+            r = await network_check(rt, target=str(m.get("target") or "")[:255], route=bool(m.get("route")))
+            await self.send("netcheck", ok=r.ok, summary=r.summary, data=r.data)
+        elif t == "seccheck":              # security center; a password checked here never reaches the AI or the log
+            await self.send("seccheck", **(await self._seccheck(m)))
         elif t == "perm_grant":            # OMEGA 181: a switched-off area allowed for a while (by the user, in the UI)
             from .. import permissions
 

@@ -26,6 +26,8 @@ READ_ONLY_OK = {
     "show_hud", "system_info", "top_processes", "performance_report", "pc_health_report", "storage_report", "speed_test",
     "weather", "update_plan", "network_devices", "selected_text", "export_audit", "calendar_list", "email_inbox",
     "email_search", "price", "exchange_rate",
+    "pc_diagnose", "explain_crash_code", "perf_check", "perf_benchmark", "perf_history", "network_check", "check_link",
+    "check_download", "scan_secrets", "verify_copy", "data_rescue_plan", "system_integrity_check", "hardware_changes",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
@@ -54,7 +56,7 @@ def granted(perm: str) -> bool:
 
 CATEGORY_PERM = {
     "ovládání počítače": "input", "obrazovka": "screen", "soubory": "files_read",
-    "prohlížeč": "network", "web": "network", "systém": "system",
+    "prohlížeč": "network", "web": "network", "systém": "system", "síť": "network", "bezpečnost": "files_read",
 }
 TOOL_PERM = {
     "type_text": "input", "press_keys": "input",
