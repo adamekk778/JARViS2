@@ -170,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
             out = uia_win.selftest()
         except Exception as e:
             out = {"skipped": str(e)}
-        print(json.dumps(out, ensure_ascii=False))
+        print(json.dumps(out))  # ASCII-safe for a cp1252 console
         return 0
     if argv[:1] == ["--selftest-report"]:  # CI: the read-only PC report on real Windows, verified
         import json
@@ -200,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
                    "unknown": [s["id"] for s in data["sections"] if s["ok"] is None and not s["rows"]]}
         except Exception as e:
             out = {"ok": False, "error": f"{type(e).__name__}: {e}"}
-        print(json.dumps(out, ensure_ascii=False))
+        print(json.dumps(out))   # ASCII: a redirected stdout on Windows is cp1252 and cannot encode "č", "ř", "ě"
         return 0
     if argv[:1] == ["--selftest-powers"]:  # CI: selected text in a real app (Notepad), clipboard, focus
         import json
@@ -213,7 +213,7 @@ def main(argv: list[str] | None = None) -> int:
             out = powers.selftest_windows()
         except Exception as e:
             out = {"skipped": f"{type(e).__name__}: {e}"}
-        print(json.dumps(out, ensure_ascii=False))
+        print(json.dumps(out))  # ASCII-safe for a cp1252 console
         return 0
     ap = argparse.ArgumentParser(prog="jarvis", description="JARVIS 2")
     ap.add_argument("--no-ui", action="store_true", help="jen server (bez oken)")
