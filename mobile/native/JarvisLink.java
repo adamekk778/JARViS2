@@ -141,7 +141,7 @@ public final class JarvisLink {
                     return "ringing";
                 case "find":
                     FindPhone.start(c);
-                    return "ringing";
+                    return "alarm";     // acked at once ("ringing" is only acked when a call is answered)
                 case "find_stop":
                     FindPhone.stop(c);
                     return "done";

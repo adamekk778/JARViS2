@@ -328,6 +328,7 @@ client.on("tool_end", (m) => {
   if (c) log(`${c.textContent}${m.summary ? " – " + m.summary : ""}`.slice(0, 90), m.ok ? "" : "bad");
 });
 client.on("protocol", (m) => { log(`Protokol ${m.name} spuštěn`, "lp"); play("wake"); });
+client.on("automation", (m) => log(`Automatizace ${m.name}: ${m.why}`, "lp"));
 client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); });
 client.on("notify", (m) => log(`${m.title}: ${m.body}`.slice(0, 90)));
 client.on("briefing", (m) => { showBriefing(m.text); log("Ranní brífink"); });

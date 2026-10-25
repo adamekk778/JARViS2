@@ -108,7 +108,7 @@ async def test_find_my_phone_and_battery(rt):
     from test_phone_link import fake_phone
 
     seen = []
-    task = asyncio.create_task(fake_phone(rt, lambda c: "ringing" if c["kind"] == "find" else "done", seen))
+    task = asyncio.create_task(fake_phone(rt, lambda c: "alarm" if c["kind"] == "find" else "done", seen))
     await asyncio.sleep(0.05)
     assert (await tools.call("find_phone", {}, rt)).summary.startswith("Telefon zvoní naplno")
     assert (await tools.call("find_phone", {"stop": True}, rt)).summary == "Telefon ztišen."
