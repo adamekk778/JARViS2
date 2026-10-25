@@ -6,7 +6,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 |---|---|
 | `Claude Code` | 046, 049, 331, 339, 340, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
 | `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
-| `tasks.py` | 002, 010, 152, 209, 217, 223 |
 | `Home Assistant` | 165, 423, 434, P13.02, P13.05 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `find_file` | 038, 316, 322, P2.11, P11.11 |
@@ -18,14 +17,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `powers.py` | 026, 027, 077, 236 |
 | `run_shell` | P2.05, P2.13, P5.11, P5.12 |
 | `run_tests` | 058, 339, 340, P5.08 |
+| `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `update_plan` | 001, 198, 202, P1.05 |
 | `home.py` | 165, 435, P13.01 |
+| `memory.py` | 039, 041, P1.03 |
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
 | `speed_test` | 021, 311, 717 |
 | `stark.py` | 034, 303, 508 |
+| `test_wave` | 041, 152, 177 |
 | `tests/test_omega.py` | 002, 025, 076 |
+| `tools/base.py` | 183, 203, 682 |
 | `tools/dev.py` | 046, 050, 058 |
 | `web_read` | 003, P6.03, P11.01 |
 | `web_search` | 003, P6.03, P11.01 |
@@ -35,16 +38,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `character/looks.ts` | 250, 251 |
 | `claude_bridge.py` | 046, P5.01 |
 | `close_app` | P2.01, P2.06 |
+| `dashboard/tasks.ts` | 002, 010 |
 | `desktop/host.py` | 226, P8.01 |
 | `home_control` | 424, P13.01 |
+| `injection.py` | 183, P14.11 |
 | `mail.py` | 541, P11.05 |
-| `memory.py` | 039, P1.03 |
 | `move_files` | 325, P2.11 |
 | `network.py` | 165, 406 |
 | `network_devices` | 021, 426 |
 | `open_app` | P2.01, P12.09 |
 | `permissions.py` | 177, P14.01 |
 | `phone.py` | 145, 541 |
+| `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `search_history` | 038, 520 |
 | `send_to_phone` | 138, 408 |
@@ -54,23 +59,31 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/uia.py` | 028, 274 |
 | `top_processes` | 305, P2.06 |
 | `ui_inspect` | 028, P2.03 |
+| `usage.py` | 178, 678 |
 | `wake_word` | 098, P3.01 |
+| `_needs_second` | 182 |
 | `agent.py` | 001 |
+| `ai_usage` | 154 |
+| `app_allowlist` | 682 |
 | `audio_devices` | 105 |
+| `backup_encrypted` | 685 |
 | `break_minutes` | 077 |
 | `calendar_.py` | 171 |
 | `character/blob.ts` | 071 |
 | `claude_code` | 046 |
 | `clipboard_set` | 138 |
 | `compare_files` | 029 |
+| `confirm_info` | 219 |
 | `copy_file` | P2.11 |
 | `danger_if` | 203 |
 | `dashboard/palette.ts` | 757 |
-| `dashboard/tasks.ts` | 002 |
+| `dashboard/security.ts` | 690 |
 | `delete_file` | P14.02 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
 | `email_send` | P11.06 |
+| `export_all` | 793 |
+| `export_audit` | 687 |
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
 | `finance.py` | 379 |
@@ -89,32 +102,35 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `media_player` | P13.03 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
-| `memory_wipe` | 794 |
+| `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
+| `over_budget` | 221 |
 | `pairing_get` | 184 |
 | `phone_battery` | 417 |
 | `press_keys` | P2.02 |
 | `price_alert` | 379 |
+| `privacy.py` | P14.10 |
 | `provider_test` | 587 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
 | `redact.py` | 179 |
+| `reset_all` | 794 |
 | `restore_checkpoint` | 328 |
 | `scheduler.py` | 155 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
+| `set_private` | 041 |
 | `shared/taskcard.ts` | 087 |
 | `skillforge.py` | 150 |
 | `speak_mode` | P3.07 |
 | `stop_all` | 176 |
-| `task_actions` | 010 |
 | `task_evidence` | 645 |
-| `task_retry` | 010 |
+| `task_steps` | 216 |
 | `test_agent` | 176 |
 | `test_tasks` | 176 |
+| `tests/test_agent.py` | 182 |
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
-| `tools/base.py` | 203 |
 | `tools/browser.py` | 003 |
 | `tools/list_tools.py` | 785 |
 | `tools/mission_tools.py` | 025 |
@@ -237,7 +253,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | P14.05 | 231 | Náhled změn |
 | P14.06 | 328, 150 | Vrácení změn |
 | P14.08 | 179 | Správa API klíčů |
-| P14.10 | 794 | Mazání osobních dat |
+| P14.10 | 684, 794 | Mazání osobních dat |
 | P14.11 | 183 | Ochrana před škodlivými instrukcemi |
 | P14.12 | 686 | Omezené prostředí pro kód |
 | P14.13 | 679 | Indikace mikrofonu/kamery/obrazovky |

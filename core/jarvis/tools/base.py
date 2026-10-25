@@ -153,7 +153,10 @@ def unregister_source(source: str) -> None:
         del REGISTRY[k]
 
 
-NEVER_TRUSTED = {"claude_code", "delete_file"}   # always confirmed, even when the user marked them trusted
+NEVER_TRUSTED = {"claude_code", "delete_file"}
+# results that carry text written by someone else (e-mails, web pages, files, messages): scanned for hidden orders
+UNTRUSTED_OUTPUT = {"email_read", "email_inbox", "email_search", "web_read", "web_search", "google_search", "browser_read",
+                    "phone_messages", "read_text_file", "read_attachment", "clipboard_get", "ui_read", "selected_text"}   # always confirmed, even when the user marked them trusted
 
 
 def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), trusted: list[str] = (),
@@ -182,11 +185,23 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
         return ToolResult(False, f"Neznámý nástroj: {name}")
-    from ..permissions import PERMS, blocked_by
+    from ..permissions import LABELS, READ_ONLY, blocked_by, perm_of
 
-    off = blocked_by(getattr(ctx, "cfg", None), spec)
+    cfg = getattr(ctx, "cfg", None)
+    off = blocked_by(cfg, spec)
+    if off == READ_ONLY:
+        return ToolResult(False, "Je zapnutý Režim jen pro čtení – nic neměním (vypne se v Nastavení → Oprávnění).")
     if off:
-        return ToolResult(False, f"Oprávnění „{PERMS[off]}“ je vypnuté (Nastavení → Oprávnění).")
+        return ToolResult(False, f"Oprávnění „{LABELS[off]}“ je vypnuté (Nastavení → Oprávnění).")
+    allow = getattr(getattr(cfg, "limits", None), "app_allowlist", None)
+    if allow and perm_of(spec) == "input":         # OMEGA 682: mouse/keyboard only in the allowed apps
+        try:
+            front = (ctx.platform.foreground_info() or {}).get("app", "")
+        except Exception:
+            front = ""
+        if front and not any(a.lower() in front.lower() for a in allow if a.strip()):
+            return ToolResult(False, f"Myš a klávesnici smím použít jen v povolených aplikacích ({', '.join(allow)}); "
+                                     f"vpředu je {front}.")
     allowed = set(spec.parameters.get("properties", {}))
     clean = {k: v for k, v in (args or {}).items() if k in allowed}
     missing = [r for r in spec.parameters.get("required", []) if r not in clean]
@@ -196,9 +211,15 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
         res = spec.func(ctx, **clean)
         if inspect.isawaitable(res):
             res = await res
-        if isinstance(res, ToolResult):
-            return res
-        return ToolResult(True, str(res) if res is not None else "hotovo")
+        if not isinstance(res, ToolResult):
+            res = ToolResult(True, str(res) if res is not None else "hotovo")
+        if name in UNTRUSTED_OUTPUT and res.ok:     # OMEGA 183: orders hidden in e-mails, pages and files
+            from ..injection import warn
+
+            w = warn(res.summary + " " + (str(res.data)[:20000] if res.data is not None else ""))
+            if w:
+                res.summary = w + "\n\n" + res.summary
+        return res
     except Exception as e:  # tools never crash the agent
         log.exception("tool %s failed", name)
         return ToolResult(False, f"{type(e).__name__}: {e}")

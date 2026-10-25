@@ -14,6 +14,43 @@ PERMS: dict[str, str] = {
     "system": "Systém a napájení",
     "home": "Chytrá domácnost",
 }
+READ_ONLY = "read_only"   # not an area: the reason a change is blocked while "Režim jen pro čtení" is on
+LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávnění)"}
+# Read-only mode (OMEGA 177): only these areas are reading; anything else (and anything dangerous) is blocked,
+# except the reading tools listed below.
+READ_PERMS = {"files_read", "screen", "network"}
+READ_ONLY_OK = {
+    "ai_usage", "briefing", "clipboard_get", "data_inventory", "get_settings", "get_time", "home_devices", "list_apps",
+    "list_automations", "list_protocols", "list_scheduled", "list_show", "list_skills", "list_timers", "list_windows",
+    "mic_history", "mission_queue", "phone_battery", "phone_messages", "read_attachment", "screen_time", "search_history",
+    "show_hud", "system_info", "top_processes", "performance_report", "pc_health_report", "storage_report", "speed_test",
+    "weather", "update_plan", "network_devices", "selected_text", "export_audit", "calendar_list", "email_inbox",
+    "email_search", "price", "exchange_rate",
+}
+# reading tools in a reading area that still change or send something
+READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
+                     "google_search", "watch_website", "email_mark_read", "price_alert", "wake_device", "name_device"}
+
+# OMEGA 181 / 683: an area switched off can be allowed for a while ("povolit na 15 minut"); in memory only
+TEMP_GRANTS: dict[str, float] = {}
+
+
+def grant(perm: str, minutes: float) -> float:
+    import time
+
+    until = time.time() + max(1.0, float(minutes)) * 60
+    TEMP_GRANTS[perm] = until
+    return until
+
+
+def granted(perm: str) -> bool:
+    import time
+
+    until = TEMP_GRANTS.get(perm, 0.0)
+    if until and until < time.time():
+        TEMP_GRANTS.pop(perm, None)
+        return False
+    return bool(until)
 
 CATEGORY_PERM = {
     "ovládání počítače": "input", "obrazovka": "screen", "soubory": "files_read",
@@ -47,11 +84,15 @@ def perm_of(spec: Any) -> str:
 
 
 def blocked_by(cfg: Any, spec: Any) -> str | None:
-    """The first switched-off permission this tool needs, or None."""
+    """The first switched-off permission this tool needs (or READ_ONLY), or None."""
     perms = getattr(cfg, "permissions", None)
     if perms is None:
         return None
-    return next((p for p in required(spec) if not getattr(perms, p, True)), None)
+    limits = getattr(cfg, "limits", None)
+    if limits is not None and limits.read_only and spec.name not in READ_ONLY_OK and (
+            spec.danger or spec.danger_if is not None or perm_of(spec) not in READ_PERMS or spec.name in READ_PERM_WRITERS):
+        return READ_ONLY
+    return next((p for p in required(spec) if not getattr(perms, p, True) and not granted(p)), None)
 
 
 def allowed(cfg: Any, spec: Any) -> bool:

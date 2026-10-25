@@ -9,20 +9,20 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 73 | 71 |
-| 🟡 ČÁSTEČNĚ | 168 | 61 |
+| ✅ HOTOVO | 102 | 74 |
+| 🟡 ČÁSTEČNĚ | 158 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 8 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 2 | 0 |
-| 🗓️ PLÁNOVÁNO | 45 | 4 |
-| ⬜ CHYBÍ | 499 | 17 |
+| 🗓️ PLÁNOVÁNO | 36 | 4 |
+| ⬜ CHYBÍ | 489 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
 
 ## 01. Super Intelligence
 
-🟡 4 · 🗓️ 6
+✅ 1 · 🟡 3 · 🗓️ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -35,7 +35,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 007 | Confidence Engine — vyjadřuje míru nejistoty. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
 | 008 | Error Prediction — předvídání pravděpodobných chyb. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
 | 009 | Dynamic Task Priorities — dynamické priority. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
-| 010 | Mission Replay — auditovatelná historie kroků. | 🟡 ČÁSTEČNĚ | auditní log akcí každé mise + Zopakovat (tasks.py task_actions, task_retry) |
+| 010 | Mission Replay — auditovatelná historie kroků. | ✅ HOTOVO | Přehrát průběh mise (dashboard/tasks.ts replay) + audit akcí |
 
 ## 02. Windows Superpowers
 
@@ -78,7 +78,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 04. Ultra Memory
 
-✅ 2 · 🟡 2 · 🗓️ 1 · ⬜ 5
+✅ 3 · 🟡 2 · ⬜ 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 038 | Search Everything — sémantické hledání v povolených datech. | 🟡 ČÁSTEČNĚ | search_history, find_file (bez sémantiky) |
 | 039 | Memory Correction — opravy vzpomínek. | ✅ HOTOVO | úprava a mazání faktů v paměti (memory.py, fact_update/fact_delete) |
 | 040 | Memory Categories — tematické třídění. | ⬜ CHYBÍ | — |
-| 041 | Memory Privacy — režim bez ukládání. | 🗓️ PLÁNOVÁNO | režim bez ukládání – M5 |
+| 041 | Memory Privacy — režim bez ukládání. | ✅ HOTOVO | Soukromý režim: konverzace jen v RAM, fakta se neukládají (memory.py set_private, tests/test_wave1.py) |
 | 042 | Source Memory — původ uložených poznatků. | ⬜ CHYBÍ | — |
 | 043 | Memory Conflicts — detekce rozporů. | ⬜ CHYBÍ | — |
 | 044 | Project Resume — navázání na projekt. | ⬜ CHYBÍ | — |
@@ -258,7 +258,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 14. Automation of the Future
 
-✅ 3 · 🟡 4 · ⬜ 3
+✅ 5 · 🟡 3 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -268,9 +268,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 149 | Workflow Simulator — zkoušení bez změn. | 🟡 ČÁSTEČNĚ | tlačítko Vyzkoušet spustí automatizaci se zkušebními daty (ne dry-run) |
 | 150 | Workflow Versions — verzování postupů. | 🟡 ČÁSTEČNĚ | verze a návrat zpět u protokolů (skillforge.py); automatizace zatím bez verzí |
 | 151 | Automation Templates — šablony automatizací. | 🟡 ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace |
-| 152 | Failure Recovery — navázání při přerušení. | 🟡 ČÁSTEČNĚ | přerušená mise → stav Přerušeno + Zopakovat (tasks.py recover) |
+| 152 | Failure Recovery — navázání při přerušení. | ✅ HOTOVO | přerušená mise → Pokračovat od posledního hotového kroku (missions.resume, tests/test_wave1.py) |
 | 153 | Workflow Sharing — bezpečné sdílení. | ⬜ CHYBÍ | — |
-| 154 | Cost Estimator — predikce nákladů. | ⬜ CHYBÍ | — |
+| 154 | Cost Estimator — predikce nákladů. | ✅ HOTOVO | odhad ceny úkolu podle průměru volání a ceny poskytovatele (usage.estimate, ai_usage) |
 | 155 | Agent Scheduling — plánování běhu agentů. | ✅ HOTOVO | plánovač rutin a připomínek (scheduler.py) |
 
 ## 15. Hardware Lab
@@ -309,18 +309,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 17. Security & Control
 
-✅ 2 · 🟡 5 · 🗓️ 1 · ⬜ 2
+✅ 7 · 🟡 2 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 176 | Globální Stop All Agents. | ✅ HOTOVO | STOP vše (Ctrl+Alt+X, runtime.stop_all) – test_tasks/test_agent |
-| 177 | Read-only režim. | 🟡 ČÁSTEČNĚ | vypnutí oprávnění Změny souborů / PowerShell (permissions.py) |
-| 178 | Limit nákladů AI. | 🗓️ PLÁNOVÁNO | limit nákladů AI – M3 |
+| 177 | Read-only režim. | ✅ HOTOVO | Režim jen pro čtení – pustí jen čtecí nástroje, hlasem nejde vypnout (permissions.py, tests/test_wave1.py) |
+| 178 | Limit nákladů AI. | ✅ HOTOVO | denní limit tokenů/ceny; po limitu jen bezplatné/místní modely (usage.py, llm/router gate) |
 | 179 | Redakce citlivých údajů. | ✅ HOTOVO | redakce tokenů a hesel v logu a audit logu (redact.py) |
 | 180 | Oprávnění podle projektu. | ⬜ CHYBÍ | — |
-| 181 | Dočasná oprávnění. | ⬜ CHYBÍ | — |
-| 182 | Dvojí potvrzení nebezpečných operací. | 🟡 ČÁSTEČNĚ | potvrzení + otisk prstu na telefonu |
-| 183 | Detekce škodlivých instrukcí z externích zdrojů. | 🟡 ČÁSTEČNĚ | data z e-mailů, zpráv a automatizací označena jako cizí, ne pokyny |
+| 181 | Dočasná oprávnění. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
+| 182 | Dvojí potvrzení nebezpečných operací. | ✅ HOTOVO | nevratné akce (mazání, vypnutí PC, odemčení) se ptají dvakrát (agent._needs_second, tests/test_agent.py) |
+| 183 | Detekce škodlivých instrukcí z externích zdrojů. | ✅ HOTOVO | skener skrytých pokynů v e-mailech, webech, souborech a zprávách (injection.py, tools/base.py UNTRUSTED_OUTPUT) |
 | 184 | Správa propojených zařízení. | 🟡 ČÁSTEČNĚ | seznam připojených telefonů (pairing_get devices) |
 | 185 | Revokace ztracených zařízení. | 🟡 ČÁSTEČNĚ | nový párovací kód odpojí všechna zařízení naráz |
 
@@ -365,25 +365,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 20. Autonomous Mission Engine
 
-✅ 3 · 🟡 3 · 🗓️ 9
+✅ 12 · 🟡 1 · 🗓️ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 211 | Mission Queue — fronta misí. | 🟡 ČÁSTEČNĚ | fronta požadavků agenta (jeden po druhém) |
-| 212 | Mission Dependencies — vykonávání dle návazností. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
-| 213 | Parallel Execution — paralelní kroky. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
+| 211 | Mission Queue — fronta misí. | ✅ HOTOVO | fronta misí s časem spuštění (tasks.enqueue, missions.tick, Úkoly → Fronta misí) |
+| 212 | Mission Dependencies — vykonávání dle návazností. | ✅ HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps) |
+| 213 | Parallel Execution — paralelní kroky. | ✅ HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps) |
 | 214 | Agent Communication Bus — zprávy mezi agenty. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
-| 215 | Shared Mission Workspace — sdílené pracovní artefakty. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
-| 216 | Mission Checkpoints — konzistentní checkpointy. | 🗓️ PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3 |
+| 215 | Shared Mission Workspace — sdílené pracovní artefakty. | ✅ HOTOVO | pracovní složka mise + mission_save_file jako artefakt (missions.workspace) |
+| 216 | Mission Checkpoints — konzistentní checkpointy. | ✅ HOTOVO | kroky strukturované mise uložené (tasks.spec, task_steps) – navázání po přerušení |
 | 217 | Pause & Resume — pozastavení a obnovení. | ✅ HOTOVO | pauza/pokračování mise (tasks.py pause/resume, UI) |
 | 218 | Agent Handover — předání práce agentovi. | 🗓️ PLÁNOVÁNO | M3 |
-| 219 | Approval Queue — fronta schválení. | 🟡 ČÁSTEČNĚ | potvrzovací dialog s detaily, jedno schválení naráz |
-| 220 | Deadline Awareness — hlídání termínů. | 🗓️ PLÁNOVÁNO | M3 |
-| 221 | Mission Budget — nákladové limity. | 🗓️ PLÁNOVÁNO | M3 |
-| 222 | Mission Dependency Graph — vizualizace závislostí. | 🗓️ PLÁNOVÁNO | M3 |
+| 219 | Approval Queue — fronta schválení. | ✅ HOTOVO | fronta schválení: víc čekajících potvrzení najednou (agent.confirm_info, taskcard) |
+| 220 | Deadline Awareness — hlídání termínů. | ✅ HOTOVO | termín mise: upozornění 15 min předem a po vypršení (missions.tick) |
+| 221 | Mission Budget — nákladové limity. | ✅ HOTOVO | rozpočet mise: max. akcí a minut, pak zastavení (tasks.over_budget, BudgetExceeded) |
+| 222 | Mission Dependency Graph — vizualizace závislostí. | 🟡 ČÁSTEČNĚ | vlny kroků vidět v seznamu kroků („vlna N“); grafické DAG zatím ne |
 | 223 | Mission Reports — důkazy výsledků. | ✅ HOTOVO | výsledky mise: artefakty se SHA-256 a důkazy (tasks.py) |
 | 224 | Result Validation — ověření dokončení. | ✅ HOTOVO | ověření dokončení proti kritériím (pc_health_report) |
-| 225 | Mission Recovery — recovery po pádu. | 🟡 ČÁSTEČNĚ | po pádu „Přerušeno“ + Zopakovat; navázání od kroku chybí |
+| 225 | Mission Recovery — recovery po pádu. | ✅ HOTOVO | obnova po pádu: Přerušeno → Pokračovat ve stejné misi (tasks.recover, missions.resume) |
 
 ## 21. Next-Gen Desktop
 
@@ -647,7 +647,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 402 | Device Trust Manager — důvěryhodná zařízení. | 🟡 ČÁSTEČNĚ | párování telefonu tokenem |
 | 403 | Session Revocation Center — odpojení sessions. | 🟡 ČÁSTEČNĚ | nový token = odpojení všech zařízení |
 | 404 | Security Incident Timeline — časová osa incidentů. | ⬜ CHYBÍ | — |
-| 405 | Emergency Lockdown — zastavení vzdálených akcí. | 🟡 ČÁSTEČNĚ | STOP vše + vypínače oprávnění |
+| 405 | Emergency Lockdown — zastavení vzdálených akcí. | 🟡 ČÁSTEČNĚ | STOP vše + Režim jen pro čtení; odpojení vzdálených zařízení = nový párovací kód |
 
 ## 33. Multi-Device Ecosystem
 
@@ -1047,25 +1047,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 51. Privacy Fortress
 
-✅ 1 · 🟡 3 · ⬜ 11
+✅ 11 · 🟡 1 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 676 | Consent Receipt Manager — evidence souhlasů. | ⬜ CHYBÍ | — |
-| 677 | Personal Data Inventory — evidence údajů. | ⬜ CHYBÍ | — |
-| 678 | Outbound Data Inspector — před odesláním dat. | ⬜ CHYBÍ | — |
-| 679 | Microphone Access Audit — mikrofon. | 🟡 ČÁSTEČNĚ | viditelný stav naslouchání v notchi |
-| 680 | Camera Access Audit — kamera. | ⬜ CHYBÍ | — |
+| 677 | Personal Data Inventory — evidence údajů. | ✅ HOTOVO | inventář dat: co, kolik a kde (privacy.inventory, Bezpečí a soukromí) |
+| 678 | Outbound Data Inspector — před odesláním dat. | ✅ HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py) |
+| 679 | Microphone Access Audit — mikrofon. | ✅ HOTOVO | záznam, kdy naslouchal mikrofon (privacy.MicLog) |
+| 680 | Camera Access Audit — kamera. | ✅ HOTOVO | kamera se nepoužívá – uvedeno v přehledu mikrofonu a kamery |
 | 681 | Clipboard Secret Masking — redakce schránky. | ✅ HOTOVO | hesla a tokeny se do historie schránky neukládají (powers.looks_secret) |
-| 682 | Application Allowlist — seznam povolených aplikací. | ⬜ CHYBÍ | — |
-| 683 | Temporary Permission Grants — dočasná povolení. | ⬜ CHYBÍ | — |
-| 684 | Data Retention Rules — uchovávání dat. | ⬜ CHYBÍ | — |
-| 685 | Encrypted Vault Backup — šifrované zálohy. | ⬜ CHYBÍ | — |
+| 682 | Application Allowlist — seznam povolených aplikací. | ✅ HOTOVO | myš a klávesnice jen v povolených aplikacích (limits.app_allowlist, tools/base.py) |
+| 683 | Temporary Permission Grants — dočasná povolení. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
+| 684 | Data Retention Rules — uchovávání dat. | ✅ HOTOVO | mazání dat starších než N dní (privacy.prune, denně) |
+| 685 | Encrypted Vault Backup — šifrované zálohy. | ✅ HOTOVO | šifrovaná záloha AES-256-GCM + PBKDF2, obnova do nové složky (privacy.backup_encrypted) |
 | 686 | Untrusted Agent Isolation — izolace agentů. | ⬜ CHYBÍ | — |
-| 687 | Audit Log Export — export logů. | ⬜ CHYBÍ | — |
+| 687 | Audit Log Export — export logů. | ✅ HOTOVO | export auditu do CSV + JSON (missions.export_audit) |
 | 688 | Project Isolation Profiles — oddělení projektů. | ⬜ CHYBÍ | — |
 | 689 | Sensitive Action Lock — uzamčení rizikových akcí. | 🟡 ČÁSTEČNĚ | potvrzení + otisk prstu |
-| 690 | Privacy Transparency Center — transparentnost. | 🟡 ČÁSTEČNĚ | stránka Oprávnění |
+| 690 | Privacy Transparency Center — transparentnost. | ✅ HOTOVO | stránka Bezpečí a soukromí (dashboard/security.ts) |
 
 ## 52. Advanced Hardware Rescue
 
@@ -1201,7 +1201,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 58. Everyday Intelligence & Accessibility
 
-✅ 3 · 🟡 6 · 🔌 1 · ⬜ 5
+✅ 4 · 🟡 5 · 🔌 1 · ⬜ 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1217,8 +1217,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 790 | Live Caption Accessibility — živé titulky. | ⬜ CHYBÍ | — |
 | 791 | Reading Assistance Mode — jednodušší text. | 🟡 ČÁSTEČNĚ | vysvětlení / zjednodušení označeného textu |
 | 792 | Digital Wellbeing Dashboard — využití aplikací. | ✅ HOTOVO | čas u PC po aplikacích (screen_time) |
-| 793 | Personal Data Portability — export dat. | ✅ HOTOVO | export paměti |
-| 794 | Complete Local Memory Reset — vymazání lokální paměti. | 🟡 ČÁSTEČNĚ | smazání paměti (memory_wipe); kompletní reset všech dat chybí |
+| 793 | Personal Data Portability — export dat. | ✅ HOTOVO | export všech dat do ZIP bez hesel (privacy.export_all) |
+| 794 | Complete Local Memory Reset — vymazání lokální paměti. | ✅ HOTOVO | úplné smazání po napsání SMAZAT, odpojí telefony (privacy.reset_all) |
 | 795 | JARVIS Setup Wizard — kompletní průvodce nastavením. | 🟡 ČÁSTEČNĚ | Co je nového + nastavení; plný průvodce chybí |
 
 ## Původní seznam 110+ schopností
@@ -1370,14 +1370,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P14.03 | Historie operací | ✅ HOTOVO | audit akcí v misích | 232 |
 | P14.04 | Zastavit běžícího agenta | ✅ HOTOVO | Pozastavit / Zrušit / STOP | 176 |
 | P14.05 | Náhled změn | 🟡 ČÁSTEČNĚ | detaily v potvrzovacím dialogu | 231 |
-| P14.06 | Vrácení změn | 🟡 ČÁSTEČNĚ | záchytné body souborů, verze dovedností | 328, 150 |
+| P14.06 | Vrácení změn | 🟡 ČÁSTEČNĚ | záchytné body souborů, verze dovedností, navázání misí | 328, 150 |
 | P14.07 | Šifrované citlivé údaje | ✅ HOTOVO | trezor Windows (keyring) | — |
 | P14.08 | Správa API klíčů | ✅ HOTOVO | klíče jen v keyringu, redakce v logu | 179 |
 | P14.09 | Lokální databáze paměti | ✅ HOTOVO | SQLite v %APPDATA% | — |
-| P14.10 | Mazání osobních dat | 🟡 ČÁSTEČNĚ | smazání paměti/historie | 794 |
-| P14.11 | Ochrana před škodlivými instrukcemi | 🟡 ČÁSTEČNĚ | cizí data označená jako data | 183 |
+| P14.10 | Mazání osobních dat | ✅ HOTOVO | mazání po N dnech, úplné smazání, export (privacy.py) | 684, 794 |
+| P14.11 | Ochrana před škodlivými instrukcemi | ✅ HOTOVO | skener skrytých pokynů + cizí data označená jako data (injection.py) | 183 |
 | P14.12 | Omezené prostředí pro kód | 🟡 ČÁSTEČNĚ | skilly se schvalují; sandbox chybí | 686 |
-| P14.13 | Indikace mikrofonu/kamery/obrazovky | 🟡 ČÁSTEČNĚ | stav naslouchání v notchi; kamera se nepoužívá | 679 |
+| P14.13 | Indikace mikrofonu/kamery/obrazovky | ✅ HOTOVO | stav naslouchání v notchi + záznam mikrofonu; kamera se nepoužívá | 679 |
 | P15.01 | Teach Mode | 🟡 ČÁSTEČNĚ | dovednost z provedené mise (Skill Forge) | 146 |
 | P15.02 | Self-Healing | 🗓️ PLÁNOVÁNO | M7 – Controlled Self-Evolution | — |
 | P15.03 | Computer Memory | ⬜ CHYBÍ | — | 030 |

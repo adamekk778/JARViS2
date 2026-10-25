@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS task_artifacts (id INTEGER PRIMARY KEY AUTOINCREMENT,
 CREATE TABLE IF NOT EXISTS task_evidence (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT, ts REAL, source TEXT,
   claim TEXT, value TEXT, ok INT);
 """
-UNFINISHED = ("running", "paused", "waiting", "verifying")
+UNFINISHED = ("running", "paused", "waiting", "verifying", "starting")
 
 
 def sha256_file(path: Path) -> str:
@@ -50,12 +50,16 @@ class TaskManager:
             cols = {r[1] for r in self.db.conn.execute("PRAGMA table_info(tasks)")}
             if "criteria" not in cols:     # 3.6 missions: acceptance criteria
                 self.db.conn.execute("ALTER TABLE tasks ADD COLUMN criteria TEXT DEFAULT '[]'")
+            for col, typ in (("deadline", "REAL"), ("spec", "TEXT"), ("not_before", "REAL")):   # 3.7 queue
+                if col not in cols:
+                    self.db.conn.execute(f"ALTER TABLE tasks ADD COLUMN {col} {typ}")
         self._id: str | None = None
         self._running = asyncio.Event()
         self._running.set()
         self._current_action = ""
         self._last_pub = 0.0
         self._pending: asyncio.TimerHandle | None = None
+        self._started = time.time()
         self.recover()
 
     def recover(self) -> int:
@@ -70,14 +74,62 @@ class TaskManager:
     def current(self) -> dict | None:
         return self.get(self._id) if self._id else None
 
-    def begin(self, goal: str, conv_id: str) -> str:
-        self._id = uuid.uuid4().hex[:12]
+    def begin(self, goal: str, conv_id: str, task_id: str | None = None) -> str:
+        """A new mission – or, with `task_id`, a queued / interrupted one that starts (again) now."""
         self._current_action = ""
         self._running.set()
-        self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES (?,?,?,?,?,?,?)",
-                     (self._id, conv_id, goal[:500], "running", time.time(), None, ""))
+        self._started = time.time()
+        if task_id and self.db.one("SELECT id FROM tasks WHERE id=?", (task_id,)):
+            self._id = task_id
+            self.db.exec("UPDATE tasks SET status='running', finished=NULL WHERE id=?", (task_id,))
+        else:
+            self._id = uuid.uuid4().hex[:12]
+            self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES (?,?,?,?,?,?,?)",
+                         (self._id, conv_id, goal[:500], "running", time.time(), None, ""))
         self._publish(force=True)
         return self._id
+
+    # ---------- 3.7 queue, deadlines, budget ----------
+    def enqueue(self, goal: str, steps: list[dict] | None = None, deadline: float | None = None,
+                not_before: float | None = None, conv_id: str = "") -> str:
+        """OMEGA 211 / 220: a mission waiting its turn (optionally not before a time, with a deadline)."""
+        tid = uuid.uuid4().hex[:12]
+        self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary, deadline, spec, not_before) "
+                     "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                     (tid, conv_id, goal[:500], "queued", time.time(), None, "", deadline,
+                      json.dumps(steps, ensure_ascii=False) if steps else None, not_before))
+        self.rt.bus.publish("task_update", task=self.get(tid))
+        return tid
+
+    def next_queued(self, now: float | None = None) -> dict | None:
+        now = now or time.time()
+        row = self.db.one("SELECT id FROM tasks WHERE status='queued' AND (not_before IS NULL OR not_before<=?) "
+                          "ORDER BY COALESCE(deadline, 9e18), created LIMIT 1", (now,))
+        return self.get(row["id"]) if row else None
+
+    def queue(self) -> list[dict]:
+        return self.db.all("SELECT id, goal, created, deadline, not_before FROM tasks WHERE status='queued' "
+                           "ORDER BY COALESCE(deadline, 9e18), created")
+
+    def set_spec(self, steps: list[dict]) -> None:
+        """A structured mission remembers its steps, so an interrupted run can continue where it stopped."""
+        if self._id:
+            self.db.exec("UPDATE tasks SET spec=? WHERE id=?", (json.dumps(steps, ensure_ascii=False), self._id))
+
+    def done_steps(self, task_id: str) -> set[int]:
+        return {r["idx"] for r in self.db.all("SELECT idx FROM task_steps WHERE task_id=? AND status='done'", (task_id,))}
+
+    def over_budget(self, limits: Any) -> str:
+        """OMEGA 221: "" or why the running mission must stop (too many actions / too long)."""
+        if not self._id or limits is None:
+            return ""
+        n = self.db.one("SELECT COUNT(*) n FROM task_actions WHERE task_id=?", (self._id,))["n"]
+        if limits.mission_max_actions and n >= limits.mission_max_actions:
+            return f"Rozpočet mise vyčerpán: {n} akcí (limit {limits.mission_max_actions})."
+        mins = (time.time() - getattr(self, "_started", time.time())) / 60
+        if limits.mission_max_minutes and mins >= limits.mission_max_minutes:
+            return f"Rozpočet mise vyčerpán: běží {mins:.0f} min (limit {limits.mission_max_minutes})."
+        return ""
 
     def set_plan(self, steps: list[str], current: int = 0, note: str = "") -> None:
         if not self._id:
@@ -89,6 +141,16 @@ class TaskManager:
             status = "done" if i < current else "running" if i == current else "pending"
             self.db.exec("INSERT INTO task_steps VALUES (?,?,?,?,?)",
                          (self._id, i, title, status, note[:300] if i == current else ""))
+        self._publish(force=True)
+
+    def set_step_states(self, titles: list[str], states: list[str], notes: list[str] | None = None) -> None:
+        """Steps with their own states (a mission whose steps run in waves, some at the same time)."""
+        if not self._id:
+            return
+        notes = notes or [""] * len(titles)
+        self.db.exec("DELETE FROM task_steps WHERE task_id=?", (self._id,))
+        for i, (t, st, n) in enumerate(zip(titles, states, notes)):
+            self.db.exec("INSERT INTO task_steps VALUES (?,?,?,?,?)", (self._id, i, str(t)[:200], st, str(n)[:300]))
         self._publish(force=True)
 
     def log_action(self, tool: str, args: dict, ok: bool, summary: str, ms: int) -> None:
@@ -187,7 +249,11 @@ class TaskManager:
             criteria = json.loads(row.get("criteria") or "[]")
         except ValueError:
             criteria = []
-        return {**row, "criteria": criteria, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
+        try:
+            spec = json.loads(row.get("spec") or "null")
+        except ValueError:
+            spec = None
+        return {**row, "criteria": criteria, "spec": spec, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
                 "total": len(steps),
                 "done": sum(s["status"] == "done" for s in steps),
                 "current_action": self._current_action if task_id == self._id else ""}

@@ -7,7 +7,6 @@
 002 | ČÁSTEČNĚ | Mission Control = stránka Úkoly: plán, kroky, audit akcí, kritéria, artefakty, důkazy, pauza/zrušení (tasks.py, dashboard/tasks.ts, tests/test_omega.py); chybí DAG
 003 | ČÁSTEČNĚ | web_search, web_read, browser_* (tools/web.py, tools/browser.py); citace neformalizované
 004-009 | PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md
-010 | ČÁSTEČNĚ | auditní log akcí každé mise + Zopakovat (tasks.py task_actions, task_retry)
 
 # 02 Windows Superpowers
 011 | ČÁSTEČNĚ | report: zařízení s chybou ovladače (Win32_PnPEntity ConfigManagerErrorCode) – pcreport.py
@@ -35,7 +34,6 @@
 038 | ČÁSTEČNĚ | search_history, find_file (bez sémantiky)
 039 | HOTOVO | úprava a mazání faktů v paměti (memory.py, fact_update/fact_delete)
 045 | HOTOVO | export/import paměti (memory_export, memory_import)
-041 | PLÁNOVÁNO | režim bez ukládání – M5
 
 # 05 Ultimate Developer
 046 | VYŽADUJE_INTEGRACI | přes Claude Code CLI (tools/dev.py claude_code, claude_bridge.py)
@@ -101,7 +99,6 @@
 149 | ČÁSTEČNĚ | tlačítko Vyzkoušet spustí automatizaci se zkušebními daty (ne dry-run)
 150 | ČÁSTEČNĚ | verze a návrat zpět u protokolů (skillforge.py); automatizace zatím bez verzí
 151 | ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace
-152 | ČÁSTEČNĚ | přerušená mise → stav Přerušeno + Zopakovat (tasks.py recover)
 155 | HOTOVO | plánovač rutin a připomínek (scheduler.py)
 
 # 15 Hardware Lab
@@ -114,13 +111,9 @@
 
 # 17 Security & Control
 176 | HOTOVO | STOP vše (Ctrl+Alt+X, runtime.stop_all) – test_tasks/test_agent
-177 | ČÁSTEČNĚ | vypnutí oprávnění Změny souborů / PowerShell (permissions.py)
 179 | HOTOVO | redakce tokenů a hesel v logu a audit logu (redact.py)
-182 | ČÁSTEČNĚ | potvrzení + otisk prstu na telefonu
-183 | ČÁSTEČNĚ | data z e-mailů, zpráv a automatizací označena jako cizí, ne pokyny
 184 | ČÁSTEČNĚ | seznam připojených telefonů (pairing_get devices)
 185 | ČÁSTEČNĚ | nový párovací kód odpojí všechna zařízení naráz
-178 | PLÁNOVÁNO | limit nákladů AI – M3
 
 # 18 Iron Man — Future Tech
 186 | HOTOVO | Stark HUD přes celou obrazovku (web/src/hud, CI kontrola)
@@ -137,12 +130,9 @@
 209 | ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence)
 
 # 20 Autonomous Mission Engine
-211 | ČÁSTEČNĚ | fronta požadavků agenta (jeden po druhém)
 217 | HOTOVO | pauza/pokračování mise (tasks.py pause/resume, UI)
-219 | ČÁSTEČNĚ | potvrzovací dialog s detaily, jedno schválení naráz
 223 | HOTOVO | výsledky mise: artefakty se SHA-256 a důkazy (tasks.py)
 224 | HOTOVO | ověření dokončení proti kritériím (pc_health_report)
-225 | ČÁSTEČNĚ | po pádu „Přerušeno“ + Zopakovat; navázání od kroku chybí
 212-216 | PLÁNOVÁNO | DAG, paralelní kroky, sběrnice agentů – M3
 218 | PLÁNOVÁNO | M3
 220-222 | PLÁNOVÁNO | M3
@@ -229,7 +219,6 @@
 394 | ČÁSTEČNĚ | seznam programů po spuštění v reportu
 402 | ČÁSTEČNĚ | párování telefonu tokenem
 403 | ČÁSTEČNĚ | nový token = odpojení všech zařízení
-405 | ČÁSTEČNĚ | STOP vše + vypínače oprávnění
 
 # 33 Multi-Device
 406 | ČÁSTEČNĚ | zařízení v síti (network.py)
@@ -316,10 +305,8 @@
 645 | ČÁSTEČNĚ | důkazy misí (task_evidence) + 410 testů
 
 # 51 Privacy Fortress
-679 | ČÁSTEČNĚ | viditelný stav naslouchání v notchi
 681 | HOTOVO | hesla a tokeny se do historie schránky neukládají (powers.looks_secret)
 689 | ČÁSTEČNĚ | potvrzení + otisk prstu
-690 | ČÁSTEČNĚ | stránka Oprávnění
 
 # 52 Advanced Hardware Rescue
 702 | PLÁNOVÁNO | zásada: JARVIS disky neformátuje; ochrana dat – M4
@@ -358,6 +345,38 @@
 788 | ČÁSTEČNĚ | aria popisky
 791 | ČÁSTEČNĚ | vysvětlení / zjednodušení označeného textu
 792 | HOTOVO | čas u PC po aplikacích (screen_time)
-793 | HOTOVO | export paměti
-794 | ČÁSTEČNĚ | smazání paměti (memory_wipe); kompletní reset všech dat chybí
 795 | ČÁSTEČNĚ | Co je nového + nastavení; plný průvodce chybí
+
+# ---- Vlna 1 (3.7): mise 2, bezpečí, soukromí ----
+010 | HOTOVO | Přehrát průběh mise (dashboard/tasks.ts replay) + audit akcí
+041 | HOTOVO | Soukromý režim: konverzace jen v RAM, fakta se neukládají (memory.py set_private, tests/test_wave1.py)
+152 | HOTOVO | přerušená mise → Pokračovat od posledního hotového kroku (missions.resume, tests/test_wave1.py)
+154 | HOTOVO | odhad ceny úkolu podle průměru volání a ceny poskytovatele (usage.estimate, ai_usage)
+177 | HOTOVO | Režim jen pro čtení – pustí jen čtecí nástroje, hlasem nejde vypnout (permissions.py, tests/test_wave1.py)
+178 | HOTOVO | denní limit tokenů/ceny; po limitu jen bezplatné/místní modely (usage.py, llm/router gate)
+181 | HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant)
+683 | HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant)
+182 | HOTOVO | nevratné akce (mazání, vypnutí PC, odemčení) se ptají dvakrát (agent._needs_second, tests/test_agent.py)
+183 | HOTOVO | skener skrytých pokynů v e-mailech, webech, souborech a zprávách (injection.py, tools/base.py UNTRUSTED_OUTPUT)
+211 | HOTOVO | fronta misí s časem spuštění (tasks.enqueue, missions.tick, Úkoly → Fronta misí)
+212 | HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps)
+213 | HOTOVO | kroky mise s needs běží ve vlnách, nezávislé současně (agent._waves, run_steps)
+215 | HOTOVO | pracovní složka mise + mission_save_file jako artefakt (missions.workspace)
+216 | HOTOVO | kroky strukturované mise uložené (tasks.spec, task_steps) – navázání po přerušení
+219 | HOTOVO | fronta schválení: víc čekajících potvrzení najednou (agent.confirm_info, taskcard)
+220 | HOTOVO | termín mise: upozornění 15 min předem a po vypršení (missions.tick)
+221 | HOTOVO | rozpočet mise: max. akcí a minut, pak zastavení (tasks.over_budget, BudgetExceeded)
+222 | ČÁSTEČNĚ | vlny kroků vidět v seznamu kroků („vlna N“); grafické DAG zatím ne
+225 | HOTOVO | obnova po pádu: Přerušeno → Pokračovat ve stejné misi (tasks.recover, missions.resume)
+405 | ČÁSTEČNĚ | STOP vše + Režim jen pro čtení; odpojení vzdálených zařízení = nový párovací kód
+677 | HOTOVO | inventář dat: co, kolik a kde (privacy.inventory, Bezpečí a soukromí)
+678 | HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py)
+679 | HOTOVO | záznam, kdy naslouchal mikrofon (privacy.MicLog)
+680 | HOTOVO | kamera se nepoužívá – uvedeno v přehledu mikrofonu a kamery
+682 | HOTOVO | myš a klávesnice jen v povolených aplikacích (limits.app_allowlist, tools/base.py)
+684 | HOTOVO | mazání dat starších než N dní (privacy.prune, denně)
+685 | HOTOVO | šifrovaná záloha AES-256-GCM + PBKDF2, obnova do nové složky (privacy.backup_encrypted)
+687 | HOTOVO | export auditu do CSV + JSON (missions.export_audit)
+690 | HOTOVO | stránka Bezpečí a soukromí (dashboard/security.ts)
+793 | HOTOVO | export všech dat do ZIP bez hesel (privacy.export_all)
+794 | HOTOVO | úplné smazání po napsání SMAZAT, odpojí telefony (privacy.reset_all)

@@ -52,6 +52,44 @@ SAY_RESULT = {"briefing", "pc_health_report"}   # in a protocol/mission, JARVIS 
 MEDIA_ACTIONS = {"play_pause": "přehrát / pauza", "next": "další", "previous": "předchozí", "stop": "stop"}
 
 
+class BudgetExceeded(Exception):
+    """A mission used up its budget (actions / minutes, Nastavení → Oprávnění)."""
+
+
+def _waves(steps: list, done: set[int]) -> list[list[int]]:
+    """Steps in dependency order: each wave holds the steps whose `needs` are all finished. Without any `needs` the
+    steps run one by one, as written (a protocol's order matters: say → pause music → …)."""
+    todo = [i for i in range(len(steps)) if i not in done]
+    if not any(getattr(st, "needs", None) for st in steps):
+        return [[i] for i in todo]
+    finished, out = set(done), []
+    while todo:
+        wave = [i for i in todo if all(n in finished or n >= len(steps) or n < 0 for n in steps[i].needs)]
+        if not wave:            # a cycle → run the rest in order instead of hanging
+            wave = [todo[0]]
+        out.append(wave)
+        finished |= set(wave)
+        todo = [i for i in todo if i not in wave]
+    return out
+
+
+# OMEGA 182: what cannot be undone asks twice
+DOUBLE_TOOLS = {"delete_file", "clean_pc", "email_delete"}
+
+
+def _needs_second(call: ToolCall, limits) -> bool:
+    if limits is None or not limits.double_confirm:
+        return False
+    a = call.arguments or {}
+    return (call.name in DOUBLE_TOOLS
+            or (call.name == "system_power" and a.get("action") in ("shutdown", "restart", "logoff", "hibernate"))
+            or (call.name == "home_control" and a.get("action") == "unlock"))
+
+
+def _wave_of(waves: list[list[int]], i: int) -> int:
+    return next((k for k, w in enumerate(waves) if i in w), -1)
+
+
 AGENT_MODE_RULE = ("Režim Agent: u úkolu s více kroky nejdřív zavolej update_plan se seznamem kroků, po každém kroku "
                    "ho aktualizuj a na konci ověř výsledek.")
 
@@ -88,6 +126,8 @@ class Agent:
         self.rt = rt
         self._lock = asyncio.Lock()
         self._confirms: dict[str, asyncio.Future] = {}
+        self.confirm_info: dict[str, dict] = {}    # OMEGA 219: every approval waiting right now (the approval queue)
+        self._task_hint: str | None = None
         self._task: asyncio.Task | None = None
         self.busy = False
         self._goal = ""
@@ -96,8 +136,9 @@ class Agent:
 
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
-                     record_user: bool = True, extra_system: str = "", lang: str = "") -> str:
+                     record_user: bool = True, extra_system: str = "", lang: str = "", task_id: str | None = None) -> str:
         rt = self.rt
+        self._task_hint = task_id           # a queued / interrupted mission this request carries on
         if self._lock.locked() and rt.tasks.current and rt.tasks.current["status"] == "paused":
             msg = "Úkol je pozastavený – nejdřív ho nech pokračovat, nebo ho zruš (Úkoly nebo STOP)."
             rt.bus.publish("error", message=msg)
@@ -118,9 +159,12 @@ class Agent:
                 self._task = None
                 self.rt.bus.publish("state", state="idle")
 
-    async def run_steps(self, title: str, steps: list, source: str = "protocol") -> str:
-        """A protocol segment: JARVIS lines and tool calls in order, without the AI. Tools go through the same path as
-        any AI tool call (permissions, confirmation of dangerous actions, STOP, task log, chips in the chat)."""
+    async def run_steps(self, title: str, steps: list, source: str = "protocol", task_id: str | None = None,
+                        track: bool = False) -> str:
+        """A protocol segment: JARVIS lines and tool calls, without the AI. Tools go through the same path as any AI
+        tool call (permissions, confirmation of dangerous actions, STOP, task log, chips in the chat).
+        `track` = a structured mission: its steps are remembered and shown, steps whose `needs` are done run together
+        (in waves), and with `task_id` an interrupted mission continues after its last finished step."""
         rt, bus = self.rt, self.rt.bus
         gen = self._gen
         async with self._lock:
@@ -137,15 +181,39 @@ class Agent:
                 um = rt.memory.add_message("user", title, [], source)
                 bus.publish("user_message", id=um["id"], text=title, source=source, attachments=[])
                 bus.publish("state", state="acting")
-                for st in steps:
-                    if st.when == "playing" and not rt.media_state.get("playing"):
-                        continue
-                    if st.tool:
-                        await self._run_call(ToolCall(uuid.uuid4().hex[:12], st.tool, dict(st.args)), cards, atts)
+                done: set[int] = rt.tasks.done_steps(task_id) if task_id else set()
+                if track or task_id:
+                    rt.tasks.begin(title, rt.memory.current_conversation, task_id)
+                    rt.tasks.set_spec([st.model_dump(mode="json") for st in steps])
+                titles = [describe_call(st.tool, st.args) if st.tool else (f"Řekne: {st.say}" if st.say else st.ask or "krok")
+                          for st in steps]
+                states = ["done" if i in done else "pending" for i in range(len(steps))]
+                waves = _waves(steps, done)
+                dag = any(getattr(st, "needs", None) for st in steps)
+                notes = [f"vlna {_wave_of(waves, i) + 1}" if dag and _wave_of(waves, i) >= 0 else "" for i in range(len(steps))]
+                for w, wave in enumerate(waves):
+                    if track or task_id:
+                        for i in wave:
+                            states[i] = "running"
+                        rt.tasks.set_step_states(titles, states, notes)
+                    budget = rt.tasks.over_budget(getattr(rt.cfg, "limits", None))
+                    if budget:
+                        raise BudgetExceeded(budget)
+                    runnable = [i for i in wave if not (steps[i].when == "playing" and not rt.media_state.get("playing"))]
+                    calls = {i: ToolCall(uuid.uuid4().hex[:12], steps[i].tool, dict(steps[i].args)) for i in runnable if steps[i].tool}
+                    if len(calls) > 1:
+                        await asyncio.gather(*(self._run_call(c, cards, atts) for c in calls.values()))
+                    elif calls:
+                        await self._run_call(next(iter(calls.values())), cards, atts)
+                    for i in wave:
+                        st = steps[i]
                         if st.tool in SAY_RESULT and cards:
-                            said.append(cards[-1]["summary"])
-                    if st.say:
-                        said.append(st.say)
+                            said.append(next((c["summary"] for c in reversed(cards) if c["name"] == st.tool), ""))
+                        if st.say:
+                            said.append(st.say)
+                        states[i] = "done"
+                if track or task_id:
+                    rt.tasks.set_step_states(titles, states)
                 text = "\n\n".join(said) or f"{title}: hotovo."
                 failed = [c["label"] for c in cards if not c["ok"]]
                 if failed:
@@ -154,6 +222,10 @@ class Agent:
             except asyncio.CancelledError:
                 cancelled, status = True, "cancelled"
                 text = (" ".join(said) + " …(přerušeno)").strip()
+            except BudgetExceeded as e:
+                status = "failed"
+                text = f"{e} Mise zastavena, hotové kroky zůstávají; Zopakovat ji dokončí."
+                bus.publish("error", message=text)
             except Exception as e:
                 log.exception("protocol failed")
                 status = "failed"
@@ -217,15 +289,19 @@ class Agent:
             msgs.append({"role": "user", "content": text})
         return msgs, need_vision
 
-    async def _ask_confirm(self, call: ToolCall) -> bool:
+    async def _ask_confirm(self, call: ToolCall, second: bool = False) -> bool:
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
         self._confirms[cid] = fut
         desc = describe_call(call.name, call.arguments)
+        if second:
+            desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
         spec = tools.REGISTRY.get(call.name)
         details = await asyncio.to_thread(tools.details_for, spec, call.arguments, self.rt) if spec else []
+        self.confirm_info[cid] = {"id": cid, "description": desc, "tool": call.name, "details": details, "ts": time.time(),
+                                  "second": second}
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
-                            details=details)
+                            details=details, second=second)
         self.rt.on_confirm_request(cid, desc)
         try:
             return await asyncio.wait_for(fut, CONFIRM_TIMEOUT)
@@ -234,6 +310,7 @@ class Agent:
             return False
         finally:
             self._confirms.pop(cid, None)
+            self.confirm_info.pop(cid, None)
 
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
@@ -242,7 +319,11 @@ class Agent:
         rt = self.rt
         await rt.tasks.checkpoint()
         if rt.tasks.current is None:
-            rt.tasks.begin(self._goal, rt.memory.current_conversation)
+            rt.tasks.begin(self._goal, rt.memory.current_conversation, self._task_hint)
+            self._task_hint = None
+        budget = rt.tasks.over_budget(getattr(rt.cfg, "limits", None))
+        if budget:
+            raise BudgetExceeded(budget)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
         if spec is None or call.name in disabled:
@@ -254,6 +335,8 @@ class Agent:
                 rt.tasks.set_waiting(True)
                 try:
                     approved = await self._ask_confirm(call)
+                    if approved and _needs_second(call, getattr(rt.cfg, "limits", None)):
+                        approved = await self._ask_confirm(call, second=True)
                 finally:
                     rt.tasks.set_waiting(False)
             if not approved:
@@ -356,6 +439,12 @@ class Agent:
             cancelled = True
             status = "cancelled"
             full_text = (full_text + " …(přerušeno)").strip()
+        except BudgetExceeded as e:
+            status = "failed"
+            msg = f"{e} Mise zastavena; co je hotové, zůstává. Limit se mění v Nastavení → Oprávnění."
+            bus.publish("error", message=msg)
+            full_text = (full_text + "\n\n" if full_text else "") + msg
+            bus.publish("assistant_delta", text=msg)
         except Exception as e:  # a bug must not leave the task "running" forever
             log.exception("agent failed")
             status = "failed"

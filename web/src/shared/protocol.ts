@@ -19,6 +19,8 @@ export const CLIENT_TYPES = [
   "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
   "lists_get", "list_update", "network_get", "network_wake", "network_name",
   "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
+  "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
+  "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -32,7 +34,7 @@ export const SERVER_TYPES = [
   "diagnostics", "diagnostics_file",
   "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
   "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot", "selection", "selection_result", "mail_status", "mail_new", "calendar",
-  "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions",
+  "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

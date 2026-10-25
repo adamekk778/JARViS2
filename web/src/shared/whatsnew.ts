@@ -3,6 +3,11 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.7": [
+    { icon: "shield-check", title: "Bezpečí a soukromí", line: "Nová stránka: režim jen pro čtení, dvojí potvrzení, dočasná oprávnění, soukromý režim, mazání starých dat, šifrovaná záloha a export." },
+    { icon: "queue", title: "Fronta misí", line: "Úkoly → Fronta misí: naplánuj misi na čas, s termínem. Přerušená mise jde Pokračovat od místa, kde skončila." },
+    { icon: "coins", title: "Spotřeba a limit AI", line: "Kolik dnes stály odpovědi a kam co šlo – a denní limit, po kterém JARVIS použije jen bezplatné modely." },
+  ],
   "3.6": [
     { icon: "stethoscope", title: "Mise: stav počítače", line: "Úkoly → Zkontrolovat PC (nebo „zjisti stav mého počítače“): jen čte, uloží report a ověří ho – kritéria, důkazy a soubor uvidíš v Úkolech." },
     { icon: "magic-wand", title: "Skill Forge", line: "Z hotové mise udělej dovednost („ulož to jako dovednost“). Každá úprava má verzi a jde vrátit zpět." },

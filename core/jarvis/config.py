@@ -210,6 +210,8 @@ class ProtocolStep(BaseModel):
     args: dict[str, Any] = Field(default_factory=dict)
     ask: str = ""
     when: Literal["", "playing"] = ""   # "playing": only while music/video plays (e.g. pause it)
+    needs: list[int] = Field(default_factory=list)   # 3.7: indices of steps that must finish first (steps without
+    #                                                  a dependency between them run at the same time)
 
 
 class Protocol(BaseModel):
@@ -339,6 +341,24 @@ class HomeCfg(BaseModel):
     url: str = ""                   # http://homeassistant.local:8123
 
 
+class LimitsCfg(BaseModel):
+    """OMEGA §5: what JARVIS may spend and change."""
+    read_only: bool = False            # nothing that changes the PC, files, accounts or the home (only looking/reading)
+    ai_daily_tokens: int = 0           # 0 = no limit; an estimate (characters / 4) across all providers
+    ai_daily_cost: float = 0.0         # 0 = no limit; in `currency`, from the prices below
+    currency: str = "Kč"
+    prices: dict[str, float] = Field(default_factory=dict)   # provider id → price per 1 million tokens
+    mission_max_actions: int = 60      # one mission may call at most this many tools …
+    mission_max_minutes: int = 30      # … and run at most this long
+    double_confirm: bool = True        # the most dangerous actions ask twice
+    app_allowlist: list[str] = Field(default_factory=list)   # mouse/keyboard only in these apps (empty = any)
+
+
+class PrivacyCfg(BaseModel):
+    private_mode: bool = False         # nothing new is written to the history or memory
+    keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
 
@@ -378,6 +398,8 @@ class Config(BaseModel):
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
+    limits: LimitsCfg = Field(default_factory=LimitsCfg)
+    privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -401,6 +423,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "automations.enabled",
+    "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",

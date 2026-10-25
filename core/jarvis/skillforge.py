@@ -65,7 +65,7 @@ def rollback(rt, pid: str, version: int) -> dict:
 def manifest(rt, proto: dict) -> dict:
     """What the skill needs and does: tools, permission areas, inputs/outputs, and problems that would stop it."""
     from . import tools
-    from .permissions import PERMS, blocked_by, perm_of
+    from .permissions import LABELS, PERMS, blocked_by, perm_of
 
     used, perms, problems = [], set(), []
     for st in proto.get("steps", []):
@@ -82,7 +82,7 @@ def manifest(rt, proto: dict) -> dict:
             problems.append(f"Nástroj {name} je vypnutý.")
         off = blocked_by(rt.cfg, spec)
         if off:
-            problems.append(f"Oprávnění „{PERMS[off]}“ je vypnuté.")
+            problems.append(f"Oprávnění „{LABELS[off]}“ je vypnuté.")
         if any("[REDACTED]" in str(v) or "***" in str(v) for v in (st.get("args") or {}).values()):
             problems.append(f"Krok {name} obsahoval citlivý údaj – doplň ho ručně.")
     asks = [st["ask"] for st in proto.get("steps", []) if st.get("ask")]

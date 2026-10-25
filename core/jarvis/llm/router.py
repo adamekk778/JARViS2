@@ -58,6 +58,8 @@ class Router:
         self.last_used: tuple[str, str] | None = None
         self.last_errors: dict[str, str] = {}
         self.ttft: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))  # ms to first token, per provider
+        self.on_usage: Callable[[str, str, list[dict], int], None] | None = None   # OMEGA 178: usage ledger
+        self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -80,6 +82,10 @@ class Router:
             # Providers with an explicit vision model go first.
             cands = sorted(cands, key=lambda p: (p.id in self.no_vision, not p.vision_model))
         for pcfg in cands:
+            why = self.gate(pcfg) if self.gate else ""
+            if why:
+                errors[pcfg.id] = why
+                continue
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
             model = (pcfg.vision_model if need_vision and pcfg.vision_model else
                      pcfg.fast_model if fast and pcfg.fast_model else None)
@@ -96,10 +102,17 @@ class Router:
                     self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
                     started = True
                     self.last_used = (pcfg.id, model or prov.model)
+                    out = len(first.text or "")
                     yield first
                     async for ch in agen:
+                        out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
                         yield ch
                     self.last_errors = errors
+                    if self.on_usage:
+                        try:
+                            self.on_usage(pcfg.id, model or prov.model, msgs, out)
+                        except Exception as e:  # accounting must never break an answer
+                            log.debug("usage: %s", e)
                     return
                 except StopAsyncIteration:
                     self.last_used = (pcfg.id, model or prov.model)

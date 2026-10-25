@@ -18,7 +18,7 @@ export interface Task {
 
 export const TASK_STATUS: Record<string, string> = {
   running: "Probíhá", paused: "Pozastaveno", waiting: "Čeká na potvrzení", verifying: "Ověřuji", done: "Hotovo",
-  failed: "Chyba", cancelled: "Zrušeno", interrupted: "Přerušeno",
+  failed: "Chyba", cancelled: "Zrušeno", interrupted: "Přerušeno", queued: "Ve frontě", starting: "Spouští se",
 };
 const STEP_ICON: Record<string, string> = {
   pending: "circle", running: "circle-notch", done: "check-circle", failed: "x-circle", skipped: "minus-circle",
@@ -28,18 +28,18 @@ export const isActive = (t?: Task | null) => !!t && ["running", "paused", "waiti
 export class TaskCard {
   el: HTMLElement;
   private task: Task | null = null;
-  private confirm: { id: string; description: string; details: string[] } | null = null;
+  private confirms: { id: string; description: string; details: string[] }[] = [];   // OMEGA 219: the approval queue
 
   constructor(private client: JarvisClient, private opts: { compact?: boolean; hideWhenIdle?: boolean } = {}) {
     this.el = h("section", { class: `taskcard ${opts.compact ? "compact" : ""}`, "aria-live": "polite" });
     client.on("welcome", (m) => this.update(m.task || null));
     client.on("task_update", (m) => this.update(m.task));
     client.on("tasks", (m) => { if (m.current !== undefined) this.update(m.current); });
-    client.on("confirm_request", (m) => { this.confirm = { id: m.id, description: m.description, details: m.details || [] }; this.render(); });
-    const clear = (m: any) => { if (this.confirm?.id === m.id) { this.confirm = null; this.render(); } };
+    client.on("confirm_request", (m) => { this.confirms = [...this.confirms.filter((c) => c.id !== m.id), { id: m.id, description: m.description, details: m.details || [] }]; this.render(); });
+    const clear = (m: any) => { const n = this.confirms.length; this.confirms = this.confirms.filter((c) => c.id !== m.id); if (n !== this.confirms.length) this.render(); };
     client.on("confirm_resolved", clear);
     client.on("confirm_timeout", clear);
-    client.on("stopped", () => { this.confirm = null; this.render(); });
+    client.on("stopped", () => { this.confirms = []; this.render(); });
     this.render();
   }
 
@@ -63,7 +63,8 @@ export class TaskCard {
     }
     const pct = t.total ? Math.round((t.done / t.total) * 100) : isActive(t) ? 0 : 100;
     const active = isActive(t);
-    const c = this.confirm;
+    const c = this.confirms[0];
+    const more = this.confirms.length - 1;
     this.el.replaceChildren(
       h("header", { class: "tc-head" },
         h("span", { class: `tc-status st-${t.status}` }, TASK_STATUS[t.status] || t.status),
@@ -76,7 +77,8 @@ export class TaskCard {
           h("span", {}, s.title), s.note ? h("em", {}, s.note) : ""))) : "",
       active && t.current_action ? h("div", { class: "tc-action" }, icon("lightning"), h("span", {}, t.current_action)) : "",
       c ? h("div", { class: "tc-confirm" },
-        h("div", { class: "tc-confirm-text" }, icon("shield-warning", "ph-fill"), h("span", {}, c.description)),
+        h("div", { class: "tc-confirm-text" }, icon("shield-warning", "ph-fill"), h("span", {}, c.description),
+          more > 0 ? h("em", { class: "tc-more" }, `+${more} další čeká`) : ""),
         c.details.length ? h("ul", { class: "tc-details" }, ...c.details.map((d) => h("li", {}, d))) : "",
         h("div", { class: "tc-row" },
           this.btn("x", "Zamítnout", () => this.client.send("confirm_response", { id: c.id, approved: false })),
@@ -88,7 +90,10 @@ export class TaskCard {
             : this.btn("pause", "Pozastavit", () => this.client.send("task_pause")),
           this.btn("x-circle", "Zrušit", () => this.client.send("task_cancel")),
           this.btn("hand-palm", "STOP", () => this.client.send("stop_all"), "stop"),
-        ] : [this.btn("arrow-clockwise", "Zopakovat", () => this.client.send("task_retry", { id: t.id }))])));
+        ] : [
+          ...(["interrupted", "failed"].includes(t.status) && t.steps.some((x) => x.status === "done")
+            ? [this.btn("play", "Pokračovat", () => this.client.send("mission_resume", { id: t.id }), "primary")] : []),
+          this.btn("arrow-clockwise", "Zopakovat", () => this.client.send("task_retry", { id: t.id }))])));
   }
 }
 

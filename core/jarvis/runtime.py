@@ -85,6 +85,16 @@ class Runtime:
 
         self.home = Home(self)                 # 3.5: Home Assistant
         self.skill_note = ""                   # OMEGA Skill Forge: why the next skill version was saved
+        from .missions import Missions
+        from .privacy import MicLog
+        from .usage import Usage
+
+        self.usage = Usage(self)               # OMEGA 178: AI usage ledger and the daily limit
+        self.router.on_usage = self.usage.record
+        self.router.gate = self.usage.blocked
+        self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
+        self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
+        self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -99,6 +109,10 @@ class Runtime:
         self.mail.start()
         self.calendar.start()
         self.automations.start()
+        self.missions.start()
+        from . import privacy
+
+        self._privacy_task = asyncio.get_running_loop().create_task(privacy.watch(self))
         try:
             from .updater import Updater
 
@@ -135,6 +149,9 @@ class Runtime:
         self.mail.stop()
         self.calendar.stop()
         self.automations.stop()
+        self.missions.stop()
+        if getattr(self, "_privacy_task", None):
+            self._privacy_task.cancel()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:
@@ -227,6 +244,8 @@ class Runtime:
         was_local = self.cfg.brain.local_enabled
         old_cfg = self.cfg
         self.cfg = config_mod.apply_patch(self.cfg, patch)
+        if "privacy" in patch:
+            self.memory.set_private(self.cfg.privacy.private_mode)
         if "stark" in patch:
             from . import skillforge
 

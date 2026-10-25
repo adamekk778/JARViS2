@@ -36,6 +36,8 @@ CLIENT_TYPES = [
     "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
     "lists_get", "list_update", "network_get", "network_wake", "network_name",
     "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
+    "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
+    "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -49,7 +51,7 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
 ]
 
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
@@ -61,11 +63,12 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
-              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback"}
+              "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback", "audit_export", "data_export", "backup_create",
+              "backup_restore", "reset_all", "perm_grant"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get"}
 
 
@@ -421,6 +424,83 @@ class Connection:
                 await self.send("skill_versions", id=pid, items=skillforge.history(rt, pid))
             except ValueError as e:
                 await self.send("error", message=str(e))
+        elif t == "usage_get":
+            await self.send("usage", today=rt.usage.today(), history=rt.usage.history(30), estimate=rt.usage.estimate(3))
+        elif t == "privacy_get":
+            from .. import permissions, privacy
+
+            inv = await asyncio.to_thread(privacy.inventory, rt)
+            await self.send("privacy", inventory=inv, mic=rt.miclog.recent(),
+                            grants={k: v for k, v in permissions.TEMP_GRANTS.items() if permissions.granted(k)})
+        elif t == "audit_export":
+            from ..missions import export_audit
+
+            r = await asyncio.to_thread(export_audit, rt)
+            await self.send("export_done", kind="audit", path=r["csv"], detail=f"{r['missions']} misí, {r['actions']} akcí")
+        elif t == "data_export":
+            from .. import privacy
+
+            p = await asyncio.to_thread(privacy.export_all)
+            await self.send("export_done", kind="data", path=str(p), detail="bez hesel a klíčů")
+        elif t == "backup_create":         # the password never leaves this connection, never goes to the AI
+            from .. import privacy
+
+            try:
+                p = await asyncio.to_thread(privacy.backup_encrypted, str(m.get("password") or ""))
+                await self.send("export_done", kind="backup", path=str(p), detail="šifrováno AES-256")
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "backup_restore":
+            from pathlib import Path
+
+            from .. import privacy
+
+            try:
+                names = await asyncio.to_thread(privacy.restore_encrypted, Path(str(m.get("path") or "")), str(m.get("password") or ""))
+                await self.send("export_done", kind="restore", path=str(Path(str(m.get("path"))).with_suffix("")),
+                                detail=f"{len(names)} souborů rozbaleno vedle zálohy (živá data se nepřepsala)")
+            except (ValueError, OSError) as e:
+                await self.send("error", message=str(e))
+        elif t == "reset_all":             # OMEGA 794: typed confirmation, not a single click
+            from .. import privacy
+
+            if m.get("confirm") != "SMAZAT":
+                await self.send("error", message="Pro úplné smazání napiš SMAZAT.")
+            else:
+                r = await asyncio.to_thread(privacy.reset_all, rt)
+                await self.send("export_done", kind="reset", path="", detail=f"smazáno {sum(r.values())} záznamů")
+        elif t == "perm_grant":            # OMEGA 181: a switched-off area allowed for a while (by the user, in the UI)
+            from .. import permissions
+
+            perm = str(m.get("perm") or "")
+            if perm not in permissions.PERMS:
+                await self.send("error", message="Neznámé oprávnění.")
+            else:
+                if float(m.get("minutes") or 0) <= 0:
+                    permissions.TEMP_GRANTS.pop(perm, None)
+                else:
+                    permissions.grant(perm, float(m.get("minutes")))
+                await self.send("privacy", grants={k: v for k, v in permissions.TEMP_GRANTS.items() if permissions.granted(k)})
+        elif t == "approvals_get":
+            await self.send("approvals", items=list(rt.agent.confirm_info.values()))
+        elif t == "queue_get":
+            await self.send("queue", items=rt.tasks.queue())
+        elif t == "queue_add":
+            from ..tools.control_tools import _when
+
+            goal, tpl = str(m.get("goal") or "").strip(), str(m.get("template") or "")
+            nb, dl = _when(str(m.get("at") or "")), _when(str(m.get("deadline") or ""))
+            if tpl:
+                rt.missions.enqueue_template(tpl, dl, nb)
+            elif goal:
+                rt.missions.enqueue(goal, None, dl, nb)
+            await self.send("queue", items=rt.tasks.queue())
+        elif t == "queue_cancel":
+            rt.missions.cancel_queued(str(m.get("id") or ""))
+            await self.send("queue", items=rt.tasks.queue())
+        elif t == "mission_resume":
+            if not rt.missions.resume(str(m.get("id") or "")):
+                await self.send("error", message="Tu misi teď nejde navázat (běží, nebo neexistuje).")
         elif t == "automations_get":
             await self.send("automations", **rt.automations.status())
         elif t == "selection_action":

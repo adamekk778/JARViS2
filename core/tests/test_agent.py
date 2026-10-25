@@ -53,16 +53,21 @@ async def test_danger_rejected(rt):
 
 
 async def test_danger_approved(rt):
+    """Shutting down cannot be undone → it asks twice (OMEGA 182); both approvals run it."""
     rt.router = FakeRouter([[("system_power", {"action": "shutdown"})], "Vypínám."])
     q = rt.bus.subscribe()
     task = asyncio.create_task(rt.agent.handle("vypni počítač"))
-    for _ in range(50):
+    asked = []
+    for _ in range(100):
         await asyncio.sleep(0.01)
-        ev = [e for e in drain(q) if e["type"] == "confirm_request"]
-        if ev:
-            rt.agent.confirm(ev[0]["id"], True)
+        for e in drain(q):
+            if e["type"] == "confirm_request":
+                asked.append(e)
+                rt.agent.confirm(e["id"], True)
+        if task.done():
             break
     await task
+    assert [e["second"] for e in asked] == [False, True] and asked[1]["description"].startswith("Opravdu?")
     assert ("power", "shutdown") in rt.platform.calls
 
 

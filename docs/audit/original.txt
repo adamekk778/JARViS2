@@ -145,14 +145,14 @@ P14.02 | HOTOVO | delete_file vždy s potvrzením | 182 | Potvrzování mazání
 P14.03 | HOTOVO | audit akcí v misích | 232 | Historie operací
 P14.04 | HOTOVO | Pozastavit / Zrušit / STOP | 176 | Zastavit běžícího agenta
 P14.05 | ČÁSTEČNĚ | detaily v potvrzovacím dialogu | 231 | Náhled změn
-P14.06 | ČÁSTEČNĚ | záchytné body souborů, verze dovedností | 328, 150 | Vrácení změn
+P14.06 | ČÁSTEČNĚ | záchytné body souborů, verze dovedností, navázání misí | 328, 150 | Vrácení změn
 P14.07 | HOTOVO | trezor Windows (keyring) | — | Šifrované citlivé údaje
 P14.08 | HOTOVO | klíče jen v keyringu, redakce v logu | 179 | Správa API klíčů
 P14.09 | HOTOVO | SQLite v %APPDATA% | — | Lokální databáze paměti
-P14.10 | ČÁSTEČNĚ | smazání paměti/historie | 794 | Mazání osobních dat
-P14.11 | ČÁSTEČNĚ | cizí data označená jako data | 183 | Ochrana před škodlivými instrukcemi
+P14.10 | HOTOVO | mazání po N dnech, úplné smazání, export (privacy.py) | 684, 794 | Mazání osobních dat
+P14.11 | HOTOVO | skener skrytých pokynů + cizí data označená jako data (injection.py) | 183 | Ochrana před škodlivými instrukcemi
 P14.12 | ČÁSTEČNĚ | skilly se schvalují; sandbox chybí | 686 | Omezené prostředí pro kód
-P14.13 | ČÁSTEČNĚ | stav naslouchání v notchi; kamera se nepoužívá | 679 | Indikace mikrofonu/kamery/obrazovky
+P14.13 | HOTOVO | stav naslouchání v notchi + záznam mikrofonu; kamera se nepoužívá | 679 | Indikace mikrofonu/kamery/obrazovky
 P15.01 | ČÁSTEČNĚ | dovednost z provedené mise (Skill Forge) | 146 | Teach Mode
 P15.02 | PLÁNOVÁNO | M7 – Controlled Self-Evolution | — | Self-Healing
 P15.03 | CHYBÍ | — | 030 | Computer Memory
