@@ -145,3 +145,14 @@ def test_hang_dump_when_the_whole_interpreter_freezes(tmp_path, monkeypatch):
         loop.call_soon_threadsafe(loop.stop)
         th.join(2)
         loop.close()
+
+
+def test_one_shared_tls_context(rt):
+    """All HTTP clients reuse the TLS context made once at start-up (see tlsctx: a first-time OpenSSL init racing other
+    native start-up work froze the whole process on Windows)."""
+    from jarvis import tlsctx
+
+    tlsctx.warm_up()
+    rt.transport = None
+    a, b = rt.http(), rt.http()
+    assert a._transport._pool._ssl_context is tlsctx.context() is b._transport._pool._ssl_context

@@ -250,7 +250,9 @@ class Runtime:
 
     # ---------- helpers used by tools ----------
     def http(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=self.transport, follow_redirects=True)
+        from . import tlsctx
+
+        return httpx.AsyncClient(transport=self.transport, follow_redirects=True, verify=tlsctx.context())
 
     def update_config(self, patch: dict) -> config_mod.Config:
         was_local = self.cfg.brain.local_enabled

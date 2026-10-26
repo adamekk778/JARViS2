@@ -16,7 +16,9 @@ NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 def _up(url: str) -> bool:
     try:
-        return httpx.get(url, timeout=2).status_code < 500
+        from . import tlsctx
+
+        return httpx.get(url, timeout=2, verify=tlsctx.context()).status_code < 500
     except Exception:
         return False
 

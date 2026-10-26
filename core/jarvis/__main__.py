@@ -274,8 +274,10 @@ def main(argv: list[str] | None = None) -> int:
         message_box(f"Port {port} používá jiný program. Zavři ho, nebo změň port v %APPDATA%\\JARVIS\\config.toml (sekce [phone]).")
         return 2
 
+    from . import tlsctx
     from .runtime import Runtime
 
+    tlsctx.warm_up()                 # one-off native set-up (OpenSSL, keyring DLLs) before any other thread exists
     rt = Runtime(cfg)
     start_server(rt, port)
     from .bootstrap import start_background
