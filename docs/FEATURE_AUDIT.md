@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 250 | 74 |
+| ✅ HOTOVO | 266 | 74 |
 | 🟡 ČÁSTEČNĚ | 150 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 361 | 17 |
+| ⬜ CHYBÍ | 345 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -541,24 +541,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 28. Developer God Mode
 
-🟡 3 · 🔌 1 · ⬜ 11
+✅ 11 · 🟡 3 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 331 | Repository Knowledge Index — kódová znalostní báze. | 🔌 VYŽADUJE_INTEGRACI | Claude Code |
-| 332 | Architecture Refactor Planner — plán refaktoringu. | ⬜ CHYBÍ | — |
-| 333 | Dependency Risk Detector — rizika závislostí. | ⬜ CHYBÍ | — |
-| 334 | Test Coverage Explorer — pokrytí testů. | ⬜ CHYBÍ | — |
-| 335 | Mutation Testing Assistant — mutační testy. | ⬜ CHYBÍ | — |
-| 336 | API Contract Validator — API kontrakty. | ⬜ CHYBÍ | — |
-| 337 | Database Migration Preview — náhled migrace. | ⬜ CHYBÍ | — |
-| 338 | Code Ownership Map — vlastnictví souborů. | ⬜ CHYBÍ | — |
-| 339 | Regression Detector — detekce regresí. | 🟡 ČÁSTEČNĚ | run_tests + Claude Code |
-| 340 | Build Failure Root-Cause Analysis — příčiny buildu. | 🟡 ČÁSTEČNĚ | run_tests + Claude Code |
-| 341 | Dependency Update Planner — aktualizace knihoven. | ⬜ CHYBÍ | — |
-| 342 | Environment Reproducer — reprodukovatelné prostředí. | ⬜ CHYBÍ | — |
-| 343 | Automated Release Notes — release notes. | ⬜ CHYBÍ | — |
-| 344 | Feature Flag Manager — přepínače funkcí. | ⬜ CHYBÍ | — |
+| 332 | Architecture Refactor Planner — plán refaktoringu. | ✅ HOTOVO | module_map: graf importů (Python, TS/JS), cykly (Tarjan), nejzatíženější a největší moduly → plán refaktoringu |
+| 333 | Dependency Risk Detector — rizika závislostí. | ✅ HOTOVO | dependency_risks (neomezené verze, git/URL, instalační skripty, cizí registr, podvržené názvy) + dependency_vulnerabilities (OSV) |
+| 334 | Test Coverage Explorer — pokrytí testů. | 🟡 ČÁSTEČNĚ | test_coverage: čte coverage.xml / lcov.info / coverage.json, nejhorší soubory a nepokryté řádky; samotné měření pustí run_tests |
+| 335 | Mutation Testing Assistant — mutační testy. | ✅ HOTOVO | mutation_test: AST mutace Pythonu v kopii projektu, skóre a přeživší mutace (s potvrzením) |
+| 336 | API Contract Validator — API kontrakty. | ✅ HOTOVO | api_contract_check: odpověď (živá GET nebo soubor) proti OpenAPI, $ref, povinná pole, typy, enum |
+| 337 | Database Migration Preview — náhled migrace. | ✅ HOTOVO | migration_preview: SQL na kopii SQLite – změny struktury, počty řádků, chyba, integrita; originál beze změny |
+| 338 | Code Ownership Map — vlastnictví souborů. | ✅ HOTOVO | code_owners: vlastníci složek a souborů z gitu, bus factor, soubory jednoho autora |
+| 339 | Regression Detector — detekce regresí. | ✅ HOTOVO | test_regressions: JUnit před/po – nově padající, opravené, zmizelé, výrazně pomalejší |
+| 340 | Build Failure Root-Cause Analysis — příčiny buildu. | ✅ HOTOVO | explain_build_failure: první skutečná chyba v logu, význam, soubor:řádek, řešení (Python, Node, TS, Rust, C#, paměť, disk, síť) |
+| 341 | Dependency Update Planner — aktualizace knihoven. | ✅ HOTOVO | dependency_update_plan: nejnovější verze z PyPI / npm, patch → minor → major po jedné |
+| 342 | Environment Reproducer — reprodukovatelné prostředí. | 🟡 ČÁSTEČNĚ | environment_snapshot / environment_compare + zámek verzí; automatické sestavení kontejneru ne |
+| 343 | Automated Release Notes — release notes. | ✅ HOTOVO | release_notes: commity od posledního tagu podle typu (i české zprávy), Markdown |
+| 344 | Feature Flag Manager — přepínače funkcí. | ✅ HOTOVO | feature_flags (stav, použití v kódu, nepoužívané, nedefinované) + set_feature_flag (se záchytným bodem) |
 | 345 | Code Experiment Sandbox — experimentální kód. | 🟡 ČÁSTEČNĚ | záchytné body + Claude Code |
 
 ## 29. AI Design Studio
@@ -959,29 +959,29 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 47. Autonomous Software Factory
 
-🟡 3 · ⬜ 12
+✅ 4 · 🟡 3 · ⬜ 8
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 616 | Requirements Extractor — záměr na požadavky. | ⬜ CHYBÍ | — |
 | 617 | Acceptance Criteria Generator — akceptační kritéria. | ⬜ CHYBÍ | — |
 | 618 | Architecture Decision Records — ADR. | 🟡 ČÁSTEČNĚ | docs/DECISIONS.md |
-| 619 | Monorepo Organizer — více aplikací. | ⬜ CHYBÍ | — |
+| 619 | Monorepo Organizer — více aplikací. | ✅ HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi |
 | 620 | SDK Generator — klientské SDK. | ⬜ CHYBÍ | — |
 | 621 | Mock Server Builder — testovací server. | ⬜ CHYBÍ | — |
 | 622 | Canary Deployment Manager — postupný deploy. | ⬜ CHYBÍ | — |
 | 623 | Automated Rollback Planner — návrat verze. | ⬜ CHYBÍ | — |
-| 624 | Software Bill of Materials — SBOM. | ⬜ CHYBÍ | — |
-| 625 | Supply Chain Inspector — rizika knihoven. | ⬜ CHYBÍ | — |
+| 624 | Software Bill of Materials — SBOM. | ✅ HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením |
+| 625 | Supply Chain Inspector — rizika knihoven. | ✅ HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce |
 | 626 | CI Pipeline Designer — CI/CD. | 🟡 ČÁSTEČNĚ | vlastní CI (.github/workflows/build.yml) |
-| 627 | Release Compatibility Checker — kompatibilita vydání. | ⬜ CHYBÍ | — |
+| 627 | Release Compatibility Checker — kompatibilita vydání. | ✅ HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů |
 | 628 | Background Job Inspector — worker jobs. | ⬜ CHYBÍ | — |
 | 629 | Mobile Deep-Link Tester — deep links. | ⬜ CHYBÍ | — |
 | 630 | Feature Completion Auditor — kontrola úplnosti. | 🟡 ČÁSTEČNĚ | tento audit (docs/FEATURE_AUDIT.md) |
 
 ## 48. Software Testing Lab
 
-🟡 1 · ⬜ 14
+✅ 1 · 🟡 1 · ⬜ 13
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -990,7 +990,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 633 | Input Fuzzing — neobvyklé vstupy. | ⬜ CHYBÍ | — |
 | 634 | Network Failure Simulation — výpadky sítě. | ⬜ CHYBÍ | — |
 | 635 | Memory Leak Detector — úniky paměti. | ⬜ CHYBÍ | — |
-| 636 | Flaky Test Analyzer — nestabilní testy. | ⬜ CHYBÍ | — |
+| 636 | Flaky Test Analyzer — nestabilní testy. | ✅ HOTOVO | flaky_tests (z JUnit) + find_flaky_tests (pytest N× za sebou) |
 | 637 | Crash Reproduction Assistant — reprodukce pádu. | ⬜ CHYBÍ | — |
 | 638 | Device Test Matrix — testy zařízení. | ⬜ CHYBÍ | — |
 | 639 | Localization Overflow Testing — přetečení textu. | ⬜ CHYBÍ | — |

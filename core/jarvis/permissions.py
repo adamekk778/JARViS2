@@ -41,6 +41,9 @@ READ_ONLY_OK = {
     "workspace_compare", "workspace_list", "shortcuts", "command_history",
     "db_schema", "db_integrity", "db_query_plan", "db_slow_queries", "db_verify_backup", "db_restore_rehearsal",
     "db_compare_schema", "db_sensitive_data", "db_growth", "db_incident",
+    "dependency_risks", "dependency_vulnerabilities", "dependency_update_plan", "test_coverage", "test_regressions",
+    "flaky_tests", "api_contract_check", "api_breaking_changes", "migration_preview", "explain_build_failure", "code_owners",
+    "release_notes", "environment_compare", "feature_flags", "module_map", "monorepo_map",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

@@ -4,17 +4,17 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 
 | Modul / nástroj | Funkce (ID) |
 |---|---|
-| `Claude Code` | 046, 049, 331, 339, 340, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
+| `Claude Code` | 046, 049, 331, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
 | `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
 | `Home Assistant` | 165, 423, 434, P13.02, P13.05 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
-| `run_tests` | 058, 062, 339, 340, P5.08 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_python` | 766, 768, P5.12, P11.10 |
+| `run_tests` | 058, 062, 334, P5.08 |
 | `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `ask_models` | 006, 007, 204 |
@@ -39,6 +39,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
 | `db_growth` | 610, 613 |
+| `dependency_risks` | 333, 625 |
 | `desktop/host.py` | 226, P8.01 |
 | `email_send` | 562, P11.06 |
 | `exam_plan` | 110, 452 |
@@ -76,6 +77,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `_needs_second` | 182 |
 | `agent_team` | 218 |
 | `ai_usage` | 154 |
+| `api_breaking_changes` | 627 |
+| `api_contract_check` | 336 |
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
 | `audio_devices` | 105 |
@@ -97,6 +100,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
+| `code_owners` | 338 |
 | `command_history` | 520 |
 | `communication_digest` | 555 |
 | `compare_files` | 029 |
@@ -124,9 +128,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `deep_research` | 003 |
 | `delegate_to_agent` | 061 |
 | `delete_file` | P14.02 |
+| `dependency_update_plan` | 341 |
+| `dependency_vulnerabilities` | 333 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
+| `environment_compare` | 342 |
+| `environment_snapshot` | 342 |
 | `estimate_effort` | 503 |
+| `explain_build_failure` | 340 |
 | `explain_crash_code` | 014 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
@@ -134,10 +143,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `fact_check` | 377 |
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
+| `feature_flags` | 344 |
 | `file_metadata` | 326 |
 | `file_versions` | 328 |
 | `find_duplicates` | 317 |
+| `find_flaky_tests` | 636 |
 | `find_similar_photos` | 318 |
+| `flaky_tests` | 636 |
 | `flashcards_from` | 112 |
 | `focus_report` | 787 |
 | `folder_check` | 329 |
@@ -163,6 +175,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `local_unload` | 576 |
 | `looks_secret` | 681 |
 | `mail.py` | P11.05 |
+| `make_sbom` | 624 |
 | `mcp_client` | 048 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
@@ -173,10 +186,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_overview` | 040 |
 | `memory_timeline` | 036 |
 | `message_actions` | 544 |
+| `migration_preview` | 337 |
 | `missing_info` | 207 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
+| `module_map` | 332 |
+| `monorepo_map` | 619 |
 | `move_files` | P2.11 |
+| `mutation_test` | 335 |
 | `my_routines` | 497 |
 | `network_devices` | 426 |
 | `over_budget` | 221 |
@@ -195,6 +212,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reading_level` | 791 |
 | `recent_files` | 322 |
 | `redact.py` | 179 |
+| `release_notes` | 343 |
 | `remove_duplicates` | 317 |
 | `rename_files` | 325 |
 | `reopen_crashed` | 519 |
@@ -209,6 +227,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
+| `set_feature_flag` | 344 |
 | `set_private` | 041 |
 | `setup_check` | 795 |
 | `shared/taskcard.ts` | 087 |
@@ -228,6 +247,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `task_evidence` | 645 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |
+| `test_coverage` | 334 |
+| `test_regressions` | 339 |
 | `test_tasks` | 176 |
 | `tests/test_agent.py` | 182 |
 | `tests/test_automations.py` | 147 |

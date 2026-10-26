@@ -593,3 +593,23 @@
 613 | HOTOVO | db_growth: přidané / odebrané řádky po tabulkách a změna struktury od minulého zápisu
 614 | VYŽADUJE_INTEGRACI | replikace má jen serverová databáze (PostgreSQL, MySQL) – potřebuje připojení k serveru; SQLite replikaci nemá
 615 | HOTOVO | db_incident: poškození, zámek jiným programem, přerostlý -wal, prázdné místo, rozbité vazby → konkrétní kroky (nic sám neopravuje)
+
+# Vlna 13 (3.10): vývojářská laboratoř – devlab.py, tools/devlab_tools.py, tests/test_wave13.py
+332 | HOTOVO | module_map: graf importů (Python, TS/JS), cykly (Tarjan), nejzatíženější a největší moduly → plán refaktoringu
+333 | HOTOVO | dependency_risks (neomezené verze, git/URL, instalační skripty, cizí registr, podvržené názvy) + dependency_vulnerabilities (OSV)
+334 | ČÁSTEČNĚ | test_coverage: čte coverage.xml / lcov.info / coverage.json, nejhorší soubory a nepokryté řádky; samotné měření pustí run_tests
+335 | HOTOVO | mutation_test: AST mutace Pythonu v kopii projektu, skóre a přeživší mutace (s potvrzením)
+336 | HOTOVO | api_contract_check: odpověď (živá GET nebo soubor) proti OpenAPI, $ref, povinná pole, typy, enum
+337 | HOTOVO | migration_preview: SQL na kopii SQLite – změny struktury, počty řádků, chyba, integrita; originál beze změny
+338 | HOTOVO | code_owners: vlastníci složek a souborů z gitu, bus factor, soubory jednoho autora
+339 | HOTOVO | test_regressions: JUnit před/po – nově padající, opravené, zmizelé, výrazně pomalejší
+340 | HOTOVO | explain_build_failure: první skutečná chyba v logu, význam, soubor:řádek, řešení (Python, Node, TS, Rust, C#, paměť, disk, síť)
+341 | HOTOVO | dependency_update_plan: nejnovější verze z PyPI / npm, patch → minor → major po jedné
+342 | ČÁSTEČNĚ | environment_snapshot / environment_compare + zámek verzí; automatické sestavení kontejneru ne
+343 | HOTOVO | release_notes: commity od posledního tagu podle typu (i české zprávy), Markdown
+344 | HOTOVO | feature_flags (stav, použití v kódu, nepoužívané, nedefinované) + set_feature_flag (se záchytným bodem)
+619 | HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi
+624 | HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením
+625 | HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce
+627 | HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů
+636 | HOTOVO | flaky_tests (z JUnit) + find_flaky_tests (pytest N× za sebou)
