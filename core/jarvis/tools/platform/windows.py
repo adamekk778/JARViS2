@@ -174,8 +174,13 @@ class WindowsPlatform(Platform):
         comtypes.CoInitialize()
         try:
             me = os.getpid()
+            try:
+                sessions = AudioUtilities.GetAllSessions()
+            except comtypes.COMError:                           # no speaker / sound card at all → nothing to turn down
+                ducked.clear()
+                return
             if level is not None:
-                for sess in AudioUtilities.GetAllSessions():
+                for sess in sessions:
                     if not sess.Process or sess.Process.pid == me or sess.ProcessId in ducked:
                         continue
                     vol = sess.SimpleAudioVolume
@@ -183,7 +188,7 @@ class WindowsPlatform(Platform):
                     vol.SetMasterVolume(before * max(0.0, min(1.0, level)), None)
                     ducked[sess.ProcessId] = (before, before * level)
             else:
-                for sess in AudioUtilities.GetAllSessions():
+                for sess in sessions:
                     saved = ducked.get(sess.ProcessId)
                     if saved:
                         vol = sess.SimpleAudioVolume
