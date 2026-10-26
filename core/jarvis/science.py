@@ -588,6 +588,22 @@ def _num(s: str) -> float | None:
         return None
 
 
+def column_nums(values: list[str]) -> list[float | None]:
+    """Numbers of one column, the format decided for the column as a whole: a decimal comma anywhere → Czech format
+    (1.250,50); otherwise a dot is a decimal point (20.995 from a sensor or an export) unless some value has several
+    dot groups (1.250.000)."""
+    vals = [(v or "").strip().replace("\u00a0", "").replace(" ", "") for v in values]
+    if any(re.search(r"\d,\d", v) for v in vals) or any(re.fullmatch(r"-?\d{1,3}(\.\d{3}){2,}(,\d+)?", v) for v in vals):
+        return [_num(v) if v else None for v in vals]
+    out: list[float | None] = []
+    for v in vals:
+        try:
+            out.append(float(v) if v else None)
+        except ValueError:
+            out.append(_num(v))
+    return out
+
+
 def _date(s: str):
     import datetime as dt
 
@@ -616,7 +632,7 @@ def profile_csv(path: Path) -> dict:
     for i, name in enumerate(header):
         vals = [r[i] if i < len(r) else "" for r in rows]
         filled = [v for v in vals if v.strip()]
-        nums = [_num(v) for v in filled]
+        nums = column_nums(filled)
         n_num = sum(x is not None for x in nums)
         dates = [_date(v) for v in filled]
         fmts = Counter(d[0] for d in dates if d)
@@ -660,6 +676,11 @@ def clean_csv(path: Path, dest: Path) -> dict:
                 best = max(g.items(), key=lambda kv: kv[1])[0]
                 for v in g:
                     canon[i][v] = best
+    colnum: dict[int, dict[str, float | None]] = {}
+    for i, c in enumerate(prof["cols"]):
+        if c.get("type") == "číslo":
+            raw = [re.sub(r"\s{2,}", " ", r[i].strip()) for r in rows if i < len(r) and r[i].strip()]
+            colnum[i] = dict(zip(raw, column_nums(raw)))
     out, seen = [], set()
     for r in rows:
         r = (r + [""] * len(header))[: len(header)]
@@ -670,7 +691,7 @@ def clean_csv(path: Path, dest: Path) -> dict:
                 changes["mezery"] += 1
             t = prof["cols"][i]["type"]
             if t == "číslo" and s:
-                x = _num(s)
+                x = colnum.get(i, {}).get(s)
                 if x is not None:
                     ns = repr(int(x)) if x.is_integer() and not re.search(r"[.,]\d", s) else repr(x)
                     if ns != s:

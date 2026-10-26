@@ -174,7 +174,7 @@ async def frequency_analysis(ctx, file: str, sample_rate: float = 0, column: str
             idx = header.index(column) if column in header else next((i for i in range(len(header)) if science._num(rows[0][i]) is not None), None) if rows else None
             if idx is None:
                 return ToolResult(False, "V CSV nevidím číselný sloupec.")
-            xs = [v for v in (science._num(r[idx]) for r in rows if idx < len(r)) if v is not None]
+            xs = [v for v in science.column_nums([r[idx] for r in rows if idx < len(r)]) if v is not None]
             rate = sample_rate
         r = await asyncio.to_thread(science.spectrum, xs, rate, max(1, min(peaks, 20)))
     except (ValueError, EOFError) as e:

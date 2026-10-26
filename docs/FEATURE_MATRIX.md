@@ -42,6 +42,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `browser_type` | 530, P11.03 |
 | `character/looks.ts` | 250, 251 |
 | `check_subtitles` | 369, 674 |
+| `circuit_tutor` | 451, 456 |
 | `claude_bridge.py` | 046, P5.01 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
@@ -121,6 +122,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `camera_move` | 665 |
 | `caption_variants` | 663 |
 | `character/blob.ts` | 071 |
+| `chart_insights` | 770 |
 | `check_app_links` | 629 |
 | `check_assumptions` | 199 |
 | `check_backups` | 716 |
@@ -130,6 +132,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_link` | 397 |
 | `check_math_steps` | 106 |
 | `check_translation` | 068 |
+| `citation_check` | 777 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clean_speech` | 366 |
@@ -155,6 +158,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `customer_segments` | 437 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
+| `data_lineage` | 771 |
 | `data_rescue_plan` | 300 |
 | `dataset_check` | 767 |
 | `dataset_clean` | 767 |
@@ -188,6 +192,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `environment_compare` | 342 |
 | `environment_snapshot` | 342 |
 | `estimate_effort` | 503 |
+| `experiment_design` | 208 |
 | `experiment_log` | 479 |
 | `experiment_result` | 479 |
 | `expiring_logins` | 537 |
@@ -298,6 +303,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `perf_history` | 312 |
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
+| `physics_sim` | 776 |
 | `power_cost` | 474 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
@@ -307,6 +313,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `privacy_report` | 539 |
 | `product_demo` | 673 |
 | `project_profitability` | 449 |
+| `prototype_test_plan` | 480 |
+| `prototype_test_results` | 480 |
 | `provider_test` | 587 |
 | `pseudo_localize` | 639 |
 | `quantization_advice` | 572 |

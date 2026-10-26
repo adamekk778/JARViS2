@@ -778,3 +778,13 @@
 673 | HOTOVO | product_demo: klikací ukázka z obrázků se zvýrazněnými místy a popisy jako jeden HTML soubor (šipky, klik)
 674 | HOTOVO | check_subtitles + restyle_subtitles (vlna 18): rychlost čtení, délka a počet řádků, délka zobrazení, překryvy, oprava
 675 | HOTOVO | asset_lineage: řetězec původu (z čeho soubor vznikl, zdroj, autor, licence), otisk SHA-256 odhalí pozdější změnu
+
+# Vlna 27 (3.10): laboratoř – lab.py, tools/lab_tools.py, tests/test_wave27.py (fyzika proti analytickým výsledkům)
+770 | ČÁSTEČNĚ | chart_insights: trend, zlom (skok úrovně), výkyvy (robustní z-skóre), perioda (autokorelace), souběžné řady s varováním před kauzalitou – z dat; z obrázku grafu ne
+771 | HOTOVO | data_lineage: původ každého sloupce pohledu / dotazu SQLite přes autorizátor SQLite (i přes vnořené pohledy), filtry a spojení zvlášť, jen čtení
+776 | HOTOVO | physics_sim: vrh s odporem, kyvadlo (velké výchylky), tlumená pružina, RC, chladnutí (RK4) + průchod parametrem s nejlepší hodnotou
+777 | HOTOVO | citation_check: DOI v Crossrefu, název / rok / autor, stažené články (retraction), citace bez DOI dohledá
+208 | HOTOVO | experiment_design: úplný i poloviční faktoriální plán, opakování, bloky, náhodné pořadí, počet běhů podle efektu a rozptylu, záznamový list
+480 | HOTOVO | prototype_test_plan + prototype_test_results: počet kusů (success-run, i s povolenými selháními), pořadí, list; vyhodnocení s Cpk a prokázanou spolehlivostí
+456 | HOTOVO | circuit_tutor: příklady (Ohm, série, paralela, smíšené, LED) s ověřenou odpovědí, kontrola jednotky (i 2k2), postup řešení
+451 | ČÁSTEČNĚ | adaptivní obtížnost v circuit_tutor (3 správně → těžší, 2 chyby ze 3 → lehčí, úspěšnost); u ostatních procvičování ne

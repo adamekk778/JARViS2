@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 394 | 74 |
-| 🟡 ČÁSTEČNĚ | 159 | 58 |
+| ✅ HOTOVO | 400 | 74 |
+| 🟡 ČÁSTEČNĚ | 161 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 208 | 17 |
+| ⬜ CHYBÍ | 200 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -343,7 +343,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-✅ 8 · 🟡 2 · 🔌 1 · ⬜ 4
+✅ 9 · 🟡 2 · 🔌 1 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -359,7 +359,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 205 | Contradiction Detection — detekce rozporů. | ⬜ CHYBÍ | — |
 | 206 | Solution Ranking — řazení řešení. | ✅ HOTOVO | seřazení variant s odůvodněním |
 | 207 | Knowledge Gap Detection — identifikace chybějících dat. | ✅ HOTOVO | co chybí vědět (missing_info) u rozhodování |
-| 208 | Experiment Designer — návrh ověřovacích testů. | ⬜ CHYBÍ | — |
+| 208 | Experiment Designer — návrh ověřovacích testů. | ✅ HOTOVO | experiment_design: úplný i poloviční faktoriální plán, opakování, bloky, náhodné pořadí, počet běhů podle efektu a rozptylu, záznamový list |
 | 209 | Outcome Evaluation — vyhodnocení dosažených cílů. | 🟡 ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence) |
 | 210 | Recursive Task Improvement — vylepšení na základě testů. | ⬜ CHYBÍ | — |
 
@@ -717,16 +717,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 36. Learning Lab
 
-✅ 9 · 🟡 2 · ⬜ 4
+✅ 10 · 🟡 3 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 451 | Adaptive Difficulty — adaptivní náročnost. | ⬜ CHYBÍ | — |
+| 451 | Adaptive Difficulty — adaptivní náročnost. | 🟡 ČÁSTEČNĚ | adaptivní obtížnost v circuit_tutor (3 správně → těžší, 2 chyby ze 3 → lehčí, úspěšnost); u ostatních procvičování ne |
 | 452 | Learning Path Builder — studijní cesta. | 🟡 ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan |
 | 453 | Knowledge Prerequisite Map — předpoklady učiva. | ✅ HOTOVO | learning_path: mapa předpokladů → pořadí učení k cíli, přeskočí známé, odhalí kruhy a nedefinovaná témata |
 | 454 | Spaced Repetition Engine — časované opakování. | ✅ HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní) |
 | 455 | Mistake Classification — druhy chyb. | ✅ HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná) |
-| 456 | Interactive Circuit Tutor — obvody. | ⬜ CHYBÍ | — |
+| 456 | Interactive Circuit Tutor — obvody. | ✅ HOTOVO | circuit_tutor: příklady (Ohm, série, paralela, smíšené, LED) s ověřenou odpovědí, kontrola jednotky (i 2k2), postup řešení |
 | 457 | Math Step Validator — kontrola výpočtů. | ✅ HOTOVO | Math Step Validator: výrazy i rovnice, bezpečný vlastní vyhodnocovač (žádné eval), česká desetinná čárka |
 | 458 | Programming Exercise Generator — úlohy. | ⬜ CHYBÍ | — |
 | 459 | Virtual Oral Exam — ústní zkoušení. | ✅ HOTOVO | Virtual Oral Exam (oral_exam + check_answer, i hlasem) |
@@ -739,7 +739,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 37. Engineering & Robotics
 
-✅ 9 · 🟡 2 · ⬜ 4
+✅ 10 · 🟡 2 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -757,7 +757,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 477 | Robot Telemetry Dashboard — telemetrie. | 🟡 ČÁSTEČNĚ | telemetrie = serial_monitor + sensor_chart (záznam a graf); živý průběžný panel ne |
 | 478 | Camera Calibration Assistant — kalibrace. | ⬜ CHYBÍ | — |
 | 479 | Hardware Experiment Logger — evidence experimentů. | ✅ HOTOVO | experiment_log / experiment_result / experiments: deník pokusů s hypotézou, parametry a závěrem |
-| 480 | Prototype Test Planner — test prototypu. | ⬜ CHYBÍ | — |
+| 480 | Prototype Test Planner — test prototypu. | ✅ HOTOVO | prototype_test_plan + prototype_test_results: počet kusů (success-run, i s povolenými selháními), pořadí, list; vyhodnocení s Cpk a prokázanou spolehlivostí |
 
 ## 38. Iron Man Experimental
 
@@ -1179,7 +1179,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 57. Science & Simulation
 
-✅ 7 · 🟡 3 · ⬜ 5
+✅ 10 · 🟡 4 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1187,14 +1187,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 767 | Dataset Cleaning Assistant — čištění dat. | ✅ HOTOVO | dataset_check + dataset_clean: duplicity, mezery, desetinná čárka, formáty dat, varianty kategorií, odlehlé hodnoty → nový soubor |
 | 768 | Computational Notebook Runner — výpočetní notebooky. | 🟡 ČÁSTEČNĚ | run_python |
 | 769 | Experiment Logbook — záznam experimentů. | ✅ HOTOVO | deník experimentů (viz 479), hledání podle slova a projektu |
-| 770 | Chart Interpretation Engine — interpretace grafů. | ⬜ CHYBÍ | — |
-| 771 | Data Lineage Viewer — původ dat. | ⬜ CHYBÍ | — |
+| 770 | Chart Interpretation Engine — interpretace grafů. | 🟡 ČÁSTEČNĚ | chart_insights: trend, zlom (skok úrovně), výkyvy (robustní z-skóre), perioda (autokorelace), souběžné řady s varováním před kauzalitou – z dat; z obrázku grafu ne |
+| 771 | Data Lineage Viewer — původ dat. | ✅ HOTOVO | data_lineage: původ každého sloupce pohledu / dotazu SQLite přes autorizátor SQLite (i přes vnořené pohledy), filtry a spojení zvlášť, jen čtení |
 | 772 | Physical Unit Validator — jednotky. | ✅ HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce) |
 | 773 | CAD Tolerance Assistant — tolerance. | ✅ HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle |
 | 774 | Generative Engineering Concepts — technické alternativy. | ⬜ CHYBÍ | — |
 | 775 | Technical Model Inspector — geometrie 3D. | 🟡 ČÁSTEČNĚ | check_3d_model: geometrie STL (objem, povrch, rozměry, topologie); STEP / OBJ zatím ne |
-| 776 | Physics Parameter Explorer — parametry simulací. | ⬜ CHYBÍ | — |
-| 777 | Scientific Citation Checker — vědecké zdroje. | ⬜ CHYBÍ | — |
+| 776 | Physics Parameter Explorer — parametry simulací. | ✅ HOTOVO | physics_sim: vrh s odporem, kyvadlo (velké výchylky), tlumená pružina, RC, chladnutí (RK4) + průchod parametrem s nejlepší hodnotou |
+| 777 | Scientific Citation Checker — vědecké zdroje. | ✅ HOTOVO | citation_check: DOI v Crossrefu, název / rok / autor, stažené články (retraction), citace bez DOI dohledá |
 | 778 | Signal Frequency Analyzer — frekvenční analýza. | ✅ HOTOVO | frequency_analysis: WAV (8/16/24/32 bit) nebo CSV → spektrum s Hannovým oknem, špičky v Hz a dB, RMS, DC |
 | 779 | Statistical Quality Inspector — kvalita statistiky. | ✅ HOTOVO | compare_groups: Welch + Mann–Whitney, Cohenovo d, interval, varování (malý vzorek, nenormální, odlehlé, prakticky zanedbatelné) |
 | 780 | A/B Experiment Designer — experimenty. | ✅ HOTOVO | ab_test: velikost vzorku a délka testu + vyhodnocení s intervalem a kontrolou SRM |

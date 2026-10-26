@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from .comms import fold
-from .science import _num, read_csv
+from .science import _num, column_nums, read_csv
 
 # ============================================================================================== 469 BOM
 def _norm_part(name: str) -> str:
@@ -182,24 +182,13 @@ def sensor_chart(series: dict[str, list[float]], out: Path, x: list[float] | Non
     return {"path": str(out), "stats": stats, "range": [lo, hi]}
 
 
-def _float(v: str) -> float | None:
-    try:
-        return float(v)
-    except ValueError:
-        return None
-
-
 def csv_series(path: Path, columns: list[str] | None = None) -> dict[str, list[float]]:
     header, rows, _, _ = read_csv(path)
     out: dict[str, list[float]] = {}
     for i, name in enumerate(header):
         if columns and name not in columns:
             continue
-        raw = [r[i].strip() if i < len(r) else "" for r in rows]
-        if any("," in v for v in raw):
-            vals = [_num(v) for v in raw]
-        else:                       # sensor logs write 20.995 as a decimal, not as the Czech thousands form "20 995"
-            vals = [_float(v) for v in raw]
+        vals = column_nums([r[i] if i < len(r) else "" for r in rows])
         if sum(v is not None for v in vals) >= max(2, len(vals) * 0.8):
             out[name] = vals
     return out
