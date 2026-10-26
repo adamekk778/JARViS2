@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 284 | 74 |
-| 🟡 ČÁSTEČNĚ | 149 | 58 |
+| ✅ HOTOVO | 295 | 74 |
+| 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 328 | 17 |
+| ⬜ CHYBÍ | 315 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -739,24 +739,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 37. Engineering & Robotics
 
-⬜ 15
+✅ 4 · 🟡 1 · ⬜ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 466 | CAD Project Assistant — CAD. | ⬜ CHYBÍ | — |
-| 467 | 3D Print Preparation — tisková příprava. | ⬜ CHYBÍ | — |
-| 468 | Printability Checker — tisknutelnost. | ⬜ CHYBÍ | — |
+| 467 | 3D Print Preparation — tisková příprava. | 🟡 ČÁSTEČNĚ | check_3d_model: příprava k tisku (rozměry, vejde se, podpěry, filament g/m); samotné slicování dělá slicer |
+| 468 | Printability Checker — tisknutelnost. | ✅ HOTOVO | check_3d_model: uzavřenost, otočené normály, zdegenerované plošky, převisy > 45°, velikost |
 | 469 | Bill of Materials Generator — BOM součástek. | ⬜ CHYBÍ | — |
 | 470 | Component Compatibility Checker — kompatibilita komponent. | ⬜ CHYBÍ | — |
 | 471 | Serial Device Monitor — sériový monitor. | ⬜ CHYBÍ | — |
 | 472 | Sensor Data Visualizer — data senzorů. | ⬜ CHYBÍ | — |
-| 473 | Circuit Calculation Engine — výpočty obvodů. | ⬜ CHYBÍ | — |
-| 474 | Power Consumption Estimator — spotřeba. | ⬜ CHYBÍ | — |
+| 473 | Circuit Calculation Engine — výpočty obvodů. | ✅ HOTOVO | circuit_calc: Ohm, LED odpor z řady E12 + výkon, dělič z E12, sériově/paralelně, RC, barevné proužky oběma směry |
+| 474 | Power Consumption Estimator — spotřeba. | ✅ HOTOVO | power_cost (kWh a Kč za měsíc/rok, cena pohotovosti) + circuit_calc battery (výdrž s režimem spánku) |
 | 475 | Firmware Build Assistant — firmware build. | ⬜ CHYBÍ | — |
 | 476 | Robotics Motion Simulator — pohyb robota. | ⬜ CHYBÍ | — |
 | 477 | Robot Telemetry Dashboard — telemetrie. | ⬜ CHYBÍ | — |
 | 478 | Camera Calibration Assistant — kalibrace. | ⬜ CHYBÍ | — |
-| 479 | Hardware Experiment Logger — evidence experimentů. | ⬜ CHYBÍ | — |
+| 479 | Hardware Experiment Logger — evidence experimentů. | ✅ HOTOVO | experiment_log / experiment_result / experiments: deník pokusů s hypotézou, parametry a závěrem |
 | 480 | Prototype Test Planner — test prototypu. | ⬜ CHYBÍ | — |
 
 ## 38. Iron Man Experimental
@@ -1179,25 +1179,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 57. Science & Simulation
 
-🟡 2 · ⬜ 13
+✅ 7 · 🟡 3 · ⬜ 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 766 | Interactive Equation Solver — rovnice s postupem. | 🟡 ČÁSTEČNĚ | run_python / AI |
-| 767 | Dataset Cleaning Assistant — čištění dat. | ⬜ CHYBÍ | — |
+| 767 | Dataset Cleaning Assistant — čištění dat. | ✅ HOTOVO | dataset_check + dataset_clean: duplicity, mezery, desetinná čárka, formáty dat, varianty kategorií, odlehlé hodnoty → nový soubor |
 | 768 | Computational Notebook Runner — výpočetní notebooky. | 🟡 ČÁSTEČNĚ | run_python |
-| 769 | Experiment Logbook — záznam experimentů. | ⬜ CHYBÍ | — |
+| 769 | Experiment Logbook — záznam experimentů. | ✅ HOTOVO | deník experimentů (viz 479), hledání podle slova a projektu |
 | 770 | Chart Interpretation Engine — interpretace grafů. | ⬜ CHYBÍ | — |
 | 771 | Data Lineage Viewer — původ dat. | ⬜ CHYBÍ | — |
-| 772 | Physical Unit Validator — jednotky. | ⬜ CHYBÍ | — |
-| 773 | CAD Tolerance Assistant — tolerance. | ⬜ CHYBÍ | — |
+| 772 | Physical Unit Validator — jednotky. | ✅ HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce) |
+| 773 | CAD Tolerance Assistant — tolerance. | ✅ HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle |
 | 774 | Generative Engineering Concepts — technické alternativy. | ⬜ CHYBÍ | — |
-| 775 | Technical Model Inspector — geometrie 3D. | ⬜ CHYBÍ | — |
+| 775 | Technical Model Inspector — geometrie 3D. | 🟡 ČÁSTEČNĚ | check_3d_model: geometrie STL (objem, povrch, rozměry, topologie); STEP / OBJ zatím ne |
 | 776 | Physics Parameter Explorer — parametry simulací. | ⬜ CHYBÍ | — |
 | 777 | Scientific Citation Checker — vědecké zdroje. | ⬜ CHYBÍ | — |
-| 778 | Signal Frequency Analyzer — frekvenční analýza. | ⬜ CHYBÍ | — |
-| 779 | Statistical Quality Inspector — kvalita statistiky. | ⬜ CHYBÍ | — |
-| 780 | A/B Experiment Designer — experimenty. | ⬜ CHYBÍ | — |
+| 778 | Signal Frequency Analyzer — frekvenční analýza. | ✅ HOTOVO | frequency_analysis: WAV (8/16/24/32 bit) nebo CSV → spektrum s Hannovým oknem, špičky v Hz a dB, RMS, DC |
+| 779 | Statistical Quality Inspector — kvalita statistiky. | ✅ HOTOVO | compare_groups: Welch + Mann–Whitney, Cohenovo d, interval, varování (malý vzorek, nenormální, odlehlé, prakticky zanedbatelné) |
+| 780 | A/B Experiment Designer — experimenty. | ✅ HOTOVO | ab_test: velikost vzorku a délka testu + vyhodnocení s intervalem a kontrolou SRM |
 
 ## 58. Everyday Intelligence & Accessibility
 

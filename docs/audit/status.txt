@@ -635,3 +635,18 @@
 623 | HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky
 628 | HOTOVO | background_jobs: Plánovač úloh Windows (výsledek, zmeškané a nespouštěné úlohy) + rutiny JARVISe, které neproběhly
 629 | HOTOVO | check_app_links: assetlinks.json a apple-app-site-association – formát, otisky, Content-Type, přesměrování, otevře se cesta v aplikaci
+
+# Vlna 16 (3.10): inženýrství a věda – science.py, tools/science_tools.py, tests/test_wave16.py (statistika ověřená proti známým tabulkovým hodnotám)
+467 | ČÁSTEČNĚ | check_3d_model: příprava k tisku (rozměry, vejde se, podpěry, filament g/m); samotné slicování dělá slicer
+468 | HOTOVO | check_3d_model: uzavřenost, otočené normály, zdegenerované plošky, převisy > 45°, velikost
+473 | HOTOVO | circuit_calc: Ohm, LED odpor z řady E12 + výkon, dělič z E12, sériově/paralelně, RC, barevné proužky oběma směry
+474 | HOTOVO | power_cost (kWh a Kč za měsíc/rok, cena pohotovosti) + circuit_calc battery (výdrž s režimem spánku)
+479 | HOTOVO | experiment_log / experiment_result / experiments: deník pokusů s hypotézou, parametry a závěrem
+767 | HOTOVO | dataset_check + dataset_clean: duplicity, mezery, desetinná čárka, formáty dat, varianty kategorií, odlehlé hodnoty → nový soubor
+769 | HOTOVO | deník experimentů (viz 479), hledání podle slova a projektu
+772 | HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce)
+773 | HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle
+775 | ČÁSTEČNĚ | check_3d_model: geometrie STL (objem, povrch, rozměry, topologie); STEP / OBJ zatím ne
+778 | HOTOVO | frequency_analysis: WAV (8/16/24/32 bit) nebo CSV → spektrum s Hannovým oknem, špičky v Hz a dB, RMS, DC
+779 | HOTOVO | compare_groups: Welch + Mann–Whitney, Cohenovo d, interval, varování (malý vzorek, nenormální, odlehlé, prakticky zanedbatelné)
+780 | HOTOVO | ab_test: velikost vzorku a délka testu + vyhodnocení s intervalem a kontrolou SRM

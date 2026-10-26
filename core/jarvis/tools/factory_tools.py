@@ -4,10 +4,8 @@ App Links / Universal Links of a domain."""
 from __future__ import annotations
 
 import asyncio
-import json
 import re
 import time
-from pathlib import Path
 from typing import Annotated
 
 from .. import paths

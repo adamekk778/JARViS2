@@ -46,6 +46,8 @@ READ_ONLY_OK = {
     "release_notes", "environment_compare", "feature_flags", "module_map", "monorepo_map",
     "memory_leak_check", "translation_overflow", "keyboard_test", "device_test", "offline_test",
     "requirements_from_idea", "rollback_plan", "background_jobs", "check_app_links",
+    "unit_calc", "check_formula_units", "circuit_calc", "power_cost", "compare_groups", "ab_test", "frequency_analysis",
+    "dataset_check", "tolerance_stackup", "check_3d_model", "experiments",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
@@ -75,6 +77,7 @@ def granted(perm: str) -> bool:
 CATEGORY_PERM = {
     "ovládání počítače": "input", "obrazovka": "screen", "soubory": "files_read",
     "prohlížeč": "network", "web": "network", "systém": "system", "síť": "network", "bezpečnost": "files_read",
+    "věda": "apps",
 }
 TOOL_PERM = {
     "type_text": "input", "press_keys": "input",

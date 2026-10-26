@@ -252,7 +252,7 @@ def operations(spec: dict) -> list[dict]:
 def sdk_python(spec: dict, class_name: str = "ApiClient") -> str:
     lines = ['"""Klient API vygenerovaný JARVISem z kontraktu OpenAPI. Needitovat ručně – vygenerovat znovu."""',
              "from __future__ import annotations", "", "from typing import Any", "from urllib.parse import quote", "", "import httpx", "", "",
-             f"class {class_name}:", f'    def __init__(self, base_url: str, token: str | None = None, timeout: float = 30):',
+             f"class {class_name}:", '    def __init__(self, base_url: str, token: str | None = None, timeout: float = 30):',
              '        headers = {"Authorization": f"Bearer {token}"} if token else {}',
              '        self.http = httpx.Client(base_url=base_url.rstrip("/"), headers=headers, timeout=timeout)', "",
              "    def close(self) -> None:", "        self.http.close()", "",

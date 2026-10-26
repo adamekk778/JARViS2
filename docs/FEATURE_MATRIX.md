@@ -20,6 +20,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ask_models` | 006, 007, 204 |
 | `check_answer` | 111, 115, 459 |
 | `compare_options` | 005, 007, 197 |
+| `d_model` | 467, 468, 775 |
 | `db_query_plan` | 602, 603, 612 |
 | `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
@@ -35,6 +36,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `automations.py` | 034, 147 |
 | `browser_type` | 530, P11.03 |
 | `character/looks.ts` | 250, 251 |
+| `circuit_calc` | 473, 474 |
 | `claude_bridge.py` | 046, P5.01 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
@@ -75,6 +77,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
+| `ab_test` | 780 |
 | `agent_team` | 218 |
 | `ai_usage` | 154 |
 | `api_breaking_changes` | 627 |
@@ -95,6 +98,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_app_links` | 629 |
 | `check_assumptions` | 199 |
 | `check_download` | 398 |
+| `check_formula_units` | 772 |
 | `check_hardware` | 298 |
 | `check_link` | 397 |
 | `check_math_steps` | 106 |
@@ -106,6 +110,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `command_history` | 520 |
 | `communication_digest` | 555 |
 | `compare_files` | 029 |
+| `compare_groups` | 779 |
 | `confirm_info` | 219 |
 | `contact_card` | 553 |
 | `convert_file` | 324 |
@@ -117,6 +122,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
 | `data_rescue_plan` | 300 |
+| `dataset_check` | 767 |
+| `dataset_clean` | 767 |
 | `day_summary` | 510 |
 | `db_anonymize_copy` | 611 |
 | `db_compare_schema` | 608 |
@@ -140,6 +147,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `environment_compare` | 342 |
 | `environment_snapshot` | 342 |
 | `estimate_effort` | 503 |
+| `experiment_log` | 479 |
+| `experiment_result` | 479 |
 | `explain_build_failure` | 340 |
 | `explain_crash_code` | 014 |
 | `export_all` | 793 |
@@ -164,6 +173,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
 | `free_time` | 568 |
+| `frequency_analysis` | 778 |
 | `fuzz_inputs` | 633 |
 | `generate_api_client` | 620 |
 | `generate_image` | 132 |
@@ -216,6 +226,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `perf_history` | 312 |
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
+| `power_cost` | 474 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
 | `privacy.py` | P14.10 |
@@ -269,6 +280,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
 | `to_list` | 570 |
+| `tolerance_stackup` | 773 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
 | `tools/shell.py` | 702 |
@@ -278,6 +290,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `type_text` | P2.02 |
 | `ui_click` | P2.02 |
 | `undo_rename` | 325 |
+| `unit_calc` | 772 |
 | `update_progress` | 075 |
 | `user_flow_test` | 631 |
 | `verify_copy` | 700 |
