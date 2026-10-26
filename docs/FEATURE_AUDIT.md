@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 420 | 74 |
+| ✅ HOTOVO | 430 | 74 |
 | 🟡 ČÁSTEČNĚ | 163 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 178 | 16 |
+| ⬜ CHYBÍ | 168 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -39,7 +39,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 9 · 🟡 5 · ⬜ 1
+✅ 10 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -55,13 +55,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 020 | Bezpečné body obnovy před zásahy. | ✅ HOTOVO | create_restore_point – se schválením, srozumitelné chyby (správce, 24 h, vypnutá ochrana) + přehled bodů obnovy |
 | 021 | Diagnostika sítí, DNS a Wi-Fi. | ✅ HOTOVO | network_check: Wi-Fi signál, DNS, odezva, ztráta, trasa, certifikát, dostupnost webu, veřejné DNS |
 | 022 | Sledování thermal throttlingu. | 🟡 ČÁSTEČNĚ | škrcení poznám podle frekvence CPU pod zátěží (perf.bottlenecks); teplotu CPU Windows bez ovladače výrobce nehlásí |
-| 023 | Graf závislostí služeb a procesů. | ⬜ CHYBÍ | — |
+| 023 | Graf závislostí služeb a procesů. | ✅ HOTOVO | service_dependencies: co služba potřebuje a co na ní závisí (i nepřímo), automatické služby, které neběží, a co tím nefunguje |
 | 024 | Kontrola podezřelých aplikací a oprávnění. | 🟡 ČÁSTEČNĚ | podezřelý autostart (nepodepsané z AppData/Temp), skryté naplánované úlohy, programy otevřené do sítě; oprávnění aplikací ne |
 | 025 | Technická zpráva o stavu PC. | ✅ HOTOVO | pc_health_report: read-only diagnostika, HTML report, ověření 5 kritérií (pcreport.py, tools/mission_tools.py, tests/test_omega.py, CI --selftest-report) |
 
 ## 03. Context Awareness
 
-✅ 2 · 🟡 4 · ⬜ 4
+✅ 5 · 🟡 4 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -69,9 +69,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 027 | Práce s označeným textem. | ✅ HOTOVO | označený text Ctrl+Alt+E: opravit/přeložit/zkrátit/vysvětlit (powers.py; CI test v Notepadu) |
 | 028 | Vysvětlení prvku pod kurzorem. | 🟡 ČÁSTEČNĚ | ui_inspect / ui_read přes UI Automation (tools/uia.py) |
 | 029 | Porovnávání otevřených dokumentů. | 🟡 ČÁSTEČNĚ | compare_files (tools/files.py) |
-| 030 | Paměť pracovního rozložení oken. | ⬜ CHYBÍ | — |
-| 031 | Obnova pracovního prostředí po restartu. | ⬜ CHYBÍ | — |
-| 032 | Nabídnutí pomoci při opakovaných chybách. | ⬜ CHYBÍ | — |
+| 030 | Paměť pracovního rozložení oken. | ✅ HOTOVO | workspace_save / workspace_restore / workspace_compare (dřívější vlna) – pojmenovaná rozložení oken s programy a polohami |
+| 031 | Obnova pracovního prostředí po restartu. | ✅ HOTOVO | rozložení oken se ukládá každých 10 min a při vypnutí JARVISe; po restartu jednou nabídne „obnov okna z minula“ (nic samo nespouští) |
+| 032 | Nabídnutí pomoci při opakovaných chybách. | ✅ HOTOVO | program spadl dnes 3× → jednou denně nabídne zjistit proč (s modulem, ve kterém padá) |
 | 033 | Kontextová diagnostika chybových dialogů. | 🟡 ČÁSTEČNĚ | screenshot + vision model, ui_read chybových dialogů |
 | 034 | Režim práce/hry/učení dle aktivních aplikací. | 🟡 ČÁSTEČNĚ | protokoly Pracovní/Herní režim + automatizace app_open (stark.py, automations.py) |
 | 035 | Interaktivní popisky funkcí aplikace. | ⬜ CHYBÍ | — |
@@ -475,12 +475,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 25. JARVIS PC Rescue
 
-✅ 7 · 🟡 5 · ⬜ 3
+✅ 10 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 286 | Windows Integrity Inspector — integrita Windows. | 🟡 ČÁSTEČNĚ | system_integrity_check: DISM /CheckHealth + SFC /VERIFYONLY (jen kontrola); CI ho nespouští (trvá minuty) |
-| 287 | Driver Rollback Assistant — návrat ovladače. | ⬜ CHYBÍ | — |
+| 287 | Driver Rollback Assistant — návrat ovladače. | ✅ HOTOVO | driver_rollback_check: ovladače za 90 dní proti pádům 30 dní před / po, starší verze v úložišti ovladačů (pnputil, i česky), postup vrácení, Správce zařízení |
 | 288 | Boot Problem Analyzer — chyby startu. | ✅ HOTOVO | Boot Problem Analyzer = oblast boot |
 | 289 | Disk Partition Inspector — přehled oddílů. | 🟡 ČÁSTEČNĚ | oddíly a jejich zaplnění v reportu |
 | 290 | USB Connection Analyzer — diagnostika USB. | ✅ HOTOVO | USB Connection Analyzer = oblast usb |
@@ -488,16 +488,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 292 | File System Health — souborový systém. | ✅ HOTOVO | stav svazků + chyby NTFS (55/98/140) z logu |
 | 293 | Crash Pattern Detector — opakující se pády. | ✅ HOTOVO | opakující se pády podle kódu a podle aplikace + modulu (grafický ovladač, systémová knihovna) |
 | 294 | Service Dependency Inspector — závislosti služeb. | 🟡 ČÁSTEČNĚ | automatické služby, které neběží, a chyby spouštění; graf závislostí chybí |
-| 295 | Power Plan Diagnostics — energetické plány. | ⬜ CHYBÍ | — |
+| 295 | Power Plan Diagnostics — energetické plány. | ✅ HOTOVO | power_check: aktivní plán, omezení CPU, uspávání, obrazovka, USB, zdraví baterie a cykly (powercfg); power_plan_set se schválením |
 | 296 | Memory Error Testing Assistant — test RAM. | ✅ HOTOVO | schedule_memory_test (Diagnostika paměti Windows, se schválením) + čtení výsledku testu (MemoryDiagnostics-Results) |
 | 297 | Thermal Health Report — teploty. | 🟡 ČÁSTEČNĚ | teploty disků (StorageReliabilityCounter, SMART); teplotu CPU Windows bez ovladače výrobce nehlásí |
 | 298 | Hardware Change Detector — změny zařízení. | ✅ HOTOVO | strážce každých 5 min porovná zařízení a řekne, co se připojilo/odpojilo (stark.Guardian.check_hardware, hardware_changes) |
-| 299 | Recovery Media Assistant — záchranné médium. | ⬜ CHYBÍ | — |
+| 299 | Recovery Media Assistant — záchranné médium. | ✅ HOTOVO | recovery_media_check: flash disk ≥ 16 GB, obnovovací oddíl, BitLocker a klíč, postup; průvodce Windows se schválením |
 | 300 | Data Rescue Priority Mode — přednost ochrany dat. | ✅ HOTOVO | data_rescue_plan: pořadí záchrany složek, nic nekopíruje ani nemaže; u RAW/offline disku „NEFORMÁTUJ“ |
 
 ## 26. Extreme Performance
 
-✅ 8 · 🟡 4 · ⬜ 3
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -506,11 +506,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 303 | RAM Pressure Analyzer — tlak na RAM. | ✅ HOTOVO | tlak na RAM + nejnáročnější programy |
 | 304 | VRAM Usage Tracking — využití VRAM. | ✅ HOTOVO | využití VRAM (GPU Adapter Memory) |
 | 305 | Background Task Profiler — procesy na pozadí. | 🟡 ČÁSTEČNĚ | nejnáročnější procesy během měření; profil v čase chybí |
-| 306 | Frame-Time Analyzer — nepravidelnosti snímků. | ⬜ CHYBÍ | — |
+| 306 | Frame-Time Analyzer — nepravidelnosti snímků. | ✅ HOTOVO | frame_time_report: PresentMon / CapFrameX / Afterburner – průměr, 1% a 0,1% minima, zaseknutí za minutu a kdy, graf |
 | 307 | Startup Performance Timeline — start systému. | ✅ HOTOVO | časová osa startu z Diagnostics-Performance |
-| 308 | App Launch Benchmarking — rychlost spouštění. | ⬜ CHYBÍ | — |
+| 308 | App Launch Benchmarking — rychlost spouštění. | ✅ HOTOVO | app_launch_time: čas do zobrazení okna za studena a za tepla, zavře jen to, co sám spustil (se schválením) |
 | 309 | Disk I/O Visualizer — diskové I/O. | 🟡 ČÁSTEČNĚ | čtení/zápis/vytížení každého disku během měření; graf chybí |
-| 310 | Resource Priority Profiles — profily výkonu. | ⬜ CHYBÍ | — |
+| 310 | Resource Priority Profiles — profily výkonu. | ✅ HOTOVO | performance_profile: hra / práce / tichý / vlastní – priority jen tvých procesů, přesné vrácení (i když mezitím proces skončil) |
 | 311 | Network Latency Monitor — síťová odezva. | ✅ HOTOVO | odezva, kolísání a ztráta (TCP handshake, bez práv správce) |
 | 312 | Performance History — historie výkonu. | ✅ HOTOVO | historie výkonu každých 5 min, 30 dní, graf na stránce, perf_history |
 | 313 | Gaming Session Analyzer — analýza hraní. | 🟡 ČÁSTEČNĚ | čas v aplikacích (screen_time) |

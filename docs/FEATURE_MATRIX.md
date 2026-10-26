@@ -87,6 +87,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `web_search` | P6.03, P11.01 |
 | `website_audit` | 388, 389 |
 | `what_next` | 496, 507 |
+| `workspace_compare` | 030, 518 |
+| `workspace_restore` | 030, 229 |
+| `workspace_save` | 030, 229 |
 | `y_check` | 054, 067 |
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
@@ -104,6 +107,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `api_rate_limits` | 594 |
 | `api_set_key` | 592 |
 | `app_allowlist` | 682 |
+| `app_launch_time` | 308 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
 | `asset_lineage` | 675 |
@@ -199,6 +203,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dialogue_check` | 647 |
 | `dictation.py` | 097 |
 | `disk_copy_plan` | 699 |
+| `driver_rollback_check` | 287 |
 | `duck_music` | 363 |
 | `economy_sim` | 649 |
 | `email_search` | 551 |
@@ -239,6 +244,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
 | `formula_explorer` | 460 |
+| `frame_time_report` | 306 |
 | `free_time` | 568 |
 | `frequency_analysis` | 778 |
 | `fuzz_inputs` | 633 |
@@ -317,10 +323,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pairing_get` | 184 |
 | `pc_diagnose` | 011 |
 | `perf_history` | 312 |
+| `performance_profile` | 310 |
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
 | `physics_sim` | 776 |
+| `power_check` | 295 |
 | `power_cost` | 474 |
+| `power_plan_set` | 295 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
 | `pricing_scenarios` | 442 |
@@ -342,6 +351,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reading_level` | 791 |
 | `recent_files` | 322 |
 | `record_workflow_start` | 529 |
+| `recovery_media_check` | 299 |
 | `redact.py` | 179 |
 | `reject_cookies` | 534 |
 | `release_notes` | 343 |
@@ -376,6 +386,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `seo_audit` | 055 |
 | `server/pairing.py` | 144 |
 | `server_capacity` | 657 |
+| `service_dependencies` | 023 |
 | `set_feature_flag` | 344 |
 | `set_private` | 041 |
 | `setup_check` | 795 |
@@ -439,9 +450,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
 | `window_to_monitor` | 238 |
-| `workspace_compare` | 518 |
-| `workspace_restore` | 229 |
-| `workspace_save` | 229 |
 | `write_text_file` | P5.05 |
 
 ## Překryvy původního seznamu s katalogem

@@ -264,6 +264,8 @@ class Stark(BaseModel):
     hardware_watch: bool = True         # OMEGA 290: say when a USB device / monitor / disk is plugged in or removed
     perf_history: bool = True           # OMEGA 312: CPU / RAM / disk every 5 minutes, kept 30 days
     smart_quiet: bool = True            # OMEGA 500: no speaking at night, in a meeting, in focus mode or over a fullscreen app
+    layout_memory: bool = True          # OMEGA 31: keep the window layout, offer it back after a restart
+    crash_help: bool = True             # OMEGA 32: a program crashed 3× today → offer to find out why
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
 

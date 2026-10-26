@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from typing import Any
 
 import httpx
@@ -155,6 +156,13 @@ class Runtime:
             log.warning("mcp unavailable: %s", e)
 
     async def stop(self) -> None:
+        if sys.platform == "win32" and self.cfg.stark.layout_memory:
+            try:              # OMEGA 31: the layout as it was when JARVIS (and usually Windows) shut down
+                from . import pccare
+
+                pccare.autosave_layout(self)
+            except Exception as e:  # noqa: BLE001
+                log.debug("layout autosave: %s", e)
         self.mood.stop()
         self.guardian.stop()
         self.activity.stop()

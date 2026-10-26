@@ -814,3 +814,15 @@
 384 | HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí
 447 | HOTOVO | keyword_gap: slova a dvojice slov, které konkurence používá (i v nadpisech) a tvoje stránka ne
 450 | HOTOVO | business_dashboard: nabídky, úspěšnost, požadavky, lidé k oslovení, s výpisem a kampaněmi i příjmy / výdaje / ROAS a upozornění (ztráta, pokles)
+
+# Vlna 30 (3.10): péče o počítač – pccare.py, tools/pccare_tools.py, strážce (stark.Guardian.care), tests/test_wave30.py (na Windows i skutečné sondy)
+23 | HOTOVO | service_dependencies: co služba potřebuje a co na ní závisí (i nepřímo), automatické služby, které neběží, a co tím nefunguje
+30 | HOTOVO | workspace_save / workspace_restore / workspace_compare (dřívější vlna) – pojmenovaná rozložení oken s programy a polohami
+31 | HOTOVO | rozložení oken se ukládá každých 10 min a při vypnutí JARVISe; po restartu jednou nabídne „obnov okna z minula“ (nic samo nespouští)
+32 | HOTOVO | program spadl dnes 3× → jednou denně nabídne zjistit proč (s modulem, ve kterém padá)
+287 | HOTOVO | driver_rollback_check: ovladače za 90 dní proti pádům 30 dní před / po, starší verze v úložišti ovladačů (pnputil, i česky), postup vrácení, Správce zařízení
+295 | HOTOVO | power_check: aktivní plán, omezení CPU, uspávání, obrazovka, USB, zdraví baterie a cykly (powercfg); power_plan_set se schválením
+299 | HOTOVO | recovery_media_check: flash disk ≥ 16 GB, obnovovací oddíl, BitLocker a klíč, postup; průvodce Windows se schválením
+306 | HOTOVO | frame_time_report: PresentMon / CapFrameX / Afterburner – průměr, 1% a 0,1% minima, zaseknutí za minutu a kdy, graf
+308 | HOTOVO | app_launch_time: čas do zobrazení okna za studena a za tepla, zavře jen to, co sám spustil (se schválením)
+310 | HOTOVO | performance_profile: hra / práce / tichý / vlastní – priority jen tvých procesů, přesné vrácení (i když mezitím proces skončil)

@@ -345,9 +345,25 @@ class Guardian:
         self.rt.notify("Zařízení", text, speak=False)     # the character shows the notification badge
         return added, removed
 
+    async def care(self, layout_due: bool, crashes_due: bool) -> None:
+        """OMEGA 31 / 32: keep the window layout (offer it back once after a restart); a program that keeps crashing."""
+        from . import pccare, rescue
+
+        rt = self.rt
+        if layout_due and rt.cfg.stark.layout_memory:
+            offer = await asyncio.to_thread(pccare.restore_offer, rt)
+            if offer:
+                rt.notify("Okna z minula", f"Před restartem jsi měl otevřené {', '.join(offer['apps'][:5])}. Mám je otevřít a rozmístit? "
+                                           f"Řekni „obnov okna z minula“.", speak=False)
+            await asyncio.to_thread(pccare.autosave_layout, rt)
+        if crashes_due and rt.cfg.stark.crash_help:
+            r = await asyncio.to_thread(rescue.run_probe, "crashes")
+            if r["ok"]:
+                pccare.offer_crash_help(rt, rescue.L(r["data"].get("app_errors")))
+
     async def _loop(self) -> None:
         await asyncio.sleep(60)          # let the PC settle after start-up
-        net_at = perf_at = hw_at = 0.0
+        net_at = perf_at = hw_at = layout_at = crash_at = 0.0
         while True:
             try:
                 if self.rt.cfg.stark.guardian:
@@ -361,6 +377,12 @@ class Guardian:
                 if self.rt.cfg.stark.hardware_watch and sys.platform == "win32" and time.monotonic() - hw_at > 300:
                     hw_at = time.monotonic()
                     await self.check_hardware()
+                if sys.platform == "win32":
+                    layout_due, crash_due = time.monotonic() - layout_at > 600, time.monotonic() - crash_at > 1800
+                    layout_at = time.monotonic() if layout_due else layout_at
+                    crash_at = time.monotonic() if crash_due else crash_at
+                    if layout_due or crash_due:
+                        await self.care(layout_due, crash_due)
                 if briefing_due(self.rt) and _user_present(self.rt) and self.rt.clients:
                     await deliver_briefing(self.rt)
             except Exception as e:

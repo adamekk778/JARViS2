@@ -68,6 +68,7 @@ READ_ONLY_OK = {
     "voice_bookmarks", "label_speakers",
     "quotes_overview", "customer_requests", "compare_offers", "campaign_report", "cashflow_report",
     "seo_audit", "keyword_gap", "feature_matrix", "bought_together", "follow_ups", "business_dashboard",
+    "service_dependencies", "driver_rollback_check", "power_check", "frame_time_report",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
