@@ -156,7 +156,6 @@ BUGCHECKS = {
     0x7E: ("SYSTEM_THREAD_EXCEPTION_NOT_HANDLED", "ovladač způsobil chybu – podívej se na nedávno aktualizované ovladače"),
     0x7F: ("UNEXPECTED_KERNEL_MODE_TRAP", "hardware (RAM, přehřátí, přetaktování) nebo ovladač"),
     0x9F: ("DRIVER_POWER_STATE_FAILURE", "ovladač se nezvládl uspat/probudit – aktualizuj ovladače (Wi-Fi, grafika, USB)"),
-    0xA: ("IRQL_NOT_LESS_OR_EQUAL", "ovladač sáhl do paměti, kam neměl"),
     0xC2: ("BAD_POOL_CALLER", "ovladač špatně pracuje s pamětí"),
     0xD1: ("DRIVER_IRQL_NOT_LESS_OR_EQUAL", "vadný ovladač – nejčastěji síťový nebo antivir"),
     0xEF: ("CRITICAL_PROCESS_DIED", "spadl důležitý systémový proces – poškozený systém nebo disk; kontrola integrity"),
@@ -169,7 +168,6 @@ BUGCHECKS = {
     0x13A: ("KERNEL_MODE_HEAP_CORRUPTION", "ovladač poškodil paměť"),
     0x154: ("UNEXPECTED_STORE_EXCEPTION", "problém s diskem nebo pamětí"),
     0x1D8: ("IRQL_UNEXPECTED_VALUE", "ovladač"),
-    0x0EF: ("CRITICAL_PROCESS_DIED", "spadl důležitý systémový proces"),
     0x7B: ("INACCESSIBLE_BOOT_DEVICE", "Windows nevidí systémový disk – ovladač řadiče, BIOS (AHCI/RAID) nebo vadný disk"),
     0xC000021A: ("STATUS_SYSTEM_PROCESS_TERMINATED", "poškozené systémové soubory"),
 }

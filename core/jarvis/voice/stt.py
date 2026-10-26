@@ -52,12 +52,12 @@ class Transcriber:
             if self._model is None or self._model_name != name:
                 from faster_whisper import WhisperModel
 
-                device, compute = "cpu", "int8"
+                device = "cpu"
                 try:
                     import ctranslate2
 
                     if ctranslate2.get_cuda_device_count() > 0:
-                        device, compute = "cuda", "float16"
+                        device = "cuda"
                 except Exception:
                     pass
                 log.info("loading whisper %s on %s", name, device)

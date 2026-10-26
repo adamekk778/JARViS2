@@ -1,6 +1,4 @@
 """3.3 everyday powers: selected text, clipboard history, screen time, breaks, website watching, clean-up, e-mail."""
-import asyncio
-import datetime as dt
 import os
 import time
 

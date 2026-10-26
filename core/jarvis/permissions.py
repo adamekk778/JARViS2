@@ -63,6 +63,7 @@ READ_ONLY_OK = {
     "find_workflow", "name_window_groups",
     "dialogue_check", "quest_check", "economy_sim", "loot_odds", "spawn_balance", "save_validate", "animation_fsm", "server_capacity",
     "game_telemetry", "balance_sim",
+    "brand_check", "caption_variants", "assets_report", "asset_lineage", "mix_advice", "render_cost",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime as dt
 import io
-import json
 import os
 import shutil
 import time
@@ -27,7 +26,7 @@ TABLES = {
     "app_hours": "aplikace podle hodin (rutiny)", "price_history": "historie cen", "workspaces": "pracovní prostředí (rozložení oken)",
     "db_snapshots": "záznamy o velikosti databází", "experiments": "deník experimentů",
     "doc_files": "zaindexované dokumenty", "doc_idx": "rejstřík dokumentů",
-    "site_checks": "kontroly dostupnosti webů",
+    "site_checks": "kontroly dostupnosti webů", "creative_assets": "evidence souborů a licencí",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),

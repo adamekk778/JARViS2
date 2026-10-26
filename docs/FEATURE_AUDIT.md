@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 383 | 74 |
-| 🟡 ČÁSTEČNĚ | 156 | 58 |
+| ✅ HOTOVO | 394 | 74 |
+| 🟡 ČÁSTEČNĚ | 159 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 222 | 17 |
+| ⬜ CHYBÍ | 208 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -1025,25 +1025,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 50. AI Creative Production
 
-⬜ 15
+✅ 11 · 🟡 3 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 661 | Brand Asset Consistency — vizuální konzistence. | ⬜ CHYBÍ | — |
-| 662 | Batch Content Producer — více výstupů. | ⬜ CHYBÍ | — |
-| 663 | Caption A/B Generator — varianty textu. | ⬜ CHYBÍ | — |
-| 664 | Content Licensing Tracker — licence obsahu. | ⬜ CHYBÍ | — |
-| 665 | Virtual Camera Director — 3D kamerové pohyby. | ⬜ CHYBÍ | — |
-| 666 | Lighting Setup Planner — 3D osvětlení. | ⬜ CHYBÍ | — |
+| 661 | Brand Asset Consistency — vizuální konzistence. | ✅ HOTOVO | brand_check: hlavní barvy obrázků proti paletě značky (ΔE), šedé povoleny, % plochy mimo značku, poměry stran sady |
+| 662 | Batch Content Producer — více výstupů. | ✅ HOTOVO | social_formats: jedna fotka → Instagram, příběh, Facebook, LinkedIn, X, náhled YouTube, Pinterest, ořez podle detailu (gradientní energie) |
+| 663 | Caption A/B Generator — varianty textu. | ✅ HOTOVO | caption_variants: varianty popisku od AI ohodnocené podle limitu sítě, viditelné části, hashtagů a háčku; nic nepublikuje |
+| 664 | Content Licensing Tracker — licence obsahu. | ✅ HOTOVO | asset_register + assets_report: licence, autor, zdroj, platnost (vypršelé / brzy), hotové texty uvedení autora, soubory bez evidence |
+| 665 | Virtual Camera Director — 3D kamerové pohyby. | 🟡 ČÁSTEČNĚ | camera_move: orbit / dolly / jeřáb / push-in s plynulým náběhem, klíčové snímky + skript pro Blender; samotný render ne |
+| 666 | Lighting Setup Planner — 3D osvětlení. | 🟡 ČÁSTEČNĚ | lighting_plan: tříbodové, Rembrandt, butterfly, split, high/low key – pozice, výkon z poměru, EV, skript pro Blender |
 | 667 | 3D Rigging Assistant — rigging modelů. | ⬜ CHYBÍ | — |
-| 668 | Lip-Sync Animator — synchronizace úst. | ⬜ CHYBÍ | — |
-| 669 | Audio Mixing Advisor — mix audia. | ⬜ CHYBÍ | — |
-| 670 | Render Cost Planner — nároky renderu. | ⬜ CHYBÍ | — |
-| 671 | Color Management Assistant — barevné profily. | ⬜ CHYBÍ | — |
-| 672 | Storyboard-to-Timeline — storyboard na časovou osu. | ⬜ CHYBÍ | — |
-| 673 | Interactive Product Demo Builder — produktové ukázky. | ⬜ CHYBÍ | — |
-| 674 | Subtitle Quality Checker — kontrola titulků. | ⬜ CHYBÍ | — |
-| 675 | Asset Provenance Tracker — původ assetů. | ⬜ CHYBÍ | — |
+| 668 | Lip-Sync Animator — synchronizace úst. | 🟡 ČÁSTEČNĚ | lip_sync: tvar úst na snímek podle hlasitosti (4 tvary, držení proti blikání), export Moho/Papagayo; fonémy ne |
+| 669 | Audio Mixing Advisor — mix audia. | ✅ HOTOVO | mix_advice: LUFS a špička stop, zisk vůči dialogu (hudba −12 LU, efekty −6, atmosféra −18), maskování pásma řeči, součet špiček |
+| 670 | Render Cost Planner — nároky renderu. | ✅ HOTOVO | render_cost: přepočet testovacího snímku na rozlišení a vzorky, strojové hodiny, čas na N strojích, cena, disk |
+| 671 | Color Management Assistant — barevné profily. | ✅ HOTOVO | color_profile: ICC profil (sRGB, P3, Adobe RGB, CMYK…), rady pro web, převod do sRGB (LittleCMS, percepční) |
+| 672 | Storyboard-to-Timeline — storyboard na časovou osu. | ✅ HOTOVO | storyboard_timeline: délky záběrů z dialogu, timecody, upozornění na krátký záběr, EDL (CMX 3600) a SRT |
+| 673 | Interactive Product Demo Builder — produktové ukázky. | ✅ HOTOVO | product_demo: klikací ukázka z obrázků se zvýrazněnými místy a popisy jako jeden HTML soubor (šipky, klik) |
+| 674 | Subtitle Quality Checker — kontrola titulků. | ✅ HOTOVO | check_subtitles + restyle_subtitles (vlna 18): rychlost čtení, délka a počet řádků, délka zobrazení, překryvy, oprava |
+| 675 | Asset Provenance Tracker — původ assetů. | ✅ HOTOVO | asset_lineage: řetězec původu (z čeho soubor vznikl, zdroj, autor, licence), otisk SHA-256 odhalí pozdější změnu |
 
 ## 51. Privacy Fortress
 

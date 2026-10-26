@@ -41,6 +41,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `bill_of_materials` | 160, 469 |
 | `browser_type` | 530, P11.03 |
 | `character/looks.ts` | 250, 251 |
+| `check_subtitles` | 369, 674 |
 | `claude_bridge.py` | 046, P5.01 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
@@ -64,6 +65,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `permissions.py` | 177, P14.01 |
 | `project_resume` | 044, 509 |
 | `quiz_from` | 107, 112 |
+| `restyle_subtitles` | 369, 674 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `send_to_phone` | 138, 408 |
@@ -99,6 +101,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
+| `asset_lineage` | 675 |
+| `asset_register` | 664 |
+| `assets_report` | 664 |
 | `audio_devices` | 105 |
 | `audio_highlights` | 364 |
 | `background_jobs` | 628 |
@@ -108,10 +113,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `balance_sim` | 660 |
 | `battery_level` | 427 |
 | `best_time_outside` | 783 |
+| `brand_check` | 661 |
 | `break_minutes` | 077 |
 | `broken_links` | 383 |
 | `calendar_.py` | 171 |
 | `calendar_check` | 558 |
+| `camera_move` | 665 |
+| `caption_variants` | 663 |
 | `character/blob.ts` | 071 |
 | `check_app_links` | 629 |
 | `check_assumptions` | 199 |
@@ -121,13 +129,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_hardware` | 298 |
 | `check_link` | 397 |
 | `check_math_steps` | 106 |
-| `check_subtitles` | 369 |
 | `check_translation` | 068 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
 | `clean_speech` | 366 |
 | `clipboard_set` | 138 |
 | `code_owners` | 338 |
+| `color_profile` | 671 |
 | `color_theme` | 356 |
 | `colorblind_check` | 659 |
 | `command_history` | 520 |
@@ -240,7 +248,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `learning_weak_spots` | 108 |
 | `level_generator` | 652 |
 | `life_event_plan` | 781 |
+| `lighting_plan` | 666 |
 | `link_alive` | 410 |
+| `lip_sync` | 668 |
 | `list_folder` | P2.11 |
 | `load_test` | 642 |
 | `local_model_benchmark` | 571 |
@@ -267,6 +277,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `migration_preview` | 337 |
 | `missing_info` | 207 |
 | `mission_save_file` | 215 |
+| `mix_advice` | 669 |
 | `mobile/native.ts` | 143 |
 | `mock_server_start` | 621 |
 | `module_map` | 332 |
@@ -294,6 +305,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pricing_scenarios` | 442 |
 | `privacy.py` | P14.10 |
 | `privacy_report` | 539 |
+| `product_demo` | 673 |
 | `project_profitability` | 449 |
 | `provider_test` | 587 |
 | `pseudo_localize` | 639 |
@@ -310,6 +322,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `remove_duplicates` | 317 |
 | `remove_silence` | 362 |
 | `rename_files` | 325 |
+| `render_cost` | 670 |
 | `reopen_crashed` | 519 |
 | `replay_workflow` | 529 |
 | `reply_context` | 543 |
@@ -317,7 +330,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reset_all` | 794 |
 | `restore_browser_session` | 528 |
 | `restore_file_version` | 328 |
-| `restyle_subtitles` | 369 |
 | `revenue_forecast` | 443 |
 | `robot_arm` | 476 |
 | `rollback_plan` | 623 |
@@ -346,6 +358,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
+| `social_formats` | 662 |
 | `sort_documents` | 319 |
 | `sort_tabs` | 527 |
 | `source_reliability` | 376 |
@@ -354,6 +367,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `speed_test` | 717 |
 | `sql_query` | 064 |
 | `stop_all` | 176 |
+| `storyboard_timeline` | 672 |
 | `study_stats` | 461 |
 | `subscriptions_overview` | 535 |
 | `system_integrity_check` | 286 |

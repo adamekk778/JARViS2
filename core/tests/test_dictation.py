@@ -1,9 +1,8 @@
 """3.0 dictation anywhere: words, snippets, clean-up, paste, history, statistics, the key and the weekly recap."""
-import asyncio
 import time
 from datetime import date, datetime, timedelta
 
-from conftest import FakeRouter, drain
+from conftest import FakeRouter
 
 from jarvis import config
 from jarvis.desktop.dictation_keys import HOLD_S, DictationKeys

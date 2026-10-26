@@ -1,12 +1,11 @@
 """OMEGA wave 23 (smart home): rooms and room control, energy from history, batteries, firmware, logbook – against a
 scripted Home Assistant – and the automation simulator against JARVIS's real rule engine."""
-import datetime as dt
 import json
 
 import httpx
 import pytest
 
-from jarvis import homeplus, secrets, tools
+from jarvis import secrets, tools
 
 tools.load_builtin()
 

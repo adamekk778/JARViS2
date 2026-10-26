@@ -762,3 +762,19 @@
 658 | HOTOVO | game_telemetry: dohrání levelů, smrti, odchody, průměrný čas, trychtýř, nejtěžší level, místa nejčastější smrti
 659 | ČÁSTEČNĚ | colorblind_check: simulace protanopie / deuteranopie / tritanopie (Machado 2009) a splývající barvy; velikost titulků a ovládání ne
 660 | HOTOVO | balance_sim: Monte Carlo souboje jednotek (rychlost útoku, brnění, přesnost, kritické zásahy), matice výher, silné / slabé, DPS
+
+# Vlna 26 (3.10): kreativní produkce – creative.py, tools/creative_tools.py, tests/test_wave26.py (ukázka produktu proklikaná ve skutečném prohlížeči)
+661 | HOTOVO | brand_check: hlavní barvy obrázků proti paletě značky (ΔE), šedé povoleny, % plochy mimo značku, poměry stran sady
+662 | HOTOVO | social_formats: jedna fotka → Instagram, příběh, Facebook, LinkedIn, X, náhled YouTube, Pinterest, ořez podle detailu (gradientní energie)
+663 | HOTOVO | caption_variants: varianty popisku od AI ohodnocené podle limitu sítě, viditelné části, hashtagů a háčku; nic nepublikuje
+664 | HOTOVO | asset_register + assets_report: licence, autor, zdroj, platnost (vypršelé / brzy), hotové texty uvedení autora, soubory bez evidence
+665 | ČÁSTEČNĚ | camera_move: orbit / dolly / jeřáb / push-in s plynulým náběhem, klíčové snímky + skript pro Blender; samotný render ne
+666 | ČÁSTEČNĚ | lighting_plan: tříbodové, Rembrandt, butterfly, split, high/low key – pozice, výkon z poměru, EV, skript pro Blender
+668 | ČÁSTEČNĚ | lip_sync: tvar úst na snímek podle hlasitosti (4 tvary, držení proti blikání), export Moho/Papagayo; fonémy ne
+669 | HOTOVO | mix_advice: LUFS a špička stop, zisk vůči dialogu (hudba −12 LU, efekty −6, atmosféra −18), maskování pásma řeči, součet špiček
+670 | HOTOVO | render_cost: přepočet testovacího snímku na rozlišení a vzorky, strojové hodiny, čas na N strojích, cena, disk
+671 | HOTOVO | color_profile: ICC profil (sRGB, P3, Adobe RGB, CMYK…), rady pro web, převod do sRGB (LittleCMS, percepční)
+672 | HOTOVO | storyboard_timeline: délky záběrů z dialogu, timecody, upozornění na krátký záběr, EDL (CMX 3600) a SRT
+673 | HOTOVO | product_demo: klikací ukázka z obrázků se zvýrazněnými místy a popisy jako jeden HTML soubor (šipky, klik)
+674 | HOTOVO | check_subtitles + restyle_subtitles (vlna 18): rychlost čtení, délka a počet řádků, délka zobrazení, překryvy, oprava
+675 | HOTOVO | asset_lineage: řetězec původu (z čeho soubor vznikl, zdroj, autor, licence), otisk SHA-256 odhalí pozdější změnu

@@ -1,10 +1,8 @@
 """OMEGA wave 14 (testing lab): load, fuzzing, the network-fault proxy, memory leaks, corrupted data, translation
 overflow and pseudo-localisation, and the browser tests (keyboard, devices, offline, user flows) against a real local
 server and a real headless browser."""
-import asyncio
 import http.server
 import json
-import os
 import subprocess
 import sys
 import threading
