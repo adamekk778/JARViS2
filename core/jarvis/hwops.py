@@ -28,7 +28,7 @@ T 'devices' { @(Get-PnpDevice -PresentOnly -ErrorAction Stop | Where-Object { $_
   $par = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName DEVPKEY_Device_Parent -ErrorAction SilentlyContinue).Data
   $code = (Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName DEVPKEY_Device_ProblemCode -ErrorAction SilentlyContinue).Data
   [pscustomobject]@{ Name = $_.FriendlyName; Class = "$($_.Class)"; Status = "$($_.Status)"; Id = $_.InstanceId; Parent = "$par"; Problem = [int]$code } }) }
-T 'controllers' { @(Get-PnpDevice -PresentOnly -Class USB -ErrorAction Stop | Where-Object { $_.FriendlyName -match 'Host Controller|xHCI|eXtensible|hostitelský' } | Select-Object FriendlyName, InstanceId, @{n='Status'; e={ "$($_.Status)" }}) }
+T 'controllers' { @(Get-PnpDevice -PresentOnly -Class USB -ErrorAction Stop | Where-Object { $_.InstanceId -like 'PCI\*' -or $_.FriendlyName -match 'Host Controller|xHCI|eXtensible|hostitelský' } | Select-Object FriendlyName, InstanceId, @{n='Status'; e={ "$($_.Status)" }}) }
 T 'events' { @(Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=(Get-Date).AddDays(-14)} -MaxEvents 3000 -ErrorAction SilentlyContinue | Where-Object { $_.ProviderName -in 'USBHUB3','USBXHCI','Microsoft-Windows-Kernel-PnP','Microsoft-Windows-USB-USBHUB3' -and $_.Level -le 3 } | Select-Object -First 80 Id, ProviderName, @{n='Time'; e={ $_.TimeCreated.ToString('s') }}, @{n='Text'; e={ ($_.Message -split "`n")[0] }}) }
 """,
     "storage": r"""
@@ -81,8 +81,8 @@ def usb_tree(data: dict) -> dict:
     lines: list[str] = []
     problems = []
 
-    def walk(node_id: str, depth: int) -> None:
-        for ch in sorted(children.get(node_id, []), key=lambda x: x.get("Name") or ""):
+    def walk(node_id: str, depth: int, nodes: list | None = None) -> None:
+        for ch in sorted(children.get(node_id, []) if nodes is None else nodes, key=lambda x: x.get("Name") or ""):
             p = int(ch.get("Problem") or 0)
             mark = f"  ⚠ {PROBLEM_CODES.get(p, f'kód {p}')}" if p else ""
             lines.append("  " * depth + f"{ch.get('Name') or ch['Id']}{mark}")
@@ -95,6 +95,9 @@ def usb_tree(data: dict) -> dict:
         walk(c["InstanceId"], 1)
     orphans = [d for d in devs if d.get("Parent") not in by_id and d["Id"] not in {c["InstanceId"] for c in roots}
                and d.get("Parent") not in {c["InstanceId"] for c in roots}]
+    if orphans:                    # virtual, Bluetooth or other devices not under a USB controller – still listed
+        lines.append("Bez řadiče USB (virtuální, Bluetooth, jiné)")
+        walk("", 1, orphans)
     power_events = [e for e in L(data.get("events")) if POWER_TEXT.search(str(e.get("Text", "")))]
     advice = []
     if any(p["power_suspect"] for p in problems) or power_events:

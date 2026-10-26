@@ -73,7 +73,9 @@ async def test_copy_plan_and_report(rt, fake_probe, tmp_path, monkeypatch):
 async def test_real_windows_probes(rt):
     u = await tools.call("usb_check", {}, rt)
     d = await tools.call("disk_errors", {}, rt)
-    assert u.ok and u.data["controllers"] >= 1 and d.ok and d.data["disks"] and d.data["system"].get("Model") is not None
+    # a virtual machine (CI) may have no USB controller at all; every device must still be listed exactly once
+    assert u.ok and len(u.data["tree"]) == u.data["devices"] + (1 if u.data["unplaced"] else 0), u.data
+    assert d.ok and d.data["disks"] and d.data["system"].get("Model") is not None
 
 
 def fake_site(req):
