@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 353 | 74 |
+| ✅ HOTOVO | 359 | 74 |
 | 🟡 ČÁSTEČNĚ | 152 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 256 | 17 |
+| ⬜ CHYBÍ | 250 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -673,23 +673,23 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 34. Smart Home
 
-✅ 5 · 🟡 4 · ⬜ 6
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 421 | Room Awareness — přiřazení do místností. | ⬜ CHYBÍ | — |
-| 422 | Energy Usage Analysis — spotřeba energie. | ⬜ CHYBÍ | — |
+| 421 | Room Awareness — přiřazení do místností. | ✅ HOTOVO | home_rooms + room_control: místnosti z oblastí Home Assistantu, světla / vše v místnosti najednou (zámky, vrata, alarm nikdy) |
+| 422 | Energy Usage Analysis — spotřeba energie. | ✅ HOTOVO | home_energy: kWh po měřičích a dnech z historie (Wh i kWh, reset měřiče), cena |
 | 423 | Smart Lighting Scenes — světelné scény. | ✅ HOTOVO | scény Home Assistantu (home_scene) |
 | 424 | Climate Automation — termostaty. | 🟡 ČÁSTEČNĚ | nastavení teploty (home_control climate) |
 | 425 | Sensor Event Rules — pravidla senzorů. | 🟡 ČÁSTEČNĚ | automatizace JARVISe; spouštěče ze senzorů HA chybí |
 | 426 | Home Network Map — mapa domácí sítě. | ✅ HOTOVO | mapa domácí sítě = seznam zařízení (network_devices) |
-| 427 | Device Battery Alerts — upozornění na baterie. | ⬜ CHYBÍ | — |
+| 427 | Device Battery Alerts — upozornění na baterie. | ✅ HOTOVO | home_batteries: baterie z device_class battery, battery_level i binárních čidel slabé baterie |
 | 428 | Smart Plug Scheduling — chytré zásuvky. | 🟡 ČÁSTEČNĚ | zásuvky + časové automatizace |
 | 429 | Media Room Control — multimédia. | 🟡 ČÁSTEČNĚ | přehrávače HA |
-| 430 | Home Automation Simulator — test pravidel. | ⬜ CHYBÍ | — |
-| 431 | Device Firmware Tracker — firmware. | ⬜ CHYBÍ | — |
+| 430 | Home Automation Simulator — test pravidel. | ✅ HOTOVO | simulate_automations: pravidla „Když … tak …“ nanečisto na vymyšlených událostech, co by udělala, která nikdy, kde se sejdou |
+| 431 | Device Firmware Tracker — firmware. | ✅ HOTOVO | home_firmware: aktualizace čekající v Home Assistantu (update.*), verze nainstalovaná → nová |
 | 432 | Voice-Controlled Scenes — hlasové scény. | ✅ HOTOVO | hlasové scény |
-| 433 | Smart Home Event History — historie událostí. | ⬜ CHYBÍ | — |
+| 433 | Smart Home Event History — historie událostí. | ✅ HOTOVO | home_history: logbook událostí za N hodin, celý dům nebo jedno zařízení |
 | 434 | Local-Only Smart Home Mode — domácnost bez cloudu. | ✅ HOTOVO | lokální REST Home Assistantu, bez cloudu |
 | 435 | Safety Interlocks — bezpečnostní blokace. | ✅ HOTOVO | zámky, alarm, garáž a brány vždy s potvrzením (home.py risky, tests/test_home.py) |
 

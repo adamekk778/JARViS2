@@ -722,3 +722,11 @@
 714 | HOTOVO | deploy_diff: přidané / odebrané / změněné soubory a rozdíly konfigurace s maskovanými hesly
 716 | HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy
 720 | HOTOVO | outage_timeline: historie kontrol, dostupnost v %, výpadky s délkou
+
+# Vlna 23 (3.10): chytrá domácnost – homeplus.py, tools/homeplus_tools.py, tests/test_wave23.py
+421 | HOTOVO | home_rooms + room_control: místnosti z oblastí Home Assistantu, světla / vše v místnosti najednou (zámky, vrata, alarm nikdy)
+422 | HOTOVO | home_energy: kWh po měřičích a dnech z historie (Wh i kWh, reset měřiče), cena
+427 | HOTOVO | home_batteries: baterie z device_class battery, battery_level i binárních čidel slabé baterie
+430 | HOTOVO | simulate_automations: pravidla „Když … tak …“ nanečisto na vymyšlených událostech, co by udělala, která nikdy, kde se sejdou
+431 | HOTOVO | home_firmware: aktualizace čekající v Home Assistantu (update.*), verze nainstalovaná → nová
+433 | HOTOVO | home_history: logbook událostí za N hodin, celý dům nebo jedno zařízení

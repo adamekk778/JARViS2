@@ -5,8 +5,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | Modul / nástroj | Funkce (ID) |
 |---|---|
 | `Claude Code` | 046, 049, 331, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
+| `Home Assistant` | 165, 421, 423, 431, 434, P13.02, P13.05 |
 | `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
-| `Home Assistant` | 165, 423, 434, P13.02, P13.05 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
@@ -100,6 +100,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
 | `backup_plan` | 330 |
+| `battery_level` | 427 |
 | `best_time_outside` | 783 |
 | `break_minutes` | 077 |
 | `broken_links` | 383 |
@@ -161,6 +162,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dependency_vulnerabilities` | 333 |
 | `deploy_diff` | 714 |
 | `design_system` | 346 |
+| `device_class` | 427 |
 | `device_test` | 638 |
 | `dictation.py` | 097 |
 | `disk_copy_plan` | 699 |
@@ -207,6 +209,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `git_status` | P5.09 |
 | `hardware_changes` | 298 |
 | `hardware_report` | 705 |
+| `home_batteries` | 427 |
+| `home_energy` | 422 |
+| `home_firmware` | 431 |
+| `home_history` | 433 |
+| `home_rooms` | 421 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `hosting_health` | 712 |
@@ -295,6 +302,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `restyle_subtitles` | 369 |
 | `revenue_forecast` | 443 |
 | `rollback_plan` | 623 |
+| `room_control` | 421 |
 | `sales_funnel` | 439 |
 | `save_browser_session` | 528 |
 | `save_file_version` | 328 |
@@ -312,6 +320,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `setup_check` | 795 |
 | `shared/taskcard.ts` | 087 |
 | `shopping_by_aisle` | 785 |
+| `simulate_automations` | 430 |
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
