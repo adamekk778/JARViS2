@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 266 | 74 |
-| 🟡 ČÁSTEČNĚ | 150 | 58 |
+| ✅ HOTOVO | 277 | 74 |
+| 🟡 ČÁSTEČNĚ | 149 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 345 | 17 |
+| ⬜ CHYBÍ | 335 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -981,25 +981,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 48. Software Testing Lab
 
-✅ 1 · 🟡 1 · ⬜ 13
+✅ 12 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 631 | Synthetic User Testing — simulované uživatelské scénáře. | ⬜ CHYBÍ | — |
+| 631 | Synthetic User Testing — simulované uživatelské scénáře. | ✅ HOTOVO | user_flow_test: scénář krok po kroku česky (vyplň, klikni, očekávej, jdi na…), snímek po každém kroku |
 | 632 | Property-Based Testing — vlastnostní testy. | ⬜ CHYBÍ | — |
-| 633 | Input Fuzzing — neobvyklé vstupy. | ⬜ CHYBÍ | — |
-| 634 | Network Failure Simulation — výpadky sítě. | ⬜ CHYBÍ | — |
-| 635 | Memory Leak Detector — úniky paměti. | ⬜ CHYBÍ | — |
+| 633 | Input Fuzzing — neobvyklé vstupy. | ✅ HOTOVO | fuzz_inputs: 20 druhů neobvyklých vstupů do parametrů / JSON polí, pády 5xx, bez odpovědi, neošetřené HTML (XSS); jen vlastní servery |
+| 634 | Network Failure Simulation — výpadky sítě. | ✅ HOTOVO | network_fault_start / stop: TCP prostředník se zpožděním, zahazováním spojení, škrcením a výpadkem |
+| 635 | Memory Leak Detector — úniky paměti. | ✅ HOTOVO | memory_leak_check: paměť procesu i s podprocesy v čase, trend MB/min, R², verdikt |
 | 636 | Flaky Test Analyzer — nestabilní testy. | ✅ HOTOVO | flaky_tests (z JUnit) + find_flaky_tests (pytest N× za sebou) |
 | 637 | Crash Reproduction Assistant — reprodukce pádu. | ⬜ CHYBÍ | — |
-| 638 | Device Test Matrix — testy zařízení. | ⬜ CHYBÍ | — |
-| 639 | Localization Overflow Testing — přetečení textu. | ⬜ CHYBÍ | — |
+| 638 | Device Test Matrix — testy zařízení. | ✅ HOTOVO | device_test: telefon / tablet / notebook / monitor – snímky, posouvání do strany, přečnívající prvky, malá tlačítka, drobné písmo |
+| 639 | Localization Overflow Testing — přetečení textu. | ✅ HOTOVO | translation_overflow (delší než originál / nad limit) + pseudo_localize (háčky, +40 %, [!! !!]) |
 | 640 | Battery Consumption Profiler — spotřeba energie. | ⬜ CHYBÍ | — |
-| 641 | Offline Behavior Tester — offline funkcionalita. | ⬜ CHYBÍ | — |
-| 642 | Concurrent User Simulation — více uživatelů. | ⬜ CHYBÍ | — |
-| 643 | Data Corruption Recovery Test — poškození testovacích dat. | ⬜ CHYBÍ | — |
-| 644 | Accessibility Keyboard Tester — přístupnost klávesnicí. | ⬜ CHYBÍ | — |
-| 645 | Test Evidence Recorder — důkazy o testech. | 🟡 ČÁSTEČNĚ | důkazy misí (task_evidence) + 410 testů |
+| 641 | Offline Behavior Tester — offline funkcionalita. | ✅ HOTOVO | offline_test: načte, odpojí síť, znovu načte – service worker, chyby v konzoli |
+| 642 | Concurrent User Simulation — více uživatelů. | ✅ HOTOVO | load_test: až 50 souběžných uživatelů, p50/p95/p99, požadavky/s, chyby a kdy začaly; jen počítač / místní síť |
+| 643 | Data Corruption Recovery Test — poškození testovacích dat. | ✅ HOTOVO | corrupt_test_data (8 druhů poškození) + corruption_test (program odmítl / spadl / zamrzl / tiše přijal) |
+| 644 | Accessibility Keyboard Tester — přístupnost klávesnicí. | ✅ HOTOVO | keyboard_test: pořadí Tabu, nedostupné prvky (klikací div), chybějící zvýraznění, past, tabindex > 0 |
+| 645 | Test Evidence Recorder — důkazy o testech. | ✅ HOTOVO | snímky ze scénářů a zařízení se ukládají jako soubory mise se SHA-256 + důkazy misí |
 
 ## 49. Autonomous Game Development Studio
 

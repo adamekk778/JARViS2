@@ -613,3 +613,16 @@
 625 | HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce
 627 | HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů
 636 | HOTOVO | flaky_tests (z JUnit) + find_flaky_tests (pytest N× za sebou)
+
+# Vlna 14 (3.10): testovací laboratoř – testlab.py, tools/testlab_tools.py, tests/test_wave14.py (skutečný lokální server a skutečný prohlížeč bez okna; na Windows Edge)
+631 | HOTOVO | user_flow_test: scénář krok po kroku česky (vyplň, klikni, očekávej, jdi na…), snímek po každém kroku
+633 | HOTOVO | fuzz_inputs: 20 druhů neobvyklých vstupů do parametrů / JSON polí, pády 5xx, bez odpovědi, neošetřené HTML (XSS); jen vlastní servery
+634 | HOTOVO | network_fault_start / stop: TCP prostředník se zpožděním, zahazováním spojení, škrcením a výpadkem
+635 | HOTOVO | memory_leak_check: paměť procesu i s podprocesy v čase, trend MB/min, R², verdikt
+638 | HOTOVO | device_test: telefon / tablet / notebook / monitor – snímky, posouvání do strany, přečnívající prvky, malá tlačítka, drobné písmo
+639 | HOTOVO | translation_overflow (delší než originál / nad limit) + pseudo_localize (háčky, +40 %, [!! !!])
+641 | HOTOVO | offline_test: načte, odpojí síť, znovu načte – service worker, chyby v konzoli
+642 | HOTOVO | load_test: až 50 souběžných uživatelů, p50/p95/p99, požadavky/s, chyby a kdy začaly; jen počítač / místní síť
+643 | HOTOVO | corrupt_test_data (8 druhů poškození) + corruption_test (program odmítl / spadl / zamrzl / tiše přijal)
+644 | HOTOVO | keyboard_test: pořadí Tabu, nedostupné prvky (klikací div), chybějící zvýraznění, past, tabindex > 0
+645 | HOTOVO | snímky ze scénářů a zařízení se ukládají jako soubory mise se SHA-256 + důkazy misí

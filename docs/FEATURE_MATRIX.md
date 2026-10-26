@@ -108,6 +108,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `contact_card` | 553 |
 | `convert_file` | 324 |
 | `copy_file` | P2.11 |
+| `corrupt_test_data` | 643 |
+| `corruption_test` | 643 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
 | `dashboard/palette.ts` | 757 |
@@ -130,6 +132,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `delete_file` | P14.02 |
 | `dependency_update_plan` | 341 |
 | `dependency_vulnerabilities` | 333 |
+| `device_test` | 638 |
 | `dictation.py` | 097 |
 | `email_search` | 551 |
 | `environment_compare` | 342 |
@@ -159,6 +162,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
 | `free_time` | 568 |
+| `fuzz_inputs` | 633 |
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
@@ -168,10 +172,12 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `inbox_overview` | 541 |
 | `ingredient_substitute` | 786 |
 | `integrity_check` | 605 |
+| `keyboard_test` | 644 |
 | `learning_weak_spots` | 108 |
 | `life_event_plan` | 781 |
 | `link_alive` | 410 |
 | `list_folder` | P2.11 |
+| `load_test` | 642 |
 | `local_unload` | 576 |
 | `looks_secret` | 681 |
 | `mail.py` | P11.05 |
@@ -183,6 +189,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `meeting_prep` | 556 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
+| `memory_leak_check` | 635 |
 | `memory_overview` | 040 |
 | `memory_timeline` | 036 |
 | `message_actions` | 544 |
@@ -196,6 +203,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mutation_test` | 335 |
 | `my_routines` | 497 |
 | `network_devices` | 426 |
+| `network_fault_start` | 634 |
+| `offline_test` | 641 |
 | `over_budget` | 221 |
 | `packing_list` | 782 |
 | `pairing_get` | 184 |
@@ -207,6 +216,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `price_history` | 379 |
 | `privacy.py` | P14.10 |
 | `provider_test` | 587 |
+| `pseudo_localize` | 639 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
 | `reading_level` | 791 |
@@ -244,7 +254,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `study_stats` | 461 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
-| `task_evidence` | 645 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |
 | `test_coverage` | 334 |
@@ -258,11 +267,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/notes.py` | 380 |
 | `tools/shell.py` | 702 |
 | `top_processes` | P2.06 |
+| `translation_overflow` | 639 |
 | `typ_datum_firma` | 320 |
 | `type_text` | P2.02 |
 | `ui_click` | P2.02 |
 | `undo_rename` | 325 |
 | `update_progress` | 075 |
+| `user_flow_test` | 631 |
 | `verify_copy` | 700 |
 | `voice/loop.py` | 259 |
 | `wake_device` | 416 |
