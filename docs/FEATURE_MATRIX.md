@@ -20,6 +20,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ask_models` | 006, 007, 204 |
 | `check_answer` | 111, 115, 459 |
 | `compare_options` | 005, 007, 197 |
+| `db_query_plan` | 602, 603, 612 |
 | `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
 | `memory.py` | 039, 041, P1.03 |
@@ -37,6 +38,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `claude_bridge.py` | 046, P5.01 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
+| `db_growth` | 610, 613 |
 | `desktop/host.py` | 226, P8.01 |
 | `email_send` | 562, P11.06 |
 | `exam_plan` | 110, 452 |
@@ -108,6 +110,16 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dashboard/security.ts` | 690 |
 | `data_rescue_plan` | 300 |
 | `day_summary` | 510 |
+| `db_anonymize_copy` | 611 |
+| `db_compare_schema` | 608 |
+| `db_incident` | 615 |
+| `db_integrity` | 605 |
+| `db_restore_rehearsal` | 607 |
+| `db_schema` | 601 |
+| `db_sensitive_data` | 609 |
+| `db_slow_queries` | 604 |
+| `db_snapshot` | 610 |
+| `db_verify_backup` | 606 |
 | `deadline_risks` | 502 |
 | `deep_research` | 003 |
 | `delegate_to_agent` | 061 |
@@ -132,6 +144,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
 | `foreground_info` | 026 |
+| `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
 | `free_time` | 568 |
 | `generate_image` | 132 |
@@ -142,6 +155,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `hone.java` | 420 |
 | `inbox_overview` | 541 |
 | `ingredient_substitute` | 786 |
+| `integrity_check` | 605 |
 | `learning_weak_spots` | 108 |
 | `life_event_plan` | 781 |
 | `link_alive` | 410 |

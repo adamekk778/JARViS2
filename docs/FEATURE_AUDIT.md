@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 236 | 74 |
+| ✅ HOTOVO | 250 | 74 |
 | 🟡 ČÁSTEČNĚ | 150 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 12 | 10 |
+| 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 376 | 17 |
+| ⬜ CHYBÍ | 361 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -937,25 +937,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 46. Database Intelligence
 
-⬜ 15
+✅ 14 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 601 | Database Schema Explorer — databázové schéma. | ⬜ CHYBÍ | — |
-| 602 | Index Recommendation Engine — indexy. | ⬜ CHYBÍ | — |
-| 603 | Query Execution Visualizer — exekuční plán. | ⬜ CHYBÍ | — |
-| 604 | Slow Query Detector — pomalé dotazy. | ⬜ CHYBÍ | — |
-| 605 | Data Integrity Analyzer — kontrola integrity. | ⬜ CHYBÍ | — |
-| 606 | Backup Verification Engine — kontrola záloh. | ⬜ CHYBÍ | — |
-| 607 | Restore Rehearsal — cvičná obnova. | ⬜ CHYBÍ | — |
-| 608 | Schema Drift Detector — rozdíly schémat. | ⬜ CHYBÍ | — |
-| 609 | Sensitive Column Scanner — osobní a citlivá data. | ⬜ CHYBÍ | — |
-| 610 | Database Capacity Forecast — odhad růstu. | ⬜ CHYBÍ | — |
-| 611 | Data Anonymization Assistant — anonymizace testovacích dat. | ⬜ CHYBÍ | — |
-| 612 | Query Cost Estimator — náročnost dotazů. | ⬜ CHYBÍ | — |
-| 613 | Database Change Audit — změny databáze. | ⬜ CHYBÍ | — |
-| 614 | Replication Status Dashboard — replikace. | ⬜ CHYBÍ | — |
-| 615 | Database Incident Assistant — databázové incidenty. | ⬜ CHYBÍ | — |
+| 601 | Database Schema Explorer — databázové schéma. | ✅ HOTOVO | db_schema: tabulky, sloupce, počty řádků, cizí klíče a indexy |
+| 602 | Index Recommendation Engine — indexy. | ✅ HOTOVO | db_query_plan: plný průchod tabulkou + sloupce z WHERE → navržený CREATE INDEX |
+| 603 | Query Execution Visualizer — exekuční plán. | ✅ HOTOVO | db_query_plan: exekuční plán jako strom (EXPLAIN QUERY PLAN) |
+| 604 | Slow Query Detector — pomalé dotazy. | ✅ HOTOVO | db_slow_queries: měření dotazů (nejlepší ze 3), označení pomalých, utečený dotaz se zastaví |
+| 605 | Data Integrity Analyzer — kontrola integrity. | ✅ HOTOVO | db_integrity: integrity_check + foreign_key_check, i silně poškozený soubor dá čitelný verdikt |
+| 606 | Backup Verification Engine — kontrola záloh. | ✅ HOTOVO | db_verify_backup: záloha čitelná a celá, porovnání tabulek a řádků se živou databází |
+| 607 | Restore Rehearsal — cvičná obnova. | ✅ HOTOVO | db_restore_rehearsal: skutečná obnova do TEMP, kontrola, čtení každé tabulky, test zápisu, úklid |
+| 608 | Schema Drift Detector — rozdíly schémat. | ✅ HOTOVO | db_compare_schema: tabulky, sloupce, typy a indexy navíc / chybějící |
+| 609 | Sensitive Column Scanner — osobní a citlivá data. | ✅ HOTOVO | db_sensitive_data: e-maily, telefony, rodná čísla, hesla, adresy, účty – podle názvu i obsahu, hodnoty neukazuje |
+| 610 | Database Capacity Forecast — odhad růstu. | ✅ HOTOVO | db_snapshot + db_growth: lineární odhad velikosti za N dní |
+| 611 | Data Anonymization Assistant — anonymizace testovacích dat. | ✅ HOTOVO | db_anonymize_copy: NOVÝ soubor, konzistentní náhrady (vazby fungují), řádek po řádku ověřeno, že nezůstala původní hodnota |
+| 612 | Query Cost Estimator — náročnost dotazů. | ✅ HOTOVO | db_query_plan: odhad náročnosti nízká / střední / vysoká podle plánu |
+| 613 | Database Change Audit — změny databáze. | ✅ HOTOVO | db_growth: přidané / odebrané řádky po tabulkách a změna struktury od minulého zápisu |
+| 614 | Replication Status Dashboard — replikace. | 🔌 VYŽADUJE_INTEGRACI | replikace má jen serverová databáze (PostgreSQL, MySQL) – potřebuje připojení k serveru; SQLite replikaci nemá |
+| 615 | Database Incident Assistant — databázové incidenty. | ✅ HOTOVO | db_incident: poškození, zámek jiným programem, přerostlý -wal, prázdné místo, rozbité vazby → konkrétní kroky (nic sám neopravuje) |
 
 ## 47. Autonomous Software Factory
 

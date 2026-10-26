@@ -576,3 +576,20 @@
 521 | HOTOVO | shortcuts: zkratky pro program v popředí (Windows, prohlížeče, Word, Excel, VS Code, Průzkumník, Outlook, JARVIS)
 523 | HOTOVO | snímky pracovních ploch = uložené profily oken
 525 | ČÁSTEČNĚ | profil lze svázat s projektem (project); automatické přepnutí podle úkolu zatím ne
+
+# Vlna 12 (3.10): databáze – dbintel.py, tools/db_tools.py, tests/test_wave12.py. Databáze SQLite (to, co používá většina lokálních aplikací); originál se otevírá jen pro čtení
+601 | HOTOVO | db_schema: tabulky, sloupce, počty řádků, cizí klíče a indexy
+602 | HOTOVO | db_query_plan: plný průchod tabulkou + sloupce z WHERE → navržený CREATE INDEX
+603 | HOTOVO | db_query_plan: exekuční plán jako strom (EXPLAIN QUERY PLAN)
+604 | HOTOVO | db_slow_queries: měření dotazů (nejlepší ze 3), označení pomalých, utečený dotaz se zastaví
+605 | HOTOVO | db_integrity: integrity_check + foreign_key_check, i silně poškozený soubor dá čitelný verdikt
+606 | HOTOVO | db_verify_backup: záloha čitelná a celá, porovnání tabulek a řádků se živou databází
+607 | HOTOVO | db_restore_rehearsal: skutečná obnova do TEMP, kontrola, čtení každé tabulky, test zápisu, úklid
+608 | HOTOVO | db_compare_schema: tabulky, sloupce, typy a indexy navíc / chybějící
+609 | HOTOVO | db_sensitive_data: e-maily, telefony, rodná čísla, hesla, adresy, účty – podle názvu i obsahu, hodnoty neukazuje
+610 | HOTOVO | db_snapshot + db_growth: lineární odhad velikosti za N dní
+611 | HOTOVO | db_anonymize_copy: NOVÝ soubor, konzistentní náhrady (vazby fungují), řádek po řádku ověřeno, že nezůstala původní hodnota
+612 | HOTOVO | db_query_plan: odhad náročnosti nízká / střední / vysoká podle plánu
+613 | HOTOVO | db_growth: přidané / odebrané řádky po tabulkách a změna struktury od minulého zápisu
+614 | VYŽADUJE_INTEGRACI | replikace má jen serverová databáze (PostgreSQL, MySQL) – potřebuje připojení k serveru; SQLite replikaci nemá
+615 | HOTOVO | db_incident: poškození, zámek jiným programem, přerostlý -wal, prázdné místo, rozbité vazby → konkrétní kroky (nic sám neopravuje)

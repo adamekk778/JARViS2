@@ -3,6 +3,9 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.10": [
+    { icon: "database", title: "Databáze", line: "Co je v databázi, jestli není poškozená, proč je dotaz pomalý (a jaký index pomůže), jestli jde záloha opravdu obnovit a kde jsou osobní údaje. Anonymní kopie pro testování – originál zůstane." },
+  ],
   "3.9": [
     { icon: "squares-four", title: "Pracovní prostředí", line: "„Ulož si tohle rozložení jako Práce“ – příště JARVIS otevře chybějící programy a rozmístí okna. I okno na druhý monitor a zkratky pro aplikaci." },
     { icon: "suitcase-rolling", title: "Každý den", line: "Co zabalit podle počasí v cíli, kdy jít ven, plán stěhování nebo svatby, nákup podle oddělení a co ještě nastavit." },

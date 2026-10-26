@@ -39,6 +39,8 @@ READ_ONLY_OK = {
     "broken_links", "website_audit", "source_reliability", "price_history", "fact_check",
     "best_time_outside", "ingredient_substitute", "shopping_by_aisle", "focus_report", "reading_level", "setup_check",
     "workspace_compare", "workspace_list", "shortcuts", "command_history",
+    "db_schema", "db_integrity", "db_query_plan", "db_slow_queries", "db_verify_backup", "db_restore_rehearsal",
+    "db_compare_schema", "db_sensitive_data", "db_growth", "db_incident",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
