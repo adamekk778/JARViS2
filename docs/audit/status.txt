@@ -730,3 +730,17 @@
 430 | HOTOVO | simulate_automations: pravidla „Když … tak …“ nanečisto na vymyšlených událostech, co by udělala, která nikdy, kde se sejdou
 431 | HOTOVO | home_firmware: aktualizace čekající v Home Assistantu (update.*), verze nainstalovaná → nová
 433 | HOTOVO | home_history: logbook událostí za N hodin, celý dům nebo jedno zařízení
+
+# Vlna 24 (3.10): dílna a plánování – maker.py, tools/maker_tools.py, tests/test_wave24.py (sériový port přes skutečnou smyčku pyserial)
+469 | HOTOVO | bill_of_materials: kusovník z CSV / exportu KiCadu – sloučení stejných součástek, kusy × desky, cena, chybějící ceny, různá pouzdra
+470 | HOTOVO | parts_compatibility: napájení v rozsahu, logické úrovně 3,3 V / 5 V mezi řadičem a moduly, proud z pinů, celkový odběr proti zdroji
+471 | HOTOVO | serial_monitor: seznam sériových portů, čtení po dobu N s, odeslání řádku, čísla z výpisu (pyserial)
+472 | HOTOVO | sensor_chart: čárový graf z CSV / hodnot (Pillow) + min / max / průměr řad; desetinné tečky ze senzorů správně
+476 | HOTOVO | robot_arm: dvoukloubové rameno – inverzní kinematika s kontrolou, dráha přes body, dosah, rozsah kloubů, skoky úhlů
+477 | ČÁSTEČNĚ | telemetrie = serial_monitor + sensor_chart (záznam a graf); živý průběžný panel ne
+201 | HOTOVO | task_plan: pořadí úkolů, nejdřívější začátek, kritická cesta, rezervy, souběžné úkoly, kruhové a neznámé závislosti
+460 | HOTOVO | formula_explorer: tabulka vzorce přes rozsah proměnné, min / max, pružnost (citlivost) – bezpečný výpočet bez eval
+453 | HOTOVO | learning_path: mapa předpokladů → pořadí učení k cíli, přeskočí známé, odhalí kruhy a nedefinovaná témata
+512 | ČÁSTEČNĚ | search_everything: paměť, konverzace, dokumenty, kalendář, seznamy, e-maily, postupy najednou; uvnitř cizích aplikací ne
+524 | HOTOVO | find_workflow: protokoly, automatizace, dovednosti a nahrané webové postupy podle slov dotazu
+517 | HOTOVO | name_window_groups: skupiny oken stejného projektu napříč aplikacemi pojmenované podle společného tématu

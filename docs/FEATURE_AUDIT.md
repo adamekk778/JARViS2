@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 359 | 74 |
-| 🟡 ČÁSTEČNĚ | 152 | 58 |
+| ✅ HOTOVO | 369 | 74 |
+| 🟡 ČÁSTEČNĚ | 154 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 250 | 17 |
+| ⬜ CHYBÍ | 238 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -343,7 +343,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-✅ 7 · 🟡 2 · 🔌 1 · ⬜ 5
+✅ 8 · 🟡 2 · 🔌 1 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -352,7 +352,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 198 | Intelligent Goal Decomposition — rozklad projektů do fází. | ✅ HOTOVO | goal_plan: rozklad na fáze a kroky |
 | 199 | Assumption Checker — validace předpokladů. | ✅ HOTOVO | check_assumptions: skryté předpoklady, riziko, jak ověřit |
 | 200 | Evidence Verifier — kontrola zdrojů a důkazů. | ✅ HOTOVO | kontrola citací výzkumu (neexistující a nepoužité zdroje, odstavce bez citace) |
-| 201 | Task Dependency Engine — závislosti mezi úkoly. | ⬜ CHYBÍ | — |
+| 201 | Task Dependency Engine — závislosti mezi úkoly. | ✅ HOTOVO | task_plan: pořadí úkolů, nejdřívější začátek, kritická cesta, rezervy, souběžné úkoly, kruhové a neznámé závislosti |
 | 202 | Adaptive Planning — průběžné aktualizace plánu. | 🟡 ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan) |
 | 203 | Risk Scoring — hodnocení rizika akcí. | ✅ HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py) |
 | 204 | AI Consensus — porovnávání výstupů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: shoda/rozpory/společná odpověď – s aspoň dvěma poskytovateli |
@@ -717,20 +717,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 36. Learning Lab
 
-✅ 7 · 🟡 2 · ⬜ 6
+✅ 9 · 🟡 2 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 451 | Adaptive Difficulty — adaptivní náročnost. | ⬜ CHYBÍ | — |
 | 452 | Learning Path Builder — studijní cesta. | 🟡 ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan |
-| 453 | Knowledge Prerequisite Map — předpoklady učiva. | ⬜ CHYBÍ | — |
+| 453 | Knowledge Prerequisite Map — předpoklady učiva. | ✅ HOTOVO | learning_path: mapa předpokladů → pořadí učení k cíli, přeskočí známé, odhalí kruhy a nedefinovaná témata |
 | 454 | Spaced Repetition Engine — časované opakování. | ✅ HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní) |
 | 455 | Mistake Classification — druhy chyb. | ✅ HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná) |
 | 456 | Interactive Circuit Tutor — obvody. | ⬜ CHYBÍ | — |
 | 457 | Math Step Validator — kontrola výpočtů. | ✅ HOTOVO | Math Step Validator: výrazy i rovnice, bezpečný vlastní vyhodnocovač (žádné eval), česká desetinná čárka |
 | 458 | Programming Exercise Generator — úlohy. | ⬜ CHYBÍ | — |
 | 459 | Virtual Oral Exam — ústní zkoušení. | ✅ HOTOVO | Virtual Oral Exam (oral_exam + check_answer, i hlasem) |
-| 460 | Formula Explorer — interaktivní vzorce. | ⬜ CHYBÍ | — |
+| 460 | Formula Explorer — interaktivní vzorce. | ✅ HOTOVO | formula_explorer: tabulka vzorce přes rozsah proměnné, min / max, pružnost (citlivost) – bezpečný výpočet bez eval |
 | 461 | Study Time Analytics — metriky učení. | ✅ HOTOVO | study_stats: opakování, úspěšnost, odpovědi, dny v řadě |
 | 462 | Document-to-Quiz — test z dokumentu. | ✅ HOTOVO | Document-to-Quiz |
 | 463 | Exam Countdown Planner — plán před zkouškou. | ✅ HOTOVO | Exam Countdown Planner |
@@ -739,22 +739,22 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 37. Engineering & Robotics
 
-✅ 4 · 🟡 1 · ⬜ 10
+✅ 9 · 🟡 2 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 466 | CAD Project Assistant — CAD. | ⬜ CHYBÍ | — |
 | 467 | 3D Print Preparation — tisková příprava. | 🟡 ČÁSTEČNĚ | check_3d_model: příprava k tisku (rozměry, vejde se, podpěry, filament g/m); samotné slicování dělá slicer |
 | 468 | Printability Checker — tisknutelnost. | ✅ HOTOVO | check_3d_model: uzavřenost, otočené normály, zdegenerované plošky, převisy > 45°, velikost |
-| 469 | Bill of Materials Generator — BOM součástek. | ⬜ CHYBÍ | — |
-| 470 | Component Compatibility Checker — kompatibilita komponent. | ⬜ CHYBÍ | — |
-| 471 | Serial Device Monitor — sériový monitor. | ⬜ CHYBÍ | — |
-| 472 | Sensor Data Visualizer — data senzorů. | ⬜ CHYBÍ | — |
+| 469 | Bill of Materials Generator — BOM součástek. | ✅ HOTOVO | bill_of_materials: kusovník z CSV / exportu KiCadu – sloučení stejných součástek, kusy × desky, cena, chybějící ceny, různá pouzdra |
+| 470 | Component Compatibility Checker — kompatibilita komponent. | ✅ HOTOVO | parts_compatibility: napájení v rozsahu, logické úrovně 3,3 V / 5 V mezi řadičem a moduly, proud z pinů, celkový odběr proti zdroji |
+| 471 | Serial Device Monitor — sériový monitor. | ✅ HOTOVO | serial_monitor: seznam sériových portů, čtení po dobu N s, odeslání řádku, čísla z výpisu (pyserial) |
+| 472 | Sensor Data Visualizer — data senzorů. | ✅ HOTOVO | sensor_chart: čárový graf z CSV / hodnot (Pillow) + min / max / průměr řad; desetinné tečky ze senzorů správně |
 | 473 | Circuit Calculation Engine — výpočty obvodů. | ✅ HOTOVO | circuit_calc: Ohm, LED odpor z řady E12 + výkon, dělič z E12, sériově/paralelně, RC, barevné proužky oběma směry |
 | 474 | Power Consumption Estimator — spotřeba. | ✅ HOTOVO | power_cost (kWh a Kč za měsíc/rok, cena pohotovosti) + circuit_calc battery (výdrž s režimem spánku) |
 | 475 | Firmware Build Assistant — firmware build. | ⬜ CHYBÍ | — |
-| 476 | Robotics Motion Simulator — pohyb robota. | ⬜ CHYBÍ | — |
-| 477 | Robot Telemetry Dashboard — telemetrie. | ⬜ CHYBÍ | — |
+| 476 | Robotics Motion Simulator — pohyb robota. | ✅ HOTOVO | robot_arm: dvoukloubové rameno – inverzní kinematika s kontrolou, dráha přes body, dosah, rozsah kloubů, skoky úhlů |
+| 477 | Robot Telemetry Dashboard — telemetrie. | 🟡 ČÁSTEČNĚ | telemetrie = serial_monitor + sensor_chart (záznam a graf); živý průběžný panel ne |
 | 478 | Camera Calibration Assistant — kalibrace. | ⬜ CHYBÍ | — |
 | 479 | Hardware Experiment Logger — evidence experimentů. | ✅ HOTOVO | experiment_log / experiment_result / experiments: deník pokusů s hypotézou, parametry a závěrem |
 | 480 | Prototype Test Planner — test prototypu. | ⬜ CHYBÍ | — |
@@ -805,24 +805,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 40. Semantic Operating System
 
-✅ 7 · 🟡 1 · ⬜ 7
+✅ 9 · 🟡 2 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 511 | Natural Language File Commands — soubory přirozenou řečí. | ✅ HOTOVO | soubory přirozenou řečí (tools/files.py) |
-| 512 | Universal App Search — hledání uvnitř aplikací. | ⬜ CHYBÍ | — |
+| 512 | Universal App Search — hledání uvnitř aplikací. | 🟡 ČÁSTEČNĚ | search_everything: paměť, konverzace, dokumenty, kalendář, seznamy, e-maily, postupy najednou; uvnitř cizích aplikací ne |
 | 513 | Cross-App Actions — navazující operace mezi aplikacemi. | ⬜ CHYBÍ | — |
 | 514 | App Capability Discovery — zjištění schopností aplikací. | ⬜ CHYBÍ | — |
 | 515 | Semantic Desktop Index — propojování desktopových dat. | ⬜ CHYBÍ | — |
 | 516 | Virtual App Groups — logické skupiny aplikací. | ✅ HOTOVO | logické skupiny aplikací = pracovní profily (Práce, Hraní…) |
-| 517 | Smart Window Naming — názvy skupin oken. | ⬜ CHYBÍ | — |
+| 517 | Smart Window Naming — názvy skupin oken. | ✅ HOTOVO | name_window_groups: skupiny oken stejného projektu napříč aplikacemi pojmenované podle společného tématu |
 | 518 | Workspace State Comparison — porovnání pracovního prostředí. | ✅ HOTOVO | workspace_compare: co chybí, co přibylo, co se posunulo |
 | 519 | App Recovery Assistant — obnova po pádu aplikace. | ✅ HOTOVO | reopen_crashed: znovu otevře programy, které za poslední hodinu spadly (událost 1000) a neběží |
 | 520 | Universal Command History — hledání příkazů. | ✅ HOTOVO | command_history: co jsi JARVISovi řekl a co udělal, podle slova |
 | 521 | Keyboard Shortcut Discovery — klávesové zkratky. | ✅ HOTOVO | shortcuts: zkratky pro program v popředí (Windows, prohlížeče, Word, Excel, VS Code, Průzkumník, Outlook, JARVIS) |
 | 522 | Adaptive Input Controller — myš/touch/hlas. | ⬜ CHYBÍ | — |
 | 523 | Virtual Workspace Snapshots — snímky pracovních ploch. | ✅ HOTOVO | snímky pracovních ploch = uložené profily oken |
-| 524 | Desktop Workflow Search — vyhledání pracovního postupu. | ⬜ CHYBÍ | — |
+| 524 | Desktop Workflow Search — vyhledání pracovního postupu. | ✅ HOTOVO | find_workflow: protokoly, automatizace, dovednosti a nahrané webové postupy podle slov dotazu |
 | 525 | Task-Centric Desktop — aplikace seskupené podle úkolu. | 🟡 ČÁSTEČNĚ | profil lze svázat s projektem (project); automatické přepnutí podle úkolu zatím ne |
 
 ## 41. Super Browser Agent

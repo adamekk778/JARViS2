@@ -59,6 +59,8 @@ READ_ONLY_OK = {
     "subscriptions_overview",
     "usb_check", "disk_errors", "disk_copy_plan", "outage_timeline", "explore_logs", "deploy_diff", "check_backups", "hosting_health",
     "home_rooms", "home_energy", "home_batteries", "home_firmware", "home_history", "simulate_automations",
+    "bill_of_materials", "parts_compatibility", "robot_arm", "task_plan", "formula_explorer", "learning_path", "search_everything",
+    "find_workflow", "name_window_groups",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

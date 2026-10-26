@@ -63,6 +63,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `send_to_phone` | 138, 408 |
+| `sensor_chart` | 472, 477 |
+| `serial_monitor` | 471, 477 |
 | `stark.py` | 034, 508 |
 | `storage_report` | 327, P2.11 |
 | `tools/files.py` | 029, 511 |
@@ -102,6 +104,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `backup_plan` | 330 |
 | `battery_level` | 427 |
 | `best_time_outside` | 783 |
+| `bill_of_materials` | 469 |
 | `break_minutes` | 077 |
 | `broken_links` | 383 |
 | `calendar_.py` | 171 |
@@ -191,6 +194,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_page_route` | 533 |
 | `find_similar_image` | 283 |
 | `find_similar_photos` | 318 |
+| `find_workflow` | 524 |
 | `flaky_tests` | 636 |
 | `flashcards_from` | 112 |
 | `focus_report` | 787 |
@@ -200,6 +204,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `foreground_info` | 026 |
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
+| `formula_explorer` | 460 |
 | `free_time` | 568 |
 | `frequency_analysis` | 778 |
 | `fuzz_inputs` | 633 |
@@ -223,6 +228,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `integrity_check` | 605 |
 | `keep_alive` | 575 |
 | `keyboard_test` | 644 |
+| `learning_path` | 453 |
 | `learning_weak_spots` | 108 |
 | `life_event_plan` | 781 |
 | `link_alive` | 410 |
@@ -258,6 +264,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `move_files` | P2.11 |
 | `mutation_test` | 335 |
 | `my_routines` | 497 |
+| `name_window_groups` | 517 |
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
 | `offline_test` | 641 |
@@ -266,6 +273,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `packing_list` | 782 |
 | `page_structure_check` | 532 |
 | `pairing_get` | 184 |
+| `parts_compatibility` | 470 |
 | `pc_diagnose` | 011 |
 | `perf_history` | 312 |
 | `phone.py` | 145 |
@@ -301,6 +309,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `restore_file_version` | 328 |
 | `restyle_subtitles` | 369 |
 | `revenue_forecast` | 443 |
+| `robot_arm` | 476 |
 | `rollback_plan` | 623 |
 | `room_control` | 421 |
 | `sales_funnel` | 439 |
@@ -312,6 +321,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `scheduler.py` | 155 |
 | `score_leads` | 438 |
 | `search_documents` | 581 |
+| `search_everything` | 512 |
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
@@ -335,6 +345,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `subscriptions_overview` | 535 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
+| `task_plan` | 201 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |
 | `test_coverage` | 334 |
