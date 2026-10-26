@@ -50,6 +50,8 @@ READ_ONLY_OK = {
     "dataset_check", "tolerance_stackup", "check_3d_model", "experiments",
     "customer_segments", "score_leads", "sales_funnel", "pricing_scenarios", "revenue_forecast", "analyze_feedback",
     "project_profitability",
+    "contrast_check", "color_theme", "visual_diff", "typography_check", "ui_consistency", "find_similar_image", "media_quality",
+    "video_scenes", "audio_highlights", "check_subtitles",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

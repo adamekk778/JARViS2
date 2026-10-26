@@ -69,6 +69,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ui_inspect` | 028, P2.03 |
 | `update_plan` | 202, P1.05 |
 | `usage.py` | 178, 678 |
+| `video_scenes` | 361, 364 |
 | `wake_word` | 098, P3.01 |
 | `web_read` | P6.03, P11.01 |
 | `web_search` | P6.03, P11.01 |
@@ -86,6 +87,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
 | `audio_devices` | 105 |
+| `audio_highlights` | 364 |
 | `background_jobs` | 628 |
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
@@ -103,17 +105,21 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_hardware` | 298 |
 | `check_link` | 397 |
 | `check_math_steps` | 106 |
+| `check_subtitles` | 369 |
 | `check_translation` | 068 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
+| `clean_speech` | 366 |
 | `clipboard_set` | 138 |
 | `code_owners` | 338 |
+| `color_theme` | 356 |
 | `command_history` | 520 |
 | `communication_digest` | 555 |
 | `compare_files` | 029 |
 | `compare_groups` | 779 |
 | `confirm_info` | 219 |
 | `contact_card` | 553 |
+| `contrast_check` | 348 |
 | `convert_file` | 324 |
 | `copy_file` | P2.11 |
 | `corrupt_test_data` | 643 |
@@ -143,8 +149,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `delete_file` | P14.02 |
 | `dependency_update_plan` | 341 |
 | `dependency_vulnerabilities` | 333 |
+| `design_system` | 346 |
 | `device_test` | 638 |
 | `dictation.py` | 097 |
+| `duck_music` | 363 |
 | `email_search` | 551 |
 | `environment_compare` | 342 |
 | `environment_snapshot` | 342 |
@@ -164,6 +172,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `file_versions` | 328 |
 | `find_duplicates` | 317 |
 | `find_flaky_tests` | 636 |
+| `find_similar_image` | 283 |
 | `find_similar_photos` | 318 |
 | `flaky_tests` | 636 |
 | `flashcards_from` | 112 |
@@ -200,6 +209,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mcp_client` | 048 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
+| `media_quality` | 375 |
 | `meeting_minutes` | 559 |
 | `meeting_prep` | 556 |
 | `memory_export` | 045 |
@@ -244,12 +254,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `redact.py` | 179 |
 | `release_notes` | 343 |
 | `remove_duplicates` | 317 |
+| `remove_silence` | 362 |
 | `rename_files` | 325 |
 | `reopen_crashed` | 519 |
 | `reply_context` | 543 |
 | `requirements_from_idea` | 616 |
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
+| `restyle_subtitles` | 369 |
 | `revenue_forecast` | 443 |
 | `rollback_plan` | 623 |
 | `sales_funnel` | 439 |
@@ -296,12 +308,15 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `translation_overflow` | 639 |
 | `typ_datum_firma` | 320 |
 | `type_text` | P2.02 |
+| `typography_check` | 359 |
 | `ui_click` | P2.02 |
+| `ui_consistency` | 351 |
 | `undo_rename` | 325 |
 | `unit_calc` | 772 |
 | `update_progress` | 075 |
 | `user_flow_test` | 631 |
 | `verify_copy` | 700 |
+| `visual_diff` | 360 |
 | `voice/loop.py` | 259 |
 | `wake_device` | 416 |
 | `watch_website` | 378 |

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 303 | 74 |
+| ✅ HOTOVO | 317 | 74 |
 | 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 307 | 17 |
+| ⬜ CHYBÍ | 293 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -453,7 +453,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 24. Advanced Vision
 
-✅ 1 · 🟡 5 · ⬜ 9
+✅ 2 · 🟡 5 · ⬜ 8
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -469,7 +469,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 280 | Scene Description — popis scény. | 🟡 ČÁSTEČNĚ | popis obrazovky přes vision model |
 | 281 | Camera Measurement Helper — měření s kalibrací. | ⬜ CHYBÍ | — |
 | 282 | Color Inspector — čtení barev. | 🟡 ČÁSTEČNĚ | přes vision model |
-| 283 | Visual Similarity Search — podobné obrázky. | ⬜ CHYBÍ | — |
+| 283 | Visual Similarity Search — podobné obrázky. | ✅ HOTOVO | find_similar_image: podobné obrázky k zadanému ve složce (dHash, i zmenšené / překódované) |
 | 284 | Motion Analysis — pohybová analýza. | ⬜ CHYBÍ | — |
 | 285 | Vision Privacy Masking — maskování citlivých oblastí. | ⬜ CHYBÍ | — |
 
@@ -563,47 +563,47 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 29. AI Design Studio
 
-🟡 3 · ⬜ 12
+✅ 6 · 🟡 3 · ⬜ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 346 | Design System Generator — tokeny a komponenty. | ⬜ CHYBÍ | — |
+| 346 | Design System Generator — tokeny a komponenty. | ✅ HOTOVO | design_system: tokeny (barvy světlé i tmavé, typografická škála, mezery, zaoblení, stíny) → tokens.css + tokens.json |
 | 347 | Responsive Layout Analyzer — různé displeje. | ⬜ CHYBÍ | — |
-| 348 | Accessibility Contrast Checker — kontrast. | ⬜ CHYBÍ | — |
+| 348 | Accessibility Contrast Checker — kontrast. | ✅ HOTOVO | contrast_check: WCAG AA / AAA i pro velký text + nejbližší vyhovující barva stejného odstínu |
 | 349 | Animation Curve Editor — animační křivky. | ⬜ CHYBÍ | — |
 | 350 | Glass Material Generator — Liquid Glass. | ⬜ CHYBÍ | — |
-| 351 | UI Consistency Scanner — jednotnost. | ⬜ CHYBÍ | — |
+| 351 | UI Consistency Scanner — jednotnost. | ✅ HOTOVO | ui_consistency: skutečně použité barvy / odsazení / zaoblení na stránce, skoro stejné barvy, odsazení mimo mřížku |
 | 352 | Design-to-Code — převod designu do kódu. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
 | 353 | Screenshot-to-Prototype — screenshot na prototyp. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
 | 354 | Interactive UI Mockups — klikatelné návrhy. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
 | 355 | Icon System Builder — ikony. | ⬜ CHYBÍ | — |
-| 356 | Theme Generator — témata. | ⬜ CHYBÍ | — |
+| 356 | Theme Generator — témata. | ✅ HOTOVO | color_theme: škály 50–950, světlý a tmavý režim, každá dvojice text/pozadí opravena na AA |
 | 357 | Motion Design Timeline — animace. | ⬜ CHYBÍ | — |
 | 358 | Layout Heatmap — prostor v UI. | ⬜ CHYBÍ | — |
-| 359 | Typography Inspector — typografie. | ⬜ CHYBÍ | — |
-| 360 | Visual Regression Lab — porovnání změn. | ⬜ CHYBÍ | — |
+| 359 | Typography Inspector — typografie. | ✅ HOTOVO | typography_check: písma, velikosti, délka řádku, řádkování, drobné písmo, počet velikostí |
+| 360 | Visual Regression Lab — porovnání změn. | ✅ HOTOVO | visual_diff: % změněných pixelů, oblasti změn, obrázek se zakroužkovanými změnami |
 
 ## 30. Multimedia Production
 
-⬜ 15
+✅ 7 · ⬜ 8
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 361 | Smart Scene Detection — identifikace scén. | ⬜ CHYBÍ | — |
-| 362 | Silence Remover — odstranění ticha. | ⬜ CHYBÍ | — |
-| 363 | Audio Ducking — zeslabení hudby při řeči. | ⬜ CHYBÍ | — |
-| 364 | Video Highlight Finder — zajímavé momenty. | ⬜ CHYBÍ | — |
+| 361 | Smart Scene Detection — identifikace scén. | ✅ HOTOVO | video_scenes: střihy ze vzdálenosti histogramů vzorkovaných snímků (PyAV) |
+| 362 | Silence Remover — odstranění ticha. | ✅ HOTOVO | remove_silence: vystřihne dlouhá ticha s ponecháním přirozených pauz a krátkým prolnutím → nový WAV |
+| 363 | Audio Ducking — zeslabení hudby při řeči. | ✅ HOTOVO | duck_music: hudba pod řečí ztlumená s náběhem a doběhem, převzorkování a smyčka hudby → nový WAV |
+| 364 | Video Highlight Finder — zajímavé momenty. | ✅ HOTOVO | audio_highlights / video_scenes: nejživější momenty podle hlasitosti (+ blízké střihy), s rozestupy |
 | 365 | Automatic Reframing — poměr stran videa. | ⬜ CHYBÍ | — |
-| 366 | Speech Enhancement — čištění řeči. | ⬜ CHYBÍ | — |
+| 366 | Speech Enhancement — čištění řeči. | ✅ HOTOVO | clean_speech: horní propust proti dunění, spektrální brána podle profilu šumu, normalizace špičky |
 | 367 | Background Removal — odstranění pozadí. | ⬜ CHYBÍ | — |
 | 368 | Media Asset Organizer — uspořádání médií. | ⬜ CHYBÍ | — |
-| 369 | Subtitle Style Generator — styly titulků. | ⬜ CHYBÍ | — |
+| 369 | Subtitle Style Generator — styly titulků. | ✅ HOTOVO | check_subtitles + restyle_subtitles: rychlost čtení, délka a počet řádků, překryvy; zalomení a prodloužení; ASS se stylem |
 | 370 | Podcast Chapter Generator — kapitoly audia. | ⬜ CHYBÍ | — |
 | 371 | Shot Matching — sjednocení záběrů. | ⬜ CHYBÍ | — |
 | 372 | Voiceover Script Assistant — text dabingu. | ⬜ CHYBÍ | — |
 | 373 | Sound Effect Matcher — zvukové efekty. | ⬜ CHYBÍ | — |
 | 374 | Media Render Queue — fronta renderů. | ⬜ CHYBÍ | — |
-| 375 | Export Quality Analyzer — kvalita výstupu. | ⬜ CHYBÍ | — |
+| 375 | Export Quality Analyzer — kvalita výstupu. | ✅ HOTOVO | media_quality: LUFS (EBU R128 s branami), úprava pro YouTube / Spotify / podcast / TV, špička, přebuzení, DC, ticho; u videa kodek, rozlišení, fps, tok |
 
 ## 31. Internet Intelligence
 

@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "film-slate", title: "Studio", line: "Vystřihne ticha z nahrávky, ztiší hudbu pod řečí, vyčistí šum, změří hlasitost pro YouTube či podcast, najde střihy ve videu, opraví titulky – a barvy, kontrast a design systém pro web." },
     { icon: "briefcase", title: "Podnikání", line: "Cenová nabídka s DPH do Wordu, kteří zákazníci odcházejí, které leady jsou horké, kde utíká trychtýř, co udělá zdražení, předpověď tržeb a které zakázky prodělávají." },
     { icon: "flask", title: "Inženýr a vědec", line: "Počítání s jednotkami („5 km za 2 h na m/s“), odpor pro LED, kolik stojí spotřebiče, je rozdíl skutečný (statistika, A/B test), frekvence ve zvuku, čištění tabulek, tolerance a kontrola 3D modelu před tiskem." },
     { icon: "factory", title: "Softwarová továrna", line: "Z nápadu požadavky a akceptační kritéria, z kontraktu API testovací server i hotová knihovna pro volání, plán návratu na starší verzi a kontrola naplánovaných úloh." },

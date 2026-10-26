@@ -660,3 +660,19 @@
 443 | HOTOVO | revenue_forecast: Holt–Winters se sezónou (2+ roky) nebo trend, zpětný test s MAPE a mírou důvěry
 444 | HOTOVO | analyze_feedback: sentiment (česky i anglicky, s negací), témata (doručení, cena, kvalita, podpora…), nejhorší ohlasy
 449 | HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky
+
+# Vlna 18 (3.10): design a média – design.py, media.py, tools/studio_tools.py, tests/test_wave18.py (hlasitost ověřená proti referenci BS.1770: 997 Hz plná úroveň = −3,01 LUFS)
+283 | HOTOVO | find_similar_image: podobné obrázky k zadanému ve složce (dHash, i zmenšené / překódované)
+346 | HOTOVO | design_system: tokeny (barvy světlé i tmavé, typografická škála, mezery, zaoblení, stíny) → tokens.css + tokens.json
+348 | HOTOVO | contrast_check: WCAG AA / AAA i pro velký text + nejbližší vyhovující barva stejného odstínu
+351 | HOTOVO | ui_consistency: skutečně použité barvy / odsazení / zaoblení na stránce, skoro stejné barvy, odsazení mimo mřížku
+356 | HOTOVO | color_theme: škály 50–950, světlý a tmavý režim, každá dvojice text/pozadí opravena na AA
+359 | HOTOVO | typography_check: písma, velikosti, délka řádku, řádkování, drobné písmo, počet velikostí
+360 | HOTOVO | visual_diff: % změněných pixelů, oblasti změn, obrázek se zakroužkovanými změnami
+361 | HOTOVO | video_scenes: střihy ze vzdálenosti histogramů vzorkovaných snímků (PyAV)
+362 | HOTOVO | remove_silence: vystřihne dlouhá ticha s ponecháním přirozených pauz a krátkým prolnutím → nový WAV
+363 | HOTOVO | duck_music: hudba pod řečí ztlumená s náběhem a doběhem, převzorkování a smyčka hudby → nový WAV
+364 | HOTOVO | audio_highlights / video_scenes: nejživější momenty podle hlasitosti (+ blízké střihy), s rozestupy
+366 | HOTOVO | clean_speech: horní propust proti dunění, spektrální brána podle profilu šumu, normalizace špičky
+369 | HOTOVO | check_subtitles + restyle_subtitles: rychlost čtení, délka a počet řádků, překryvy; zalomení a prodloužení; ASS se stylem
+375 | HOTOVO | media_quality: LUFS (EBU R128 s branami), úprava pro YouTube / Spotify / podcast / TV, špička, přebuzení, DC, ticho; u videa kodek, rozlišení, fps, tok
