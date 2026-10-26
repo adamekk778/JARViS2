@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import time
 from typing import Annotated
 
 from .base import ToolResult, tool
@@ -100,8 +99,10 @@ async def price_quote(ctx, client: str, items: Annotated[list[dict], "[{name, qt
         t = business.quote_totals(items, vat_pct, discount_pct, vat_payer)
     except (KeyError, ValueError, TypeError) as e:
         return ToolResult(False, f"Položky zadej jako name, qty, price (a vat): {e}")
+    from .. import bizops
+
     supplier = supplier or getattr(ctx.cfg.general, "user_name", "") or "Dodavatel"
-    number = time.strftime("%Y%m%d-%H%M")
+    number = bizops.next_quote_number(ctx)
     if target:
         dest = resolve(target)
     else:
@@ -116,11 +117,12 @@ async def price_quote(ctx, client: str, items: Annotated[list[dict], "[{name, qt
 
     text = "\n".join(p.text for p in docx.Document(str(dest)).paragraphs)
     ok = business._kc(t["total"]) in text
+    bizops.register_quote(ctx, number, client, t["base"], t["total"], valid_days, str(dest), note)
     tasks = getattr(ctx, "tasks", None)
     if tasks is not None and tasks.current:
         tasks.add_artifact(dest, "Cenová nabídka")
-    return ToolResult(ok, f"Nabídka pro {client}: bez DPH {business._kc(t['base'])}, DPH {business._kc(t['vat'])}, celkem {business._kc(t['total'])}. "
-                          f"Uloženo: {dest}" + ("" if ok else " (POZOR: součet v dokumentu nesedí)"), data={**t, "path": str(dest)})
+    return ToolResult(ok, f"Nabídka {number} pro {client}: bez DPH {business._kc(t['base'])}, DPH {business._kc(t['vat'])}, celkem {business._kc(t['total'])}. "
+                          f"Uloženo: {dest}" + ("" if ok else " (POZOR: součet v dokumentu nesedí)"), data={**t, "path": str(dest), "number": number})
 
 
 @tool("pricing_scenarios", "Cenové scénáře: co udělá zdražení / zlevnění s prodejem, tržbami a ziskem (podle pružnosti "

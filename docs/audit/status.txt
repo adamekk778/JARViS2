@@ -798,3 +798,19 @@
 267 | ČÁSTEČNĚ | label_speakers + v přepisech hovorů „Ostatní 1 / 2…“: barva hlasu (MFCC) a výška hlasu, shlukování se silhouette a minimálním odstupem; přesnost neuronových modelů ne
 99 | HOTOVO | ztišení ostatních programů, když JARVIS poslouchá nebo mluví (relace zvuku Windows, vrácení přesně na původní hlasitost)
 114 | HOTOVO | pronunciation_practice: zarovnání přečtené věty s rozpoznanými slovy, špatně / nezřetelně / vynechaná slova, tempo
+
+# Vlna 29 (3.10): byznys – bizops.py, webbiz.py, tools/bizops_tools.py, tests/test_wave29.py (weby přes skriptovaný server, výpis ve formátu Fio)
+54 | HOTOVO | a11y_check (popisky obrázků, formuláře, kontrast, nadpisy) + keyboard_test (vlna 14) – kontrola přístupnosti webu
+55 | HOTOVO | seo_audit: projde web (robots.txt respektuje), titulky, popisy, H1, alt texty, málo textu, noindex, lang, og:, rychlost, nefunkční odkazy, duplicity, sitemap
+168 | HOTOVO | price_quote číslování N-RRRR-NNNN + evidence nabídek, quote_status (přijatá / odmítnutá), quotes_overview: otevřené, propadající, úspěšnost, doba rozhodnutí
+169 | HOTOVO | billing_basis: z výkazu práce po klientech hodiny × sazba po projektech, přefakturované náklady, DPH, co se dělalo, jen nevyfakturované; dokument Word
+170 | HOTOVO | customer_request / customer_requests: požadavky s prioritou podle textu a termínem, po termínu, po zákaznících, vyřízení
+172 | HOTOVO | compare_offers: vážené skóre (nejlepší = 1), náklady za dobu užívání (TCO), náskok vítěze a test citlivosti vah
+173 | HOTOVO | campaign_report: CTR, CPC, konverzní poměr, CPA, ROAS, ROI, z-test rozdílu konverzí, přesun rozpočtu z prodělečných kampaní
+174 | HOTOVO | cashflow_report: výpis z banky (desetinné čárky, mezery v tisících, cp1250), měsíce, úspora, kategorie (i vlastní), pravidelné platby, výkyvy, největší platby
+436 | HOTOVO | bought_together: páry produktů s podporou, spolehlivostí a liftem + komu nabídnout druhý produkt
+440 | HOTOVO | follow_ups: nabídky bez odpovědi / před propadnutím, požadavky po termínu, spokojenost po měsíci, klienti 90 dní bez zakázky, s návrhem zprávy (nic neodesílá)
+445 | HOTOVO | competitor_watch: uložené stránky konkurence a rozdíly od minula – nové a zmizelé nadpisy a položky, změny cen v %
+384 | HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí
+447 | HOTOVO | keyword_gap: slova a dvojice slov, které konkurence používá (i v nadpisech) a tvoje stránka ne
+450 | HOTOVO | business_dashboard: nabídky, úspěšnost, požadavky, lidé k oslovení, s výpisem a kampaněmi i příjmy / výdaje / ROAS a upozornění (ztráta, pokles)

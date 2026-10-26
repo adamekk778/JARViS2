@@ -55,6 +55,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_in_files` | 316, 322 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
+| `keyboard_test` | 054, 644 |
 | `label_speakers` | 267, P3.05 |
 | `mind_map` | 112, 113 |
 | `network.py` | 165, 406 |
@@ -65,6 +66,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
+| `price_quote` | 168, 441 |
 | `project_resume` | 044, 509 |
 | `quiz_from` | 107, 112 |
 | `restyle_subtitles` | 369, 674 |
@@ -85,6 +87,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `web_search` | P6.03, P11.01 |
 | `website_audit` | 388, 389 |
 | `what_next` | 496, 507 |
+| `y_check` | 054, 067 |
 | `_an_drivers` | 011 |
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
@@ -115,13 +118,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `balance_sim` | 660 |
 | `battery_level` | 427 |
 | `best_time_outside` | 783 |
+| `billing_basis` | 169 |
+| `bought_together` | 436 |
 | `brand_check` | 661 |
 | `break_minutes` | 077 |
 | `broken_links` | 383 |
+| `business_dashboard` | 450 |
 | `calendar_.py` | 171 |
 | `calendar_check` | 558 |
 | `camera_move` | 665 |
+| `campaign_report` | 173 |
 | `caption_variants` | 663 |
+| `cashflow_report` | 174 |
 | `character/blob.ts` | 071 |
 | `chart_insights` | 770 |
 | `check_app_links` | 629 |
@@ -147,6 +155,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `compare_embedding_models` | 580 |
 | `compare_files` | 029 |
 | `compare_groups` | 779 |
+| `compare_offers` | 172 |
+| `competitor_watch` | 445 |
 | `confirm_info` | 219 |
 | `contact_card` | 553 |
 | `contrast_check` | 348 |
@@ -156,6 +166,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `corruption_test` | 643 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
+| `customer_request` | 170 |
+| `customer_requests` | 170 |
 | `customer_segments` | 437 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
@@ -207,6 +219,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
 | `feature_flags` | 344 |
+| `feature_matrix` | 384 |
 | `file_metadata` | 326 |
 | `file_versions` | 328 |
 | `find_duplicates` | 317 |
@@ -221,6 +234,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `folder_check` | 329 |
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
+| `follow_ups` | 440 |
 | `foreground_info` | 026 |
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
@@ -249,7 +263,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ingredient_substitute` | 786 |
 | `integrity_check` | 605 |
 | `keep_alive` | 575 |
-| `keyboard_test` | 644 |
+| `keyword_gap` | 447 |
 | `learning_path` | 453 |
 | `learning_weak_spots` | 108 |
 | `level_generator` | 652 |
@@ -309,7 +323,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `power_cost` | 474 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
-| `price_quote` | 441 |
 | `pricing_scenarios` | 442 |
 | `privacy.py` | P14.10 |
 | `privacy_report` | 539 |
@@ -322,6 +335,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pseudo_localize` | 639 |
 | `quantization_advice` | 572 |
 | `quest_check` | 648 |
+| `quote_status` | 168 |
+| `quotes_overview` | 168 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
 | `reading_level` | 791 |
@@ -358,6 +373,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `search_everything` | 512 |
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
+| `seo_audit` | 055 |
 | `server/pairing.py` | 144 |
 | `server_capacity` | 657 |
 | `set_feature_flag` | 344 |
@@ -427,7 +443,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `workspace_restore` | 229 |
 | `workspace_save` | 229 |
 | `write_text_file` | P5.05 |
-| `y_check` | 067 |
 
 ## Překryvy původního seznamu s katalogem
 

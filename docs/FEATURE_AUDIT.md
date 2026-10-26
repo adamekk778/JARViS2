@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 406 | 74 |
+| ✅ HOTOVO | 420 | 74 |
 | 🟡 ČÁSTEČNĚ | 163 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 192 | 16 |
+| ⬜ CHYBÍ | 178 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -95,7 +95,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 05. Ultimate Developer
 
-🟡 3 · 🔌 3 · ⬜ 9
+✅ 2 · 🟡 3 · 🔌 3 · ⬜ 7
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -107,8 +107,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 051 | Generování DB migrací. | ⬜ CHYBÍ | — |
 | 052 | Detekce chybných DB dotazů. | ⬜ CHYBÍ | — |
 | 053 | Výkonnostní analýza backendu. | ⬜ CHYBÍ | — |
-| 054 | Kontrola přístupnosti webů. | ⬜ CHYBÍ | — |
-| 055 | SEO audit a optimalizace webů. | ⬜ CHYBÍ | — |
+| 054 | Kontrola přístupnosti webů. | ✅ HOTOVO | a11y_check (popisky obrázků, formuláře, kontrast, nadpisy) + keyboard_test (vlna 14) – kontrola přístupnosti webu |
+| 055 | SEO audit a optimalizace webů. | ✅ HOTOVO | seo_audit: projde web (robots.txt respektuje), titulky, popisy, H1, alt texty, málo textu, noindex, lang, og:, rychlost, nefunkční odkazy, duplicity, sitemap |
 | 056 | Příprava testovacího deploymentu. | ⬜ CHYBÍ | — |
 | 057 | Bezpečné zátěžové testování. | ⬜ CHYBÍ | — |
 | 058 | Ověřování buildu po změnách. | 🟡 ČÁSTEČNĚ | run_tests (tools/dev.py) |
@@ -292,19 +292,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 16. Business
 
-🟡 4 · ⬜ 6
+✅ 6 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 166 | Schůzky → seznam úkolů. | 🟡 ČÁSTEČNĚ | nahrávání a shrnutí hovorů/schůzek (notetaker.py) |
 | 167 | Zápisy z meetingů. | 🟡 ČÁSTEČNĚ | nahrávání a shrnutí hovorů/schůzek (notetaker.py) |
-| 168 | Nabídky zákazníkům. | ⬜ CHYBÍ | — |
-| 169 | Fakturační podklady. | ⬜ CHYBÍ | — |
-| 170 | Zákaznické požadavky. | ⬜ CHYBÍ | — |
+| 168 | Nabídky zákazníkům. | ✅ HOTOVO | price_quote číslování N-RRRR-NNNN + evidence nabídek, quote_status (přijatá / odmítnutá), quotes_overview: otevřené, propadající, úspěšnost, doba rozhodnutí |
+| 169 | Fakturační podklady. | ✅ HOTOVO | billing_basis: z výkazu práce po klientech hodiny × sazba po projektech, přefakturované náklady, DPH, co se dělalo, jen nevyfakturované; dokument Word |
+| 170 | Zákaznické požadavky. | ✅ HOTOVO | customer_request / customer_requests: požadavky s prioritou podle textu a termínem, po termínu, po zákaznících, vyřízení |
 | 171 | Projektové termíny. | 🟡 ČÁSTEČNĚ | kalendář a připomínky (calendar_.py) |
-| 172 | Srovnání dodavatelských nabídek. | ⬜ CHYBÍ | — |
-| 173 | Analýza kampaní. | ⬜ CHYBÍ | — |
-| 174 | Přehled příjmů a výdajů. | ⬜ CHYBÍ | — |
+| 172 | Srovnání dodavatelských nabídek. | ✅ HOTOVO | compare_offers: vážené skóre (nejlepší = 1), náklady za dobu užívání (TCO), náskok vítěze a test citlivosti vah |
+| 173 | Analýza kampaní. | ✅ HOTOVO | campaign_report: CTR, CPC, konverzní poměr, CPA, ROAS, ROI, z-test rozdílu konverzí, přesun rozpočtu z prodělečných kampaní |
+| 174 | Přehled příjmů a výdajů. | ✅ HOTOVO | cashflow_report: výpis z banky (desetinné čárky, mezery v tisících, cp1250), měsíce, úspora, kategorie (i vlastní), pravidelné platby, výkyvy, největší platby |
 | 175 | Týdenní report práce. | 🟡 ČÁSTEČNĚ | týdenní recap diktování/úkolů |
 
 ## 17. Security & Control
@@ -607,7 +607,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 8 · 🟡 3 · ⬜ 4
+✅ 9 · 🟡 3 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -619,7 +619,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 381 | Web Evidence Collector — archivace důkazů. | ✅ HOTOVO | save_web_evidence: HTML + text + hlavičky + čas UTC + SHA-256, pozná změnu proti minulému záznamu |
 | 382 | Automated Website Testing — testy webů. | ⬜ CHYBÍ | — |
 | 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
-| 384 | Competitor Feature Comparison — srovnání konkurence. | ⬜ CHYBÍ | — |
+| 384 | Competitor Feature Comparison — srovnání konkurence. | ✅ HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí |
 | 385 | Search Query Optimizer — vyhledávací strategie. | ⬜ CHYBÍ | — |
 | 386 | Article Comparison — srovnání článků. | 🟡 ČÁSTEČNĚ | přes AI |
 | 387 | Domain Health Inspector — DNS/TLS/dostupnost. | ⬜ CHYBÍ | — |
@@ -695,25 +695,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 35. Business & Startup
 
-✅ 8 · 🟡 1 · ⬜ 6
+✅ 13 · 🟡 1 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 436 | Opportunity Analyzer — obchodní příležitosti. | ⬜ CHYBÍ | — |
+| 436 | Opportunity Analyzer — obchodní příležitosti. | ✅ HOTOVO | bought_together: páry produktů s podporou, spolehlivostí a liftem + komu nabídnout druhý produkt |
 | 437 | Customer Segmentation — segmentace. | ✅ HOTOVO | customer_segments: RFM z objednávek (CSV), segmenty šampioni / věrní / noví / ohrožení / ztracení… s doporučením |
 | 438 | Lead Qualification — hodnocení leadů. | ✅ HOTOVO | score_leads: 0–100 podle viditelných pravidel a vah (rozpočet, rozhoduje, termín, velikost, zapojení), důvody u každého |
 | 439 | Sales Funnel Explorer — prodejní trychtýř. | ✅ HOTOVO | sales_funnel: z počtů nebo z CSV událostí, konverze krok po kroku, největší únik a dopad jeho zlepšení |
-| 440 | Client Follow-Up Planner — následné kontakty. | ⬜ CHYBÍ | — |
+| 440 | Client Follow-Up Planner — následné kontakty. | ✅ HOTOVO | follow_ups: nabídky bez odpovědi / před propadnutím, požadavky po termínu, spokojenost po měsíci, klienti 90 dní bez zakázky, s návrhem zprávy (nic neodesílá) |
 | 441 | Proposal Generator — obchodní nabídky. | ✅ HOTOVO | price_quote: nabídka jako .docx – položky, sleva, DPH po sazbách (i neplátce), platnost; součet ověřen zpětným čtením |
 | 442 | Pricing Scenario Simulator — cenové scénáře. | ✅ HOTOVO | pricing_scenarios: pružnost poptávky, tržby / zisk / marže pro změny ceny, optimální cena, bod zvratu |
 | 443 | Revenue Forecasting — predikce výnosů. | ✅ HOTOVO | revenue_forecast: Holt–Winters se sezónou (2+ roky) nebo trend, zpětný test s MAPE a mírou důvěry |
 | 444 | Customer Feedback Analyzer — zpětná vazba. | ✅ HOTOVO | analyze_feedback: sentiment (česky i anglicky, s negací), témata (doručení, cena, kvalita, podpora…), nejhorší ohlasy |
-| 445 | Competitor Monitoring — změny konkurence. | ⬜ CHYBÍ | — |
+| 445 | Competitor Monitoring — změny konkurence. | ✅ HOTOVO | competitor_watch: uložené stránky konkurence a rozdíly od minula – nové a zmizelé nadpisy a položky, změny cen v % |
 | 446 | Marketing Content Calendar — marketingový kalendář. | 🟡 ČÁSTEČNĚ | kalendář |
-| 447 | SEO Opportunity Finder — SEO příležitosti. | ⬜ CHYBÍ | — |
+| 447 | SEO Opportunity Finder — SEO příležitosti. | ✅ HOTOVO | keyword_gap: slova a dvojice slov, které konkurence používá (i v nadpisech) a tvoje stránka ne |
 | 448 | Client Portal Assistant — zákaznický portál. | ⬜ CHYBÍ | — |
 | 449 | Project Profitability Analyzer — ziskovost projektů. | ✅ HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky |
-| 450 | Business Decision Dashboard — obchodní metriky. | ⬜ CHYBÍ | — |
+| 450 | Business Decision Dashboard — obchodní metriky. | ✅ HOTOVO | business_dashboard: nabídky, úspěšnost, požadavky, lidé k oslovení, s výpisem a kampaněmi i příjmy / výdaje / ROAS a upozornění (ztráta, pokles) |
 
 ## 36. Learning Lab
 

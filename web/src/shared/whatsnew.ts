@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "briefcase", title: "Firma pod kontrolou", line: "Číslované nabídky s přehledem, co se přijalo, podklady k fakturaci z výkazu, požadavky zákazníků s termíny, srovnání dodavatelů, vyhodnocení kampaní, příjmy a výdaje z výpisu z banky, SEO audit webu, hlídání konkurence a komu se dnes ozvat." },
     { icon: "waveform", title: "Čistý hlas", line: "JARVIS odfiltruje hluk místnosti, neslyší sám sebe (můžeš mu skočit do řeči), zesílí tichý hlas z dálky a při poslouchání ztiší hudbu. Navíc kontrola mikrofonu, nastavení citlivosti „Hey Jarvis“, záložky v hovorech, rozlišení mluvčích a nácvik výslovnosti." },
     { icon: "flask", title: "Laboratoř", line: "Co říká graf, odkud se v databázi berou čísla, fyzikální simulace s hledáním nejlepšího parametru, ověření citací (i stažených článků), návrh pokusu, plán zkoušek prototypu a procvičování obvodů, které se přizpůsobí." },
     { icon: "palette", title: "Kreativní studio", line: "Jedna fotka do všech formátů sítí, kontrola barev značky, varianty popisků, evidence licencí a původu, pohyb kamery a světla pro Blender, rada k mixu, storyboard na časovou osu a klikací ukázka produktu." },
