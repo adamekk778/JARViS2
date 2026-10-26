@@ -80,6 +80,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ab_test` | 780 |
 | `agent_team` | 218 |
 | `ai_usage` | 154 |
+| `analyze_feedback` | 444 |
 | `api_breaking_changes` | 627 |
 | `api_contract_check` | 336 |
 | `app_allowlist` | 682 |
@@ -119,6 +120,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `corruption_test` | 643 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
+| `customer_segments` | 437 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
 | `data_rescue_plan` | 300 |
@@ -229,7 +231,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `power_cost` | 474 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
+| `price_quote` | 441 |
+| `pricing_scenarios` | 442 |
 | `privacy.py` | P14.10 |
+| `project_profitability` | 449 |
 | `provider_test` | 587 |
 | `pseudo_localize` | 639 |
 | `read_text_file` | P5.05 |
@@ -245,12 +250,15 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `requirements_from_idea` | 616 |
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
+| `revenue_forecast` | 443 |
 | `rollback_plan` | 623 |
+| `sales_funnel` | 439 |
 | `save_file_version` | 328 |
 | `save_web_evidence` | 381 |
 | `scan_secrets` | 401 |
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
+| `score_leads` | 438 |
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |

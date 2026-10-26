@@ -650,3 +650,13 @@
 778 | HOTOVO | frequency_analysis: WAV (8/16/24/32 bit) nebo CSV → spektrum s Hannovým oknem, špičky v Hz a dB, RMS, DC
 779 | HOTOVO | compare_groups: Welch + Mann–Whitney, Cohenovo d, interval, varování (malý vzorek, nenormální, odlehlé, prakticky zanedbatelné)
 780 | HOTOVO | ab_test: velikost vzorku a délka testu + vyhodnocení s intervalem a kontrolou SRM
+
+# Vlna 17 (3.10): byznys – business.py, tools/business_tools.py, tests/test_wave17.py
+437 | HOTOVO | customer_segments: RFM z objednávek (CSV), segmenty šampioni / věrní / noví / ohrožení / ztracení… s doporučením
+438 | HOTOVO | score_leads: 0–100 podle viditelných pravidel a vah (rozpočet, rozhoduje, termín, velikost, zapojení), důvody u každého
+439 | HOTOVO | sales_funnel: z počtů nebo z CSV událostí, konverze krok po kroku, největší únik a dopad jeho zlepšení
+441 | HOTOVO | price_quote: nabídka jako .docx – položky, sleva, DPH po sazbách (i neplátce), platnost; součet ověřen zpětným čtením
+442 | HOTOVO | pricing_scenarios: pružnost poptávky, tržby / zisk / marže pro změny ceny, optimální cena, bod zvratu
+443 | HOTOVO | revenue_forecast: Holt–Winters se sezónou (2+ roky) nebo trend, zpětný test s MAPE a mírou důvěry
+444 | HOTOVO | analyze_feedback: sentiment (česky i anglicky, s negací), témata (doručení, cena, kvalita, podpora…), nejhorší ohlasy
+449 | HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky

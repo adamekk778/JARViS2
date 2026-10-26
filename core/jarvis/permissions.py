@@ -48,6 +48,8 @@ READ_ONLY_OK = {
     "requirements_from_idea", "rollback_plan", "background_jobs", "check_app_links",
     "unit_calc", "check_formula_units", "circuit_calc", "power_cost", "compare_groups", "ab_test", "frequency_analysis",
     "dataset_check", "tolerance_stackup", "check_3d_model", "experiments",
+    "customer_segments", "score_leads", "sales_funnel", "pricing_scenarios", "revenue_forecast", "analyze_feedback",
+    "project_profitability",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

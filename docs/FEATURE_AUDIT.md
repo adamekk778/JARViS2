@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 295 | 74 |
+| ✅ HOTOVO | 303 | 74 |
 | 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 315 | 17 |
+| ⬜ CHYBÍ | 307 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -695,24 +695,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 35. Business & Startup
 
-🟡 1 · ⬜ 14
+✅ 8 · 🟡 1 · ⬜ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 436 | Opportunity Analyzer — obchodní příležitosti. | ⬜ CHYBÍ | — |
-| 437 | Customer Segmentation — segmentace. | ⬜ CHYBÍ | — |
-| 438 | Lead Qualification — hodnocení leadů. | ⬜ CHYBÍ | — |
-| 439 | Sales Funnel Explorer — prodejní trychtýř. | ⬜ CHYBÍ | — |
+| 437 | Customer Segmentation — segmentace. | ✅ HOTOVO | customer_segments: RFM z objednávek (CSV), segmenty šampioni / věrní / noví / ohrožení / ztracení… s doporučením |
+| 438 | Lead Qualification — hodnocení leadů. | ✅ HOTOVO | score_leads: 0–100 podle viditelných pravidel a vah (rozpočet, rozhoduje, termín, velikost, zapojení), důvody u každého |
+| 439 | Sales Funnel Explorer — prodejní trychtýř. | ✅ HOTOVO | sales_funnel: z počtů nebo z CSV událostí, konverze krok po kroku, největší únik a dopad jeho zlepšení |
 | 440 | Client Follow-Up Planner — následné kontakty. | ⬜ CHYBÍ | — |
-| 441 | Proposal Generator — obchodní nabídky. | ⬜ CHYBÍ | — |
-| 442 | Pricing Scenario Simulator — cenové scénáře. | ⬜ CHYBÍ | — |
-| 443 | Revenue Forecasting — predikce výnosů. | ⬜ CHYBÍ | — |
-| 444 | Customer Feedback Analyzer — zpětná vazba. | ⬜ CHYBÍ | — |
+| 441 | Proposal Generator — obchodní nabídky. | ✅ HOTOVO | price_quote: nabídka jako .docx – položky, sleva, DPH po sazbách (i neplátce), platnost; součet ověřen zpětným čtením |
+| 442 | Pricing Scenario Simulator — cenové scénáře. | ✅ HOTOVO | pricing_scenarios: pružnost poptávky, tržby / zisk / marže pro změny ceny, optimální cena, bod zvratu |
+| 443 | Revenue Forecasting — predikce výnosů. | ✅ HOTOVO | revenue_forecast: Holt–Winters se sezónou (2+ roky) nebo trend, zpětný test s MAPE a mírou důvěry |
+| 444 | Customer Feedback Analyzer — zpětná vazba. | ✅ HOTOVO | analyze_feedback: sentiment (česky i anglicky, s negací), témata (doručení, cena, kvalita, podpora…), nejhorší ohlasy |
 | 445 | Competitor Monitoring — změny konkurence. | ⬜ CHYBÍ | — |
 | 446 | Marketing Content Calendar — marketingový kalendář. | 🟡 ČÁSTEČNĚ | kalendář |
 | 447 | SEO Opportunity Finder — SEO příležitosti. | ⬜ CHYBÍ | — |
 | 448 | Client Portal Assistant — zákaznický portál. | ⬜ CHYBÍ | — |
-| 449 | Project Profitability Analyzer — ziskovost projektů. | ⬜ CHYBÍ | — |
+| 449 | Project Profitability Analyzer — ziskovost projektů. | ✅ HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky |
 | 450 | Business Decision Dashboard — obchodní metriky. | ⬜ CHYBÍ | — |
 
 ## 36. Learning Lab
