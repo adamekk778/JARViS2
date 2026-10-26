@@ -33,16 +33,25 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: cd web && npm ci && npm run build
-      - uses: actions/upload-artifact@v4
-        with: { name: web-dist, path: web/dist }
+      # build outputs travel through the cache, not artifacts: the artifact quota filled up and blocked releases,
+      # the cache evicts old entries by itself
+      - uses: actions/cache/save@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
 
   windows:
     needs: [web]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: web-dist, path: web/dist }
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - name: Install JARVIS + PyInstaller
@@ -227,7 +236,8 @@ jobs:
           if (($fr.R - $fr.L) -lt $sb.Width * 0.8) { throw "the full chat window is not maximized" }
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots" }
+        continue-on-error: true   # screenshots are for diagnosis only – a full artifact quota must not fail the build
+        with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots", retention-days: 7 }
       - name: Idle benchmark and UI Automation selftest
         timeout-minutes: 22
         shell: pwsh
@@ -261,7 +271,8 @@ jobs:
           if ($code -ne 0) { throw "idle cost above 2x target" }
       - uses: actions/upload-artifact@v4
         if: failure()
-        with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png" }
+        continue-on-error: true
+        with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png", retention-days: 7 }
       - name: Inno Setup
         shell: pwsh
         run: |
@@ -292,32 +303,52 @@ jobs:
           $code = $LASTEXITCODE
           Write-Host ($out | Select-Object -Last 3)
           if ($code -ne 0) { Get-Content "$env:JARVIS_HOME\crash.log" -ErrorAction SilentlyContinue; throw "the installed JARVIS does not start" }
-      - uses: actions/upload-artifact@v4
-        with: { name: JARVIS-Setup, path: dist/JARVIS-Setup.exe }
+      - uses: actions/cache/save@v4
+        with:
+          path: dist/JARVIS-Setup.exe
+          key: setup-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
 
   android:
     needs: [web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { name: web-dist, path: web/dist }
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "21" }
       - run: bash mobile/build-android.sh
-      - uses: actions/upload-artifact@v4
-        with: { name: JARVIS-apk, path: mobile/JARVIS.apk }
+      - uses: actions/cache/save@v4
+        with:
+          path: mobile/JARVIS.apk
+          key: apk-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
 
   release:
     needs: [test, windows, android]
     if: github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
-        with: { path: out, merge-multiple: true }
-      - run: ls -la out
+      - uses: actions/cache/restore@v4
+        with:
+          path: dist/JARVIS-Setup.exe
+          key: setup-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@v4
+        with:
+          path: mobile/JARVIS.apk
+          key: apk-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - run: mkdir -p out && cp dist/JARVIS-Setup.exe mobile/JARVIS.apk out/ && ls -la out
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.JARVIS_VERSION }}
