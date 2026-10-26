@@ -316,7 +316,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("div", { class: "btn-row" },
               h("button", { class: "btn sm", type: "button", onclick: () => client.send("sounds_folder", { open: true }) }, icon("folder-open"), "Otevřít složku"),
               h("button", { class: "btn sm", type: "button", onclick: () => { client.send("sounds_folder", { open: false }); toast("Zvuky načteny", "ok"); } }, icon("arrows-clockwise"), "Načíst")))),
-        characterCard()];
+        characterCard(), reactionStudio()];
     },
 
     dictation: () => {
@@ -628,7 +628,72 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
           select("character.outfit", "Šatník", OUTFITS.map((o) => [o, OUTFIT_LABEL[o]] as [string, string]),
-            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."))));
+            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."),
+          select("character.personality", "Povaha", [["vyvážený", "Vyvážená"], ["hravý", "Hravá – víc hraní a překvapení"],
+            ["klidný", "Klidná – méně pohybu"], ["profesionální", "Profesionální – žádné hraní"]],
+            "Jak živě se hýbe a jak často si sám pro sebe hraje, když nic neděláš."))),
+      sw("character.ambient", "Doplňky podle počasí a denní doby", "Deštník, když prší, vločka v zimě, ráno káva, v noci měsíc a tlumenější záře."));
+  }
+
+  /** OMEGA 750: the user's own reactions – when something happens, the character does this. */
+  function reactionStudio() {
+    const preview = new Character({ size: 90 });
+    preview.setColor(S.character?.color || "black", S.character?.glow || undefined);
+    preview.setOutfit(S.character?.outfit);
+    const list: any[] = (S.character?.reactions || []).map((r: any) => ({ ...r, look: { ...(r.look || {}) } }));
+    const save = () => set("character.reactions", list);
+    const EYE_OPTS: [string, string][] = [["wide", "Vykulené"], ["happy", "Šťastné"], ["open", "Otevřené"], ["lidded", "Přivřené"],
+      ["sad", "Smutné"], ["annoyed", "Naštvané"], ["pensive", "Zamyšlené"], ["closed", "Zavřené"]];
+    const MOTION_OPTS: [string, string][] = [["hop", "Poskočí"], ["shake", "Zatřese se"], ["dance", "Zatančí"], ["wobble", "Zakymácí se"],
+      ["spin", "Otočí se"], ["none", "Nic"]];
+    const WHEN_OPTS: [string, string][] = [["notify", "Přijde upozornění"], ["message", "Napíšu / řeknu"], ["mail", "Přijde e-mail"]];
+    const pick = (opts: [string, string][], cur: string, on: (v: string) => void, label: string) => {
+      const sel = h("select", { class: "input", "aria-label": label }, ...opts.map(([v, l]) => h("option", { value: v }, l))) as HTMLSelectElement;
+      sel.value = opts.some(([v]) => v === cur) ? cur : opts[0][0];
+      sel.onchange = () => on(sel.value);
+      return sel;
+    };
+    const input = (val: string, ph: string, on: (v: string) => void, label: string, type = "text") => {
+      const el = h("input", { class: "input", type, value: val ?? "", placeholder: ph, "aria-label": label }) as HTMLInputElement;
+      el.onchange = () => on(el.value);
+      return el;
+    };
+    const rows = list.map((r, i) => {
+      const look = r.look;
+      const upd = (k: string, v: unknown) => { r[k] = v; save(); };
+      const updLook = (k: string, v: unknown) => { look[k] = v; save(); };
+      const on = h("input", { type: "checkbox", role: "switch", "aria-label": "Zapnuto" }) as HTMLInputElement;
+      on.checked = r.enabled !== false;
+      on.onchange = () => upd("enabled", on.checked);
+      const tryIt = () => {
+        preview.play({ name: "custom", id: Date.now(), detail: look });
+        client.send("mood_set", { react: "custom", look });
+      };
+      return h("div", { class: "reaction-row" },
+        h("div", { class: "grid2" },
+          field("Název", input(r.name, "Např. Šéf píše", (v) => upd("name", v), "Název")),
+          field("Kdy", pick(WHEN_OPTS, r.when, (v) => upd("when", v), "Kdy"))),
+        field("Jen když obsahuje", input(r.match, "slova oddělená čárkou, prázdné = vždy", (v) => upd("match", v), "Slova"),
+          "Např. „Petr, faktura“. Nic jiného se z textu nepoužije.", true),
+        h("div", { class: "grid2" },
+          field("Oči", pick(EYE_OPTS, look.eyes, (v) => updLook("eyes", v), "Oči")),
+          field("Pohyb", pick(MOTION_OPTS, look.motion, (v) => updLook("motion", v), "Pohyb"))),
+        h("div", { class: "grid2" },
+          field("Ikona", input(look.icon, "star, heart, bell, coffee…", (v) => updLook("icon", v), "Ikona"), "Název ikony z Phosphor"),
+          field("Barva záře", input(look.color || DEFAULT_GLOW, "", (v) => updLook("color", v), "Barva", "color"))),
+        field("Délka (s)", input(String(look.seconds ?? 3), "3", (v) => updLook("seconds", Math.max(0.5, Math.min(15, Number(v) || 3))), "Délka", "number")),
+        h("div", { class: "row" },
+          h("label", { class: "switch" }, on, h("span")),
+          h("button", { class: "btn ghost", type: "button", onclick: tryIt }, icon("play"), "Vyzkoušet"),
+          h("button", { class: "btn ghost", type: "button", onclick: () => { list.splice(i, 1); save(); } }, icon("trash"), "Smazat")));
+    });
+    const add = h("button", { class: "btn", type: "button", onclick: () => {
+      list.push({ name: "Nová reakce", when: "notify", match: "", enabled: true, look: { eyes: "wide", icon: "star", motion: "hop", color: "", seconds: 3 } });
+      save();
+    } }, icon("plus"), "Přidat reakci");
+    return card("Vlastní reakce", "Když přijde upozornění, e-mail nebo zpráva s danými slovy, postavička udělá, co si tu nastavíš.",
+      h("div", { class: "char-row" }, preview.el, h("p", { class: "help" }, "Tlačítkem „Vyzkoušet“ si reakci přehraješ tady i v notchi.")),
+      ...rows, list.length ? null : h("p", { class: "help" }, "Zatím žádné."), h("div", { class: "row" }, add));
   }
 
   const searchInput = h("input", { class: "input", type: "search", placeholder: "Hledat v nastavení…", "aria-label": "Hledat v nastavení" }) as HTMLInputElement;

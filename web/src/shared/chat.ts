@@ -139,7 +139,7 @@ export class ChatView {
       this.renderHistory(m.history || []);
       this.setState(m.busy ? "thinking" : "idle");
       if (m.mood) this.emptyBlob?.setMood(m.mood.mood, m.mood);
-      if (m.settings?.character) { this.emptyBlob?.setColor(m.settings.character.color, m.settings.character.glow || undefined); this.emptyBlob?.setOutfit(m.settings.character.outfit); }
+      if (m.settings?.character) { this.emptyBlob?.setColor(m.settings.character.color, m.settings.character.glow || undefined); this.emptyBlob?.setOutfit(m.settings.character.outfit); this.emptyBlob?.setCharacter(m.settings.character); }
     });
     c.on("history", (m) => {
       if (m.prepend) this.prependHistory(m.messages);
@@ -153,7 +153,7 @@ export class ChatView {
       if (!m.final) this.statusLine.textContent = `„${m.text}“`;
     });
     c.on("state", (m) => this.setState(m.state));
-    c.on("mood", (m) => this.emptyBlob?.setMood(m.mood, { badge: m.badge, progress: m.progress }));
+    c.on("mood", (m) => this.emptyBlob?.setMood(m.mood, m));
     c.on("assistant_delta", (m) => this.delta(m.text));
     c.on("tool_start", (m) => this.toolStart(m));
     c.on("tool_end", (m) => this.toolEnd(m));

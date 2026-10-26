@@ -120,6 +120,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `assets_report` | 664 |
 | `audio_devices` | 105 |
 | `audio_highlights` | 364 |
+| `audio_state` | 073 |
 | `background_jobs` | 628 |
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
@@ -152,6 +153,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_translation` | 068 |
 | `citation_check` | 777 |
 | `claude_code` | 046 |
+| `clean_look` | 750 |
 | `clean_metadata` | 326 |
 | `clipboard_set` | 138 |
 | `code_owners` | 338 |

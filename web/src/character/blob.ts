@@ -1,6 +1,7 @@
 import "./blob.css";
 import { OUTFIT_SVG, resolveOutfit } from "./outfits";
 import { BODY_COLORS, EYES, LOOKS, type Accessory, type CharacterColor, type Eye, type Look, type Mood } from "./looks";
+import { PERSONALITY_ENERGY, ambientExtra, reactionPhases, type Ambient, type Phase, type Reaction } from "./reactions";
 
 export type { Mood, CharacterColor } from "./looks";
 export { MOODS, MOOD_LABEL } from "./looks";
@@ -39,6 +40,17 @@ export interface BlobOptions {
   trackCursor?: boolean;  // eyes follow the mouse inside this window
 }
 
+export interface MoodExtra {
+  badge?: number;
+  progress?: number | null;
+  reaction?: Reaction | null;   // a one-off reaction to play over the mood (played once per id)
+  secondary?: Mood | null;      // a second feeling blended into the eyes
+  ambient?: Ambient;            // time of day / weather props
+  [k: string]: unknown;         // the whole "mood" message can be passed as is
+}
+
+const CALM = new Set<Mood>(["idle", "closed", "hover", "expanded", "focus"]);
+
 export class Blob {
   el: HTMLElement;
   mood: Mood = "idle";
@@ -70,6 +82,14 @@ export class Blob {
   private grads: { light: SVGStopElement; mid: SVGStopElement; dark: SVGStopElement };
   private glowColor = "";
   private cuts: { cut: SVGEllipseElement; side: 1 | -1 }[] = [];
+  private fx: HTMLElement;
+  private reaction: { phases: Phase[]; start: number; idx: number } | null = null;
+  private lastReaction = -1;
+  private secondary: Mood | null = null;
+  private ambient: Ambient | undefined;
+  private ambientOn = true;
+  private energy = 1;
+  private fxHtml = "";
 
   constructor(opts: BlobOptions = {}) {
     const uid = `b${++uidSeq}`;
@@ -135,7 +155,9 @@ export class Blob {
 
     this.acc = document.createElement("div");
     this.acc.className = "blob-acc";
-    this.el.append(svg, this.acc);
+    this.fx = document.createElement("div");
+    this.fx.className = "blob-acc blob-fx";
+    this.el.append(svg, this.acc, this.fx);
 
     this.setColor(opts.color ?? "black", opts.glow);
     if (opts.trackCursor !== false) window.addEventListener("pointermove", this.onPointer, { passive: true });
@@ -144,9 +166,12 @@ export class Blob {
   }
 
   // ---------- public API ----------
-  setMood(m: Mood, extra: { badge?: number; progress?: number | null } = {}) {
+  setMood(m: Mood, extra: MoodExtra = {}) {
     if (extra.badge !== undefined) this.badge = extra.badge;
     if (extra.progress !== undefined) this.progress = extra.progress;
+    if (extra.secondary !== undefined) this.secondary = extra.secondary && extra.secondary in LOOKS ? extra.secondary : null;
+    if (extra.ambient !== undefined) this.ambient = extra.ambient;
+    if (extra.reaction && extra.reaction.id !== this.lastReaction) this.play(extra.reaction);
     if (m !== this.mood) {
       this.mood = m;
       this.look = LOOKS[m] ?? LOOKS.idle;
@@ -156,6 +181,68 @@ export class Blob {
     } else {
       this.updateDynamic();
     }
+    this.renderFx();
+  }
+
+  /** Play a one-off reaction over the current mood (OMEGA 72 / 73 / 74 / 81 / 738 / 746 / 747 / 749 / 750). */
+  play(r: Reaction) {
+    this.lastReaction = r.id;
+    const phases = reactionPhases(r);
+    if (!phases.length) return;
+    this.reaction = { phases, start: performance.now(), idx: 0 };
+    this.el.dataset.reaction = r.name;
+    this.renderAccessories();
+    this.renderFx();
+  }
+
+  /** How lively he is (OMEGA 242) and whether he wears weather / time-of-day props (739 / 740 / 741). */
+  setCharacter(o: { personality?: string; ambient?: boolean }) {
+    if (o.personality !== undefined) this.energy = PERSONALITY_ENERGY[o.personality] ?? 1;
+    if (o.ambient !== undefined) this.ambientOn = o.ambient;
+    this.renderFx();
+  }
+
+  /** The look in effect right now: the mood, or the running reaction's phase over it. */
+  private current(now: number): Look & { spin?: boolean } {
+    const r = this.reaction;
+    if (!r) return this.look;
+    const since = (now - r.start) / 1000;
+    let idx = r.phases.findIndex((p) => since < p.until);
+    if (idx < 0) {
+      this.reaction = null;
+      delete this.el.dataset.reaction;
+      this.renderAccessories();
+      this.renderFx();
+      return this.look;
+    }
+    if (idx !== r.idx) {
+      r.idx = idx;
+      this.renderAccessories();
+      this.renderFx();
+    }
+    return this.phaseLook();
+  }
+
+  private phaseLook(): Look & { spin?: boolean } {
+    const ph = this.reaction?.phases[this.reaction.idx]?.look;
+    return ph ? { ...this.look, ...ph, accessories: ph.accessories ?? this.look.accessories } : this.look;
+  }
+
+  /** The reaction's own prop, or the ambient props while he is calm. */
+  private renderFx() {
+    let html = "", cls = "";
+    if (this.reaction) {
+      html = this.reaction.phases[this.reaction.idx]?.extra ?? "";
+      cls = `fx-${this.el.dataset.reaction}`;
+    } else if (this.ambientOn && CALM.has(this.mood)) {
+      html = ambientExtra(this.ambient);
+      cls = "fx-ambient";
+    }
+    const key = cls + html;
+    if (key === this.fxHtml) return;
+    this.fxHtml = key;
+    this.fx.className = `blob-acc blob-fx ${cls}`;
+    this.fx.innerHTML = html ? `<div class="acc fx">${html}</div>` : "";
   }
 
   setLevel(rms: number) {
@@ -215,7 +302,7 @@ export class Blob {
     if (reducedMotion()) return 10;
     const calm = this.mood === "idle" || this.mood === "closed" || this.mood === "sleeping" || this.mood === "focus";
     const pointerStill = !this.cursor || now - this.cursor.t > 3000;
-    return calm && pointerStill ? 20 : 0;
+    return calm && pointerStill && !this.reaction ? 20 : 0;
   }
   private detachedSince = 0;
 
@@ -241,7 +328,8 @@ export class Blob {
       return d;
     };
     const icon = (name: string, weight = "fill") => `<i class="ph${weight === "fill" ? "-fill" : weight === "bold" ? "-bold" : ""} ph-${name}"></i>`;
-    for (const acc of this.look.accessories as Accessory[]) {
+    const look = this.phaseLook();
+    for (const acc of look.accessories as Accessory[]) {
       switch (acc) {
         case "waves":
           for (const side of ["l", "r"]) {
@@ -322,13 +410,17 @@ export class Blob {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     const k = 1 - Math.exp(-dt * 12);
-    const look = this.look;
+    const look = this.current(now);
     const reduce = reducedMotion();
     const t = now / 1000;
 
     // eyes: morph toward the mood's shape, blink, gaze
+    // OMEGA 736: a second feeling tints the eyes a little (unless a reaction is playing)
     const target = EYES[look.eyes];
-    for (const key of ["w", "h", "top", "bottom", "tilt", "cut"] as const) this.eye[key] = lerp(this.eye[key], target[key], k);
+    const sec = !this.reaction && this.secondary && this.secondary !== this.mood ? EYES[LOOKS[this.secondary].eyes] : null;
+    for (const key of ["w", "h", "top", "bottom", "tilt", "cut"] as const) {
+      this.eye[key] = lerp(this.eye[key], sec ? lerp(target[key], sec[key], 0.3) : target[key], k);
+    }
     if (look.blink && now > this.nextBlink && !reduce) {
       this.blinkUntil = now + 130;
       this.nextBlink = now + 2800 + Math.random() * 4500 + (Math.random() < 0.15 ? -2600 : 0); // sometimes double-blink
@@ -368,10 +460,11 @@ export class Blob {
 
     // body motion
     this.level *= Math.exp(-dt * 6);
-    const since = (now - this.moodStart) / 1000;
-    let y = 0, sx = 1, sy = 1, rot = look.tilt;
+    const since = (now - (this.reaction ? this.reaction.start : this.moodStart)) / 1000;
+    const en = this.energy;
+    let y = 0, sx = 1, sy = 1, rot = look.tilt, spin = 0;
     if (!reduce) {
-      y += Math.sin(t * Math.PI * 2 * look.bobSpeed) * look.bob;
+      y += Math.sin(t * Math.PI * 2 * look.bobSpeed) * look.bob * Math.min(1.3, en);
       const breath = 1 + Math.sin(t * Math.PI * 2 * look.bobSpeed) * 0.012;
       sx *= breath;
       sy /= breath;
@@ -379,18 +472,19 @@ export class Blob {
       if (look.dance) {
         const beat = t * 2; // 120 BPM
         const ph = beat % 1;
-        y -= Math.abs(Math.sin(beat * Math.PI)) * 9;
+        y -= Math.abs(Math.sin(beat * Math.PI)) * 9 * Math.max(0.5, en);
         sy *= ph < 0.15 ? 0.9 : 1;
         sx *= ph < 0.15 ? 1.08 : 1;
         rot += Math.sin(beat * Math.PI) * 8;
       }
       if (look.hop) {
         const ph = (since % 1.3) / 1.3;
-        if (ph < 0.4) y -= Math.sin((ph / 0.4) * Math.PI) * 16;
+        if (ph < 0.4) y -= Math.sin((ph / 0.4) * Math.PI) * 16 * Math.max(0.5, en);
         if (ph > 0.38 && ph < 0.48) { sy *= 0.9; sx *= 1.08; }
       }
       if (look.shake && since < 0.6) rot += Math.sin(since * 40) * 7 * (1 - since / 0.6);
       if (look.wobble) { rot += Math.sin(t * 5) * 9; y += Math.sin(t * 10) * 1.5; }
+      if (look.spin) spin = clamp(since / 1.2, 0, 1) * 360;
     }
     const sq = look.squash;
     sx *= Math.sqrt(sq);
@@ -398,10 +492,12 @@ export class Blob {
     this.body.bob = lerp(this.body.bob, y, 0.5);
     this.body.squash = lerp(this.body.squash, sx / sy, k);
     this.body.tilt = lerp(this.body.tilt, rot, look.dance || look.shake ? 0.6 : k);
-    this.body.glow = lerp(this.body.glow, look.glow + (look.audio ? this.level * 0.3 : 0), k);
+    // OMEGA 740: softer glow at night while he is calm
+    const night = this.ambientOn && this.ambient?.part === "night" && CALM.has(this.mood) && !this.reaction ? 0.75 : 1;
+    this.body.glow = lerp(this.body.glow, look.glow * night + (look.audio ? this.level * 0.3 : 0), k);
     this.body.dim = lerp(this.body.dim, look.dim ?? 0, k);
     this.svgBody.setAttribute("transform",
-      `translate(0 ${this.body.bob.toFixed(2)}) rotate(${this.body.tilt.toFixed(2)} 100 175) translate(100 175) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-100 -175)`);
+      `${spin ? `rotate(${spin.toFixed(1)} 100 112) ` : ""}translate(0 ${this.body.bob.toFixed(2)}) rotate(${this.body.tilt.toFixed(2)} 100 175) translate(100 175) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(-100 -175)`);
     this.shadow.setAttribute("rx", String(130 * (1 + Math.min(0, this.body.bob) / 60)));
     this.eyesG.style.opacity = look.noEyes ? "0" : "1";
     this.el.style.setProperty("--blob-glow-a", this.body.glow.toFixed(3));

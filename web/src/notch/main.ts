@@ -43,7 +43,7 @@ if (window.pywebview) document.documentElement.classList.add("native");
 let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6 };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
-let moodInfo: { badge?: number; progress?: number | null; detail?: string } = {};
+let moodInfo: { badge?: number; progress?: number | null; detail?: string; reaction?: any; secondary?: any; ambient?: any } = {};
 let hovering = false;
 let pinned = false;      // the pin button (stays open, also after a restart)
 let holding = false;     // you are writing in the panel's chat
@@ -247,7 +247,8 @@ function displayMood(): Mood {
   return coreMood;
 }
 function updateBlob() {
-  blob.setMood(displayMood(), { badge: moodInfo.badge, progress: moodInfo.progress ?? null });
+  blob.setMood(displayMood(), { badge: moodInfo.badge, progress: moodInfo.progress ?? null, reaction: moodInfo.reaction,
+    secondary: moodInfo.secondary ?? null, ambient: moodInfo.ambient });
   shape.dataset.mood = displayMood();
 }
 
@@ -545,7 +546,7 @@ client.on("welcome", (m) => {
   cfg = { ...cfg, ...(m.settings?.notch || {}) };
   if (!m.settings?.notch?.expanded_width || m.settings.notch.expanded_width < 900) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
   const ch = m.settings?.character;
-  if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); }
+  if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   upd = m.update;
   paintUpdate();
   media = m.media || {};
@@ -562,7 +563,7 @@ client.on("settings_changed", (m) => {
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
-  if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); }
+  if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
 
 });
 client.on("mood", onMood);

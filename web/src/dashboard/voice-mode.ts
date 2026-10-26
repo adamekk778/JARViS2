@@ -37,7 +37,7 @@ export function buildVoiceMode(client: JarvisClient) {
   };
   client.on("mood", (m) => {
     mood = m.mood;
-    face.setMood(m.mood, { badge: m.badge, progress: m.progress });
+    face.setMood(m.mood, m);
     state.textContent = LABEL[m.mood] || "Klepni na mikrofon nebo řekni „Hey Jarvis“.";
     talk.classList.toggle("on", m.mood === "listening");
   });
@@ -47,7 +47,7 @@ export function buildVoiceMode(client: JarvisClient) {
   client.on("user_message", (m) => { you.textContent = m.text ? `„${m.text}“` : ""; answer.textContent = ""; });
   client.on("assistant_delta", (m) => { answer.textContent += m.text; });
   client.on("assistant_done", (m) => { answer.textContent = String(m.text || "").replace(/[*_#`>]/g, ""); });
-  client.on("welcome", (m) => { if (m.settings?.character) face.setColor(m.settings.character.color, m.settings.character.glow || undefined); });
+  client.on("welcome", (m) => { if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setCharacter(m.settings.character); } });
 
   const el = h("section", { class: "voice-mode" },
     h("div", { class: "vm-stage" }, face.el), canvas, state, you, answer,

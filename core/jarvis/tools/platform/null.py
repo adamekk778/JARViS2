@@ -28,6 +28,7 @@ class NullPlatform(Platform):
     def set_volume(self, level): self._rec("set_volume", level); self.volume = level
     def set_mute(self, mute): self._rec("set_mute", mute); self.muted = mute
     def duck_audio(self, level): self._rec("duck_audio", level)
+    def audio_state(self): return getattr(self, "volume", None), getattr(self, "muted", None)
     def window_action(self, action, title=""): self._rec("window_action", action, title); return title or action
     def list_windows(self): return ["Spotify", "YouTube - Edge"]
     def power(self, action): self._rec("power", action)

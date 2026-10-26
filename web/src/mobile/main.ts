@@ -150,12 +150,12 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     asks = m.claude_pending || [];
     paintAsks();
     applyAppearance(m.settings);
-    face.setMood(m.mood?.mood || "idle");
-    if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); }
+    face.setMood(m.mood?.mood || "idle", m.mood || {});
+    if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); face.setCharacter(m.settings.character); }
   });
   c.on("settings_changed", (m) => applyAppearance(m.settings));
   c.on("mood", (m) => {
-    face.setMood(m.mood, { badge: m.badge, progress: m.progress });
+    face.setMood(m.mood, m);
     stop.hidden = !["listening", "thinking", "working", "speaking", "waiting"].includes(m.mood);
   });
   c.on("stopped", () => { toast("Zastaveno.", "ok"); native.haptic(); });

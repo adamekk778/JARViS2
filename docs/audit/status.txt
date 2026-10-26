@@ -842,3 +842,21 @@
 131 | HOTOVO | extract_clips: nejživější momenty jako samostatná krátká videa (ve frontě)
 134 | HOTOVO | animate_elements: logo, obrázky a texty s příjezdem, zvětšením, vyblednutím → MP4
 135 | HOTOVO | social_formats (obrázky, vlna 26) + reframe_video (video na 9:16 / 1:1 / 4:5)
+
+# Vlna 32 – postavička reaguje na svět (mood.py reakce + character/reactions.ts, tests/test_wave32.py)
+072 | HOTOVO | protažení po probuzení PC: skok nástěnných hodin proti monotónním (mood.tick) → reakce „stretch“ (zívne, protáhne se, poskočí)
+073 | HOTOVO | reakce na změnu hlasitosti: platform.audio_state každých 1,5 s (pycaw) → ukazatel hlasitosti u postavičky
+074 | ČÁSTEČNĚ | animace kopírování, když JARVIS kopíruje / přesouvá / zálohuje / balí soubory; kopírování v Průzkumníku nevidí
+081 | HOTOVO | reakce na připojení a odpojení zařízení (strážce hardwaru → plug / unplug)
+082 | HOTOVO | sezónní oblečky (Vánoce, Halloween, Silvestr, léto) + doplňky podle počasí a denní doby
+242 | HOTOVO | povaha postavičky: vyvážená / hravá / klidná / profesionální (síla pohybu, četnost hraní a překvapení)
+254 | ČÁSTEČNĚ | editor reakcí: oči, pohyb, ikona, barva, délka, náhled; animace po snímcích (keyframy) ne
+736 | HOTOVO | míchání výrazů: druhá nálada se ze 30 % propíše do očí (thinking + success apod.)
+738 | HOTOVO | reakce na ztlumení a zrušení ztlumení zvuku
+739 | HOTOVO | doplňky podle počasí: deštník (déšť, bouřka), vločka (sníh, mráz), slunce (horko) – Open-Meteo každých 30 min
+740 | HOTOVO | doplňky podle denní doby: ráno káva, v noci měsíc
+741 | ČÁSTEČNĚ | v noci tlumenější záře; skutečný senzor okolního světla se nečte
+746 | HOTOVO | velikonoční vajíčka: „barrel roll“, „smysl života“ (42), „mrkni“, „žongluj“ + vzácná náhodná překvapení
+747 | HOTOVO | hračky při nečinnosti (míč, jojo, vlaštovka, bublina), nejvýš jednou za 15 min, ne když spí nebo pracuje
+749 | HOTOVO | animace přepnutí AI poskytovatele (název nového se ukáže pod postavičkou)
+750 | HOTOVO | studio vlastních reakcí: kdy (upozornění / zpráva / e-mail), na jaká slova, co udělá; hodnoty se čistí (clean_look)

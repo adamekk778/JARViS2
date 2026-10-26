@@ -162,11 +162,23 @@ class MemoryCfg(BaseModel):
     embed_model: str = ""        # OMEGA 038: a LOCAL Ollama embedding model for search by meaning ("" = any installed one)
 
 
+class CustomReaction(BaseModel):
+    """OMEGA 750: the user's own reaction – when it happens and what the character does."""
+    name: str = ""
+    when: Literal["notify", "message", "mail"] = "notify"
+    match: str = ""                  # comma-separated words; empty = always
+    enabled: bool = True
+    look: dict = Field(default_factory=lambda: {"eyes": "wide", "icon": "star", "motion": "hop", "color": "", "seconds": 3})
+
+
 class Character(BaseModel):
     color: Literal["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] = "black"
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
     outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] = "auto"
     size: Literal["S", "M", "L"] = "M"
+    personality: Literal["vyvážený", "hravý", "klidný", "profesionální"] = "vyvážený"   # OMEGA 242: how lively he is
+    ambient: bool = True      # OMEGA 739–741: accessories by weather and time of day, dimmer at night
+    reactions: list[CustomReaction] = Field(default_factory=list)
     pet_mode: bool = False    # 3.1: the desktop pet was removed; always False
 
     @model_validator(mode="before")
@@ -430,7 +442,8 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.speak_mode", "voice.stt_language", "voice.followup",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
     "appearance.theme", "appearance.accent", "appearance.animations",
-    "character.color", "character.glow", "character.size", "character.outfit", "agent.mode",
+    "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
+    "agent.mode",
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "automations.enabled",

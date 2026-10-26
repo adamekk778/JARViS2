@@ -958,7 +958,13 @@ class Connection:
             if rt.voice:
                 rt.voice.push_to_talk()
         elif t == "mood_set":
-            if m.get("clear") == "notify":
+            from ..mood import REACTION_TTL, clean_look
+
+            if m.get("react") in REACTION_TTL:              # preview from the reaction studio / character settings
+                look = clean_look(m.get("look")) if m["react"] == "custom" else (m.get("look") if isinstance(m.get("look"), dict) else {})
+                rt.mood.react(m["react"], look, look.get("seconds") if m["react"] == "custom" else None)
+                rt.mood._emit()
+            elif m.get("clear") == "notify":
                 rt.mood.clear_notify()
             else:
                 rt.mood.set_manual(m.get("mood"))

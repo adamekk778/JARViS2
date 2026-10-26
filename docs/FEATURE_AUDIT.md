@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 443 | 74 |
-| 🟡 ČÁSTEČNĚ | 164 | 59 |
+| ✅ HOTOVO | 456 | 74 |
+| 🟡 ČÁSTEČNĚ | 167 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 154 | 16 |
+| ⬜ CHYBÍ | 138 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -134,22 +134,22 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 07. Mochi 2.0
 
-✅ 3 · 🟡 2 · ⬜ 10
+✅ 7 · 🟡 3 · ⬜ 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 071 | Oči sledující kurzor. | ✅ HOTOVO | oči sledují kurzor (character/blob.ts lookAt) |
-| 072 | Protažení při probuzení PC. | ⬜ CHYBÍ | — |
-| 073 | Reakce na změnu hlasitosti. | ⬜ CHYBÍ | — |
-| 074 | Animace při kopírování souborů. | ⬜ CHYBÍ | — |
+| 072 | Protažení při probuzení PC. | ✅ HOTOVO | protažení po probuzení PC: skok nástěnných hodin proti monotónním (mood.tick) → reakce „stretch“ (zívne, protáhne se, poskočí) |
+| 073 | Reakce na změnu hlasitosti. | ✅ HOTOVO | reakce na změnu hlasitosti: platform.audio_state každých 1,5 s (pycaw) → ukazatel hlasitosti u postavičky |
+| 074 | Animace při kopírování souborů. | 🟡 ČÁSTEČNĚ | animace kopírování, když JARVIS kopíruje / přesouvá / zálohuje / balí soubory; kopírování v Průzkumníku nevidí |
 | 075 | Pravdivá vizualizace stahování. | 🟡 ČÁSTEČNĚ | pravdivý průběh stahování aktualizace (mood update_progress) |
 | 076 | Oslava dokončeného úkolu. | ✅ HOTOVO | radost po ověřené misi / úspěchu (mood.py joy/success, tests/test_omega.py) |
 | 077 | Nenápadná nabídka přestávky. | ✅ HOTOVO | připomínka pauzy po N minutách u PC (powers.py break_minutes) |
 | 078 | Schovávání za okraj ostrova. | ⬜ CHYBÍ | — |
 | 079 | Interaktivní rozdělení Mochiho. | ⬜ CHYBÍ | — |
 | 080 | Drobné minihry s Mochem. | ⬜ CHYBÍ | — |
-| 081 | Reakce na připojení zařízení. | ⬜ CHYBÍ | — |
-| 082 | Sezónní drobné animace. | ⬜ CHYBÍ | — |
+| 081 | Reakce na připojení zařízení. | ✅ HOTOVO | reakce na připojení a odpojení zařízení (strážce hardwaru → plug / unplug) |
+| 082 | Sezónní drobné animace. | ✅ HOTOVO | sezónní oblečky (Vánoce, Halloween, Silvestr, léto) + doplňky podle počasí a denní doby |
 | 083 | Animovaný cross-device handoff. | ⬜ CHYBÍ | — |
 | 084 | Kontextové zjevení vedle okna. | ⬜ CHYBÍ | — |
 | 085 | Nastavitelná historie reakcí. | 🟡 ČÁSTEČNĚ | historie úkolů a mise; samostatná historie reakcí chybí |
@@ -409,12 +409,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 22. Mochi Ultra
 
-✅ 9 · 🟡 3 · ⬜ 3
+✅ 10 · 🟡 4 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 241 | Emotion Animation Library — knihovna expresí. | ✅ HOTOVO | nálady postavičky (mood.py PRIORITY) |
-| 242 | Personality Presets — styly osobnosti. | ⬜ CHYBÍ | — |
+| 242 | Personality Presets — styly osobnosti. | ✅ HOTOVO | povaha postavičky: vyvážená / hravá / klidná / profesionální (síla pohybu, četnost hraní a překvapení) |
 | 243 | Mood Transitions — plynulé stavy. | ✅ HOTOVO | plynulé přechody nálad |
 | 244 | Music Beat Animation — synchronizace rytmu. | 🟡 ČÁSTEČNĚ | tančí, když hraje hudba (bez synchronizace rytmu) |
 | 245 | Physics-Based Movement — pružné pohyby. | ✅ HOTOVO | pružná fyzika postavičky |
@@ -426,7 +426,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 251 | Tiny Expressions — jemná mimika. | ✅ HOTOVO | mikrointerakce a výrazy (character/looks.ts) |
 | 252 | Mascot Soundboard — krátké zvuky. | ✅ HOTOVO | vlastní zvuky (sounds) |
 | 253 | Multiple Mochi Skins — konzistentní varianty vzhledu. | 🟡 ČÁSTEČNĚ | barvy postavičky |
-| 254 | Mochi Animation Editor — editor animací. | ⬜ CHYBÍ | — |
+| 254 | Mochi Animation Editor — editor animací. | 🟡 ČÁSTEČNĚ | editor reakcí: oči, pohyb, ikona, barva, délka, náhled; animace po snímcích (keyframy) ne |
 | 255 | Mochi Performance Mode — výkonově úsporný režim. | 🟡 ČÁSTEČNĚ | vypnutí animací |
 
 ## 23. Voice & Audio Intelligence
@@ -1135,25 +1135,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 55. Mochi Reactive Companion
 
-✅ 4 · 🟡 1 · ⬜ 10
+✅ 12 · 🟡 2 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 736 | Expression Blending — spojování výrazů. | ⬜ CHYBÍ | — |
+| 736 | Expression Blending — spojování výrazů. | ✅ HOTOVO | míchání výrazů: druhá nálada se ze 30 % propíše do očí (thinking + success apod.) |
 | 737 | Real Task Emotions — stavové animace. | ✅ HOTOVO | nálady podle skutečných událostí (mood.py) |
-| 738 | Mute Awareness — reakce na ztlumení. | ⬜ CHYBÍ | — |
-| 739 | Weather Accessories — doplňky dle počasí. | ⬜ CHYBÍ | — |
-| 740 | Time-Based Outfits — doplňky dle času. | ⬜ CHYBÍ | — |
-| 741 | Ambient Light Adaptation — adaptace jasu. | ⬜ CHYBÍ | — |
+| 738 | Mute Awareness — reakce na ztlumení. | ✅ HOTOVO | reakce na ztlumení a zrušení ztlumení zvuku |
+| 739 | Weather Accessories — doplňky dle počasí. | ✅ HOTOVO | doplňky podle počasí: deštník (déšť, bouřka), vločka (sníh, mráz), slunce (horko) – Open-Meteo každých 30 min |
+| 740 | Time-Based Outfits — doplňky dle času. | ✅ HOTOVO | doplňky podle denní doby: ráno káva, v noci měsíc |
+| 741 | Ambient Light Adaptation — adaptace jasu. | 🟡 ČÁSTEČNĚ | v noci tlumenější záře; skutečný senzor okolního světla se nečte |
 | 742 | Accessibility Animation Mode — omezený pohyb. | ✅ HOTOVO | omezení animací |
 | 743 | Soft Body Physics — pružná fyzika. | ⬜ CHYBÍ | — |
 | 744 | Code Error Confusion — reakce na chybu buildu. | 🟡 ČÁSTEČNĚ | nálada chyba při selhání |
 | 745 | Test Success Celebration — oslava testu. | ✅ HOTOVO | radost po ověřené misi |
-| 746 | Rare Easter Eggs — překvapivé animace. | ⬜ CHYBÍ | — |
-| 747 | Idle Toys — hračky při nečinnosti. | ⬜ CHYBÍ | — |
+| 746 | Rare Easter Eggs — překvapivé animace. | ✅ HOTOVO | velikonoční vajíčka: „barrel roll“, „smysl života“ (42), „mrkni“, „žongluj“ + vzácná náhodná překvapení |
+| 747 | Idle Toys — hračky při nečinnosti. | ✅ HOTOVO | hračky při nečinnosti (míč, jojo, vlaštovka, bublina), nejvýš jednou za 15 min, ne když spí nebo pracuje |
 | 748 | AI Limit Reaction — limit modelu. | ✅ HOTOVO | reakce na limit AI (mood limit) |
-| 749 | Model Switching Animation — změna AI. | ⬜ CHYBÍ | — |
-| 750 | Custom Reaction Studio — editor reakcí. | ⬜ CHYBÍ | — |
+| 749 | Model Switching Animation — změna AI. | ✅ HOTOVO | animace přepnutí AI poskytovatele (název nového se ukáže pod postavičkou) |
+| 750 | Custom Reaction Studio — editor reakcí. | ✅ HOTOVO | studio vlastních reakcí: kdy (upozornění / zpráva / e-mail), na jaká slova, co udělá; hodnoty se čistí (clean_look) |
 
 ## 56. Futuristic JARVIS Interface
 

@@ -188,19 +188,19 @@ client.onStatus((s) => {
 });
 client.on("welcome", (m) => {
   applyAppearance(m.settings);
-  face.setMood(m.mood?.mood || "idle");
+  face.setMood(m.mood?.mood || "idle", m.mood || {});
   lastSettings = m.settings;
   statusText.textContent = moodText(m.mood?.mood || "idle");
   versionText.textContent = m.version ? `JARVIS ${m.version}` : "";
   greet(m.settings?.general?.address_as || m.settings?.general?.user_name);
-  if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); }
+  if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); face.setCharacter(m.settings.character); }
   brainChip.lastChild!.textContent = m.brain ? `${m.brain[0]} · ${m.brain[1]}` : (m.settings?.brain?.chain?.[0] ?? "AI");
   voiceBtn.classList.toggle("on", !!m.voice?.listening);
   voiceBtn.hidden = !m.voice?.available;
 });
-client.on("settings_changed", (m) => { lastSettings = m.settings; statusText.textContent = moodText(lastMood); applyAppearance(m.settings); if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); } });
+client.on("settings_changed", (m) => { lastSettings = m.settings; statusText.textContent = moodText(lastMood); applyAppearance(m.settings); if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); face.setCharacter(m.settings.character); } });
 client.on("mood", (m) => {
-  face.setMood(m.mood, { badge: m.badge, progress: m.progress });
+  face.setMood(m.mood, m);
   stopBtn.hidden = !BUSY.includes(m.mood);
   statusText.textContent = moodText(m.mood);
   statusText.dataset.busy = String(BUSY.includes(m.mood));

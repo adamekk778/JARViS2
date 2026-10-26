@@ -162,6 +162,9 @@ class WindowsPlatform(Platform):
     def set_mute(self, mute: bool) -> None:
         self._com(lambda ep: ep.SetMute(1 if mute else 0, None))
 
+    def audio_state(self) -> tuple[int | None, bool | None]:
+        return self._com(lambda ep: (round(ep.GetMasterVolumeLevelScalar() * 100), bool(ep.GetMute())))
+
     def duck_audio(self, level: float | None) -> None:
         """OMEGA 99: every other program's audio session down to `level` × its own volume; None puts each back to
         exactly what it was (a session the user changed meanwhile is left alone)."""
