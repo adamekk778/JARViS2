@@ -708,3 +708,17 @@
 539 | HOTOVO | privacy_report: známé sledovací služby, cizí domény, cookies před souhlasem, dlouhodobé cookies, úložiště → hodnocení
 535 | HOTOVO | subscriptions_overview: pravidelné platby z e-mailových účtenek, měsíčně / ročně, další platba, zdražení, zrušené
 540 | ČÁSTEČNĚ | pokračování práce = uložená relace karet s poznámkou + uložené postupy; automatické navázání v jiném zařízení ne
+
+# Vlna 22 (3.10): hardwarové incidenty a provoz webů – hwops.py, tools/hwops_tools.py, tests/test_wave22.py (na Windows i skutečné sondy)
+691 | ČÁSTEČNĚ | usb_check: zařízení s chybou 43/10 (typicky napájení) + události resetu / přepětí portu a rady; měření proudu na portu Windows nedává
+692 | HOTOVO | usb_check: strom řadič → rozbočovač → zařízení (DEVPKEY_Device_Parent), problémové kódy
+695 | HOTOVO | disk_errors: NVMe i SATA – stav, teplota, opotřebení, neopravitelné chyby, firmware, sériové číslo, události řadiče
+696 | HOTOVO | disk_errors: log disků (vadný blok, opakování, reset řadiče, NTFS) po discích a v čase
+699 | HOTOVO | disk_copy_plan: nic nezapisovat na zdroj, nejcennější složky přes robocopy s přeskakováním vadných míst, obraz disku, když cíl stačí
+701 | HOTOVO | disk_errors: mapa chyb čtení podle LBA z událostí disku (40 polí přes celý povrch)
+705 | HOTOVO | hardware_report: protokol pro servis (model, sériové číslo, BIOS, disky, události, USB, další zjištění) jako soubor se SHA-256
+712 | HOTOVO | hosting_health: DNS, MX/SPF/DMARC, certifikát, http→https, bezpečnostní hlavičky, rychlost, stav
+713 | HOTOVO | explore_logs: sloučení logů, filtr úrovně / času / vzoru, seskupení opakovaných chyb podle podoby, první a poslední výskyt
+714 | HOTOVO | deploy_diff: přidané / odebrané / změněné soubory a rozdíly konfigurace s maskovanými hesly
+716 | HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy
+720 | HOTOVO | outage_timeline: historie kontrol, dostupnost v %, výpadky s délkou

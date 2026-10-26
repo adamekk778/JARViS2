@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "hard-drives", title: "Servisní technik", line: "Kde na disku jsou vadná místa, které USB zařízení zlobí kvůli napájení, jak zachránit data z umírajícího disku a protokol pro servis. A u webů: certifikát, e-mailové záznamy, výpadky, logy a zálohy." },
     { icon: "browsers", title: "Chytrý prohlížeč", line: "Nahraj postup na webu a JARVIS ho zopakuje (hesla nikdy neukládá), odmítne cookies, ukáže kdo tě sleduje, ověří stahovaný soubor a spočítá, kolik platíš za předplatná." },
     { icon: "plugs-connected", title: "Připoj jakékoli API", line: "Dej JARVISovi popis API (OpenAPI) a ptej se běžnou řečí – čtení hned, změny jen po potvrzení. Klíče v trezoru Windows, hlídání vypršení a limitů, převod a slučování dat." },
     { icon: "books", title: "Tvoje dokumenty", line: "„Zaindexuj složku Dokumenty“ a pak se ptej: JARVIS odpoví jen z tvých smluv, PDF a poznámek a u každé věty řekne, odkud je. Plus test rychlosti a přesnosti místních modelů." },

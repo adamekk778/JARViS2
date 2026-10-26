@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 342 | 74 |
-| 🟡 ČÁSTEČNĚ | 151 | 58 |
+| ✅ HOTOVO | 353 | 74 |
+| 🟡 ČÁSTEČNĚ | 152 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 268 | 17 |
+| ⬜ CHYBÍ | 256 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -1069,29 +1069,29 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 52. Advanced Hardware Rescue
 
-✅ 3 · 🟡 4 · 🔌 1 · ⬜ 7
+✅ 9 · 🟡 5 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 691 | USB Power Diagnostics — napájení USB. | ⬜ CHYBÍ | — |
-| 692 | USB Controller Mapping — řadiče USB. | ⬜ CHYBÍ | — |
+| 691 | USB Power Diagnostics — napájení USB. | 🟡 ČÁSTEČNĚ | usb_check: zařízení s chybou 43/10 (typicky napájení) + události resetu / přepětí portu a rady; měření proudu na portu Windows nedává |
+| 692 | USB Controller Mapping — řadiče USB. | ✅ HOTOVO | usb_check: strom řadič → rozbočovač → zařízení (DEVPKEY_Device_Parent), problémové kódy |
 | 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | 🟡 ČÁSTEČNĚ | rada u disků v USB rámečku a opakovaného odpojování |
 | 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | 🟡 ČÁSTEČNĚ | rozpoznání USB rámečku podle názvu (JMicron, ASMedia, Realtek…) |
-| 695 | NVMe Enumeration Inspector — enumerace NVMe. | ⬜ CHYBÍ | — |
-| 696 | SATA Error Log Reader — SATA logy. | ⬜ CHYBÍ | — |
+| 695 | NVMe Enumeration Inspector — enumerace NVMe. | ✅ HOTOVO | disk_errors: NVMe i SATA – stav, teplota, opotřebení, neopravitelné chyby, firmware, sériové číslo, události řadiče |
+| 696 | SATA Error Log Reader — SATA logy. | ✅ HOTOVO | disk_errors: log disků (vadný blok, opakování, reset řadiče, NTFS) po discích a v čase |
 | 697 | SMART Passthrough Tester — SMART přes USB. | 🔌 VYŽADUJE_INTEGRACI | plný SMART přes smartctl, když je nainstalovaný smartmontools (rescue.smart_data) |
 | 698 | Invisible Disk Triage — disky nedetekované systémem. | 🟡 ČÁSTEČNĚ | disky offline / RAW / bez oddílů (Get-Disk) |
-| 699 | Read-Only Imaging Planner — image dat v read-only režimu. | ⬜ CHYBÍ | — |
+| 699 | Read-Only Imaging Planner — image dat v read-only režimu. | ✅ HOTOVO | disk_copy_plan: nic nezapisovat na zdroj, nejcennější složky přes robocopy s přeskakováním vadných míst, obraz disku, když cíl stačí |
 | 700 | Clone Verification Assistant — integrita klonu. | ✅ HOTOVO | verify_copy: SHA-256 každého souboru, chybějící a odlišné |
-| 701 | Read Error Heatmap — vadné oblasti dle logů. | ⬜ CHYBÍ | — |
+| 701 | Read Error Heatmap — vadné oblasti dle logů. | ✅ HOTOVO | disk_errors: mapa chyb čtení podle LBA z událostí disku (40 polí přes celý povrch) |
 | 702 | Accidental Format Protection — ochrana před formátem. | ✅ HOTOVO | run_shell nikdy nespustí format, diskpart, Clear-Disk, mazání stínových kopií… ani se schválením (tools/shell.py) |
 | 703 | Recovery Viability Assessment — možnosti obnovy. | 🟡 ČÁSTEČNĚ | plán záchrany dat podle priorit; odhad úspěšnosti obnovy chybí |
 | 704 | I/O Timeout Analyzer — timeouty disků. | ✅ HOTOVO | timeouty a resety řadiče (129, 153, 11) z logu |
-| 705 | Hardware Incident Report — report pro servis. | ⬜ CHYBÍ | — |
+| 705 | Hardware Incident Report — report pro servis. | ✅ HOTOVO | hardware_report: protokol pro servis (model, sériové číslo, BIOS, disky, události, USB, další zjištění) jako soubor se SHA-256 |
 
 ## 53. Network & Cloud Command Center
 
-✅ 2 · 🟡 5 · ⬜ 8
+✅ 7 · 🟡 5 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1101,15 +1101,15 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 709 | HTTP Synthetic Monitoring — dostupnost API. | 🟡 ČÁSTEČNĚ | dostupnost webu/API na požádání; průběžné hlídání chybí |
 | 710 | Cloud Resource Inventory — cloud zdroje. | ⬜ CHYBÍ | — |
 | 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ⬜ CHYBÍ | — |
-| 712 | Hosting Health Inspector — stav hostingu. | ⬜ CHYBÍ | — |
-| 713 | Centralized Log Explorer — agregované logy. | ⬜ CHYBÍ | — |
-| 714 | Deployment Difference Analyzer — rozdíly nasazení. | ⬜ CHYBÍ | — |
+| 712 | Hosting Health Inspector — stav hostingu. | ✅ HOTOVO | hosting_health: DNS, MX/SPF/DMARC, certifikát, http→https, bezpečnostní hlavičky, rychlost, stav |
+| 713 | Centralized Log Explorer — agregované logy. | ✅ HOTOVO | explore_logs: sloučení logů, filtr úrovně / času / vzoru, seskupení opakovaných chyb podle podoby, první a poslední výskyt |
+| 714 | Deployment Difference Analyzer — rozdíly nasazení. | ✅ HOTOVO | deploy_diff: přidané / odebrané / změněné soubory a rozdíly konfigurace s maskovanými hesly |
 | 715 | Infrastructure Rollback Rehearsal — cvičná obnova. | ⬜ CHYBÍ | — |
-| 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ⬜ CHYBÍ | — |
+| 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ✅ HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy |
 | 717 | Local Network Throughput Tester — propustnost vlastní sítě. | 🟡 ČÁSTEČNĚ | speed_test (internet, ne LAN) |
 | 718 | Jitter Analysis — kolísání latence. | ✅ HOTOVO | kolísání latence (jitter) v perf_check a network_check |
 | 719 | Packet Loss History — ztrátovost paketů. | 🟡 ČÁSTEČNĚ | ztráta paketů při měření; historie jen z měření na požádání |
-| 720 | Infrastructure Outage Timeline — historie výpadků. | ⬜ CHYBÍ | — |
+| 720 | Infrastructure Outage Timeline — historie výpadků. | ✅ HOTOVO | outage_timeline: historie kontrol, dostupnost v %, výpadky s délkou |
 
 ## 54. Next-Gen Mobile
 

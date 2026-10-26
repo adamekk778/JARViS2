@@ -22,6 +22,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `compare_options` | 005, 007, 197 |
 | `d_model` | 467, 468, 775 |
 | `db_query_plan` | 602, 603, 612 |
+| `disk_errors` | 695, 696, 701 |
 | `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
 | `memory.py` | 039, 041, P1.03 |
@@ -69,6 +70,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ui_inspect` | 028, P2.03 |
 | `update_plan` | 202, P1.05 |
 | `usage.py` | 178, 678 |
+| `usb_check` | 691, 692 |
 | `video_scenes` | 361, 364 |
 | `wake_word` | 098, P3.01 |
 | `web_read` | P6.03, P11.01 |
@@ -106,6 +108,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `character/blob.ts` | 071 |
 | `check_app_links` | 629 |
 | `check_assumptions` | 199 |
+| `check_backups` | 716 |
 | `check_download` | 398 |
 | `check_formula_units` | 772 |
 | `check_hardware` | 298 |
@@ -156,9 +159,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `delete_file` | P14.02 |
 | `dependency_update_plan` | 341 |
 | `dependency_vulnerabilities` | 333 |
+| `deploy_diff` | 714 |
 | `design_system` | 346 |
 | `device_test` | 638 |
 | `dictation.py` | 097 |
+| `disk_copy_plan` | 699 |
 | `duck_music` | 363 |
 | `email_search` | 551 |
 | `environment_compare` | 342 |
@@ -169,6 +174,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `expiring_logins` | 537 |
 | `explain_build_failure` | 340 |
 | `explain_crash_code` | 014 |
+| `explore_logs` | 713 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
 | `extract_archive` | 323 |
@@ -200,8 +206,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `git_log` | 050 |
 | `git_status` | P5.09 |
 | `hardware_changes` | 298 |
+| `hardware_report` | 705 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
+| `hosting_health` | 712 |
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
 | `ingredient_substitute` | 786 |
@@ -246,6 +254,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
 | `offline_test` | 641 |
+| `outage_timeline` | 720 |
 | `over_budget` | 221 |
 | `packing_list` | 782 |
 | `page_structure_check` | 532 |
