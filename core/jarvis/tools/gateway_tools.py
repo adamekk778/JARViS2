@@ -57,7 +57,7 @@ async def api_import(ctx, name: str, spec: Annotated[str, "soubor nebo adresa Op
 
 
 @tool("api_set_key", "Uloží klíč / token k připojenému API do zabezpečeného úložiště Windows (Správce pověření). Klíč se "
-      "nikde nezobrazuje ani nezapisuje do historie.", category="integrace", perm="settings")
+      "nikde nezobrazuje ani nezapisuje do historie.", category="integrace", perm="system")
 async def api_set_key(ctx, name: str, key: str) -> ToolResult:
     from .. import gateway, redact, secrets
 

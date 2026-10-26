@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 332 | 74 |
-| 🟡 ČÁSTEČNĚ | 150 | 58 |
+| ✅ HOTOVO | 342 | 74 |
+| 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 279 | 17 |
+| ⬜ CHYBÍ | 268 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -827,25 +827,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 41. Super Browser Agent
 
-🟡 3 · ⬜ 12
+✅ 10 · 🟡 4 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 526 | Multi-Tab Research — výzkum na více kartách. | 🟡 ČÁSTEČNĚ | browser_* nástroje |
-| 527 | Smart Tab Classification — třídění tabů. | ⬜ CHYBÍ | — |
-| 528 | Browser Session Restore — relace prohlížeče. | ⬜ CHYBÍ | — |
-| 529 | Website Workflow Recording — zaznamenání postupu. | ⬜ CHYBÍ | — |
+| 527 | Smart Tab Classification — třídění tabů. | ✅ HOTOVO | sort_tabs: karty prohlížeče JARVISe podle druhu (práce, nákupy, video, zprávy, sítě, banka…), duplicity, zavření duplicit |
+| 528 | Browser Session Restore — relace prohlížeče. | ✅ HOTOVO | save_browser_session / restore_browser_session: karty pod názvem s poznámkou, obnovení |
+| 529 | Website Workflow Recording — zaznamenání postupu. | ✅ HOTOVO | record_workflow_start / stop + replay_workflow: nahrané kliky a vyplnění → kroky; hesla se nikdy neukládají ({heslo}), přehrání se snímky |
 | 530 | Form Field Validation — kontrola formulářů. | 🟡 ČÁSTEČNĚ | browser_type + čtení |
 | 531 | Captcha Handoff — předání ručního ověření. | 🟡 ČÁSTEČNĚ | computer_use předá uživateli, co samo nesmí (captcha, přihlášení) |
-| 532 | Page Structure Comparison — změny struktury. | ⬜ CHYBÍ | — |
-| 533 | Navigation Route Finder — navigace webem. | ⬜ CHYBÍ | — |
-| 534 | Cookie Preference Assistant — nastavení cookies. | ⬜ CHYBÍ | — |
-| 535 | Subscription Overview — přehled předplatných. | ⬜ CHYBÍ | — |
+| 532 | Page Structure Comparison — změny struktury. | ✅ HOTOVO | page_structure_check: nadpisy, oblasti, formuláře, tlačítka, odkazy – co přibylo / zmizelo od minula |
+| 533 | Navigation Route Finder — navigace webem. | ✅ HOTOVO | find_page_route: cesta kliknutí k obsahu po vlastních odkazech webu |
+| 534 | Cookie Preference Assistant — nastavení cookies. | ✅ HOTOVO | reject_cookies: OneTrust, Cookiebot, Didomi, Usercentrics… i podle textu „Odmítnout vše / Pouze nezbytné“ |
+| 535 | Subscription Overview — přehled předplatných. | ✅ HOTOVO | subscriptions_overview: pravidelné platby z e-mailových účtenek, měsíčně / ročně, další platba, zdražení, zrušené |
 | 536 | Web App Compatibility Tester — prohlížečová kompatibilita. | ⬜ CHYBÍ | — |
-| 537 | Session Expiration Awareness — vypršení přihlášení. | ⬜ CHYBÍ | — |
-| 538 | Download Source Verification — kontrola zdroje. | ⬜ CHYBÍ | — |
-| 539 | Browser Privacy Report — oprávnění webů. | ⬜ CHYBÍ | — |
-| 540 | Web Task Continuity — pokračování práce. | ⬜ CHYBÍ | — |
+| 537 | Session Expiration Awareness — vypršení přihlášení. | ✅ HOTOVO | expiring_logins: přihlašovací cookies v prohlížeči JARVISe – co brzy vyprší, co jen do zavření |
+| 538 | Download Source Verification — kontrola zdroje. | ✅ HOTOVO | verify_download: přesměrování, http, jiná doména, stáří domény (RDAP), obsah vs. přípona, SHA-256 proti zveřejněnému |
+| 539 | Browser Privacy Report — oprávnění webů. | ✅ HOTOVO | privacy_report: známé sledovací služby, cizí domény, cookies před souhlasem, dlouhodobé cookies, úložiště → hodnocení |
+| 540 | Web Task Continuity — pokračování práce. | 🟡 ČÁSTEČNĚ | pokračování práce = uložená relace karet s poznámkou + uložené postupy; automatické navázání v jiném zařízení ne |
 
 ## 42. Communication
 

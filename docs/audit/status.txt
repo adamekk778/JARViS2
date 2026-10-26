@@ -695,3 +695,16 @@
 595 | HOTOVO | map_data: návrh mapování polí (i česky ↔ anglicky) a převod do nového CSV / JSON s čísly a daty
 596 | HOTOVO | historie verzí kontraktu u konektoru + nekompatibilní změny při novém importu
 598 | HOTOVO | merge_records: tříčestné sloučení (základ / moje / jejich) po polích, konflikty, pravidla mine / theirs / newest
+
+# Vlna 21 (3.10): chytrý prohlížeč – browserplus.py, tools/browserplus_tools.py, tests/test_wave21.py (skutečný prohlížeč)
+527 | HOTOVO | sort_tabs: karty prohlížeče JARVISe podle druhu (práce, nákupy, video, zprávy, sítě, banka…), duplicity, zavření duplicit
+528 | HOTOVO | save_browser_session / restore_browser_session: karty pod názvem s poznámkou, obnovení
+529 | HOTOVO | record_workflow_start / stop + replay_workflow: nahrané kliky a vyplnění → kroky; hesla se nikdy neukládají ({heslo}), přehrání se snímky
+532 | HOTOVO | page_structure_check: nadpisy, oblasti, formuláře, tlačítka, odkazy – co přibylo / zmizelo od minula
+533 | HOTOVO | find_page_route: cesta kliknutí k obsahu po vlastních odkazech webu
+534 | HOTOVO | reject_cookies: OneTrust, Cookiebot, Didomi, Usercentrics… i podle textu „Odmítnout vše / Pouze nezbytné“
+537 | HOTOVO | expiring_logins: přihlašovací cookies v prohlížeči JARVISe – co brzy vyprší, co jen do zavření
+538 | HOTOVO | verify_download: přesměrování, http, jiná doména, stáří domény (RDAP), obsah vs. přípona, SHA-256 proti zveřejněnému
+539 | HOTOVO | privacy_report: známé sledovací služby, cizí domény, cookies před souhlasem, dlouhodobé cookies, úložiště → hodnocení
+535 | HOTOVO | subscriptions_overview: pravidelné platby z e-mailových účtenek, měsíčně / ročně, další platba, zdražení, zrušené
+540 | ČÁSTEČNĚ | pokračování práce = uložená relace karet s poznámkou + uložené postupy; automatické navázání v jiném zařízení ne

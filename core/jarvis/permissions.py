@@ -55,6 +55,8 @@ READ_ONLY_OK = {
     "local_model_benchmark", "quantization_advice", "local_models_fit", "compare_embedding_models", "test_model_accuracy",
     "search_documents", "ask_documents", "document_workspaces",
     "api_connectors", "token_expiry", "api_rate_limits", "api_ask",
+    "sort_tabs", "page_structure_check", "find_page_route", "privacy_report", "expiring_logins", "verify_download",
+    "subscriptions_overview",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",
