@@ -45,6 +45,7 @@ READ_ONLY_OK = {
     "flaky_tests", "api_contract_check", "api_breaking_changes", "migration_preview", "explain_build_failure", "code_owners",
     "release_notes", "environment_compare", "feature_flags", "module_map", "monorepo_map",
     "memory_leak_check", "translation_overflow", "keyboard_test", "device_test", "offline_test",
+    "requirements_from_idea", "rollback_plan", "background_jobs", "check_app_links",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

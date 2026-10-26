@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "factory", title: "Softwarová továrna", line: "Z nápadu požadavky a akceptační kritéria, z kontraktu API testovací server i hotová knihovna pro volání, plán návratu na starší verzi a kontrola naplánovaných úloh." },
     { icon: "test-tube", title: "Testovací laboratoř", line: "Zátěž s desítkami uživatelů, divné vstupy, simulace špatné sítě, únik paměti, poškozená data – a web na telefonu, bez internetu, jen klávesnicí nebo jako uživatel krok po kroku se snímky." },
     { icon: "code", title: "Vývojářská laboratoř", line: "Rizika a zranitelnosti knihoven, plán aktualizací, SBOM, proč selhal build, kontrola API proti kontraktu, náhled migrace, mutační testy, nestabilní testy a poznámky k vydání z commitů." },
     { icon: "database", title: "Databáze", line: "Co je v databázi, jestli není poškozená, proč je dotaz pomalý (a jaký index pomůže), jestli jde záloha opravdu obnovit a kde jsou osobní údaje. Anonymní kopie pro testování – originál zůstane." },

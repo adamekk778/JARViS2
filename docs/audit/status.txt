@@ -626,3 +626,12 @@
 643 | HOTOVO | corrupt_test_data (8 druhů poškození) + corruption_test (program odmítl / spadl / zamrzl / tiše přijal)
 644 | HOTOVO | keyboard_test: pořadí Tabu, nedostupné prvky (klikací div), chybějící zvýraznění, past, tabindex > 0
 645 | HOTOVO | snímky ze scénářů a zařízení se ukládají jako soubory mise se SHA-256 + důkazy misí
+
+# Vlna 15 (3.10): softwarová továrna – factory.py, tools/factory_tools.py, tests/test_wave15.py
+616 | HOTOVO | requirements_from_idea: funkční / nefunkční požadavky, otázky, mimo rozsah (AI) + deterministická kontrola mezer a vágních slov, Markdown
+617 | HOTOVO | akceptační kritéria Given/When/Then, každý požadavek musí mít své; .feature soubor pro Cucumber / behave
+620 | HOTOVO | generate_api_client: SDK z OpenAPI v Pythonu (httpx, ověřeno překladem a voláním mock serveru) a TypeScriptu (fetch)
+621 | HOTOVO | mock_server_start / stop: odpovědi z ukázek nebo ze schématu, 400 s důvody u špatného těla, 404/405, záznam požadavků
+623 | HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky
+628 | HOTOVO | background_jobs: Plánovač úloh Windows (výsledek, zmeškané a nespouštěné úlohy) + rutiny JARVISe, které neproběhly
+629 | HOTOVO | check_app_links: assetlinks.json a apple-app-site-association – formát, otisky, Content-Type, přesměrování, otevře se cesta v aplikaci

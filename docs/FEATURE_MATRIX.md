@@ -82,6 +82,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
 | `audio_devices` | 105 |
+| `background_jobs` | 628 |
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
 | `backup_plan` | 330 |
@@ -91,6 +92,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `calendar_.py` | 171 |
 | `calendar_check` | 558 |
 | `character/blob.ts` | 071 |
+| `check_app_links` | 629 |
 | `check_assumptions` | 199 |
 | `check_download` | 398 |
 | `check_hardware` | 298 |
@@ -163,6 +165,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `forgotten_work` | 499 |
 | `free_time` | 568 |
 | `fuzz_inputs` | 633 |
+| `generate_api_client` | 620 |
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
@@ -197,6 +200,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `missing_info` | 207 |
 | `mission_save_file` | 215 |
 | `mobile/native.ts` | 143 |
+| `mock_server_start` | 621 |
 | `module_map` | 332 |
 | `monorepo_map` | 619 |
 | `move_files` | P2.11 |
@@ -227,8 +231,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `rename_files` | 325 |
 | `reopen_crashed` | 519 |
 | `reply_context` | 543 |
+| `requirements_from_idea` | 616 |
 | `reset_all` | 794 |
 | `restore_file_version` | 328 |
+| `rollback_plan` | 623 |
 | `save_file_version` | 328 |
 | `save_web_evidence` | 381 |
 | `scan_secrets` | 401 |

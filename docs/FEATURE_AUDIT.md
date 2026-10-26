@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 277 | 74 |
+| ✅ HOTOVO | 284 | 74 |
 | 🟡 ČÁSTEČNĚ | 149 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 335 | 17 |
+| ⬜ CHYBÍ | 328 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -959,24 +959,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 47. Autonomous Software Factory
 
-✅ 4 · 🟡 3 · ⬜ 8
+✅ 11 · 🟡 3 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 616 | Requirements Extractor — záměr na požadavky. | ⬜ CHYBÍ | — |
-| 617 | Acceptance Criteria Generator — akceptační kritéria. | ⬜ CHYBÍ | — |
+| 616 | Requirements Extractor — záměr na požadavky. | ✅ HOTOVO | requirements_from_idea: funkční / nefunkční požadavky, otázky, mimo rozsah (AI) + deterministická kontrola mezer a vágních slov, Markdown |
+| 617 | Acceptance Criteria Generator — akceptační kritéria. | ✅ HOTOVO | akceptační kritéria Given/When/Then, každý požadavek musí mít své; .feature soubor pro Cucumber / behave |
 | 618 | Architecture Decision Records — ADR. | 🟡 ČÁSTEČNĚ | docs/DECISIONS.md |
 | 619 | Monorepo Organizer — více aplikací. | ✅ HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi |
-| 620 | SDK Generator — klientské SDK. | ⬜ CHYBÍ | — |
-| 621 | Mock Server Builder — testovací server. | ⬜ CHYBÍ | — |
+| 620 | SDK Generator — klientské SDK. | ✅ HOTOVO | generate_api_client: SDK z OpenAPI v Pythonu (httpx, ověřeno překladem a voláním mock serveru) a TypeScriptu (fetch) |
+| 621 | Mock Server Builder — testovací server. | ✅ HOTOVO | mock_server_start / stop: odpovědi z ukázek nebo ze schématu, 400 s důvody u špatného těla, 404/405, záznam požadavků |
 | 622 | Canary Deployment Manager — postupný deploy. | ⬜ CHYBÍ | — |
-| 623 | Automated Rollback Planner — návrat verze. | ⬜ CHYBÍ | — |
+| 623 | Automated Rollback Planner — návrat verze. | ✅ HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky |
 | 624 | Software Bill of Materials — SBOM. | ✅ HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením |
 | 625 | Supply Chain Inspector — rizika knihoven. | ✅ HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce |
 | 626 | CI Pipeline Designer — CI/CD. | 🟡 ČÁSTEČNĚ | vlastní CI (.github/workflows/build.yml) |
 | 627 | Release Compatibility Checker — kompatibilita vydání. | ✅ HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů |
-| 628 | Background Job Inspector — worker jobs. | ⬜ CHYBÍ | — |
-| 629 | Mobile Deep-Link Tester — deep links. | ⬜ CHYBÍ | — |
+| 628 | Background Job Inspector — worker jobs. | ✅ HOTOVO | background_jobs: Plánovač úloh Windows (výsledek, zmeškané a nespouštěné úlohy) + rutiny JARVISe, které neproběhly |
+| 629 | Mobile Deep-Link Tester — deep links. | ✅ HOTOVO | check_app_links: assetlinks.json a apple-app-site-association – formát, otisky, Content-Type, přesměrování, otevře se cesta v aplikaci |
 | 630 | Feature Completion Auditor — kontrola úplnosti. | 🟡 ČÁSTEČNĚ | tento audit (docs/FEATURE_AUDIT.md) |
 
 ## 48. Software Testing Lab
