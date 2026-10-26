@@ -86,6 +86,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `api_contract_check` | 336 |
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
+| `ask_documents` | 581 |
 | `audio_devices` | 105 |
 | `audio_highlights` | 364 |
 | `background_jobs` | 628 |
@@ -115,6 +116,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `color_theme` | 356 |
 | `command_history` | 520 |
 | `communication_digest` | 555 |
+| `compare_embedding_models` | 580 |
 | `compare_files` | 029 |
 | `compare_groups` | 779 |
 | `confirm_info` | 219 |
@@ -194,14 +196,18 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `inbox_overview` | 541 |
+| `index_documents` | 581 |
 | `ingredient_substitute` | 786 |
 | `integrity_check` | 605 |
+| `keep_alive` | 575 |
 | `keyboard_test` | 644 |
 | `learning_weak_spots` | 108 |
 | `life_event_plan` | 781 |
 | `link_alive` | 410 |
 | `list_folder` | P2.11 |
 | `load_test` | 642 |
+| `local_model_benchmark` | 571 |
+| `local_models_fit` | 578 |
 | `local_unload` | 576 |
 | `looks_secret` | 681 |
 | `mail.py` | P11.05 |
@@ -247,6 +253,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `project_profitability` | 449 |
 | `provider_test` | 587 |
 | `pseudo_localize` | 639 |
+| `quantization_advice` | 572 |
 | `read_text_file` | P5.05 |
 | `read_website` | P11.04 |
 | `reading_level` | 791 |
@@ -271,6 +278,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
 | `score_leads` | 438 |
+| `search_documents` | 581 |
 | `search_memory` | 038 |
 | `send_file` | P9.03 |
 | `server/pairing.py` | 144 |
@@ -294,6 +302,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `task_steps` | 216 |
 | `test_agent` | 176 |
 | `test_coverage` | 334 |
+| `test_model_accuracy` | 582 |
 | `test_regressions` | 339 |
 | `test_tasks` | 176 |
 | `tests/test_agent.py` | 182 |
@@ -319,6 +328,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `visual_diff` | 360 |
 | `voice/loop.py` | 259 |
 | `wake_device` | 416 |
+| `warm_up_model` | 575 |
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
 | `window_to_monitor` | 238 |

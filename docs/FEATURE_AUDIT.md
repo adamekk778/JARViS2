@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 317 | 74 |
+| ✅ HOTOVO | 324 | 74 |
 | 🟡 ČÁSTEČNĚ | 151 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 293 | 17 |
+| ⬜ CHYBÍ | 286 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -893,22 +893,22 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 44. Local AI Supercomputer
 
-✅ 1 · 🟡 3 · ⬜ 11
+✅ 8 · 🟡 3 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 571 | Local Model Benchmarking — porovnání rychlosti. | ⬜ CHYBÍ | — |
-| 572 | Automatic Model Quantization Advisor — kvantizace modelu. | ⬜ CHYBÍ | — |
+| 571 | Local Model Benchmarking — porovnání rychlosti. | ✅ HOTOVO | local_model_benchmark: skutečné generování na každém nainstalovaném modelu, tokeny/s, načtení, GPU/CPU |
+| 572 | Automatic Model Quantization Advisor — kvantizace modelu. | ✅ HOTOVO | quantization_advice: Q2–F16 podle velikosti modelu, VRAM, RAM a kontextu → doporučení a očekávaná rychlost |
 | 573 | VRAM-Aware Model Loading — výběr modelu dle VRAM. | 🟡 ČÁSTEČNĚ | test GPU pro místní modely |
 | 574 | CPU/GPU Hybrid Inference — hybridní výpočty. | ⬜ CHYBÍ | — |
-| 575 | Model Warm-Up Manager — rychlejší start. | ⬜ CHYBÍ | — |
+| 575 | Model Warm-Up Manager — rychlejší start. | ✅ HOTOVO | warm_up_model: načtení dopředu s keep_alive, změřená doba načtení a pohotovosti |
 | 576 | Idle Model Unloading — uvolnění paměti. | ✅ HOTOVO | uvolnění místního modelu (local_unload) |
 | 577 | Inference Queue Scheduler — fronta inference. | ⬜ CHYBÍ | — |
-| 578 | Model Compatibility Scanner — kompatibilita. | ⬜ CHYBÍ | — |
+| 578 | Model Compatibility Scanner — kompatibilita. | ✅ HOTOVO | local_models_fit: nainstalované modely → celé v GPU / GPU+CPU / CPU / nevejde se |
 | 579 | Offline Knowledge Pack Manager — offline znalosti. | ⬜ CHYBÍ | — |
-| 580 | Embedding Model Selector — embeddingy. | ⬜ CHYBÍ | — |
-| 581 | Local RAG Workspace — hledání v místních dokumentech. | ⬜ CHYBÍ | — |
-| 582 | Model Accuracy Testing — kvalita odpovědí. | ⬜ CHYBÍ | — |
+| 580 | Embedding Model Selector — embeddingy. | ✅ HOTOVO | compare_embedding_models: český test vyhledání (recall@1), rozměr, rychlost → doporučení |
+| 581 | Local RAG Workspace — hledání v místních dokumentech. | ✅ HOTOVO | index_documents / search_documents / ask_documents: PDF po stránkách, Word, text, CSV, web, kód; inkrementálně; odpovědi jen z úryvků s ověřenými citacemi |
+| 582 | Model Accuracy Testing — kvalita odpovědí. | ✅ HOTOVO | test_model_accuracy: otázky se známou odpovědí (výchozí česká sada nebo vlastní), skóre a chybné odpovědi |
 | 583 | Automatic Resource Throttling — řízení zdrojů. | 🟡 ČÁSTEČNĚ | režimy úsporný/vyvážený/výkon |
 | 584 | Local AI Cache — cache odpovědí. | ⬜ CHYBÍ | — |
 | 585 | Model Health Monitor — stav modelů. | 🟡 ČÁSTEČNĚ | stav místních modelů |

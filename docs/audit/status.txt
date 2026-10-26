@@ -676,3 +676,12 @@
 366 | HOTOVO | clean_speech: horní propust proti dunění, spektrální brána podle profilu šumu, normalizace špičky
 369 | HOTOVO | check_subtitles + restyle_subtitles: rychlost čtení, délka a počet řádků, překryvy; zalomení a prodloužení; ASS se stylem
 375 | HOTOVO | media_quality: LUFS (EBU R128 s branami), úprava pro YouTube / Spotify / podcast / TV, špička, přebuzení, DC, ticho; u videa kodek, rozlišení, fps, tok
+
+# Vlna 19 (3.10): místní AI a dokumenty – localai.py, docsearch.py, tools/localai_tools.py, tests/test_wave19.py
+571 | HOTOVO | local_model_benchmark: skutečné generování na každém nainstalovaném modelu, tokeny/s, načtení, GPU/CPU
+572 | HOTOVO | quantization_advice: Q2–F16 podle velikosti modelu, VRAM, RAM a kontextu → doporučení a očekávaná rychlost
+575 | HOTOVO | warm_up_model: načtení dopředu s keep_alive, změřená doba načtení a pohotovosti
+578 | HOTOVO | local_models_fit: nainstalované modely → celé v GPU / GPU+CPU / CPU / nevejde se
+580 | HOTOVO | compare_embedding_models: český test vyhledání (recall@1), rozměr, rychlost → doporučení
+581 | HOTOVO | index_documents / search_documents / ask_documents: PDF po stránkách, Word, text, CSV, web, kód; inkrementálně; odpovědi jen z úryvků s ověřenými citacemi
+582 | HOTOVO | test_model_accuracy: otázky se známou odpovědí (výchozí česká sada nebo vlastní), skóre a chybné odpovědi

@@ -26,6 +26,7 @@ TABLES = {
     "cards": "kartičky na učení", "card_reviews": "opakování kartiček", "quiz_answers": "odpovědi v testech", "exams": "plány zkoušek",
     "app_hours": "aplikace podle hodin (rutiny)", "price_history": "historie cen", "workspaces": "pracovní prostředí (rozložení oken)",
     "db_snapshots": "záznamy o velikosti databází", "experiments": "deník experimentů",
+    "doc_files": "zaindexované dokumenty", "doc_idx": "rejstřík dokumentů",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),
