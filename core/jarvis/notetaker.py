@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, created REAL, title TEXT,
   transcript TEXT, summary TEXT, points TEXT, todos TEXT, error TEXT);
 """
 SUMMARY_PROMPT = (
-    "Dostaneš přepis hovoru (řádky „Já:“ = uživatel, „Ostatní:“ = ostatní účastníci). Napiš česky "
+    "Dostaneš přepis hovoru (řádky „Já:“ = uživatel, „Ostatní:“ nebo „Ostatní 1:“, „Ostatní 2:“ … = ostatní účastníci, "
+    "každé číslo jiný hlas). Napiš česky "
     "(nebo jazykem hovoru) JSON s klíči: \"title\" (krátký název hovoru, max 6 slov), \"summary\" (shrnutí ve 2–4 "
     "větách), \"points\" (seznam nejdůležitějších bodů, max 8), \"todos\" (seznam úkolů, co z hovoru vyplývá; "
     "u každého kdo, pokud to zaznělo). Vrať jen JSON."
@@ -106,7 +107,7 @@ def _com_init() -> bool:
 
 def merge(mine: list[tuple], theirs: list[tuple]) -> list[dict]:
     """Merge the two timed tracks; drop microphone lines that only echo the speakers."""
-    lines = [{"who": "Ostatní", "start": s, "end": e, "text": t} for s, e, t in theirs]
+    lines = [{"who": o[3] if len(o) > 3 else "Ostatní", "start": o[0], "end": o[1], "text": o[2]} for o in theirs]
     for s, e, t in mine:
         echo = False
         for o in theirs:
@@ -126,6 +127,24 @@ def merge(mine: list[tuple], theirs: list[tuple]) -> list[dict]:
         else:
             out.append(dict(ln))
     return out
+
+
+def label_speakers(wav: Path, segs: list[tuple]) -> list[tuple]:
+    """OMEGA 267: several people on the other side → "Ostatní 1", "Ostatní 2" … by voice (before the audio is deleted)."""
+    if len(segs) < 4 or not wav.exists():
+        return segs
+    try:
+        from . import media
+        from .voice.dsp import diarize
+
+        x, rate = media.read_audio(wav)
+        r = diarize(media._mono(x), rate, [(s, e) for s, e, *_ in segs])
+    except Exception as e:  # noqa: BLE001 – labels are a bonus; the transcript must not fail on them
+        log.info("speaker labels: %s", e)
+        return segs
+    if r["speakers"] < 2:
+        return segs
+    return [(s, e, t, f"Ostatní {lab + 1}") for (s, e, t, *_), lab in zip(segs, r["labels"])]
 
 
 def parse_summary(text: str) -> dict:
@@ -254,6 +273,7 @@ class Notetaker:
                     tracks[name] = await asyncio.to_thread(stt.segments, str(f), prog)
                 else:
                     tracks[name] = []
+            tracks["sys"] = await asyncio.to_thread(label_speakers, folder / "sys.wav", tracks["sys"])
             lines = merge(tracks["mic"], tracks["sys"])
             if not lines:
                 raise RuntimeError("V nahrávce jsem neslyšel žádnou řeč." + (f" ({'; '.join(errors)})" if errors else ""))

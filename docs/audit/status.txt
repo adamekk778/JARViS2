@@ -788,3 +788,13 @@
 480 | HOTOVO | prototype_test_plan + prototype_test_results: počet kusů (success-run, i s povolenými selháními), pořadí, list; vyhodnocení s Cpk a prokázanou spolehlivostí
 456 | HOTOVO | circuit_tutor: příklady (Ohm, série, paralela, smíšené, LED) s ověřenou odpovědí, kontrola jednotky (i 2k2), postup řešení
 451 | ČÁSTEČNĚ | adaptivní obtížnost v circuit_tutor (3 správně → těžší, 2 chyby ze 3 → lehčí, úspěšnost); u ostatních procvičování ne
+
+# Vlna 28 (3.10): hlas a zvuk – voice/dsp.py, voiceplus.py, tools/voice_tools.py, tests/test_wave28.py (filtry ověřené na syntetických signálech v dB)
+257 | HOTOVO | filtr hluku před rozpoznáním: Wienerův filtr s odhadem SNR, šum z vteřiny před „Hey Jarvis“ (Nastavení → Hlas → Čistý zvuk)
+258 | HOTOVO | potlačení ozvěny: adaptivní filtr (PBFDAF-NLMS) z toho, co JARVIS přehrává, odhad zpoždění zvukovky (GCC-PHAT), detekce současné řeči – jde mu skočit do řeči
+256 | ČÁSTEČNĚ | vzdálený mikrofon: automatické zesílení řeči + filtr hluku + mic_check s radami; směrování více mikrofony (beamforming) ne
+260 | HOTOVO | wake_word_calibrate: změří skóre okolního zvuku a vyslovení fráze, doporučí a na požádání uloží práh
+266 | HOTOVO | voice_bookmark / voice_bookmarks: záložka na vteřině nahrávaného hovoru nebo u výměny v konverzaci, s okolním přepisem
+267 | ČÁSTEČNĚ | label_speakers + v přepisech hovorů „Ostatní 1 / 2…“: barva hlasu (MFCC) a výška hlasu, shlukování se silhouette a minimálním odstupem; přesnost neuronových modelů ne
+99 | HOTOVO | ztišení ostatních programů, když JARVIS poslouchá nebo mluví (relace zvuku Windows, vrácení přesně na původní hlasitost)
+114 | HOTOVO | pronunciation_practice: zarovnání přečtené věty s rozpoznanými slovy, špatně / nezřetelně / vynechaná slova, tempo

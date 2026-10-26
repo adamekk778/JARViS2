@@ -40,6 +40,7 @@ class Platform:
     def get_volume(self) -> int: raise NotImplementedError
     def set_volume(self, level: int) -> None: raise NotImplementedError
     def set_mute(self, mute: bool) -> None: raise NotImplementedError
+    def duck_audio(self, level: float | None) -> None: return None   # other programs to `level` × their volume; None = back
     def window_action(self, action: WindowAction, title: str = "") -> str: raise NotImplementedError
     def list_windows(self) -> list[str]: return []
     def foreground_app(self) -> str: return ""  # friendly name of the app in front (dictation stats)

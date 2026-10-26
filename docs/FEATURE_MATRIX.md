@@ -55,6 +55,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_in_files` | 316, 322 |
 | `home_control` | 424, P13.01 |
 | `injection.py` | 183, P14.11 |
+| `label_speakers` | 267, P3.05 |
 | `mind_map` | 112, 113 |
 | `network.py` | 165, 406 |
 | `network_check` | 021, 718 |
@@ -279,6 +280,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_timeline` | 036 |
 | `merge_records` | 598 |
 | `message_actions` | 544 |
+| `mic_check` | 256 |
 | `migration_preview` | 337 |
 | `missing_info` | 207 |
 | `mission_save_file` | 215 |
@@ -313,6 +315,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `privacy_report` | 539 |
 | `product_demo` | 673 |
 | `project_profitability` | 449 |
+| `pronunciation_practice` | 114 |
 | `prototype_test_plan` | 480 |
 | `prototype_test_results` | 480 |
 | `provider_test` | 587 |
@@ -410,8 +413,12 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `verify_copy` | 700 |
 | `verify_download` | 538 |
 | `visual_diff` | 360 |
+| `voice/dsp.py` | P3.05 |
 | `voice/loop.py` | 259 |
+| `voice_bookmark` | 266 |
+| `voice_bookmarks` | 266 |
 | `wake_device` | 416 |
+| `wake_word_calibrate` | 260 |
 | `warm_up_model` | 575 |
 | `watch_website` | 378 |
 | `window_control` | P2.01 |

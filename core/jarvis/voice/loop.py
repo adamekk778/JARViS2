@@ -5,6 +5,7 @@ import logging
 import queue
 import threading
 import time
+from collections import deque
 
 from .stt import Transcriber
 from .text import Endpointer, parse_yes_no
@@ -58,6 +59,12 @@ class VoiceLoop:
         self._thread: threading.Thread | None = None
         self._restart = threading.Event()
         self.followup_active = False
+        from .dsp import Ducker, EchoPath
+
+        self.echo = EchoPath(SR)                 # the player tells it what JARVIS says → removed from the mic
+        self.ducker = Ducker(rt.platform, lambda: rt.cfg.voice.duck_level)
+        self._recent: deque = deque(maxlen=12)  # ~1 s of microphone before the wake word = the room's noise
+        self._score_sink: list | None = None    # wake-word calibration collects the scores here
 
     # ---------- public ----------
     def start(self) -> None:
@@ -113,8 +120,8 @@ class VoiceLoop:
         dev = self.rt.cfg.voice.input_device or None
 
         def cb(indata, frames, t, status):
-            try:
-                self._q.put_nowait(bytes(indata))
+            try:   # the frame started being recorded one frame ago (the echo canceller lines it up with the player)
+                self._q.put_nowait((bytes(indata), time.monotonic() - frames / SR))
             except queue.Full:
                 pass
 
@@ -173,15 +180,21 @@ class VoiceLoop:
         cooldown = 0.0
         while not self._restart.is_set():
             try:
-                frame = self._q.get(timeout=0.5)
+                frame = self._frame(self._q.get(timeout=0.5), np)
             except queue.Empty:
                 frame = None
             if self.paused:
                 continue
+            if frame is not None:
+                self._recent.append(frame)
             triggered = self._ptt.is_set()
             if frame is not None and ww is not None and self.rt.cfg.voice.wake_word and time.time() > cooldown:
                 scores = ww.predict(np.frombuffer(frame, dtype=np.int16))
-                if max(scores.values(), default=0) >= self.rt.cfg.voice.wake_threshold:
+                score = max(scores.values(), default=0)
+                if self._score_sink is not None:            # calibrating: measure only, never trigger
+                    self._score_sink.append(float(score))
+                    continue
+                if score >= self.rt.cfg.voice.wake_threshold:
                     triggered = True
                     ww.reset() if hasattr(ww, "reset") else None
             if triggered:
@@ -205,6 +218,48 @@ class VoiceLoop:
         bus = self.rt.bus
         self.listening = True
         bus.publish_threadsafe("state", state="listening")
+        if self.rt.cfg.voice.duck_media:
+            self.ducker.acquire()
+        try:
+            self._capture_inner(vad, np)
+        finally:
+            if self.rt.cfg.voice.duck_media:
+                self.ducker.release()
+
+    def _frame(self, item, np) -> bytes:
+        """A queued microphone frame, with JARVIS's own voice removed while it speaks."""
+        frame, t = item if isinstance(item, tuple) else (item, 0.0)
+        if self.rt.cfg.voice.echo_cancel and t and t <= self.echo.active_until:
+            a = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
+            frame = (np.clip(self.echo.clean(a, t), -1, 1) * 32767).astype(np.int16).tobytes()
+        return frame
+
+    def clean_utterance(self, audio: bytes, np) -> bytes:
+        """Noise suppression (noise from the second before the wake word) and gain for a distant voice."""
+        from .dsp import agc, denoise
+
+        v = self.rt.cfg.voice
+        if not (v.noise_suppression or v.auto_gain) or len(audio) < SR // 2:
+            return audio
+        x = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+        if v.noise_suppression:
+            noise = np.frombuffer(b"".join(self._recent), dtype=np.int16).astype(np.float32) / 32768.0 if self._recent else None
+            x, _ = denoise(x, SR, noise if noise is not None and len(noise) >= SR // 4 else None)
+        if v.auto_gain:
+            x, _ = agc(x, SR)
+        return (np.clip(x, -1, 1) * 32767).astype(np.int16).tobytes()
+
+    def collect_wake_scores(self, seconds: float) -> list[float]:
+        """Wake-word scores frame by frame for a while (nothing gets triggered meanwhile)."""
+        self._score_sink = []
+        try:
+            time.sleep(seconds)
+            return list(self._score_sink)
+        finally:
+            self._score_sink = None
+
+    def _capture_inner(self, vad, np) -> None:
+        bus = self.rt.bus
         self._beep(np)
         while not self._q.empty():  # drop audio from before the trigger
             self._q.get_nowait()
@@ -219,7 +274,7 @@ class VoiceLoop:
             if self._cancel_capture:
                 break
             try:
-                frame = self._q.get(timeout=1.0)
+                frame = self._frame(self._q.get(timeout=1.0), np)
             except queue.Empty:
                 break
             audio += frame
@@ -236,7 +291,7 @@ class VoiceLoop:
         self._beep(np, 660.0)
         bus.publish_threadsafe("state", state="thinking")
         try:
-            text = self.transcriber.transcribe(bytes(audio), SR)
+            text = self.transcriber.transcribe(self.clean_utterance(bytes(audio), np), SR)
         except Exception as e:
             log.warning("stt failed: %s", e)
             bus.publish_threadsafe("error", message=f"Rozpoznávání řeči selhalo: {e}")

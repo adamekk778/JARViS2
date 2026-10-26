@@ -154,6 +154,35 @@ class Transcriber:
         r.raise_for_status()
         return [(float(s["start"]), float(s["end"]), s["text"].strip()) for s in r.json().get("segments", []) if s.get("text", "").strip()]
 
+    def words(self, audio, language: str | None = None) -> list[dict]:
+        """Recognised words with their timing and how sure the recogniser is (0–1; None from Groq) – for
+        pronunciation practice. `audio` is float32 16 kHz or a file path."""
+        if self.cfg.stt_provider == "groq" and isinstance(audio, str):
+            try:
+                return self._groq_words(audio, language)
+            except Exception as e:
+                log.warning("groq words failed, falling back to local: %s", e)
+        model = self._local()
+        segs, _info = model.transcribe(audio, language=language or self._language(), beam_size=5, word_timestamps=True,
+                                       condition_on_previous_text=False, vad_filter=True)
+        return [{"word": w.word.strip(), "start": float(w.start), "end": float(w.end), "p": round(float(w.probability), 3)}
+                for s in segs for w in (s.words or []) if w.word.strip()]
+
+    def _groq_words(self, path: str, language: str | None) -> list[dict]:
+        import httpx
+
+        key = secrets.get("groq")
+        if not key:
+            raise RuntimeError("Groq API klíč není nastavený")
+        data = {"model": "whisper-large-v3-turbo", "response_format": "verbose_json", "timestamp_granularities[]": "word"}
+        if language or self._language():
+            data["language"] = language or self._language()
+        with open(path, "rb") as f:
+            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+                           files={"file": ("audio.wav", f.read())}, data=data, timeout=120)
+        r.raise_for_status()
+        return [{"word": w["word"].strip(), "start": float(w["start"]), "end": float(w["end"]), "p": None} for w in r.json().get("words", [])]
+
     def _run(self, audio, prompt: str = "") -> str:
         model = self._local()
         segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 400 | 74 |
-| 🟡 ČÁSTEČNĚ | 161 | 58 |
+| ✅ HOTOVO | 406 | 74 |
+| 🟡 ČÁSTEČNĚ | 163 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 200 | 17 |
+| ⬜ CHYBÍ | 192 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -173,14 +173,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 09. Voice Intelligence
 
-✅ 5 · 🟡 3 · ⬜ 2
+✅ 6 · 🟡 3 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 096 | Hlasové příkazy během her. | 🟡 ČÁSTEČNĚ | push-to-talk zkratka funguje i ve hře |
 | 097 | Diktování do aplikací. | ✅ HOTOVO | diktování kamkoli (dictation.py) |
 | 098 | Vlastní aktivační fráze. | ✅ HOTOVO | vlastní aktivační fráze (voice.wake_word) |
-| 099 | Ztišení hudby při mluvení. | ⬜ CHYBÍ | — |
+| 099 | Ztišení hudby při mluvení. | ✅ HOTOVO | ztišení ostatních programů, když JARVIS poslouchá nebo mluví (relace zvuku Windows, vrácení přesně na původní hlasitost) |
 | 100 | Rozpoznání více příkazů ve větě. | 🟡 ČÁSTEČNĚ | více příkazů ve větě řeší jazykový model |
 | 101 | Nastavitelná délka a rychlost odpovědi. | ✅ HOTOVO | rychlost a hlasitost hlasu, osobnost |
 | 102 | Prostorové audio efekty. | ⬜ CHYBÍ | — |
@@ -190,7 +190,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 10. JARVIS Teacher
 
-✅ 8 · 🟡 1 · ⬜ 1
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -202,7 +202,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 111 | Vyhodnocení písemných odpovědí. | ✅ HOTOVO | check_answer: hodnocení 0–100, co chybí, druh chyby (zapisuje se) |
 | 112 | Učebnice na výukové materiály. | ✅ HOTOVO | flashcards_from / quiz_from / mind_map z vlastních materiálů (PDF, Word, poznámky) |
 | 113 | Myšlenkové mapy. | ✅ HOTOVO | mind_map: větve, pojmy, souvislosti, uloženo jako Markdown s diagramem |
-| 114 | Nácvik výslovnosti. | ⬜ CHYBÍ | — |
+| 114 | Nácvik výslovnosti. | ✅ HOTOVO | pronunciation_practice: zarovnání přečtené věty s rozpoznanými slovy, špatně / nezřetelně / vynechaná slova, tempo |
 | 115 | Simulace ústního zkoušení. | ✅ HOTOVO | oral_exam: otázky k tématu podle úrovně a slabých míst, odpovědi hodnotí check_answer |
 
 ## 11. Gaming & Development
@@ -431,22 +431,22 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 23. Voice & Audio Intelligence
 
-✅ 4 · 🟡 5 · ⬜ 6
+✅ 8 · 🟡 7
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 256 | Far-Field Voice Recognition — dálkový mikrofon. | ⬜ CHYBÍ | — |
-| 257 | Noise Suppression — filtr hluku. | ⬜ CHYBÍ | — |
-| 258 | Echo Cancellation — potlačení ozvěny. | ⬜ CHYBÍ | — |
+| 256 | Far-Field Voice Recognition — dálkový mikrofon. | 🟡 ČÁSTEČNĚ | vzdálený mikrofon: automatické zesílení řeči + filtr hluku + mic_check s radami; směrování více mikrofony (beamforming) ne |
+| 257 | Noise Suppression — filtr hluku. | ✅ HOTOVO | filtr hluku před rozpoznáním: Wienerův filtr s odhadem SNR, šum z vteřiny před „Hey Jarvis“ (Nastavení → Hlas → Čistý zvuk) |
+| 258 | Echo Cancellation — potlačení ozvěny. | ✅ HOTOVO | potlačení ozvěny: adaptivní filtr (PBFDAF-NLMS) z toho, co JARVIS přehrává, odhad zpoždění zvukovky (GCC-PHAT), detekce současné řeči – jde mu skočit do řeči |
 | 259 | Voice Activity Detection — detekce řeči. | 🟡 ČÁSTEČNĚ | detekce řeči v hlasové smyčce (voice/loop.py) |
-| 260 | Wake Word Sensitivity — citlivost fráze. | ⬜ CHYBÍ | — |
+| 260 | Wake Word Sensitivity — citlivost fráze. | ✅ HOTOVO | wake_word_calibrate: změří skóre okolního zvuku a vyslovení fráze, doporučí a na požádání uloží práh |
 | 261 | Speech Speed Adaptation — rychlost hlasu. | ✅ HOTOVO | rychlost hlasu |
 | 262 | Audio Context Switching — výběr výstupů. | 🟡 ČÁSTEČNĚ | výběr zvukových zařízení |
 | 263 | Voice Shortcuts — hlasové zkratky. | ✅ HOTOVO | hlasové zkratky = protokoly |
 | 264 | Technical Vocabulary — odborné názvy. | ✅ HOTOVO | slovník a zkratky diktování |
 | 265 | Dictation Correction — opravy přepisu. | ✅ HOTOVO | úprava přepisu diktování |
-| 266 | Conversation Bookmarks — záložky. | ⬜ CHYBÍ | — |
-| 267 | Speaker Labels — identifikace mluvčích. | ⬜ CHYBÍ | — |
+| 266 | Conversation Bookmarks — záložky. | ✅ HOTOVO | voice_bookmark / voice_bookmarks: záložka na vteřině nahrávaného hovoru nebo u výměny v konverzaci, s okolním přepisem |
+| 267 | Speaker Labels — identifikace mluvčích. | 🟡 ČÁSTEČNĚ | label_speakers + v přepisech hovorů „Ostatní 1 / 2…“: barva hlasu (MFCC) a výška hlasu, shlukování se silhouette a minimálním odstupem; přesnost neuronových modelů ne |
 | 268 | Audio Summaries — audio souhrny. | 🟡 ČÁSTEČNĚ | odpovědi nahlas |
 | 269 | Conversation Translation — překlady dialogů. | 🟡 ČÁSTEČNĚ | překlad přes AI |
 | 270 | Offline Voice Pipeline — lokální hlas. | 🟡 ČÁSTEČNĚ | volitelné místní modely (stahování jen s potvrzením) |
@@ -1253,7 +1253,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P3.02 | Přirozená konverzace | ✅ HOTOVO | čeština a další jazyky | — |
 | P3.03 | Real-time hlasový rozhovor | 🟡 ČÁSTEČNĚ | hlasový režim; latence podle poskytovatele | — |
 | P3.04 | Přerušit JARVISe během mluvení | ✅ HOTOVO | přerušení mluvení (STOP, nová věta) | 176 |
-| P3.05 | Rozpoznávání mluvčích | ⬜ CHYBÍ | — | 267 |
+| P3.05 | Rozpoznávání mluvčích | 🟡 ČÁSTEČNĚ | label_speakers + Ostatní 1/2 v přepisech hovorů (voice/dsp.py: MFCC + výška hlasu, shlukování) | 267 |
 | P3.06 | Nastavitelný hlas a osobnost | ✅ HOTOVO | hlas, rychlost, osobnost, oslovení | 101 |
 | P3.07 | Šeptání a tichý režim | 🟡 ČÁSTEČNĚ | speak_mode never/tichý režim | — |
 | P3.08 | Přepis mluveného slova | ✅ HOTOVO | diktování + přepis nahrávek | 097 |

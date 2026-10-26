@@ -28,7 +28,7 @@ P3.01 | HOTOVO | aktivační slovo (voice.wake_word) | 098 | Aktivace hlasem
 P3.02 | HOTOVO | čeština a další jazyky | — | Přirozená konverzace
 P3.03 | ČÁSTEČNĚ | hlasový režim; latence podle poskytovatele | — | Real-time hlasový rozhovor
 P3.04 | HOTOVO | přerušení mluvení (STOP, nová věta) | 176 | Přerušit JARVISe během mluvení
-P3.05 | CHYBÍ | — | 267 | Rozpoznávání mluvčích
+P3.05 | ČÁSTEČNĚ | label_speakers + Ostatní 1/2 v přepisech hovorů (voice/dsp.py: MFCC + výška hlasu, shlukování) | 267 | Rozpoznávání mluvčích
 P3.06 | HOTOVO | hlas, rychlost, osobnost, oslovení | 101 | Nastavitelný hlas a osobnost
 P3.07 | ČÁSTEČNĚ | speak_mode never/tichý režim | — | Šeptání a tichý režim
 P3.08 | HOTOVO | diktování + přepis nahrávek | 097 | Přepis mluveného slova

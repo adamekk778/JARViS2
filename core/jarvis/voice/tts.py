@@ -5,6 +5,7 @@ import asyncio
 import io
 import logging
 import threading
+import time
 import wave
 
 from .. import paths
@@ -105,11 +106,16 @@ class Speaker:
                 return
             self.speaking = True
             self.rt.bus.publish("state", state="speaking")
+            ducker = getattr(getattr(self.rt, "voice", None), "ducker", None) if self.rt.cfg.voice.duck_media else None
+            if ducker:
+                ducker.acquire()
             try:
                 await asyncio.to_thread(self._play, audio)
             except Exception as e:
                 log.warning("playback failed: %s", e)
             finally:
+                if ducker:
+                    ducker.release()
                 self.speaking = False
                 if not self.rt.agent.busy:
                     self.rt.bus.publish("state", state="idle")
@@ -128,11 +134,14 @@ class Speaker:
         from .devices import output_index
 
         dev = output_index(self.rt.cfg.voice.output_device)
+        echo = getattr(getattr(self.rt, "voice", None), "echo", None)
         with sd.OutputStream(samplerate=sr, channels=1, dtype="float32", device=dev) as out:
             for i in range(0, len(pcm), block):
                 if self._stop.is_set():
                     break
                 chunk = pcm[i:i + block]
+                if echo is not None:            # what goes to the speaker, so the mic can subtract it
+                    echo.played(chunk, sr, time.monotonic())
                 out.write(chunk.reshape(-1, 1))
                 rms = float(np.sqrt(np.mean(chunk ** 2))) if len(chunk) else 0.0
                 self.rt.bus.publish_threadsafe("level", rms=round(rms, 3))

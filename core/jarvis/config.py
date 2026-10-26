@@ -72,6 +72,11 @@ class Voice(BaseModel):
     output_device: str = ""         # speaker name; empty = Windows default
     tts_voice_en: str = "en-GB-RyanNeural"
     piper_voice_en: str = "en_GB-alan-medium"
+    noise_suppression: bool = True  # clean the recording before it is recognised (filter the hum and hiss)
+    auto_gain: bool = True          # level a quiet / distant voice up before recognition
+    echo_cancel: bool = True        # remove JARVIS's own voice from the microphone (talking over it works)
+    duck_media: bool = True         # turn other programs down while JARVIS listens or speaks
+    duck_level: float = 0.3         # … to this share of their volume
 
 
 class Notch(BaseModel):

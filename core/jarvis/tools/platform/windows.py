@@ -162,6 +162,37 @@ class WindowsPlatform(Platform):
     def set_mute(self, mute: bool) -> None:
         self._com(lambda ep: ep.SetMute(1 if mute else 0, None))
 
+    def duck_audio(self, level: float | None) -> None:
+        """OMEGA 99: every other program's audio session down to `level` × its own volume; None puts each back to
+        exactly what it was (a session the user changed meanwhile is left alone)."""
+        import os
+
+        import comtypes
+        from pycaw.pycaw import AudioUtilities
+
+        ducked = self.__dict__.setdefault("_ducked", {})        # pid → (volume before, volume we set)
+        comtypes.CoInitialize()
+        try:
+            me = os.getpid()
+            if level is not None:
+                for sess in AudioUtilities.GetAllSessions():
+                    if not sess.Process or sess.Process.pid == me or sess.ProcessId in ducked:
+                        continue
+                    vol = sess.SimpleAudioVolume
+                    before = vol.GetMasterVolume()
+                    vol.SetMasterVolume(before * max(0.0, min(1.0, level)), None)
+                    ducked[sess.ProcessId] = (before, before * level)
+            else:
+                for sess in AudioUtilities.GetAllSessions():
+                    saved = ducked.get(sess.ProcessId)
+                    if saved:
+                        vol = sess.SimpleAudioVolume
+                        if abs(vol.GetMasterVolume() - saved[1]) < 0.02:
+                            vol.SetMasterVolume(saved[0], None)
+                ducked.clear()
+        finally:
+            comtypes.CoUninitialize()
+
     # ---------- windows ----------
     def _windows(self) -> list[tuple[int, str]]:
         u = ctypes.windll.user32
