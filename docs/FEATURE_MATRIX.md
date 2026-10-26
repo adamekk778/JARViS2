@@ -82,8 +82,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `agent_team` | 218 |
 | `ai_usage` | 154 |
 | `analyze_feedback` | 444 |
+| `api_ask` | 589 |
 | `api_breaking_changes` | 627 |
+| `api_call` | 591 |
 | `api_contract_check` | 336 |
+| `api_import` | 588 |
+| `api_rate_limits` | 594 |
+| `api_set_key` | 592 |
 | `app_allowlist` | 682 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
@@ -212,6 +217,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `looks_secret` | 681 |
 | `mail.py` | P11.05 |
 | `make_sbom` | 624 |
+| `map_data` | 595 |
 | `mcp_client` | 048 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
@@ -223,6 +229,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_leak_check` | 635 |
 | `memory_overview` | 040 |
 | `memory_timeline` | 036 |
+| `merge_records` | 598 |
 | `message_actions` | 544 |
 | `migration_preview` | 337 |
 | `missing_info` | 207 |
@@ -309,6 +316,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
 | `to_list` | 570 |
+| `token_expiry` | 592 |
 | `tolerance_stackup` | 773 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |

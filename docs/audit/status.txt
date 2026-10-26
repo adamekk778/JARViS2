@@ -685,3 +685,13 @@
 580 | HOTOVO | compare_embedding_models: český test vyhledání (recall@1), rozměr, rychlost → doporučení
 581 | HOTOVO | index_documents / search_documents / ask_documents: PDF po stránkách, Word, text, CSV, web, kód; inkrementálně; odpovědi jen z úryvků s ověřenými citacemi
 582 | HOTOVO | test_model_accuracy: otázky se známou odpovědí (výchozí česká sada nebo vlastní), skóre a chybné odpovědi
+
+# Vlna 20 (3.10): integrační brána – gateway.py, tools/gateway_tools.py, tests/test_wave20.py
+588 | HOTOVO | api_import: libovolné API z OpenAPI (soubor / adresa), ověření none / bearer / hlavička / parametr
+589 | HOTOVO | api_ask: požadavek běžnou řečí → operace a parametry z kontraktu; čtení hned, změna jen jako návrh k potvrzení
+591 | HOTOVO | api_call: GET bez ptaní, POST / PUT / PATCH / DELETE vždy s potvrzením (náhled metody, parametrů a těla); tělo ověřeno proti kontraktu před odesláním
+592 | HOTOVO | token_expiry: platnost JWT u klíčů konektorů (bez zobrazení klíče), varování před vypršením; api_set_key do trezoru Windows, v auditu maskováno
+594 | HOTOVO | api_rate_limits + každé volání: X-RateLimit / RateLimit / Retry-After, využití, obnovení, blokace 429
+595 | HOTOVO | map_data: návrh mapování polí (i česky ↔ anglicky) a převod do nového CSV / JSON s čísly a daty
+596 | HOTOVO | historie verzí kontraktu u konektoru + nekompatibilní změny při novém importu
+598 | HOTOVO | merge_records: tříčestné sloučení (základ / moje / jejich) po polích, konflikty, pravidla mine / theirs / newest

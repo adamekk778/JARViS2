@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 324 | 74 |
-| 🟡 ČÁSTEČNĚ | 151 | 58 |
+| ✅ HOTOVO | 332 | 74 |
+| 🟡 ČÁSTEČNĚ | 150 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 286 | 17 |
+| ⬜ CHYBÍ | 279 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -915,23 +915,23 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 45. Universal Integration Gateway
 
-✅ 1 · 🟡 3 · ⬜ 11
+✅ 9 · 🟡 2 · ⬜ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 586 | Connector Discovery — dostupné integrace. | 🟡 ČÁSTEČNĚ | MCP servery |
 | 587 | Connector Health Checks — funkčnost připojení. | 🟡 ČÁSTEČNĚ | test poskytovatele AI (provider_test) |
-| 588 | API Schema Importer — OpenAPI specifikace. | ⬜ CHYBÍ | — |
-| 589 | Natural Language API Builder — API požadavky řečí. | ⬜ CHYBÍ | — |
+| 588 | API Schema Importer — OpenAPI specifikace. | ✅ HOTOVO | api_import: libovolné API z OpenAPI (soubor / adresa), ověření none / bearer / hlavička / parametr |
+| 589 | Natural Language API Builder — API požadavky řečí. | ✅ HOTOVO | api_ask: požadavek běžnou řečí → operace a parametry z kontraktu; čtení hned, změna jen jako návrh k potvrzení |
 | 590 | Webhook Event Router — události. | ⬜ CHYBÍ | — |
-| 591 | Connector Permission Dashboard — oprávnění. | 🟡 ČÁSTEČNĚ | stránka Oprávnění |
-| 592 | Token Expiration Manager — expirace tokenů. | ⬜ CHYBÍ | — |
+| 591 | Connector Permission Dashboard — oprávnění. | ✅ HOTOVO | api_call: GET bez ptaní, POST / PUT / PATCH / DELETE vždy s potvrzením (náhled metody, parametrů a těla); tělo ověřeno proti kontraktu před odesláním |
+| 592 | Token Expiration Manager — expirace tokenů. | ✅ HOTOVO | token_expiry: platnost JWT u klíčů konektorů (bez zobrazení klíče), varování před vypršením; api_set_key do trezoru Windows, v auditu maskováno |
 | 593 | Integration Test Sandbox — testování bez ostrých dat. | ⬜ CHYBÍ | — |
-| 594 | API Rate-Limit Analyzer — limity API. | ⬜ CHYBÍ | — |
-| 595 | Data Mapping Designer — mapování dat. | ⬜ CHYBÍ | — |
-| 596 | Connector Version Tracking — verze API. | ⬜ CHYBÍ | — |
+| 594 | API Rate-Limit Analyzer — limity API. | ✅ HOTOVO | api_rate_limits + každé volání: X-RateLimit / RateLimit / Retry-After, využití, obnovení, blokace 429 |
+| 595 | Data Mapping Designer — mapování dat. | ✅ HOTOVO | map_data: návrh mapování polí (i česky ↔ anglicky) a převod do nového CSV / JSON s čísly a daty |
+| 596 | Connector Version Tracking — verze API. | ✅ HOTOVO | historie verzí kontraktu u konektoru + nekompatibilní změny při novém importu |
 | 597 | Service Outage Fallback — výpadek integrace. | ✅ HOTOVO | řetěz poskytovatelů AI s náhradou při výpadku (llm/router) |
-| 598 | Data Sync Conflict Resolver — konflikty synchronizace. | ⬜ CHYBÍ | — |
+| 598 | Data Sync Conflict Resolver — konflikty synchronizace. | ✅ HOTOVO | merge_records: tříčestné sloučení (základ / moje / jejich) po polích, konflikty, pravidla mine / theirs / newest |
 | 599 | Event Replay System — přehrání události. | ⬜ CHYBÍ | — |
 | 600 | Custom Connector SDK — tvorba vlastních konektorů. | ⬜ CHYBÍ | — |
 
