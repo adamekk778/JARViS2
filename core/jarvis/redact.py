@@ -15,7 +15,7 @@ _PATTERNS = [
     re.compile(r"github_pat_\w{20,}"),
     re.compile(r"eyJ[\w-]+\.[\w-]+\.[\w-]+"),
 ]
-_KEYVAL = re.compile(r"(?i)(api[_-]?key|key|token|secret|password|heslo|pass)(\s*[=:]\s*)\S{6,}")
+_KEYVAL = re.compile(r"(?i)(api[_-]?key|key|token|secret|password|heslo|pass)(\"?\s*[=:]\s*\"?)[^\s\"]{6,}")   # also "key": "…" in JSON
 _BARE = re.compile(r"(?i)\b(token|secret|api[_ -]?key|klíč|klic)(\s+)([A-Za-z0-9_\-]{16,})")
 _WORD = re.compile(r"(?i)\b(heslo|password|pin|passwd|api[_ -]?key|token)\b")
 _literals: set[str] = set()

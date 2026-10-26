@@ -1,7 +1,10 @@
+import sys
+
 import time
 import zipfile
 
 import httpx
+import pytest
 
 from jarvis import diagnostics, paths, tools
 from jarvis.tools.system import system_snapshot
@@ -113,3 +116,32 @@ def test_ws_diagnostics(rt):
         while m["type"] != "system":
             m = ws.receive_json()
         assert "disks" in m and "gpu" in m
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="the GIL-holding freeze is simulated with libc via PyDLL")
+def test_hang_dump_when_the_whole_interpreter_freezes(tmp_path, monkeypatch):
+    """A thread that holds the GIL inside a blocking native call freezes every Python thread (the stall watch too);
+    the C watchdog must still write all thread stacks to hang-dump.txt."""
+    import asyncio
+    import ctypes
+    import faulthandler
+    import threading
+    import time as _t
+
+    monkeypatch.setenv("JARVIS_HANG_DUMP", "1")
+    loop = asyncio.new_event_loop()
+    th = threading.Thread(target=loop.run_forever, daemon=True)
+    th.start()
+    try:
+        diagnostics.start_stall_watch(None, loop, limit_s=1, dump_after=2)
+        _t.sleep(0.5)
+        libc = ctypes.PyDLL(None)                 # PyDLL: the GIL stays held during the call
+        libc.sleep(4)                             # freeze everything for 4 s
+        _t.sleep(0.5)
+        dump = (paths.data_dir() / "logs" / "hang-dump.txt").read_text(encoding="utf-8")
+        assert "Thread 0x" in dump and "test_hang_dump_when_the_whole_interpreter_freezes" in dump
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+        loop.call_soon_threadsafe(loop.stop)
+        th.join(2)
+        loop.close()

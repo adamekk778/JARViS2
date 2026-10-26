@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import faulthandler
 import json
 import logging
 import os
@@ -58,7 +59,7 @@ def ensure_lag_probe(rt: Any) -> None:
         rt._diag_task = None
 
 
-def start_stall_watch(rt: Any, loop: asyncio.AbstractEventLoop, limit_s: float = 8.0) -> threading.Thread:
+def start_stall_watch(rt: Any, loop: asyncio.AbstractEventLoop, limit_s: float = 8.0, dump_after: float = 20.0) -> threading.Thread:
     """When the event loop stops answering for limit_s, write where its thread is stuck to the log (once per stall).
     Everything – the window's messages, the phone, /api/show – waits on that loop, so this is the clue a hang needs."""
     loop_thread = threading.get_ident()
@@ -70,11 +71,26 @@ def start_stall_watch(rt: Any, loop: asyncio.AbstractEventLoop, limit_s: float =
             log.warning("event loop answers again")
             state["reported"] = False
 
+    # A hang where even this thread cannot run (the whole interpreter is frozen: a thread holds the GIL inside a
+    # blocking native call) is invisible to the code below. faulthandler's watchdog is a C thread that needs no GIL:
+    # re-armed every 2 s, it only fires when this loop stops – then the stacks of ALL threads go to hang-dump.txt.
+    dump = None
+    if getattr(sys, "frozen", False) or os.environ.get("JARVIS_HANG_DUMP") == "1":
+        try:
+            (paths.data_dir() / "logs").mkdir(parents=True, exist_ok=True)
+            dump = open(paths.data_dir() / "logs" / "hang-dump.txt", "a", encoding="utf-8")  # noqa: SIM115 – the C thread writes to it later
+        except OSError:
+            dump = None
+
     def watch() -> None:
         while not loop.is_closed():
+            if dump is not None:
+                faulthandler.dump_traceback_later(max(dump_after, limit_s * 3), repeat=False, file=dump, exit=False)
             try:
                 loop.call_soon_threadsafe(pong)
             except RuntimeError:
+                if dump is not None:
+                    faulthandler.cancel_dump_traceback_later()
                 return
             time.sleep(2)
             stuck = time.monotonic() - state["pong"]
@@ -83,6 +99,10 @@ def start_stall_watch(rt: Any, loop: asyncio.AbstractEventLoop, limit_s: float =
                 frame = sys._current_frames().get(loop_thread)
                 where = "".join(traceback.format_stack(frame)[-12:]) if frame else "?"
                 log.warning("event loop stuck for %.0f s, at:\n%s", stuck, where)
+                if dump is not None:                       # the other threads too: who is the loop waiting for?
+                    dump.write(f"--- {dt.datetime.now():%Y-%m-%d %H:%M:%S} event loop stuck {stuck:.0f} s ---\n")
+                    dump.flush()
+                    faulthandler.dump_traceback(file=dump, all_threads=True)
 
     t = threading.Thread(target=watch, daemon=True, name="stall-watch")
     t.start()
