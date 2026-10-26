@@ -744,3 +744,21 @@
 512 | ČÁSTEČNĚ | search_everything: paměť, konverzace, dokumenty, kalendář, seznamy, e-maily, postupy najednou; uvnitř cizích aplikací ne
 524 | HOTOVO | find_workflow: protokoly, automatizace, dovednosti a nahrané webové postupy podle slov dotazu
 517 | HOTOVO | name_window_groups: skupiny oken stejného projektu napříč aplikacemi pojmenované podle společného tématu
+160 | HOTOVO | parts_compatibility (napájení, logické úrovně, proud z pinů, odběr) + circuit_calc (vlna 16) + bill_of_materials
+161 | HOTOVO | serial_monitor: porty, čtení, odeslání řádku, čísla z výpisu
+163 | ČÁSTEČNĚ | data senzoru: serial_monitor + sensor_chart (min / max / průměr, graf); automatické rozpoznání vadného čidla ne
+
+# Vlna 25 (3.10): herní studio – gamedev.py, tools/gamedev_tools.py, tests/test_wave25.py
+646 | HOTOVO | game_world: svět ze semínka (fraktální šum výšky a vlhkosti → 8 biomů), obrázek, podíly, ostrovy, start na pevnině; stejné semínko = stejný svět
+647 | HOTOVO | dialogue_check: neexistující odkazy, nedosažitelné uzly, slepé větve, smyčky bez konce, nenastavené podmínky, neznámé proměnné + přehrání podle voleb
+648 | HOTOVO | quest_check: průchod jako hráč (předpoklady, úroveň z XP, předměty) → pořadí, úroveň, zlato, nesplnitelné questy s důvodem
+649 | HOTOVO | economy_sim: přítoky a odtoky zlata po dnech (pevné i % z peněženky), inflace / deflace, ustálená peněženka, chybějící odtok
+650 | HOTOVO | loot_odds: šance z vah, očekávaný počet pokusů, šance za N, pokusy na 50 / 90 %, pity
+651 | HOTOVO | spawn_balance: vzdálenosti spawnů týmů k cílům, výhoda v %, spawny moc blízko nepříteli
+652 | HOTOVO | level_generator: místnosti bez překryvu, chodby po minimální kostře + smyčka, start a východ nejdál od sebe, ověření průchodnosti, obrázek i text
+654 | HOTOVO | save_validate: pravidla typ / rozsah / povinné / vzor / jedinečné s cestami i přes seznamy + podezřelé skoky proti minulému uložení
+655 | HOTOVO | animation_fsm: nedosažitelné stavy, stavy bez odchodu, konfliktní přechody, nedeklarované parametry, diagram Mermaid
+657 | HOTOVO | server_capacity: procesor za tick, odchozí tok (všichni / jen viditelní), max hráčů podle procesoru a linky, úzké hrdlo
+658 | HOTOVO | game_telemetry: dohrání levelů, smrti, odchody, průměrný čas, trychtýř, nejtěžší level, místa nejčastější smrti
+659 | ČÁSTEČNĚ | colorblind_check: simulace protanopie / deuteranopie / tritanopie (Machado 2009) a splývající barvy; velikost titulků a ovládání ne
+660 | HOTOVO | balance_sim: Monte Carlo souboje jednotek (rychlost útoku, brnění, přesnost, kritické zásahy), matice výher, silné / slabé, DPS

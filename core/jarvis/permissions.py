@@ -61,6 +61,8 @@ READ_ONLY_OK = {
     "home_rooms", "home_energy", "home_batteries", "home_firmware", "home_history", "simulate_automations",
     "bill_of_materials", "parts_compatibility", "robot_arm", "task_plan", "formula_explorer", "learning_path", "search_everything",
     "find_workflow", "name_window_groups",
+    "dialogue_check", "quest_check", "economy_sim", "loot_odds", "spawn_balance", "save_validate", "animation_fsm", "server_capacity",
+    "game_telemetry", "balance_sim",
 }
 # reading tools in a reading area that still change or send something
 READ_PERM_WRITERS = {"open_url", "browser_click", "browser_type", "browser_open", "generate_image", "youtube_search",

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 369 | 74 |
-| 🟡 ČÁSTEČNĚ | 154 | 58 |
+| ✅ HOTOVO | 383 | 74 |
+| 🟡 ČÁSTEČNĚ | 156 | 58 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 238 | 17 |
+| ⬜ CHYBÍ | 222 | 17 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -275,7 +275,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 15. Hardware Lab
 
-🟡 1 · ⬜ 9
+✅ 2 · 🟡 2 · ⬜ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -283,10 +283,10 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 157 | ESP32 integrace. | ⬜ CHYBÍ | — |
 | 158 | Raspberry Pi integrace. | ⬜ CHYBÍ | — |
 | 159 | Základní elektrická schémata. | ⬜ CHYBÍ | — |
-| 160 | Výpočty a kontrola součástek. | ⬜ CHYBÍ | — |
-| 161 | Sériový port a data. | ⬜ CHYBÍ | — |
+| 160 | Výpočty a kontrola součástek. | ✅ HOTOVO | parts_compatibility (napájení, logické úrovně, proud z pinů, odběr) + circuit_calc (vlna 16) + bill_of_materials |
+| 161 | Sériový port a data. | ✅ HOTOVO | serial_monitor: porty, čtení, odeslání řádku, čísla z výpisu |
 | 162 | Jednoduché PCB návrhy. | ⬜ CHYBÍ | — |
-| 163 | Diagnostika senzorů. | ⬜ CHYBÍ | — |
+| 163 | Diagnostika senzorů. | 🟡 ČÁSTEČNĚ | data senzoru: serial_monitor + sensor_chart (min / max / průměr, graf); automatické rozpoznání vadného čidla ne |
 | 164 | Firmware projektový management. | ⬜ CHYBÍ | — |
 | 165 | Přehled IoT zařízení. | 🟡 ČÁSTEČNĚ | Home Assistant + zařízení v síti (home.py, network.py) |
 
@@ -1003,25 +1003,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 49. Autonomous Game Development Studio
 
-⬜ 15
+✅ 12 · 🟡 1 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 646 | Procedural World Builder — generování světů. | ⬜ CHYBÍ | — |
-| 647 | NPC Dialogue System — dialogy NPC. | ⬜ CHYBÍ | — |
-| 648 | Quest Graph Designer — herní questy. | ⬜ CHYBÍ | — |
-| 649 | Game Economy Simulator — simulace ekonomiky. | ⬜ CHYBÍ | — |
-| 650 | Loot Balance Calculator — balancing odměn. | ⬜ CHYBÍ | — |
-| 651 | Spawn Balance Analyzer — pozice objektů a nepřátel. | ⬜ CHYBÍ | — |
-| 652 | Level Layout Generator — návrhy levelů. | ⬜ CHYBÍ | — |
+| 646 | Procedural World Builder — generování světů. | ✅ HOTOVO | game_world: svět ze semínka (fraktální šum výšky a vlhkosti → 8 biomů), obrázek, podíly, ostrovy, start na pevnině; stejné semínko = stejný svět |
+| 647 | NPC Dialogue System — dialogy NPC. | ✅ HOTOVO | dialogue_check: neexistující odkazy, nedosažitelné uzly, slepé větve, smyčky bez konce, nenastavené podmínky, neznámé proměnné + přehrání podle voleb |
+| 648 | Quest Graph Designer — herní questy. | ✅ HOTOVO | quest_check: průchod jako hráč (předpoklady, úroveň z XP, předměty) → pořadí, úroveň, zlato, nesplnitelné questy s důvodem |
+| 649 | Game Economy Simulator — simulace ekonomiky. | ✅ HOTOVO | economy_sim: přítoky a odtoky zlata po dnech (pevné i % z peněženky), inflace / deflace, ustálená peněženka, chybějící odtok |
+| 650 | Loot Balance Calculator — balancing odměn. | ✅ HOTOVO | loot_odds: šance z vah, očekávaný počet pokusů, šance za N, pokusy na 50 / 90 %, pity |
+| 651 | Spawn Balance Analyzer — pozice objektů a nepřátel. | ✅ HOTOVO | spawn_balance: vzdálenosti spawnů týmů k cílům, výhoda v %, spawny moc blízko nepříteli |
+| 652 | Level Layout Generator — návrhy levelů. | ✅ HOTOVO | level_generator: místnosti bez překryvu, chodby po minimální kostře + smyčka, start a východ nejdál od sebe, ověření průchodnosti, obrázek i text |
 | 653 | Anti-Exploit Test Assistant — testy vlastních her. | ⬜ CHYBÍ | — |
-| 654 | Save Data Validator — uložená data. | ⬜ CHYBÍ | — |
-| 655 | Animation State Machine Builder — animace postav. | ⬜ CHYBÍ | — |
+| 654 | Save Data Validator — uložená data. | ✅ HOTOVO | save_validate: pravidla typ / rozsah / povinné / vzor / jedinečné s cestami i přes seznamy + podezřelé skoky proti minulému uložení |
+| 655 | Animation State Machine Builder — animace postav. | ✅ HOTOVO | animation_fsm: nedosažitelné stavy, stavy bez odchodu, konfliktní přechody, nedeklarované parametry, diagram Mermaid |
 | 656 | Voxel Structure Generator — voxelová tvorba. | ⬜ CHYBÍ | — |
-| 657 | Server Capacity Simulator — kapacita serveru. | ⬜ CHYBÍ | — |
-| 658 | Game Telemetry Explorer — herní telemetrie. | ⬜ CHYBÍ | — |
-| 659 | Game Accessibility Inspector — přístupnost hry. | ⬜ CHYBÍ | — |
-| 660 | Gameplay Balance Experimenter — herní balanc. | ⬜ CHYBÍ | — |
+| 657 | Server Capacity Simulator — kapacita serveru. | ✅ HOTOVO | server_capacity: procesor za tick, odchozí tok (všichni / jen viditelní), max hráčů podle procesoru a linky, úzké hrdlo |
+| 658 | Game Telemetry Explorer — herní telemetrie. | ✅ HOTOVO | game_telemetry: dohrání levelů, smrti, odchody, průměrný čas, trychtýř, nejtěžší level, místa nejčastější smrti |
+| 659 | Game Accessibility Inspector — přístupnost hry. | 🟡 ČÁSTEČNĚ | colorblind_check: simulace protanopie / deuteranopie / tritanopie (Machado 2009) a splývající barvy; velikost titulků a ovládání ne |
+| 660 | Gameplay Balance Experimenter — herní balanc. | ✅ HOTOVO | balance_sim: Monte Carlo souboje jednotek (rychlost útoku, brnění, přesnost, kritické zásahy), matice výher, silné / slabé, DPS |
 
 ## 50. AI Creative Production
 

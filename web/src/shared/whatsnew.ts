@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "game-controller", title: "Herní studio", line: "Svět ze semínka, generátor levelů, kontrola dialogů a questů, šance na loot, ekonomika, férovost mapy, balanc jednotek a jak hru vidí barvoslepí." },
     { icon: "circuitry", title: "Dílna a plánování", line: "Kusovník součástek, jestli k sobě moduly sedí (3,3 V vs 5 V), sériový monitor pro Arduino, graf ze senzorů, rameno robota, plán úkolů s kritickou cestou – a „kde jsem to viděl?“ hledá všude najednou." },
     { icon: "house-line", title: "Chytrá domácnost", line: "„Zhasni v obýváku“, kolik spotřebovala pračka, které čidlo má slabou baterii, co čeká na aktualizaci, co se doma dělo – a pravidla „Když … tak …“ si vyzkoušíš nanečisto." },
     { icon: "hard-drives", title: "Servisní technik", line: "Kde na disku jsou vadná místa, které USB zařízení zlobí kvůli napájení, jak zachránit data z umírajícího disku a protokol pro servis. A u webů: certifikát, e-mailové záznamy, výpadky, logy a zálohy." },
