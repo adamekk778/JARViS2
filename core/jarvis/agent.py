@@ -295,7 +295,6 @@ class Agent:
     async def _ask_confirm(self, call: ToolCall, second: bool = False) -> bool:
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
-        self._confirms[cid] = fut
         desc = describe_call(call.name, call.arguments)
         if second:
             desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
@@ -303,6 +302,9 @@ class Agent:
         details = await asyncio.to_thread(tools.details_for, spec, call.arguments, self.rt) if spec else []
         self.confirm_info[cid] = {"id": cid, "description": desc, "tool": call.name, "details": details, "ts": time.time(),
                                   "second": second}
+        # pending only from the moment the request is announced (details are prepared in a thread before that), so
+        # whoever sees a pending confirmation also has its request
+        self._confirms[cid] = fut
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
                             details=details, second=second)
         self.rt.on_confirm_request(cid, desc)

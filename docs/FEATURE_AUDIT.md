@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 430 | 74 |
-| 🟡 ČÁSTEČNĚ | 163 | 59 |
+| ✅ HOTOVO | 443 | 74 |
+| 🟡 ČÁSTEČNĚ | 164 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 168 | 16 |
+| ⬜ CHYBÍ | 154 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -224,20 +224,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 12. Creative Studio
 
-🟡 3 · ⬜ 7
+✅ 6 · 🟡 3 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 126 | Video storyboard. | ⬜ CHYBÍ | — |
+| 126 | Video storyboard. | ✅ HOTOVO | storyboard_timeline (vlna 26): záběry → časová osa, EDL a SRT |
 | 127 | Návrhy animovaných scén. | ⬜ CHYBÍ | — |
 | 128 | Automatické titulky. | 🟡 ČÁSTEČNĚ | přepis řeči z nahrávek (notetaker.py) |
-| 129 | Synchronizace titulků. | ⬜ CHYBÍ | — |
-| 130 | Odšumění zvuku. | ⬜ CHYBÍ | — |
-| 131 | Výběr krátkých klipů. | ⬜ CHYBÍ | — |
+| 129 | Synchronizace titulků. | ✅ HOTOVO | sync_subtitles: posun i postupné natažení titulků podle řeči (korelace aktivity řeči a titulků, dvě poloviny) |
+| 130 | Odšumění zvuku. | ✅ HOTOVO | clean_speech (vlna 18) + filtr hluku v hlasové smyčce (vlna 28) |
+| 131 | Výběr krátkých klipů. | ✅ HOTOVO | extract_clips: nejživější momenty jako samostatná krátká videa (ve frontě) |
 | 132 | Náhledové obrázky. | 🟡 ČÁSTEČNĚ | generate_image |
 | 133 | Barevné palety. | 🟡 ČÁSTEČNĚ | palety přes AI chat |
-| 134 | Animace z grafických prvků. | ⬜ CHYBÍ | — |
-| 135 | Exporty pro sociální sítě. | ⬜ CHYBÍ | — |
+| 134 | Animace z grafických prvků. | ✅ HOTOVO | animate_elements: logo, obrázky a texty s příjezdem, zvětšením, vyblednutím → MP4 |
+| 135 | Exporty pro sociální sítě. | ✅ HOTOVO | social_formats (obrázky, vlna 26) + reframe_video (video na 9:16 / 1:1 / 4:5) |
 
 ## 13. Mobile Super Assistant
 
@@ -585,7 +585,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 30. Multimedia Production
 
-✅ 7 · ⬜ 8
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -593,16 +593,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 362 | Silence Remover — odstranění ticha. | ✅ HOTOVO | remove_silence: vystřihne dlouhá ticha s ponecháním přirozených pauz a krátkým prolnutím → nový WAV |
 | 363 | Audio Ducking — zeslabení hudby při řeči. | ✅ HOTOVO | duck_music: hudba pod řečí ztlumená s náběhem a doběhem, převzorkování a smyčka hudby → nový WAV |
 | 364 | Video Highlight Finder — zajímavé momenty. | ✅ HOTOVO | audio_highlights / video_scenes: nejživější momenty podle hlasitosti (+ blízké střihy), s rozestupy |
-| 365 | Automatic Reframing — poměr stran videa. | ⬜ CHYBÍ | — |
+| 365 | Automatic Reframing — poměr stran videa. | ✅ HOTOVO | reframe_video: 9:16 / 1:1 / 4:5 … s výřezem po ději (detail + pohyb, těžiště, vyhlazení po scénách), H.264 + zvuk, ve frontě |
 | 366 | Speech Enhancement — čištění řeči. | ✅ HOTOVO | clean_speech: horní propust proti dunění, spektrální brána podle profilu šumu, normalizace špičky |
-| 367 | Background Removal — odstranění pozadí. | ⬜ CHYBÍ | — |
-| 368 | Media Asset Organizer — uspořádání médií. | ⬜ CHYBÍ | — |
+| 367 | Background Removal — odstranění pozadí. | 🟡 ČÁSTEČNĚ | remove_background: jednobarevné pozadí → PNG s průhledností (barva z okraje, souvislá oblast, změkčené hrany), varování u rušného pozadí; AI model ne |
+| 368 | Media Asset Organizer — uspořádání médií. | ✅ HOTOVO | organize_media: fotky, videa i zvuky podle data pořízení (EXIF, metadata videa) do Rok / akce, duplicity stranou, vratné |
 | 369 | Subtitle Style Generator — styly titulků. | ✅ HOTOVO | check_subtitles + restyle_subtitles: rychlost čtení, délka a počet řádků, překryvy; zalomení a prodloužení; ASS se stylem |
-| 370 | Podcast Chapter Generator — kapitoly audia. | ⬜ CHYBÍ | — |
-| 371 | Shot Matching — sjednocení záběrů. | ⬜ CHYBÍ | — |
-| 372 | Voiceover Script Assistant — text dabingu. | ⬜ CHYBÍ | — |
-| 373 | Sound Effect Matcher — zvukové efekty. | ⬜ CHYBÍ | — |
-| 374 | Media Render Queue — fronta renderů. | ⬜ CHYBÍ | — |
+| 370 | Podcast Chapter Generator — kapitoly audia. | ✅ HOTOVO | podcast_chapters: kapitoly podle změn tématu v přepisu (TextTiling), názvy z typických slov, formát YouTube 00:00 |
+| 371 | Shot Matching — sjednocení záběrů. | ✅ HOTOVO | match_shot: přenos barev v Lab k referenčnímu záběru, 3D LUT .cube (33³) pro střihové programy, náhled, přebarvení videa ve frontě |
+| 372 | Voiceover Script Assistant — text dabingu. | ✅ HOTOVO | voiceover_fit: text komentáře do scén (i automaticky z videa), kolik slov ubrat, titulky SRT |
+| 373 | Sound Effect Matcher — zvukové efekty. | ✅ HOTOVO | sfx_library: rejstřík zvuků (délka, hlasitost, jas, náběh), hledání česky i anglicky se skloňováním, podobné zvuky |
+| 374 | Media Render Queue — fronta renderů. | ✅ HOTOVO | render_queue: fronta renderů v databázi (čeká / běží % / hotovo / chyba / zrušeno), jedna po druhé, přežije restart |
 | 375 | Export Quality Analyzer — kvalita výstupu. | ✅ HOTOVO | media_quality: LUFS (EBU R128 s branami), úprava pro YouTube / Spotify / podcast / TV, špička, přebuzení, DC, ticho; u videa kodek, rozlišení, fps, tok |
 
 ## 31. Internet Intelligence

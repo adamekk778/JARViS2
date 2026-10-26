@@ -126,3 +126,33 @@ async def test_stop_cancels(rt):
     rt.agent.stop()
     out = await task
     assert "přerušeno" in out
+
+
+async def test_pending_confirmation_is_announced_before_it_shows(rt, monkeypatch):
+    """Preparing the confirmation details runs in a thread; a pending confirmation must never be visible before its
+    request went out (the voice loop and the UI rely on that)."""
+    import time as _t
+
+    from jarvis import tools as _tools
+
+    slow = _tools.details_for
+
+    def details(spec, args, rt_):
+        _t.sleep(0.3)
+        return slow(spec, args, rt_)
+    monkeypatch.setattr(_tools, "details_for", details)
+    rt.router = FakeRouter([[("delete_file", {"path": "C:/neexistuje.txt"})], "Hotovo."])
+    q = rt.bus.subscribe()
+    task = asyncio.create_task(rt.agent.handle("smaž soubor"))
+    seen = []
+    for _ in range(200):
+        await asyncio.sleep(0.01)
+        while not q.empty():
+            seen.append(q.get_nowait()["type"])
+        if rt.agent.pending_confirm():
+            assert "confirm_request" in seen
+            break
+    else:
+        raise AssertionError("no confirmation")
+    rt.agent.confirm(rt.agent.pending_confirm(), False)
+    await task

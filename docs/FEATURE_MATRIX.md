@@ -44,6 +44,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_subtitles` | 369, 674 |
 | `circuit_tutor` | 451, 456 |
 | `claude_bridge.py` | 046, P5.01 |
+| `clean_speech` | 130, 366 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
 | `db_growth` | 610, 613 |
@@ -69,12 +70,15 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `price_quote` | 168, 441 |
 | `project_resume` | 044, 509 |
 | `quiz_from` | 107, 112 |
+| `reframe_video` | 135, 365 |
 | `restyle_subtitles` | 369, 674 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
 | `send_to_phone` | 138, 408 |
+| `social_formats` | 135, 662 |
 | `stark.py` | 034, 508 |
 | `storage_report` | 327, P2.11 |
+| `storyboard_timeline` | 126, 672 |
 | `tools/files.py` | 029, 511 |
 | `tools/uia.py` | 028, 274 |
 | `ui_inspect` | 028, P2.03 |
@@ -98,6 +102,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `agent_team` | 218 |
 | `ai_usage` | 154 |
 | `analyze_feedback` | 444 |
+| `animate_elements` | 134 |
 | `animation_fsm` | 655 |
 | `api_ask` | 589 |
 | `api_breaking_changes` | 627 |
@@ -148,7 +153,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `citation_check` | 777 |
 | `claude_code` | 046 |
 | `clean_metadata` | 326 |
-| `clean_speech` | 366 |
 | `clipboard_set` | 138 |
 | `code_owners` | 338 |
 | `color_profile` | 671 |
@@ -220,6 +224,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `export_all` | 793 |
 | `export_audit` | 687 |
 | `extract_archive` | 323 |
+| `extract_clips` | 131 |
 | `fact_check` | 377 |
 | `fact_delete` | 039 |
 | `fact_update` | 039 |
@@ -287,6 +292,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mail.py` | P11.05 |
 | `make_sbom` | 624 |
 | `map_data` | 595 |
+| `match_shot` | 371 |
 | `mcp_client` | 048 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
@@ -316,6 +322,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
 | `offline_test` | 641 |
+| `organize_media` | 368 |
 | `outage_timeline` | 720 |
 | `over_budget` | 221 |
 | `packing_list` | 782 |
@@ -327,6 +334,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
 | `physics_sim` | 776 |
+| `podcast_chapters` | 370 |
 | `power_check` | 295 |
 | `power_cost` | 474 |
 | `power_plan_set` | 295 |
@@ -355,10 +363,12 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `redact.py` | 179 |
 | `reject_cookies` | 534 |
 | `release_notes` | 343 |
+| `remove_background` | 367 |
 | `remove_duplicates` | 317 |
 | `remove_silence` | 362 |
 | `rename_files` | 325 |
 | `render_cost` | 670 |
+| `render_queue` | 374 |
 | `reopen_crashed` | 519 |
 | `replay_workflow` | 529 |
 | `reply_context` | 543 |
@@ -390,13 +400,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `set_feature_flag` | 344 |
 | `set_private` | 041 |
 | `setup_check` | 795 |
+| `sfx_library` | 373 |
 | `shared/taskcard.ts` | 087 |
 | `shopping_by_aisle` | 785 |
 | `simulate_automations` | 430 |
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
-| `social_formats` | 662 |
 | `sort_documents` | 319 |
 | `sort_tabs` | 527 |
 | `source_reliability` | 376 |
@@ -405,9 +415,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `speed_test` | 717 |
 | `sql_query` | 064 |
 | `stop_all` | 176 |
-| `storyboard_timeline` | 672 |
 | `study_stats` | 461 |
 | `subscriptions_overview` | 535 |
+| `sync_subtitles` | 129 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
 | `task_plan` | 201 |
@@ -444,6 +454,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `voice/loop.py` | 259 |
 | `voice_bookmark` | 266 |
 | `voice_bookmarks` | 266 |
+| `voiceover_fit` | 372 |
 | `wake_device` | 416 |
 | `wake_word_calibrate` | 260 |
 | `warm_up_model` | 575 |

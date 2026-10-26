@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "film-strip", title: "Video studio", line: "Video na výšku pro TikTok a Reels s výřezem, který sleduje děj, krátké klipy z nejlepších momentů, barevné sjednocení záběrů (LUT), kapitoly podcastu, srovnání titulků s řečí, animace loga a textů, knihovna zvukových efektů, uspořádání fotek a videí – a fronta renderů na pozadí." },
     { icon: "wrench", title: "Péče o počítač", line: "Který ovladač způsobil pády a jak ho vrátit, nastavení napájení a zdraví baterie, záchranný disk, které služby na sobě závisí, plynulost her, jak rychle se otevírají programy, profily výkonu – a po restartu nabídne otevřít okna jako minule." },
     { icon: "briefcase", title: "Firma pod kontrolou", line: "Číslované nabídky s přehledem, co se přijalo, podklady k fakturaci z výkazu, požadavky zákazníků s termíny, srovnání dodavatelů, vyhodnocení kampaní, příjmy a výdaje z výpisu z banky, SEO audit webu, hlídání konkurence a komu se dnes ozvat." },
     { icon: "waveform", title: "Čistý hlas", line: "JARVIS odfiltruje hluk místnosti, neslyší sám sebe (můžeš mu skočit do řeči), zesílí tichý hlas z dálky a při poslouchání ztiší hudbu. Navíc kontrola mikrofonu, nastavení citlivosti „Hey Jarvis“, záložky v hovorech, rozlišení mluvčích a nácvik výslovnosti." },

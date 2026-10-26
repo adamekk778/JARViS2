@@ -51,7 +51,7 @@ SERVER_TYPES = [
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
     "memory_export_data", "memory_import_result", "audio_devices",
     "diagnostics", "diagnostics_file",
-    "dictation", "dictation_data", "recap", "notetaker", "notes", "note",
+    "dictation", "dictation_data", "recap", "notetaker", "notes", "note", "render",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",

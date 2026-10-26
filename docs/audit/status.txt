@@ -826,3 +826,19 @@
 306 | HOTOVO | frame_time_report: PresentMon / CapFrameX / Afterburner – průměr, 1% a 0,1% minima, zaseknutí za minutu a kdy, graf
 308 | HOTOVO | app_launch_time: čas do zobrazení okna za studena a za tepla, zavře jen to, co sám spustil (se schválením)
 310 | HOTOVO | performance_profile: hra / práce / tichý / vlastní – priority jen tvých procesů, přesné vrácení (i když mezitím proces skončil)
+
+# Vlna 31 (3.10): video a média – mediapro.py, tools/mediapro_tools.py, tests/test_wave31.py (skutečná videa H.264 + AAC vyrobená testem)
+365 | HOTOVO | reframe_video: 9:16 / 1:1 / 4:5 … s výřezem po ději (detail + pohyb, těžiště, vyhlazení po scénách), H.264 + zvuk, ve frontě
+367 | ČÁSTEČNĚ | remove_background: jednobarevné pozadí → PNG s průhledností (barva z okraje, souvislá oblast, změkčené hrany), varování u rušného pozadí; AI model ne
+368 | HOTOVO | organize_media: fotky, videa i zvuky podle data pořízení (EXIF, metadata videa) do Rok / akce, duplicity stranou, vratné
+370 | HOTOVO | podcast_chapters: kapitoly podle změn tématu v přepisu (TextTiling), názvy z typických slov, formát YouTube 00:00
+371 | HOTOVO | match_shot: přenos barev v Lab k referenčnímu záběru, 3D LUT .cube (33³) pro střihové programy, náhled, přebarvení videa ve frontě
+372 | HOTOVO | voiceover_fit: text komentáře do scén (i automaticky z videa), kolik slov ubrat, titulky SRT
+373 | HOTOVO | sfx_library: rejstřík zvuků (délka, hlasitost, jas, náběh), hledání česky i anglicky se skloňováním, podobné zvuky
+374 | HOTOVO | render_queue: fronta renderů v databázi (čeká / běží % / hotovo / chyba / zrušeno), jedna po druhé, přežije restart
+126 | HOTOVO | storyboard_timeline (vlna 26): záběry → časová osa, EDL a SRT
+129 | HOTOVO | sync_subtitles: posun i postupné natažení titulků podle řeči (korelace aktivity řeči a titulků, dvě poloviny)
+130 | HOTOVO | clean_speech (vlna 18) + filtr hluku v hlasové smyčce (vlna 28)
+131 | HOTOVO | extract_clips: nejživější momenty jako samostatná krátká videa (ve frontě)
+134 | HOTOVO | animate_elements: logo, obrázky a texty s příjezdem, zvětšením, vyblednutím → MP4
+135 | HOTOVO | social_formats (obrázky, vlna 26) + reframe_video (video na 9:16 / 1:1 / 4:5)
