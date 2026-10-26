@@ -80,7 +80,11 @@ def run_quiet(cmd: list[str], timeout: float) -> tuple[int | None, str, str]:
     the pipe open so reading it never ends.) → (exit code or None on timeout, stdout, stderr)"""
     import tempfile
 
-    flags = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+    flags: dict = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+    if cmd and os.path.basename(cmd[0]).lower() in ("powershell.exe", "powershell"):
+        # Started from PowerShell 7, PSModulePath points at PS7's modules and Windows PowerShell 5.1 then fails to load
+        # its own (e.g. Get-AuthenticodeSignature). Without the variable 5.1 rebuilds its default path.
+        flags["env"] = {k: v for k, v in os.environ.items() if k.upper() != "PSMODULEPATH"}
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, **flags)
         try:

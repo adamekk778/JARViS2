@@ -473,3 +473,30 @@ async def test_stall_watch_logs_where_the_loop_is_stuck(caplog):
     text = caplog.text
     assert "event loop stuck" in text and "test_stall_watch_logs_where_the_loop_is_stuck" in text
     assert "answers again" in text
+
+
+def test_messages_for_windows_editions_without_the_data():
+    boot = rescue.analyze("boot", {"boots": {"error": 'There is not an event log on the localhost computer that matches "Microsoft-Windows-Diagnostics-Performance/Operational".'}})
+    assert "nevede" in boot[0]["text"] and "správce" not in boot[0]["text"]
+    rp = rescue.analyze("restore", {"points": {"error": "This functionality is not supported on this operating system."}})
+    assert "nepodporuje" in rp[0]["text"]
+
+
+def test_powershell_runs_without_ps7_module_path(monkeypatch):
+    from jarvis import pcreport
+
+    seen = {}
+
+    class P:
+        def __init__(self, cmd, **kw):
+            seen.update(kw)
+
+        def wait(self, timeout):
+            return 0
+    monkeypatch.setattr(pcreport.subprocess, "Popen", P)
+    monkeypatch.setenv("PSModulePath", r"C:\Program Files\PowerShell\7\Modules")
+    pcreport.run_quiet(["powershell.exe", "-NoProfile"], 5)
+    assert "PSMODULEPATH" not in {k.upper() for k in seen["env"]}
+    seen.clear()
+    pcreport.run_quiet(["netsh", "x"], 5)
+    assert "env" not in seen

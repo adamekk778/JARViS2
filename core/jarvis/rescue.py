@@ -287,7 +287,11 @@ def _an_boot(d: dict) -> list[dict]:
                      "" if lvl == "ok" else "Vypni zbytečné programy po spuštění a zkontroluj disk (HDD startuje pomalu).",
                      "Diagnostics-Performance 100"))
     elif err(d.get("boots")):
-        out.append(F("info", "Časy startu smí číst jen správce (log Diagnostics-Performance).", "Spusť JARVIS jako správce.", "Diagnostics-Performance"))
+        if needs_admin(err(d.get("boots"))):
+            out.append(F("info", "Časy startu smí číst jen správce (log Diagnostics-Performance).", "Spusť JARVIS jako správce.", "Diagnostics-Performance"))
+        else:
+            out.append(F("info", "Tenhle Windows záznam o době startu nevede (log Diagnostics-Performance chybí nebo je prázdný).", "",
+                         "Diagnostics-Performance"))
     slow = sorted(L(d.get("slow")), key=lambda x: -(x.get("DegradationMs") or 0))
     for s_ in slow[:6]:
         if (s_.get("DegradationMs") or 0) > 1000:
@@ -459,8 +463,11 @@ def _an_restore(d: dict) -> list[dict]:
         out.append(F("ok", f"Bodů obnovy: {len(pts)}, poslední {pts[-1].get('Time', '')[:10]} („{pts[-1].get('Description')}“).", source="Get-ComputerRestorePoint"))
     elif err(d.get("points")):
         msg = err(d.get("points"))
-        out.append(F("info", "Body obnovy smí číst jen správce." if needs_admin(msg) else "Ochrana systému (body obnovy) je asi vypnutá.",
-                     "Vlastnosti systému → Ochrana systému → zapnout pro disk C:.", "Get-ComputerRestorePoint"))
+        if re.search(r"not supported on this operating system|není v tomto operačním systému podporován", msg, re.I):
+            out.append(F("info", "Tahle edice Windows body obnovy nepodporuje (např. Windows Server).", "", "Get-ComputerRestorePoint"))
+        else:
+            out.append(F("info", "Body obnovy smí číst jen správce." if needs_admin(msg) else "Ochrana systému (body obnovy) je asi vypnutá.",
+                         "Vlastnosti systému → Ochrana systému → zapnout pro disk C:.", "Get-ComputerRestorePoint"))
     else:
         out.append(F("warn", "Žádný bod obnovy.", "Před větší změnou vytvoř bod obnovy (JARVIS to umí se schválením).", "Get-ComputerRestorePoint"))
     for m in L(d.get("memtest"))[:2]:
