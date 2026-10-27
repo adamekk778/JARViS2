@@ -30,6 +30,7 @@ dependencies = [
   "numpy>=1.26",
   "icalendar>=6",
   "recurring-ical-events>=3",
+  "av>=12",
 ]
 
 [project.optional-dependencies]
