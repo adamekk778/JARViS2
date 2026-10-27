@@ -124,6 +124,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `asset_lineage` | 675 |
 | `asset_register` | 664 |
 | `assets_report` | 664 |
+| `audio_device` | 414 |
 | `audio_devices` | 105 |
 | `audio_highlights` | 364 |
 | `audio_state` | 073 |
@@ -410,6 +411,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `restore_browser_session` | 528 |
 | `restore_file_version` | 328 |
 | `revenue_forecast` | 443 |
+| `rig_assistant` | 667 |
 | `robot_arm` | 476 |
 | `rollback_plan` | 623 |
 | `room_control` | 421 |
@@ -419,6 +421,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `save_validate` | 654 |
 | `save_web_evidence` | 381 |
 | `scan_secrets` | 401 |
+| `scene_animation` | 127 |
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
 | `score_leads` | 438 |
@@ -494,6 +497,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
 | `window_to_monitor` | 238 |
+| `workflow_export` | 153 |
+| `workflow_import` | 153 |
+| `workflow_record` | 146 |
 | `write_text_file` | P5.05 |
 
 ## Překryvy původního seznamu s katalogem

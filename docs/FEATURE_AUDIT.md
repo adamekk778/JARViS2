@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 555 | 79 |
-| 🟡 ČÁSTEČNĚ | 176 | 59 |
+| ✅ HOTOVO | 559 | 79 |
+| 🟡 ČÁSTEČNĚ | 177 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 30 | 11 |
+| ⬜ CHYBÍ | 25 | 11 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -224,12 +224,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 12. Creative Studio
 
-✅ 6 · 🟡 3 · ⬜ 1
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 126 | Video storyboard. | ✅ HOTOVO | storyboard_timeline (vlna 26): záběry → časová osa, EDL a SRT |
-| 127 | Návrhy animovaných scén. | ⬜ CHYBÍ | — |
+| 127 | Návrhy animovaných scén. | ✅ HOTOVO | scene_animation: sled záběrů podle zadání a nálady (časy, kamera, pohyb), živý náhled v prohlížeči (CSS animace) a skript pro Blender s klíčovými snímky |
 | 128 | Automatické titulky. | 🟡 ČÁSTEČNĚ | přepis řeči z nahrávek (notetaker.py) |
 | 129 | Synchronizace titulků. | ✅ HOTOVO | sync_subtitles: posun i postupné natažení titulků podle řeči (korelace aktivity řeči a titulků, dvě poloviny) |
 | 130 | Odšumění zvuku. | ✅ HOTOVO | clean_speech (vlna 18) + filtr hluku v hlasové smyčce (vlna 28) |
@@ -258,18 +258,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 14. Automation of the Future
 
-✅ 5 · 🟡 3 · ⬜ 2
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 146 | Workflow Recorder — záznam postupu. | ⬜ CHYBÍ | — |
+| 146 | Workflow Recorder — záznam postupu. | ✅ HOTOVO | workflow_record: nahrávání kroků JARVISe a přepnutých aplikací (jen názvy, žádné klávesy / obrazovka / schránka), viditelné upozornění, po „stop“ schválená dovednost |
 | 147 | Conditional Builder — tvorba podmínek. | ✅ HOTOVO | automatizace „Když … tak …“ (automations.py, tests/test_automations.py) |
 | 148 | Trigger Explorer — spouštěče událostí. | ✅ HOTOVO | 11 spouštěčů: čas, start PC, aplikace, e-mail, zpráva/hovor na mobilu, baterie, nabíječka, odchod/návrat |
 | 149 | Workflow Simulator — zkoušení bez změn. | 🟡 ČÁSTEČNĚ | tlačítko Vyzkoušet spustí automatizaci se zkušebními daty (ne dry-run) |
 | 150 | Workflow Versions — verzování postupů. | 🟡 ČÁSTEČNĚ | verze a návrat zpět u protokolů (skillforge.py); automatizace zatím bez verzí |
 | 151 | Automation Templates — šablony automatizací. | 🟡 ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace |
 | 152 | Failure Recovery — navázání při přerušení. | ✅ HOTOVO | přerušená mise → Pokračovat od posledního hotového kroku (missions.resume, tests/test_wave1.py) |
-| 153 | Workflow Sharing — bezpečné sdílení. | ⬜ CHYBÍ | — |
+| 153 | Workflow Sharing — bezpečné sdílení. | ✅ HOTOVO | workflow_export / workflow_import: sdílený soubor bez hesel, klíčů, čísel karet a domovské složky, kontrolní součet; import ověří změnu, neznámé nástroje, ukáže kroky ke schválení, měnící kroky se dál potvrzují |
 | 154 | Cost Estimator — predikce nákladů. | ✅ HOTOVO | odhad ceny úkolu podle průměru volání a ceny poskytovatele (usage.estimate, ai_usage) |
 | 155 | Agent Scheduling — plánování běhu agentů. | ✅ HOTOVO | plánovač rutin a připomínek (scheduler.py) |
 
@@ -651,7 +651,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 33. Multi-Device Ecosystem
 
-✅ 6 · 🟡 8 · ⬜ 1
+✅ 6 · 🟡 9
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -663,7 +663,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 411 | Remote Build Monitor — průběh buildu na PC. | 🟡 ČÁSTEČNĚ | průběh úkolu v mobilu |
 | 412 | Notification Routing — distribuce oznámení. | ✅ HOTOVO | směrování oznámení PC/telefon (runtime.notify target) |
 | 413 | Phone Camera as Input — kamera telefonu. | ✅ HOTOVO | kamera telefonu jako vstup: „Fotka na PC“ přistane v polici notche |
-| 414 | Audio Device Handoff — přenos hovoru. | ⬜ CHYBÍ | — |
+| 414 | Audio Device Handoff — přenos hovoru. | 🟡 ČÁSTEČNĚ | audio_device: seznam zařízení, výběr podle slov (sluchátka, reproduktory, TV, Bluetooth), přepnutí výstupu i mikrofonu pro všechny role přes Windows API (IPolicyConfig) – na skutečném PC zatím neověřeno; předání hovoru mezi telefonem a PC ne |
 | 415 | Cross-Device File Browser — sdílené soubory. | ✅ HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně |
 | 416 | Remote Wake Support — Wake-on-LAN. | ✅ HOTOVO | wake_device (Wake-on-LAN) |
 | 417 | Device Battery Dashboard — baterie. | 🟡 ČÁSTEČNĚ | baterie PC + telefonu (phone_battery) |
@@ -1025,7 +1025,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 50. AI Creative Production
 
-✅ 11 · 🟡 3 · ⬜ 1
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1035,7 +1035,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 664 | Content Licensing Tracker — licence obsahu. | ✅ HOTOVO | asset_register + assets_report: licence, autor, zdroj, platnost (vypršelé / brzy), hotové texty uvedení autora, soubory bez evidence |
 | 665 | Virtual Camera Director — 3D kamerové pohyby. | 🟡 ČÁSTEČNĚ | camera_move: orbit / dolly / jeřáb / push-in s plynulým náběhem, klíčové snímky + skript pro Blender; samotný render ne |
 | 666 | Lighting Setup Planner — 3D osvětlení. | 🟡 ČÁSTEČNĚ | lighting_plan: tříbodové, Rembrandt, butterfly, split, high/low key – pozice, výkon z poměru, EV, skript pro Blender |
-| 667 | 3D Rigging Assistant — rigging modelů. | ⬜ CHYBÍ | — |
+| 667 | 3D Rigging Assistant — rigging modelů. | ✅ HOTOVO | rig_assistant: lidská / čtyřnohá kostra podle výšky (.L/.R), skript pro Blender s automatickými vahami k modelu, kontrola kostry z .gltf/.glb (chybějící strana, různé délky, smyčky, nulové kosti, víc kořenů) |
 | 668 | Lip-Sync Animator — synchronizace úst. | 🟡 ČÁSTEČNĚ | lip_sync: tvar úst na snímek podle hlasitosti (4 tvary, držení proti blikání), export Moho/Papagayo; fonémy ne |
 | 669 | Audio Mixing Advisor — mix audia. | ✅ HOTOVO | mix_advice: LUFS a špička stop, zisk vůči dialogu (hudba −12 LU, efekty −6, atmosféra −18), maskování pásma řeči, součet špiček |
 | 670 | Render Cost Planner — nároky renderu. | ✅ HOTOVO | render_cost: přepočet testovacího snímku na rozlišení a vzorky, strojové hodiny, čas na N strojích, cena, disk |

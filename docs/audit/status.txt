@@ -989,3 +989,10 @@
 458 | HOTOVO | coding_exercise / coding_check: 10 typů úloh ve 3 obtížnostech s náhodnými vstupy a skrytými testy z referenčního řešení; řešení běží v izolovaném procesu s limitem; kód, který nenapsal uživatel, jen po potvrzení
 465 | HOTOVO | learning_project: projekt podle cíle (web, Python, Arduino, Excel, hra) s 5 kroky – co se naučit a jak poznat hotovo, sledování postupu, pojmy do kartiček
 448 | HOTOVO | client_portal: soukromá stránka klienta (nabídky, stav požadavků) na tajné adrese, obnovení na stejné adrese, bez skriptů, escapovaný obsah
+
+# Vlna 43 – postupy, animace, zvuk, rigging
+146 | HOTOVO | workflow_record: nahrávání kroků JARVISe a přepnutých aplikací (jen názvy, žádné klávesy / obrazovka / schránka), viditelné upozornění, po „stop“ schválená dovednost
+153 | HOTOVO | workflow_export / workflow_import: sdílený soubor bez hesel, klíčů, čísel karet a domovské složky, kontrolní součet; import ověří změnu, neznámé nástroje, ukáže kroky ke schválení, měnící kroky se dál potvrzují
+127 | HOTOVO | scene_animation: sled záběrů podle zadání a nálady (časy, kamera, pohyb), živý náhled v prohlížeči (CSS animace) a skript pro Blender s klíčovými snímky
+414 | ČÁSTEČNĚ | audio_device: seznam zařízení, výběr podle slov (sluchátka, reproduktory, TV, Bluetooth), přepnutí výstupu i mikrofonu pro všechny role přes Windows API (IPolicyConfig) – na skutečném PC zatím neověřeno; předání hovoru mezi telefonem a PC ne
+667 | HOTOVO | rig_assistant: lidská / čtyřnohá kostra podle výšky (.L/.R), skript pro Blender s automatickými vahami k modelu, kontrola kostry z .gltf/.glb (chybějící strana, různé délky, smyčky, nulové kosti, víc kořenů)
