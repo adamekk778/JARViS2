@@ -26,7 +26,7 @@ TABLES = {
     "app_hours": "aplikace podle hodin (rutiny)", "price_history": "historie cen", "workspaces": "pracovní prostředí (rozložení oken)",
     "db_snapshots": "záznamy o velikosti databází", "experiments": "deník experimentů",
     "doc_files": "zaindexované dokumenty", "doc_idx": "rejstřík dokumentů",
-    "site_checks": "kontroly dostupnosti webů", "creative_assets": "evidence souborů a licencí", "tutor_progress": "postup v procvičování", "voice_bookmarks": "záložky v hovorech a konverzacích", "quotes": "evidence cenových nabídek", "customer_requests": "požadavky zákazníků", "competitor_snapshots": "uložené stránky konkurence", "sfx_index": "rejstřík zvukových efektů", "render_jobs": "fronta renderů", "pins": "připnuté úkoly v notchi",
+    "site_checks": "kontroly dostupnosti webů", "creative_assets": "evidence souborů a licencí", "tutor_progress": "postup v procvičování", "voice_bookmarks": "záložky v hovorech a konverzacích", "quotes": "evidence cenových nabídek", "customer_requests": "požadavky zákazníků", "competitor_snapshots": "uložené stránky konkurence", "sfx_index": "rejstřík zvukových efektů", "render_jobs": "fronta renderů", "pins": "připnuté úkoly v notchi", "fw_projects": "firmwarové projekty", "fw_builds": "historie sestavení firmwaru",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),

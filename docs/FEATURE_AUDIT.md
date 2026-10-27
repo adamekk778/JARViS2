@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 480 | 74 |
-| 🟡 ČÁSTEČNĚ | 171 | 59 |
+| ✅ HOTOVO | 488 | 74 |
+| 🟡 ČÁSTEČNĚ | 173 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 110 | 16 |
+| ⬜ CHYBÍ | 100 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -275,19 +275,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 15. Hardware Lab
 
-✅ 2 · 🟡 2 · ⬜ 6
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 156 | Arduino integrace. | ⬜ CHYBÍ | — |
-| 157 | ESP32 integrace. | ⬜ CHYBÍ | — |
-| 158 | Raspberry Pi integrace. | ⬜ CHYBÍ | — |
-| 159 | Základní elektrická schémata. | ⬜ CHYBÍ | — |
+| 156 | Arduino integrace. | ✅ HOTOVO | Arduino: pozná desku na portu (USB VID:PID), sestaví a nahraje sketch přes Arduino CLI (nahrání vždy po potvrzení), chyby česky |
+| 157 | ESP32 integrace. | ✅ HOTOVO | ESP32 / ESP8266: rozpoznání převodníku, sestavení přes Arduino CLI, nahrání .bin přes esptool (po potvrzení, kontrola adresy) |
+| 158 | Raspberry Pi integrace. | ✅ HOTOVO | Raspberry Pi: najde v síti podle MAC, stav přes SSH s tvým klíčem (teplota, karta, paměť) – jen čte, heslo nezadává |
+| 159 | Základní elektrická schémata. | ✅ HOTOVO | schéma ze seznamu spojů: obrázek SVG a netlist pro KiCad |
 | 160 | Výpočty a kontrola součástek. | ✅ HOTOVO | parts_compatibility (napájení, logické úrovně, proud z pinů, odběr) + circuit_calc (vlna 16) + bill_of_materials |
 | 161 | Sériový port a data. | ✅ HOTOVO | serial_monitor: porty, čtení, odeslání řádku, čísla z výpisu |
-| 162 | Jednoduché PCB návrhy. | ⬜ CHYBÍ | — |
+| 162 | Jednoduché PCB návrhy. | 🟡 ČÁSTEČNĚ | šířka cesty pro proud (IPC-2221) a odhad velikosti desky; automatické rozmístění a routování ne |
 | 163 | Diagnostika senzorů. | 🟡 ČÁSTEČNĚ | data senzoru: serial_monitor + sensor_chart (min / max / průměr, graf); automatické rozpoznání vadného čidla ne |
-| 164 | Firmware projektový management. | ⬜ CHYBÍ | — |
+| 164 | Firmware projektový management. | ✅ HOTOVO | firmwarové projekty: deska, port, verze (patch/minor/major), historie sestavení s využitím flash a RAM |
 | 165 | Přehled IoT zařízení. | 🟡 ČÁSTEČNĚ | Home Assistant + zařízení v síti (home.py, network.py) |
 
 ## 16. Business
@@ -739,11 +739,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 37. Engineering & Robotics
 
-✅ 10 · 🟡 2 · ⬜ 3
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 466 | CAD Project Assistant — CAD. | ⬜ CHYBÍ | — |
+| 466 | CAD Project Assistant — CAD. | 🟡 ČÁSTEČNĚ | parametrická krabička s víkem (OpenSCAD + STL k tisku, otvory v .scad); obecný CAD ne |
 | 467 | 3D Print Preparation — tisková příprava. | 🟡 ČÁSTEČNĚ | check_3d_model: příprava k tisku (rozměry, vejde se, podpěry, filament g/m); samotné slicování dělá slicer |
 | 468 | Printability Checker — tisknutelnost. | ✅ HOTOVO | check_3d_model: uzavřenost, otočené normály, zdegenerované plošky, převisy > 45°, velikost |
 | 469 | Bill of Materials Generator — BOM součástek. | ✅ HOTOVO | bill_of_materials: kusovník z CSV / exportu KiCadu – sloučení stejných součástek, kusy × desky, cena, chybějící ceny, různá pouzdra |
@@ -752,10 +752,10 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 472 | Sensor Data Visualizer — data senzorů. | ✅ HOTOVO | sensor_chart: čárový graf z CSV / hodnot (Pillow) + min / max / průměr řad; desetinné tečky ze senzorů správně |
 | 473 | Circuit Calculation Engine — výpočty obvodů. | ✅ HOTOVO | circuit_calc: Ohm, LED odpor z řady E12 + výkon, dělič z E12, sériově/paralelně, RC, barevné proužky oběma směry |
 | 474 | Power Consumption Estimator — spotřeba. | ✅ HOTOVO | power_cost (kWh a Kč za měsíc/rok, cena pohotovosti) + circuit_calc battery (výdrž s režimem spánku) |
-| 475 | Firmware Build Assistant — firmware build. | ⬜ CHYBÍ | — |
+| 475 | Firmware Build Assistant — firmware build. | ✅ HOTOVO | sestavení firmwaru s vysvětlením chyb (chybějící knihovna, středník, paměť, port, BOOT u ESP32) |
 | 476 | Robotics Motion Simulator — pohyb robota. | ✅ HOTOVO | robot_arm: dvoukloubové rameno – inverzní kinematika s kontrolou, dráha přes body, dosah, rozsah kloubů, skoky úhlů |
 | 477 | Robot Telemetry Dashboard — telemetrie. | 🟡 ČÁSTEČNĚ | telemetrie = serial_monitor + sensor_chart (záznam a graf); živý průběžný panel ne |
-| 478 | Camera Calibration Assistant — kalibrace. | ⬜ CHYBÍ | — |
+| 478 | Camera Calibration Assistant — kalibrace. | ✅ HOTOVO | kalibrace kamery z fotek šachovnice (Zhangova metoda): ohnisko, střed, zkreslení, zorné pole, přesnost – ověřeno na známé kameře |
 | 479 | Hardware Experiment Logger — evidence experimentů. | ✅ HOTOVO | experiment_log / experiment_result / experiments: deník pokusů s hypotézou, parametry a závěrem |
 | 480 | Prototype Test Planner — test prototypu. | ✅ HOTOVO | prototype_test_plan + prototype_test_results: počet kusů (success-run, i s povolenými selháními), pořadí, list; vyhodnocení s Cpk a prokázanou spolehlivostí |
 
@@ -1179,7 +1179,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 57. Science & Simulation
 
-✅ 10 · 🟡 4 · ⬜ 1
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1191,7 +1191,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 771 | Data Lineage Viewer — původ dat. | ✅ HOTOVO | data_lineage: původ každého sloupce pohledu / dotazu SQLite přes autorizátor SQLite (i přes vnořené pohledy), filtry a spojení zvlášť, jen čtení |
 | 772 | Physical Unit Validator — jednotky. | ✅ HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce) |
 | 773 | CAD Tolerance Assistant — tolerance. | ✅ HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle |
-| 774 | Generative Engineering Concepts — technické alternativy. | ⬜ CHYBÍ | — |
+| 774 | Generative Engineering Concepts — technické alternativy. | ✅ HOTOVO | technické alternativy nosníku / držáku: materiály × profily, pevnost i průhyb, seřazeno podle hmotnosti |
 | 775 | Technical Model Inspector — geometrie 3D. | 🟡 ČÁSTEČNĚ | check_3d_model: geometrie STL (objem, povrch, rozměry, topologie); STEP / OBJ zatím ne |
 | 776 | Physics Parameter Explorer — parametry simulací. | ✅ HOTOVO | physics_sim: vrh s odporem, kyvadlo (velké výchylky), tlumená pružina, RC, chladnutí (RK4) + průchod parametrem s nejlepší hodnotou |
 | 777 | Scientific Citation Checker — vědecké zdroje. | ✅ HOTOVO | citation_check: DOI v Crossrefu, název / rok / autor, stažené články (retraction), citace bez DOI dohledá |

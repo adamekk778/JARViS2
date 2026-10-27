@@ -892,3 +892,15 @@
 415 | HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně
 418 | ČÁSTEČNĚ | offline fronta zpráv, seznamů a připnutých úkolů; plná obousměrná synchronizace dat ne
 419 | HOTOVO | oprávnění podle zařízení: co smí spárovaný telefon (zvlášť od PC), host jen hudbu
+
+# Vlna 35 – hardwarová laboratoř (hwlab.py, tools/hwlab_tools.py, tests/test_wave35.py)
+156 | HOTOVO | Arduino: pozná desku na portu (USB VID:PID), sestaví a nahraje sketch přes Arduino CLI (nahrání vždy po potvrzení), chyby česky
+157 | HOTOVO | ESP32 / ESP8266: rozpoznání převodníku, sestavení přes Arduino CLI, nahrání .bin přes esptool (po potvrzení, kontrola adresy)
+158 | HOTOVO | Raspberry Pi: najde v síti podle MAC, stav přes SSH s tvým klíčem (teplota, karta, paměť) – jen čte, heslo nezadává
+159 | HOTOVO | schéma ze seznamu spojů: obrázek SVG a netlist pro KiCad
+162 | ČÁSTEČNĚ | šířka cesty pro proud (IPC-2221) a odhad velikosti desky; automatické rozmístění a routování ne
+164 | HOTOVO | firmwarové projekty: deska, port, verze (patch/minor/major), historie sestavení s využitím flash a RAM
+466 | ČÁSTEČNĚ | parametrická krabička s víkem (OpenSCAD + STL k tisku, otvory v .scad); obecný CAD ne
+475 | HOTOVO | sestavení firmwaru s vysvětlením chyb (chybějící knihovna, středník, paměť, port, BOOT u ESP32)
+478 | HOTOVO | kalibrace kamery z fotek šachovnice (Zhangova metoda): ohnisko, střed, zkreslení, zorné pole, přesnost – ověřeno na známé kameře
+774 | HOTOVO | technické alternativy nosníku / držáku: materiály × profily, pevnost i průhyb, seřazeno podle hmotnosti
