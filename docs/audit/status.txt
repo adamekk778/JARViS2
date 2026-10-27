@@ -981,3 +981,11 @@
 515 | HOTOVO | desktop_links: index entit (e-maily, telefony, jména, IČO, projekty) z dokumentů, kalendáře, hovorů, paměti, seznamů, připnutých úkolů a chatů → vše o člověku/projektu napříč zdroji + co s tím souvisí
 522 | HOTOVO | ovládání myš / dotyk / hlas: automaticky podle zařízení a posledního dotyku (větší cíle 44 px), hlasový režim zvětší mikrofon (nikdy ho sám nezapne); volba v Nastavení → Vzhled
 550 | HOTOVO | u každé odpovědi „Zdroje“: weby, soubory (i stránka), e-maily, ze kterých nástroje čerpaly – uložené v historii, klik otevře
+
+# Vlna 42 – schůzky, učení, byznys
+564 | HOTOVO | meeting_relevance: série opakovaných schůzek (stejný název bez čísel a dat), hodiny měsíčně, kolik nahraných přineslo úkoly / rozhodnutí → nechat / zkrátit / zředit / zrušit
+567 | HOTOVO | meeting_review: přetahování (délka nahrávky vs. kalendář), trend výstupů, podíl řeči účastníků z přepisů
+569 | HOTOVO | meeting_folder: složka „datum název“ se zápisem (shrnutí, body, úkoly jako zaškrtávátka, přepis) a kopiemi dokumentů upravovaných kolem schůzky
+458 | HOTOVO | coding_exercise / coding_check: 10 typů úloh ve 3 obtížnostech s náhodnými vstupy a skrytými testy z referenčního řešení; řešení běží v izolovaném procesu s limitem; kód, který nenapsal uživatel, jen po potvrzení
+465 | HOTOVO | learning_project: projekt podle cíle (web, Python, Arduino, Excel, hra) s 5 kroky – co se naučit a jak poznat hotovo, sledování postupu, pojmy do kartiček
+448 | HOTOVO | client_portal: soukromá stránka klienta (nabídky, stav požadavků) na tajné adrese, obnovení na stejné adrese, bez skriptů, escapovaný obsah

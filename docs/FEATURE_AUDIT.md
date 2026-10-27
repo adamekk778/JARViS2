@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 549 | 79 |
+| ✅ HOTOVO | 555 | 79 |
 | 🟡 ČÁSTEČNĚ | 176 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 36 | 11 |
+| ⬜ CHYBÍ | 30 | 11 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -695,7 +695,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 35. Business & Startup
 
-✅ 13 · 🟡 1 · ⬜ 1
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -711,13 +711,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 445 | Competitor Monitoring — změny konkurence. | ✅ HOTOVO | competitor_watch: uložené stránky konkurence a rozdíly od minula – nové a zmizelé nadpisy a položky, změny cen v % |
 | 446 | Marketing Content Calendar — marketingový kalendář. | 🟡 ČÁSTEČNĚ | kalendář |
 | 447 | SEO Opportunity Finder — SEO příležitosti. | ✅ HOTOVO | keyword_gap: slova a dvojice slov, které konkurence používá (i v nadpisech) a tvoje stránka ne |
-| 448 | Client Portal Assistant — zákaznický portál. | ⬜ CHYBÍ | — |
+| 448 | Client Portal Assistant — zákaznický portál. | ✅ HOTOVO | client_portal: soukromá stránka klienta (nabídky, stav požadavků) na tajné adrese, obnovení na stejné adrese, bez skriptů, escapovaný obsah |
 | 449 | Project Profitability Analyzer — ziskovost projektů. | ✅ HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky |
 | 450 | Business Decision Dashboard — obchodní metriky. | ✅ HOTOVO | business_dashboard: nabídky, úspěšnost, požadavky, lidé k oslovení, s výpisem a kampaněmi i příjmy / výdaje / ROAS a upozornění (ztráta, pokles) |
 
 ## 36. Learning Lab
 
-✅ 10 · 🟡 3 · ⬜ 2
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -728,14 +728,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 455 | Mistake Classification — druhy chyb. | ✅ HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná) |
 | 456 | Interactive Circuit Tutor — obvody. | ✅ HOTOVO | circuit_tutor: příklady (Ohm, série, paralela, smíšené, LED) s ověřenou odpovědí, kontrola jednotky (i 2k2), postup řešení |
 | 457 | Math Step Validator — kontrola výpočtů. | ✅ HOTOVO | Math Step Validator: výrazy i rovnice, bezpečný vlastní vyhodnocovač (žádné eval), česká desetinná čárka |
-| 458 | Programming Exercise Generator — úlohy. | ⬜ CHYBÍ | — |
+| 458 | Programming Exercise Generator — úlohy. | ✅ HOTOVO | coding_exercise / coding_check: 10 typů úloh ve 3 obtížnostech s náhodnými vstupy a skrytými testy z referenčního řešení; řešení běží v izolovaném procesu s limitem; kód, který nenapsal uživatel, jen po potvrzení |
 | 459 | Virtual Oral Exam — ústní zkoušení. | ✅ HOTOVO | Virtual Oral Exam (oral_exam + check_answer, i hlasem) |
 | 460 | Formula Explorer — interaktivní vzorce. | ✅ HOTOVO | formula_explorer: tabulka vzorce přes rozsah proměnné, min / max, pružnost (citlivost) – bezpečný výpočet bez eval |
 | 461 | Study Time Analytics — metriky učení. | ✅ HOTOVO | study_stats: opakování, úspěšnost, odpovědi, dny v řadě |
 | 462 | Document-to-Quiz — test z dokumentu. | ✅ HOTOVO | Document-to-Quiz |
 | 463 | Exam Countdown Planner — plán před zkouškou. | ✅ HOTOVO | Exam Countdown Planner |
 | 464 | Concept Connection Map — vztahy konceptů. | 🟡 ČÁSTEČNĚ | souvislosti mezi pojmy v myšlenkové mapě |
-| 465 | Project-Based Learning — učení projekty. | ⬜ CHYBÍ | — |
+| 465 | Project-Based Learning — učení projekty. | ✅ HOTOVO | learning_project: projekt podle cíle (web, Python, Arduino, Excel, hra) s 5 kroky – co se naučit a jak poznat hotovo, sledování postupu, pojmy do kartiček |
 
 ## 37. Engineering & Robotics
 
@@ -871,7 +871,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 43. Meetings
 
-✅ 10 · 🟡 2 · ⬜ 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -883,12 +883,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 561 | Action Owner Assignment — přiřazení vlastníků úkolů. | ✅ HOTOVO | úkoly ze schůzky s vlastníkem a termínem |
 | 562 | Meeting Follow-Up Generator — následné zprávy. | ✅ HOTOVO | návrh následného e-mailu (odešle se až po schválení přes email_send) |
 | 563 | Calendar Travel Buffer — cestovní rezerva. | ✅ HOTOVO | málo času na přesun mezi schůzkami na různých místech |
-| 564 | Meeting Relevance Checker — opakující se schůzky. | ⬜ CHYBÍ | — |
+| 564 | Meeting Relevance Checker — opakující se schůzky. | ✅ HOTOVO | meeting_relevance: série opakovaných schůzek (stejný název bez čísel a dat), hodiny měsíčně, kolik nahraných přineslo úkoly / rozhodnutí → nechat / zkrátit / zředit / zrušit |
 | 565 | Project Milestone Calendar — kalendář milníků. | 🟡 ČÁSTEČNĚ | kalendář |
 | 566 | Meeting Notes Search — hledání poznámek. | 🟡 ČÁSTEČNĚ | hledání v poznámkách |
-| 567 | Recurring Meeting Review — hodnocení schůzek. | ⬜ CHYBÍ | — |
+| 567 | Recurring Meeting Review — hodnocení schůzek. | ✅ HOTOVO | meeting_review: přetahování (délka nahrávky vs. kalendář), trend výstupů, podíl řeči účastníků z přepisů |
 | 568 | Availability Sharing Assistant — sdílení možností termínů. | ✅ HOTOVO | free_time: volné termíny jako text k poslání |
-| 569 | Meeting Document Organizer — soubory schůzek. | ⬜ CHYBÍ | — |
+| 569 | Meeting Document Organizer — soubory schůzek. | ✅ HOTOVO | meeting_folder: složka „datum název“ se zápisem (shrnutí, body, úkoly jako zaškrtávátka, přepis) a kopiemi dokumentů upravovaných kolem schůzky |
 | 570 | Decision-to-Task Converter — rozhodnutí na úkoly. | ✅ HOTOVO | úkoly ze schůzky rovnou do seznamu (to_list) |
 
 ## 44. Local AI Supercomputer

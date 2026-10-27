@@ -162,8 +162,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `claude_code` | 046 |
 | `clean_look` | 750 |
 | `clean_metadata` | 326 |
+| `client_portal` | 448 |
 | `clipboard_set` | 138 |
 | `code_owners` | 338 |
+| `coding_check` | 458 |
+| `coding_exercise` | 458 |
 | `color_profile` | 671 |
 | `color_theme` | 356 |
 | `colorblind_check` | 659 |
@@ -297,6 +300,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `knowledge_pack_add` | 579 |
 | `knowledge_packs` | 579 |
 | `learning_path` | 453 |
+| `learning_project` | 465 |
 | `learning_weak_spots` | 108 |
 | `level_generator` | 652 |
 | `life_event_plan` | 781 |
@@ -318,8 +322,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
 | `media_quality` | 375 |
+| `meeting_folder` | 569 |
 | `meeting_minutes` | 559 |
 | `meeting_prep` | 556 |
+| `meeting_relevance` | 564 |
+| `meeting_review` | 567 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
 | `memory_leak_check` | 635 |

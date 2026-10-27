@@ -20,6 +20,7 @@ LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávněn
 # except the reading tools listed below.
 READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
+    "meeting_relevance", "meeting_review", "coding_exercise", "exercise_list",
     "predict_next_steps", "automation_opportunities", "find_contradictions", "negotiate_priorities", "desktop_links",
     "ai_queue", "knowledge_packs", "webhooks", "event_replay", "connector_sandbox",
     "app_permissions", "security_timeline", "ransomware_readiness", "cloud_resources", "cloud_costs", "search_query",
