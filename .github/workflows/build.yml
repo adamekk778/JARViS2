@@ -192,7 +192,8 @@ jobs:
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
           Shot "3-after"; $k3 = Region "after"
           # Windows drops the region (seen on a user's PC: a grey box around the notch) → JARVIS must put it back
-          [W]::SetWindowRgn([W]::Notch([uint32]$p.Id, $seen), [IntPtr]::Zero, $true) | Out-Null
+          $tmp = New-Object 'System.Collections.Generic.List[string]'
+          [W]::SetWindowRgn([W]::Notch([uint32]$p.Id, $tmp), [IntPtr]::Zero, $true) | Out-Null
           Start-Sleep -Seconds 5; [System.Windows.Forms.Application]::DoEvents()
           Shot "3b-healed"; $k4 = Region "healed"
           $bd.Close()
