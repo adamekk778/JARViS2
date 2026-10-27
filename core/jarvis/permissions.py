@@ -20,6 +20,7 @@ LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávněn
 # except the reading tools listed below.
 READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
+    "game_log_check", "game_assets", "minecraft_mods", "fps_by_settings", "game_settings",
     "video_understand", "form_fields", "measure_photo", "motion_analysis", "screen_errors", "screen_region",
     "canary_check", "crash_repro", "staging_preview", "backend_performance", "file_relations", "db_migration",
     "boards_connected", "pcb_helper", "beam_alternatives", "raspberry_pi",

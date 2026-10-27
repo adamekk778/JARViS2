@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 510 | 77 |
+| ✅ HOTOVO | 519 | 78 |
 | 🟡 ČÁSTEČNĚ | 174 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 77 | 13 |
+| ⬜ CHYBÍ | 68 | 12 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -207,20 +207,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 11. Gaming & Development
 
-🔌 3 · ⬜ 7
+✅ 7 · 🔌 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 116 | Integrace Roblox Studio. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
 | 117 | Pomoc s Blenderem. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
 | 118 | Inspekce Unity projektů. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
-| 119 | Testovací herní scény. | ⬜ CHYBÍ | — |
-| 120 | Koncepční návrhy prostředí. | ⬜ CHYBÍ | — |
-| 121 | Analýza herních logů. | ⬜ CHYBÍ | — |
-| 122 | Organizace herních assetů. | ⬜ CHYBÍ | — |
-| 123 | Automatizované testování vlastních her. | ⬜ CHYBÍ | — |
-| 124 | Správa modů a kompatibility. | ⬜ CHYBÍ | — |
-| 125 | Analýza FPS podle nastavení. | ⬜ CHYBÍ | — |
+| 119 | Testovací herní scény. | ✅ HOTOVO | testovací herní scény pro Godot 4 (.tscn): stěny s kolizemi, start, cíl, testovací nepřátelé – ze semínka |
+| 120 | Koncepční návrhy prostředí. | ✅ HOTOVO | koncepty prostředí (les, poušť, sci-fi, zima, jeskyně): moodboard s paletou, náčrtem rozvržení, rekvizitami, světlem a zadáním pro obrázek |
+| 121 | Analýza herních logů. | ✅ HOTOVO | rozbor herních logů (Unity, Unreal, Godot): chyby seskupené, záseky, paměť, chybějící soubory, první výskyt |
+| 122 | Organizace herních assetů. | ✅ HOTOVO | organizace assetů: nepoužité, příliš velké, mimo mocninu dvou, duplicity, špatné názvy + plán přejmenování (nic nemění) |
+| 123 | Automatizované testování vlastních her. | ✅ HOTOVO | automatické testování vlastní hry v Godotu (bez okna, po potvrzení): chyby skriptů, pády, chybějící res:// |
+| 124 | Správa modů a kompatibility. | ✅ HOTOVO | správa modů Minecraftu (Fabric / Forge / NeoForge / Quilt): závislosti, duplicity, zavaděče, verze hry, nekompatibility |
+| 125 | Analýza FPS podle nastavení. | ✅ HOTOVO | FPS podle nastavení: měření snímků po předvolbách → průměr, 1 % low, záseky a doporučení |
 
 ## 12. Creative Studio
 
@@ -1003,7 +1003,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 49. Autonomous Game Development Studio
 
-✅ 12 · 🟡 1 · ⬜ 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1014,10 +1014,10 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 650 | Loot Balance Calculator — balancing odměn. | ✅ HOTOVO | loot_odds: šance z vah, očekávaný počet pokusů, šance za N, pokusy na 50 / 90 %, pity |
 | 651 | Spawn Balance Analyzer — pozice objektů a nepřátel. | ✅ HOTOVO | spawn_balance: vzdálenosti spawnů týmů k cílům, výhoda v %, spawny moc blízko nepříteli |
 | 652 | Level Layout Generator — návrhy levelů. | ✅ HOTOVO | level_generator: místnosti bez překryvu, chodby po minimální kostře + smyčka, start a východ nejdál od sebe, ověření průchodnosti, obrázek i text |
-| 653 | Anti-Exploit Test Assistant — testy vlastních her. | ⬜ CHYBÍ | — |
+| 653 | Anti-Exploit Test Assistant — testy vlastních her. | ✅ HOTOVO | test proti podvodům ve vlastní hře: upravené uložené hry k ověření validace, nemožné rychlosti / teleporty v telemetrii |
 | 654 | Save Data Validator — uložená data. | ✅ HOTOVO | save_validate: pravidla typ / rozsah / povinné / vzor / jedinečné s cestami i přes seznamy + podezřelé skoky proti minulému uložení |
 | 655 | Animation State Machine Builder — animace postav. | ✅ HOTOVO | animation_fsm: nedosažitelné stavy, stavy bez odchodu, konfliktní přechody, nedeklarované parametry, diagram Mermaid |
-| 656 | Voxel Structure Generator — voxelová tvorba. | ⬜ CHYBÍ | — |
+| 656 | Voxel Structure Generator — voxelová tvorba. | ✅ HOTOVO | voxelové stavby (dům, věž, strom, pyramida) jako MagicaVoxel .vox a příkazy pro Minecraft |
 | 657 | Server Capacity Simulator — kapacita serveru. | ✅ HOTOVO | server_capacity: procesor za tick, odchozí tok (všichni / jen viditelní), max hráčů podle procesoru a linky, úzké hrdlo |
 | 658 | Game Telemetry Explorer — herní telemetrie. | ✅ HOTOVO | game_telemetry: dohrání levelů, smrti, odchody, průměrný čas, trychtýř, nejtěžší level, místa nejčastější smrti |
 | 659 | Game Accessibility Inspector — přístupnost hry. | 🟡 ČÁSTEČNĚ | colorblind_check: simulace protanopie / deuteranopie / tritanopie (Machado 2009) a splývající barvy; velikost titulků a ovládání ne |
@@ -1354,7 +1354,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P12.04 | Game Mode | 🟡 ČÁSTEČNĚ | Herní režim (protokol) + automatizace při otevření hry | 034 |
 | P12.05 | Monitoring FPS, CPU, GPU, teplot | 🟡 ČÁSTEČNĚ | CPU/RAM/GPU; FPS a teploty chybí | 125, 297 |
 | P12.06 | Detekce spuštěné hry | ✅ HOTOVO | automatizace app_open | 148 |
-| P12.07 | Pomoc s herními nastaveními | ⬜ CHYBÍ | — | — |
+| P12.07 | Pomoc s herními nastaveními | ✅ HOTOVO | game_settings: předvolba, upscaling, limit FPS a tipy podle grafiky, RAM a monitoru | — |
 | P12.08 | Správa screenshotů a klipů | ⬜ CHYBÍ | — | — |
 | P12.09 | Spouštění her a launcherů | ✅ HOTOVO | open_app | — |
 | P13.01 | Světla a zásuvky | ✅ HOTOVO | home_control (home.py) | 423 |

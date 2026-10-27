@@ -129,7 +129,7 @@ P12.03 | ČÁSTEČNĚ | tanec při hudbě | 244 | Animace postavičky podle hudb
 P12.04 | ČÁSTEČNĚ | Herní režim (protokol) + automatizace při otevření hry | 034 | Game Mode
 P12.05 | ČÁSTEČNĚ | CPU/RAM/GPU; FPS a teploty chybí | 125, 297 | Monitoring FPS, CPU, GPU, teplot
 P12.06 | HOTOVO | automatizace app_open | 148 | Detekce spuštěné hry
-P12.07 | CHYBÍ | — | — | Pomoc s herními nastaveními
+P12.07 | HOTOVO | game_settings: předvolba, upscaling, limit FPS a tipy podle grafiky, RAM a monitoru | — | Pomoc s herními nastaveními
 P12.08 | CHYBÍ | — | — | Správa screenshotů a klipů
 P12.09 | HOTOVO | open_app | — | Spouštění her a launcherů
 P13.01 | HOTOVO | home_control (home.py) | 423 | Světla a zásuvky

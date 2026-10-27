@@ -931,3 +931,14 @@
 281 | HOTOVO | měření z fotky podle reference (karta, A4, mince): předměty na jednobarevném podkladu, focení shora
 284 | HOTOVO | analýza pohybu ve videu: časy největšího pohybu, podíl klidu, teplotní mapa míst
 285 | HOTOVO | maskování citlivých oken: správci hesel a bankovnictví se před odesláním snímku obrazovky AI zakryjí (vlastní slova v nastavení)
+
+# Vlna 38 – hry (gameplus.py, tools/gameplus_tools.py, tests/test_wave38.py)
+119 | HOTOVO | testovací herní scény pro Godot 4 (.tscn): stěny s kolizemi, start, cíl, testovací nepřátelé – ze semínka
+120 | HOTOVO | koncepty prostředí (les, poušť, sci-fi, zima, jeskyně): moodboard s paletou, náčrtem rozvržení, rekvizitami, světlem a zadáním pro obrázek
+121 | HOTOVO | rozbor herních logů (Unity, Unreal, Godot): chyby seskupené, záseky, paměť, chybějící soubory, první výskyt
+122 | HOTOVO | organizace assetů: nepoužité, příliš velké, mimo mocninu dvou, duplicity, špatné názvy + plán přejmenování (nic nemění)
+123 | HOTOVO | automatické testování vlastní hry v Godotu (bez okna, po potvrzení): chyby skriptů, pády, chybějící res://
+124 | HOTOVO | správa modů Minecraftu (Fabric / Forge / NeoForge / Quilt): závislosti, duplicity, zavaděče, verze hry, nekompatibility
+125 | HOTOVO | FPS podle nastavení: měření snímků po předvolbách → průměr, 1 % low, záseky a doporučení
+653 | HOTOVO | test proti podvodům ve vlastní hře: upravené uložené hry k ověření validace, nemožné rychlosti / teleporty v telemetrii
+656 | HOTOVO | voxelové stavby (dům, věž, strom, pyramida) jako MagicaVoxel .vox a příkazy pro Minecraft

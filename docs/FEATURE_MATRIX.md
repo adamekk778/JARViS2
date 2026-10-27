@@ -258,6 +258,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `free_time` | 568 |
 | `frequency_analysis` | 778 |
 | `fuzz_inputs` | 633 |
+| `game_settings` | P12.07 |
 | `game_telemetry` | 658 |
 | `game_world` | 646 |
 | `generate_api_client` | 620 |
