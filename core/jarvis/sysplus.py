@@ -496,6 +496,11 @@ async def watch_loop(rt, every: float = 5.0) -> None:
     inst = InstallWatch()
     while True:
         await asyncio.sleep(every)
+        att = getattr(rt, "attention", None)
+        if att is not None:
+            summary = att.flush()                  # OMEGA 753: what waited during the focus / meeting / game
+            if summary:
+                rt.notify(summary["title"], summary["body"], speak=False, urgent=True)
         if not getattr(rt.cfg.powers, "download_watch", True):
             continue
         try:

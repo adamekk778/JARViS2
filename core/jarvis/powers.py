@@ -402,7 +402,9 @@ async def selection_menu(rt) -> dict:
         rt.bus.publish("selection", text="", app=win.get("app", ""), actions=[])
         rt.notify("Označený text", "Nejdřív si označ text myší, pak zmáčkni Ctrl+Alt+E.", speak=False)
         return rt.selection
-    rt.bus.publish("selection", text=text[:400], length=len(text), app=win.get("app", ""),
+    from .uixplus import lens
+
+    rt.bus.publish("selection", text=text[:400], length=len(text), app=win.get("app", ""), lens=lens(text[:20000]),   # OMEGA 759
                    actions=[{"key": k, "label": v[0], "replace": v[2]} for k, v in SELECTION_ACTIONS.items()])
     return rt.selection
 

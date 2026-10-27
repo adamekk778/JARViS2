@@ -1004,3 +1004,13 @@
 355 | HOTOVO | icon_set: volné SVG → sprite se symboly, barvy → currentColor, CSS a náhled; hlásí jiná plátna, tloušťky čar, míchání obrysových a vyplněných ikon, nečitelné soubory
 357 | HOTOVO | motion_timeline: popis po řádcích → stopy, kontrola překryvů a skoků, CSS @keyframes po vrstvách, náhled a přehled vrstev v čase
 358 | HOTOVO | layout_heatmap: hustota hran po buňkách ze snímku / obrazovky – volné místo, nejpřeplněnější oblasti, těžiště a vyváženost, překryvná teplotní mapa
+
+# Vlna 46 – rozhraní (pozornost, lupa, mise, agenti, okna, titulky)
+753 | HOTOVO | Attention: při schůzce v kalendáři, aplikaci přes celou obrazovku nebo soustředění nedůležitá upozornění počkají a přijdou jako jedno shrnutí; budíky a časovače vždy hned; vypínatelné
+234 | HOTOVO | focus_mode / focus_set: režim soustředění na N minut – notch téměř zprůhlední, bez pruhů hudby, lišta „Soustředění do … · čeká N upozornění · Ukončit“
+759 | HOTOVO | datová lupa: u označeného textu (Ctrl+Alt+E) hned bez AI – částky v Kč, převody jednotek a °F/°C, dny do data, součty čísel, barvy s kontrastem, kontrola IČO a IBAN, počet slov; i nástroj data_lens
+755 | HOTOVO | návaznosti kroků protokolu (needs) jako graf fází: co běží souběžně, na co krok čeká, smyčky a neexistující kroky
+192 | HOTOVO | „Nanečisto“ u protokolu: animovaná simulace po fázích – co který krok udělá, co se zeptá, jaké oprávnění, odhad času (i se souběhem)
+754 | HOTOVO | živá mapa agentů v Úkolech: specialisté kolem JARVISe, právě používaný nástroj, puls při akci, výsledek
+230 | HOTOVO | mapa oken v panelu notche (Plochy): okna na obrazovce v měřítku, klik přepne, šipky přepínají prostorově (nejbližší okno v daném směru); hlasem window_switch
+790 | HOTOVO | živé titulky: co JARVIS říká (rozdělené na řádky, načasované s řečí) a co slyšel; velké a čitelné, zapínají se v Nastavení → Vzhled

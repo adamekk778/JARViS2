@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 565 | 87 |
+| ✅ HOTOVO | 573 | 87 |
 | 🟡 ČÁSTEČNĚ | 177 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 19 | 0 |
+| ⬜ CHYBÍ | 11 | 0 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -326,7 +326,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 18. Iron Man — Future Tech
 
-✅ 1 · 🟡 3 · 🗓️ 3 · ⬜ 3
+✅ 2 · 🟡 3 · 🗓️ 3 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -336,7 +336,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 189 | Prostorová pracovní plocha. | 🗓️ PLÁNOVÁNO | AR / gesta kamerou – vize, M8 |
 | 190 | Digitální dvojče PC. | 🟡 ČÁSTEČNĚ | system_snapshot + report stavu PC |
 | 191 | Command Center pro velké displeje. | 🟡 ČÁSTEČNĚ | HUD na celou obrazovku |
-| 192 | Vizualizovaná simulace misí. | ⬜ CHYBÍ | — |
+| 192 | Vizualizovaná simulace misí. | ✅ HOTOVO | „Nanečisto“ u protokolu: animovaná simulace po fázích – co který krok udělá, co se zeptá, jaké oprávnění, odhad času (i se souběhem) |
 | 193 | 3D Explorer komponent PC. | ⬜ CHYBÍ | — |
 | 194 | Vizualizace vlastní sítě a spojení. | 🟡 ČÁSTEČNĚ | seznam zařízení v síti (bez grafu) |
 | 195 | Přenos Mochiho stavu mezi zařízeními. | ⬜ CHYBÍ | — |
@@ -387,7 +387,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 21. Next-Gen Desktop
 
-✅ 9 · 🟡 4 · ⬜ 2
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -395,11 +395,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 227 | Smart Screen Regions — práce s výřezem obrazovky. | ✅ HOTOVO | práce s výřezem obrazovky: jen jedno okno (podle názvu / aktivní) nebo obdélník – zbytek obrazovky AI neuvidí |
 | 228 | Window Grouping — seskupování oken. | ✅ HOTOVO | profil = skupina oken (programy + pozice), uložení a obnovení jedním příkazem |
 | 229 | Workspace Profiles — profily prostředí. | ✅ HOTOVO | workspace_save / workspace_restore: spustí chybějící programy a rozmístí okna jako minule |
-| 230 | Spatial Window Navigator — prostorová navigace. | ⬜ CHYBÍ | — |
+| 230 | Spatial Window Navigator — prostorová navigace. | ✅ HOTOVO | mapa oken v panelu notche (Plochy): okna na obrazovce v měřítku, klik přepne, šipky přepínají prostorově (nejbližší okno v daném směru); hlasem window_switch |
 | 231 | Command Preview — náhled příkazů. | 🟡 ČÁSTEČNĚ | náhled akce v potvrzovacím dialogu (details) |
 | 232 | Interactive Action Timeline — historie operací. | ✅ HOTOVO | časová osa akcí každé mise (audit) |
 | 233 | Floating Assistant Bubble — mini bublina. | ✅ HOTOVO | notch s postavičkou |
-| 234 | Transparent Focus Mode — nerušivé UI. | ⬜ CHYBÍ | — |
+| 234 | Transparent Focus Mode — nerušivé UI. | ✅ HOTOVO | focus_mode / focus_set: režim soustředění na N minut – notch téměř zprůhlední, bez pruhů hudby, lišta „Soustředění do … · čeká N upozornění · Ukončit“ |
 | 235 | Drag-to-JARVIS — přetažení obsahu. | ✅ HOTOVO | přetažení do notche |
 | 236 | Smart Clipboard Panel — historie schránky. | ✅ HOTOVO | historie schránky (powers.py) |
 | 237 | Animated Context Cards — kontextové karty. | 🟡 ČÁSTEČNĚ | karty výsledků nástrojů v chatu |
@@ -1157,19 +1157,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 56. Futuristic JARVIS Interface
 
-✅ 5 · 🟡 4 · ⬜ 6
+✅ 9 · 🟡 4 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 751 | Contextual Radial Menu — radiální akce. | ✅ HOTOVO | kruhové menu kolem postavičky (pravé tlačítko): akce pro aplikaci, návrh chvíle a běžné akce |
 | 752 | Smart Overlay Anchoring — připnutí k oknu. | ⬜ CHYBÍ | — |
-| 753 | Attention-Aware UI — méně rušení. | ⬜ CHYBÍ | — |
-| 754 | Live Agent Activity Map — mapa agentů. | ⬜ CHYBÍ | — |
-| 755 | Mission Dependency Animation — návaznosti úkolů. | ⬜ CHYBÍ | — |
+| 753 | Attention-Aware UI — méně rušení. | ✅ HOTOVO | Attention: při schůzce v kalendáři, aplikaci přes celou obrazovku nebo soustředění nedůležitá upozornění počkají a přijdou jako jedno shrnutí; budíky a časovače vždy hned; vypínatelné |
+| 754 | Live Agent Activity Map — mapa agentů. | ✅ HOTOVO | živá mapa agentů v Úkolech: specialisté kolem JARVISe, právě používaný nástroj, puls při akci, výsledek |
+| 755 | Mission Dependency Animation — návaznosti úkolů. | ✅ HOTOVO | návaznosti kroků protokolu (needs) jako graf fází: co běží souběžně, na co krok čeká, smyčky a neexistující kroky |
 | 756 | HUD Layout Presets — layout profily. | ✅ HOTOVO | rozložení Stark HUD: plné / minimální / soustředění / prezentace (nic osobního), Alt+1–4, pamatuje si |
 | 757 | Command Palette Search — příkazová paleta. | ✅ HOTOVO | příkazová paleta Ctrl+K (dashboard/palette.ts) |
 | 758 | Adaptive Density UI — velikost a hustota UI. | ✅ HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat) |
-| 759 | Floating Data Lens — datová lupa. | ⬜ CHYBÍ | — |
+| 759 | Floating Data Lens — datová lupa. | ✅ HOTOVO | datová lupa: u označeného textu (Ctrl+Alt+E) hned bez AI – částky v Kč, převody jednotek a °F/°C, dny do data, součty čísel, barvy s kontrastem, kontrola IČO a IBAN, počet slov; i nástroj data_lens |
 | 760 | Animated Status Morphing — plynulé indikátory. | 🟡 ČÁSTEČNĚ | animované stavy |
 | 761 | Spatial Audio Notifications — prostorové zvuky. | ⬜ CHYBÍ | — |
 | 762 | Touch-Friendly Dashboard — dotyková verze. | 🟡 ČÁSTEČNĚ | mobilní aplikace |
@@ -1201,7 +1201,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 58. Everyday Intelligence & Accessibility
 
-✅ 10 · 🟡 2 · 🔌 1 · ⬜ 2
+✅ 11 · 🟡 2 · 🔌 1 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1214,7 +1214,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 787 | Daily Focus Report — soustředění. | ✅ HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina |
 | 788 | Screen Reader Optimization — čtečky. | 🟡 ČÁSTEČNĚ | aria popisky |
 | 789 | One-Handed Control Profiles — jedna ruka. | ⬜ CHYBÍ | — |
-| 790 | Live Caption Accessibility — živé titulky. | ⬜ CHYBÍ | — |
+| 790 | Live Caption Accessibility — živé titulky. | ✅ HOTOVO | živé titulky: co JARVIS říká (rozdělené na řádky, načasované s řečí) a co slyšel; velké a čitelné, zapínají se v Nastavení → Vzhled |
 | 791 | Reading Assistance Mode — jednodušší text. | ✅ HOTOVO | reading_level: náročnost textu (věty, dlouhá slova, čas čtení) + zjednodušení textu přes AI |
 | 792 | Digital Wellbeing Dashboard — využití aplikací. | ✅ HOTOVO | čas u PC po aplikacích (screen_time) |
 | 793 | Personal Data Portability — export dat. | ✅ HOTOVO | export všech dat do ZIP bez hesel (privacy.export_all) |

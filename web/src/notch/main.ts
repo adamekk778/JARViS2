@@ -509,7 +509,10 @@ client.on("selection", (m) => {
   bubbleTool.textContent = "";
   const short = m.text.length > 150 ? m.text.slice(0, 150) + "…" : m.text;
   bubbleTranscript.textContent = `„${short.replace(/\s+/g, " ")}“`;
-  bubbleConfirm.replaceChildren(
+  // OMEGA 759: the data lens – money, units, dates, numbers, IČO / IBAN at a glance, before any AI
+  const lensRow = (m.lens || []).length ? h("div", { class: "n-lens" }, ...(m.lens as any[]).slice(0, 4).map((l) =>
+    h("span", { class: "n-lens-chip", title: l.note || l.kind }, l.color ? h("i", { class: "sw", style: `background:${l.color}` }) : "", h("b", {}, l.text), ` ${l.value}`))) : "";
+  bubbleConfirm.replaceChildren(lensRow,
     ...(m.actions || []).map((a: any) => h("button", { class: `n-pill ${a.replace ? "yes" : ""}`, type: "button",
       title: a.replace ? "Výsledek se vloží místo označeného textu" : "Výsledek ukážu tady",
       onclick: () => {
@@ -630,6 +633,7 @@ client.on("settings_changed", (m) => {
 });
 client.on("mood", onMood);
 client.on("level", (m) => blob.setLevel(m.rms || 0));
+client.on("focus", (m) => { document.documentElement.dataset.focus = m.active ? "1" : ""; });   // OMEGA 234: quieter, see-through notch
 client.on("music_level", (m) => {
   const b: number[] = Array.isArray(m.bars) ? m.bars : [];
   const on = b.some((v) => v > 0.05);

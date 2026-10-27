@@ -353,3 +353,12 @@ html.notch-doc.native.alpha, html.notch-doc.native.alpha body { background: tran
 .n-music i { width: 3px; height: 16px; border-radius: 2px; background: var(--accent, #4fd1ff); transform: scaleY(.08); transform-origin: bottom; transition: transform .1s linear; }
 .notch:is([data-mode="closed"], [data-mode="hover"]) .n-music.on { opacity: .9; }
 html[data-motion="reduced"] .n-music { display: none; }
+
+/* OMEGA 759 data lens */
+.n-lens { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; margin-bottom: 4px; }
+.n-lens-chip { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgb(255 255 255 / .08); color: #dfe6ee; }
+.n-lens-chip b { color: var(--accent, #4fd1ff); font-weight: 600; }
+.n-lens-chip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+/* OMEGA 234 focus mode: the closed notch fades almost away, no music bars, no peeking */
+html[data-focus="1"] .notch:is([data-mode="closed"], [data-mode="hover"]) { opacity: .25; transition: opacity .6s; }
+html[data-focus="1"] .n-music { display: none; }

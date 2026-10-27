@@ -76,6 +76,7 @@ async def run(rt, key: str, task: str, context: str = "") -> dict:
     cards: list[dict] = []
     atts: list[str] = []
     rt.tasks.add_evidence(f"agent {a['name']}", "zadání", task[:300], True)
+    rt.bus.publish("agent_activity", key=key, name=a["name"], icon=a.get("icon", "robot"), state="start", task=task[:120])   # OMEGA 754
     answer = ""
     t0 = time.monotonic()
     for rnd in range(MAX_ROUNDS + 1):
@@ -96,8 +97,10 @@ async def run(rt, key: str, task: str, context: str = "") -> dict:
                 msgs.append({"role": "tool", "tool_call_id": c.id, "name": c.name,
                              "content": json.dumps({"ok": False, "result": f"Nástroj {c.name} tahle role nemá."}, ensure_ascii=False)})
                 continue
+            rt.bus.publish("agent_activity", key=key, name=a["name"], icon=a.get("icon", "robot"), state="tool", tool=c.name)
             msgs.append(await rt.agent._run_call(ToolCall(id=f"{key}-{c.id}", name=c.name, arguments=c.arguments), cards, atts))
     ok = bool(answer) and (not cards or any(c["ok"] for c in cards))
+    rt.bus.publish("agent_activity", key=key, name=a["name"], icon=a.get("icon", "robot"), state="done", ok=ok, seconds=round(time.monotonic() - t0, 1))
     rt.tasks.add_evidence(f"agent {a['name']}", "výsledek", (answer or "bez odpovědi")[:500], bool(answer))
     return {"agent": a["name"], "key": key, "answer": answer or "(agent nic nevrátil)", "tools": cards, "ok": ok,
             "attachments": atts, "seconds": round(time.monotonic() - t0, 1)}

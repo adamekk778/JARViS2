@@ -99,6 +99,9 @@ class Runtime:
         from .sysplus import ScreenShare
 
         self.screen_share = ScreenShare(self)  # OMEGA P9.08: the screen to the phone, only while switched on
+        from .uixplus import Attention
+
+        self.attention = Attention(self)       # OMEGA 753 / 234: notices wait while you are focused
         self.voice_mood: dict | None = None    # OMEGA P3.12: last read of the tone of voice (when enabled)
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
@@ -314,6 +317,9 @@ class Runtime:
 
     def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False) -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
+        att = getattr(self, "attention", None)
+        if att is not None and not att.gate(title, body, urgent):
+            return 0                                   # kept for the summary after the focus / meeting / game
         self.bus.publish("notify", title=title, body=body, url=url, target=target)
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
@@ -347,6 +353,10 @@ class Runtime:
         self.bus.publish("stopped")
 
     def speak(self, text: str, lang: str = "cs") -> None:
+        if getattr(self.cfg.appearance, "captions", False) and text.strip():      # OMEGA 790: live captions
+            from .uixplus import caption_chunks, caption_timing
+
+            self.bus.publish("caption", who="jarvis", lines=caption_timing(caption_chunks(text)))
         if self.speaker:
             asyncio.get_running_loop().create_task(self.speaker.say(text, lang))
 

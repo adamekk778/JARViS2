@@ -6,6 +6,7 @@ import type { Attachment } from "../shared/protocol";
 import type { JarvisClient } from "../shared/ws";
 import { TaskCard } from "../shared/taskcard";
 import { missingModelCard } from "../shared/localmissing";
+import { windowMap } from "../shared/viz";
 
 export type Section = "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings";
 
@@ -195,7 +196,9 @@ export function buildPanel(ctx: PanelCtx) {
   const wsName = h("input", { class: "p-input", type: "text", placeholder: "Název (např. Účetnictví)", "aria-label": "Název plochy" }) as HTMLInputElement;
   wsName.addEventListener("focus", () => ctx.pin(true));
   wsName.addEventListener("blur", () => ctx.pin(false));
+  const wmap = windowMap(client);         // OMEGA 230: the windows on the screen as a map (click / arrows)
   const wsView = h("div", { class: "p-sec p-ws" },
+    h("h4", {}, "Okna teď"), wmap.el,
     h("p", { class: "muted" }, "Plocha si zapamatuje otevřené programy a kde má každý okno. Obnovení spustí jen to, co v ní bylo, a okna rozmístí."),
     h("div", { class: "ws-save" }, wsName,
       h("button", { class: "p-pill accent", type: "button", onclick: () => { client.send("workspace_save", { name: wsName.value.trim() }); wsName.value = ""; } }, icon("floppy-disk"), " Uložit současná okna")),
@@ -271,7 +274,7 @@ export function buildPanel(ctx: PanelCtx) {
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
-    if (s === "workspaces") client.send("workspaces_get");
+    if (s === "workspaces") { client.send("workspaces_get"); wmap.refresh(); }
     if (s === "chat") client.send("notch_context_get");
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);

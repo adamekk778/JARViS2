@@ -3,6 +3,7 @@ import { hero, HEROES } from "../shared/hero";
 import { fmtSize, fmtTime, h, icon, toast } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { TASK_STATUS, TaskCard, type Task } from "../shared/taskcard";
+import { agentMap } from "../shared/viz";
 import type { JarvisClient } from "../shared/ws";
 
 export function buildTasks(client: JarvisClient) {
@@ -134,6 +135,7 @@ export function buildTasks(client: JarvisClient) {
       h("label", { class: "agent-toggle", title: "Režim Agent: JARVIS si u složitých úkolů nejdřív udělá plán a postupuje krok po kroku (až 25 kroků)." },
         h("span", {}, "Režim Agent"), h("span", { class: "switch" }, agentSwitch, h("span")))]),
     card.el,
+    agentMap(client),
     h("h2", { class: "group-label" }, "Fronta misí"), queueBox,
     h("div", { class: "tasks-cols" },
       h("div", { class: "tasks-history" },

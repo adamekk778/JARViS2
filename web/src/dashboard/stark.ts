@@ -2,6 +2,7 @@
 // plus the switches for the morning briefing, the guardian and the "JARVIS online" greeting.
 import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
+import { missionGraph } from "../shared/viz";
 import type { JarvisClient } from "../shared/ws";
 
 export interface Step { say?: string; tool?: string; args?: Record<string, any>; ask?: string; when?: string }
@@ -116,6 +117,8 @@ export function buildStark(client: JarvisClient) {
       h("div", { class: "btn-row" },
         h("button", { class: "btn primary", type: "button", onclick: () => { client.send("protocol_run", { id: p.id }); toast(`Spouštím protokol ${p.name}`, "ok"); } }, icon("play", "ph-fill"), "Spustit"),
         h("button", { class: "btn", type: "button", onclick: () => edit(p) }, icon("pencil-simple"), "Upravit"),
+        h("button", { class: "btn ghost", type: "button", title: "Nanečisto: co by protokol dělal, v jakém pořadí a co se bude ptát", "aria-label": `Náhled protokolu ${p.name}`,
+          onclick: () => client.send("mission_simulate", { id: p.id }) }, icon("flow-arrow")),
         h("button", { class: "btn ghost", type: "button", title: "Skill Forge: historie verzí a návrat zpět", "aria-label": `Verze protokolu ${p.name}`,
           onclick: () => client.send("skill_versions_get", { id: p.id }) }, icon("clock-counter-clockwise")),
         h("button", { class: "btn ghost", type: "button", "aria-label": `Smazat protokol ${p.name}`, onclick: () => {
@@ -199,6 +202,18 @@ export function buildStark(client: JarvisClient) {
       h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připomenout pauzu po"),
         h("span", { class: "help" }, "Minutách u PC bez přestávky. 0 = nepřipomínat.")), brk));
   }
+
+  client.on("mission_sim", (m) => {         // OMEGA 192 / 755: the steps as a graph, played as a dry run
+    const g = missionGraph(m.steps || [], m.graph, m.seconds || 0);
+    editor.hidden = false;
+    editor.replaceChildren(h("h3", {}, `Nanečisto: ${m.name}`), g.el,
+      h("div", { class: "btn-row" },
+        h("button", { class: "btn primary", type: "button", onclick: g.play }, icon("play", "ph-fill"), "Přehrát"),
+        h("button", { class: "btn", type: "button", onclick: () => { client.send("protocol_run", { id: m.id }); toast(`Spouštím protokol ${m.name}`, "ok"); } }, icon("lightning"), "Spustit doopravdy"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { editor.hidden = true; } }, "Zavřít")));
+    editor.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(g.play, 300);
+  });
 
   client.on("skill_versions", (m) => {
     const p = protocols.find((x) => x.id === m.id);

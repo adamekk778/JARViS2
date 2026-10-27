@@ -200,6 +200,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `customer_segments` | 437 |
 | `dashboard/palette.ts` | 757 |
 | `dashboard/security.ts` | 690 |
+| `data_lens` | 759 |
 | `data_lineage` | 771 |
 | `data_rescue_plan` | 300 |
 | `dataset_check` | 767 |
@@ -265,7 +266,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_workflow` | 524 |
 | `flaky_tests` | 636 |
 | `flashcards_from` | 112 |
+| `focus_mode` | 234 |
 | `focus_report` | 787 |
+| `focus_set` | 234 |
 | `folder_check` | 329 |
 | `folder_fingerprint` | 329 |
 | `follow_up_check` | 546 |
@@ -509,6 +512,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `warm_up_model` | 575 |
 | `watch_website` | 378 |
 | `window_control` | P2.01 |
+| `window_switch` | 230 |
 | `window_to_monitor` | 238 |
 | `workflow_export` | 153 |
 | `workflow_import` | 153 |

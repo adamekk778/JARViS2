@@ -108,6 +108,7 @@ class Appearance(BaseModel):
     theme: Literal["stark", "light"] = "stark"
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
+    captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch
@@ -316,6 +317,7 @@ class Stark(BaseModel):
     hardware_watch: bool = True         # OMEGA 290: say when a USB device / monitor / disk is plugged in or removed
     perf_history: bool = True           # OMEGA 312: CPU / RAM / disk every 5 minutes, kept 30 days
     smart_quiet: bool = True            # OMEGA 500: no speaking at night, in a meeting, in focus mode or over a fullscreen app
+    attention_aware: bool = True        # OMEGA 753: non-urgent notices wait during a meeting / full-screen app, then come as a summary
     layout_memory: bool = True          # OMEGA 31: keep the window layout, offer it back after a restart
     crash_help: bool = True             # OMEGA 32: a program crashed 3× today → offer to find out why
     hud_layout: Literal["full", "minimal", "focus", "presentation"] = "full"   # OMEGA 756: rozložení HUD
@@ -492,7 +494,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "agent.mode",
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
-    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "automations.enabled",
+    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak",

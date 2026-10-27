@@ -44,7 +44,7 @@ CLIENT_TYPES = [
     "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
     "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
-    "phone_zone", "client_state",
+    "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -63,6 +63,7 @@ SERVER_TYPES = [
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level",
+    "focus", "caption", "agent_activity", "mission_sim", "windows",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -84,7 +85,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback", "audit_export", "data_export", "backup_create",
               "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open", "files_run", "project_set", "conflict_resolve",
               "notch_context_get", "workspace_save", "workspace_restore", "workspace_delete",
-              "guests_get", "guest_add", "guest_revoke", "command_qr"}
+              "guests_get", "guest_add", "guest_revoke", "command_qr", "window_focus", "window_nav", "windows_get"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
@@ -291,6 +292,51 @@ class Connection:
         except Exception:  # noqa: BLE001
             clip = ""
         return uiplus.suggestions(rt, events, clip)
+
+    async def _mission_sim(self, pid: str) -> None:
+        from .. import stark, tools, uixplus
+        from ..agent import describe_call
+        from ..permissions import LABELS, perm_of
+
+        p = stark.find_protocol(self.rt, pid)
+        if p is None:
+            await self.send("error", message="Ten protokol neexistuje.")
+            return
+        steps = [s.model_dump() for s in p.steps]
+        graph = uixplus.step_layers(steps)
+
+        def describe(name, args):
+            try:
+                return describe_call(name, args)
+            except Exception:  # noqa: BLE001
+                return name
+
+        def dangerous(name, args):
+            spec = tools.REGISTRY.get(name)
+            return spec is None or tools.is_dangerous(spec, args, self.rt.cfg.tools.always_confirm, self.rt.cfg.tools.trusted, self.rt)
+
+        def perm(name):
+            spec = tools.REGISTRY.get(name)
+            return LABELS.get(perm_of(spec), "") if spec else ""
+        sim = uixplus.simulate(steps, describe, dangerous, perm)
+        await self.send("mission_sim", id=p.id, name=p.name, steps=sim, graph=graph, seconds=uixplus.critical_seconds(sim, graph) if sim else 0)
+
+    async def _windows(self, t: str, m: dict) -> None:
+        from .. import uixplus
+
+        rt = self.rt
+        wins = await asyncio.to_thread(rt.platform.window_layout)
+        boxes = uixplus.window_map(wins, rt.platform.screen_size())
+        if t == "window_focus":
+            await asyncio.to_thread(rt.platform.focus_window, int(m.get("hwnd") or 0))
+        elif t == "window_nav":
+            fg = (await asyncio.to_thread(rt.platform.foreground_info) or {}).get("hwnd", 0)
+            nb = uixplus.neighbour(boxes, int(m.get("from") or fg or 0), str(m.get("dir") or "right"))
+            if nb:
+                await asyncio.to_thread(rt.platform.focus_window, nb["hwnd"])
+                await self.send("windows", items=boxes, focused=nb["hwnd"])
+                return
+        await self.send("windows", items=boxes, focused=int(m.get("hwnd") or 0))
 
     async def _workspaces(self, t: str, name: str) -> None:
         from .. import workspace
@@ -817,6 +863,12 @@ class Connection:
             self.low_power = bool(m.get("low_power"))
         elif t in ("workspaces_get", "workspace_save", "workspace_restore", "workspace_delete"):
             await self._workspaces(t, str(m.get("name") or "").strip())
+        elif t == "focus_set":            # OMEGA 234: quiet focus mode for N minutes (0 = off)
+            rt.attention.focus(float(m.get("minutes") or 0))
+        elif t == "mission_simulate":     # OMEGA 192 / 755: a protocol's steps as a graph + a dry run
+            await self._mission_sim(str(m.get("id") or ""))
+        elif t in ("windows_get", "window_focus", "window_nav"):     # OMEGA 230
+            await self._windows(t, m)
         elif t == "site_open":
             root = site_path(str(m.get("id", "")))
             if root is None:
