@@ -120,6 +120,7 @@ jobs:
             [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
             [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string c, string t);
             [DllImport("user32.dll")] public static extern int GetWindowRgnBox(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern int SetWindowRgn(IntPtr h, IntPtr r, bool redraw);
             [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
             [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
             public delegate bool EnumProc(IntPtr h, IntPtr l);
@@ -190,6 +191,10 @@ jobs:
           Shot "2-hover"; $k2 = Region "hover"; Zoom "hover"
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
           Shot "3-after"; $k3 = Region "after"
+          # Windows drops the region (seen on a user's PC: a grey box around the notch) → JARVIS must put it back
+          [W]::SetWindowRgn([W]::Notch([uint32]$p.Id, $seen), [IntPtr]::Zero, $true) | Out-Null
+          Start-Sleep -Seconds 5; [System.Windows.Forms.Application]::DoEvents()
+          Shot "3b-healed"; $k4 = Region "healed"
           $bd.Close()
           $smooth = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "smooth edges" -ErrorAction SilentlyContinue | Select-Object -Last 1
           $line = "smooth: $smooth"; Write-Host $line; Add-Content "$shots\region.txt" $line
@@ -230,6 +235,7 @@ jobs:
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
+          if ($k4 -lt 2) { throw "the notch region did not come back after Windows dropped it" }
           if ($full -eq [IntPtr]::Zero) { throw "the full chat window did not open" }
           if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
           if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }

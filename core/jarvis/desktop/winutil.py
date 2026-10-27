@@ -171,19 +171,39 @@ def set_window_rect(hwnd: int, x: int, y: int, w: int, h: int) -> None:
     return None
 
 
-def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> None:
-    """Clip the window to these polygons (window coordinates, physical px). Outside them the window simply does not
-    exist: nothing is painted (no white/grey WinForms background) and the mouse goes to whatever is below."""
+def is_window(hwnd: int) -> bool:
+    """Does this window still exist? (WinForms can recreate a form's window, leaving a remembered handle dead.)"""
+    if not IS_WIN:
+        return bool(hwnd)
+    return bool(hwnd) and bool(ctypes.windll.user32.IsWindow(ctypes.c_void_p(hwnd)))
+
+
+def region_kind(hwnd: int) -> int:
+    """GetWindowRgn type: 0 no region, 1 empty, 2 rectangle, 3 complex (the notch shape); -1 off Windows."""
     if not IS_WIN or not hwnd:
-        return None
+        return -1
+    g = ctypes.windll.gdi32
+    g.CreateRectRgn.restype = ctypes.c_void_p
+    rgn = g.CreateRectRgn(0, 0, 0, 0)
+    try:
+        return int(ctypes.windll.user32.GetWindowRgn(ctypes.c_void_p(hwnd), ctypes.c_void_p(rgn)))
+    finally:
+        g.DeleteObject(ctypes.c_void_p(rgn))
+
+
+def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> bool:
+    """Clip the window to these polygons (window coordinates, physical px). Outside them the window simply does not
+    exist: nothing is painted (no white/grey WinForms background) and the mouse goes to whatever is below.
+    True when Windows took the region."""
+    if not IS_WIN or not hwnd:
+        return False
     _geom_types()
     from ctypes import wintypes as W
 
     u, g = ctypes.windll.user32, ctypes.windll.gdi32
     polys = [p for p in polygons if len(p) >= 3]
     if not polys:
-        u.SetWindowRgn(hwnd, None, True)
-        return None
+        return bool(u.SetWindowRgn(hwnd, None, True))
     rgn = None
     for poly in polys:
         pts = (W.POINT * len(poly))(*[W.POINT(int(x), int(y)) for x, y in poly])
@@ -195,7 +215,8 @@ def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> None:
             g.DeleteObject(r)
     if not u.SetWindowRgn(hwnd, rgn, True):  # on success the system owns the region
         g.DeleteObject(rgn)
-    return None
+        return False
+    return True
 
 
 def cursor_over(hwnd: int) -> bool:

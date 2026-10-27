@@ -163,12 +163,12 @@ function paintShape() {
   shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
   syncRegion();
 }
-function syncRegion() {
+function syncRegion(force = false) {
   if (!window.pywebview) return;
   const box = shape.getBoundingClientRect();
   const cx = box.left + box.width / 2;
   const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
-  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1, regionPad)]);
+  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1, regionPad)], force);
 }
 function setBox(w: number, hh: number) {
   if (w === boxW && hh === boxH) return;
@@ -211,8 +211,9 @@ function animateShape(w: number, hh: number, r: number) {
 }
 window.addEventListener("pywebviewready", () => { syncRegion(); window.setTimeout(syncRegion, 500); });
 window.addEventListener("resize", () => window.setTimeout(syncRegion, 30));
-// keep the region honest: if Windows ever drops it (DPI change, display change), it comes back within 2 s
-window.setInterval(() => { if (!S.raf) syncRegion(); }, 2000);
+// keep the region honest: if Windows ever drops it (DPI change, display change, a failed first send), it comes
+// back within 2 s – sent even unchanged, the host only re-applies it when it is really missing
+window.setInterval(() => { if (!S.raf) syncRegion(true); }, 2000);
 
 /** Ask Windows where the cursor really is (WebView2 can fire mouseleave when the window moves under a still cursor). */
 async function cursorInside(): Promise<boolean> {

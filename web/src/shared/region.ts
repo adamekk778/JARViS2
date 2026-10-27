@@ -49,15 +49,17 @@ export function domeOutline(r: DOMRect, dpr: number, pad = 3): Poly {
     [cx + (x - cx) * rx, cy + (y - cy) * ry] as Pt), dpr);
 }
 
-/** Sends the polygons to the desktop shell when they change (cheap no-op in a normal browser). */
+/** Sends the polygons to the desktop shell when they change (cheap no-op in a normal browser). `force` sends them
+ *  even unchanged; a call that fails or that the shell reports as not applied (false) is sent again next time. */
 export function regionSender(apiName = "region") {
   let last = "";
-  return (polys: Poly[]) => {
+  return (polys: Poly[], force = false) => {
     const api = (window as any).pywebview?.api;
     if (!api?.[apiName]) return;
     const key = JSON.stringify(polys);
-    if (key === last) return;
+    if (key === last && !force) return;
     last = key;
-    api[apiName](polys).catch?.(() => {});
+    const forget = () => { if (last === key) last = ""; };
+    Promise.resolve(api[apiName](polys)).then((ok) => { if (ok === false) forget(); }, forget);
   };
 }

@@ -15,7 +15,7 @@ def fake_win(monkeypatch):
     monkeypatch.setattr(winutil, "window_handle", lambda win, title: 4242)
     monkeypatch.setattr(winutil, "dpi_scale", lambda hwnd: 1.25)
     monkeypatch.setattr(winutil, "set_window_rect", lambda hwnd, x, y, w, h: calls.append(("rect", hwnd, x, y, w, h)))
-    monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys: calls.append(("region", hwnd, polys)))
+    monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys: calls.append(("region", hwnd, polys)) or True)
     monkeypatch.setattr(winutil, "cursor_over", lambda hwnd: calls.append(("cursor", hwnd)) or True)
     monkeypatch.setattr(platforms, "monitors", lambda: [(Rect(0, 0, 1920, 1080), Rect(0, 0, 1920, 1040))])
     return calls
@@ -47,6 +47,34 @@ def test_notch_api_region_and_cursor(rt, fake_win):
     assert api.cursor_inside() is True and ("cursor", 4242) in fake_win
 
 
+def test_region_resent_unchanged_is_not_reapplied_but_a_lost_one_comes_back(rt, fake_win, monkeypatch):
+    """The grey box around the notch: Windows dropped the window region (or never got it) and nothing put it back."""
+    kind = {"v": 3}
+    monkeypatch.setattr(winutil, "region_kind", lambda hwnd: kind["v"])
+    h = _host(rt)
+    api = host_mod.NotchApi(h)
+    poly = [[[0, 0], [10, 0], [10, 5]]]
+    assert api.region(poly) is True and api.region(poly) is True
+    assert sum(1 for c in fake_win if c[0] == "region") == 1          # the 2 s re-send does not repaint
+    assert h.heal_region() is False                                     # region in place: nothing to do
+    kind["v"] = 0                                                       # Windows lost it
+    assert h.heal_region() is True and sum(1 for c in fake_win if c[0] == "region") == 2
+    kind["v"] = 3
+    monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys: False)
+    assert api.region([[[0, 0], [20, 0], [20, 5]]]) is False            # not taken → the page will send it again
+
+
+def test_notch_handle_found_again_when_window_recreated(rt, fake_win, monkeypatch):
+    alive = {4242}
+    monkeypatch.setattr(winutil, "is_window", lambda hwnd: hwnd in alive)
+    h = _host(rt)
+    assert h.notch_hwnd() == 4242
+    alive.clear()
+    alive.add(5151)
+    monkeypatch.setattr(winutil, "window_handle", lambda win, title: 5151)
+    assert h.notch_hwnd() == 5151
+
+
 def test_notch_api_cursor_without_window(rt, monkeypatch):
     monkeypatch.setattr(winutil, "window_handle", lambda win, title: 0)
     assert host_mod.NotchApi(_host(rt)).cursor_inside() is False
@@ -62,7 +90,8 @@ def test_notch_window_not_transparent():
 
 def test_winutil_noops_off_windows():
     assert winutil.set_window_rect(1, 0, 0, 10, 10) is None
-    assert winutil.set_region(1, [[(0, 0), (1, 0), (1, 1)]]) is None
+    assert winutil.set_region(1, [[(0, 0), (1, 0), (1, 1)]]) is False
+    assert winutil.region_kind(1) == -1 and winutil.is_window(1) and not winutil.is_window(0)
     assert winutil.cursor_over(1) is False
     assert winutil.dpi_scale(1) == 1.0
 

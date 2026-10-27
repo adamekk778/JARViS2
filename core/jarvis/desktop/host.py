@@ -24,9 +24,10 @@ class NotchApi:
     def resize(self, w: int, h: int) -> None:
         self._host.place_notch(int(w), int(h))
 
-    def region(self, polygons: list) -> None:
-        """The page sends the notch outline (window coords, physical px) every frame while it animates."""
-        self._host.set_notch_region(polygons)
+    def region(self, polygons: list) -> bool:
+        """The page sends the notch outline (window coords, physical px) every frame while it animates and again
+        every 2 s; False tells it the region did not take, so it sends it again."""
+        return self._host.set_notch_region(polygons)
 
     def cursor_inside(self) -> bool:
         return winutil.cursor_over(self._host.notch_hwnd())
@@ -73,6 +74,9 @@ class DesktopHost:
         self.hud_alpha = False
         self._anchor_win = None
         rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
+        self._region: list = []            # the last notch outline from the page, put back if Windows drops it
+        self._region_applied: tuple | None = None
+        self._region_warned = 0.0
 
     # ---------- geometry ----------
     def _screen(self):
@@ -83,9 +87,10 @@ class DesktopHost:
         return screens[idx] if 0 <= idx < len(screens) else (screens[0] if screens else None)
 
     def notch_hwnd(self) -> int:
-        if not getattr(self, "_notch_hwnd", 0):
-            self._notch_hwnd = winutil.window_handle(self.notch, NOTCH_TITLE)
-        return self._notch_hwnd
+        h = getattr(self, "_notch_hwnd", 0)
+        if not h or not winutil.is_window(h):     # not found yet, or WinForms recreated the window
+            h = self._notch_hwnd = winutil.window_handle(self.notch, NOTCH_TITLE)
+        return h
 
     def _anchor(self, win: dict | None) -> None:
         self._anchor_win = win
@@ -93,9 +98,29 @@ class DesktopHost:
         if size:
             self.place_notch(*size)
 
-    def set_notch_region(self, polygons: list) -> None:
+    def set_notch_region(self, polygons: list) -> bool:
+        polys = [[(round(x), round(y)) for x, y in poly] for poly in polygons or []]
+        self._region = polys
         hwnd = self.notch_hwnd()
-        winutil.set_region(hwnd, [[(round(x), round(y)) for x, y in poly] for poly in polygons or []])
+        if self._region_applied == (hwnd, str(polys)) and winutil.region_kind(hwnd) >= 2:
+            return True                            # the page re-sends every 2 s: no repaint when nothing changed
+        ok = winutil.set_region(hwnd, polys)
+        self._region_applied = (hwnd, str(polys)) if ok else None
+        return bool(ok)
+
+    def heal_region(self) -> bool:
+        """Without its region the notch window shows as a grey box around the notch. Windows can drop it (the
+        window recreated, a display change) and the page only sends it when the shape changes, so check here."""
+        if not self.notch or not self._region:
+            return False
+        hwnd = self.notch_hwnd()
+        if not hwnd or winutil.region_kind(hwnd) not in (0, 1):
+            return False
+        if time.monotonic() - self._region_warned > 60:
+            self._region_warned = time.monotonic()
+            log.warning("notch: the window region was missing (window %s), putting it back", hwnd)
+        self._region_applied = None
+        return self.set_notch_region(self._region)
 
     def place_notch(self, w: int, h: int) -> None:
         if not self.notch:
@@ -304,6 +329,10 @@ class DesktopHost:
     def _fullscreen_watch(self) -> None:
         while not self._quitting:
             time.sleep(1.5)
+            try:
+                self.heal_region()
+            except Exception as e:
+                log.debug("heal_region: %s", e)
             if not self.notch or not self.rt.cfg.notch.hide_in_fullscreen:
                 continue
             try:
