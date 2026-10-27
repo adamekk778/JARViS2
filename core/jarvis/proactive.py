@@ -134,6 +134,13 @@ def next_actions(rt, idle_minutes: float = 0, now: float | None = None) -> list[
     if _has(rt, "lists"):
         for li in rt.db.all("SELECT list, item FROM lists ORDER BY ts LIMIT 3"):
             sug.append({"text": f"{li['item']} (seznam {li['list']})", "why": "čeká v seznamu", "minutes": 10, "score": 25})
+    if _has(rt, "task_actions"):                       # OMEGA 498: the same steps again and again → offer to automate them
+        from .intelplus import repeated_patterns, sessions
+
+        rows = rt.db.all("SELECT ts, tool FROM task_actions WHERE ts > ? ORDER BY ts", (now - 30 * 86400,))
+        for p in repeated_patterns(sessions(rows))[:1]:
+            sug.append({"text": "Udělat z opakovaných kroků jednu dovednost: " + " → ".join(p["steps"]),
+                        "why": f"opakuje se ve {p['sessions']} sezeních", "minutes": 5, "score": 30})
     if idle_minutes:
         sug = [s for s in sug if s["minutes"] <= idle_minutes]
     return sorted(sug, key=lambda s: -s["score"])

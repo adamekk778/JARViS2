@@ -2,7 +2,7 @@ import "./chat.css";
 import "./taskcard.css";
 import { copyText, fmtSize, fmtTime, h, icon, KIND_ICON, toast, TOOL_ICON } from "./dom";
 import { renderMarkdown, wireCodeCopy } from "./markdown";
-import type { AgentState, Attachment, Message, ServerMsg, ToolCard } from "./protocol";
+import type { AgentState, Attachment, Message, ServerMsg, SourceRef, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
 import { Recorder } from "./recorder";
 import { guardApprove } from "./approve";
@@ -118,7 +118,7 @@ export class ChatView {
       fileInput.value = "";
     });
     const attachBtn = h("button", { class: "icon-btn", type: "button", title: "Přiložit soubor", "aria-label": "Přiložit soubor", onclick: () => fileInput.click() }, icon(opts.attachIcon || "paperclip"));
-    this.micBtn = h("button", { class: "icon-btn", type: "button", title: "Nahrát hlasovou zprávu", "aria-label": "Hlasová zpráva", onclick: () => this.toggleMic() }, icon("microphone"));
+    this.micBtn = h("button", { class: "icon-btn mic-btn", type: "button", title: "Nahrát hlasovou zprávu", "aria-label": "Hlasová zpráva", onclick: () => this.toggleMic() }, icon("microphone"));
     this.sendBtn = h("button", { class: "send-btn", type: "button", "aria-label": "Odeslat", onclick: () => this.submit() }, icon("arrow-up", "ph-bold"));
     this.pendingBox = h("div", { class: "pending" });
     this.statusLine = h("div", { class: "chat-status" });
@@ -265,7 +265,19 @@ export class ChatView {
         this.toolsEl(m.meta?.tools),
         body,
         this.attachmentsEl(m.attachments),
+        this.sourcesEl(m.meta?.sources),
         this.actions(m)));
+  }
+
+  /** OMEGA 550: "Zdroje" – the pages, files and e-mails the answer used. Web links open; files open on the PC. */
+  private sourcesEl(src: SourceRef[] = []): HTMLElement | null {
+    if (!src.length) return null;
+    const ico: Record<string, string> = { web: "globe", soubor: "file-text", "e-mail": "envelope-simple" };
+    return h("div", { class: "sources" }, h("span", { class: "src-head" }, "Zdroje"),
+      ...src.slice(0, 8).map((s) => s.kind === "web"
+        ? h("a", { class: "src", href: s.ref, target: "_blank", rel: "noopener noreferrer", title: s.ref }, icon(ico.web), s.label)
+        : h("button", { class: "src", type: "button", title: s.ref, onclick: () => s.kind === "soubor" && this.client.send("user_text", { text: `otevři soubor ${s.ref.replace(/ \(.*\)$/, "")}`, attachments: [] }) },
+          icon(ico[s.kind] || "link"), s.label)));
   }
 
   /** Inline editor: saving drops this message and everything after it, then JARVIS answers the new version. */
@@ -345,7 +357,7 @@ export class ChatView {
   }
 
   private done(m: ServerMsg) {
-    const msg: Message = { id: m.id, role: "assistant", text: m.text, attachments: m.attachments || [], meta: { tools: m.tools }, created: Date.now() / 1000 };
+    const msg: Message = { id: m.id, role: "assistant", text: m.text, attachments: m.attachments || [], meta: { tools: m.tools, sources: m.sources }, created: Date.now() / 1000 };
     const el = this.messageEl(msg);
     if (this.live) {
       if (this.live.raf) cancelAnimationFrame(this.live.raf);

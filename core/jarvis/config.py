@@ -105,6 +105,7 @@ class Notch(BaseModel):
 class Appearance(BaseModel):
     theme: Literal["stark", "light"] = "stark"
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
+    input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch
@@ -475,7 +476,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
     "voice.speak_mode", "voice.stt_language", "voice.followup",
-    "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "stark.hud_layout",
+    "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",

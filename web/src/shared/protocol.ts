@@ -82,8 +82,11 @@ export interface Message {
   attachments: Attachment[];
   source?: string;
   created?: number;
-  meta?: { tools?: ToolCard[]; brain?: [string, string] | null };
+  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[] };
 }
+
+/** OMEGA 550: what an answer rests on. */
+export interface SourceRef { kind: string; ref: string; label: string; tool?: string }
 
 export interface Conversation {
   id: string;

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 539 | 79 |
+| ✅ HOTOVO | 549 | 79 |
 | 🟡 ČÁSTEČNĚ | 176 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 46 | 11 |
+| ⬜ CHYBÍ | 36 | 11 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -343,11 +343,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-✅ 9 · 🟡 2 · 🔌 1 · ⬜ 3
+✅ 12 · 🟡 2 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 196 | Multi-Step Prediction — odhad možných dalších kroků. | ⬜ CHYBÍ | — |
+| 196 | Multi-Step Prediction — odhad možných dalších kroků. | ✅ HOTOVO | predict_next_steps: Markovův řetězec 1. a 2. řádu nad sezeními akcí (task_actions), beam search několik kroků dopředu s pravděpodobností + zvyky aplikací v příští hodinu (app_hours) |
 | 197 | Alternative Strategy Generator — několik plánů pro jeden cíl. | ✅ HOTOVO | compare_options: 3 různé cesty k cíli |
 | 198 | Intelligent Goal Decomposition — rozklad projektů do fází. | ✅ HOTOVO | goal_plan: rozklad na fáze a kroky |
 | 199 | Assumption Checker — validace předpokladů. | ✅ HOTOVO | check_assumptions: skryté předpoklady, riziko, jak ověřit |
@@ -356,12 +356,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 202 | Adaptive Planning — průběžné aktualizace plánu. | 🟡 ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan) |
 | 203 | Risk Scoring — hodnocení rizika akcí. | ✅ HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py) |
 | 204 | AI Consensus — porovnávání výstupů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: shoda/rozpory/společná odpověď – s aspoň dvěma poskytovateli |
-| 205 | Contradiction Detection — detekce rozporů. | ⬜ CHYBÍ | — |
+| 205 | Contradiction Detection — detekce rozporů. | ✅ HOTOVO | find_contradictions: různá čísla pro stejnou věc (stejný kmen slov v klauzuli, stejná jednotka) a popření (je/není, smí/nesmí…) v jednom i mezi více dokumenty (PDF, Word, text) |
 | 206 | Solution Ranking — řazení řešení. | ✅ HOTOVO | seřazení variant s odůvodněním |
 | 207 | Knowledge Gap Detection — identifikace chybějících dat. | ✅ HOTOVO | co chybí vědět (missing_info) u rozhodování |
 | 208 | Experiment Designer — návrh ověřovacích testů. | ✅ HOTOVO | experiment_design: úplný i poloviční faktoriální plán, opakování, bloky, náhodné pořadí, počet běhů podle efektu a rozptylu, záznamový list |
 | 209 | Outcome Evaluation — vyhodnocení dosažených cílů. | 🟡 ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence) |
-| 210 | Recursive Task Improvement — vylepšení na základě testů. | ⬜ CHYBÍ | — |
+| 210 | Recursive Task Improvement — vylepšení na základě testů. | ✅ HOTOVO | improve_until_tests_pass: v dočasné kopii testy → AI upraví jen zadané soubory (ne testy) → znovu testy, víc kol; výsledek diff, do projektu jen na přání; vše s potvrzením |
 
 ## 20. Autonomous Mission Engine
 
@@ -783,20 +783,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 39. Proactive Intelligence
 
-✅ 11 · 🟡 2 · ⬜ 2
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 496 | Next Action Prediction — návrh dalšího kroku. | ✅ HOTOVO | what_next: další krok s důvodem (termíny, kartičky, nedořešené, rutina v tuto hodinu, zapomenuté, seznamy) |
 | 497 | Routine Discovery — rozpoznání rutin. | ✅ HOTOVO | my_routines: aplikace ve stejnou hodinu v řadě dní (všední dny / víkend) z měření po hodinách |
-| 498 | Opportunity Alerts — možnosti zjednodušení. | ⬜ CHYBÍ | — |
+| 498 | Opportunity Alerts — možnosti zjednodušení. | ✅ HOTOVO | automation_opportunities + v proaktivních návrzích: opakované sledy kroků v různých sezeních (nejdelší, bez podmnožin) → nabídka udělat z nich dovednost |
 | 499 | Forgotten Task Detection — opuštěné projekty. | ✅ HOTOVO | forgotten_work: stojící mise, projekty bez práce, staré položky seznamů |
 | 500 | Intelligent Interruption Control — vhodný čas oznámení. | ✅ HOTOVO | chytré ztišení: v noci, na schůzce, v soustředění a nad aplikací přes celou obrazovku se upozornění jen ukážou; budík, časovač a připomínky vždy nahlas |
 | 501 | Contextual Suggestion Engine — kontextové funkce. | 🟡 ČÁSTEČNĚ | návrhy podle hodiny a rutin; kontext podle otevřené aplikace zatím ne |
 | 502 | Deadline Risk Forecasting — rizika termínů. | ✅ HOTOVO | deadline_risks: mise (čas vs. zbývající kroky) a zkoušky bez opakování |
 | 503 | Task Effort Estimator — odhad pracnosti. | ✅ HOTOVO | estimate_effort: medián času a kroků z podobných dokončených misí |
 | 504 | Personal Routine Builder — osobní rutina. | 🟡 ČÁSTEČNĚ | rutiny se dají převést na automatizaci; skládání osobní rutiny zatím ne |
-| 505 | Automatic Priority Negotiation — změny priorit. | ⬜ CHYBÍ | — |
+| 505 | Automatic Priority Negotiation — změny priorit. | ✅ HOTOVO | negotiate_priorities: plán podle nejbližšího termínu a priority, co nestihneš, co odložit (nejdřív priorita 3, pak 2), nové termíny a kolik hodin chybí; nic sám nemění |
 | 506 | Unfinished Conversation Detection — nedořešené otázky. | ✅ HOTOVO | nedořešené rozhovory: tvoje otázka bez odpovědi / JARVISova otázka bez reakce |
 | 507 | Idle-Time Task Suggestions — vhodné krátké úkoly. | ✅ HOTOVO | what_next s minutes: jen úkoly, které stihneš (kartičky, krátké položky) |
 | 508 | Proactive Error Warnings — včasná varování. | ✅ HOTOVO | strážce: baterie, CPU, RAM, disk, internet, nové zařízení v síti (stark.py) |
@@ -805,22 +805,22 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 40. Semantic Operating System
 
-✅ 9 · 🟡 2 · ⬜ 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 511 | Natural Language File Commands — soubory přirozenou řečí. | ✅ HOTOVO | soubory přirozenou řečí (tools/files.py) |
 | 512 | Universal App Search — hledání uvnitř aplikací. | 🟡 ČÁSTEČNĚ | search_everything: paměť, konverzace, dokumenty, kalendář, seznamy, e-maily, postupy najednou; uvnitř cizích aplikací ne |
-| 513 | Cross-App Actions — navazující operace mezi aplikacemi. | ⬜ CHYBÍ | — |
-| 514 | App Capability Discovery — zjištění schopností aplikací. | ⬜ CHYBÍ | — |
-| 515 | Semantic Desktop Index — propojování desktopových dat. | ⬜ CHYBÍ | — |
+| 513 | Cross-App Actions — navazující operace mezi aplikacemi. | ✅ HOTOVO | cross_app: schránka / soubor → tabulka Excel (čísla jako čísla), koncept e-mailu .eml (X-Unsent, neodesílá), událost v kalendáři (datum, čas, místo z textu), položky seznamu, poznámka |
+| 514 | App Capability Discovery — zjištění schopností aplikací. | ✅ HOTOVO | app_capabilities: přepínače a příkazy z nápovědy (--help, /?, -h), přípony a odkazy z registru Windows, které nástroje JARVISe na aplikaci už jsou; s potvrzením |
+| 515 | Semantic Desktop Index — propojování desktopových dat. | ✅ HOTOVO | desktop_links: index entit (e-maily, telefony, jména, IČO, projekty) z dokumentů, kalendáře, hovorů, paměti, seznamů, připnutých úkolů a chatů → vše o člověku/projektu napříč zdroji + co s tím souvisí |
 | 516 | Virtual App Groups — logické skupiny aplikací. | ✅ HOTOVO | logické skupiny aplikací = pracovní profily (Práce, Hraní…) |
 | 517 | Smart Window Naming — názvy skupin oken. | ✅ HOTOVO | name_window_groups: skupiny oken stejného projektu napříč aplikacemi pojmenované podle společného tématu |
 | 518 | Workspace State Comparison — porovnání pracovního prostředí. | ✅ HOTOVO | workspace_compare: co chybí, co přibylo, co se posunulo |
 | 519 | App Recovery Assistant — obnova po pádu aplikace. | ✅ HOTOVO | reopen_crashed: znovu otevře programy, které za poslední hodinu spadly (událost 1000) a neběží |
 | 520 | Universal Command History — hledání příkazů. | ✅ HOTOVO | command_history: co jsi JARVISovi řekl a co udělal, podle slova |
 | 521 | Keyboard Shortcut Discovery — klávesové zkratky. | ✅ HOTOVO | shortcuts: zkratky pro program v popředí (Windows, prohlížeče, Word, Excel, VS Code, Průzkumník, Outlook, JARVIS) |
-| 522 | Adaptive Input Controller — myš/touch/hlas. | ⬜ CHYBÍ | — |
+| 522 | Adaptive Input Controller — myš/touch/hlas. | ✅ HOTOVO | ovládání myš / dotyk / hlas: automaticky podle zařízení a posledního dotyku (větší cíle 44 px), hlasový režim zvětší mikrofon (nikdy ho sám nezapne); volba v Nastavení → Vzhled |
 | 523 | Virtual Workspace Snapshots — snímky pracovních ploch. | ✅ HOTOVO | snímky pracovních ploch = uložené profily oken |
 | 524 | Desktop Workflow Search — vyhledání pracovního postupu. | ✅ HOTOVO | find_workflow: protokoly, automatizace, dovednosti a nahrané webové postupy podle slov dotazu |
 | 525 | Task-Centric Desktop — aplikace seskupené podle úkolu. | 🟡 ČÁSTEČNĚ | profil lze svázat s projektem (project); automatické přepnutí podle úkolu zatím ne |
@@ -849,7 +849,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 42. Communication
 
-✅ 10 · 🟡 4 · ⬜ 1
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -862,7 +862,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 547 | Tone Adjustment — styl odpovědi. | 🟡 ČÁSTEČNĚ | formálnější/kratší přepis označeného textu |
 | 548 | Multilingual Message Drafting — různé jazyky. | 🟡 ČÁSTEČNĚ | překlad |
 | 549 | Inbox Noise Reduction — méně spamu. | ✅ HOTOVO | filtr newsletterů |
-| 550 | Message Source Linking — zdroje konverzací. | ⬜ CHYBÍ | — |
+| 550 | Message Source Linking — zdroje konverzací. | ✅ HOTOVO | u každé odpovědi „Zdroje“: weby, soubory (i stránka), e-maily, ze kterých nástroje čerpaly – uložené v historii, klik otevře |
 | 551 | Communication Search Assistant — vyhledání rozhodnutí. | 🟡 ČÁSTEČNĚ | email_search |
 | 552 | Response Time Analytics — doby odpovědí. | ✅ HOTOVO | průměrná doba tvé odpovědi (odeslaná pošta vs. doručená) |
 | 553 | Contact Context Cards — přehled kontaktů. | ✅ HOTOVO | contact_card: zprávy, poslední kontakt, adresy, co o něm JARVIS ví, společné události |

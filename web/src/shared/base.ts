@@ -19,6 +19,31 @@ export function applyAppearance(s: any) {
   root.dataset.motion = a.animations === "reduced" ? "reduced" : "full";
   densityPref = a.density || "auto";
   applyDensity();
+  inputPref = a.input_mode || "auto";
+  applyInput();
+}
+
+// OMEGA 522: mouse, touch or voice – chosen, or from the device and the last real input. Touch gets bigger targets,
+// voice a bigger microphone button (it never starts listening by itself).
+let inputPref = "auto";
+let lastInput = "";
+let inputBound = false;
+export function inputModeFor(pref: string, sig: { coarse: boolean; hover: boolean; last: string }): "mouse" | "touch" | "voice" {
+  if (pref === "mouse" || pref === "touch" || pref === "voice") return pref;
+  if (sig.last === "touch" || sig.last === "pen") return "touch";
+  if (sig.last === "mouse") return "mouse";
+  return sig.coarse && !sig.hover ? "touch" : "mouse";
+}
+function applyInput() {
+  const mq = (q: string) => typeof window.matchMedia === "function" && window.matchMedia(q).matches;
+  document.documentElement.dataset.input = inputModeFor(inputPref, { coarse: mq("(pointer: coarse)"), hover: mq("(hover: hover)"), last: lastInput });
+  if (!inputBound) {
+    inputBound = true;
+    window.addEventListener("pointerdown", (e) => {
+      const kind = e.pointerType || "mouse";
+      if (kind !== lastInput) { lastInput = kind; applyInput(); }
+    }, { passive: true, capture: true });
+  }
 }
 
 // OMEGA 758: how dense the UI is – chosen, or by the window size ("auto"); the pages that use it scale with it

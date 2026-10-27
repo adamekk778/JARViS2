@@ -116,6 +116,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `api_import` | 588 |
 | `api_rate_limits` | 594 |
 | `app_allowlist` | 682 |
+| `app_capabilities` | 514 |
+| `app_hours` | 196 |
 | `app_launch_time` | 308 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
@@ -125,6 +127,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `audio_devices` | 105 |
 | `audio_highlights` | 364 |
 | `audio_state` | 073 |
+| `automation_opportunities` | 498 |
 | `background_jobs` | 628 |
 | `backup_encrypted` | 685 |
 | `backup_folder` | 330 |
@@ -182,6 +185,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `corruption_test` | 643 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
+| `cross_app` | 513 |
 | `customer_request` | 170 |
 | `customer_requests` | 170 |
 | `customer_segments` | 437 |
@@ -211,6 +215,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `deploy_diff` | 714 |
 | `design.py` | P4.09 |
 | `design_system` | 346 |
+| `desktop_links` | 515 |
 | `device_class` | 427 |
 | `device_test` | 638 |
 | `dialogue_check` | 647 |
@@ -243,6 +248,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `feature_matrix` | 384 |
 | `file_metadata` | 326 |
 | `file_versions` | 328 |
+| `find_contradictions` | 205 |
 | `find_duplicates` | 317 |
 | `find_flaky_tests` | 636 |
 | `find_page_route` | 533 |
@@ -281,6 +287,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_rooms` | 421 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
+| `improve_until_tests_pass` | 210 |
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
 | `ingredient_substitute` | 786 |
@@ -334,6 +341,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mutation_test` | 335 |
 | `my_routines` | 497 |
 | `name_window_groups` | 517 |
+| `negotiate_priorities` | 505 |
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
 | `num_gpu` | 574 |
@@ -354,6 +362,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `power_check` | 295 |
 | `power_cost` | 474 |
 | `power_plan_set` | 295 |
+| `predict_next_steps` | 196 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
 | `pricing_scenarios` | 442 |
@@ -437,6 +446,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `sync_subtitles` | 129 |
 | `system_integrity_check` | 286 |
 | `system_snapshot` | 190 |
+| `task_actions` | 196 |
 | `task_plan` | 201 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |

@@ -260,3 +260,9 @@ kbd { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; b
 .hero .agent-toggle { color: #c7cad0; }
 @media (max-width: 760px) { .hero-copy { max-width: none; } .hero-troupe { opacity: .35; } }
 .card.list > p.card-help { margin: 0; }
+
+/* OMEGA 522: touch gets finger-sized targets, voice a bigger microphone */
+[data-input="touch"] .icon-btn { min-width: 44px; min-height: 44px; }
+[data-input="touch"] .btn, [data-input="touch"] button.chip, [data-input="touch"] .input, [data-input="touch"] select.input { min-height: 44px; }
+[data-input="touch"] input[type="checkbox"][role="switch"] { transform: scale(1.2); }
+[data-input="voice"] .mic-btn { width: 52px; height: 52px; font-size: 26px; color: var(--accent); }

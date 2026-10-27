@@ -131,6 +131,7 @@ class Agent:
         self._task: asyncio.Task | None = None
         self.busy = False
         self._goal = ""
+        self._sources: list[dict] = []        # OMEGA 550: web pages, files, e-mails behind the current answer
         self._lang = "cs"
         self._gen = 0  # bumped by drop_queued(): requests waiting for the lock are discarded
 
@@ -360,6 +361,15 @@ class Agent:
                     rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,
                                         int((time.monotonic() - t0) * 1000))
         attachments += [a for a in res.attachments if a not in attachments]
+        if res.ok:                                     # OMEGA 550: what the answer rests on
+            try:
+                from .intelplus import sources_from
+
+                for src in sources_from(call.name, call.arguments or {}, res.data, res.summary):
+                    if not any(o["ref"] == src["ref"] for o in self._sources):
+                        self._sources.append(src)
+            except Exception as e:  # noqa: BLE001
+                log.debug("sources: %s", e)
         card = {"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok, "summary": res.summary}
         if res.preview:
             card["preview"] = res.preview
@@ -371,6 +381,7 @@ class Agent:
         bus = rt.bus
         voice = source in ("voice", "mobile_voice")
         self._goal = text or "(příloha)"
+        self._sources = []
         status = "done"
         if record_user:
             um = rt.memory.add_message("user", text, attachments, source)
@@ -458,8 +469,8 @@ class Agent:
         if rt.tasks.current is not None:
             rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,
-                                   meta={"tools": tool_cards, "brain": rt.router.last_used})
-        bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards,
+                                   meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12]})
+        bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
         if not cancelled:
             rt.maybe_speak(full_text, source, self._lang)

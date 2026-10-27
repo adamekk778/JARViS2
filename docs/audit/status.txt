@@ -969,3 +969,15 @@
 593 | HOTOVO | connector_sandbox: požadavek přes bránu (ověření těla a parametrů) do falešného API, které odpoví ukázkou podle kontraktu; klíč skrytý, žádná síť
 599 | HOTOVO | event_log (e-maily, zprávy z mobilu, místa, webhooky; bez těl) + event_replay: nanečisto, které automatizace by událost spustila
 600 | HOTOVO | connector_from_curl: konektor z příkazu curl (metoda, cesta, dotaz, tělo); klíče z hlaviček i parametrů se do konektoru neukládají, jen do trezoru přes api_set_key
+
+# Vlna 41 – inteligence
+196 | HOTOVO | predict_next_steps: Markovův řetězec 1. a 2. řádu nad sezeními akcí (task_actions), beam search několik kroků dopředu s pravděpodobností + zvyky aplikací v příští hodinu (app_hours)
+205 | HOTOVO | find_contradictions: různá čísla pro stejnou věc (stejný kmen slov v klauzuli, stejná jednotka) a popření (je/není, smí/nesmí…) v jednom i mezi více dokumenty (PDF, Word, text)
+210 | HOTOVO | improve_until_tests_pass: v dočasné kopii testy → AI upraví jen zadané soubory (ne testy) → znovu testy, víc kol; výsledek diff, do projektu jen na přání; vše s potvrzením
+498 | HOTOVO | automation_opportunities + v proaktivních návrzích: opakované sledy kroků v různých sezeních (nejdelší, bez podmnožin) → nabídka udělat z nich dovednost
+505 | HOTOVO | negotiate_priorities: plán podle nejbližšího termínu a priority, co nestihneš, co odložit (nejdřív priorita 3, pak 2), nové termíny a kolik hodin chybí; nic sám nemění
+513 | HOTOVO | cross_app: schránka / soubor → tabulka Excel (čísla jako čísla), koncept e-mailu .eml (X-Unsent, neodesílá), událost v kalendáři (datum, čas, místo z textu), položky seznamu, poznámka
+514 | HOTOVO | app_capabilities: přepínače a příkazy z nápovědy (--help, /?, -h), přípony a odkazy z registru Windows, které nástroje JARVISe na aplikaci už jsou; s potvrzením
+515 | HOTOVO | desktop_links: index entit (e-maily, telefony, jména, IČO, projekty) z dokumentů, kalendáře, hovorů, paměti, seznamů, připnutých úkolů a chatů → vše o člověku/projektu napříč zdroji + co s tím souvisí
+522 | HOTOVO | ovládání myš / dotyk / hlas: automaticky podle zařízení a posledního dotyku (větší cíle 44 px), hlasový režim zvětší mikrofon (nikdy ho sám nezapne); volba v Nastavení → Vzhled
+550 | HOTOVO | u každé odpovědi „Zdroje“: weby, soubory (i stránka), e-maily, ze kterých nástroje čerpaly – uložené v historii, klik otevře
