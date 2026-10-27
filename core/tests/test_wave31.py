@@ -3,6 +3,7 @@ the loud moment, background removal, media organised by date, podcast chapters, 
 voice-over timing, sound-effect library, subtitle sync (offset and drift), animated elements and the render queue."""
 import asyncio
 import wave
+from pathlib import Path
 
 import av
 import numpy as np
@@ -122,7 +123,7 @@ async def test_organize_media(rt, tmp_path):
     _photo(d / "IMG_9.jpg", "2026:08:01 12:00:00", "yellow")
     (d / "kopie.jpg").write_bytes((d / "IMG_1.jpg").read_bytes())
     r = await tools.call("organize_media", {"folder": str(d), "gap_hours": 16}, rt)
-    dst = {m["src"].split("/")[-1]: m["dst"].split(str(d))[1] for m in r.data["plan"]}
+    dst = {Path(m["src"]).name: m["dst"].split(str(d))[1] for m in r.data["plan"]}
     assert dst["IMG_1.jpg"].endswith("2026/2026-07-12 až 13/IMG_1.jpg".replace("/", __import__("os").sep)) and "2026-08-01" in dst["IMG_9.jpg"]
     assert "Duplicity" in dst["kopie.jpg"] and len(r.data["events"]) == 2
     done = await tools.call("organize_media", {"folder": str(d), "gap_hours": 16, "apply": True}, rt)

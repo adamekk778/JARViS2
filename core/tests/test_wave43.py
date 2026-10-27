@@ -1,6 +1,7 @@
 """Wave 43: workflow recorder and sharing, animated scene proposals, audio device handoff, rigging assistant."""
 import json
 import struct
+import sys
 import time
 
 import pytest
@@ -111,6 +112,7 @@ def test_pick_device():
     assert flowplus.pick_device(devs, "WH-1000XM4")["id"] == "2"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="would switch the real audio device of the machine")
 async def test_audio_tool_non_windows(rt):
     r = await tools.call("audio_device", {"device": "sluchátka"}, rt)
     assert not r.ok and "Windows" in r.summary

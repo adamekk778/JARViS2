@@ -4,6 +4,8 @@ import datetime as dt
 import sys
 import time
 
+import pytest
+
 from openpyxl import load_workbook
 
 from conftest import FakeRouter
@@ -188,6 +190,7 @@ def test_parse_help_and_associations():
     assert a == {"extensions": [".pdf"], "protocols": ["acrobat"]}
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="the fake program is a script with a #! line")
 async def test_app_capabilities_tool(rt, tmp_path):
     exe = tmp_path / "mytool"
     exe.write_text(f"#!{sys.executable}\nprint('''{HELP}''')\n")

@@ -1,5 +1,6 @@
 """Wave 39: security, privacy, cloud."""
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -125,10 +126,11 @@ def test_rollback_rehearsal(tmp_path):
     (repo / "v.txt").write_text("2")
     g("commit", "-qam", "two")
     g("tag", "v2")
-    r = secplus.rollback_rehearsal(repo, "grep -q 1 v.txt")
+    check = f'"{sys.executable}" -c "import sys; sys.exit(0 if open(\'v.txt\').read() == \'{{}}\' else 1)"'   # no grep on Windows
+    r = secplus.rollback_rehearsal(repo, check.format(1))
     assert r["ok"] and r["to"] == "v1" and r["from"] == "v2"
     assert (repo / "v.txt").read_text() == "2"                  # the working copy is untouched
-    bad = secplus.rollback_rehearsal(repo, "grep -q 2 v.txt", to="v1")
+    bad = secplus.rollback_rehearsal(repo, check.format(2), to="v1")
     assert not bad["ok"]
     assert len(subprocess.run(["git", "-C", str(repo), "worktree", "list"], capture_output=True, text=True).stdout.splitlines()) == 1
 

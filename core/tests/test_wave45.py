@@ -80,8 +80,9 @@ def test_screenshots(tmp_path):
     assert "dovolena.jpg" not in [i["name"] for i in r["items"]]
     plan = sysplus.organize_plan(r["items"], tmp_path / "Sorted")
     month = dt.datetime.fromtimestamp(old).strftime("%Y-%m")
-    assert any(p["to"].endswith(f"{month}/Snímek obrazovky 2026-05-01.png") for p in plan)
-    assert any("/Klipy/Screen Recording 1.mp4" in p["to"] for p in plan)
+    tos = [p["to"].replace("\\", "/") for p in plan]
+    assert any(t.endswith(f"{month}/Snímek obrazovky 2026-05-01.png") for t in tos)
+    assert any("/Klipy/Screen Recording 1.mp4" in t for t in tos)
 
 
 def test_bluetooth_parse():
