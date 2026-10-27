@@ -65,6 +65,8 @@ def describe_trigger(t) -> str:
         return f"když s telefonem přijdu na místo „{v or 'Domov'}“"
     if t.type == "zone_leave":
         return f"když s telefonem odejdu z místa „{v or 'Domov'}“"
+    if t.type == "webhook":
+        return f"když přijde webhook „{v or 'jakýkoli'}“"
     return t.type
 
 
@@ -100,6 +102,9 @@ def fill(text: str, vars: dict) -> str:
     return re.sub(r"\{(\w+)\}", lambda m: str(vars.get(m.group(1), m.group(0))), text or "")
 
 
+EVENT_TYPES = ("mail_new", "phone_notification", "phone_zone", "webhook")
+
+
 def match_event(a, ev: dict) -> dict | None:
     """Does this bus event (mail_new / phone_notification) start automation `a`? → the {placeholders} or None."""
     t = a.trigger
@@ -109,6 +114,8 @@ def match_event(a, ev: dict) -> dict | None:
             return {"sender": ev.get("from_name") or ev.get("from", ""), "subject": ev.get("subject", ""), "text": ev.get("subject", "")}
     if ev.get("type") == "phone_zone" and t.type == f"zone_{ev.get('event')}" and _has(ev.get("zone", ""), t.value):
         return {"zone": ev.get("zone", "")}
+    if ev.get("type") == "webhook" and t.type == "webhook" and _has(ev.get("name", ""), t.value) and _has(ev.get("text", ""), t.text):
+        return {"sender": ev.get("name", ""), "text": ev.get("text", "")}
     if ev.get("type") == "phone_notification":
         if t.type == "phone_call" and ev.get("call") and _has(ev.get("title", ""), t.value):
             return {"sender": ev.get("title", ""), "app": ev.get("app", "")}
@@ -187,8 +194,14 @@ class Automations:
     async def _events(self) -> None:
         while True:
             ev = await self._q.get()
-            if ev.get("type") not in ("mail_new", "phone_notification", "phone_zone"):
+            if ev.get("type") not in EVENT_TYPES:
                 continue
+            try:
+                from .aiplus import record_event
+
+                record_event(self.rt, ev)                 # OMEGA 599: kept for a dry-run replay
+            except Exception as e:
+                log.debug("event log: %s", e)
             try:
                 for a in self.active():
                     vars = match_event(a, ev)

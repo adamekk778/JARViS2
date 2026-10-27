@@ -45,7 +45,7 @@ export const SERVER_TYPES = [
   "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
   "learn", "learn_card", "learn_result",
   "app_context", "pins", "workspaces", "workspace_result",
-  "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone",
+  "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

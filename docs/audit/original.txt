@@ -162,4 +162,4 @@ P15.06 | HOTOVO | příkazová paleta + notch + hlas | 757 | Universal Command B
 P15.07 | CHYBÍ | — | — | Personal Knowledge Graph
 P15.08 | ČÁSTEČNĚ | stejná konverzace na telefonu i PC | 083 | Cross-device Handoff
 P15.09 | ČÁSTEČNĚ | Skill Forge (složené dovednosti) + skilly se schválením | — | AI Skill Builder
-P15.10 | CHYBÍ | — | 583 | Adaptive Resource Manager
+P15.10 | HOTOVO | aiplus.install: místní modely ustoupí hře, slabé baterii a plné RAM; fronta inference s prioritou | 583 | Adaptive Resource Manager

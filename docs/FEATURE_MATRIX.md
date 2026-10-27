@@ -37,6 +37,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/base.py` | 183, 203, 682 |
 | `tools/dev.py` | 046, 050, 058 |
 | `visual_diff` | 059, 360, P4.09 |
+| `ai_queue` | 577, 584 |
+| `api_set_key` | 592, 600 |
 | `app_open` | 034, P12.06 |
 | `automations.py` | 034, 147 |
 | `bill_of_materials` | 160, 469 |
@@ -113,7 +115,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `api_contract_check` | 336 |
 | `api_import` | 588 |
 | `api_rate_limits` | 594 |
-| `api_set_key` | 592 |
 | `app_allowlist` | 682 |
 | `app_launch_time` | 308 |
 | `archive_contents` | 323 |
@@ -171,6 +172,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `compare_offers` | 172 |
 | `competitor_watch` | 445 |
 | `confirm_info` | 219 |
+| `connector_from_curl` | 600 |
+| `connector_sandbox` | 593 |
 | `contact_card` | 553 |
 | `contrast_check` | 348 |
 | `convert_file` | 324 |
@@ -220,6 +223,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `environment_compare` | 342 |
 | `environment_snapshot` | 342 |
 | `estimate_effort` | 503 |
+| `event_log` | 599 |
+| `event_replay` | 599 |
 | `experiment_design` | 208 |
 | `experiment_log` | 479 |
 | `experiment_result` | 479 |
@@ -266,6 +271,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
+| `gpu_split` | 574 |
 | `hardware_changes` | 298 |
 | `hardware_report` | 705 |
 | `home_batteries` | 427 |
@@ -281,6 +287,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `integrity_check` | 605 |
 | `keep_alive` | 575 |
 | `keyword_gap` | 447 |
+| `knowledge_pack_add` | 579 |
+| `knowledge_packs` | 579 |
 | `learning_path` | 453 |
 | `learning_weak_spots` | 108 |
 | `level_generator` | 652 |
@@ -289,6 +297,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `link_alive` | 410 |
 | `lip_sync` | 668 |
 | `list_folder` | P2.11 |
+| `local_gpu_layers` | 574 |
 | `local_model_benchmark` | 571 |
 | `local_models_fit` | 578 |
 | `local_unload` | 576 |
@@ -327,6 +336,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `name_window_groups` | 517 |
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
+| `num_gpu` | 574 |
 | `offline_test` | 641 |
 | `organize_media` | 368 |
 | `outage_timeline` | 720 |

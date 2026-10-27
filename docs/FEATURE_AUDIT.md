@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 530 | 78 |
-| 🟡 ČÁSTEČNĚ | 177 | 59 |
+| ✅ HOTOVO | 539 | 79 |
+| 🟡 ČÁSTEČNĚ | 176 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 54 | 12 |
+| ⬜ CHYBÍ | 46 | 11 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -893,29 +893,29 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 44. Local AI Supercomputer
 
-✅ 8 · 🟡 3 · ⬜ 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 571 | Local Model Benchmarking — porovnání rychlosti. | ✅ HOTOVO | local_model_benchmark: skutečné generování na každém nainstalovaném modelu, tokeny/s, načtení, GPU/CPU |
 | 572 | Automatic Model Quantization Advisor — kvantizace modelu. | ✅ HOTOVO | quantization_advice: Q2–F16 podle velikosti modelu, VRAM, RAM a kontextu → doporučení a očekávaná rychlost |
 | 573 | VRAM-Aware Model Loading — výběr modelu dle VRAM. | 🟡 ČÁSTEČNĚ | test GPU pro místní modely |
-| 574 | CPU/GPU Hybrid Inference — hybridní výpočty. | ⬜ CHYBÍ | — |
+| 574 | CPU/GPU Hybrid Inference — hybridní výpočty. | ✅ HOTOVO | gpu_split: kolik vrstev modelu na grafiku vs. procesor (VRAM, KV cache, rezerva), odhad rychlosti; brain.local_gpu_layers → Ollama num_gpu |
 | 575 | Model Warm-Up Manager — rychlejší start. | ✅ HOTOVO | warm_up_model: načtení dopředu s keep_alive, změřená doba načtení a pohotovosti |
 | 576 | Idle Model Unloading — uvolnění paměti. | ✅ HOTOVO | uvolnění místního modelu (local_unload) |
-| 577 | Inference Queue Scheduler — fronta inference. | ⬜ CHYBÍ | — |
+| 577 | Inference Queue Scheduler — fronta inference. | ✅ HOTOVO | InferenceQueue v routeru: jedna místní inference naráz, požadavky uživatele před prací na pozadí (aiplus.background), odolné vůči zrušení; ai_queue |
 | 578 | Model Compatibility Scanner — kompatibilita. | ✅ HOTOVO | local_models_fit: nainstalované modely → celé v GPU / GPU+CPU / CPU / nevejde se |
-| 579 | Offline Knowledge Pack Manager — offline znalosti. | ⬜ CHYBÍ | — |
+| 579 | Offline Knowledge Pack Manager — offline znalosti. | ✅ HOTOVO | knowledge_pack_add / knowledge_packs: složka nebo zip dokumentů (jen typy dokumentů, limit velikosti, bez úniku cesty) → zaindexováno pro hledání offline; odebrání i z indexu |
 | 580 | Embedding Model Selector — embeddingy. | ✅ HOTOVO | compare_embedding_models: český test vyhledání (recall@1), rozměr, rychlost → doporučení |
 | 581 | Local RAG Workspace — hledání v místních dokumentech. | ✅ HOTOVO | index_documents / search_documents / ask_documents: PDF po stránkách, Word, text, CSV, web, kód; inkrementálně; odpovědi jen z úryvků s ověřenými citacemi |
 | 582 | Model Accuracy Testing — kvalita odpovědí. | ✅ HOTOVO | test_model_accuracy: otázky se známou odpovědí (výchozí česká sada nebo vlastní), skóre a chybné odpovědi |
-| 583 | Automatic Resource Throttling — řízení zdrojů. | 🟡 ČÁSTEČNĚ | režimy úsporný/vyvážený/výkon |
-| 584 | Local AI Cache — cache odpovědí. | ⬜ CHYBÍ | — |
+| 583 | Automatic Resource Throttling — řízení zdrojů. | ✅ HOTOVO | adaptivní ustoupení místního modelu (hra přes celou obrazovku, baterie < 30 % bez nabíječky, RAM > 92 %) – jen když je jiný poskytovatel; přepínač v nastavení |
+| 584 | Local AI Cache — cache odpovědí. | ✅ HOTOVO | AICache (SQLite, platnost 7 dní, max 2000) – router.complete(cache=True); statistika a smazání přes ai_queue |
 | 585 | Model Health Monitor — stav modelů. | 🟡 ČÁSTEČNĚ | stav místních modelů |
 
 ## 45. Universal Integration Gateway
 
-✅ 9 · 🟡 2 · ⬜ 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -923,17 +923,17 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 587 | Connector Health Checks — funkčnost připojení. | 🟡 ČÁSTEČNĚ | test poskytovatele AI (provider_test) |
 | 588 | API Schema Importer — OpenAPI specifikace. | ✅ HOTOVO | api_import: libovolné API z OpenAPI (soubor / adresa), ověření none / bearer / hlavička / parametr |
 | 589 | Natural Language API Builder — API požadavky řečí. | ✅ HOTOVO | api_ask: požadavek běžnou řečí → operace a parametry z kontraktu; čtení hned, změna jen jako návrh k potvrzení |
-| 590 | Webhook Event Router — události. | ⬜ CHYBÍ | — |
+| 590 | Webhook Event Router — události. | ✅ HOTOVO | příchozí webhooky /api/hook/{id}: klíč v trezoru Windows (token nebo HMAC-SHA256), limit 30/min, max 256 kB; upozornění nebo spouštěč automatizace „webhook“; obsah jen data |
 | 591 | Connector Permission Dashboard — oprávnění. | ✅ HOTOVO | api_call: GET bez ptaní, POST / PUT / PATCH / DELETE vždy s potvrzením (náhled metody, parametrů a těla); tělo ověřeno proti kontraktu před odesláním |
 | 592 | Token Expiration Manager — expirace tokenů. | ✅ HOTOVO | token_expiry: platnost JWT u klíčů konektorů (bez zobrazení klíče), varování před vypršením; api_set_key do trezoru Windows, v auditu maskováno |
-| 593 | Integration Test Sandbox — testování bez ostrých dat. | ⬜ CHYBÍ | — |
+| 593 | Integration Test Sandbox — testování bez ostrých dat. | ✅ HOTOVO | connector_sandbox: požadavek přes bránu (ověření těla a parametrů) do falešného API, které odpoví ukázkou podle kontraktu; klíč skrytý, žádná síť |
 | 594 | API Rate-Limit Analyzer — limity API. | ✅ HOTOVO | api_rate_limits + každé volání: X-RateLimit / RateLimit / Retry-After, využití, obnovení, blokace 429 |
 | 595 | Data Mapping Designer — mapování dat. | ✅ HOTOVO | map_data: návrh mapování polí (i česky ↔ anglicky) a převod do nového CSV / JSON s čísly a daty |
 | 596 | Connector Version Tracking — verze API. | ✅ HOTOVO | historie verzí kontraktu u konektoru + nekompatibilní změny při novém importu |
 | 597 | Service Outage Fallback — výpadek integrace. | ✅ HOTOVO | řetěz poskytovatelů AI s náhradou při výpadku (llm/router) |
 | 598 | Data Sync Conflict Resolver — konflikty synchronizace. | ✅ HOTOVO | merge_records: tříčestné sloučení (základ / moje / jejich) po polích, konflikty, pravidla mine / theirs / newest |
-| 599 | Event Replay System — přehrání události. | ⬜ CHYBÍ | — |
-| 600 | Custom Connector SDK — tvorba vlastních konektorů. | ⬜ CHYBÍ | — |
+| 599 | Event Replay System — přehrání události. | ✅ HOTOVO | event_log (e-maily, zprávy z mobilu, místa, webhooky; bez těl) + event_replay: nanečisto, které automatizace by událost spustila |
+| 600 | Custom Connector SDK — tvorba vlastních konektorů. | ✅ HOTOVO | connector_from_curl: konektor z příkazu curl (metoda, cesta, dotaz, tělo); klíče z hlaviček i parametrů se do konektoru neukládají, jen do trezoru přes api_set_key |
 
 ## 46. Database Intelligence
 
@@ -1387,4 +1387,4 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P15.07 | Personal Knowledge Graph | ⬜ CHYBÍ | — | — |
 | P15.08 | Cross-device Handoff | 🟡 ČÁSTEČNĚ | stejná konverzace na telefonu i PC | 083 |
 | P15.09 | AI Skill Builder | 🟡 ČÁSTEČNĚ | Skill Forge (složené dovednosti) + skilly se schválením | — |
-| P15.10 | Adaptive Resource Manager | ⬜ CHYBÍ | — | 583 |
+| P15.10 | Adaptive Resource Manager | ✅ HOTOVO | aiplus.install: místní modely ustoupí hře, slabé baterii a plné RAM; fronta inference s prioritou | 583 |

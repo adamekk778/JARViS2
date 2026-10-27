@@ -203,6 +203,16 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         res = await rt.claude.handle(event, payload if isinstance(payload, dict) else {})
         return JSONResponse(res) if res else Response(status_code=204)
 
+    @app.post("/api/hook/{hook_id}")
+    async def incoming_webhook(hook_id: str, request: Request):
+        """OMEGA 590: a webhook from another service (GitHub, a shop, IFTTT…) – secret token or HMAC signature required."""
+        from .. import aiplus
+
+        body = await request.body()
+        code, msg = aiplus.handle_webhook(rt, hook_id[:40], body, request.query_params.get("token", "") or request.headers.get("x-jarvis-token", ""),
+                                          request.headers.get("x-hub-signature-256", "") or request.headers.get("x-signature", ""))
+        return JSONResponse({"ok": code == 200, "detail": msg}, status_code=code)
+
     @app.get("/api/sounds/{name}")
     async def custom_sound(name: str, request: Request):
         """Your own interface sounds from the sounds folder (only names JARVIS knows)."""

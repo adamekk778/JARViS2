@@ -93,6 +93,9 @@ class Runtime:
         self.usage = Usage(self)               # OMEGA 178: AI usage ledger and the daily limit
         self.router.on_usage = self.usage.record
         self.router.gate = self.usage.blocked
+        from . import aiplus
+
+        aiplus.install(self)                   # OMEGA 577 / 584 / P15.10: local queue, answer cache, adaptive local models
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
         from .knowledge import Knowledge

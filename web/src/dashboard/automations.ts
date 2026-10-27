@@ -22,6 +22,8 @@ const TRIGGERS: Record<string, { label: string; ico: string; value?: { label: st
   battery: { label: "Když je slabá baterie", ico: "battery-low", value: { label: "Pod kolik %", ph: "20", type: "number" }, hint: "{percent} = stav baterie." },
   power: { label: "Nabíječka", ico: "plug", hint: "Připojení nebo odpojení nabíječky." },
   away: { label: "Když odejdu od PC", ico: "person-simple-walk", value: { label: "Po kolika minutách", ph: "10", type: "number" }, hint: "Třeba pozastavit hudbu a zamknout." },
+  webhook: { label: "Když přijde webhook", ico: "webhooks-logo", value: { label: "Název webhooku (prázdné = jakýkoli)", ph: "E-shop" },
+    text: "Obsah obsahuje", hint: "Webhook vytvoříš větou „vytvoř webhook E-shop“. {text} = obsah (jen data)." },
   back: { label: "Když se vrátím k PC", ico: "hand-waving", value: { label: "Po aspoň kolika minutách pryč", ph: "30", type: "number" }, hint: "Třeba „Vítejte zpět“ a co jsem zmeškal." },
 };
 const DAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -43,6 +45,7 @@ export function whenText(t: Trigger): string {
     case "power": return v === "out" ? "Když odpojím nabíječku" : "Když připojím nabíječku";
     case "away": return `Když odejdu od PC na ${v || 10} min`;
     case "back": return `Když se vrátím k PC (po ${v || 10}+ min)`;
+    case "webhook": return `Když přijde webhook${v ? ` „${v}“` : ""}${x ? ` s „${x}“` : ""}`;
     default: return TRIGGERS[t.type]?.label || t.type;
   }
 }

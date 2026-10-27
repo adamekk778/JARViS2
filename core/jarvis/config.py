@@ -50,6 +50,8 @@ class Brain(BaseModel):
     local_enabled: bool = True     # off: local models (Ollama, LM Studio) are skipped and unloaded
     local_mode: Literal["eco", "balanced", "performance"] = "balanced"
     local_gpu: str = ""            # result of the last GPU test: "gpu" | "cpu" | ""
+    local_gpu_layers: int = -1     # OMEGA 574: layers on the graphics card (-1 = let Ollama decide)
+    adaptive_local: bool = True    # OMEGA P15.10: local models step aside during games, on low battery, when RAM runs out
 
 
 class Voice(BaseModel):
@@ -145,8 +147,17 @@ class McpServer(BaseModel):
     trusted: bool = False   # OMEGA 686: untrusted servers ask before every action; their output is always data
 
 
+class Webhook(BaseModel):
+    """OMEGA 590: an incoming webhook (its secret lives in the OS secure storage, never in the config)."""
+    id: str
+    name: str = "Webhook"
+    action: Literal["notify", "automation"] = "notify"
+    enabled: bool = True
+
+
 class Integrations(BaseModel):
     mcp: list[McpServer] = Field(default_factory=list)
+    webhooks: list[Webhook] = Field(default_factory=list)
     image_provider: str = "pollinations"
 
 
@@ -348,7 +359,7 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back", "zone_enter", "zone_leave"] = "time"
+                  "away", "back", "zone_enter", "zone_leave", "webhook"] = "time"
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
     text: str = ""     # …and the subject / message must contain this
     days: list[int] = Field(default_factory=list)   # time: 0 = Monday … 6 = Sunday; empty = every day

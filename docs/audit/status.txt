@@ -958,3 +958,14 @@
 711 | HOTOVO | anomálie nákladů v cloudu z exportu vyúčtování (robustní odchylka od mediánu po službách)
 715 | HOTOVO | cvičná obnova: předchozí verze v dočasné kopii, spuštěné testy, postup návratu; pracovní kopie beze změny
 733 | ČÁSTEČNĚ | schvalování z telefonu jen ve stejné domácí síti (ne přes internet); Bluetooth blízkost ne
+
+# Vlna 40 – místní AI a brána integrací
+574 | HOTOVO | gpu_split: kolik vrstev modelu na grafiku vs. procesor (VRAM, KV cache, rezerva), odhad rychlosti; brain.local_gpu_layers → Ollama num_gpu
+577 | HOTOVO | InferenceQueue v routeru: jedna místní inference naráz, požadavky uživatele před prací na pozadí (aiplus.background), odolné vůči zrušení; ai_queue
+583 | HOTOVO | adaptivní ustoupení místního modelu (hra přes celou obrazovku, baterie < 30 % bez nabíječky, RAM > 92 %) – jen když je jiný poskytovatel; přepínač v nastavení
+584 | HOTOVO | AICache (SQLite, platnost 7 dní, max 2000) – router.complete(cache=True); statistika a smazání přes ai_queue
+579 | HOTOVO | knowledge_pack_add / knowledge_packs: složka nebo zip dokumentů (jen typy dokumentů, limit velikosti, bez úniku cesty) → zaindexováno pro hledání offline; odebrání i z indexu
+590 | HOTOVO | příchozí webhooky /api/hook/{id}: klíč v trezoru Windows (token nebo HMAC-SHA256), limit 30/min, max 256 kB; upozornění nebo spouštěč automatizace „webhook“; obsah jen data
+593 | HOTOVO | connector_sandbox: požadavek přes bránu (ověření těla a parametrů) do falešného API, které odpoví ukázkou podle kontraktu; klíč skrytý, žádná síť
+599 | HOTOVO | event_log (e-maily, zprávy z mobilu, místa, webhooky; bez těl) + event_replay: nanečisto, které automatizace by událost spustila
+600 | HOTOVO | connector_from_curl: konektor z příkazu curl (metoda, cesta, dotaz, tělo); klíče z hlaviček i parametrů se do konektoru neukládají, jen do trezoru přes api_set_key

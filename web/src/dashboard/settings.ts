@@ -605,6 +605,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           : h("span", {}, "neběží – ", h("a", { href: "https://ollama.com/download", target: "_blank", rel: "noopener" }, "stáhnout Ollamu"), " a spustit"))),
       sw("brain.local_enabled", "Lokální AI zapnutá", "Vypnuto: JARVIS lokální modely nepoužívá a uvolní je z paměti. Notch a vše ostatní běží dál."),
       select("brain.local_mode", "Výkonový režim", MODES),
+      sw("brain.adaptive_local", "Ustoupit hrám a baterii", "Při hře přes celou obrazovku, slabé baterii nebo plné RAM použije JARVIS na chvíli jiný model (když nějaký máš)."),
       h("div", { class: "models" }, ...rows),
       h("div", { class: "btn-row" },
         h("button", { class: "btn", type: "button", disabled: !st.running, onclick: () => { extra.gpuMsg = "Testuji… (první spuštění modelu může chvíli trvat)"; client.send("local_gpu_test"); render(); } }, icon("graphics-card"), "Otestovat GPU"),

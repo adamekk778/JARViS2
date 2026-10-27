@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from collections import defaultdict, deque
@@ -27,6 +28,8 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
         from .local import mode_options
 
         options, keep_alive = mode_options(brain.local_mode, os.cpu_count() or 4)
+        if brain.local_gpu_layers >= 0:                       # OMEGA 574: how much of the model goes to the graphics card
+            options["num_gpu"] = brain.local_gpu_layers
         return Ollama(p.id, base, model, temperature=brain.temperature, transport=transport, options=options,
                       keep_alive=keep_alive)
     return OpenAICompat(p.id, base, model, api_key, temperature=brain.temperature,
@@ -60,6 +63,8 @@ class Router:
         self.ttft: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))  # ms to first token, per provider
         self.on_usage: Callable[[str, str, list[dict], int], None] | None = None   # OMEGA 178: usage ledger
         self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
+        self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
+        self.cache = None                                                           # OMEGA 584: aiplus.AICache
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -95,53 +100,62 @@ class Router:
             if need_vision and pcfg.id in self.no_vision:
                 msgs = _strip_images(messages)
             use_tools = tools if pcfg.id not in self.no_tools else None
-            for attempt in range(3):
-                started = False
-                try:
-                    agen = prov.stream(msgs, use_tools, model=model)
-                    t_req = time.monotonic()
-                    first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
-                    self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
-                    started = True
-                    self.last_used = (pcfg.id, model or prov.model)
-                    out = len(first.text or "")
-                    yield first
-                    async for ch in agen:
-                        out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
-                        yield ch
-                    self.last_errors = errors
-                    if self.on_usage:
-                        try:
-                            self.on_usage(pcfg.id, model or prov.model, msgs, out)
-                        except Exception as e:  # accounting must never break an answer
-                            log.debug("usage: %s", e)
-                    return
-                except StopAsyncIteration:
-                    self.last_used = (pcfg.id, model or prov.model)
-                    yield Chunk(done=True)
-                    return
-                except asyncio.TimeoutError:
-                    errors[pcfg.id] = "neodpověděl včas"
-                    break
-                except ProviderError as e:
-                    if started:
-                        raise
-                    if use_tools and e.is_tools_unsupported:
-                        log.info("%s: tools unsupported, retrying without", pcfg.id)
-                        self.no_tools.add(pcfg.id)
-                        use_tools = None
-                        continue
-                    if need_vision and e.is_vision_unsupported and pcfg.id not in self.no_vision:
-                        self.no_vision.add(pcfg.id)
-                        msgs = _strip_images(messages)
-                        continue
-                    errors[pcfg.id] = str(e)[:200]
-                    break
+            local = self.local_queue is not None and PRESETS.get(pcfg.preset, {}).get("local")
+            async with self.local_queue.slot() if local else contextlib.nullcontext():   # OMEGA 577: one local inference at a time
+                for attempt in range(3):
+                    started = False
+                    try:
+                        agen = prov.stream(msgs, use_tools, model=model)
+                        t_req = time.monotonic()
+                        first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
+                        self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
+                        started = True
+                        self.last_used = (pcfg.id, model or prov.model)
+                        out = len(first.text or "")
+                        yield first
+                        async for ch in agen:
+                            out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
+                            yield ch
+                        self.last_errors = errors
+                        if self.on_usage:
+                            try:
+                                self.on_usage(pcfg.id, model or prov.model, msgs, out)
+                            except Exception as e:  # accounting must never break an answer
+                                log.debug("usage: %s", e)
+                        return
+                    except StopAsyncIteration:
+                        self.last_used = (pcfg.id, model or prov.model)
+                        yield Chunk(done=True)
+                        return
+                    except asyncio.TimeoutError:
+                        errors[pcfg.id] = "neodpověděl včas"
+                        break
+                    except ProviderError as e:
+                        if started:
+                            raise
+                        if use_tools and e.is_tools_unsupported:
+                            log.info("%s: tools unsupported, retrying without", pcfg.id)
+                            self.no_tools.add(pcfg.id)
+                            use_tools = None
+                            continue
+                        if need_vision and e.is_vision_unsupported and pcfg.id not in self.no_vision:
+                            self.no_vision.add(pcfg.id)
+                            msgs = _strip_images(messages)
+                            continue
+                        errors[pcfg.id] = str(e)[:200]
+                        break
         self.last_errors = errors
         raise AllProvidersFailed(errors)
 
-    async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None) -> str:
+    async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None,
+                       cache: bool = False) -> str:
+        key = self.cache.key(messages, vision=need_vision, fast=fast, only=only) if cache and self.cache else ""
+        if key and (hit := self.cache.get(key)) is not None:      # OMEGA 584: the same question again → no model call
+            return hit
         out = []
         async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only):
             out.append(ch.text)
-        return "".join(out)
+        text = "".join(out)
+        if key:
+            self.cache.put(key, text)
+        return text
