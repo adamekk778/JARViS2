@@ -131,6 +131,10 @@ class Scheduler:
                         await self.rt.phone.ring(f"Pane, {msg}", reason="price")
                     else:
                         self.rt.notify("Hlídání ceny", msg, speak=True, target="all")
+            elif job["kind"] == "backup":     # OMEGA P10.04: automatic incremental backup
+                from .sysplus import run_backup
+
+                await run_backup(self.rt, p)
             elif job["kind"] == "prompt":
                 text = await self.rt.agent.handle(
                     p["prompt"], [], "schedule",

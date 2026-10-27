@@ -35,7 +35,7 @@ P3.08 | HOTOVO | diktování + přepis nahrávek | 097 | Přepis mluveného slov
 P3.09 | ČÁSTEČNĚ | překlad přes AI | 269 | Překlady během konverzace
 P3.10 | HOTOVO | čte e-maily, zprávy z telefonu, brífink | 555 | Čtení zpráv a dokumentů
 P3.11 | ČÁSTEČNĚ | místní modely volitelně, stahování jen s potvrzením | 270 | Offline STT a TTS
-P3.12 | CHYBÍ | — | — | Detekce emocí v hlase
+P3.12 | ČÁSTEČNĚ | voice.emotion (vypnuté, dokud ho nezapneš): výška, rozptyl, hlasitost a tempo hlasu proti tvému průměru → napětí / únava / nadšení jako tichá nápověda pro odpověď; voice_tone pro nahrávku – heuristika, neověřeno na skutečných hlasech | — | Detekce emocí v hlase
 P4.01 | HOTOVO | screenshot + vision model | 280 | Analýza screenshotů
 P4.02 | HOTOVO | UI Automation + vision | 274 | Rozpoznávání textu, ikon, tlačítek, oken
 P4.03 | ČÁSTEČNĚ | vision + ui_read | 033 | Porozumění chybovým hláškám
@@ -98,13 +98,13 @@ P9.04 | HOTOVO | oznámení na telefon | 412 | Push notifikace
 P9.05 | ČÁSTEČNĚ | stejná konverzace na PC i mobilu | 083 | Pokračování na jiném zařízení
 P9.06 | HOTOVO | push-to-talk z mobilu | 141 | Hlasové příkazy z telefonu
 P9.07 | ČÁSTEČNĚ | přílohy se souhlasem systému | 142 | Fotografie a soubory se souhlasem
-P9.08 | CHYBÍ | — | — | Sdílení obrazovky
-P9.09 | CHYBÍ | — | — | Více počítačů
+P9.08 | HOTOVO | screen_share + /api/screen/stream: obrazovka PC do spárovaného telefonu (MJPEG), jen po potvrzení a na omezenou dobu, soukromá okna zakrytá, karta „Obrazovka PC“ v aplikaci | — | Sdílení obrazovky
+P9.09 | HOTOVO | pc_link / pc_send + /api/remote/command: další počítač s JARVISem (klíč v trezoru), požadavek a odpověď, stav online; nebezpečné kroky potvrzuješ na cílovém PC | — | Více počítačů
 P9.10 | ČÁSTEČNĚ | Tailscale/LAN + token; bez vlastního relay | 407 | Bezpečný vzdálený přístup
 P10.01 | HOTOVO | časovače, připomínky, rutiny, JARVIS zavolá | 155 | Připomínky, budíky, časované úkoly
 P10.02 | HOTOVO | strážce + report | 508 | Pravidelné kontroly PC
-P10.03 | CHYBÍ | — | — | Kontrola dokončení stahování a instalací
-P10.04 | CHYBÍ | — | 330 | Automatické zálohování
+P10.03 | HOTOVO | hlídání Stažených souborů (rozpracovaný .crdownload/.part → hotový soubor se stálou velikostí) a instalátorů (setup/installer/msiexec /i/winget) → upozornění; vypínatelné | — | Kontrola dokončení stahování a instalací
+P10.04 | HOTOVO | auto_backup: denní plánovaná přírůstková záloha s ověřením otiskem, upozornění a připomenutí, když disk chybí; výpis, ruční spuštění, zrušení | 330 | Automatické zálohování
 P10.05 | ČÁSTEČNĚ | stav misí a Claude Code relací | — | Sledování běžících projektů
 P10.06 | HOTOVO | nové e-maily, VIP, zprávy z telefonu | 542 | Upozornění na důležité zprávy
 P10.07 | ČÁSTEČNĚ | ranní brífink; večerní přehled chybí | 510 | Ranní a večerní přehled
@@ -124,18 +124,18 @@ P11.10 | ČÁSTEČNĚ | weby; PDF/tabulky přes run_python | — | Prezentace, P
 P11.11 | ČÁSTEČNĚ | find_file podle názvu | 316 | Hledání v osobních souborech
 P11.12 | ČÁSTEČNĚ | seznamy, kalendář, úkoly | 785 | Organizace úkolů a projektů
 P12.01 | HOTOVO | media_control, YouTube | — | Ovládání hudby
-P12.02 | CHYBÍ | — | — | Hudební vizualizace v notchi
+P12.02 | ČÁSTEČNĚ | pruhy v notchi podle špičkové hlasitosti výstupu (Windows meter přes pycaw), jen když hraje hudba, vypínatelné – na skutečném PC zatím neověřeno | — | Hudební vizualizace v notchi
 P12.03 | ČÁSTEČNĚ | tanec při hudbě | 244 | Animace postavičky podle hudby
 P12.04 | ČÁSTEČNĚ | Herní režim (protokol) + automatizace při otevření hry | 034 | Game Mode
 P12.05 | ČÁSTEČNĚ | CPU/RAM/GPU; FPS a teploty chybí | 125, 297 | Monitoring FPS, CPU, GPU, teplot
 P12.06 | HOTOVO | automatizace app_open | 148 | Detekce spuštěné hry
 P12.07 | HOTOVO | game_settings: předvolba, upscaling, limit FPS a tipy podle grafiky, RAM a monitoru | — | Pomoc s herními nastaveními
-P12.08 | CHYBÍ | — | — | Správa screenshotů a klipů
+P12.08 | HOTOVO | screenshots: snímky a klipy ze všech obvyklých míst, velikost, duplicity, staré; roztřídění po měsících (klipy zvlášť), duplicity do koše | — | Správa screenshotů a klipů
 P12.09 | HOTOVO | open_app | — | Spouštění her a launcherů
 P13.01 | HOTOVO | home_control (home.py) | 423 | Světla a zásuvky
 P13.02 | HOTOVO | Home Assistant REST | 434 | Integrace s Home Assistantem
 P13.03 | ČÁSTEČNĚ | media_player přes HA | 429 | Televize a reproduktory
-P13.04 | CHYBÍ | — | — | Bluetooth zařízení
+P13.04 | ČÁSTEČNĚ | bluetooth_devices: spárovaná zařízení, připojení a baterie (PowerShell, jen čtení), varování před vybitím, otevření nastavení; samotné připojování přes nastavení Windows | — | Bluetooth zařízení
 P13.05 | VYŽADUJE_INTEGRACI | přes Home Assistant (MQTT integrace HA) | — | MQTT
 P13.06 | HOTOVO | automatizace + scény | 432 | Automatizace domácnosti
 P13.07 | HOTOVO | dlaždice v mobilu (Domov) | — | Ovládání z telefonu
@@ -155,11 +155,11 @@ P14.12 | ČÁSTEČNĚ | skilly se schvalují; sandbox chybí | 686 | Omezené pr
 P14.13 | HOTOVO | stav naslouchání v notchi + záznam mikrofonu; kamera se nepoužívá | 679 | Indikace mikrofonu/kamery/obrazovky
 P15.01 | ČÁSTEČNĚ | dovednost z provedené mise (Skill Forge) | 146 | Teach Mode
 P15.02 | PLÁNOVÁNO | M7 – Controlled Self-Evolution | — | Self-Healing
-P15.03 | CHYBÍ | — | 030 | Computer Memory
-P15.04 | CHYBÍ | — | 496 | Predictive Assistant
+P15.03 | HOTOVO | paměť počítače: uložené pracovní plochy oken (030), časová osa dne, „kde jsem to viděl“, desktop_links napříč dokumenty, kalendářem, hovory a chaty | 030 | Computer Memory
+P15.04 | HOTOVO | predict_next_steps (Markovův řetězec nad tvými kroky, několik kroků dopředu) + what_next / proaktivní návrhy | 496 | Predictive Assistant
 P15.05 | ČÁSTEČNĚ | MCP servery, schvalované skilly | 600 | Agent Marketplace
 P15.06 | HOTOVO | příkazová paleta + notch + hlas | 757 | Universal Command Bar
-P15.07 | CHYBÍ | — | — | Personal Knowledge Graph
+P15.07 | HOTOVO | knowledge_graph: lidé, e-maily, projekty a jejich vazby (společný výskyt) z dokumentů, kalendáře, hovorů, paměti, seznamů a chatů – obrázek a data | — | Personal Knowledge Graph
 P15.08 | ČÁSTEČNĚ | stejná konverzace na telefonu i PC | 083 | Cross-device Handoff
 P15.09 | ČÁSTEČNĚ | Skill Forge (složené dovednosti) + skilly se schválením | — | AI Skill Builder
 P15.10 | HOTOVO | aiplus.install: místní modely ustoupí hře, slabé baterii a plné RAM; fronta inference s prioritou | 583 | Adaptive Resource Manager

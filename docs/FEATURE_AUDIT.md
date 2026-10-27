@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 565 | 79 |
-| 🟡 ČÁSTEČNĚ | 177 | 59 |
+| ✅ HOTOVO | 565 | 87 |
+| 🟡 ČÁSTEČNĚ | 177 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 19 | 11 |
+| ⬜ CHYBÍ | 19 | 0 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -1260,7 +1260,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P3.09 | Překlady během konverzace | 🟡 ČÁSTEČNĚ | překlad přes AI | 269 |
 | P3.10 | Čtení zpráv a dokumentů | ✅ HOTOVO | čte e-maily, zprávy z telefonu, brífink | 555 |
 | P3.11 | Offline STT a TTS | 🟡 ČÁSTEČNĚ | místní modely volitelně, stahování jen s potvrzením | 270 |
-| P3.12 | Detekce emocí v hlase | ⬜ CHYBÍ | — | — |
+| P3.12 | Detekce emocí v hlase | 🟡 ČÁSTEČNĚ | voice.emotion (vypnuté, dokud ho nezapneš): výška, rozptyl, hlasitost a tempo hlasu proti tvému průměru → napětí / únava / nadšení jako tichá nápověda pro odpověď; voice_tone pro nahrávku – heuristika, neověřeno na skutečných hlasech | — |
 | P4.01 | Analýza screenshotů | ✅ HOTOVO | screenshot + vision model | 280 |
 | P4.02 | Rozpoznávání textu, ikon, tlačítek, oken | ✅ HOTOVO | UI Automation + vision | 274 |
 | P4.03 | Porozumění chybovým hláškám | 🟡 ČÁSTEČNĚ | vision + ui_read | 033 |
@@ -1323,13 +1323,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P9.05 | Pokračování na jiném zařízení | 🟡 ČÁSTEČNĚ | stejná konverzace na PC i mobilu | 083 |
 | P9.06 | Hlasové příkazy z telefonu | ✅ HOTOVO | push-to-talk z mobilu | 141 |
 | P9.07 | Fotografie a soubory se souhlasem | 🟡 ČÁSTEČNĚ | přílohy se souhlasem systému | 142 |
-| P9.08 | Sdílení obrazovky | ⬜ CHYBÍ | — | — |
-| P9.09 | Více počítačů | ⬜ CHYBÍ | — | — |
+| P9.08 | Sdílení obrazovky | ✅ HOTOVO | screen_share + /api/screen/stream: obrazovka PC do spárovaného telefonu (MJPEG), jen po potvrzení a na omezenou dobu, soukromá okna zakrytá, karta „Obrazovka PC“ v aplikaci | — |
+| P9.09 | Více počítačů | ✅ HOTOVO | pc_link / pc_send + /api/remote/command: další počítač s JARVISem (klíč v trezoru), požadavek a odpověď, stav online; nebezpečné kroky potvrzuješ na cílovém PC | — |
 | P9.10 | Bezpečný vzdálený přístup | 🟡 ČÁSTEČNĚ | Tailscale/LAN + token; bez vlastního relay | 407 |
 | P10.01 | Připomínky, budíky, časované úkoly | ✅ HOTOVO | časovače, připomínky, rutiny, JARVIS zavolá | 155 |
 | P10.02 | Pravidelné kontroly PC | ✅ HOTOVO | strážce + report | 508 |
-| P10.03 | Kontrola dokončení stahování a instalací | ⬜ CHYBÍ | — | — |
-| P10.04 | Automatické zálohování | ⬜ CHYBÍ | — | 330 |
+| P10.03 | Kontrola dokončení stahování a instalací | ✅ HOTOVO | hlídání Stažených souborů (rozpracovaný .crdownload/.part → hotový soubor se stálou velikostí) a instalátorů (setup/installer/msiexec /i/winget) → upozornění; vypínatelné | — |
+| P10.04 | Automatické zálohování | ✅ HOTOVO | auto_backup: denní plánovaná přírůstková záloha s ověřením otiskem, upozornění a připomenutí, když disk chybí; výpis, ruční spuštění, zrušení | 330 |
 | P10.05 | Sledování běžících projektů | 🟡 ČÁSTEČNĚ | stav misí a Claude Code relací | — |
 | P10.06 | Upozornění na důležité zprávy | ✅ HOTOVO | nové e-maily, VIP, zprávy z telefonu | 542 |
 | P10.07 | Ranní a večerní přehled | 🟡 ČÁSTEČNĚ | ranní brífink; večerní přehled chybí | 510 |
@@ -1349,18 +1349,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P11.11 | Hledání v osobních souborech | 🟡 ČÁSTEČNĚ | find_file podle názvu | 316 |
 | P11.12 | Organizace úkolů a projektů | 🟡 ČÁSTEČNĚ | seznamy, kalendář, úkoly | 785 |
 | P12.01 | Ovládání hudby | ✅ HOTOVO | media_control, YouTube | — |
-| P12.02 | Hudební vizualizace v notchi | ⬜ CHYBÍ | — | — |
+| P12.02 | Hudební vizualizace v notchi | 🟡 ČÁSTEČNĚ | pruhy v notchi podle špičkové hlasitosti výstupu (Windows meter přes pycaw), jen když hraje hudba, vypínatelné – na skutečném PC zatím neověřeno | — |
 | P12.03 | Animace postavičky podle hudby | 🟡 ČÁSTEČNĚ | tanec při hudbě | 244 |
 | P12.04 | Game Mode | 🟡 ČÁSTEČNĚ | Herní režim (protokol) + automatizace při otevření hry | 034 |
 | P12.05 | Monitoring FPS, CPU, GPU, teplot | 🟡 ČÁSTEČNĚ | CPU/RAM/GPU; FPS a teploty chybí | 125, 297 |
 | P12.06 | Detekce spuštěné hry | ✅ HOTOVO | automatizace app_open | 148 |
 | P12.07 | Pomoc s herními nastaveními | ✅ HOTOVO | game_settings: předvolba, upscaling, limit FPS a tipy podle grafiky, RAM a monitoru | — |
-| P12.08 | Správa screenshotů a klipů | ⬜ CHYBÍ | — | — |
+| P12.08 | Správa screenshotů a klipů | ✅ HOTOVO | screenshots: snímky a klipy ze všech obvyklých míst, velikost, duplicity, staré; roztřídění po měsících (klipy zvlášť), duplicity do koše | — |
 | P12.09 | Spouštění her a launcherů | ✅ HOTOVO | open_app | — |
 | P13.01 | Světla a zásuvky | ✅ HOTOVO | home_control (home.py) | 423 |
 | P13.02 | Integrace s Home Assistantem | ✅ HOTOVO | Home Assistant REST | 434 |
 | P13.03 | Televize a reproduktory | 🟡 ČÁSTEČNĚ | media_player přes HA | 429 |
-| P13.04 | Bluetooth zařízení | ⬜ CHYBÍ | — | — |
+| P13.04 | Bluetooth zařízení | 🟡 ČÁSTEČNĚ | bluetooth_devices: spárovaná zařízení, připojení a baterie (PowerShell, jen čtení), varování před vybitím, otevření nastavení; samotné připojování přes nastavení Windows | — |
 | P13.05 | MQTT | 🔌 VYŽADUJE_INTEGRACI | přes Home Assistant (MQTT integrace HA) | — |
 | P13.06 | Automatizace domácnosti | ✅ HOTOVO | automatizace + scény | 432 |
 | P13.07 | Ovládání z telefonu | ✅ HOTOVO | dlaždice v mobilu (Domov) | — |
@@ -1380,11 +1380,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P14.13 | Indikace mikrofonu/kamery/obrazovky | ✅ HOTOVO | stav naslouchání v notchi + záznam mikrofonu; kamera se nepoužívá | 679 |
 | P15.01 | Teach Mode | 🟡 ČÁSTEČNĚ | dovednost z provedené mise (Skill Forge) | 146 |
 | P15.02 | Self-Healing | 🗓️ PLÁNOVÁNO | M7 – Controlled Self-Evolution | — |
-| P15.03 | Computer Memory | ⬜ CHYBÍ | — | 030 |
-| P15.04 | Predictive Assistant | ⬜ CHYBÍ | — | 496 |
+| P15.03 | Computer Memory | ✅ HOTOVO | paměť počítače: uložené pracovní plochy oken (030), časová osa dne, „kde jsem to viděl“, desktop_links napříč dokumenty, kalendářem, hovory a chaty | 030 |
+| P15.04 | Predictive Assistant | ✅ HOTOVO | predict_next_steps (Markovův řetězec nad tvými kroky, několik kroků dopředu) + what_next / proaktivní návrhy | 496 |
 | P15.05 | Agent Marketplace | 🟡 ČÁSTEČNĚ | MCP servery, schvalované skilly | 600 |
 | P15.06 | Universal Command Bar | ✅ HOTOVO | příkazová paleta + notch + hlas | 757 |
-| P15.07 | Personal Knowledge Graph | ⬜ CHYBÍ | — | — |
+| P15.07 | Personal Knowledge Graph | ✅ HOTOVO | knowledge_graph: lidé, e-maily, projekty a jejich vazby (společný výskyt) z dokumentů, kalendáře, hovorů, paměti, seznamů a chatů – obrázek a data | — |
 | P15.08 | Cross-device Handoff | 🟡 ČÁSTEČNĚ | stejná konverzace na telefonu i PC | 083 |
 | P15.09 | AI Skill Builder | 🟡 ČÁSTEČNĚ | Skill Forge (složené dovednosti) + skilly se schválením | — |
 | P15.10 | Adaptive Resource Manager | ✅ HOTOVO | aiplus.install: místní modely ustoupí hře, slabé baterii a plné RAM; fronta inference s prioritou | 583 |

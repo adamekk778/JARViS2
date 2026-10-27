@@ -96,6 +96,10 @@ class Runtime:
         from . import aiplus
 
         aiplus.install(self)                   # OMEGA 577 / 584 / P15.10: local queue, answer cache, adaptive local models
+        from .sysplus import ScreenShare
+
+        self.screen_share = ScreenShare(self)  # OMEGA P9.08: the screen to the phone, only while switched on
+        self.voice_mood: dict | None = None    # OMEGA P3.12: last read of the tone of voice (when enabled)
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
         from .knowledge import Knowledge
@@ -129,6 +133,10 @@ class Runtime:
         from . import privacy
 
         self._privacy_task = asyncio.get_running_loop().create_task(privacy.watch(self))
+        from . import sysplus
+
+        self._sys_tasks = [asyncio.get_running_loop().create_task(sysplus.watch_loop(self)),    # OMEGA P10.03
+                           asyncio.get_running_loop().create_task(sysplus.music_loop(self))]    # OMEGA P12.02
         try:
             from .updater import Updater
 
@@ -175,6 +183,10 @@ class Runtime:
         self.missions.stop()
         if getattr(self, "_privacy_task", None):
             self._privacy_task.cancel()
+        for t in getattr(self, "_sys_tasks", []):
+            t.cancel()
+        if getattr(self, "screen_share", None):
+            self.screen_share.stop()
         if self.scheduler:
             self.scheduler.stop()
         if self.mcp:

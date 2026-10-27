@@ -91,7 +91,7 @@ ALLOWED = {"Get-CimInstance", "Get-WinEvent", "Get-ChildItem", "Get-ItemProperty
            "Get-MpThreatDetection", "Get-NetFirewallProfile", "Get-NetTCPConnection", "Get-Process", "Get-AuthenticodeSignature",
            "Get-ScheduledTask", "Get-HotFix", "Get-NetAdapter", "Get-NetIPConfiguration", "Get-ComputerRestorePoint",
            "Get-Date", "Select-Object", "Where-Object", "Sort-Object", "Group-Object", "ForEach-Object", "ConvertTo-Json",
-           "Test-Path"}
+           "Test-Path", "Get-PnpDeviceProperty"}
 
 
 def cmdlets(script: str) -> set[str]:

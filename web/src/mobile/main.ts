@@ -122,6 +122,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     home: homeView(c),
     more: moreView(c, ep, pairing),
   };
+  views.more.prepend(screenCard(c, ep));
   const tabs = h("nav", { class: "tabs" },
     ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
       .map(([k, ic, label]) => h("button", { type: "button", "data-tab": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
@@ -451,4 +452,22 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     pcFilesCard(c),
     placesCard(c),
     h("div", { class: "card" }, h("h2", {}, "O aplikaci"), h("p", { class: "help" }, "JARVIS 2 · nastavení najdeš na PC v okně JARVIS.")));
+}
+
+
+/** OMEGA P9.08: the PC screen, live, while sharing is switched on on the PC (it asks there first). */
+function screenCard(c: JarvisClient, ep: { base: string; token: string }): HTMLElement {
+  const img = h("img", { class: "m-screen", alt: "Obrazovka PC" }) as HTMLImageElement;
+  const note = h("p", { class: "help" }, "Sdílení musíš potvrdit a po čase se samo vypne.");
+  const btn = h("button", { class: "btn primary", type: "button" }, icon("monitor"), "Požádat o obrazovku") as HTMLButtonElement;
+  let on = false;
+  const paint = () => {
+    img.hidden = !on;
+    btn.replaceChildren(icon(on ? "stop-circle" : "monitor"), on ? "Přestat sdílet" : "Požádat o obrazovku");
+    img.src = on ? `${ep.base}/api/screen/stream?token=${encodeURIComponent(ep.token)}&t=${Date.now()}` : "";
+  };
+  btn.onclick = () => c.send("user_text", { text: on ? "přestaň sdílet obrazovku" : "sdílej obrazovku na telefon na 15 minut", attachments: [] });
+  c.on("screen_share", (m) => { on = !!m.active; note.textContent = on ? "Vidíš obrazovku PC. Soukromá okna jsou zakrytá." : "Sdílení musíš potvrdit a po čase se samo vypne."; paint(); });
+  paint();
+  return h("div", { class: "card" }, h("h2", {}, "Obrazovka PC"), img, note, h("div", { class: "btn-row" }, btn));
 }

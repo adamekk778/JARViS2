@@ -249,7 +249,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
         range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
-        sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“.")),
+        sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“."),
+        sw("voice.emotion", "Poznat náladu z tónu hlasu", "Podle výšky, tempa a síly hlasu (ne slov) pozná únavu nebo spěch a přizpůsobí odpovědi. Ukládá jen pár čísel, žádný zvuk.")),
       card("Čistý zvuk", null,
         sw("voice.noise_suppression", "Filtr hluku", "Před rozpoznáním odfiltruje šum místnosti (ventilátor, klimatizace) podle vteřiny před „Hey Jarvis“."),
         sw("voice.auto_gain", "Automatické zesílení", "Tichý nebo vzdálený hlas (mikrofon přes místnost) vyrovná na stejnou hlasitost."),
@@ -289,6 +290,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       }));
       return [
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku"),
+          sw("notch.music_viz", "Pruhy podle hudby", "Když hraje hudba, na okraji notche se hýbou pruhy."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
           select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],
             "„Jen kliknutím“ = notch se při přejetí myší jen probudí, panel otevře až klik. Hodí se proti náhodnému otevření."),

@@ -56,6 +56,7 @@ class Brain(BaseModel):
 
 class Voice(BaseModel):
     enabled: bool = True
+    emotion: bool = False          # OMEGA P3.12: read the tone of voice (tired / tense / lively) – off unless you turn it on
     wake_word: bool = True
     wake_word_model: str = "hey_jarvis"
     wake_threshold: float = 0.5
@@ -83,6 +84,7 @@ class Voice(BaseModel):
 
 class Notch(BaseModel):
     enabled: bool = True
+    music_viz: bool = True         # OMEGA P12.02: bars moving with the music while something plays
     monitor: int = 0
     offset_x: int = 0
     width: int = 200
@@ -156,9 +158,16 @@ class Webhook(BaseModel):
     enabled: bool = True
 
 
+class Peer(BaseModel):
+    """OMEGA P9.09: another PC with JARVIS (its pairing key lives in the OS secure storage)."""
+    name: str
+    url: str
+
+
 class Integrations(BaseModel):
     mcp: list[McpServer] = Field(default_factory=list)
     webhooks: list[Webhook] = Field(default_factory=list)
+    peers: list[Peer] = Field(default_factory=list)
     image_provider: str = "pollinations"
 
 
@@ -316,6 +325,7 @@ class Stark(BaseModel):
 class Powers(BaseModel):
     """3.3 everyday powers. Everything here stays on this PC."""
     clipboard_history: bool = True   # the last 30 copied texts, in memory only (never written to disk)
+    download_watch: bool = True      # OMEGA P10.03: "stahování dokončeno" / "instalace dokončena"
     screen_time: bool = True         # which app is in front, minutes per day (30 days)
     break_minutes: int = 90          # remind a pause after this long at the PC without a break; 0 = off
 
@@ -475,7 +485,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "general.user_name", "general.address_as", "general.language", "general.personality", "general.city",
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
-    "voice.speak_mode", "voice.stt_language", "voice.followup",
+    "voice.speak_mode", "voice.stt_language", "voice.followup", "notch.music_viz", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",

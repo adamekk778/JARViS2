@@ -298,6 +298,13 @@ class VoiceLoop:
             bus.publish_threadsafe("state", state="idle")
             return
         bus.publish_threadsafe("transcript", text=text, final=True)
+        if getattr(self.rt.cfg.voice, "emotion", False) and text.strip():
+            try:                                       # OMEGA P3.12: tone of voice vs the user's own usual voice
+                from ..sysplus import update_voice_mood
+
+                update_voice_mood(self.rt, np.frombuffer(bytes(audio), dtype=np.int16), SR)
+            except Exception as e:
+                log.debug("voice mood: %s", e)
         if not text.strip():
             self.followup_active = False
             bus.publish_threadsafe("state", state="idle")

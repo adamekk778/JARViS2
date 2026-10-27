@@ -213,6 +213,30 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
                                           request.headers.get("x-hub-signature-256", "") or request.headers.get("x-signature", ""))
         return JSONResponse({"ok": code == 200, "detail": msg}, status_code=code)
 
+    @app.get("/api/screen/stream")
+    async def screen_stream(request: Request):
+        """OMEGA P9.08: the PC screen for the paired phone – only while sharing is switched on (on the PC)."""
+        require_auth(request)
+        if not rt.screen_share.active:
+            raise HTTPException(403, "Sdílení obrazovky je vypnuté – zapni ho na PC („sdílej obrazovku na telefon“).")
+        from fastapi.responses import StreamingResponse
+
+        return StreamingResponse(rt.screen_share.stream(), media_type="multipart/x-mixed-replace; boundary=frame",
+                                 headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/remote/command")
+    async def remote_command(request: Request):
+        """OMEGA P9.09: a request from another paired PC with JARVIS. Same rules as from the phone: dangerous steps are
+        confirmed here, on this PC."""
+        require_auth(request)
+        body = await request.json()
+        text = str(body.get("text", "")).strip()[:2000]
+        if not text:
+            raise HTTPException(400, "Prázdný příkaz")
+        who = str(body.get("from", "") or "jiný počítač")[:40]
+        answer = await rt.agent.handle(text, [], "remote_pc", extra_system=f"Požadavek přišel z dalšího počítače uživatele ({who}).")
+        return {"ok": True, "answer": answer}
+
     @app.get("/api/sounds/{name}")
     async def custom_sound(name: str, request: Request):
         """Your own interface sounds from the sounds folder (only names JARVIS knows)."""

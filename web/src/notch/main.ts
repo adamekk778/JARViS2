@@ -113,7 +113,10 @@ const alertTitle = h("strong");
 const alertBody = h("span");
 const alertBox = h("div", { class: "n-alert-text" }, alertTitle, alertBody);
 const radialBox = h("div", { class: "n-radial", role: "menu", "aria-label": "Akce" });
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress);
+// OMEGA P12.02: little bars at the right edge of the closed notch that move with the music (only while something plays)
+const musicBars = h("div", { class: "n-music", "aria-hidden": "true" }, ...Array.from({ length: 7 }, () => h("i")));
+let musicOff = 0;
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -627,6 +630,14 @@ client.on("settings_changed", (m) => {
 });
 client.on("mood", onMood);
 client.on("level", (m) => blob.setLevel(m.rms || 0));
+client.on("music_level", (m) => {
+  const b: number[] = Array.isArray(m.bars) ? m.bars : [];
+  const on = b.some((v) => v > 0.05);
+  musicBars.classList.toggle("on", on);
+  [...musicBars.children].forEach((el, i) => { (el as HTMLElement).style.transform = `scaleY(${Math.max(0.08, b[i] || 0)})`; });
+  window.clearTimeout(musicOff);
+  if (on) musicOff = window.setTimeout(() => musicBars.classList.remove("on"), 1500);
+});
 client.on("transcript", (m) => { bubbleTranscript.textContent = m.text ? `„${m.text}“` : ""; renderLive(); });
 client.on("user_message", (m) => { if (m.source !== "notch") bubbleTranscript.textContent = m.text ? `„${m.text}“` : ""; liveText = ""; renderLive(); });
 client.on("assistant_delta", (m) => { liveText += m.text; renderLive(); });
