@@ -82,13 +82,17 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket):
+        from .. import mobileplus
+
         local = is_local(ws)
-        if not local and not _token_ok(rt, ws.query_params.get("token")):
+        token = ws.query_params.get("token")
+        guest = None if local or _token_ok(rt, token) else mobileplus.guest_for(rt, token)
+        if not local and not _token_ok(rt, token) and not guest:
             await ws.accept()  # accept first so the client really sees code 4401 (→ "pair again")
             await ws.close(code=4401)
             return
         await ws.accept()
-        await Connection(ws, rt, local).run()
+        await Connection(ws, rt, local, guest).run()
 
     @app.post("/api/upload")
     async def upload(request: Request, file: UploadFile):
@@ -119,6 +123,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         if not p:
             raise HTTPException(404, "Bez náhledu")
         return FileResponse(p)
+
+    @app.get("/api/pc_file")
+    async def pc_file(request: Request, root: str, path: str):
+        """OMEGA 415: a file from a folder shared with the phone (read-only; nothing outside the shared folders)."""
+        from .. import mobileplus
+
+        require_auth(request)
+        try:
+            f = mobileplus.shared_file(rt, root, path)
+        except (PermissionError, FileNotFoundError) as e:
+            raise HTTPException(404, str(e)) from e
+        return FileResponse(f, filename=f.name)
 
     @app.get("/api/pairing")
     async def pairing(request: Request):

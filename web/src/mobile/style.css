@@ -143,3 +143,16 @@ body.mobile { background-attachment: fixed; }
 .m-item { width: 100%; display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; border: 0; background: rgb(255 255 255 / .04); color: inherit; font: inherit; font-size: 16px; text-align: left; }
 .m-item i { font-size: 22px; color: #34d399; }
 .m-item.done { opacity: .4; text-decoration: line-through; transition: opacity .25s; }
+
+/* 3.10: files from the PC, places, guest remote */
+.m-files { display: grid; gap: 4px; margin: 8px 0; }
+.m-file { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 0;
+  background: rgb(255 255 255 / .04); color: inherit; font: inherit; text-align: left; text-decoration: none; }
+.m-file i { font-size: 20px; color: var(--accent); }
+.m-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-file em { font-style: normal; font-size: 12px; opacity: .6; }
+.m-file.up { background: transparent; }
+.m-file:disabled { opacity: .45; }
+.m-places { display: grid; gap: 2px; margin: 6px 0; }
+.m-guest .m-view { display: grid; gap: 14px; padding: 16px; }
+html[data-lowpower="1"] * { animation-duration: 0s !important; transition-duration: 0s !important; }

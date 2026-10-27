@@ -9,6 +9,8 @@ import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing }
 import { native, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
+import { confirmCommand, guestView, parseCommandLink, pcFilesCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
+import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -76,6 +78,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   client?.close();
   const c = new JarvisClient(ep, "mobile", native.deviceName());
   client = c;
+  let waiting = loadOutbox().length;
   const chat = new ChatView(c, { compact: true, placeholder: "Napiš JARVISovi…" });
 
   const face = new Blob({ size: 34 });
@@ -142,19 +145,70 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     });
   }
 
+  function paintStatus() {
+    const s = c.status;
+    status.textContent = (s === "open" ? "připojeno k PC" : s === "connecting" ? "připojuji…" : "odpojeno, zkouším znovu…")
+      + (waiting ? ` · ${waiting} čeká na odeslání` : "");
+  }
   c.onStatus((s) => {
-    status.textContent = s === "open" ? "připojeno k PC" : s === "connecting" ? "připojuji…" : "odpojeno, zkouším znovu…";
+    paintStatus();
     if (s !== "open") face.setMood("offline");
   });
+  // OMEGA 725: what is written or said offline waits on the phone (status line shows how much)
+  persistentOutbox(c, (n) => {
+    if (n > waiting) toast("PC teď není dostupné – pošlu to, až se ozve.", "info", 2500);
+    waiting = n;
+    paintStatus();
+  });
+  photoRequests(c, asksBox, () => show("chat"));
+
+  // OMEGA 136 / 722: the home-screen widget follows what JARVIS does, the mission and the pins
+  const MOOD_TEXT: Record<string, string> = { idle: "Připraven", listening: "Poslouchá…", thinking: "Přemýšlí…", working: "Pracuje…",
+    speaking: "Mluví…", waiting: "Čeká na potvrzení", error: "Něco se nepovedlo", offline: "PC je nedostupné", sleeping: "Odpočívá",
+    success: "Hotovo", joy: "Připraven", notify: "Má pro tebe zprávu", focus: "Režim soustředění", dancing: "Hraje hudba", limit: "Limit AI" };
+  const widget = { status: "", task: "", pins: "" };
+  let widgetTimer = 0;
+  const pushWidget = (o: Partial<typeof widget>) => {
+    Object.assign(widget, o);
+    window.clearTimeout(widgetTimer);
+    widgetTimer = window.setTimeout(() => native.widget(widget), 800);
+  };
+  const pinsText = (items: any[]) => (items || []).slice(0, 3).map((p: any) => `• ${p.text}`).join("\n");
+  const taskText = (t: any) => (t && ["running", "paused", "waiting"].includes(t.status) ? `Úkol: ${t.goal || t.title || ""}` : "");
+  c.on("pins", (m) => pushWidget({ pins: pinsText(m.items) }));
+  c.on("task_update", (m) => pushWidget({ task: taskText(m.task) }));
+  c.onStatus((s) => { if (s !== "open") pushWidget({ status: MOOD_TEXT.offline }); });
+
+  // OMEGA 734: on a low battery the app goes quiet – no animations, no haptics, no live audio level from the PC
+  native.onBattery((low) => {
+    native.lowPower = low;
+    document.documentElement.dataset.lowpower = low ? "1" : "";
+    if (low) document.documentElement.dataset.motion = "reduced";
+    c.send("client_state", { low_power: low });
+  });
+
+  // jarvis:// links – the widget, app shortcuts and command QR codes (a command is always shown before it is sent)
+  native.onLink((url) => {
+    const cmd = parseCommandLink(url);
+    if (cmd) { show("chat"); confirmCommand(c, cmd); return; }
+    const what = url.replace(/^jarvis:\/\/open\/?/, "");
+    if (what === "talk") { show("control"); toast("Podrž mikrofon a mluv", "info", 2500); }
+    else if (what === "chat") { show("chat"); chat.focus(); }
+    else if (what === "photo") { show("control"); sendPhoto(c, "shelf"); }
+    else if (what === "scan") scanCommand(c);
+  });
   c.on("welcome", (m) => {
+    if (m.guest) { app.replaceChildren(guestView(c, m.guest)); return; }     // OMEGA 727: a temporary guest pairing
+    pushWidget({ status: MOOD_TEXT[m.mood?.mood] || "Připraven", task: taskText(m.task), pins: pinsText(m.pins) });
     asks = m.claude_pending || [];
     paintAsks();
     applyAppearance(m.settings);
     face.setMood(m.mood?.mood || "idle", m.mood || {});
     if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); face.setCharacter(m.settings.character); }
   });
-  c.on("settings_changed", (m) => applyAppearance(m.settings));
+  c.on("settings_changed", (m) => { applyAppearance(m.settings); if (native.lowPower) document.documentElement.dataset.motion = "reduced"; });
   c.on("mood", (m) => {
+    pushWidget({ status: MOOD_TEXT[m.mood] || "Připraven" });
     face.setMood(m.mood, m);
     stop.hidden = !["listening", "thinking", "working", "speaking", "waiting"].includes(m.mood);
   });
@@ -231,11 +285,18 @@ function controlView(c: JarvisClient): HTMLElement {
     ptt.classList.remove("rec");
     const blob = await rec.stop();
     if (!blob || blob.size < 1500) return;
+    const name = `hlas.${blob.type.includes("mp4") ? "m4a" : "webm"}`;
+    if (c.status !== "open") {          // OMEGA 725: no PC right now – keep it on the phone and send it later
+      try { await keepVoice(blob, name); toast("PC teď není dostupné – nahrávku pošlu, až se ozve.", "info", 2500); } catch { toast("Nahrávku se nepodařilo uložit", "error"); }
+      return;
+    }
     try {
-      const att = await c.upload(blob, `hlas.${blob.type.includes("mp4") ? "m4a" : "webm"}`);
+      const att = await c.upload(blob, name);
       c.send("voice_upload", { attachment_id: att.id });
       toast("Odesláno", "ok", 1200);
-    } catch (e: any) { toast(e.message, "error"); }
+    } catch (e: any) {
+      try { await keepVoice(blob, name); toast("Nepodařilo se odeslat – zkusím to znovu, až bude PC dostupné.", "info", 2500); } catch { toast(e.message, "error"); }
+    }
   };
   ptt.addEventListener("pointerdown", start);
   ptt.addEventListener("pointerup", stop);
@@ -260,6 +321,7 @@ function controlView(c: JarvisClient): HTMLElement {
 
   return h("section", { class: "m-view m-control", hidden: true },
     ptt,
+    photoCard(c),
     h("div", { class: "card" }, h("h2", {}, "Protokoly"), protoBox),
     h("div", { class: "card" }, h("h2", {}, "Média"),
       h("div", { class: "media-row" },
@@ -384,6 +446,9 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Notifikace z PC"), h("span", {}, "Časovače, připomínky, odpovědi na pozadí")),
         h("label", { class: "switch" }, notif, h("span"))),
       phoneCard(c),
-      h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche.")),
+      h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
+        + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
+    pcFilesCard(c),
+    placesCard(c),
     h("div", { class: "card" }, h("h2", {}, "O aplikaci"), h("p", { class: "help" }, "JARVIS 2 · nastavení najdeš na PC v okně JARVIS.")));
 }

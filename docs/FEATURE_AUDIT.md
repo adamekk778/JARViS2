@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 467 | 74 |
-| 🟡 ČÁSTEČNĚ | 168 | 59 |
+| ✅ HOTOVO | 480 | 74 |
+| 🟡 ČÁSTEČNĚ | 171 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 126 | 16 |
+| ⬜ CHYBÍ | 110 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -241,11 +241,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 13. Mobile Super Assistant
 
-✅ 4 · 🟡 5 · ⬜ 1
+✅ 5 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 136 | Widgety mobilní domovské obrazovky. | ⬜ CHYBÍ | — |
+| 136 | Widgety mobilní domovské obrazovky. | ✅ HOTOVO | widget na plochu telefonu: co JARVIS dělá, aktuální úkol, připnuté úkoly, tlačítka Mluvit a Napsat |
 | 137 | Rychlé akce z notifikací. | 🟡 ČÁSTEČNĚ | akce v notifikacích hovoru JARVISe (Přijmout/Odmítnout/Odpovědět) |
 | 138 | Schránka mezi zařízeními. | 🟡 ČÁSTEČNĚ | send_to_phone, clipboard_set z telefonu |
 | 139 | Spouštění PC úkolů na dálku. | ✅ HOTOVO | Ovládání v mobilu: protokoly, média, aplikace, napájení (web/src/mobile) |
@@ -651,7 +651,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 33. Multi-Device Ecosystem
 
-✅ 3 · 🟡 6 · ⬜ 6
+✅ 6 · 🟡 7 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -662,13 +662,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 410 | Device Presence Detection — dostupnost zařízení. | ✅ HOTOVO | přítomnost telefonu (phone.link_alive) |
 | 411 | Remote Build Monitor — průběh buildu na PC. | 🟡 ČÁSTEČNĚ | průběh úkolu v mobilu |
 | 412 | Notification Routing — distribuce oznámení. | ✅ HOTOVO | směrování oznámení PC/telefon (runtime.notify target) |
-| 413 | Phone Camera as Input — kamera telefonu. | ⬜ CHYBÍ | — |
+| 413 | Phone Camera as Input — kamera telefonu. | ✅ HOTOVO | kamera telefonu jako vstup: „Fotka na PC“ přistane v polici notche |
 | 414 | Audio Device Handoff — přenos hovoru. | ⬜ CHYBÍ | — |
-| 415 | Cross-Device File Browser — sdílené soubory. | ⬜ CHYBÍ | — |
+| 415 | Cross-Device File Browser — sdílené soubory. | ✅ HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně |
 | 416 | Remote Wake Support — Wake-on-LAN. | ✅ HOTOVO | wake_device (Wake-on-LAN) |
 | 417 | Device Battery Dashboard — baterie. | 🟡 ČÁSTEČNĚ | baterie PC + telefonu (phone_battery) |
-| 418 | Offline Device Sync — offline synchronizace. | ⬜ CHYBÍ | — |
-| 419 | Device-Specific Permissions — povolení zařízení. | ⬜ CHYBÍ | — |
+| 418 | Offline Device Sync — offline synchronizace. | 🟡 ČÁSTEČNĚ | offline fronta zpráv, seznamů a připnutých úkolů; plná obousměrná synchronizace dat ne |
+| 419 | Device-Specific Permissions — povolení zařízení. | ✅ HOTOVO | oprávnění podle zařízení: co smí spárovaný telefon (zvlášť od PC), host jen hudbu |
 | 420 | Lost Device Protection — ochrana při ztrátě. | 🟡 ČÁSTEČNĚ | najdi můj telefon (FindPhone.java) |
 
 ## 34. Smart Home
@@ -1113,24 +1113,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 54. Next-Gen Mobile
 
-🟡 3 · ⬜ 12
+✅ 9 · 🟡 5 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 721 | Notification Quick Actions — akce z notifikací. | 🟡 ČÁSTEČNĚ | akce v notifikacích |
-| 722 | Live Mission Widgets — živé widgety. | ⬜ CHYBÍ | — |
-| 723 | Camera-to-Task — úkol z fotografie. | ⬜ CHYBÍ | — |
-| 724 | Mobile Share Sheet Integration — nabídka Sdílet. | ⬜ CHYBÍ | — |
-| 725 | Offline Voice Command Queue — offline hlasové příkazy. | ⬜ CHYBÍ | — |
-| 726 | Clipboard Sanitizer — bezpečné sdílení textu. | ⬜ CHYBÍ | — |
-| 727 | Temporary Device Pairing — krátkodobé párování. | ⬜ CHYBÍ | — |
-| 728 | Location-Based Routines — dobrovolné lokální rutiny. | ⬜ CHYBÍ | — |
-| 729 | Remote Camera Consent Controls — přístup ke kameře. | ⬜ CHYBÍ | — |
-| 730 | Mobile Shortcut Bridge — mobilní systémové zkratky. | ⬜ CHYBÍ | — |
-| 731 | QR Command Launcher — akce z QR kódu. | ⬜ CHYBÍ | — |
+| 722 | Live Mission Widgets — živé widgety. | 🟡 ČÁSTEČNĚ | widget ukazuje běžící misi a stav; obnovuje se, dokud je aplikace spojená s PC (ne push na pozadí) |
+| 723 | Camera-to-Task — úkol z fotografie. | ✅ HOTOVO | „Fotka → úkoly“: vyfotíš papír / tabuli, JARVIS vypíše úkoly s termíny a připne je do notche (text z fotky = data, ne pokyny) |
+| 724 | Mobile Share Sheet Integration — nabídka Sdílet. | ✅ HOTOVO | Sdílet → JARVIS z jakékoli aplikace (odkaz se otevře na PC, soubor do police notche) |
+| 725 | Offline Voice Command Queue — offline hlasové příkazy. | ✅ HOTOVO | bez připojení: zprávy a hlasové nahrávky čekají v telefonu (i po zavření aplikace) a odešlou se, až se PC ozve; JARVIS ví, kdy byly řečeny |
+| 726 | Clipboard Sanitizer — bezpečné sdílení textu. | ✅ HOTOVO | čištění textu pro sdílení: sledovací parametry z odkazů pryč, hesla a klíče zamaskované – i u notifikací posílaných na telefon |
+| 727 | Temporary Device Pairing — krátkodobé párování. | ✅ HOTOVO | dočasné párování hosta: QR, který po 1–72 h sám vyprší; host ovládá jen hudbu a hlasitost a nevidí chat, soubory ani nastavení |
+| 728 | Location-Based Routines — dobrovolné lokální rutiny. | 🟡 ČÁSTEČNĚ | místa pro automatizace „Když přijdu domů“: poloha se vyhodnocuje jen v telefonu, PC dostane jen název místa; funguje, když je aplikace otevřená |
+| 729 | Remote Camera Consent Controls — přístup ke kameře. | ✅ HOTOVO | PC může o fotku jen požádat – telefon ukáže důvod a kamera se zapne až po klepnutí na Vyfotit |
+| 730 | Mobile Shortcut Bridge — mobilní systémové zkratky. | ✅ HOTOVO | zkratky ikony aplikace: Mluvit, Napsat, Fotka na PC, Skenovat příkaz |
+| 731 | QR Command Launcher — akce z QR kódu. | ✅ HOTOVO | QR kódy s příkazy (vytisknout na PC); po naskenování se příkaz vždy ukáže a odešle až po potvrzení |
 | 732 | Link Handoff — předání odkazu. | 🟡 ČÁSTEČNĚ | otevření odkazu na PC z mobilu |
 | 733 | Proximity Pairing Check — proximity Bluetooth ověření. | ⬜ CHYBÍ | — |
-| 734 | Battery-Aware Synchronization — úspora energie. | ⬜ CHYBÍ | — |
+| 734 | Battery-Aware Synchronization — úspora energie. | ✅ HOTOVO | slabá baterie (pod 20 %, nenabíjí se): bez animací a vibrací, PC neposílá průběžnou hlasitost mikrofonu |
 | 735 | Remote Mission Approval — schválení z telefonu. | 🟡 ČÁSTEČNĚ | schvalování Claude Code z telefonu s otiskem |
 
 ## 55. Mochi Reactive Companion

@@ -193,6 +193,12 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
         return ToolResult(False, "Je zapnutý Režim jen pro čtení – nic neměním (vypne se v Nastavení → Oprávnění).")
     if off:
         return ToolResult(False, f"Oprávnění „{LABELS[off]}“ je vypnuté (Nastavení → Oprávnění).")
+    from ..mobileplus import device_blocks
+    from ..permissions import required
+
+    dev = device_blocks(required(spec))
+    if dev:                                       # OMEGA 419: switched off for requests from the phone
+        return ToolResult(False, f"Z telefonu je „{LABELS.get(dev, dev)}“ zakázané (na PC: Nastavení → Telefon). Udělej to přímo na počítači.")
     allow = getattr(getattr(cfg, "limits", None), "app_allowlist", None)
     if allow and perm_of(spec) == "input":         # OMEGA 682: mouse/keyboard only in the allowed apps
         try:

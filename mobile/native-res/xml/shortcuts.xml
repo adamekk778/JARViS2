@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OMEGA 730: long-press the app icon → straight to talking, writing, a photo for the PC or the controls -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="talk" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_talk" android:shortcutLongLabel="@string/sc_talk">
+        <intent android:action="android.intent.action.VIEW" android:data="jarvis://open/talk"
+            android:targetPackage="cz.adamekk.jarvis" android:targetClass="cz.adamekk.jarvis.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="chat" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_chat" android:shortcutLongLabel="@string/sc_chat">
+        <intent android:action="android.intent.action.VIEW" android:data="jarvis://open/chat"
+            android:targetPackage="cz.adamekk.jarvis" android:targetClass="cz.adamekk.jarvis.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="photo" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_photo" android:shortcutLongLabel="@string/sc_photo">
+        <intent android:action="android.intent.action.VIEW" android:data="jarvis://open/photo"
+            android:targetPackage="cz.adamekk.jarvis" android:targetClass="cz.adamekk.jarvis.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="scan" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_scan" android:shortcutLongLabel="@string/sc_scan">
+        <intent android:action="android.intent.action.VIEW" android:data="jarvis://open/scan"
+            android:targetPackage="cz.adamekk.jarvis" android:targetClass="cz.adamekk.jarvis.MainActivity" />
+    </shortcut>
+</shortcuts>

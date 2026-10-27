@@ -874,3 +874,21 @@
 756 | HOTOVO | rozložení Stark HUD: plné / minimální / soustředění / prezentace (nic osobního), Alt+1–4, pamatuje si
 758 | HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat)
 765 | ČÁSTEČNĚ | chování notche: otevírání, schovávání, zpoždění, prodleva, vlastní akce; plnohodnotný editor chování všech prvků ne
+
+# Vlna 34 – telefon a více zařízení (mobileplus.py, mobile/devices.ts, mobile/offline.ts, mobile/native/JarvisWidget.java, tests/test_wave34.py)
+136 | HOTOVO | widget na plochu telefonu: co JARVIS dělá, aktuální úkol, připnuté úkoly, tlačítka Mluvit a Napsat
+722 | ČÁSTEČNĚ | widget ukazuje běžící misi a stav; obnovuje se, dokud je aplikace spojená s PC (ne push na pozadí)
+723 | HOTOVO | „Fotka → úkoly“: vyfotíš papír / tabuli, JARVIS vypíše úkoly s termíny a připne je do notche (text z fotky = data, ne pokyny)
+724 | HOTOVO | Sdílet → JARVIS z jakékoli aplikace (odkaz se otevře na PC, soubor do police notche)
+725 | HOTOVO | bez připojení: zprávy a hlasové nahrávky čekají v telefonu (i po zavření aplikace) a odešlou se, až se PC ozve; JARVIS ví, kdy byly řečeny
+726 | HOTOVO | čištění textu pro sdílení: sledovací parametry z odkazů pryč, hesla a klíče zamaskované – i u notifikací posílaných na telefon
+727 | HOTOVO | dočasné párování hosta: QR, který po 1–72 h sám vyprší; host ovládá jen hudbu a hlasitost a nevidí chat, soubory ani nastavení
+728 | ČÁSTEČNĚ | místa pro automatizace „Když přijdu domů“: poloha se vyhodnocuje jen v telefonu, PC dostane jen název místa; funguje, když je aplikace otevřená
+729 | HOTOVO | PC může o fotku jen požádat – telefon ukáže důvod a kamera se zapne až po klepnutí na Vyfotit
+730 | HOTOVO | zkratky ikony aplikace: Mluvit, Napsat, Fotka na PC, Skenovat příkaz
+731 | HOTOVO | QR kódy s příkazy (vytisknout na PC); po naskenování se příkaz vždy ukáže a odešle až po potvrzení
+734 | HOTOVO | slabá baterie (pod 20 %, nenabíjí se): bez animací a vibrací, PC neposílá průběžnou hlasitost mikrofonu
+413 | HOTOVO | kamera telefonu jako vstup: „Fotka na PC“ přistane v polici notche
+415 | HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně
+418 | ČÁSTEČNĚ | offline fronta zpráv, seznamů a připnutých úkolů; plná obousměrná synchronizace dat ne
+419 | HOTOVO | oprávnění podle zařízení: co smí spárovaný telefon (zvlášť od PC), host jen hudbu

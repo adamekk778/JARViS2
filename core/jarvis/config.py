@@ -154,10 +154,23 @@ class Device(BaseModel):
     name: str = "Telefon"
 
 
+class Guest(BaseModel):
+    """OMEGA 727: a temporary pairing (someone else's phone) – only music and volume, expires by itself."""
+    id: str
+    name: str = "Host"
+    token_hash: str
+    expires: float
+
+
 class Phone(BaseModel):
     token: str = Field(default_factory=lambda: _secrets.token_urlsafe(32))
     port: int = 8765
     devices: list[Device] = Field(default_factory=list)
+    shared_folders: list[str] = Field(default_factory=list)   # OMEGA 415: PC folders the phone may browse (read-only)
+    # OMEGA 419: what a paired phone may do on the PC (permission areas); a switched-off one is refused from the phone only
+    allowed: list[str] = Field(default_factory=lambda: ["apps", "input", "screen", "files_read", "files_write", "shell",
+                                                         "network", "system", "home"])
+    guests: list[Guest] = Field(default_factory=list)
 
 
 class MemoryCfg(BaseModel):
@@ -333,7 +346,7 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back"] = "time"
+                  "away", "back", "zone_enter", "zone_leave"] = "time"
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
     text: str = ""     # …and the subject / message must contain this
     days: list[int] = Field(default_factory=list)   # time: 0 = Monday … 6 = Sunday; empty = every day

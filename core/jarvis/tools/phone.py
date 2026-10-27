@@ -9,6 +9,10 @@ from .files import resolve
 
 @tool("send_to_phone", "Pošle zprávu/odkaz jako notifikaci na spárovaný telefon.", category="telefon")
 async def send_to_phone(ctx, text: str, title: str = "JARVIS", url: str = "") -> ToolResult:
+    from ..mobileplus import clean_text, clean_url
+
+    # OMEGA 726: a notification can sit on a lock screen – no tracking in links, no passwords or keys in the text
+    text, url = clean_text(text)["text"], clean_url(url)[0] if url else url
     n = ctx.notify(title, text, url=url, speak=False, target="mobile")
     return ToolResult(True, "Odesláno na telefon" if n else "Telefon není připojený – uloženo do chatu")
 

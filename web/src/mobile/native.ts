@@ -29,6 +29,32 @@ export const native = {
     },
   },
 
+  /** OMEGA 136 / 722: the texts the home-screen widget shows. */
+  widget(o: { status: string; task: string; pins: string }) {
+    if (isNative) JarvisPhone.widget(o).catch(() => {});
+  },
+
+  /** jarvis:// links: the widget, app shortcuts and command QR codes scanned by the camera app. */
+  onLink(cb: (url: string) => void) {
+    if (!isNative) return;
+    import("@capacitor/app").then(({ App }) => {
+      App.addListener("appUrlOpen", (e: any) => e?.url && cb(e.url));
+      App.getLaunchUrl().then((r: any) => r?.url && cb(r.url)).catch(() => {});
+    }).catch(() => {});
+  },
+
+  /** OMEGA 734: low battery (under 20 % and not charging) → the app saves energy. */
+  onBattery(cb: (low: boolean, level: number) => void) {
+    const nav: any = navigator;
+    if (!nav.getBattery) return;
+    nav.getBattery().then((b: any) => {
+      const upd = () => cb(b.level < 0.2 && !b.charging, Math.round(b.level * 100));
+      b.addEventListener("levelchange", upd);
+      b.addEventListener("chargingchange", upd);
+      upd();
+    }).catch(() => {});
+  },
+
   deviceName(): string {
     const ua = navigator.userAgent;
     const m = ua.match(/Android [\d.]+; ([^;)]+)/);
@@ -100,8 +126,10 @@ export const native = {
       LocalNotifications.addListener("localNotificationActionPerformed", (ev: any) => cb(ev.actionId, ev.notification?.extra || {}))).catch(() => {});
   },
 
+  lowPower: false,
+
   haptic() {
-    if (!isNative) return;
+    if (!isNative || this.lowPower) return;
     import("@capacitor/haptics").then(({ Haptics, ImpactStyle }) => Haptics.impact({ style: ImpactStyle.Light })).catch(() => {});
   },
 

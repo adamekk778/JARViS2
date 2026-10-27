@@ -131,6 +131,18 @@ public class JarvisPhonePlugin extends Plugin {
         }
     }
 
+    /** OMEGA 136 / 722: what the home-screen widget shows (short texts only, nothing secret). */
+    @PluginMethod
+    public void widget(PluginCall call) {
+        android.content.SharedPreferences.Editor e = JarvisWidget.prefs(getContext()).edit();
+        e.putString("status", call.getString("status", ""));
+        e.putString("task", call.getString("task", ""));
+        e.putString("pins", call.getString("pins", ""));
+        e.apply();
+        JarvisWidget.refresh(getContext());
+        call.resolve();
+    }
+
     @PluginMethod
     public void takePendingReply(PluginCall call) {
         JSObject r = new JSObject();

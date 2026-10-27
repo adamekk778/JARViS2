@@ -480,6 +480,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
                 h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Vygenerovat nový token? Všechny telefony se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový token"))))
             : h("p", { class: "help" }, "Načítám…")),
         card("Připojená zařízení", null, ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" }, h("span", {}, icon("device-mobile"), " ", d.name || "Telefon"), h("span", { class: "chip" }, "online"))) : [h("p", { class: "help" }, "Teď není připojený žádný telefon.")])),
+        phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
 
@@ -644,6 +645,56 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       sw("character.ambient", "Doplňky podle počasí a denní doby", "Deštník, když prší, vločka v zimě, ráno káva, v noci měsíc a tlumenější záře."));
   }
 
+  /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  function phoneAllowedCard() {
+    const allowed: string[] = S.phone?.allowed || [];
+    const areas = ["apps", "input", "screen", "files_read", "files_write", "shell", "network", "system", "home"];
+    return card("Co smí telefon", "Platí jen pro příkazy z telefonu. Na PC se nic nemění. Hodí se třeba vypnout příkazový řádek a zápis souborů.",
+      h("div", { class: "tiles" }, ...areas.map((a) => {
+        const c = h("input", { type: "checkbox" }) as HTMLInputElement;
+        c.checked = allowed.includes(a);
+        c.onchange = () => set("phone.allowed", c.checked ? [...allowed, a] : allowed.filter((x) => x !== a));
+        return h("label", {}, c, permLabels[a] || a);
+      })));
+  }
+
+  /** OMEGA 415: folders the phone may browse and download from (read-only). */
+  function sharedFoldersCard() {
+    const list: string[] = [...(S.phone?.shared_folders || [])];
+    const inp = h("input", { class: "input", placeholder: "např. C:\\Users\\Adam\\Documents nebo %USERPROFILE%\\Downloads", "aria-label": "Složka" }) as HTMLInputElement;
+    return card("Složky pro telefon", "Telefon v nich může procházet a stahovat soubory (jen číst, nic mazat). Skryté soubory a nic mimo tyto složky neuvidí.",
+      ...list.map((f, i) => h("div", { class: "row" }, h("span", { class: "mono" }, icon("folder"), " ", f),
+        h("button", { class: "icon-btn", type: "button", "aria-label": `Odebrat ${f}`, onclick: () => { list.splice(i, 1); set("phone.shared_folders", list); } }, icon("x")))),
+      h("div", { class: "fact" }, inp, h("button", { class: "btn", type: "button", onclick: () => { if (inp.value.trim()) set("phone.shared_folders", [...list, inp.value.trim()]); } }, icon("plus"), "Přidat")),
+      list.length ? null : h("div", { class: "btn-row" },
+        h("button", { class: "btn ghost", type: "button", onclick: () => set("phone.shared_folders", ["%USERPROFILE%\\Downloads"]) }, "Sdílet Stažené soubory"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => set("phone.shared_folders", ["%USERPROFILE%\\Documents"]) }, "Sdílet Dokumenty")));
+  }
+
+  /** OMEGA 727: a temporary pairing for someone else's phone – music and volume only, expires by itself. */
+  function guestsCard() {
+    if (!extra.guestsAsked) { extra.guestsAsked = true; client.send("guests_get"); }
+    const name = h("input", { class: "input", placeholder: "Jméno (např. Petr)", "aria-label": "Jméno hosta" }) as HTMLInputElement;
+    const hours = h("select", { class: "input", "aria-label": "Na jak dlouho" }, ...[["1", "1 hodina"], ["3", "3 hodiny"], ["8", "8 hodin"], ["24", "1 den"]].map(([v, l]) => h("option", { value: v }, l))) as HTMLSelectElement;
+    hours.value = "3";
+    const g = extra.guestPairing;
+    return card("Host (dočasný přístup)", "Kamarád na párty si pustí hudbu a nastaví hlasitost ze svého telefonu. Nevidí chat, soubory ani nastavení a po čase přístup sám vyprší.",
+      h("div", { class: "fact" }, name, hours, h("button", { class: "btn primary", type: "button", onclick: () => client.send("guest_add", { name: name.value.trim() || "Host", hours: Number(hours.value) }) }, icon("qr-code"), "Vytvořit QR")),
+      g ? h("div", { class: "qr" }, h("div", { class: "qr-img", html: g.qr_svg }), h("p", { class: "help" }, "Ať ho naskenuje aplikací JARVIS (nebo otevře odkaz v prohlížeči telefonu ve stejné Wi-Fi).")) : null,
+      ...(extra.guests || []).map((x: any) => h("div", { class: "row" }, h("span", {}, icon("user"), " ", x.name, h("span", { class: "help" }, ` · zbývá ${x.left_min >= 60 ? `${Math.round(x.left_min / 60)} h` : `${x.left_min} min`}`)),
+        h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("guest_revoke", { id: x.id }) }, icon("prohibit"), "Zrušit"))));
+  }
+
+  /** OMEGA 731: a printable QR code that runs a sentence (always confirmed on the phone first). */
+  function commandQrCard() {
+    const inp = h("input", { class: "input", placeholder: "např. Spusť protokol Dobrou noc", "aria-label": "Příkaz" }) as HTMLInputElement;
+    const q = extra.cmdQr;
+    return card("QR kód s příkazem", "Vytiskni a nalep třeba na dveře. Po naskenování aplikací JARVIS se příkaz ukáže a pošle až po potvrzení.",
+      h("div", { class: "fact" }, inp, h("button", { class: "btn", type: "button", onclick: () => inp.value.trim() && client.send("command_qr", { text: inp.value.trim() }) }, icon("qr-code"), "Vytvořit")),
+      q ? h("div", { class: "qr" }, h("div", { class: "qr-img", html: q.svg }), h("div", { style: { display: "grid", gap: "8px" } }, h("strong", {}, q.text),
+        h("button", { class: "btn", type: "button", onclick: () => { const w = window.open("", "_blank"); if (w) { w.document.write(`<title>${q.text.replace(/</g, "&lt;")}</title><div style="text-align:center;font:20px system-ui">${q.svg}<p>${q.text.replace(/</g, "&lt;")}</p></div>`); w.print(); } } }, icon("printer"), "Vytisknout"))) : null);
+  }
+
   /** OMEGA 089: your own quick actions for an app (shown in the notch and the ring around the character). */
   function appActionsCard() {
     const list: any[] = (S.notch?.app_actions || []).map((a: any) => ({ ...a }));
@@ -765,6 +816,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
 
   client.on("welcome", (m) => { S = m.settings; local = !!m.local; voiceStatus = m.voice || {}; client.send("settings_get"); render(); });
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
+  client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
+  client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
   client.on("local_info", (m) => { extra.local = m; if (m.gpu_message) extra.gpuMsg = m.gpu_message; if (current === "brain") render(); });
   client.on("local_pull_progress", (m) => {
     extra.pull = { ...(extra.pull || {}), [m.name]: m };

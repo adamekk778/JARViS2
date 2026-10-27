@@ -25,6 +25,7 @@ KIND_LABEL = {
     "time": "Čas", "boot": "Start PC", "app_open": "Otevřu aplikaci", "app_close": "Zavřu aplikaci",
     "mail": "Přijde e-mail", "phone_message": "Zpráva na telefonu", "phone_call": "Volá mi někdo",
     "battery": "Slabá baterie", "power": "Nabíječka", "away": "Odejdu od PC", "back": "Vrátím se k PC",
+    "zone_enter": "Přijdu na místo (telefon)", "zone_leave": "Odejdu z místa (telefon)",
 }
 DAYS = ["po", "út", "st", "čt", "pá", "so", "ne"]
 THIRD_PARTY = ("Tohle je krok automatizace „{name}“, kterou si uživatel nastavil; proveď ho rovnou, bez ptaní. "
@@ -60,6 +61,10 @@ def describe_trigger(t) -> str:
         return f"když odejdu od PC na {v or '10'} min"
     if t.type == "back":
         return f"když se vrátím k PC (po {v or '10'}+ min)"
+    if t.type == "zone_enter":
+        return f"když s telefonem přijdu na místo „{v or 'Domov'}“"
+    if t.type == "zone_leave":
+        return f"když s telefonem odejdu z místa „{v or 'Domov'}“"
     return t.type
 
 
@@ -102,6 +107,8 @@ def match_event(a, ev: dict) -> dict | None:
         who = f"{ev.get('from_name', '')} {ev.get('from', '')}"
         if _has(who, t.value) and _has(ev.get("subject", ""), t.text):
             return {"sender": ev.get("from_name") or ev.get("from", ""), "subject": ev.get("subject", ""), "text": ev.get("subject", "")}
+    if ev.get("type") == "phone_zone" and t.type == f"zone_{ev.get('event')}" and _has(ev.get("zone", ""), t.value):
+        return {"zone": ev.get("zone", "")}
     if ev.get("type") == "phone_notification":
         if t.type == "phone_call" and ev.get("call") and _has(ev.get("title", ""), t.value):
             return {"sender": ev.get("title", ""), "app": ev.get("app", "")}
@@ -180,7 +187,7 @@ class Automations:
     async def _events(self) -> None:
         while True:
             ev = await self._q.get()
-            if ev.get("type") not in ("mail_new", "phone_notification"):
+            if ev.get("type") not in ("mail_new", "phone_notification", "phone_zone"):
                 continue
             try:
                 for a in self.active():
