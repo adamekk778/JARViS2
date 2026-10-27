@@ -7,9 +7,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `Claude Code` | 046, 049, 331, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
 | `Home Assistant` | 165, 421, 423, 431, 434, P13.02, P13.05 |
 | `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
+| `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
-| `run_shell` | 702, P2.05, P2.13, P5.11, P5.12 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
@@ -56,6 +56,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_file` | P2.11, P11.11 |
 | `find_in_files` | 316, 322 |
 | `home_control` | 424, P13.01 |
+| `hosting_health` | 387, 712 |
 | `injection.py` | 183, P14.11 |
 | `keyboard_test` | 054, 644 |
 | `label_speakers` | 267, P3.05 |
@@ -274,7 +275,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_rooms` | 421 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
-| `hosting_health` | 712 |
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
 | `ingredient_substitute` | 786 |
@@ -350,6 +350,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `privacy.py` | P14.10 |
 | `privacy_report` | 539 |
 | `product_demo` | 673 |
+| `project_perms` | 180 |
 | `project_profitability` | 449 |
 | `pronunciation_practice` | 114 |
 | `prototype_test_plan` | 480 |

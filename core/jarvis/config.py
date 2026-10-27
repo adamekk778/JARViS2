@@ -142,6 +142,7 @@ class McpServer(BaseModel):
     url: str = ""
     env: dict[str, str] = Field(default_factory=dict)
     enabled: bool = True
+    trusted: bool = False   # OMEGA 686: untrusted servers ask before every action; their output is always data
 
 
 class Integrations(BaseModel):
@@ -171,6 +172,7 @@ class Phone(BaseModel):
     allowed: list[str] = Field(default_factory=lambda: ["apps", "input", "screen", "files_read", "files_write", "shell",
                                                          "network", "system", "home"])
     guests: list[Guest] = Field(default_factory=list)
+    approve_nearby_only: bool = False   # OMEGA 733: approvals from the phone only on the home network (not over the internet)
 
 
 class MemoryCfg(BaseModel):
@@ -393,6 +395,8 @@ class LimitsCfg(BaseModel):
     mission_max_minutes: int = 30      # … and run at most this long
     double_confirm: bool = True        # the most dangerous actions ask twice
     app_allowlist: list[str] = Field(default_factory=list)   # mouse/keyboard only in these apps (empty = any)
+    project_isolation: bool = False    # OMEGA 688: while a project with a folder is active, file tools stay inside it
+    project_perms: dict[str, list[str]] = Field(default_factory=dict)   # OMEGA 180: project name → permission areas allowed in it
 
 
 class PrivacyCfg(BaseModel):

@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 519 | 78 |
-| 🟡 ČÁSTEČNĚ | 174 | 59 |
+| ✅ HOTOVO | 530 | 78 |
+| 🟡 ČÁSTEČNĚ | 177 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 68 | 12 |
+| ⬜ CHYBÍ | 54 | 12 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -309,7 +309,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 17. Security & Control
 
-✅ 7 · 🟡 2 · ⬜ 1
+✅ 8 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -317,7 +317,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 177 | Read-only režim. | ✅ HOTOVO | Režim jen pro čtení – pustí jen čtecí nástroje, hlasem nejde vypnout (permissions.py, tests/test_wave1.py) |
 | 178 | Limit nákladů AI. | ✅ HOTOVO | denní limit tokenů/ceny; po limitu jen bezplatné/místní modely (usage.py, llm/router gate) |
 | 179 | Redakce citlivých údajů. | ✅ HOTOVO | redakce tokenů a hesel v logu a audit logu (redact.py) |
-| 180 | Oprávnění podle projektu. | ⬜ CHYBÍ | — |
+| 180 | Oprávnění podle projektu. | ✅ HOTOVO | oprávnění podle projektu: pro aktivní projekt jen vybrané oblasti (limits.project_perms) |
 | 181 | Dočasná oprávnění. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
 | 182 | Dvojí potvrzení nebezpečných operací. | ✅ HOTOVO | nevratné akce (mazání, vypnutí PC, odemčení) se ptají dvakrát (agent._needs_second, tests/test_agent.py) |
 | 183 | Detekce škodlivých instrukcí z externích zdrojů. | ✅ HOTOVO | skener skrytých pokynů v e-mailech, webech, souborech a zprávách (injection.py, tools/base.py UNTRUSTED_OUTPUT) |
@@ -607,7 +607,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 10 · 🟡 3 · ⬜ 2
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -620,20 +620,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 382 | Automated Website Testing — testy webů. | ✅ HOTOVO | automatické testy webu: průchod scénářem, klávesnice, offline, zařízení (vlna 14) |
 | 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
 | 384 | Competitor Feature Comparison — srovnání konkurence. | ✅ HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí |
-| 385 | Search Query Optimizer — vyhledávací strategie. | ⬜ CHYBÍ | — |
+| 385 | Search Query Optimizer — vyhledávací strategie. | ✅ HOTOVO | lepší vyhledávací dotazy: chybové kódy v uvozovkách, fráze, OR synonyma, filetype:, site:reddit / gov.cz |
 | 386 | Article Comparison — srovnání článků. | 🟡 ČÁSTEČNĚ | přes AI |
-| 387 | Domain Health Inspector — DNS/TLS/dostupnost. | ⬜ CHYBÍ | — |
+| 387 | Domain Health Inspector — DNS/TLS/dostupnost. | ✅ HOTOVO | zdraví domény: DNS, e-mailové záznamy, TLS certifikát, dostupnost (hosting_health, vlna 22) |
 | 388 | Website Performance Audit — výkon webů. | ✅ HOTOVO | website_audit: rychlost, velikost, komprese, cache, obrázky bez rozměrů, počet skriptů |
 | 389 | Web Content Structure Analyzer — struktura obsahu. | ✅ HOTOVO | website_audit: titulek, popis, h1, viewport, og:title, jazyk, osnova nadpisů |
 | 390 | Research-to-Action — závěry na úkoly. | 🟡 ČÁSTEČNĚ | závěry → úkoly přes AI |
 
 ## 32. Cybersecurity Center
 
-✅ 6 · 🟡 6 · ⬜ 3
+✅ 9 · 🟡 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 391 | Permission Audit — aplikace a oprávnění. | ⬜ CHYBÍ | — |
+| 391 | Permission Audit — aplikace a oprávnění. | ✅ HOTOVO | audit oprávnění aplikací: kamera, mikrofon, poloha… – kdo smí, kdo naposledy a kdo právě teď (záznamy Windows) |
 | 392 | Local Port Inspector — místní porty. | ✅ HOTOVO | porty otevřené do sítě a jejich programy (Get-NetTCPConnection) |
 | 393 | Firewall Rule Explorer — firewall. | 🟡 ČÁSTEČNĚ | firewall zapnutý/vypnutý po profilech; pravidla neprocházím |
 | 394 | Suspicious Startup Detector — podezřelé položky startu. | ✅ HOTOVO | podezřelé položky startu (podpis, umístění) a naplánované úlohy (skryté PowerShell, AppData) |
@@ -641,24 +641,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 396 | Credential Exposure Checker — kontrola známých úniků. | ✅ HOTOVO | uniklé heslo přes Have I Been Pwned (k-anonymita: odejde 5 znaků otisku), jen ze stránky, nikdy přes AI |
 | 397 | Phishing Link Analyzer — rizika URL. | ✅ HOTOVO | check_link: podvodné domény, napodobení bank/obchodů, IP, punycode, zkracovače – bez otevření |
 | 398 | Download Safety Inspector — kontrola downloadů. | ✅ HOTOVO | check_download: původ (Zone.Identifier), skutečný typ, dvojitá přípona, podpis, SHA-256, sken Defenderem |
-| 399 | Ransomware Recovery Planner — plán obnovy. | ⬜ CHYBÍ | — |
+| 399 | Ransomware Recovery Planner — plán obnovy. | ✅ HOTOVO | plán pro ransomware: skóre připravenosti (antivirus, ochrana složek, body obnovení, čerstvá a offline záloha) a postup krok za krokem k vytištění |
 | 400 | Local Security Dashboard — bezpečnostní přehled. | 🟡 ČÁSTEČNĚ | Bezpečnostní centrum na stránce Záchrana a výkon + oblast security |
 | 401 | Secret Detection — úniky API klíčů v kódu. | ✅ HOTOVO | scan_secrets: klíče a hesla v kódu, tajemství nikdy nevypíše celé |
 | 402 | Device Trust Manager — důvěryhodná zařízení. | 🟡 ČÁSTEČNĚ | párování telefonu tokenem |
 | 403 | Session Revocation Center — odpojení sessions. | 🟡 ČÁSTEČNĚ | nový token = odpojení všech zařízení |
-| 404 | Security Incident Timeline — časová osa incidentů. | ⬜ CHYBÍ | — |
+| 404 | Security Incident Timeline — časová osa incidentů. | ✅ HOTOVO | časová osa bezpečnostních incidentů: Defender, nové služby a úlohy, vymazané protokoly, nové účty, hromadné hádání hesla |
 | 405 | Emergency Lockdown — zastavení vzdálených akcí. | 🟡 ČÁSTEČNĚ | STOP vše + Režim jen pro čtení; odpojení vzdálených zařízení = nový párovací kód |
 
 ## 33. Multi-Device Ecosystem
 
-✅ 6 · 🟡 7 · ⬜ 2
+✅ 6 · 🟡 8 · ⬜ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 406 | Device Discovery — hledání vlastních zařízení. | 🟡 ČÁSTEČNĚ | zařízení v síti (network.py) |
 | 407 | Encrypted Device Pairing — párování. | 🟡 ČÁSTEČNĚ | párování tokenem; v LAN bez TLS (viz DECISIONS.md) |
 | 408 | Cross-Device Clipboard History — historie schránky. | 🟡 ČÁSTEČNĚ | send_to_phone |
-| 409 | Remote Terminal Sessions — zabezpečený remote terminal. | ⬜ CHYBÍ | — |
+| 409 | Remote Terminal Sessions — zabezpečený remote terminal. | 🟡 ČÁSTEČNĚ | příkazy z telefonu jen přes potvrzovaný run_shell s otiskem prstu a oprávněními zařízení; plnohodnotný vzdálený terminál záměrně ne |
 | 410 | Device Presence Detection — dostupnost zařízení. | ✅ HOTOVO | přítomnost telefonu (phone.link_alive) |
 | 411 | Remote Build Monitor — průběh buildu na PC. | 🟡 ČÁSTEČNĚ | průběh úkolu v mobilu |
 | 412 | Notification Routing — distribuce oznámení. | ✅ HOTOVO | směrování oznámení PC/telefon (runtime.notify target) |
@@ -1047,11 +1047,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 51. Privacy Fortress
 
-✅ 11 · 🟡 1 · ⬜ 3
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 676 | Consent Receipt Manager — evidence souhlasů. | ⬜ CHYBÍ | — |
+| 676 | Consent Receipt Manager — evidence souhlasů. | ✅ HOTOVO | evidence souhlasů: dočasná oprávnění a přístupy hostů s platností, výpis a odvolání (odvolání hosta ruší i přístup) |
 | 677 | Personal Data Inventory — evidence údajů. | ✅ HOTOVO | inventář dat: co, kolik a kde (privacy.inventory, Bezpečí a soukromí) |
 | 678 | Outbound Data Inspector — před odesláním dat. | ✅ HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py) |
 | 679 | Microphone Access Audit — mikrofon. | ✅ HOTOVO | záznam, kdy naslouchal mikrofon (privacy.MicLog) |
@@ -1061,9 +1061,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 683 | Temporary Permission Grants — dočasná povolení. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
 | 684 | Data Retention Rules — uchovávání dat. | ✅ HOTOVO | mazání dat starších než N dní (privacy.prune, denně) |
 | 685 | Encrypted Vault Backup — šifrované zálohy. | ✅ HOTOVO | šifrovaná záloha AES-256-GCM + PBKDF2, obnova do nové složky (privacy.backup_encrypted) |
-| 686 | Untrusted Agent Isolation — izolace agentů. | ⬜ CHYBÍ | — |
+| 686 | Untrusted Agent Isolation — izolace agentů. | ✅ HOTOVO | izolace nedůvěryhodných integrací: MCP servery bez důvěry potvrzují každou akci, výstup s pokyny pro AI je označen jako data |
 | 687 | Audit Log Export — export logů. | ✅ HOTOVO | export auditu do CSV + JSON (missions.export_audit) |
-| 688 | Project Isolation Profiles — oddělení projektů. | ⬜ CHYBÍ | — |
+| 688 | Project Isolation Profiles — oddělení projektů. | ✅ HOTOVO | oddělené projekty: soubory jen ve složce aktivního projektu, vlastní paměť faktů, vlastní oprávnění |
 | 689 | Sensitive Action Lock — uzamčení rizikových akcí. | 🟡 ČÁSTEČNĚ | potvrzení + otisk prstu |
 | 690 | Privacy Transparency Center — transparentnost. | ✅ HOTOVO | stránka Bezpečí a soukromí (dashboard/security.ts) |
 
@@ -1091,7 +1091,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 53. Network & Cloud Command Center
 
-✅ 7 · 🟡 5 · ⬜ 3
+✅ 9 · 🟡 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1099,12 +1099,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 707 | DNS Propagation Tracker — DNS propagace. | ✅ HOTOVO | co o doméně říká Google DNS, Cloudflare a tento PC |
 | 708 | TLS Certificate Watch — certifikáty. | 🟡 ČÁSTEČNĚ | kontrola certifikátu na požádání (platnost, vydavatel, protokol); průběžné hlídání chybí |
 | 709 | HTTP Synthetic Monitoring — dostupnost API. | 🟡 ČÁSTEČNĚ | dostupnost webu/API na požádání; průběžné hlídání chybí |
-| 710 | Cloud Resource Inventory — cloud zdroje. | ⬜ CHYBÍ | — |
-| 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ⬜ CHYBÍ | — |
+| 710 | Cloud Resource Inventory — cloud zdroje. | 🟡 ČÁSTEČNĚ | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení přes tvoje přihlášené CLI; bez CLI nic |
+| 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ✅ HOTOVO | anomálie nákladů v cloudu z exportu vyúčtování (robustní odchylka od mediánu po službách) |
 | 712 | Hosting Health Inspector — stav hostingu. | ✅ HOTOVO | hosting_health: DNS, MX/SPF/DMARC, certifikát, http→https, bezpečnostní hlavičky, rychlost, stav |
 | 713 | Centralized Log Explorer — agregované logy. | ✅ HOTOVO | explore_logs: sloučení logů, filtr úrovně / času / vzoru, seskupení opakovaných chyb podle podoby, první a poslední výskyt |
 | 714 | Deployment Difference Analyzer — rozdíly nasazení. | ✅ HOTOVO | deploy_diff: přidané / odebrané / změněné soubory a rozdíly konfigurace s maskovanými hesly |
-| 715 | Infrastructure Rollback Rehearsal — cvičná obnova. | ⬜ CHYBÍ | — |
+| 715 | Infrastructure Rollback Rehearsal — cvičná obnova. | ✅ HOTOVO | cvičná obnova: předchozí verze v dočasné kopii, spuštěné testy, postup návratu; pracovní kopie beze změny |
 | 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ✅ HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy |
 | 717 | Local Network Throughput Tester — propustnost vlastní sítě. | 🟡 ČÁSTEČNĚ | speed_test (internet, ne LAN) |
 | 718 | Jitter Analysis — kolísání latence. | ✅ HOTOVO | kolísání latence (jitter) v perf_check a network_check |
@@ -1113,7 +1113,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 54. Next-Gen Mobile
 
-✅ 9 · 🟡 5 · ⬜ 1
+✅ 9 · 🟡 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1129,7 +1129,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 730 | Mobile Shortcut Bridge — mobilní systémové zkratky. | ✅ HOTOVO | zkratky ikony aplikace: Mluvit, Napsat, Fotka na PC, Skenovat příkaz |
 | 731 | QR Command Launcher — akce z QR kódu. | ✅ HOTOVO | QR kódy s příkazy (vytisknout na PC); po naskenování se příkaz vždy ukáže a odešle až po potvrzení |
 | 732 | Link Handoff — předání odkazu. | 🟡 ČÁSTEČNĚ | otevření odkazu na PC z mobilu |
-| 733 | Proximity Pairing Check — proximity Bluetooth ověření. | ⬜ CHYBÍ | — |
+| 733 | Proximity Pairing Check — proximity Bluetooth ověření. | 🟡 ČÁSTEČNĚ | schvalování z telefonu jen ve stejné domácí síti (ne přes internet); Bluetooth blízkost ne |
 | 734 | Battery-Aware Synchronization — úspora energie. | ✅ HOTOVO | slabá baterie (pod 20 %, nenabíjí se): bez animací a vibrací, PC neposílá průběžnou hlasitost mikrofonu |
 | 735 | Remote Mission Approval — schválení z telefonu. | 🟡 ČÁSTEČNĚ | schvalování Claude Code z telefonu s otiskem |
 

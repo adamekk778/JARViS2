@@ -389,7 +389,11 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         ...Object.keys(PERM_HELP).map((k) => sw(`permissions.${k}`, permLabels[k] || k, PERM_HELP[k]))),
       card("Soukromí", null,
         h("p", { class: "help" }, "Mikrofon se zapíná jen slovem „Hey Jarvis“, zkratkou nebo tlačítkem. Když JARVIS kouká na obrazovku, notch ukáže červenou tečku. Hesla a obsah obrazovky si nepamatuje."),
-        h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => client.send("stop_all") }, icon("hand-palm"), "STOP – okamžitě zastavit vše"))),
+        h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => client.send("stop_all") }, icon("hand-palm"), "STOP – okamžitě zastavit vše")),
+        sw("privacy.mask_screens", "Zakrývat citlivá okna před AI", "Správci hesel a bankovnictví se na snímku obrazovky začerní dřív, než ho uvidí AI."),
+        sw("phone.approve_nearby_only", "Schvalovat z telefonu jen doma", "Povolit akci jde z telefonu jen ve stejné síti jako PC – ne přes internet / Tailscale.")),
+      card("Oddělené projekty", "Když je aktivní projekt se složkou, JARVIS sahá jen do ní (soubory, projekty, záznamy). Každý projekt má i vlastní paměť.",
+        sw("limits.project_isolation", "Oddělit projekty", "Mimo složku aktivního projektu JARVIS nic nečte ani nezapisuje.")),
     ],
 
     tools: () => {
@@ -454,7 +458,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("span", { class: `test-out ${st?.ok ? "ok" : st ? "fail" : ""}` }, st ? (st.ok ? `${st.tools} nástrojů` : st.error || "chyba") : ""),
             h("button", { class: "icon-btn sm", type: "button", "aria-label": "Odebrat", onclick: () => save(servers.filter((_, j) => j !== i)) }, icon("trash"))),
           h("div", { class: "grid2" }, f("command", "Příkaz (stdio)", "npx"), f("args", "Argumenty", "-y @modelcontextprotocol/server-filesystem C:\\Users")),
-          h("div", { class: "grid2" }, f("url", "nebo URL (HTTP/SSE)", "http://localhost:3000/mcp"), f("env", "Proměnné prostředí (JSON)", '{"API_KEY":"..."}')));
+          h("div", { class: "grid2" }, f("url", "nebo URL (HTTP/SSE)", "http://localhost:3000/mcp"), f("env", "Proměnné prostředí (JSON)", '{"API_KEY":"..."}')),
+          (() => {
+            const inp = h("input", { type: "checkbox", role: "switch", "aria-label": `Důvěřovat ${s.name}` }) as HTMLInputElement;
+            inp.checked = !!s.trusted;
+            inp.onchange = () => save(servers.map((x, j) => (j === i ? { ...x, trusted: inp.checked } : x)));
+            return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Důvěřovat tomuto serveru"),
+              h("span", {}, "Vypnuto = každou akci serveru JARVIS nejdřív potvrdí a jeho výstup bere jen jako data.")), h("label", { class: "switch" }, inp, h("span")));
+          })());
       });
       const name = h("input", { class: "input", placeholder: "např. filesystem" }) as HTMLInputElement;
       return [

@@ -942,3 +942,19 @@
 125 | HOTOVO | FPS podle nastavení: měření snímků po předvolbách → průměr, 1 % low, záseky a doporučení
 653 | HOTOVO | test proti podvodům ve vlastní hře: upravené uložené hry k ověření validace, nemožné rychlosti / teleporty v telemetrii
 656 | HOTOVO | voxelové stavby (dům, věž, strom, pyramida) jako MagicaVoxel .vox a příkazy pro Minecraft
+
+# Vlna 39 – bezpečnost, soukromí, cloud (secplus.py, tools/secplus_tools.py, tests/test_wave39.py)
+180 | HOTOVO | oprávnění podle projektu: pro aktivní projekt jen vybrané oblasti (limits.project_perms)
+385 | HOTOVO | lepší vyhledávací dotazy: chybové kódy v uvozovkách, fráze, OR synonyma, filetype:, site:reddit / gov.cz
+387 | HOTOVO | zdraví domény: DNS, e-mailové záznamy, TLS certifikát, dostupnost (hosting_health, vlna 22)
+391 | HOTOVO | audit oprávnění aplikací: kamera, mikrofon, poloha… – kdo smí, kdo naposledy a kdo právě teď (záznamy Windows)
+399 | HOTOVO | plán pro ransomware: skóre připravenosti (antivirus, ochrana složek, body obnovení, čerstvá a offline záloha) a postup krok za krokem k vytištění
+404 | HOTOVO | časová osa bezpečnostních incidentů: Defender, nové služby a úlohy, vymazané protokoly, nové účty, hromadné hádání hesla
+409 | ČÁSTEČNĚ | příkazy z telefonu jen přes potvrzovaný run_shell s otiskem prstu a oprávněními zařízení; plnohodnotný vzdálený terminál záměrně ne
+676 | HOTOVO | evidence souhlasů: dočasná oprávnění a přístupy hostů s platností, výpis a odvolání (odvolání hosta ruší i přístup)
+686 | HOTOVO | izolace nedůvěryhodných integrací: MCP servery bez důvěry potvrzují každou akci, výstup s pokyny pro AI je označen jako data
+688 | HOTOVO | oddělené projekty: soubory jen ve složce aktivního projektu, vlastní paměť faktů, vlastní oprávnění
+710 | ČÁSTEČNĚ | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení přes tvoje přihlášené CLI; bez CLI nic
+711 | HOTOVO | anomálie nákladů v cloudu z exportu vyúčtování (robustní odchylka od mediánu po službách)
+715 | HOTOVO | cvičná obnova: předchozí verze v dočasné kopii, spuštěné testy, postup návratu; pracovní kopie beze změny
+733 | ČÁSTEČNĚ | schvalování z telefonu jen ve stejné domácí síti (ne přes internet); Bluetooth blízkost ne

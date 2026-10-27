@@ -160,6 +160,9 @@ def add_guest(rt, name: str = "Host", hours: float = 3) -> dict:
     g = Guest(id=secrets.token_hex(4), name=(name or "Host").strip()[:40], token_hash=_hash(token), expires=time.time() + hours * 3600)
     guests = [x for x in rt.cfg.phone.guests if x.expires > time.time()] + [g]
     rt.update_config({"phone": {"guests": [x.model_dump() for x in guests]}})
+    from .secplus import record_consent
+
+    record_consent(rt, "Dočasný přístup hosta (hudba a hlasitost)", g.name, True, "telefon", g.expires)
     return {**g.model_dump(exclude={"token_hash"}), "token": token}
 
 

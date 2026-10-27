@@ -324,6 +324,16 @@ class Connection:
         v = self.rt.voice
         return v.status() if v and hasattr(v, "status") else {"available": False, "listening": False}
 
+    def _nearby(self) -> bool:
+        """OMEGA 733: the phone is on the same home network (a private LAN address, not Tailscale / the internet)."""
+        import ipaddress
+
+        try:
+            ip = ipaddress.ip_address(self.ws.client.host if self.ws.client else "")
+        except ValueError:
+            return False
+        return ip.is_private and ip not in ipaddress.ip_network("100.64.0.0/10")
+
     def _source(self, voice: bool = False) -> str:
         if self.client == "mobile":
             return "mobile_voice" if voice else "mobile"
@@ -371,6 +381,9 @@ class Connection:
         elif t == "voice_upload":
             self.spawn(self._voice_note(m["attachment_id"]))
         elif t == "confirm_response":
+            if m.get("approved") and not self.local and rt.cfg.phone.approve_nearby_only and not self._nearby():
+                await self.send("error", message="Schvalovat jde jen z domácí sítě (nastavení Telefon → Schvalovat jen doma).")
+                return
             rt.agent.confirm(m.get("id", ""), bool(m.get("approved")))
         elif t == "stop":
             rt.agent.stop()
@@ -660,6 +673,10 @@ class Connection:
                     permissions.TEMP_GRANTS.pop(perm, None)
                 else:
                     permissions.grant(perm, float(m.get("minutes")))
+                    from ..secplus import record_consent
+
+                    record_consent(rt, f"Dočasné oprávnění: {permissions.LABELS.get(perm, perm)}", f"{float(m['minutes']):g} min", True, "nastavení",
+                                   time.time() + float(m["minutes"]) * 60)
                 await self.send("privacy", grants={k: v for k, v in permissions.TEMP_GRANTS.items() if permissions.granted(k)})
         elif t == "approvals_get":
             await self.send("approvals", items=list(rt.agent.confirm_info.values()))
