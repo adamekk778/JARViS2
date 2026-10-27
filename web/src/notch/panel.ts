@@ -164,7 +164,9 @@ export function buildPanel(ctx: PanelCtx) {
     const btn = u.state === "downloading"
       ? h("span", { class: "p-progress" }, h("b", { style: { width: `${Math.round((u.progress || 0) * 100)}%` } }))
       : h("button", { class: "p-pill accent", type: "button", onclick: () => { if (confirm(`Nainstalovat JARVIS ${u.latest}? JARVIS se na chvíli zavře.`)) client.send("update_install"); } }, icon("download-simple"), ` Aktualizovat na ${u.latest}`);
-    updateBox.replaceChildren(ver, btn);
+    // a failed download / install says why, right next to the button (it stays there for another try)
+    const err = u.state === "error" && u.error ? h("span", { class: "p-update-err", title: u.error }, `Nepovedlo se: ${u.error}`) : "";
+    updateBox.replaceChildren(ver, btn, err);
   };
   const systemView = h("div", { class: "p-sec p-system" },
     h("div", { class: "stats" }, stat("cpu", "cpu", "CPU"), stat("ram", "memory", "RAM"), stat("disk", "hard-drives", "Disk"),

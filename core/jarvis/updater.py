@@ -35,7 +35,7 @@ class Updater:
         self.rt = rt
         self.transport = transport
         self.status = {"current": current, "latest": None, "available": False, "state": "idle", "progress": None,
-                       "notes": ""}
+                       "notes": "", "error": ""}
         self._url: str | None = None
         self._task: asyncio.Task | None = None
         self._notified: str | None = None
@@ -90,7 +90,7 @@ class Updater:
         if not self._url:
             raise RuntimeError("žádná aktualizace")
         dest = paths.sub("updates") / f"JARVIS-Setup-{self.status['latest']}.exe"
-        self.status.update(state="downloading", progress=0.0)
+        self.status.update(state="downloading", progress=0.0, error="")
         self._publish()
         async with httpx.AsyncClient(transport=self.transport, timeout=None, follow_redirects=True) as c:
             async with c.stream("GET", self._url) as r:
@@ -133,6 +133,7 @@ class Updater:
             path = await self.download()
             self.install(path)
         except Exception as e:
-            self.status.update(state="error", progress=None)
+            log.warning("update failed: %s", e)
+            self.status.update(state="error", progress=None, error=str(e)[:300] or e.__class__.__name__)
             self._publish()
             self.rt.bus.publish("error", message=f"Aktualizace selhala: {e}")

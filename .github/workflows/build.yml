@@ -54,6 +54,9 @@ jobs:
           fail-on-cache-miss: true
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
+      - name: Version into the app (Settings, updates and the "Co je nového" check read it)
+        shell: pwsh
+        run: Set-Content -Encoding utf8 core/jarvis/_version.py "VERSION = `"$env:JARVIS_VERSION`"`n"
       - name: Install JARVIS + PyInstaller
         run: |
           python -m pip install --upgrade pip
@@ -79,6 +82,8 @@ jobs:
           foreach ($f in "crash.log","fault.log","logs\jarvis.log","logs\hang-dump.txt") { Write-Host "== $f"; Get-Content "$env:JARVIS_HOME\$f" -ErrorAction SilentlyContinue | Select-Object -Last 60 }
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           if (-not $ok) { throw "JARVIS-debug.exe did not start" }
+          # the version the app reports decides whether it offers an update: it must be this build's, not 3.10.0
+          if ($r.version -ne $env:JARVIS_VERSION) { throw "JARVIS reports version $($r.version), the build is $env:JARVIS_VERSION" }
       - name: Smoke test windowed JARVIS.exe
         shell: pwsh
         run: |

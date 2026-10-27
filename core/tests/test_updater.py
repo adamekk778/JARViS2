@@ -69,3 +69,24 @@ async def test_download_reports_progress_but_never_installs_itself(rt, monkeypat
             progress.append(e["progress"])
     assert progress and progress == sorted(progress)
     assert installed == []
+
+
+async def test_failed_download_says_why_in_the_status(rt):
+    def handler(r):
+        if r.url.path.endswith("latest"):
+            return httpx.Response(200, json=release("v9.9.9"))
+        return httpx.Response(200, content=b"<html>not an installer</html>")
+
+    u = Updater(rt, httpx.MockTransport(handler), current="2.0.8")
+    await u.check()
+    await u.download_and_install()
+    assert u.status["state"] == "error" and "instalátor" in u.status["error"]
+
+
+def test_built_app_knows_its_version():
+    """CI writes jarvis/_version.py with the build number; without it every build said 3.10.0 and kept offering
+    the update it had just installed."""
+    import pathlib
+
+    wf = (pathlib.Path(__file__).parents[2] / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
+    assert "core/jarvis/_version.py" in wf and "$r.version -ne $env:JARVIS_VERSION" in wf

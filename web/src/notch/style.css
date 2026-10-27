@@ -392,3 +392,7 @@ html[data-focus="1"] .n-music { display: none; }
 @keyframes n-edge { 0% { left: 50%; } 20% { left: 12%; top: -12px; } 30% { left: 12%; top: -19px; } 55% { left: 88%; top: -12px; } 65% { left: 88%; top: -19px; } 100% { left: 50%; } }
 /* OMEGA 752 anchored above a window */
 .notch.anchored .n-inner { box-shadow: inset 0 -2px 0 var(--accent, #4fd1ff); }
+
+/* a failed update says why */
+.update:has(.p-update-err) { flex-wrap: wrap; row-gap: 4px; }
+.p-update-err { flex-basis: 100%; font-size: 12px; color: #ff9a9e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
