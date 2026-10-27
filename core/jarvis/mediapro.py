@@ -296,7 +296,7 @@ def organize_plan(folder: Path, gap_hours: float = 6) -> dict:
     from .fileuniverse import free_name, sha256
 
     files = [p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in MEDIA_EXT and not p.name.startswith(".")]
-    items = sorted(((media_date(p), p) for p in files), key=lambda x: x[0])
+    items = sorted(((media_date(p), p) for p in files), key=lambda x: (x[0], str(x[1])))   # same time → by name, so the original stays put
     seen: dict[str, Path] = {}
     plan, dups, events = [], [], []
     cur: list = []

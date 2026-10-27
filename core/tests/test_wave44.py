@@ -23,7 +23,7 @@ def test_layout_issues():
 async def test_analyze_layout_real_browser(tmp_path):
     page = tmp_path / "p.html"
     page.write_text("<html><body style='margin:0'><div style='width:900px;height:50px;background:red' class='banner'></div>"
-                    "<a href='#' style='font-size:9px'>drobný odkaz</a></body></html>")
+                    "<a href='#' style='font-size:9px'>drobný odkaz</a></body></html>", encoding="utf-8")
     r = await designplus.analyze_layout(str(page), tmp_path)
     phone = r["displays"][0]
     assert any("div.banner" in i for i in phone["issues"]) and any("menší než 12" in i for i in phone["issues"])

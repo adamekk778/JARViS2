@@ -238,7 +238,7 @@ def godot_run(project: Path, seconds: int = 20, runner=subprocess.run) -> dict:
         raise FileNotFoundError("Nevidím Godot – přidej ho do PATH nebo nastav proměnnou GODOT_BIN (JARVIS ho sám nestahuje).")
     if not (project / "project.godot").is_file():
         raise ValueError("Ve složce není project.godot.")
-    r = runner([exe, "--headless", "--path", str(project), "--quit-after", str(max(60, seconds * 60))], capture_output=True, text=True,
+    r = runner([exe, "--headless", "--path", str(project), "--quit-after", str(max(60, seconds * 60))], capture_output=True, text=True, encoding="utf-8", errors="replace",
                timeout=seconds + 60, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     out = (r.stdout or "") + (r.stderr or "")
     return {**godot_check(out, r.returncode), "log_tail": out[-3000:]}

@@ -44,7 +44,7 @@ def _gpus() -> list[dict]:
         return []
     ps = ("Get-CimInstance Win32_VideoController | Select-Object Name,AdapterRAM | ConvertTo-Json -Compress")
     try:
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
+        out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, encoding="utf-8", errors="replace",
                              timeout=15, creationflags=0x08000000).stdout
         rows = json.loads(out or "[]")
         rows = rows if isinstance(rows, list) else [rows]

@@ -78,7 +78,7 @@ async def test_revoking_guest_consent_removes_access(rt):
 async def test_project_isolation(rt, tmp_path):
     proj = tmp_path / "klient"
     proj.mkdir()
-    (proj / "a.txt").write_text("uvnitř")
+    (proj / "a.txt").write_text("uvnitř", encoding="utf-8")
     (tmp_path / "tajne.txt").write_text("venku")
     rt.knowledge.create_project("Klient", str(proj))
     rt.knowledge.switch("Klient")

@@ -116,7 +116,7 @@ def run_cli(args: list[str], timeout: int = 600, runner=subprocess.run) -> tuple
     cli = arduino_cli()
     if not cli:
         raise FileNotFoundError(MISSING_CLI)
-    r = runner([cli, *args], capture_output=True, text=True, timeout=timeout,
+    r = runner([cli, *args], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 
@@ -199,7 +199,7 @@ def flash_esp(port: str, firmware: Path, address: str = "0x0", runner=subprocess
     if not re.fullmatch(r"0x[0-9a-fA-F]{1,8}", address):
         raise ValueError("Adresa musí být šestnáctkově, např. 0x0 nebo 0x10000.")
     r = runner([sys.executable, "-m", "esptool", "--port", port, "write_flash", address, str(firmware)],
-               capture_output=True, text=True, timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+               capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     out = (r.stdout or "") + (r.stderr or "")
     return {"ok": r.returncode == 0, "log": out[-3000:], **explain_build(out)}
 
@@ -247,7 +247,7 @@ def pi_status(host: str, user: str = "pi", runner=subprocess.run) -> dict:
     if not ssh:
         raise FileNotFoundError("Chybí program ssh (ve Windows: Nastavení → Aplikace → Volitelné funkce → Klient OpenSSH).")
     r = runner([ssh, "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "-o", "StrictHostKeyChecking=accept-new", f"{user}@{host}", PI_STATUS],
-               capture_output=True, text=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+               capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode != 0:
         err = (r.stderr or "").strip()
         hint = "Nastav přihlášení klíčem (ssh-copy-id) – heslo JARVIS nezadává ani neukládá." if "Permission denied" in err else err[-200:]

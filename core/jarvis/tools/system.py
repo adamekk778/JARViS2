@@ -73,7 +73,7 @@ def _gpu(util: bool) -> dict | None:
             ps = ("(Get-Counter '\\GPU Engine(*engtype_3D)\\Utilization Percentage' -ErrorAction SilentlyContinue)"
                   ".CounterSamples | Measure-Object CookedValue -Sum | Select -Expand Sum")
             try:
-                out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
+                out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, encoding="utf-8", errors="replace",
                                      timeout=10, creationflags=0x08000000).stdout.strip()
                 _gpu_util = (time.monotonic(), round(min(100.0, float(out.replace(",", "."))), 1) if out else None)
             except Exception:

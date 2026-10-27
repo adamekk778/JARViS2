@@ -66,12 +66,12 @@ def test_staging_files(tmp_path):
 
 async def test_staging_create_never_overwrites(rt, tmp_path, monkeypatch):
     (tmp_path / "index.html").write_text("<h1>x</h1>")
-    (tmp_path / "STAGING.md").write_text("můj vlastní")
+    (tmp_path / "STAGING.md").write_text("můj vlastní", encoding="utf-8")
     monkeypatch.setattr("jarvis.tools.devplus_tools._proj", lambda ctx, p: tmp_path)
     assert tools.REGISTRY["staging_create"].danger
     r = await tools.call("staging_create", {"project": str(tmp_path)}, rt)
     assert r.ok and "STAGING.md" in r.data["kept"] and (tmp_path / "Dockerfile.staging").exists()
-    assert (tmp_path / "STAGING.md").read_text() == "můj vlastní"
+    assert (tmp_path / "STAGING.md").read_text(encoding="utf-8") == "můj vlastní"
 
 
 def test_canary():
@@ -162,7 +162,7 @@ async def test_browser_compat(tmp_path, monkeypatch):
     if chromium.exists():
         monkeypatch.setenv("JARVIS_CHROMIUM", str(chromium))
     page = tmp_path / "p.html"
-    page.write_text("<html><head><meta charset='utf-8'></head><body><h1>Ahoj</h1><script>throw new Error('rozbité')</script></body></html>")
+    page.write_text("<html><head><meta charset='utf-8'></head><body><h1>Ahoj</h1><script>throw new Error('rozbité')</script></body></html>", encoding="utf-8")
     try:
         r = await devplus.engine_matrix(str(page), tmp_path, engines=("chromium", "nonexistent_engine"))
     except Exception as e:  # noqa: BLE001

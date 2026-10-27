@@ -300,8 +300,8 @@ def property_test(file: Path, func: str, prop: str = "no_crash", inverse: str = 
         h = Path(tmp) / "harness.py"
         h.write_text(HARNESS, encoding="utf-8")
         run = runner or subprocess.run
-        r = run([sys.executable, "-I", str(h), str(file), func, prop, str(file.parent), str(seed), inverse, str(runs)],
-                capture_output=True, text=True, timeout=120, cwd=tmp, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        r = run([sys.executable, "-I", "-X", "utf8", str(h), str(file), func, prop, str(file.parent), str(seed), inverse, str(runs)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, cwd=tmp, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     try:
         out = json.loads((r.stdout or "").strip().splitlines()[-1])
     except (ValueError, IndexError):

@@ -256,7 +256,7 @@ def cloud_inventory(provider: str, runner=subprocess.run) -> dict:
         raise FileNotFoundError(f"Chybí příkaz {cmds[0][0]} – nainstaluj CLI svého cloudu a přihlas se v něm (JARVIS nic sám nestahuje a hesla nezadává).")
     items, errors = [], []
     for cmd in cmds:
-        r = runner([exe, *cmd[1:]], capture_output=True, text=True, timeout=90, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        r = runner([exe, *cmd[1:]], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
             errors.append((r.stderr or "").strip().splitlines()[-1:][0][:200] if r.stderr else f"chyba {r.returncode}")
             continue
@@ -310,7 +310,7 @@ def rollback_rehearsal(repo: Path, test_cmd: str, to: str = "", timeout: int = 9
     import tempfile
 
     def git(*a: str) -> str:
-        r = run(["git", "-C", str(repo), *a], capture_output=True, text=True, timeout=120)
+        r = run(["git", "-C", str(repo), *a], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
         if r.returncode != 0:
             raise ValueError((r.stderr or "git selhal").strip()[:300])
         return r.stdout.strip()
@@ -329,7 +329,7 @@ def rollback_rehearsal(repo: Path, test_cmd: str, to: str = "", timeout: int = 9
     try:
         git("worktree", "add", "--detach", str(tmp / "wt"), target)
         t0 = time.monotonic()
-        r = run(test_cmd, shell=True, cwd=str(tmp / "wt"), capture_output=True, text=True, timeout=timeout)
+        r = run(test_cmd, shell=True, cwd=str(tmp / "wt"), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
         took = round(time.monotonic() - t0, 1)
         out = (r.stdout or "") + (r.stderr or "")
     finally:

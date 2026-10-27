@@ -203,8 +203,8 @@ def run_tests(cwd: Path, cmd: str, timeout: int = 300) -> tuple[bool, str]:
     for c in cwd.rglob("__pycache__"):                  # an edit of the same size in the same second would reuse stale bytecode
         shutil.rmtree(c, ignore_errors=True)
     try:
-        p = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-                           env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        p = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+                           env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
                            creationflags=0x08000000 if hasattr(subprocess, "CREATE_NO_WINDOW") else 0)
     except subprocess.TimeoutExpired:
         return False, f"Testy nedoběhly do {timeout} s."

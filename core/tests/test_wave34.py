@@ -55,7 +55,7 @@ def shared(rt, tmp_path):
     (root / "faktura.pdf").write_bytes(b"%PDF-1.4 x")
     (root / "Fotky" / "a.jpg").write_bytes(b"jpg")
     (root / ".tajne").write_text("x")
-    (tmp_path / "mimo.txt").write_text("nesmí ven")
+    (tmp_path / "mimo.txt").write_text("nesmí ven", encoding="utf-8")
     try:
         os.symlink(tmp_path / "mimo.txt", root / "odkaz.txt")
     except OSError:

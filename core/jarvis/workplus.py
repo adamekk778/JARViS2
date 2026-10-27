@@ -270,8 +270,8 @@ def check_solution(code: str, tests: list[dict], timeout: float = 10) -> dict:
         (t / "tests.json").write_text(json.dumps(tests, ensure_ascii=False), encoding="utf-8")
         (t / "runner.py").write_text(RUNNER, encoding="utf-8")
         try:
-            p = subprocess.run([sys.executable, "-I", str(t / "runner.py"), str(t / "reseni.py"), str(t / "tests.json")], cwd=tmp,
-                               capture_output=True, text=True, timeout=timeout, creationflags=0x08000000 if sys.platform == "win32" else 0)
+            p = subprocess.run([sys.executable, "-I", "-X", "utf8", str(t / "runner.py"), str(t / "reseni.py"), str(t / "tests.json")], cwd=tmp,
+                               capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, creationflags=0x08000000 if sys.platform == "win32" else 0)
         except subprocess.TimeoutExpired:
             return {"ok": False, "passed": 0, "total": len(tests), "error": f"Řešení běží déle než {timeout:g} s (nekonečná smyčka?)."}
         if p.returncode != 0 or not p.stdout.strip():

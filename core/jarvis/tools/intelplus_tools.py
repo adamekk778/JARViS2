@@ -254,7 +254,7 @@ async def app_capabilities(ctx, app: str) -> ToolResult:
     if exe:
         for flag in ("--help", "/?", "-h"):
             try:
-                p = await asyncio.to_thread(subprocess.run, [exe, flag], capture_output=True, text=True, timeout=8,
+                p = await asyncio.to_thread(subprocess.run, [exe, flag], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=8,
                                             creationflags=0x08000000 if sys.platform == "win32" else 0)
             except (OSError, subprocess.TimeoutExpired):
                 continue
