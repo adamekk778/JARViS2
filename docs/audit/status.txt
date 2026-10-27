@@ -860,3 +860,17 @@
 747 | HOTOVO | hračky při nečinnosti (míč, jojo, vlaštovka, bublina), nejvýš jednou za 15 min, ne když spí nebo pracuje
 749 | HOTOVO | animace přepnutí AI poskytovatele (název nového se ukáže pod postavičkou)
 750 | HOTOVO | studio vlastních reakcí: kdy (upozornění / zpráva / e-mail), na jaká slova, co udělá; hodnoty se čistí (clean_look)
+
+# Vlna 33 – notch a rozhraní ví, co děláš (uiplus.py, notch/radial.ts, dashboard/play.ts, tests/test_wave33.py)
+078 | HOTOVO | po N minutách klidu (Nastavení → Notch) se postavička schová za horní okraj a občas vykoukne; při dění se vrátí
+080 | HOTOVO | minihra „Chyť hvězdy“ (aplikace → Hra, i z kruhového menu): postavička chytá hvězdy, vyhýbá se bouřkám, rekord
+089 | HOTOVO | rychlé akce podle aplikace vepředu (prohlížeč, Word, Excel, PowerPoint, VS Code, Průzkumník, pošta, hudba, hovory, grafika, PDF) + vlastní akce pro aplikace
+091 | HOTOVO | pracovní plochy v panelu notche: uložit současná okna, obnovit jedním klikem, smazat
+092 | HOTOVO | zámek proti náhodnému otevření: „Otevírání jen kliknutím“ – najetí myší notch jen probudí
+093 | HOTOVO | připnuté úkoly v notchi s časem („zítra v 9“, „za 20 minut“), připomenutí v ten čas, hlasem i v panelu
+094 | HOTOVO | návrhy podle situace: schůzka do 20 min, odkaz nebo dlouhý text ve schránce (hesla a klíče se nenabízí), úkol na dnes / po termínu
+743 | HOTOVO | pružné tělo postavičky: tlumená pružina – po dopadu, šťouchnutí a změně nálady se zhoupne a usadí
+751 | HOTOVO | kruhové menu kolem postavičky (pravé tlačítko): akce pro aplikaci, návrh chvíle a běžné akce
+756 | HOTOVO | rozložení Stark HUD: plné / minimální / soustředění / prezentace (nic osobního), Alt+1–4, pamatuje si
+758 | HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat)
+765 | ČÁSTEČNĚ | chování notche: otevírání, schovávání, zpoždění, prodleva, vlastní akce; plnohodnotný editor chování všech prvků ne

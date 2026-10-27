@@ -24,6 +24,8 @@ export const CLIENT_TYPES = [
   "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
   "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
   "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
+  "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
+  "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -40,6 +42,7 @@ export const SERVER_TYPES = [
   "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
   "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
   "learn", "learn_card", "learn_result",
+  "app_context", "pins", "workspaces", "workspace_result",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

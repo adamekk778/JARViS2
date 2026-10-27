@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import WebSocket, WebSocketDisconnect
 
 from .. import config as config_mod
-from .. import secrets, tools
+from .. import secrets, tools, uiplus
 from ..tools.sites import list_sites, site_path
 from ..tools.system import system_snapshot
 
@@ -41,6 +41,8 @@ CLIENT_TYPES = [
     "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
     "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
     "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
+    "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
+    "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -57,6 +59,7 @@ SERVER_TYPES = [
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
     "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
+    "app_context", "pins", "workspaces", "workspace_result",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -76,11 +79,12 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
               "open_window", "site_open", "selection_action", "mail_account_add", "mail_account_remove", "twilio_set", "home_set", "network_wake", "network_name", "artifact_open", "skill_rollback", "audit_export", "data_export", "backup_create",
-              "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open", "files_run", "project_set", "conflict_resolve"}
+              "backup_restore", "reset_all", "perm_grant", "seccheck", "rescue_open", "files_run", "project_set", "conflict_resolve",
+              "notch_context_get", "workspace_save", "workspace_restore", "workspace_delete"}
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -249,7 +253,44 @@ class Connection:
                         pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         claude_sessions=rt.claude.list(), claude_pending=rt.claude.pending_public(),
                         whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(),
-                        update=rt.updater.status if rt.updater else None)
+                        update=rt.updater.status if rt.updater else None, pins=uiplus.list_pins(rt))
+
+    async def _suggestions(self) -> list[dict]:
+        import datetime as _dt
+
+        rt = self.rt
+        try:
+            now = _dt.datetime.now()
+            events = await asyncio.wait_for(rt.calendar.events(now, now + _dt.timedelta(minutes=30)), 5)
+        except Exception:  # noqa: BLE001 – no calendar / offline: no meeting suggestion
+            events = []
+        try:
+            clip = await asyncio.to_thread(rt.platform.clipboard_get)
+        except Exception:  # noqa: BLE001
+            clip = ""
+        return uiplus.suggestions(rt, events, clip)
+
+    async def _workspaces(self, t: str, name: str) -> None:
+        from .. import workspace
+
+        rt = self.rt
+        ok, msg = True, ""
+        try:
+            if t == "workspace_save":
+                w = workspace.save(rt, name or time.strftime("Plocha %d. %m. %H:%M"))
+                msg = f"Uloženo: {w['name']} ({len(w['windows'])} oken)."
+            elif t == "workspace_restore":
+                r = await asyncio.to_thread(workspace.restore, rt, name)
+                msg = (f"Plocha {name}: {r['placed']} z {r['total']} oken na místě"
+                       + (f", spuštěno {len(r['started'])}" if r["started"] else "") + (f", nepovedlo se: {'; '.join(r['failed'])}" if r["failed"] else "") + ".")
+            elif t == "workspace_delete":
+                ok = workspace.delete(rt, name)
+                msg = f"Smazáno: {name}." if ok else f"Plochu {name} nevidím."
+        except (ValueError, KeyError) as e:
+            ok, msg = False, str(e)
+        if msg:
+            await self.send("workspace_result", ok=ok, message=msg)
+        await self.send("workspaces", items=workspace.list_all(rt))
 
     def _history(self, conv_id: str | None = None, before: float | None = None, limit: int = 60) -> list[dict]:
         msgs = self.rt.memory.history(conv_id, before, limit)
@@ -642,6 +683,31 @@ class Connection:
             await self.send("briefing", **b)
         elif t == "sites_get":
             await self.send("sites", items=list_sites())
+        # ---------- wave 33: the notch knows what you are doing ----------
+        elif t == "notch_context_get":
+            await self.send("app_context", **uiplus.app_context(rt), suggestions=await self._suggestions())
+        elif t == "pins_get":
+            await self.send("pins", items=uiplus.list_pins(rt))
+        elif t == "pin_add":
+            try:
+                text, due = str(m.get("text") or ""), m.get("due")
+                if not isinstance(due, (int, float)):
+                    text, due = uiplus.split_due(text) if not m.get("when") else (text, uiplus.parse_due(str(m["when"])))
+                uiplus.add_pin(rt, text, due)
+            except ValueError as e:
+                await self.send("error", message=str(e))
+            uiplus.publish_pins(rt)
+        elif t == "pin_done":
+            uiplus.set_done(rt, int(m.get("id") or 0), bool(m.get("done", True)))
+            uiplus.publish_pins(rt)
+        elif t == "pin_remove":
+            uiplus.remove_pin(rt, int(m.get("id") or 0))
+            uiplus.publish_pins(rt)
+        elif t == "pins_clear_done":
+            uiplus.clear_done(rt)
+            uiplus.publish_pins(rt)
+        elif t in ("workspaces_get", "workspace_save", "workspace_restore", "workspace_delete"):
+            await self._workspaces(t, str(m.get("name") or "").strip())
         elif t == "site_open":
             root = site_path(str(m.get("id", "")))
             if root is None:

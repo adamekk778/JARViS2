@@ -145,3 +145,7 @@ body.fc-offline .fc-head::after { content: "Připojuji se k JARVISovi…"; posit
   body:not(.fc-side-closed) .fc-scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgb(0 0 0 / .45); }
   .fc .msg.user .bubble { max-width: 86%; }
 }
+
+/* 3.10: UI density (Nastavení → Vzhled) */
+html[data-density="compact"] body { zoom: .9; }
+html[data-density="large"] body { zoom: 1.15; }

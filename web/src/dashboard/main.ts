@@ -19,6 +19,7 @@ import { buildHome } from "./home";
 import { buildBrain } from "./brain";
 import { buildFiles } from "./files";
 import { buildLearn } from "./learn";
+import { buildPlay } from "./play";
 import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
 import { whatsNewOverlay } from "../shared/whatsnew";
@@ -40,10 +41,10 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
+type Page = "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude"]],
+  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
   ["Systém", ["diagnostics"]],
@@ -62,6 +63,7 @@ const NAV: [View, string, string][] = [
   ["tasks", "list-checks", "Úkoly"],
   ["voice-mode", "microphone-stage", "Hlasový režim"],
   ["claude", "terminal-window", "Claude Code"],
+  ["play", "game-controller", "Hra"],
   ["dictate", "microphone", "Diktování"],
   ["notetaker", "record", "Nahrávání hovorů"],
   ["stats", "chart-bar", "Statistiky"],
@@ -109,6 +111,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   files: buildFiles(client),
   knowledge: buildBrain(client),
   learn: buildLearn(client),
+  play: buildPlay(client),
 };
 recapOverlay(client);
 whatsNewOverlay(client);

@@ -90,6 +90,11 @@ export class Blob {
   private ambientOn = true;
   private energy = 1;
   private fxHtml = "";
+  // OMEGA 743: soft body – a damped spring on the squash (x > 0 = wide and short), kicked by landings, pokes and mood changes
+  private jelly = { x: 0, v: 0 };
+  private lastLand = -1;
+  /** Kick the soft body (positive = flatten, negative = stretch up). */
+  wobble(strength = 1.5) { this.jelly.v += strength; }
 
   constructor(opts: BlobOptions = {}) {
     const uid = `b${++uidSeq}`;
@@ -173,6 +178,7 @@ export class Blob {
     if (extra.ambient !== undefined) this.ambient = extra.ambient;
     if (extra.reaction && extra.reaction.id !== this.lastReaction) this.play(extra.reaction);
     if (m !== this.mood) {
+      if (this.renderedFrames) this.wobble(m === "success" || m === "joy" ? -1.6 : 0.9);
       this.mood = m;
       this.look = LOOKS[m] ?? LOOKS.idle;
       this.moodStart = performance.now();
@@ -264,6 +270,7 @@ export class Blob {
     const now = performance.now();
     this.pokes = this.pokes.filter((t) => now - t < 4000);
     this.pokes.push(now);
+    this.wobble(2.4);
     if (this.pokes.length >= 6) { this.pokes = []; return "dizzy"; }
     if (this.pokes.length >= 3) return "annoyed";
     return null;
@@ -302,7 +309,7 @@ export class Blob {
     if (reducedMotion()) return 10;
     const calm = this.mood === "idle" || this.mood === "closed" || this.mood === "sleeping" || this.mood === "focus";
     const pointerStill = !this.cursor || now - this.cursor.t > 3000;
-    return calm && pointerStill && !this.reaction ? 20 : 0;
+    return calm && pointerStill && !this.reaction && !this.jelly.v ? 20 : 0;
   }
   private detachedSince = 0;
 
@@ -480,11 +487,21 @@ export class Blob {
       if (look.hop) {
         const ph = (since % 1.3) / 1.3;
         if (ph < 0.4) y -= Math.sin((ph / 0.4) * Math.PI) * 16 * Math.max(0.5, en);
-        if (ph > 0.38 && ph < 0.48) { sy *= 0.9; sx *= 1.08; }
+        const cycle = Math.floor(since / 1.3);
+        if (ph >= 0.4 && cycle !== this.lastLand) { this.lastLand = cycle; this.wobble(1.8 * Math.max(0.5, en)); }
       }
       if (look.shake && since < 0.6) rot += Math.sin(since * 40) * 7 * (1 - since / 0.6);
       if (look.wobble) { rot += Math.sin(t * 5) * 9; y += Math.sin(t * 10) * 1.5; }
       if (look.spin) spin = clamp(since / 1.2, 0, 1) * 360;
+      // soft body: under-damped spring, so a landing squashes, overshoots and settles in a few wobbles
+      const j = this.jelly;
+      j.v += (-170 * j.x - 7.5 * j.v) * dt;
+      j.x = clamp(j.x + j.v * dt, -0.18, 0.22);
+      if (Math.abs(j.x) < 0.0005 && Math.abs(j.v) < 0.005) j.x = j.v = 0;
+      sx *= 1 + j.x * 0.6;
+      sy /= 1 + j.x;
+    } else {
+      this.jelly.x = this.jelly.v = 0;
     }
     const sq = look.squash;
     sx *= Math.sqrt(sq);

@@ -289,7 +289,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       }));
       return [
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku"),
-          sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu")),
+          sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
+          select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],
+            "„Jen kliknutím“ = notch se při přejetí myší jen probudí, panel otevře až klik. Hodí se proti náhodnému otevření."),
+          select("notch.tuck_minutes", "Schovávání postavičky", [["0", "Nikdy"], ["5", "Po 5 min klidu"], ["10", "Po 10 min klidu"], ["30", "Po 30 min klidu"]],
+            "Když se dlouho nic neděje, schová se za okraj a občas vykoukne."),
+          select("stark.hud_layout", "Rozložení Stark HUD", [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace (nic osobního)"]],
+            "V HUD přepneš i klávesami Alt+1 až Alt+4.")),
+        appActionsCard(),
         card("Dlaždice v rozevřeném notchi", "Pořadí odpovídá pořadí zaškrtnutí.", tileBox),
         card("Rozměry a chování", null,
           h("div", { class: "grid2" }, text("notch.monitor", "Monitor (0 = hlavní)", "", "number"), text("notch.offset_x", "Posun vodorovně (px)", "", "number")),
@@ -308,7 +315,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
-        select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]])),
+        select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]]),
+        select("appearance.density", "Velikost rozhraní", [["auto", "Automaticky podle okna"], ["compact", "Kompaktní"], ["comfortable", "Běžná"], ["large", "Velká"]],
+          "Automaticky: v malém okně kompaktní, na velkém monitoru větší.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),
           h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní zvuky"),
@@ -633,6 +642,23 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             ["klidný", "Klidná – méně pohybu"], ["profesionální", "Profesionální – žádné hraní"]],
             "Jak živě se hýbe a jak často si sám pro sebe hraje, když nic neděláš."))),
       sw("character.ambient", "Doplňky podle počasí a denní doby", "Deštník, když prší, vločka v zimě, ráno káva, v noci měsíc a tlumenější záře."));
+  }
+
+  /** OMEGA 089: your own quick actions for an app (shown in the notch and the ring around the character). */
+  function appActionsCard() {
+    const list: any[] = (S.notch?.app_actions || []).map((a: any) => ({ ...a }));
+    const save = () => set("notch.app_actions", list);
+    const inp = (a: any, k: string, ph: string, label: string) => {
+      const el = h("input", { class: "input", value: a[k] ?? "", placeholder: ph, "aria-label": label }) as HTMLInputElement;
+      el.onchange = () => { a[k] = el.value.trim(); save(); };
+      return el;
+    };
+    return card("Vlastní akce pro aplikace", "Když je vepředu daná aplikace, notch a kruhové menu (pravé tlačítko na postavičku) nabídnou tvoje akce jako první. Akce je věta, kterou JARVIS dostane, jako bys ji napsal.",
+      ...list.map((a, i) => h("div", { class: "reaction-row" },
+        h("div", { class: "grid2" }, field("Aplikace", inp(a, "app", "např. excel, chrome, winword", "Aplikace")), field("Název tlačítka", inp(a, "label", "např. Měsíční report", "Název"))),
+        field("Co má JARVIS udělat", inp(a, "text", "např. Podívej se na obrazovku a udělej z tabulky souhrn za měsíc.", "Příkaz"), "", true),
+        h("div", { class: "row" }, h("button", { class: "btn ghost", type: "button", onclick: () => { list.splice(i, 1); save(); } }, icon("trash"), "Smazat")))),
+      h("div", { class: "row" }, h("button", { class: "btn", type: "button", onclick: () => { list.push({ app: "", label: "", text: "", icon: "lightning" }); save(); } }, icon("plus"), "Přidat akci")));
   }
 
   /** OMEGA 750: the user's own reactions – when something happens, the character does this. */

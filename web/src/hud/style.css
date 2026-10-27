@@ -207,3 +207,14 @@ html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 
   .corner.tl, .corner.tr, .col.left, .centre, .col.right, .bottom { grid-column: 1; grid-row: auto; text-align: left; }
   .reactor { width: min(70vw, 320px); }
 }
+
+/* 3.10: layouts (OMEGA 756) */
+.layouts { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); display: flex; gap: 4px; z-index: 5; opacity: .55; transition: opacity .2s; }
+.layouts:hover, .layouts:focus-within { opacity: 1; }
+.layouts button { font: 600 11px/1 var(--hud-font, "Rajdhani"), sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--holo, #6fe3ff);
+  background: transparent; border: 1px solid color-mix(in oklab, var(--holo, #6fe3ff) 35%, transparent); padding: 5px 10px; cursor: pointer; }
+.layouts button.on { background: color-mix(in oklab, var(--holo, #6fe3ff) 22%, transparent); }
+.hud[data-layout="minimal"] .col, .hud[data-layout="minimal"] .protocols, .hud[data-layout="minimal"] .corner.tr .w-days { display: none; }
+.hud[data-layout="focus"] .col.left, .hud[data-layout="focus"] .col.right > :last-child, .hud[data-layout="focus"] .protocols { display: none; }
+.hud[data-layout="presentation"] .col, .hud[data-layout="presentation"] .greet, .hud[data-layout="presentation"] .you,
+.hud[data-layout="presentation"] .answer, .hud[data-layout="presentation"] .protocols, .hud[data-layout="presentation"] .brief { display: none; }

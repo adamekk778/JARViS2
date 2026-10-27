@@ -17,6 +17,24 @@ export function applyAppearance(s: any) {
     root.style.setProperty("--accent-ink", inkFor(a.accent));
   }
   root.dataset.motion = a.animations === "reduced" ? "reduced" : "full";
+  densityPref = a.density || "auto";
+  applyDensity();
+}
+
+// OMEGA 758: how dense the UI is – chosen, or by the window size ("auto"); the pages that use it scale with it
+let densityPref = "auto";
+let densityBound = false;
+export function densityFor(pref: string, width: number): "compact" | "comfortable" | "large" {
+  if (pref === "compact" || pref === "comfortable" || pref === "large") return pref;
+  return width < 1100 ? "compact" : width >= 2200 ? "large" : "comfortable";
+}
+function applyDensity() {
+  document.documentElement.dataset.density = densityFor(densityPref, window.innerWidth);
+  if (!densityBound) {
+    densityBound = true;
+    let t = 0;
+    window.addEventListener("resize", () => { window.clearTimeout(t); t = window.setTimeout(applyDensity, 150); });
+  }
 }
 
 /** Text colour that stays readable on the accent (white on blue, near-black on yellow or white accents). */

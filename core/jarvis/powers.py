@@ -51,6 +51,7 @@ class Activity:
         self._active_since: float | None = None
         self._break_said = False
         self._task: asyncio.Task | None = None
+        self._ui_app: str | None = None
         rt.db.conn.executescript(USAGE_SQL)
 
     def start(self) -> None:
@@ -64,9 +65,24 @@ class Activity:
         while True:
             try:
                 await asyncio.to_thread(self.sample)
+                self.ui_tick()
             except Exception as e:
                 log.debug("activity: %s", e)
             await asyncio.sleep(SAMPLE_S)
+
+    def ui_tick(self, now: float | None = None) -> None:
+        """Wave 33: tell the notch when another app comes to the front; announce pinned to-dos whose time came."""
+        from . import uiplus
+
+        app = self.last_external.get("app") or ""
+        if app != self._ui_app:
+            self._ui_app = app
+            self.rt.bus.publish("app_context", **uiplus.app_context(self.rt, self.last_external))
+        due = uiplus.due_reminders(self.rt, now)
+        for p in due:
+            self.rt.notify("Připnutý úkol", p["text"], urgent=True)
+        if due:
+            uiplus.publish_pins(self.rt)
 
     # ---------- one sample ----------
     def sample(self, now: float | None = None, dt_s: float = SAMPLE_S) -> None:

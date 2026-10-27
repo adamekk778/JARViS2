@@ -8,6 +8,7 @@ import { buildPanel } from "./panel";
 import { configureSounds, play, setCustomSounds } from "../shared/sounds";
 import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender } from "../shared/region";
+import { radialActions, renderRadial, type UiAction } from "./radial";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -15,8 +16,9 @@ import { notchOutline, regionSender } from "../shared/region";
    bar     character below the notch + chat / mic / settings buttons
    live    JARVIS is busy: character in its mood + speech bubble
    alert   short notification
-   panel   the big panel                                                       */
-type Mode = "closed" | "hover" | "bar" | "live" | "alert" | "panel";
+   panel   the big panel
+   radial  right-click on the character: a ring of actions around him (3.10)    */
+type Mode = "closed" | "hover" | "bar" | "live" | "alert" | "panel" | "radial";
 
 declare global {
   interface Window { pywebview?: { api: Record<string, (...a: any[]) => Promise<any>> } }
@@ -40,7 +42,8 @@ function setAlpha(on: boolean) {
 (window as any).__notchAlpha = setAlpha;
 if (window.pywebview) document.documentElement.classList.add("native");
 
-let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6 };
+let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6,
+  open_on: "hover", tuck_minutes: 10 };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
 let moodInfo: { badge?: number; progress?: number | null; detail?: string; reaction?: any; secondary?: any; ambient?: any } = {};
@@ -109,7 +112,8 @@ function setPinned(v: boolean, save = true) {
 const alertTitle = h("strong");
 const alertBody = h("span");
 const alertBox = h("div", { class: "n-alert-text" }, alertTitle, alertBody);
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress);
+const radialBox = h("div", { class: "n-radial", role: "menu", "aria-label": "Akce" });
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -129,6 +133,7 @@ function sizeFor(m: Mode): [number, number] {
     case "bar": return [400, 104];
     case "hover": return [Math.round(cfg.width * 1.1), Math.round(cfg.height * 1.15)];
     case "alert": return [440, 92];
+    case "radial": return [340, 320];
     case "live": return [560, liveHeight()];
     default: return [activity ? Math.max(cfg.width, 300) : cfg.width, cfg.height];
   }
@@ -144,7 +149,7 @@ function liveHeight() {
 // old size to the new one, and the window region follows those exact numbers. Nothing is laid out per frame, so
 // even the big panel opens and closes smoothly; after the animation the box and the window shrink to fit.
 const sendRegion = regionSender();
-const RADIUS: Record<string, number> = { closed: 18, hover: 18, bar: 26, live: 26, alert: 26, panel: 26 };
+const RADIUS: Record<string, number> = { closed: 18, hover: 18, bar: 26, live: 26, alert: 26, panel: 26, radial: 60 };
 const S = { w: 200, h: 34, r: 18, vw: 0, vh: 0, vr: 0, tw: 200, th: 34, tr: 18, raf: 0, last: 0, grow: true };
 let boxW = 0, boxH = 0;
 const reducedMotion = () => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -292,16 +297,21 @@ shape.addEventListener("mouseenter", () => {
   hovering = true;
   window.clearTimeout(closeTimer);
   window.clearTimeout(openTimer);
+  stir();
   if (mode === "closed" || mode === "alert") {
-    // straight from the closed notch to the bar: no half-open step in between
-    openTimer = window.setTimeout(() => hovering && (mode === "closed" || mode === "alert") && setMode("bar"), cfg.open_delay_ms);
+    // straight from the closed notch to the bar: no half-open step in between; OMEGA 092: locked = only wakes up, a click opens it
+    const next: Mode = cfg.open_on === "click" ? "hover" : "bar";
+    openTimer = window.setTimeout(() => hovering && (mode === "closed" || mode === "alert") && setMode(next), cfg.open_delay_ms);
   }
 });
 function leave() {
   hovering = false;
   window.clearTimeout(openTimer);
-  if (mode === "bar" || mode === "hover" || mode === "panel") scheduleClose();
+  if (mode === "bar" || mode === "hover" || mode === "panel" || mode === "radial") scheduleClose();
 }
+shape.addEventListener("click", (e) => {
+  if (cfg.open_on === "click" && (mode === "hover" || mode === "closed") && !(e.target as HTMLElement).closest(".n-blob")) setMode("bar");
+});
 shape.addEventListener("mouseleave", async () => {
   if (window.pywebview && await cursorInside()) {
     // spurious leave: keep it open and keep checking until the cursor really goes away
@@ -314,6 +324,7 @@ shape.addEventListener("mouseleave", async () => {
 });
 blobBox.addEventListener("click", () => {
   if (justDragged) return;
+  if (mode === "radial") { settle(true); return; }
   const poked = blob.poke();      // 3 quick pokes annoy him, 6 make his head spin
   if (poked) { flashUi(poked, poked === "dizzy" ? 3200 : 1600); updateBlob(); return; }
   if (mode === "panel") { if (pinned) setPinned(false); settle(true); }
@@ -340,7 +351,53 @@ window.addEventListener("drop", async (e) => {
   shape.classList.remove("dropping");
   for (const f of [...(e.dataTransfer?.files || [])]) client.send("shelf_add", { attachment_id: (await client.upload(f, f.name)).id });
 });
-window.addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "panel") { if (pinned) setPinned(false); settle(true); } });
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && mode === "panel") { if (pinned) setPinned(false); settle(true); }
+  if (e.key === "Escape" && mode === "radial") settle(true);
+});
+
+// ---------- 3.10: the ring of actions (OMEGA 751) for the app in front (089) and the moment (094) ----------
+let appCtx: { app: string; actions: UiAction[]; suggestions?: UiAction[] } = { app: "", actions: [] };
+function paintRadial() {
+  renderRadial(radialBox, radialActions(appCtx.actions || [], appCtx.suggestions || []), appCtx.app, runAction);
+}
+function openRadial() {
+  client.send("notch_context_get");
+  paintRadial();
+  setMode("radial");
+}
+function runAction(a: UiAction) {
+  if (a.text) client.send("user_text", { text: a.text, attachments: [] });
+  else if (a.quick) client.send("quick_action", { action: a.quick, args: a.args || {} });
+  else if (a.pin) client.send("pin_done", { id: a.pin });
+  else if (a.open === "talk") client.send("push_to_talk");
+  else if (a.open === "play") openChat("play");
+  else if (a.open === "chat" || a.open === "workspaces" || a.open === "settings") { openPanel(a.open); return; }
+  settle(true);
+}
+blobBox.addEventListener("contextmenu", (e) => { e.preventDefault(); if (mode === "radial") settle(true); else openRadial(); });
+client.on("app_context", (m) => {
+  appCtx = { app: m.app || "", actions: m.actions || [], suggestions: m.suggestions ?? appCtx.suggestions };
+  if (mode === "radial") paintRadial();
+});
+
+// ---------- 3.10: after a long quiet spell he hides behind the edge and now and then peeks out (OMEGA 078) ----------
+let lastStir = Date.now();
+function stir() {
+  lastStir = Date.now();
+  shape.classList.remove("tucked", "peek");
+}
+window.setInterval(() => {
+  const quiet = mode === "closed" && (coreMood === "idle" || coreMood === "sleeping") && !activity;
+  if (!quiet || !cfg.tuck_minutes) { if (shape.classList.contains("tucked")) stir(); return; }
+  if (Date.now() - lastStir < cfg.tuck_minutes * 60000) return;
+  shape.classList.add("tucked");
+  if (!shape.classList.contains("peek") && Math.random() < 0.08) {
+    shape.classList.add("peek");
+    blob.face(Math.random() < 0.5 ? -0.8 : 0.8, 0.4);
+    window.setTimeout(() => { shape.classList.remove("peek"); blob.face(0, 0); }, 2600);
+  }
+}, 5000);
 
 // ---------- live bubble ----------
 const STATE_LABEL: Partial<Record<Mood, string>> = { listening: "Poslouchám…", thinking: "Přemýšlím…", working: "Pracuji…", waiting: "Potřebuji potvrzení" };
@@ -363,6 +420,7 @@ function renderLive() {
 
 function onMood(m: any) {
   const prev = coreMood;
+  if (m.mood !== "idle" && m.mood !== "sleeping") stir();
   coreMood = m.mood;
   moodInfo = m;
   if (m.mood !== prev) {
@@ -564,6 +622,7 @@ client.on("settings_changed", (m) => {
   configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
+  if (m.settings?.notch) cfg = { ...cfg, open_on: m.settings.notch.open_on ?? cfg.open_on, tuck_minutes: m.settings.notch.tuck_minutes ?? cfg.tuck_minutes };
 
 });
 client.on("mood", onMood);

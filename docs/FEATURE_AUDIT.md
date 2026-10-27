@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 456 | 74 |
-| 🟡 ČÁSTEČNĚ | 167 | 59 |
+| ✅ HOTOVO | 467 | 74 |
+| 🟡 ČÁSTEČNĚ | 168 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 138 | 16 |
+| ⬜ CHYBÍ | 126 | 16 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -134,7 +134,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 07. Mochi 2.0
 
-✅ 7 · 🟡 3 · ⬜ 5
+✅ 9 · 🟡 3 · ⬜ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -145,9 +145,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 075 | Pravdivá vizualizace stahování. | 🟡 ČÁSTEČNĚ | pravdivý průběh stahování aktualizace (mood update_progress) |
 | 076 | Oslava dokončeného úkolu. | ✅ HOTOVO | radost po ověřené misi / úspěchu (mood.py joy/success, tests/test_omega.py) |
 | 077 | Nenápadná nabídka přestávky. | ✅ HOTOVO | připomínka pauzy po N minutách u PC (powers.py break_minutes) |
-| 078 | Schovávání za okraj ostrova. | ⬜ CHYBÍ | — |
+| 078 | Schovávání za okraj ostrova. | ✅ HOTOVO | po N minutách klidu (Nastavení → Notch) se postavička schová za horní okraj a občas vykoukne; při dění se vrátí |
 | 079 | Interaktivní rozdělení Mochiho. | ⬜ CHYBÍ | — |
-| 080 | Drobné minihry s Mochem. | ⬜ CHYBÍ | — |
+| 080 | Drobné minihry s Mochem. | ✅ HOTOVO | minihra „Chyť hvězdy“ (aplikace → Hra, i z kruhového menu): postavička chytá hvězdy, vyhýbá se bouřkám, rekord |
 | 081 | Reakce na připojení zařízení. | ✅ HOTOVO | reakce na připojení a odpojení zařízení (strážce hardwaru → plug / unplug) |
 | 082 | Sezónní drobné animace. | ✅ HOTOVO | sezónní oblečky (Vánoce, Halloween, Silvestr, léto) + doplňky podle počasí a denní doby |
 | 083 | Animovaný cross-device handoff. | ⬜ CHYBÍ | — |
@@ -156,19 +156,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 08. Dynamic Island Pro
 
-✅ 2 · 🟡 3 · ⬜ 5
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 086 | Picture-in-picture panel asistenta. | 🟡 ČÁSTEČNĚ | rozbalovací panel notche (web/src/notch) |
 | 087 | Živé minipanely agentů. | 🟡 ČÁSTEČNĚ | karta aktuálního úkolu v notchi (shared/taskcard.ts) |
 | 088 | Drag & drop do notche. | ✅ HOTOVO | přetažení souborů do notche – police (shelf) |
-| 089 | Rychlé akce podle aplikace. | ⬜ CHYBÍ | — |
+| 089 | Rychlé akce podle aplikace. | ✅ HOTOVO | rychlé akce podle aplikace vepředu (prohlížeč, Word, Excel, PowerPoint, VS Code, Průzkumník, pošta, hudba, hovory, grafika, PDF) + vlastní akce pro aplikace |
 | 090 | Konfigurovatelné klávesové zkratky. | ✅ HOTOVO | konfigurovatelné zkratky (Nastavení → Zkratky) |
-| 091 | Rozšířený panel s pracovními plochami. | ⬜ CHYBÍ | — |
-| 092 | Zamknutí panelu proti náhodnému otevření. | ⬜ CHYBÍ | — |
-| 093 | Připnuté úkoly. | ⬜ CHYBÍ | — |
-| 094 | Kontextové návrhy v minipanelu. | ⬜ CHYBÍ | — |
+| 091 | Rozšířený panel s pracovními plochami. | ✅ HOTOVO | pracovní plochy v panelu notche: uložit současná okna, obnovit jedním klikem, smazat |
+| 092 | Zamknutí panelu proti náhodnému otevření. | ✅ HOTOVO | zámek proti náhodnému otevření: „Otevírání jen kliknutím“ – najetí myší notch jen probudí |
+| 093 | Připnuté úkoly. | ✅ HOTOVO | připnuté úkoly v notchi s časem („zítra v 9“, „za 20 minut“), připomenutí v ten čas, hlasem i v panelu |
+| 094 | Kontextové návrhy v minipanelu. | ✅ HOTOVO | návrhy podle situace: schůzka do 20 min, odkaz nebo dlouhý text ve schránce (hesla a klíče se nenabízí), úkol na dnes / po termínu |
 | 095 | Vlastní interaktivní widgety. | 🟡 ČÁSTEČNĚ | volitelné dlaždice notche |
 
 ## 09. Voice Intelligence
@@ -1135,7 +1135,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 55. Mochi Reactive Companion
 
-✅ 12 · 🟡 2 · ⬜ 1
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1146,7 +1146,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 740 | Time-Based Outfits — doplňky dle času. | ✅ HOTOVO | doplňky podle denní doby: ráno káva, v noci měsíc |
 | 741 | Ambient Light Adaptation — adaptace jasu. | 🟡 ČÁSTEČNĚ | v noci tlumenější záře; skutečný senzor okolního světla se nečte |
 | 742 | Accessibility Animation Mode — omezený pohyb. | ✅ HOTOVO | omezení animací |
-| 743 | Soft Body Physics — pružná fyzika. | ⬜ CHYBÍ | — |
+| 743 | Soft Body Physics — pružná fyzika. | ✅ HOTOVO | pružné tělo postavičky: tlumená pružina – po dopadu, šťouchnutí a změně nálady se zhoupne a usadí |
 | 744 | Code Error Confusion — reakce na chybu buildu. | 🟡 ČÁSTEČNĚ | nálada chyba při selhání |
 | 745 | Test Success Celebration — oslava testu. | ✅ HOTOVO | radost po ověřené misi |
 | 746 | Rare Easter Eggs — překvapivé animace. | ✅ HOTOVO | velikonoční vajíčka: „barrel roll“, „smysl života“ (42), „mrkni“, „žongluj“ + vzácná náhodná překvapení |
@@ -1157,25 +1157,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 56. Futuristic JARVIS Interface
 
-✅ 2 · 🟡 3 · ⬜ 10
+✅ 5 · 🟡 4 · ⬜ 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 751 | Contextual Radial Menu — radiální akce. | ⬜ CHYBÍ | — |
+| 751 | Contextual Radial Menu — radiální akce. | ✅ HOTOVO | kruhové menu kolem postavičky (pravé tlačítko): akce pro aplikaci, návrh chvíle a běžné akce |
 | 752 | Smart Overlay Anchoring — připnutí k oknu. | ⬜ CHYBÍ | — |
 | 753 | Attention-Aware UI — méně rušení. | ⬜ CHYBÍ | — |
 | 754 | Live Agent Activity Map — mapa agentů. | ⬜ CHYBÍ | — |
 | 755 | Mission Dependency Animation — návaznosti úkolů. | ⬜ CHYBÍ | — |
-| 756 | HUD Layout Presets — layout profily. | ⬜ CHYBÍ | — |
+| 756 | HUD Layout Presets — layout profily. | ✅ HOTOVO | rozložení Stark HUD: plné / minimální / soustředění / prezentace (nic osobního), Alt+1–4, pamatuje si |
 | 757 | Command Palette Search — příkazová paleta. | ✅ HOTOVO | příkazová paleta Ctrl+K (dashboard/palette.ts) |
-| 758 | Adaptive Density UI — velikost a hustota UI. | ⬜ CHYBÍ | — |
+| 758 | Adaptive Density UI — velikost a hustota UI. | ✅ HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat) |
 | 759 | Floating Data Lens — datová lupa. | ⬜ CHYBÍ | — |
 | 760 | Animated Status Morphing — plynulé indikátory. | 🟡 ČÁSTEČNĚ | animované stavy |
 | 761 | Spatial Audio Notifications — prostorové zvuky. | ⬜ CHYBÍ | — |
 | 762 | Touch-Friendly Dashboard — dotyková verze. | 🟡 ČÁSTEČNĚ | mobilní aplikace |
 | 763 | Miniature Mission Viewer — mini stav mise. | ✅ HOTOVO | mini stav mise v notchi a mobilu (taskcard) |
 | 764 | HUD Performance Governor — úsporné UI. | 🟡 ČÁSTEČNĚ | vypnutí animací |
-| 765 | Interface Behavior Editor — chování prvků. | ⬜ CHYBÍ | — |
+| 765 | Interface Behavior Editor — chování prvků. | 🟡 ČÁSTEČNĚ | chování notche: otevírání, schovávání, zpoždění, prodleva, vlastní akce; plnohodnotný editor chování všech prvků ne |
 
 ## 57. Science & Simulation
 

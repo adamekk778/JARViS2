@@ -256,7 +256,22 @@ function showBriefing(text: string) {
 const plain = (md: string) => md.replace(/```[\s\S]*?```/g, " [kód] ").replace(/[*_#>`|]/g, "").replace(/\s+/g, " ").trim();
 let answer = "";
 
+// OMEGA 756: layouts – everything, just the essentials, focus (no log, no media), presentation (nothing personal)
+const LAYOUTS: [string, string][] = [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace"]];
+const layoutBar = h("div", { class: "layouts", role: "radiogroup", "aria-label": "Rozložení HUD" });
+root.append(layoutBar);
+function setLayout(name: string) {
+  const l = LAYOUTS.some(([k]) => k === name) ? name : "full";
+  root.dataset.layout = l;
+  layoutBar.replaceChildren(...LAYOUTS.map(([k, label], i) => h("button", {
+    type: "button", role: "radio", "aria-checked": String(k === l), class: k === l ? "on" : "", title: `${label} (Alt+${i + 1})`,
+    onclick: () => { setLayout(k); client.send("settings_set", { patch: { stark: { hud_layout: k } } }); },
+  }, label)));
+}
+setLayout("full");
+
 client.on("welcome", (m) => {
+  setLayout(m.settings?.stark?.hud_layout);
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   name = m.settings?.general?.address_as || m.settings?.general?.user_name || "pane";
@@ -266,7 +281,7 @@ client.on("welcome", (m) => {
   setMood(m.mood?.mood || "idle");
   refresh(true);
 });
-client.on("settings_changed", (m) => { applyAppearance(m.settings); renderProtocols(m.settings?.stark?.protocols); });
+client.on("settings_changed", (m) => { setLayout(m.settings?.stark?.hud_layout); applyAppearance(m.settings); renderProtocols(m.settings?.stark?.protocols); });
 client.on("system", (s) => {
   gCpu.set(s.cpu_percent); cpuSpark.push(s.cpu_percent || 0);
   gRam.set(s.ram_percent, `${Math.round(s.ram_percent)}%`);
@@ -368,6 +383,11 @@ function close() {
 window.addEventListener("pywebviewready", () => {
   Promise.resolve(api()?.smooth?.()).then((on) => document.documentElement.classList.toggle("alpha", !!on)).catch(() => {});
 });
-window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHud(); });
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeHud();
+  // OMEGA 756: Alt+1…4 switches the layout (and remembers it)
+  const pick = e.altKey && LAYOUTS[Number(e.key) - 1];
+  if (pick) { e.preventDefault(); setLayout(pick[0]); client.send("settings_set", { patch: { stark: { hud_layout: pick[0] } } }); }
+});
 client.connect();
 open();

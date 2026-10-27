@@ -7,13 +7,14 @@ import type { JarvisClient } from "../shared/ws";
 import { TaskCard } from "../shared/taskcard";
 import { missingModelCard } from "../shared/localmissing";
 
-export type Section = "chat" | "quick" | "system" | "files" | "tools" | "settings";
+export type Section = "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings";
 
 const NAV: [Section, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
   ["quick", "squares-four", "Rychlé akce"],
   ["system", "gear-six", "Systém"],
   ["files", "folder-simple", "Soubory"],
+  ["workspaces", "squares-four", "Plochy"],
   ["tools", "wrench", "Nástroje"],
   ["settings", "sliders-horizontal", "Nastavení"],
 ];
@@ -62,9 +63,55 @@ export function buildPanel(ctx: PanelCtx) {
         h("button", { class: "p-icon", type: "button", "aria-label": "Další", onclick: () => quick("media_control", { action: "next" }) }, icon("skip-forward", "ph-fill"))));
   };
   const taskCard = new TaskCard(client, { compact: true, hideWhenIdle: true });
+
+  // 3.10: what fits the app in front (OMEGA 089) and the moment (094)
+  let ctxInfo: any = { app: "", actions: [], suggestions: [] };
+  const ctxCard = h("div", { class: "p-card ctx-card", hidden: true });
+  const runCtx = (a: any) => {
+    if (a.text) { show("chat"); client.send("user_text", { text: a.text, attachments: [] }); }
+    else if (a.quick) quick(a.quick, a.args || {});
+    else if (a.pin) client.send("pin_done", { id: a.pin });
+  };
+  const renderCtx = () => {
+    const acts = [...(ctxInfo.suggestions || []), ...(ctxInfo.actions || [])].slice(0, 6);
+    ctxCard.hidden = !acts.length;
+    ctxCard.replaceChildren(h("div", { class: "p-card-head" }, h("span", {}, ctxInfo.app ? `Pro ${ctxInfo.app}` : "Teď se hodí")),
+      h("div", { class: "ctx-list" }, ...acts.map((a: any) => h("button", { class: "p-pill", type: "button", title: a.label, onclick: () => runCtx(a) }, icon(a.icon), " ", a.label))));
+  };
+
+  // 3.10: small pinned to-dos (OMEGA 093)
+  let pins: any[] = [];
+  const pinsList = h("div", { class: "pins" });
+  const pinInput = h("input", { class: "p-input", type: "text", placeholder: "Připnout… (např. zavolat Petrovi v 15:00)", "aria-label": "Nový připnutý úkol" }) as HTMLInputElement;
+  pinInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && pinInput.value.trim()) { client.send("pin_add", { text: pinInput.value.trim() }); pinInput.value = ""; }
+  });
+  pinInput.addEventListener("focus", () => ctx.pin(true));
+  pinInput.addEventListener("blur", () => ctx.pin(false));
+  const fmtDue = (ts: number) => {
+    const d = new Date(ts * 1000), now = new Date();
+    const hm = d.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+    return d.toDateString() === now.toDateString() ? hm : `${d.getDate()}. ${d.getMonth() + 1}. ${hm}`;
+  };
+  const renderPins = () => {
+    pinsList.replaceChildren(...pins.map((p) => {
+      const c = h("input", { type: "checkbox", "aria-label": `Hotovo: ${p.text}` }) as HTMLInputElement;
+      c.checked = !!p.done;
+      c.onchange = () => client.send("pin_done", { id: p.id, done: c.checked });
+      const late = p.due && p.due * 1000 < Date.now();
+      return h("label", { class: `pin ${late ? "late" : ""}` }, c, h("span", {}, p.text),
+        p.due ? h("em", {}, fmtDue(p.due)) : null,
+        h("button", { class: "p-icon sm", type: "button", "aria-label": "Odepnout", onclick: (e: Event) => { e.preventDefault(); client.send("pin_remove", { id: p.id }); } }, icon("x")));
+    }));
+  };
+  const pinsCard = h("div", { class: "p-card pins-card" },
+    h("div", { class: "p-card-head" }, h("span", {}, icon("push-pin"), " Připnuté")), pinsList, pinInput);
+
   const right = h("aside", { class: "p-right" },
     missingModelCard(client, "compact"),
     taskCard.el,
+    ctxCard,
+    pinsCard,
     mediaCard,
     h("div", { class: "p-card" },
       h("div", { class: "p-card-head" }, h("span", {}, "Rychlé akce"), h("button", { class: "p-icon sm", type: "button", "aria-label": "Všechny akce", onclick: () => show("quick") }, icon("squares-four"))),
@@ -143,6 +190,24 @@ export function buildPanel(ctx: PanelCtx) {
   const filesView = h("div", { class: "p-sec p-files" }, shelfList,
     h("button", { class: "p-pill", type: "button", onclick: () => fileInput.click() }, icon("plus"), " Přidat soubory"), fileInput);
 
+  // 3.10: workspaces – the windows of a piece of work, saved and back in one click (OMEGA 091)
+  const wsList = h("div", { class: "ws-list" });
+  const wsName = h("input", { class: "p-input", type: "text", placeholder: "Název (např. Účetnictví)", "aria-label": "Název plochy" }) as HTMLInputElement;
+  wsName.addEventListener("focus", () => ctx.pin(true));
+  wsName.addEventListener("blur", () => ctx.pin(false));
+  const wsView = h("div", { class: "p-sec p-ws" },
+    h("p", { class: "muted" }, "Plocha si zapamatuje otevřené programy a kde má každý okno. Obnovení spustí jen to, co v ní bylo, a okna rozmístí."),
+    h("div", { class: "ws-save" }, wsName,
+      h("button", { class: "p-pill accent", type: "button", onclick: () => { client.send("workspace_save", { name: wsName.value.trim() }); wsName.value = ""; } }, icon("floppy-disk"), " Uložit současná okna")),
+    wsList);
+  const renderWs = (items: any[]) => {
+    wsList.replaceChildren(...(items.length ? items.map((w) => h("div", { class: "ws-item" },
+      icon("squares-four"), h("strong", {}, w.name), h("span", { class: "muted" }, `${w.windows} oken · ${new Date(w.updated * 1000).toLocaleDateString("cs-CZ")}`),
+      h("button", { class: "p-pill", type: "button", onclick: () => { client.send("workspace_restore", { name: w.name }); toast(`Obnovuji ${w.name}…`); } }, icon("play"), " Obnovit"),
+      h("button", { class: "p-icon sm", type: "button", "aria-label": `Smazat ${w.name}`, onclick: () => { if (confirm(`Smazat plochu ${w.name}?`)) client.send("workspace_delete", { name: w.name }); } }, icon("trash"))))
+      : [h("span", { class: "muted" }, "Zatím žádná uložená plocha.")]));
+  };
+
   const toolsBox = h("div", { class: "tool-cats" });
   const skillsBox = h("div", { class: "skills" });
   const mcpBox = h("div", { class: "mcps" });
@@ -194,7 +259,7 @@ export function buildPanel(ctx: PanelCtx) {
   };
 
   const centre = h("section", { class: "p-centre" });
-  const views: Record<Section, HTMLElement> = { chat: chat.el, quick: quickView, system: systemView, files: filesView, tools: toolsView, settings: settingsView };
+  const views: Record<Section, HTMLElement> = { chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView };
 
   const navEl = h("nav", { class: "p-nav", "aria-label": "Sekce" },
     ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
@@ -206,6 +271,8 @@ export function buildPanel(ctx: PanelCtx) {
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
+    if (s === "workspaces") client.send("workspaces_get");
+    if (s === "chat") client.send("notch_context_get");
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
@@ -221,8 +288,13 @@ export function buildPanel(ctx: PanelCtx) {
     update = m.update;
     const name = settings?.general?.user_name;
     chat.setGreeting(name ? `Ahoj, ${name}! Jak ti dnes můžu pomoct?` : "Ahoj! Jak ti dnes můžu pomoct?");
-    renderShelf(); renderMedia(); renderSettings(); renderUpdate(); syncAgent();
+    pins = m.pins || [];
+    renderShelf(); renderMedia(); renderSettings(); renderUpdate(); syncAgent(); renderPins();
   });
+  client.on("pins", (m) => { pins = m.items || []; renderPins(); });
+  client.on("app_context", (m) => { ctxInfo = { app: m.app, actions: m.actions || [], suggestions: m.suggestions ?? ctxInfo.suggestions }; renderCtx(); });
+  client.on("workspaces", (m) => renderWs(m.items || []));
+  client.on("workspace_result", (m) => toast(m.message, m.ok ? "ok" : "error", 6000));
   client.on("settings_changed", (m) => { settings = m.settings; syncAgent(); if (current === "settings") renderSettings(); });
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
   client.on("media", (m) => { media = m; renderMedia(); });

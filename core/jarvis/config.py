@@ -95,10 +95,14 @@ class Notch(BaseModel):
     smooth_edges: bool = True   # per-pixel alpha (anti-aliased curves); False = the 3.0 hard-edged window region
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
+    open_on: Literal["hover", "click"] = "hover"   # OMEGA 092: "click" = najetí myší panel neotevře (proti náhodnému otevření)
+    tuck_minutes: int = 10                     # OMEGA 078: po kolika minutách klidu se postavička schová za okraj (0 = nikdy)
+    app_actions: list[dict] = Field(default_factory=list)   # OMEGA 089: vlastní akce {app, label, text, icon}
 
 
 class Appearance(BaseModel):
     theme: Literal["stark", "light"] = "stark"
+    density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch
@@ -278,6 +282,7 @@ class Stark(BaseModel):
     smart_quiet: bool = True            # OMEGA 500: no speaking at night, in a meeting, in focus mode or over a fullscreen app
     layout_memory: bool = True          # OMEGA 31: keep the window layout, offer it back after a restart
     crash_help: bool = True             # OMEGA 32: a program crashed 3× today → offer to find out why
+    hud_layout: Literal["full", "minimal", "focus", "presentation"] = "full"   # OMEGA 756: rozložení HUD
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
 
@@ -440,7 +445,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
     "voice.speak_mode", "voice.stt_language", "voice.followup",
-    "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen",
+    "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "stark.hud_layout",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",
