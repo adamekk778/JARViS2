@@ -996,3 +996,11 @@
 127 | HOTOVO | scene_animation: sled záběrů podle zadání a nálady (časy, kamera, pohyb), živý náhled v prohlížeči (CSS animace) a skript pro Blender s klíčovými snímky
 414 | ČÁSTEČNĚ | audio_device: seznam zařízení, výběr podle slov (sluchátka, reproduktory, TV, Bluetooth), přepnutí výstupu i mikrofonu pro všechny role přes Windows API (IPolicyConfig) – na skutečném PC zatím neověřeno; předání hovoru mezi telefonem a PC ne
 667 | HOTOVO | rig_assistant: lidská / čtyřnohá kostra podle výšky (.L/.R), skript pro Blender s automatickými vahami k modelu, kontrola kostry z .gltf/.glb (chybějící strana, různé délky, smyčky, nulové kosti, víc kořenů)
+
+# Vlna 44 – designové studio
+347 | HOTOVO | responsive_check: stránka ve 4 šířkách (telefon, tablet, notebook, monitor) v prohlížeči – vodorovné posouvání a co přečnívá, písmo < 12 px, dotykové cíle < 44 px, překryvy ovládacích prvků, skóre a snímky vedle sebe
+349 | HOTOVO | animation_curve: rozbor easingu (zrychluje / zpomaluje, přešvih, nápřah), nejbližší známá křivka, graf SVG, editor s tahacími úchyty a živým náhledem, proložení křivky naměřeným pohybem
+350 | HOTOVO | glass_material: CSS sklo (průhlednost, blur + saturace, světlá hrana, záloha bez backdrop-filter) s kontrolou čitelnosti textu na nejtmavším i nejsvětlejším pozadí (zvýší neprůhlednost do AA)
+355 | HOTOVO | icon_set: volné SVG → sprite se symboly, barvy → currentColor, CSS a náhled; hlásí jiná plátna, tloušťky čar, míchání obrysových a vyplněných ikon, nečitelné soubory
+357 | HOTOVO | motion_timeline: popis po řádcích → stopy, kontrola překryvů a skoků, CSS @keyframes po vrstvách, náhled a přehled vrstev v čase
+358 | HOTOVO | layout_heatmap: hustota hran po buňkách ze snímku / obrazovky – volné místo, nejpřeplněnější oblasti, těžiště a vyváženost, překryvná teplotní mapa

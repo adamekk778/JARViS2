@@ -108,6 +108,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `ai_usage` | 154 |
 | `analyze_feedback` | 444 |
 | `animate_elements` | 134 |
+| `animation_curve` | 349 |
 | `animation_fsm` | 655 |
 | `api_ask` | 589 |
 | `api_breaking_changes` | 627 |
@@ -281,6 +282,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `generate_image` | 132 |
 | `git_log` | 050 |
 | `git_status` | P5.09 |
+| `glass_material` | 350 |
 | `gpu_split` | 574 |
 | `hardware_changes` | 298 |
 | `hardware_report` | 705 |
@@ -291,6 +293,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_rooms` | 421 |
 | `home_scene` | 423 |
 | `hone.java` | 420 |
+| `icon_set` | 355 |
 | `improve_until_tests_pass` | 210 |
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
@@ -300,6 +303,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `keyword_gap` | 447 |
 | `knowledge_pack_add` | 579 |
 | `knowledge_packs` | 579 |
+| `layout_heatmap` | 358 |
 | `learning_path` | 453 |
 | `learning_project` | 465 |
 | `learning_weak_spots` | 108 |
@@ -345,6 +349,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `module_graph` | 047 |
 | `module_map` | 332 |
 | `monorepo_map` | 619 |
+| `motion_timeline` | 357 |
 | `move_files` | P2.11 |
 | `mutation_test` | 335 |
 | `my_routines` | 497 |
@@ -408,6 +413,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reply_context` | 543 |
 | `requirements_from_idea` | 616 |
 | `reset_all` | 794 |
+| `responsive_check` | 347 |
 | `restore_browser_session` | 528 |
 | `restore_file_version` | 328 |
 | `revenue_forecast` | 443 |

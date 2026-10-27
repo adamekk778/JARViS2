@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 559 | 79 |
+| ✅ HOTOVO | 565 | 79 |
 | 🟡 ČÁSTEČNĚ | 177 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 25 | 11 |
+| ⬜ CHYBÍ | 19 | 11 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -563,23 +563,23 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 29. AI Design Studio
 
-✅ 6 · 🟡 3 · ⬜ 6
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 346 | Design System Generator — tokeny a komponenty. | ✅ HOTOVO | design_system: tokeny (barvy světlé i tmavé, typografická škála, mezery, zaoblení, stíny) → tokens.css + tokens.json |
-| 347 | Responsive Layout Analyzer — různé displeje. | ⬜ CHYBÍ | — |
+| 347 | Responsive Layout Analyzer — různé displeje. | ✅ HOTOVO | responsive_check: stránka ve 4 šířkách (telefon, tablet, notebook, monitor) v prohlížeči – vodorovné posouvání a co přečnívá, písmo < 12 px, dotykové cíle < 44 px, překryvy ovládacích prvků, skóre a snímky vedle sebe |
 | 348 | Accessibility Contrast Checker — kontrast. | ✅ HOTOVO | contrast_check: WCAG AA / AAA i pro velký text + nejbližší vyhovující barva stejného odstínu |
-| 349 | Animation Curve Editor — animační křivky. | ⬜ CHYBÍ | — |
-| 350 | Glass Material Generator — Liquid Glass. | ⬜ CHYBÍ | — |
+| 349 | Animation Curve Editor — animační křivky. | ✅ HOTOVO | animation_curve: rozbor easingu (zrychluje / zpomaluje, přešvih, nápřah), nejbližší známá křivka, graf SVG, editor s tahacími úchyty a živým náhledem, proložení křivky naměřeným pohybem |
+| 350 | Glass Material Generator — Liquid Glass. | ✅ HOTOVO | glass_material: CSS sklo (průhlednost, blur + saturace, světlá hrana, záloha bez backdrop-filter) s kontrolou čitelnosti textu na nejtmavším i nejsvětlejším pozadí (zvýší neprůhlednost do AA) |
 | 351 | UI Consistency Scanner — jednotnost. | ✅ HOTOVO | ui_consistency: skutečně použité barvy / odsazení / zaoblení na stránce, skoro stejné barvy, odsazení mimo mřížku |
 | 352 | Design-to-Code — převod designu do kódu. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
 | 353 | Screenshot-to-Prototype — screenshot na prototyp. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
 | 354 | Interactive UI Mockups — klikatelné návrhy. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
-| 355 | Icon System Builder — ikony. | ⬜ CHYBÍ | — |
+| 355 | Icon System Builder — ikony. | ✅ HOTOVO | icon_set: volné SVG → sprite se symboly, barvy → currentColor, CSS a náhled; hlásí jiná plátna, tloušťky čar, míchání obrysových a vyplněných ikon, nečitelné soubory |
 | 356 | Theme Generator — témata. | ✅ HOTOVO | color_theme: škály 50–950, světlý a tmavý režim, každá dvojice text/pozadí opravena na AA |
-| 357 | Motion Design Timeline — animace. | ⬜ CHYBÍ | — |
-| 358 | Layout Heatmap — prostor v UI. | ⬜ CHYBÍ | — |
+| 357 | Motion Design Timeline — animace. | ✅ HOTOVO | motion_timeline: popis po řádcích → stopy, kontrola překryvů a skoků, CSS @keyframes po vrstvách, náhled a přehled vrstev v čase |
+| 358 | Layout Heatmap — prostor v UI. | ✅ HOTOVO | layout_heatmap: hustota hran po buňkách ze snímku / obrazovky – volné místo, nejpřeplněnější oblasti, těžiště a vyváženost, překryvná teplotní mapa |
 | 359 | Typography Inspector — typografie. | ✅ HOTOVO | typography_check: písma, velikosti, délka řádku, řádkování, drobné písmo, počet velikostí |
 | 360 | Visual Regression Lab — porovnání změn. | ✅ HOTOVO | visual_diff: % změněných pixelů, oblasti změn, obrázek se zakroužkovanými změnami |
 
