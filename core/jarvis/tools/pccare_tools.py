@@ -172,7 +172,8 @@ async def performance_profile(ctx, profile: Annotated[str, "hra / práce / tich�
     saved = ctx.__dict__.setdefault("_priority_saved", {})
     if restore:
         r = await asyncio.to_thread(pccare.restore_profile, saved)
-        return ToolResult(True, f"Vráceno {len(r['restored'])} programů" + (f", {r['ended']} mezitím skončilo" if r["ended"] else "") + ".", data=r)
+        return ToolResult(True, f"Vráceno {len(r['restored'])} programů" + (f", {r['ended']} mezitím skončilo" if r["ended"] else "")
+                          + (f"; u {', '.join(r['denied'])} to systém nedovolil – vrátí se po restartu programu" if r.get("denied") else "") + ".", data=r)
     if profile not in pccare.PROFILES and not (boost or lower):
         return ToolResult(False, f"Profil: {', '.join(pccare.PROFILES)} – nebo zadej vlastní seznam programů.")
     r = await asyncio.to_thread(pccare.apply_profile, profile, boost, lower, saved)

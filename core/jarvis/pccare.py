@@ -442,7 +442,7 @@ def apply_profile(name: str, boost: list[str] | None = None, lower: list[str] | 
 def restore_profile(saved: dict) -> dict:
     import psutil
 
-    back, gone = [], 0
+    back, gone, denied = [], 0, []
     for pid, s in list(saved.items()):
         try:
             p = psutil.Process(int(pid))
@@ -451,10 +451,12 @@ def restore_profile(saved: dict) -> dict:
                 continue
             p.nice(s["nice"])
             back.append(s["name"])
+        except psutil.AccessDenied:                                  # raising priority back needs more rights (Linux: root)
+            denied.append(s["name"])
         except (psutil.Error, OSError):
             gone += 1
     saved.clear()
-    return {"restored": back, "ended": gone}
+    return {"restored": back, "ended": gone, "denied": denied}
 
 
 # ============================================================================================== 31 layout over a restart

@@ -211,7 +211,11 @@ def test_priority_profile_on_real_processes(tmp_path):
         assert sorted(c["pid"] for c in r["changed"]) == sorted(p.pid for p in procs)
         assert all(psutil.Process(p.pid).nice() == 10 for p in procs)
         back = pccare.restore_profile(saved)
-        assert len(back["restored"]) == 2 and all(psutil.Process(p.pid).nice() == 0 for p in procs) and saved == {}
+        if os.geteuid() == 0:
+            assert len(back["restored"]) == 2 and all(psutil.Process(p.pid).nice() == 0 for p in procs)
+        else:                                       # a normal Linux user may lower priority but not raise it back
+            assert sorted(back["denied"]) == ["jarvistestsync", "jarvistestsync"] and back["ended"] == 0
+        assert saved == {}
     finally:
         for p in procs:
             p.kill()
