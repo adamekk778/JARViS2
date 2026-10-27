@@ -36,6 +36,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_omega.py` | 002, 025, 076 |
 | `tools/base.py` | 183, 203, 682 |
 | `tools/dev.py` | 046, 050, 058 |
+| `visual_diff` | 059, 360, P4.09 |
 | `app_open` | 034, P12.06 |
 | `automations.py` | 034, 147 |
 | `bill_of_materials` | 160, 469 |
@@ -58,6 +59,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `injection.py` | 183, P14.11 |
 | `keyboard_test` | 054, 644 |
 | `label_speakers` | 267, P3.05 |
+| `load_test` | 057, 642 |
 | `mind_map` | 112, 113 |
 | `network.py` | 165, 406 |
 | `network_check` | 021, 718 |
@@ -203,6 +205,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dependency_update_plan` | 341 |
 | `dependency_vulnerabilities` | 333 |
 | `deploy_diff` | 714 |
+| `design.py` | P4.09 |
 | `design_system` | 346 |
 | `device_class` | 427 |
 | `device_test` | 638 |
@@ -285,7 +288,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `link_alive` | 410 |
 | `lip_sync` | 668 |
 | `list_folder` | P2.11 |
-| `load_test` | 642 |
 | `local_model_benchmark` | 571 |
 | `local_models_fit` | 578 |
 | `local_unload` | 576 |
@@ -315,6 +317,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mix_advice` | 669 |
 | `mobile/native.ts` | 143 |
 | `mock_server_start` | 621 |
+| `module_graph` | 047 |
 | `module_map` | 332 |
 | `monorepo_map` | 619 |
 | `move_files` | P2.11 |
@@ -451,7 +454,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `user_flow_test` | 631 |
 | `verify_copy` | 700 |
 | `verify_download` | 538 |
-| `visual_diff` | 360 |
 | `voice/dsp.py` | P3.05 |
 | `voice/loop.py` | 259 |
 | `voice_bookmark` | 266 |

@@ -44,7 +44,7 @@ P4.05 | ČÁSTEČNĚ | označený text, kontext aktivní aplikace | 027 | Pomoc 
 P4.06 | HOTOVO | přílohy obrázků a dokumentů | 276-278 | Analýza obrázků, grafů a dokumentů
 P4.07 | CHYBÍ | — | 188 | Volitelný přístup ke kameře
 P4.08 | CHYBÍ | — | 413 | Rozpoznávání objektů kamerou telefonu
-P4.09 | CHYBÍ | — | 059 | Vizuální porovnání před a po
+P4.09 | HOTOVO | visual_diff (design.py) – rozdíl dvou snímků s vyznačenými oblastmi | 059 | Vizuální porovnání před a po
 P5.01 | HOTOVO | Claude Code v notchi, schvalování z PC i telefonu (claude_bridge.py) | 046 | Integrace s Claude Code CLI
 P5.02 | ČÁSTEČNĚ | make_website + Claude Code | 352 | Generování celých aplikací
 P5.03 | VYŽADUJE_INTEGRACI | přes Claude Code | — | Frontend, backend, databáze, API

@@ -904,3 +904,19 @@
 475 | HOTOVO | sestavení firmwaru s vysvětlením chyb (chybějící knihovna, středník, paměť, port, BOOT u ESP32)
 478 | HOTOVO | kalibrace kamery z fotek šachovnice (Zhangova metoda): ohnisko, střed, zkreslení, zorné pole, přesnost – ověřeno na známé kameře
 774 | HOTOVO | technické alternativy nosníku / držáku: materiály × profily, pevnost i průhyb, seřazeno podle hmotnosti
+
+# Vlna 36 – vývoj a testování (devplus.py, tools/devplus_tools.py, tests/test_wave36.py; + dřívější nástroje pod jinými čísly)
+047 | HOTOVO | graf závislostí mezi soubory a moduly (module_graph: importy Python/JS, cykly, vrstvy – vlna 13)
+051 | HOTOVO | generování DB migrací (SQLite) z rozdílu struktur: nové tabulky, sloupce, indexy; mazání jen zakomentované; ověřeno spuštěním
+052 | HOTOVO | chybné / pomalé dotazy: plán dotazu s procházením celé tabulky a návrhem indexu, měření pomalých dotazů (vlna 12)
+053 | HOTOVO | výkonnostní analýza backendu: nejpomalejší a nejvytíženější endpointy z access logu (p50/p95, chybovost), měření místních adres
+056 | HOTOVO | příprava testovacího nasazení: Dockerfile, compose, .env šablona jen s názvy proměnných, postup; zápis po potvrzení, nic nepřepíše
+057 | HOTOVO | bezpečné zátěžové testy jen na vlastním počítači / místní síti (load_test, vlna 14)
+059 | HOTOVO | vizuální porovnání UI: rozdíl dvou snímků s vyznačenými oblastmi (visual_diff, vlna 18)
+321 | HOTOVO | vztahy souborů: stejný název v jiném formátu, zmínky, použití (HTML/CSS/JS/MD), stejný obsah, graf SVG
+382 | HOTOVO | automatické testy webu: průchod scénářem, klávesnice, offline, zařízení (vlna 14)
+536 | HOTOVO | kompatibilita v Chromiu, Firefoxu a WebKitu: chyby, neúspěšné požadavky, rychlost, vizuální rozdíly (chybějící jádro hlásí)
+622 | ČÁSTEČNĚ | canary: statistické rozhodnutí pustit dál / počkat / vrátit a další podíl provozu; samotné přepínání provozu dělá tvoje infrastruktura
+632 | HOTOVO | property-based testy Pythonu: náhodné vstupy podle typů, vlastnosti nespadne / idempotence / inverze / seřazení, protipříklady
+637 | HOTOVO | reprodukce pádu: z tracebacku (Python) či stacku (JS) místo ve tvém kódu, cesta volání, ukázka kódu a kostra testu
+640 | HOTOVO | profil spotřeby baterie: %/h, výdrž, podíl programů na procesoru během běhu na baterii

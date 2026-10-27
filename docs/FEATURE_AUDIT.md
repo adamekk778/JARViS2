@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 488 | 74 |
-| 🟡 ČÁSTEČNĚ | 173 | 59 |
+| ✅ HOTOVO | 501 | 75 |
+| 🟡 ČÁSTEČNĚ | 174 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 100 | 16 |
+| ⬜ CHYBÍ | 86 | 15 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -95,24 +95,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 05. Ultimate Developer
 
-✅ 2 · 🟡 3 · 🔌 3 · ⬜ 7
+✅ 9 · 🟡 3 · 🔌 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 046 | Mapování architektury projektu. | 🔌 VYŽADUJE_INTEGRACI | přes Claude Code CLI (tools/dev.py claude_code, claude_bridge.py) |
-| 047 | Graf závislostí mezi soubory. | ⬜ CHYBÍ | — |
+| 047 | Graf závislostí mezi soubory. | ✅ HOTOVO | graf závislostí mezi soubory a moduly (module_graph: importy Python/JS, cykly, vrstvy – vlna 13) |
 | 048 | Vytváření GitHub issues. | 🔌 VYŽADUJE_INTEGRACI | přes MCP server GitHubu (integrations/mcp_client) |
 | 049 | AI review pull requestů. | 🔌 VYŽADUJE_INTEGRACI | přes Claude Code |
 | 050 | Automatický changelog. | 🟡 ČÁSTEČNĚ | git_log + AI shrnutí (tools/dev.py) |
-| 051 | Generování DB migrací. | ⬜ CHYBÍ | — |
-| 052 | Detekce chybných DB dotazů. | ⬜ CHYBÍ | — |
-| 053 | Výkonnostní analýza backendu. | ⬜ CHYBÍ | — |
+| 051 | Generování DB migrací. | ✅ HOTOVO | generování DB migrací (SQLite) z rozdílu struktur: nové tabulky, sloupce, indexy; mazání jen zakomentované; ověřeno spuštěním |
+| 052 | Detekce chybných DB dotazů. | ✅ HOTOVO | chybné / pomalé dotazy: plán dotazu s procházením celé tabulky a návrhem indexu, měření pomalých dotazů (vlna 12) |
+| 053 | Výkonnostní analýza backendu. | ✅ HOTOVO | výkonnostní analýza backendu: nejpomalejší a nejvytíženější endpointy z access logu (p50/p95, chybovost), měření místních adres |
 | 054 | Kontrola přístupnosti webů. | ✅ HOTOVO | a11y_check (popisky obrázků, formuláře, kontrast, nadpisy) + keyboard_test (vlna 14) – kontrola přístupnosti webu |
 | 055 | SEO audit a optimalizace webů. | ✅ HOTOVO | seo_audit: projde web (robots.txt respektuje), titulky, popisy, H1, alt texty, málo textu, noindex, lang, og:, rychlost, nefunkční odkazy, duplicity, sitemap |
-| 056 | Příprava testovacího deploymentu. | ⬜ CHYBÍ | — |
-| 057 | Bezpečné zátěžové testování. | ⬜ CHYBÍ | — |
+| 056 | Příprava testovacího deploymentu. | ✅ HOTOVO | příprava testovacího nasazení: Dockerfile, compose, .env šablona jen s názvy proměnných, postup; zápis po potvrzení, nic nepřepíše |
+| 057 | Bezpečné zátěžové testování. | ✅ HOTOVO | bezpečné zátěžové testy jen na vlastním počítači / místní síti (load_test, vlna 14) |
 | 058 | Ověřování buildu po změnách. | 🟡 ČÁSTEČNĚ | run_tests (tools/dev.py) |
-| 059 | Vizuální porovnávání UI. | ⬜ CHYBÍ | — |
+| 059 | Vizuální porovnávání UI. | ✅ HOTOVO | vizuální porovnání UI: rozdíl dvou snímků s vyznačenými oblastmi (visual_diff, vlna 18) |
 | 060 | Příprava release balíčků. | 🟡 ČÁSTEČNĚ | vlastní CI JARVISe staví EXE/APK; obecně pro cizí projekty chybí |
 
 ## 06. Agent Army
@@ -519,7 +519,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 27. Intelligent File Universe
 
-✅ 11 · 🟡 3 · ⬜ 1
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -528,7 +528,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 318 | Similar Image Finder — podobné snímky. | ✅ HOTOVO | find_similar_photos: rozdílový hash – najde zmenšené, překomprimované a upravené kopie |
 | 319 | Document Classification — třídění. | ✅ HOTOVO | sort_documents: faktury, smlouvy, výpisy, úřady, zdraví, práce, pojištění, účtenky, škola podle obsahu, jinak podle typu; jde vrátit |
 | 320 | Smart File Naming — chytré názvy. | 🟡 ČÁSTEČNĚ | smart_rename: typ_datum_firma z obsahu dokumentu (bez AI); u jiných souborů název zůstane |
-| 321 | File Relationship Graph — vztahy souborů. | ⬜ CHYBÍ | — |
+| 321 | File Relationship Graph — vztahy souborů. | ✅ HOTOVO | vztahy souborů: stejný název v jiném formátu, zmínky, použití (HTML/CSS/JS/MD), stejný obsah, graf SVG |
 | 322 | Lost File Finder — hledání ztracených souborů. | ✅ HOTOVO | recent_files (na čem jsem pracoval) + find_in_files (podle obsahu) |
 | 323 | Archive Explorer — obsah archivů. | ✅ HOTOVO | archive_contents / extract_archive (ZIP, TAR; 7Z a RAR se 7-Zipem), ochrana proti „zip slip“, jen do nové složky; create_zip s ověřením |
 | 324 | File Format Conversion — konverze formátů. | ✅ HOTOVO | convert_file: obrázky mezi sebou, do PDF, zmenšení; PDF → txt; Word → txt/md; Excel ↔ CSV; txt/md → Word |
@@ -607,7 +607,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 9 · 🟡 3 · ⬜ 3
+✅ 10 · 🟡 3 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -617,7 +617,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 379 | Price History Analyzer — historie cen. | ✅ HOTOVO | price_history: každá zjištěná cena (dotaz i hlídání) se ukládá – min, max, změna |
 | 380 | Research Notebook — poznámky výzkumu. | 🟡 ČÁSTEČNĚ | poznámky (tools/notes.py) |
 | 381 | Web Evidence Collector — archivace důkazů. | ✅ HOTOVO | save_web_evidence: HTML + text + hlavičky + čas UTC + SHA-256, pozná změnu proti minulému záznamu |
-| 382 | Automated Website Testing — testy webů. | ⬜ CHYBÍ | — |
+| 382 | Automated Website Testing — testy webů. | ✅ HOTOVO | automatické testy webu: průchod scénářem, klávesnice, offline, zařízení (vlna 14) |
 | 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
 | 384 | Competitor Feature Comparison — srovnání konkurence. | ✅ HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí |
 | 385 | Search Query Optimizer — vyhledávací strategie. | ⬜ CHYBÍ | — |
@@ -827,7 +827,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 41. Super Browser Agent
 
-✅ 10 · 🟡 4 · ⬜ 1
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -841,7 +841,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 533 | Navigation Route Finder — navigace webem. | ✅ HOTOVO | find_page_route: cesta kliknutí k obsahu po vlastních odkazech webu |
 | 534 | Cookie Preference Assistant — nastavení cookies. | ✅ HOTOVO | reject_cookies: OneTrust, Cookiebot, Didomi, Usercentrics… i podle textu „Odmítnout vše / Pouze nezbytné“ |
 | 535 | Subscription Overview — přehled předplatných. | ✅ HOTOVO | subscriptions_overview: pravidelné platby z e-mailových účtenek, měsíčně / ročně, další platba, zdražení, zrušené |
-| 536 | Web App Compatibility Tester — prohlížečová kompatibilita. | ⬜ CHYBÍ | — |
+| 536 | Web App Compatibility Tester — prohlížečová kompatibilita. | ✅ HOTOVO | kompatibilita v Chromiu, Firefoxu a WebKitu: chyby, neúspěšné požadavky, rychlost, vizuální rozdíly (chybějící jádro hlásí) |
 | 537 | Session Expiration Awareness — vypršení přihlášení. | ✅ HOTOVO | expiring_logins: přihlašovací cookies v prohlížeči JARVISe – co brzy vyprší, co jen do zavření |
 | 538 | Download Source Verification — kontrola zdroje. | ✅ HOTOVO | verify_download: přesměrování, http, jiná doména, stáří domény (RDAP), obsah vs. přípona, SHA-256 proti zveřejněnému |
 | 539 | Browser Privacy Report — oprávnění webů. | ✅ HOTOVO | privacy_report: známé sledovací služby, cizí domény, cookies před souhlasem, dlouhodobé cookies, úložiště → hodnocení |
@@ -959,7 +959,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 47. Autonomous Software Factory
 
-✅ 11 · 🟡 3 · ⬜ 1
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -969,7 +969,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 619 | Monorepo Organizer — více aplikací. | ✅ HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi |
 | 620 | SDK Generator — klientské SDK. | ✅ HOTOVO | generate_api_client: SDK z OpenAPI v Pythonu (httpx, ověřeno překladem a voláním mock serveru) a TypeScriptu (fetch) |
 | 621 | Mock Server Builder — testovací server. | ✅ HOTOVO | mock_server_start / stop: odpovědi z ukázek nebo ze schématu, 400 s důvody u špatného těla, 404/405, záznam požadavků |
-| 622 | Canary Deployment Manager — postupný deploy. | ⬜ CHYBÍ | — |
+| 622 | Canary Deployment Manager — postupný deploy. | 🟡 ČÁSTEČNĚ | canary: statistické rozhodnutí pustit dál / počkat / vrátit a další podíl provozu; samotné přepínání provozu dělá tvoje infrastruktura |
 | 623 | Automated Rollback Planner — návrat verze. | ✅ HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky |
 | 624 | Software Bill of Materials — SBOM. | ✅ HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením |
 | 625 | Supply Chain Inspector — rizika knihoven. | ✅ HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce |
@@ -981,20 +981,20 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 48. Software Testing Lab
 
-✅ 12 · ⬜ 3
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 631 | Synthetic User Testing — simulované uživatelské scénáře. | ✅ HOTOVO | user_flow_test: scénář krok po kroku česky (vyplň, klikni, očekávej, jdi na…), snímek po každém kroku |
-| 632 | Property-Based Testing — vlastnostní testy. | ⬜ CHYBÍ | — |
+| 632 | Property-Based Testing — vlastnostní testy. | ✅ HOTOVO | property-based testy Pythonu: náhodné vstupy podle typů, vlastnosti nespadne / idempotence / inverze / seřazení, protipříklady |
 | 633 | Input Fuzzing — neobvyklé vstupy. | ✅ HOTOVO | fuzz_inputs: 20 druhů neobvyklých vstupů do parametrů / JSON polí, pády 5xx, bez odpovědi, neošetřené HTML (XSS); jen vlastní servery |
 | 634 | Network Failure Simulation — výpadky sítě. | ✅ HOTOVO | network_fault_start / stop: TCP prostředník se zpožděním, zahazováním spojení, škrcením a výpadkem |
 | 635 | Memory Leak Detector — úniky paměti. | ✅ HOTOVO | memory_leak_check: paměť procesu i s podprocesy v čase, trend MB/min, R², verdikt |
 | 636 | Flaky Test Analyzer — nestabilní testy. | ✅ HOTOVO | flaky_tests (z JUnit) + find_flaky_tests (pytest N× za sebou) |
-| 637 | Crash Reproduction Assistant — reprodukce pádu. | ⬜ CHYBÍ | — |
+| 637 | Crash Reproduction Assistant — reprodukce pádu. | ✅ HOTOVO | reprodukce pádu: z tracebacku (Python) či stacku (JS) místo ve tvém kódu, cesta volání, ukázka kódu a kostra testu |
 | 638 | Device Test Matrix — testy zařízení. | ✅ HOTOVO | device_test: telefon / tablet / notebook / monitor – snímky, posouvání do strany, přečnívající prvky, malá tlačítka, drobné písmo |
 | 639 | Localization Overflow Testing — přetečení textu. | ✅ HOTOVO | translation_overflow (delší než originál / nad limit) + pseudo_localize (háčky, +40 %, [!! !!]) |
-| 640 | Battery Consumption Profiler — spotřeba energie. | ⬜ CHYBÍ | — |
+| 640 | Battery Consumption Profiler — spotřeba energie. | ✅ HOTOVO | profil spotřeby baterie: %/h, výdrž, podíl programů na procesoru během běhu na baterii |
 | 641 | Offline Behavior Tester — offline funkcionalita. | ✅ HOTOVO | offline_test: načte, odpojí síť, znovu načte – service worker, chyby v konzoli |
 | 642 | Concurrent User Simulation — více uživatelů. | ✅ HOTOVO | load_test: až 50 souběžných uživatelů, p50/p95/p99, požadavky/s, chyby a kdy začaly; jen počítač / místní síť |
 | 643 | Data Corruption Recovery Test — poškození testovacích dat. | ✅ HOTOVO | corrupt_test_data (8 druhů poškození) + corruption_test (program odmítl / spadl / zamrzl / tiše přijal) |
@@ -1269,7 +1269,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P4.06 | Analýza obrázků, grafů a dokumentů | ✅ HOTOVO | přílohy obrázků a dokumentů | 276-278 |
 | P4.07 | Volitelný přístup ke kameře | ⬜ CHYBÍ | — | 188 |
 | P4.08 | Rozpoznávání objektů kamerou telefonu | ⬜ CHYBÍ | — | 413 |
-| P4.09 | Vizuální porovnání před a po | ⬜ CHYBÍ | — | 059 |
+| P4.09 | Vizuální porovnání před a po | ✅ HOTOVO | visual_diff (design.py) – rozdíl dvou snímků s vyznačenými oblastmi | 059 |
 | P5.01 | Integrace s Claude Code CLI | ✅ HOTOVO | Claude Code v notchi, schvalování z PC i telefonu (claude_bridge.py) | 046 |
 | P5.02 | Generování celých aplikací | 🟡 ČÁSTEČNĚ | make_website + Claude Code | 352 |
 | P5.03 | Frontend, backend, databáze, API | 🔌 VYŽADUJE_INTEGRACI | přes Claude Code | — |
