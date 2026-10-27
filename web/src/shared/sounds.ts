@@ -20,17 +20,40 @@ export function setCustomSounds(files: Record<string, string> | undefined, base 
 }
 let enabled = true;
 let volume = 0.3;
+let spatial = true;
+let anchorPan = 0;
 
-export function configureSounds(appearance: { sounds?: boolean; sound_volume?: number } | undefined) {
+export function configureSounds(appearance: { sounds?: boolean; sound_volume?: number; spatial_sounds?: boolean } | undefined) {
   enabled = appearance?.sounds !== false;
   volume = Math.max(0, Math.min(100, appearance?.sound_volume ?? 30)) / 100;
+  spatial = appearance?.spatial_sounds !== false;
 }
 
-export function play(name: Sound) {
+/** OMEGA 102 / 761: where a sound comes from, -1 (left) … 1 (right). The notch is at the top centre; the phone and
+ *  toasts sit on the right; while JARVIS works in a window, its sounds come from that side of the screen. */
+export function panFor(source: string): number {
+  if (source === "phone" || source === "toast" || source === "mobile") return 0.7;
+  if (source === "window") return anchorPan;
+  if (source === "mail") return -0.5;
+  return 0;
+}
+export function setAnchorPan(cx: number | null) { anchorPan = cx == null ? 0 : Math.max(-1, Math.min(1, (cx - 0.5) * 2)); }
+
+export function play(name: Sound, pan = 0) {
   if (!enabled || volume <= 0) return;
+  const p = spatial ? Math.max(-1, Math.min(1, pan)) : 0;
   if (custom[name]) {
     const a = new Audio(custom[name]);
     a.volume = Math.min(1, volume * 1.5);
+    try {
+      if (p) {
+        ctx ??= new AudioContext();
+        const src = ctx.createMediaElementSource(a);
+        const pn = ctx.createStereoPanner();
+        pn.pan.value = p;
+        src.connect(pn).connect(ctx.destination);
+      }
+    } catch { /* plain playback */ }
     a.play().catch(() => {});
     return;
   }
@@ -47,7 +70,11 @@ export function play(name: Sound) {
       gain.gain.setValueAtTime(0.0001, t0 + start);
       gain.gain.exponentialRampToValueAtTime(peak, t0 + start + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
-      osc.connect(gain).connect(ctx.destination);
+      if (p) {
+        const pn = ctx.createStereoPanner();
+        pn.pan.value = p;
+        osc.connect(gain).connect(pn).connect(ctx.destination);
+      } else osc.connect(gain).connect(ctx.destination);
       osc.start(t0 + start);
       osc.stop(t0 + start + dur + 0.02);
     }

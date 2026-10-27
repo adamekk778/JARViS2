@@ -1,0 +1,17 @@
+/* OMEGA 193 */
+.pcx-head { display: flex; align-items: center; justify-content: space-between; }
+.pcx-case { height: 320px; perspective: 900px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none;
+  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%); border-radius: 14px; }
+.pcx-case:active { cursor: grabbing; }
+.pcx-scene { position: relative; width: 1px; height: 1px; transform-style: preserve-3d; transition: transform .08s linear; }
+.pcx-part { position: absolute; left: calc(var(--w) / -2); top: -18px; width: var(--w); height: 36px; transform-style: preserve-3d;
+  display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 22%, var(--surface, #111));
+  color: var(--text); font: inherit; font-size: 11px; cursor: pointer; }
+.pcx-part span { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.pcx-part:hover, .pcx-part:focus-visible { background: color-mix(in srgb, var(--c) 40%, var(--surface, #111)); }
+.pcx-face { position: absolute; pointer-events: none; background: color-mix(in srgb, var(--c) 30%, #000); border: 1px solid var(--c); }
+.pcx-face.top { left: -1px; top: -1px; width: 100%; height: 24px; transform-origin: top; transform: rotateX(90deg); }
+.pcx-face.side { right: -1px; top: -1px; width: 24px; height: 100%; transform-origin: right; transform: rotateY(-90deg); }
+.pcx-info { display: flex; gap: 10px; align-items: center; min-height: 44px; padding-top: 8px; }
+.pcx-info > i { font-size: 24px; color: var(--accent); }
+.pcx-info div { display: grid; }

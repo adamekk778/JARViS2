@@ -28,6 +28,7 @@ export const CLIENT_TYPES = [
   "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
   "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
   "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
+  "mochi_move", "hardware_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -47,6 +48,7 @@ export const SERVER_TYPES = [
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level",
   "focus", "caption", "agent_activity", "mission_sim", "windows",
+  "handoff", "mochi_where", "anchor", "hardware",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

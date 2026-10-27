@@ -45,6 +45,7 @@ CLIENT_TYPES = [
     "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
     "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
+    "mochi_move", "hardware_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -64,6 +65,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level",
     "focus", "caption", "agent_activity", "mission_sim", "windows",
+    "handoff", "mochi_where", "anchor", "hardware",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -89,7 +91,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -869,6 +871,17 @@ class Connection:
             await self._mission_sim(str(m.get("id") or ""))
         elif t in ("windows_get", "window_focus", "window_nav"):     # OMEGA 230
             await self._windows(t, m)
+        elif t == "mochi_move":            # OMEGA 195: Mochi to the phone and back
+            from .. import mochiplus
+
+            try:
+                mochiplus.mochi_move(rt, str(m.get("to") or ""))
+            except ValueError as e:
+                await self.send("error", message=str(e))
+        elif t == "hardware_get":          # OMEGA 193: the parts of the PC for the 3D explorer
+            from .. import mochiplus
+
+            await self.send("hardware", **(await asyncio.to_thread(mochiplus.hardware_overview)))
         elif t == "site_open":
             root = site_path(str(m.get("id", "")))
             if root is None:
@@ -1244,6 +1257,9 @@ class Connection:
                 rt.bus.publish("shelf", items=[rt.public_attachment(a) for a in rt.shelf])
                 att = rt.store.get(aid)
                 rt.bus.publish("notify", title="Soubor z telefonu", body=f"{att.name} je v polici notche", target="all")
+        from ..mochiplus import handoff
+
+        handoff(rt, "pc", str(value or kind or "")[:80], str(kind or "link"))      # OMEGA 083: the notch shows it arriving
         await self.send("quick_result", action="share", ok=True, summary="Odesláno do PC")
 
     async def _transcribe(self, func, *args) -> str:

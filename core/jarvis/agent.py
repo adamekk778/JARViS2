@@ -358,6 +358,14 @@ class Agent:
                 if call.name != "update_plan":
                     rt.tasks.action_started(label)
                 t0 = time.monotonic()
+                try:                                   # OMEGA 752: the notch moves above the window this step works in
+                    from .mochiplus import target_window
+
+                    win = target_window(call.name, call.arguments or {}, await asyncio.to_thread(rt.platform.window_layout))
+                    if win:
+                        rt.set_anchor(win)
+                except Exception as e:  # noqa: BLE001
+                    log.debug("anchor: %s", e)
                 res = await tools.call(call.name, call.arguments, rt)
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
                 if call.name != "update_plan":
@@ -469,6 +477,8 @@ class Agent:
             status = "failed"
             bus.publish("error", message=f"Něco se pokazilo: {type(e).__name__}: {e}")
             full_text = (full_text + "\n\n" if full_text else "") + "Omlouvám se, při práci se něco pokazilo."
+        if getattr(rt, "_anchor", None):
+            rt.set_anchor(None)
         if rt.tasks.current is not None:
             rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,

@@ -14,6 +14,10 @@ async def send_to_phone(ctx, text: str, title: str = "JARVIS", url: str = "") ->
     # OMEGA 726: a notification can sit on a lock screen – no tracking in links, no passwords or keys in the text
     text, url = clean_text(text)["text"], clean_url(url)[0] if url else url
     n = ctx.notify(title, text, url=url, speak=False, target="mobile")
+    if n:
+        from ..mochiplus import handoff
+
+        handoff(ctx, "phone", title if title != "JARVIS" else (url or text), "link" if url else "text")   # OMEGA 083
     return ToolResult(True, "Odesláno na telefon" if n else "Telefon není připojený – uloženo do chatu")
 
 

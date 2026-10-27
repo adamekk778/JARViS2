@@ -122,7 +122,9 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     home: homeView(c),
     more: moreView(c, ep, pairing),
   };
-  views.more.prepend(screenCard(c, ep));
+  views.more.prepend(screenCard(c, ep), mochiCard(c));
+  document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());
+  app.after(mochiHere(c), handoffLayer(c));          // OMEGA 195 / 083
   const tabs = h("nav", { class: "tabs" },
     ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
       .map(([k, ic, label]) => h("button", { type: "button", "data-tab": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
@@ -470,4 +472,56 @@ function screenCard(c: JarvisClient, ep: { base: string; token: string }): HTMLE
   c.on("screen_share", (m) => { on = !!m.active; note.textContent = on ? "Vidíš obrazovku PC. Soukromá okna jsou zakrytá." : "Sdílení musíš potvrdit a po čase se samo vypne."; paint(); });
   paint();
   return h("div", { class: "card" }, h("h2", {}, "Obrazovka PC"), img, note, h("div", { class: "btn-row" }, btn));
+}
+
+
+/** OMEGA 195: Mochi can come over to the phone (and the notch shows an empty seat) – and go back. */
+function mochiCard(c: JarvisClient): HTMLElement {
+  return h("div", { class: "card" }, h("h2", {}, "Mochi"),
+    h("p", { class: "help" }, "Vezmi si postavičku s sebou: na telefonu bude ve stejné náladě, na PC zůstane prázdné místo."),
+    h("div", { class: "btn-row" },
+      h("button", { class: "btn primary", type: "button", onclick: () => c.send("mochi_move", { to: "phone" }) }, icon("arrow-fat-line-down"), "Mochi na telefon"),
+      h("button", { class: "btn", type: "button", onclick: () => c.send("mochi_move", { to: "pc" }) }, icon("desktop"), "Zpátky na PC")),
+    oneHandRow());
+}
+
+function mochiHere(c: JarvisClient): HTMLElement {
+  const blob = new Blob({ size: 72 });
+  const box = h("div", { class: "m-mochi", hidden: true, title: "Mochi – ťukni, dvakrát pošle zpátky na PC" }, blob.el);
+  let last = 0;
+  box.addEventListener("click", () => {
+    if (Date.now() - last < 350) { c.send("mochi_move", { to: "pc" }); return; }
+    last = Date.now();
+    const r = blob.poke();
+    if (r) blob.setMood(r);
+    native.haptic();
+  });
+  c.on("mochi_where", (m) => { box.hidden = m.at !== "phone"; if (m.mood) blob.setMood(m.mood); });
+  c.on("mood", (m) => { if (!box.hidden && m.mood) blob.setMood(m.mood, m); });
+  return box;
+}
+
+/** OMEGA 083: what the PC sent flies in from the top (and what you sent to the PC flies up and away). */
+function handoffLayer(c: JarvisClient): HTMLElement {
+  const layer = h("div", { class: "m-handoff-layer", "aria-live": "polite" });
+  c.on("handoff", (m) => {
+    const chip = h("div", { class: `m-handoff ${m.to === "phone" ? "in" : "out"}` }, icon(m.kind === "mochi" ? "smiley" : m.kind === "file" ? "file" : "link"),
+      h("span", {}, m.to === "phone" ? `Z PC: ${m.label}` : `Na PC: ${m.label}`));
+    layer.append(chip);
+    native.haptic();
+    window.setTimeout(() => chip.remove(), 1800);
+  });
+  return layer;
+}
+
+/** OMEGA 789: one-handed use – everything you tap moves down and towards your thumb. */
+function oneHandRow(): HTMLElement {
+  const sel = h("select", { class: "input", "aria-label": "Ovládání jednou rukou" },
+    h("option", { value: "" }, "Obě ruce"), h("option", { value: "right" }, "Jedna ruka – pravá"), h("option", { value: "left" }, "Jedna ruka – levá")) as HTMLSelectElement;
+  const apply = (v: string) => { document.documentElement.dataset.hand = v; try { localStorage.setItem("jarvis.hand", v); } catch { /* private mode */ } };
+  try { sel.value = localStorage.getItem("jarvis.hand") || ""; } catch { /* ignore */ }
+  apply(sel.value);
+  sel.onchange = () => apply(sel.value);
+  return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Ovládání jednou rukou"),
+    h("span", {}, "Tlačítka se přesunou dolů k palci, na stranu ruky, kterou držíš telefon.")), sel);
 }

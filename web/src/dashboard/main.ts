@@ -1,6 +1,7 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import { captionBar, focusBanner } from "../shared/viz";
+import { helpMode } from "../shared/help";
 import { ChatView, conversationList } from "../shared/chat";
 import { Blob } from "../character/blob";
 import { h, icon, toast } from "../shared/dom";
@@ -185,7 +186,7 @@ function greet(name?: string) {
 greet();
 
 // OMEGA 790 live captions, OMEGA 234 "Soustředění do 15:40 · čeká 3 upozornění"
-document.getElementById("app")!.append(h("div", { class: "shell" }, side, main), captionBar(client), focusBanner(client));
+document.getElementById("app")!.append(h("div", { class: "shell" }, side, main), captionBar(client), focusBanner(client), helpMode(nav));   // OMEGA 035
 
 client.onStatus((s) => {
   if (s !== "open") { face.setMood("offline"); statusText.textContent = s === "closed" ? "Odpojeno, zkouším znovu…" : "Připojuji…"; }

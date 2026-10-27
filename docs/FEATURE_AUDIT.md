@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 573 | 87 |
-| 🟡 ČÁSTEČNĚ | 177 | 62 |
+| ✅ HOTOVO | 582 | 87 |
+| 🟡 ČÁSTEČNĚ | 179 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 11 | 0 |
+| ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -61,7 +61,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 03. Context Awareness
 
-✅ 5 · 🟡 4 · ⬜ 1
+✅ 6 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -74,7 +74,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 032 | Nabídnutí pomoci při opakovaných chybách. | ✅ HOTOVO | program spadl dnes 3× → jednou denně nabídne zjistit proč (s modulem, ve kterém padá) |
 | 033 | Kontextová diagnostika chybových dialogů. | 🟡 ČÁSTEČNĚ | screenshot + vision model, ui_read chybových dialogů |
 | 034 | Režim práce/hry/učení dle aktivních aplikací. | 🟡 ČÁSTEČNĚ | protokoly Pracovní/Herní režim + automatizace app_open (stark.py, automations.py) |
-| 035 | Interaktivní popisky funkcí aplikace. | ⬜ CHYBÍ | — |
+| 035 | Interaktivní popisky funkcí aplikace. | ✅ HOTOVO | nápověda k funkcím: tlačítko „?“ nebo F1 – najetí na sekci ukáže, co dělá a jak o to požádat hlasem; „Prohlídka“ projde sekce jednu po druhé (šipky, Další / Zpět) |
 
 ## 04. Ultra Memory
 
@@ -134,7 +134,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 07. Mochi 2.0
 
-✅ 9 · 🟡 3 · ⬜ 3
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -146,12 +146,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 076 | Oslava dokončeného úkolu. | ✅ HOTOVO | radost po ověřené misi / úspěchu (mood.py joy/success, tests/test_omega.py) |
 | 077 | Nenápadná nabídka přestávky. | ✅ HOTOVO | připomínka pauzy po N minutách u PC (powers.py break_minutes) |
 | 078 | Schovávání za okraj ostrova. | ✅ HOTOVO | po N minutách klidu (Nastavení → Notch) se postavička schová za horní okraj a občas vykoukne; při dění se vrátí |
-| 079 | Interaktivní rozdělení Mochiho. | ⬜ CHYBÍ | — |
+| 079 | Interaktivní rozdělení Mochiho. | ✅ HOTOVO | rozdělení Mochiho: každý pracující agent se odštěpí jako malý Mochi vedle velkého, poskočí při akci a po dokončení splyne zpět; dvojklik = hravé rozdělení na tři |
 | 080 | Drobné minihry s Mochem. | ✅ HOTOVO | minihra „Chyť hvězdy“ (aplikace → Hra, i z kruhového menu): postavička chytá hvězdy, vyhýbá se bouřkám, rekord |
 | 081 | Reakce na připojení zařízení. | ✅ HOTOVO | reakce na připojení a odpojení zařízení (strážce hardwaru → plug / unplug) |
 | 082 | Sezónní drobné animace. | ✅ HOTOVO | sezónní oblečky (Vánoce, Halloween, Silvestr, léto) + doplňky podle počasí a denní doby |
-| 083 | Animovaný cross-device handoff. | ⬜ CHYBÍ | — |
-| 084 | Kontextové zjevení vedle okna. | ⬜ CHYBÍ | — |
+| 083 | Animovaný cross-device handoff. | ✅ HOTOVO | animované předání: co jde na telefon, odletí z notche doprava (a na telefonu přiletí shora), co přijde z telefonu, vletí do notche; i přesun Mochiho |
+| 084 | Kontextové zjevení vedle okna. | 🟡 ČÁSTEČNĚ | zjevení u okna: když JARVIS pracuje v okně, notch se přesune nad jeho střed (a zvuky přicházejí z té strany) – na skutečném PC zatím neověřeno |
 | 085 | Nastavitelná historie reakcí. | 🟡 ČÁSTEČNĚ | historie úkolů a mise; samostatná historie reakcí chybí |
 
 ## 08. Dynamic Island Pro
@@ -173,7 +173,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 09. Voice Intelligence
 
-✅ 6 · 🟡 3 · ⬜ 1
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -183,7 +183,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 099 | Ztišení hudby při mluvení. | ✅ HOTOVO | ztišení ostatních programů, když JARVIS poslouchá nebo mluví (relace zvuku Windows, vrácení přesně na původní hlasitost) |
 | 100 | Rozpoznání více příkazů ve větě. | 🟡 ČÁSTEČNĚ | více příkazů ve větě řeší jazykový model |
 | 101 | Nastavitelná délka a rychlost odpovědi. | ✅ HOTOVO | rychlost a hlasitost hlasu, osobnost |
-| 102 | Prostorové audio efekty. | ⬜ CHYBÍ | — |
+| 102 | Prostorové audio efekty. | ✅ HOTOVO | prostorové zvuky: stereo umístění zvuků rozhraní (notch uprostřed, telefon a upozornění vpravo, e-mail vlevo, okno, ve kterém JARVIS pracuje), i u vlastních zvuků; vypínatelné |
 | 103 | Hlasové potvrzení rizikových akcí. | 🟡 ČÁSTEČNĚ | potvrzení rizikových akcí v UI a otiskem na telefonu; hlasové potvrzení chybí |
 | 104 | Vlastní hlasová makra. | ✅ HOTOVO | hlasová makra = protokoly („spusť protokol …“) |
 | 105 | Výběr vhodného mikrofonu. | ✅ HOTOVO | výběr mikrofonu (audio_devices) |
@@ -326,7 +326,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 18. Iron Man — Future Tech
 
-✅ 2 · 🟡 3 · 🗓️ 3 · ⬜ 2
+✅ 4 · 🟡 3 · 🗓️ 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -337,9 +337,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 190 | Digitální dvojče PC. | 🟡 ČÁSTEČNĚ | system_snapshot + report stavu PC |
 | 191 | Command Center pro velké displeje. | 🟡 ČÁSTEČNĚ | HUD na celou obrazovku |
 | 192 | Vizualizovaná simulace misí. | ✅ HOTOVO | „Nanečisto“ u protokolu: animovaná simulace po fázích – co který krok udělá, co se zeptá, jaké oprávnění, odhad času (i se souběhem) |
-| 193 | 3D Explorer komponent PC. | ⬜ CHYBÍ | — |
+| 193 | 3D Explorer komponent PC. | ✅ HOTOVO | 3D průzkumník PC v Záchraně a výkonu: procesor, paměť, grafika, disky, síť, baterie jako otočitelné 3D bloky (velikost podle kapacity, barva podle vytížení), klik = detail |
 | 194 | Vizualizace vlastní sítě a spojení. | 🟡 ČÁSTEČNĚ | seznam zařízení v síti (bez grafu) |
-| 195 | Přenos Mochiho stavu mezi zařízeními. | ⬜ CHYBÍ | — |
+| 195 | Přenos Mochiho stavu mezi zařízeními. | ✅ HOTOVO | Mochi na telefon a zpět: na PC zůstane prázdné místo (klik ho vrátí), na telefonu žije ve stejné náladě, dvojí ťuknutí ho pošle zpátky |
 
 ## 19. Hyper Intelligence Engine
 
@@ -409,7 +409,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 22. Mochi Ultra
 
-✅ 10 · 🟡 4 · ⬜ 1
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -419,7 +419,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 244 | Music Beat Animation — synchronizace rytmu. | 🟡 ČÁSTEČNĚ | tančí, když hraje hudba (bez synchronizace rytmu) |
 | 245 | Physics-Based Movement — pružné pohyby. | ✅ HOTOVO | pružná fyzika postavičky |
 | 246 | Cursor Curiosity — interakce s kurzorem. | ✅ HOTOVO | oči sledují kurzor |
-| 247 | Screen Edge Play — hravý okraj displeje. | ⬜ CHYBÍ | — |
+| 247 | Screen Edge Play — hravý okraj displeje. | ✅ HOTOVO | hra na okraji: po 8 minutách klidu Mochi proběhne po okraji notche a zpět, ťuknutím ho zastavíš; ne při soustředění a omezených animacích; vypínatelné |
 | 248 | Task Costumes — tematické doplňky. | ✅ HOTOVO | doplňky postavičky (character.outfit) |
 | 249 | Sleep Cycles — animace spánku. | ✅ HOTOVO | spánek při nečinnosti |
 | 250 | Micro Interactions — mikrointerakce. | ✅ HOTOVO | mikrointerakce a výrazy (character/looks.ts) |
@@ -1157,12 +1157,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 56. Futuristic JARVIS Interface
 
-✅ 9 · 🟡 4 · ⬜ 2
+✅ 10 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 751 | Contextual Radial Menu — radiální akce. | ✅ HOTOVO | kruhové menu kolem postavičky (pravé tlačítko): akce pro aplikaci, návrh chvíle a běžné akce |
-| 752 | Smart Overlay Anchoring — připnutí k oknu. | ⬜ CHYBÍ | — |
+| 752 | Smart Overlay Anchoring — připnutí k oknu. | 🟡 ČÁSTEČNĚ | ukotvení k oknu: okno z argumentů nástroje (název / aplikace) → posun notche nad něj v mezích monitoru, po dokončení zpět doprostřed; vypínatelné – na skutečném PC zatím neověřeno |
 | 753 | Attention-Aware UI — méně rušení. | ✅ HOTOVO | Attention: při schůzce v kalendáři, aplikaci přes celou obrazovku nebo soustředění nedůležitá upozornění počkají a přijdou jako jedno shrnutí; budíky a časovače vždy hned; vypínatelné |
 | 754 | Live Agent Activity Map — mapa agentů. | ✅ HOTOVO | živá mapa agentů v Úkolech: specialisté kolem JARVISe, právě používaný nástroj, puls při akci, výsledek |
 | 755 | Mission Dependency Animation — návaznosti úkolů. | ✅ HOTOVO | návaznosti kroků protokolu (needs) jako graf fází: co běží souběžně, na co krok čeká, smyčky a neexistující kroky |
@@ -1171,7 +1171,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 758 | Adaptive Density UI — velikost a hustota UI. | ✅ HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat) |
 | 759 | Floating Data Lens — datová lupa. | ✅ HOTOVO | datová lupa: u označeného textu (Ctrl+Alt+E) hned bez AI – částky v Kč, převody jednotek a °F/°C, dny do data, součty čísel, barvy s kontrastem, kontrola IČO a IBAN, počet slov; i nástroj data_lens |
 | 760 | Animated Status Morphing — plynulé indikátory. | 🟡 ČÁSTEČNĚ | animované stavy |
-| 761 | Spatial Audio Notifications — prostorové zvuky. | ⬜ CHYBÍ | — |
+| 761 | Spatial Audio Notifications — prostorové zvuky. | ✅ HOTOVO | prostorová upozornění: zvuk upozornění přichází ze směru zdroje (telefon, e-mail, okno), nastavení „Prostorové zvuky“ |
 | 762 | Touch-Friendly Dashboard — dotyková verze. | 🟡 ČÁSTEČNĚ | mobilní aplikace |
 | 763 | Miniature Mission Viewer — mini stav mise. | ✅ HOTOVO | mini stav mise v notchi a mobilu (taskcard) |
 | 764 | HUD Performance Governor — úsporné UI. | 🟡 ČÁSTEČNĚ | vypnutí animací |
@@ -1201,7 +1201,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 58. Everyday Intelligence & Accessibility
 
-✅ 11 · 🟡 2 · 🔌 1 · ⬜ 1
+✅ 12 · 🟡 2 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1213,7 +1213,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 786 | Recipe Ingredient Substitution — náhrady surovin. | ✅ HOTOVO | ingredient_substitute: ověřené náhrady surovin vč. veganských/bezlepkových |
 | 787 | Daily Focus Report — soustředění. | ✅ HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina |
 | 788 | Screen Reader Optimization — čtečky. | 🟡 ČÁSTEČNĚ | aria popisky |
-| 789 | One-Handed Control Profiles — jedna ruka. | ⬜ CHYBÍ | — |
+| 789 | One-Handed Control Profiles — jedna ruka. | ✅ HOTOVO | ovládání jednou rukou v aplikaci telefonu: levá / pravá ruka – lišta a záhlaví dolů k palci, větší tlačítka, obsah níž |
 | 790 | Live Caption Accessibility — živé titulky. | ✅ HOTOVO | živé titulky: co JARVIS říká (rozdělené na řádky, načasované s řečí) a co slyšel; velké a čitelné, zapínají se v Nastavení → Vzhled |
 | 791 | Reading Assistance Mode — jednodušší text. | ✅ HOTOVO | reading_level: náročnost textu (věty, dlouhá slova, čas čtení) + zjednodušení textu přes AI |
 | 792 | Digital Wellbeing Dashboard — využití aplikací. | ✅ HOTOVO | čas u PC po aplikacích (screen_time) |

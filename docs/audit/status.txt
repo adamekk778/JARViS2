@@ -1014,3 +1014,16 @@
 754 | HOTOVO | živá mapa agentů v Úkolech: specialisté kolem JARVISe, právě používaný nástroj, puls při akci, výsledek
 230 | HOTOVO | mapa oken v panelu notche (Plochy): okna na obrazovce v měřítku, klik přepne, šipky přepínají prostorově (nejbližší okno v daném směru); hlasem window_switch
 790 | HOTOVO | živé titulky: co JARVIS říká (rozdělené na řádky, načasované s řečí) a co slyšel; velké a čitelné, zapínají se v Nastavení → Vzhled
+
+# Vlna 47 – Mochi a rozhraní
+035 | HOTOVO | nápověda k funkcím: tlačítko „?“ nebo F1 – najetí na sekci ukáže, co dělá a jak o to požádat hlasem; „Prohlídka“ projde sekce jednu po druhé (šipky, Další / Zpět)
+079 | HOTOVO | rozdělení Mochiho: každý pracující agent se odštěpí jako malý Mochi vedle velkého, poskočí při akci a po dokončení splyne zpět; dvojklik = hravé rozdělení na tři
+083 | HOTOVO | animované předání: co jde na telefon, odletí z notche doprava (a na telefonu přiletí shora), co přijde z telefonu, vletí do notche; i přesun Mochiho
+084 | ČÁSTEČNĚ | zjevení u okna: když JARVIS pracuje v okně, notch se přesune nad jeho střed (a zvuky přicházejí z té strany) – na skutečném PC zatím neověřeno
+752 | ČÁSTEČNĚ | ukotvení k oknu: okno z argumentů nástroje (název / aplikace) → posun notche nad něj v mezích monitoru, po dokončení zpět doprostřed; vypínatelné – na skutečném PC zatím neověřeno
+102 | HOTOVO | prostorové zvuky: stereo umístění zvuků rozhraní (notch uprostřed, telefon a upozornění vpravo, e-mail vlevo, okno, ve kterém JARVIS pracuje), i u vlastních zvuků; vypínatelné
+761 | HOTOVO | prostorová upozornění: zvuk upozornění přichází ze směru zdroje (telefon, e-mail, okno), nastavení „Prostorové zvuky“
+193 | HOTOVO | 3D průzkumník PC v Záchraně a výkonu: procesor, paměť, grafika, disky, síť, baterie jako otočitelné 3D bloky (velikost podle kapacity, barva podle vytížení), klik = detail
+195 | HOTOVO | Mochi na telefon a zpět: na PC zůstane prázdné místo (klik ho vrátí), na telefonu žije ve stejné náladě, dvojí ťuknutí ho pošle zpátky
+247 | HOTOVO | hra na okraji: po 8 minutách klidu Mochi proběhne po okraji notche a zpět, ťuknutím ho zastavíš; ne při soustředění a omezených animacích; vypínatelné
+789 | HOTOVO | ovládání jednou rukou v aplikaci telefonu: levá / pravá ruka – lišta a záhlaví dolů k palci, větší tlačítka, obsah níž

@@ -85,6 +85,8 @@ class Voice(BaseModel):
 class Notch(BaseModel):
     enabled: bool = True
     music_viz: bool = True         # OMEGA P12.02: bars moving with the music while something plays
+    follow_window: bool = True     # OMEGA 752: while JARVIS works in a window, the notch moves above it
+    edge_play: bool = True         # OMEGA 247: when nothing happens for a while, Mochi plays along the screen edge
     monitor: int = 0
     offset_x: int = 0
     width: int = 200
@@ -113,6 +115,7 @@ class Appearance(BaseModel):
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch
     sound_volume: int = 30     # 0–100
+    spatial_sounds: bool = True   # OMEGA 102 / 761: sounds come from where things happen (phone right, notch centre…)
 
     @model_validator(mode="before")
     @classmethod
@@ -487,14 +490,14 @@ SETTABLE_BY_VOICE: set[str] = {
     "general.user_name", "general.address_as", "general.language", "general.personality", "general.city",
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
-    "voice.speak_mode", "voice.stt_language", "voice.followup", "notch.music_viz", "powers.download_watch",
+    "voice.speak_mode", "voice.stt_language", "voice.followup", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",
     "dictation.enabled", "dictation.cleanup",
     "stark.boot_greeting", "stark.briefing_auto", "stark.briefing_speak", "stark.briefing_news",
-    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "automations.enabled",
+    "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "appearance.spatial_sounds", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak",

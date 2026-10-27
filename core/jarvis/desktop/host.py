@@ -71,6 +71,8 @@ class DesktopHost:
         self.hud = None
         self.hud_visible = False
         self.hud_alpha = False
+        self._anchor_win = None
+        rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
 
     # ---------- geometry ----------
     def _screen(self):
@@ -84,6 +86,12 @@ class DesktopHost:
         if not getattr(self, "_notch_hwnd", 0):
             self._notch_hwnd = winutil.window_handle(self.notch, NOTCH_TITLE)
         return self._notch_hwnd
+
+    def _anchor(self, win: dict | None) -> None:
+        self._anchor_win = win
+        size = getattr(self, "_notch_size", None)
+        if size:
+            self.place_notch(*size)
 
     def set_notch_region(self, polygons: list) -> None:
         hwnd = self.notch_hwnd()
@@ -102,7 +110,13 @@ class DesktopHost:
             mon = mons[i if 0 <= i < len(mons) else 0][0]
             scale = winutil.dpi_scale(hwnd)
             pw, ph = round(w * scale), round(h * scale)
-            x = int(mon.x + (mon.w - pw) // 2 + self.rt.cfg.notch.offset_x * scale)
+            win = getattr(self, "_anchor_win", None)          # OMEGA 752: above the window JARVIS works in
+            if win:
+                from ..mochiplus import anchor_offset
+
+                x = int(mon.x + (mon.w - pw) // 2 + anchor_offset(win, mon.x, mon.w, pw))
+            else:
+                x = int(mon.x + (mon.w - pw) // 2 + self.rt.cfg.notch.offset_x * scale)
             winutil.set_window_rect(hwnd, x, mon.y, pw, ph)
             return
         scr = self._screen()

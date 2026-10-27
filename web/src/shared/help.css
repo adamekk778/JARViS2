@@ -1,0 +1,13 @@
+/* OMEGA 035 */
+.help-fab { position: fixed; right: 16px; bottom: 16px; z-index: 45; display: flex; gap: 8px; align-items: center; }
+.help-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 20px; cursor: pointer; }
+.help-btn.on { background: var(--accent); color: var(--accent-ink, #fff); }
+.help-tour { display: none; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+.help-mode .help-tour { display: inline-flex; }
+.help-tip { position: fixed; z-index: 60; width: 320px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2, #1b1f27); border: 1px solid var(--accent);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .35); font-size: 14px; }
+.help-tip p { margin: 6px 0 0; color: var(--text-2); }
+.help-nav { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
+.help-nav .muted { margin-right: auto; }
+.help-mode [data-help] { outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+.help-focus { outline: 2px solid var(--accent) !important; }

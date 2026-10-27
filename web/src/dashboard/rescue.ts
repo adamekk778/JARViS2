@@ -5,6 +5,7 @@
 import { hero, HEROES } from "../shared/hero";
 import { fmtSize, h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
+import { pcExplorer } from "../shared/pcexplorer";
 
 const AREAS: [string, string, string][] = [
   ["crashes", "Pády a modré obrazovky", "warning-octagon"], ["drivers", "Ovladače", "cpu"], ["apps", "Padající aplikace", "app-window"],
@@ -158,8 +159,10 @@ export function buildRescue(client: JarvisClient) {
       h("button", { class: "btn", type: "button", onclick: () => { if (confirm("Vytvořit bod obnovy systému? (potřebuje práva správce)")) sec("restore_point", "JARVIS"); } }, icon("clock-counter-clockwise"), "Vytvořit bod obnovy")),
     secOut);
 
+  const pcx = pcExplorer(client);            // OMEGA 193: the parts of the PC in 3D
   const el = h("section", { class: "tasks-view rescue-view" },
     hero(HEROES.rescue, "Záchrana a výkon", "Proč PC padá, co ho brzdí, jestli je disk v pořádku a jestli je soubor nebo odkaz bezpečný. Jen čte a radí – měnit budeš ty.", []),
+    pcx.el,
     h("h2", { class: "group-label" }, "Diagnostika"), h("div", { class: "card sec-card" }, chips, h("div", { class: "btn-row" }, runBtn, allBtn), diagOut),
     h("h2", { class: "group-label" }, "Výkon"), h("div", { class: "card sec-card" }, h("div", { class: "btn-row" }, perfBtn), perfOut,
       h("h4", {}, "Vytížení procesoru za 24 h"), histBox, h("h4", {}, "Test výkonu"), h("div", { class: "list-add" }, benchLabel, benchBtn), benchOut),
@@ -167,5 +170,5 @@ export function buildRescue(client: JarvisClient) {
       h("label", { class: "rs-check" }, route, "i trasa k cíli (tracert, do 1 min)"), netOut),
     h("h2", { class: "group-label" }, "Bezpečnostní centrum"), secBox);
   let loaded = false;
-  return { el, show: () => { if (!loaded) { loaded = true; client.send("perf_get"); } } };
+  return { el, show: () => { pcx.refresh(); if (!loaded) { loaded = true; client.send("perf_get"); } } };
 }

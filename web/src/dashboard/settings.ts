@@ -291,6 +291,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       return [
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku"),
           sw("notch.music_viz", "Pruhy podle hudby", "Když hraje hudba, na okraji notche se hýbou pruhy."),
+          sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
+          sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
           select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],
             "„Jen kliknutím“ = notch se při přejetí myší jen probudí, panel otevře až klik. Hodí se proti náhodnému otevření."),
@@ -326,6 +328,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         sw("stark.attention_aware", "Nerušit při soustředění", "Při schůzce v kalendáři nebo hře přes celou obrazovku nedůležitá upozornění počkají a přijdou potom najednou. Budíky a časovače vždy hned.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),
+          sw("appearance.spatial_sounds", "Prostorové zvuky", "Zvuk přijde ze strany, kde se něco děje: z telefonu zprava, od okna, ve kterém JARVIS pracuje, z jeho strany."),
           h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní zvuky"),
             h("span", {}, "Dej do složky hotovo.mp3, chyba.wav, poslech.ogg… a JARVIS je použije místo svých.")),
             h("div", { class: "btn-row" },

@@ -362,3 +362,33 @@ html[data-motion="reduced"] .n-music { display: none; }
 /* OMEGA 234 focus mode: the closed notch fades almost away, no music bars, no peeking */
 html[data-focus="1"] .notch:is([data-mode="closed"], [data-mode="hover"]) { opacity: .25; transition: opacity .6s; }
 html[data-focus="1"] .n-music { display: none; }
+
+/* OMEGA 083 hand-off */
+.n-inner > .n-handoff { opacity: 1; top: 8px; right: 40px; display: flex; gap: 6px; align-items: center; padding: 3px 10px; border-radius: 99px;
+  background: var(--accent, #4fd1ff); color: #000; font-size: 11px; max-width: 160px; white-space: nowrap; overflow: hidden; pointer-events: none; }
+.n-handoff span { overflow: hidden; text-overflow: ellipsis; }
+.n-handoff.out { animation: n-out 1.4s cubic-bezier(.5,0,.75,0) forwards; }
+.n-handoff.in { animation: n-in 1.2s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes n-out { 0% { transform: translateX(-120px) scale(.6); opacity: 0; } 25% { transform: translateX(-60px) scale(1); opacity: 1; } 100% { transform: translateX(260px) scale(.7); opacity: 0; } }
+@keyframes n-in { 0% { transform: translateX(260px) scale(.7); opacity: 0; } 60% { transform: translateX(-30px) scale(1); opacity: 1; } 100% { transform: translateX(-90px) scale(.4); opacity: 0; } }
+/* OMEGA 195 Mochi on the phone */
+.n-away { display: none; position: absolute; inset: 0; margin: auto; width: 26px; height: 26px; border-radius: 50%; border: 1px dashed rgb(255 255 255 / .4);
+  background: transparent; color: #cfd8e3; font-size: 14px; cursor: pointer; }
+.mochi-away .n-blob > :not(.n-away):not(.n-mini) { visibility: hidden; }
+.mochi-away .n-away { display: grid; place-items: center; }
+/* OMEGA 079 little Mochis */
+.n-mini { position: absolute; top: 50%; left: 50%; width: 16px; height: 14px; border-radius: 50% 50% 46% 46%; background: var(--accent, #4fd1ff);
+  display: flex; gap: 3px; justify-content: center; align-items: center; transform: translate(calc(-50% + (var(--k) * 18px + 26px)), -30%) scale(1);
+  animation: n-split .45s var(--spring) both; pointer-events: none; }
+.n-mini i { width: 3px; height: 4px; border-radius: 2px; background: #0b0d12; }
+.n-mini.play { animation: n-split .45s var(--spring) both, n-orbit 1s linear .3s infinite; }
+.n-mini.hop { animation: n-hop .5s var(--spring); }
+.n-mini.merge { transition: transform .6s var(--spring), opacity .6s; transform: translate(-50%, -50%) scale(.2); opacity: 0; }
+@keyframes n-split { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
+@keyframes n-hop { 50% { transform: translate(calc(-50% + (var(--k) * 18px + 26px)), -90%); } }
+@keyframes n-orbit { from { rotate: 0deg; } to { rotate: 360deg; } }
+/* OMEGA 247 edge play: Mochi trots along the notch edge and back */
+.notch.edge-play[data-mode="closed"] .n-blob { animation: n-edge 7s ease-in-out; }
+@keyframes n-edge { 0% { left: 50%; } 20% { left: 12%; top: -12px; } 30% { left: 12%; top: -19px; } 55% { left: 88%; top: -12px; } 65% { left: 88%; top: -19px; } 100% { left: 50%; } }
+/* OMEGA 752 anchored above a window */
+.notch.anchored .n-inner { box-shadow: inset 0 -2px 0 var(--accent, #4fd1ff); }

@@ -102,6 +102,8 @@ class Runtime:
         from .uixplus import Attention
 
         self.attention = Attention(self)       # OMEGA 753 / 234: notices wait while you are focused
+        self.mochi_at = "pc"                   # OMEGA 195: where Mochi is right now (pc / phone)
+        self.on_anchor = None                  # OMEGA 752: the desktop host moves the notch above a window
         self.voice_mood: dict | None = None    # OMEGA P3.12: last read of the tone of voice (when enabled)
         self.missions = Missions(self)         # OMEGA 211–225: queue, deadlines, resume
         self.miclog = MicLog(self)             # OMEGA 679: when the microphone listened
@@ -318,7 +320,7 @@ class Runtime:
     def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False) -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
         att = getattr(self, "attention", None)
-        if att is not None and not att.gate(title, body, urgent):
+        if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
         self.bus.publish("notify", title=title, body=body, url=url, target=target)
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
@@ -351,6 +353,24 @@ class Runtime:
         if getattr(self, "scheduler", None):
             self.scheduler.pause_for(600)
         self.bus.publish("stopped")
+
+    def set_anchor(self, win: dict | None) -> None:
+        """OMEGA 752 / 084: JARVIS works in this window → the notch (and Mochi) move above it; None = back to the middle."""
+        if not getattr(self.cfg.notch, "follow_window", True):
+            win = None
+        if (win or {}).get("hwnd") == (getattr(self, "_anchor", None) or {}).get("hwnd"):
+            return
+        self._anchor = win
+        try:
+            w, _ = self.platform.screen_size()
+        except Exception:  # noqa: BLE001
+            w = 1920
+        self.bus.publish("anchor", title=(win or {}).get("title", ""), cx=round((win["x"] + win["w"] / 2) / w, 3) if win else None)
+        if self.on_anchor:
+            try:
+                self.on_anchor(win)
+            except Exception as e:  # noqa: BLE001
+                log.debug("anchor: %s", e)
 
     def speak(self, text: str, lang: str = "cs") -> None:
         if getattr(self.cfg.appearance, "captions", False) and text.strip():      # OMEGA 790: live captions

@@ -5,7 +5,7 @@ import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
-import { configureSounds, play, setCustomSounds } from "../shared/sounds";
+import { configureSounds, panFor, play, setAnchorPan, setCustomSounds } from "../shared/sounds";
 import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
@@ -633,6 +633,61 @@ client.on("settings_changed", (m) => {
 });
 client.on("mood", onMood);
 client.on("level", (m) => blob.setLevel(m.rms || 0));
+// OMEGA 083: something goes to the phone (flies off to the right) or comes from it (flies into the notch)
+const HANDOFF_ICON: Record<string, string> = { link: "link", text: "text-aa", file: "file", url: "link", mochi: "smiley", photo: "image" };
+client.on("handoff", (m) => {
+  const chip = h("div", { class: `n-handoff ${m.to === "phone" ? "out" : "in"}` }, icon(HANDOFF_ICON[m.kind] || "paper-plane-tilt"), h("span", {}, String(m.label || "")));
+  inner.append(chip);
+  flashUi(m.to === "phone" ? "success" : "notify", 1200);
+  play(m.to === "phone" ? "done" : "notify", panFor("phone"));
+  window.setTimeout(() => chip.remove(), 1500);
+});
+// OMEGA 195: Mochi went to the phone – an empty seat and a way to call him back
+const away = h("button", { class: "n-away", type: "button", title: "Mochi je na telefonu – klikni a vrátí se", "aria-label": "Vrátit Mochiho na PC",
+  onclick: (e: Event) => { e.stopPropagation(); client.send("mochi_move", { to: "pc" }); } }, icon("device-mobile"));
+blobBox.append(away);
+client.on("mochi_where", (m) => { shape.classList.toggle("mochi-away", m.at === "phone"); });
+// OMEGA 752 / 084: JARVIS works in a window → the notch moved above it; sounds come from that side
+client.on("anchor", (m) => { setAnchorPan(m.cx ?? null); shape.classList.toggle("anchored", m.cx != null); });
+// OMEGA 079: each specialist agent splits off as a little Mochi next to the big one and merges back when done
+const minis = new Map<string, HTMLElement>();
+client.on("agent_activity", (m) => {
+  let el = minis.get(m.key);
+  if (m.state === "start" && !el) {
+    el = h("div", { class: "n-mini", title: m.name }, h("i"), h("i"));
+    el.style.setProperty("--k", String(minis.size));
+    blobBox.append(el);
+    minis.set(m.key, el);
+  }
+  if (el && m.state === "tool") { el.classList.remove("hop"); void el.offsetWidth; el.classList.add("hop"); }
+  if (el && m.state === "done") {
+    el.classList.add("merge");
+    const key = m.key;
+    window.setTimeout(() => { minis.get(key)?.remove(); minis.delete(key); }, 700);
+  }
+});
+blobBox.addEventListener("dblclick", (e) => {      // a playful split into three and back
+  e.preventDefault();
+  const trio = [0, 1, 2].map((k) => { const x = h("div", { class: "n-mini play" }, h("i"), h("i")); x.style.setProperty("--k", String(k)); return x; });
+  blobBox.append(...trio);
+  flashUi("joy", 1600);
+  window.setTimeout(() => trio.forEach((x) => x.classList.add("merge")), 1100);
+  window.setTimeout(() => trio.forEach((x) => x.remove()), 1800);
+});
+// OMEGA 247: after a long quiet spell Mochi runs along the screen edge for a few seconds (click = he jumps and hides)
+let edgePlay = true;
+let lastNudge = Date.now();
+["pointermove", "keydown"].forEach((ev) => window.addEventListener(ev, () => { lastNudge = Date.now(); }, { passive: true }));
+window.setInterval(() => {
+  if (!edgePlay || mode !== "closed" || busy() || document.documentElement.dataset.focus === "1" || document.documentElement.dataset.motion === "reduced") return;
+  if (Date.now() - lastNudge < 8 * 60_000 || shape.classList.contains("edge-play")) return;
+  lastNudge = Date.now();
+  shape.classList.add("edge-play");
+  window.setTimeout(() => shape.classList.remove("edge-play"), 7000);
+}, 20_000);
+blobBox.addEventListener("pointerdown", () => { if (shape.classList.contains("edge-play")) { shape.classList.remove("edge-play"); flashUi("joy", 900); } });
+client.on("settings_changed", (m) => { edgePlay = m.settings?.notch?.edge_play !== false; });
+
 client.on("focus", (m) => { document.documentElement.dataset.focus = m.active ? "1" : ""; });   // OMEGA 234: quieter, see-through notch
 client.on("music_level", (m) => {
   const b: number[] = Array.isArray(m.bars) ? m.bars : [];
@@ -664,7 +719,7 @@ client.on("confirm_request", (m) => {
 });
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
-client.on("notify", (m) => { showAlert(m.title, m.body); play("notify"); });
+client.on("notify", (m) => { showAlert(m.title, m.body); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
 client.on("sounds", (m) => setCustomSounds(m.files));
 client.on("update_status", (m) => { upd = m; paintUpdate(); updateActivity(); });
 client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });
