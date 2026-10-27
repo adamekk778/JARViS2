@@ -9,13 +9,13 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 501 | 75 |
+| ✅ HOTOVO | 510 | 77 |
 | 🟡 ČÁSTEČNĚ | 174 | 59 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 21 | 4 |
-| ⬜ CHYBÍ | 86 | 15 |
+| ⬜ CHYBÍ | 77 | 13 |
 | **Celkem** | **795** | **163** |
 
 Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem unikátních modulů.
@@ -387,12 +387,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 21. Next-Gen Desktop
 
-✅ 8 · 🟡 4 · ⬜ 3
+✅ 9 · 🟡 4 · ⬜ 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 226 | Universal Overlay — rozhraní nad aplikacemi. | ✅ HOTOVO | notch a HUD nad aplikacemi (desktop/host.py) |
-| 227 | Smart Screen Regions — práce s výřezem obrazovky. | ⬜ CHYBÍ | — |
+| 227 | Smart Screen Regions — práce s výřezem obrazovky. | ✅ HOTOVO | práce s výřezem obrazovky: jen jedno okno (podle názvu / aktivní) nebo obdélník – zbytek obrazovky AI neuvidí |
 | 228 | Window Grouping — seskupování oken. | ✅ HOTOVO | profil = skupina oken (programy + pozice), uložení a obnovení jedním příkazem |
 | 229 | Workspace Profiles — profily prostředí. | ✅ HOTOVO | workspace_save / workspace_restore: spustí chybějící programy a rozmístí okna jako minule |
 | 230 | Spatial Window Navigator — prostorová navigace. | ⬜ CHYBÍ | — |
@@ -453,25 +453,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 24. Advanced Vision
 
-✅ 2 · 🟡 5 · ⬜ 8
+✅ 10 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 271 | Video Understanding — analýza videa. | ⬜ CHYBÍ | — |
-| 272 | Screen Change Detection — změny obrazu. | ⬜ CHYBÍ | — |
-| 273 | Object Tracking — sledování objektu. | ⬜ CHYBÍ | — |
+| 271 | Video Understanding — analýza videa. | ✅ HOTOVO | porozumění videu: střihy → snímek z každého záběru → popis AI → časová osa a shrnutí (potřebuje AI, která vidí obrázky) |
+| 272 | Screen Change Detection — změny obrazu. | ✅ HOTOVO | hlídání změn na obrazovce (okno / výřez), upozornění při změně; po celou dobu svítí v notchi „Vidím obrazovku“ |
+| 273 | Object Tracking — sledování objektu. | ✅ HOTOVO | sledování předmětu ve videu (normalizovaná korelace): dráha, vzdálenost, rychlost, obrázek trasy a CSV |
 | 274 | UI Hierarchy Reconstruction — struktura UI. | ✅ HOTOVO | strom UI přes UI Automation (tools/uia.py, CI --selftest-uia) |
-| 275 | Automatic Form Recognition — formuláře. | ⬜ CHYBÍ | — |
+| 275 | Automatic Form Recognition — formuláře. | ✅ HOTOVO | rozpoznání formuláře: kolonky webu (popisky, typy, povinné, volby) i z fotky papírového formuláře; nic nevyplňuje |
 | 276 | Graph Reading — čtení grafů. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
 | 277 | Table Extraction — vytěžení tabulek. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
 | 278 | Diagram Interpretation — schémata. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
-| 279 | Visual Error Localization — místo chyby. | ⬜ CHYBÍ | — |
+| 279 | Visual Error Localization — místo chyby. | ✅ HOTOVO | lokalizace chyby na obrazovce: červená hlášení a ikony zakroužkované s čísly a přečtené AI |
 | 280 | Scene Description — popis scény. | 🟡 ČÁSTEČNĚ | popis obrazovky přes vision model |
-| 281 | Camera Measurement Helper — měření s kalibrací. | ⬜ CHYBÍ | — |
+| 281 | Camera Measurement Helper — měření s kalibrací. | ✅ HOTOVO | měření z fotky podle reference (karta, A4, mince): předměty na jednobarevném podkladu, focení shora |
 | 282 | Color Inspector — čtení barev. | 🟡 ČÁSTEČNĚ | přes vision model |
 | 283 | Visual Similarity Search — podobné obrázky. | ✅ HOTOVO | find_similar_image: podobné obrázky k zadanému ve složce (dHash, i zmenšené / překódované) |
-| 284 | Motion Analysis — pohybová analýza. | ⬜ CHYBÍ | — |
-| 285 | Vision Privacy Masking — maskování citlivých oblastí. | ⬜ CHYBÍ | — |
+| 284 | Motion Analysis — pohybová analýza. | ✅ HOTOVO | analýza pohybu ve videu: časy největšího pohybu, podíl klidu, teplotní mapa míst |
+| 285 | Vision Privacy Masking — maskování citlivých oblastí. | ✅ HOTOVO | maskování citlivých oken: správci hesel a bankovnictví se před odesláním snímku obrazovky AI zakryjí (vlastní slova v nastavení) |
 
 ## 25. JARVIS PC Rescue
 
@@ -1267,8 +1267,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P4.04 | Navigace v aplikacích podle obrazu | ✅ HOTOVO | computer_use | — |
 | P4.05 | Pomoc v reálném čase | 🟡 ČÁSTEČNĚ | označený text, kontext aktivní aplikace | 027 |
 | P4.06 | Analýza obrázků, grafů a dokumentů | ✅ HOTOVO | přílohy obrázků a dokumentů | 276-278 |
-| P4.07 | Volitelný přístup ke kameře | ⬜ CHYBÍ | — | 188 |
-| P4.08 | Rozpoznávání objektů kamerou telefonu | ⬜ CHYBÍ | — | 413 |
+| P4.07 | Volitelný přístup ke kameře | ✅ HOTOVO | kamera telefonu jen na klepnutí (Fotka na PC, Fotka → úkoly, Co to je?), PC o fotku jen žádá (vlna 34/37) | 188 |
+| P4.08 | Rozpoznávání objektů kamerou telefonu | ✅ HOTOVO | „Co to je?“ v telefonu: fotka → AI pojmenuje předmět a k čemu slouží | 413 |
 | P4.09 | Vizuální porovnání před a po | ✅ HOTOVO | visual_diff (design.py) – rozdíl dvou snímků s vyznačenými oblastmi | 059 |
 | P5.01 | Integrace s Claude Code CLI | ✅ HOTOVO | Claude Code v notchi, schvalování z PC i telefonu (claude_bridge.py) | 046 |
 | P5.02 | Generování celých aplikací | 🟡 ČÁSTEČNĚ | make_website + Claude Code | 352 |

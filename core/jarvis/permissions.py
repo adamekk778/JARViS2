@@ -20,6 +20,7 @@ LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávněn
 # except the reading tools listed below.
 READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
+    "video_understand", "form_fields", "measure_photo", "motion_analysis", "screen_errors", "screen_region",
     "canary_check", "crash_repro", "staging_preview", "backend_performance", "file_relations", "db_migration",
     "boards_connected", "pcb_helper", "beam_alternatives", "raspberry_pi",
     "clean_for_sharing", "pinned_tasks", "app_quick_actions", "ai_usage", "briefing", "clipboard_get", "data_inventory", "get_settings", "get_time", "home_devices", "list_apps",

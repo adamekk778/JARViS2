@@ -398,6 +398,8 @@ class LimitsCfg(BaseModel):
 class PrivacyCfg(BaseModel):
     private_mode: bool = False         # nothing new is written to the history or memory
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
+    mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
+    mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)
 
 
 class AgentCfg(BaseModel):

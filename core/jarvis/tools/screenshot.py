@@ -34,8 +34,13 @@ async def screenshot(ctx, describe: bool = False, question: str = "Popiš struč
     summary = "Snímek obrazovky pořízen"
     data = None
     if describe:
+        from ..vision import private_screenshot
+
         try:
-            data = await describe_image(ctx, png, question)
+            masked, hidden = await asyncio.to_thread(private_screenshot, ctx)   # OMEGA 285: banks / passwords never reach the AI
+            data = await describe_image(ctx, masked, question)
+            if hidden:
+                data = f"{data}\n(Pro AI jsem zakryl {hidden} okno/oken s citlivým obsahem.)"
         except Exception as e:  # vision optional
             data = f"(popis se nepodařil: {e})"
     return ToolResult(True, summary, data=data, attachments=[att.id])

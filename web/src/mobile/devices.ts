@@ -29,14 +29,14 @@ function pickPhoto(): Promise<File | null> {
   });
 }
 
-export async function sendPhoto(c: JarvisClient, purpose: "shelf" | "task", id = "") {
+export async function sendPhoto(c: JarvisClient, purpose: "shelf" | "task" | "ask", id = "") {
   const f = await pickPhoto();
   if (!f) return;
   try {
     toast("Posílám fotku…", "info", 1500);
     const att = await c.upload(f, f.name || "fotka.jpg");
     c.send("phone_photo", { attachment_id: att.id, purpose, id });
-    toast(purpose === "task" ? "JARVIS z fotky vypíše úkoly" : "Fotka je na PC v polici notche", "ok");
+    toast(purpose === "task" ? "JARVIS z fotky vypíše úkoly" : purpose === "ask" ? "JARVIS se dívá, co to je…" : "Fotka je na PC v polici notche", "ok");
     native.haptic();
   } catch (e: any) { toast(e.message || "Fotku se nepodařilo poslat", "error"); }
 }
@@ -47,6 +47,7 @@ export function photoCard(c: JarvisClient): HTMLElement {
     h("div", { class: "ctl-grid" },
       h("button", { class: "ctl primary", type: "button", onclick: () => sendPhoto(c, "shelf") }, icon("camera"), h("span", {}, "Fotka na PC")),
       h("button", { class: "ctl", type: "button", onclick: () => sendPhoto(c, "task") }, icon("list-checks"), h("span", {}, "Fotka → úkoly")),
+      h("button", { class: "ctl", type: "button", onclick: () => sendPhoto(c, "ask") }, icon("magnifying-glass"), h("span", {}, "Co to je?")),
       h("button", { class: "ctl", type: "button", onclick: () => scanCommand(c) }, icon("qr-code"), h("span", {}, "Skenovat příkaz"))));
 }
 

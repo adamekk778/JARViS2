@@ -920,3 +920,14 @@
 632 | HOTOVO | property-based testy Pythonu: náhodné vstupy podle typů, vlastnosti nespadne / idempotence / inverze / seřazení, protipříklady
 637 | HOTOVO | reprodukce pádu: z tracebacku (Python) či stacku (JS) místo ve tvém kódu, cesta volání, ukázka kódu a kostra testu
 640 | HOTOVO | profil spotřeby baterie: %/h, výdrž, podíl programů na procesoru během běhu na baterii
+
+# Vlna 37 – vidění (vision.py, tools/vision_tools.py, tests/test_wave37.py)
+227 | HOTOVO | práce s výřezem obrazovky: jen jedno okno (podle názvu / aktivní) nebo obdélník – zbytek obrazovky AI neuvidí
+271 | HOTOVO | porozumění videu: střihy → snímek z každého záběru → popis AI → časová osa a shrnutí (potřebuje AI, která vidí obrázky)
+272 | HOTOVO | hlídání změn na obrazovce (okno / výřez), upozornění při změně; po celou dobu svítí v notchi „Vidím obrazovku“
+273 | HOTOVO | sledování předmětu ve videu (normalizovaná korelace): dráha, vzdálenost, rychlost, obrázek trasy a CSV
+275 | HOTOVO | rozpoznání formuláře: kolonky webu (popisky, typy, povinné, volby) i z fotky papírového formuláře; nic nevyplňuje
+279 | HOTOVO | lokalizace chyby na obrazovce: červená hlášení a ikony zakroužkované s čísly a přečtené AI
+281 | HOTOVO | měření z fotky podle reference (karta, A4, mince): předměty na jednobarevném podkladu, focení shora
+284 | HOTOVO | analýza pohybu ve videu: časy největšího pohybu, podíl klidu, teplotní mapa míst
+285 | HOTOVO | maskování citlivých oken: správci hesel a bankovnictví se před odesláním snímku obrazovky AI zakryjí (vlastní slova v nastavení)
