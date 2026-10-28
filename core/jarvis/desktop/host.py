@@ -18,7 +18,7 @@ PAD = 28  # must match web/src/notch/main.ts
 def notch_window_size(n) -> tuple[int, int]:
     """The notch window's one size (CSS px), big enough for every mode – same formula as windowSize() in
     web/src/notch/main.ts. The region is the visible shape, so the window never resizes while it animates."""
-    ew, eh = (n.expanded_width, n.expanded_height) if n.expanded_width >= 900 else (1000, 410)
+    ew, eh = (n.expanded_width, n.expanded_height) if n.expanded_width >= 760 else (1000, 410)
     w = max(ew, 560, round(n.width * 1.1), max(n.width, 300))
     h = max(340, eh, round(n.height * 1.15), n.height)
     return w + PAD * 2, h + PAD

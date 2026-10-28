@@ -81,3 +81,41 @@ class OpenAICompat:
             raise ProviderError(f"{type(e).__name__}: {e}") from e
         calls = asm.result()
         yield Chunk(tool_calls=calls or None, done=True)
+
+    async def list_models(self) -> list[str]:
+        """GET /models – the model names this endpoint offers (empty when it cannot say)."""
+        try:
+            async with httpx.AsyncClient(transport=self._transport, timeout=15) as client:
+                r = await client.get(f"{self.base_url}/models", headers=self._headers())
+            if r.status_code != 200:
+                return []
+            data = r.json()
+            items = data.get("data") if isinstance(data, dict) else data
+            return [str(m.get("id")) for m in items or [] if isinstance(m, dict) and m.get("id")]
+        except (httpx.HTTPError, ValueError):
+            return []
+
+
+def pick_model(models: list[str]) -> str:
+    """The best general model from a gateway's list: its automatic route if it has one, else the first."""
+    if not models:
+        return ""
+    for want in ("auto", "auto/smart", "auto/best", "auto/best-free", "auto/free", "auto/fast"):
+        if want in models:
+            return want
+    autos = [m for m in models if m.lower().startswith("auto")]
+    return (autos or models)[0]
+
+
+def friendly_error(preset: str, base_url: str, e: Exception) -> str:
+    """A message a person can act on instead of 'HTTP 401: {...}'."""
+    status = getattr(e, "status", None)
+    name = "OmniRoute" if preset == "omniroute" else "Poskytovatel"
+    if status in (401, 403):
+        return (f"{name} odmítl přístup – chybí nebo nesedí API klíč. Vlož ho v Nastavení → AI mozek → API klíč"
+                + (" (klíč vytvoříš v OmniRoute v části API Keys)." if preset == "omniroute" else "."))
+    text = str(e)
+    if status is None and any(w in text for w in ("ConnectError", "ConnectTimeout", "refused")):
+        return (f"{name} na adrese {base_url} neodpovídá"
+                + (" – běží OmniRoute? (spusť ho, nebo v Nastavení oprav adresu)." if preset == "omniroute" else "."))
+    return text[:200]

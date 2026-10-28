@@ -121,3 +121,51 @@ async def test_offline_only_skips_cloud():
     b = Brain(providers=[ProviderCfg(id="g", preset="groq", model="m"), ProviderCfg(id="o", preset="ollama", model="q")],
               chain=["g", "o"], offline_only=True)
     assert [p.id for p in Router(b, lambda _: "").providers()] == ["o"]
+
+
+async def test_omniroute_with_just_a_key_finds_its_model():
+    """OmniRoute with a key but without an "auto" route: JARVIS asks /models, takes the automatic route and remembers it."""
+    seen = []
+
+    def handler(req):
+        assert req.headers.get("authorization") == "Bearer sk-omni"
+        if req.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [{"id": "openai/gpt-4o"}, {"id": "auto/best-free"}, {"id": "auto/coding"}]})
+        model = json.loads(req.content)["model"]
+        seen.append(model)
+        if model == "auto":
+            return httpx.Response(404, json={"error": {"message": "Model 'auto' not found"}})
+        return sse(*text_events("funguju"))
+
+    b = Brain(providers=[ProviderCfg(id="omniroute", preset="omniroute", base_url="http://localhost:20128/v1", model="auto")],
+              chain=["omniroute"], first_token_timeout=2)
+    r = Router(b, lambda pid: "sk-omni", httpx.MockTransport(handler))
+    text, _ = await collect(r)
+    assert text == "funguju" and seen == ["auto", "auto/best-free"] and r.last_used == ("omniroute", "auto/best-free")
+    seen.clear()
+    await collect(r)
+    assert seen == ["auto/best-free"]                      # remembered: no failed request first
+
+
+async def test_omniroute_missing_key_says_what_to_do():
+    b = Brain(providers=[ProviderCfg(id="omniroute", preset="omniroute", base_url="http://localhost:20128/v1", model="auto")],
+              chain=["omniroute"], first_token_timeout=2)
+    r = Router(b, lambda pid: "", httpx.MockTransport(lambda req: httpx.Response(401, json={"error": "Invalid API key"})))
+    with pytest.raises(AllProvidersFailed) as e:
+        await collect(r)
+    assert "API klíč" in e.value.errors["omniroute"] and "API Keys" in e.value.errors["omniroute"]
+
+    def down(req):
+        raise httpx.ConnectError("[WinError 10061] connection refused")
+
+    r2 = Router(b, lambda pid: "", httpx.MockTransport(down))
+    with pytest.raises(AllProvidersFailed) as e2:
+        await collect(r2)
+    assert "neodpovídá" in e2.value.errors["omniroute"] and "localhost:20128" in e2.value.errors["omniroute"]
+
+
+def test_pick_model():
+    from jarvis.llm.openai_compat import pick_model
+
+    assert pick_model(["x", "auto"]) == "auto" and pick_model(["x", "auto/coding"]) == "auto/coding"
+    assert pick_model(["gpt-4o", "llama"]) == "gpt-4o" and pick_model([]) == ""

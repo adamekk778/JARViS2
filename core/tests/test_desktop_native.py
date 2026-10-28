@@ -83,12 +83,15 @@ def test_notch_window_fits_every_mode_and_matches_the_page():
     n = config.Config().notch
     w, h = host_mod.notch_window_size(n)
     assert (w, h) == (max(n.expanded_width, 560) + 2 * host_mod.PAD, max(340, n.expanded_height) + host_mod.PAD)
-    small = n.model_copy(update={"expanded_width": 600})                # the page treats < 900 as the default
+    small = n.model_copy(update={"expanded_width": 600})                # the page treats < 760 as the default
     assert host_mod.notch_window_size(small) == (1000 + 2 * host_mod.PAD, 410 + host_mod.PAD)
     import pathlib
 
-    ts = (pathlib.Path(host_mod.__file__).parents[3] / "web" / "src" / "notch" / "main.ts").read_text(encoding="utf-8")
+    ts = (pathlib.Path(__file__).parents[2] / "web" / "src" / "notch" / "main.ts").read_text(encoding="utf-8")
     assert "Math.max(cfg.expanded_width || 1000, 560" in ts and "Math.max(340, cfg.expanded_height || 390" in ts
+    assert "cfg.expanded_width >= 760" in ts
+    narrower = n.model_copy(update={"expanded_width": 800, "expanded_height": 360})
+    assert host_mod.notch_window_size(narrower) == (800 + 2 * host_mod.PAD, 360 + host_mod.PAD)
 
 
 def test_mica_backdrop_turned_off_on_the_notch(rt, fake_win, monkeypatch):

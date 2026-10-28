@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "plugs", title: "OmniRoute jen s klíčem", line: "U OmniRoute stačí vložit API klíč: JARVIS ho hned vyzkouší a sám si najde model, který tvůj OmniRoute nabízí. Když něco chybí, napíše srozumitelně co. Všechny rozměry a časy notche v Nastavení se navíc projeví hned." },
     { icon: "wave-sine", title: "Plynulý notch", line: "Notch se otevírá a zavírá plynule: jeho okraj už při animaci neposkakuje a okno notche nemění velikost na začátku a na konci každého pohybu." },
     { icon: "wrench", title: "Notch bez šedého rámečku", line: "Kolem notche už není šedý obdélník: v tmavém režimu Windows za notch kreslily efekt Mica, ten je teď vypnutý. Notch má zase ostré okraje, které fungují na každém počítači (vyhlazené si můžeš zapnout v Nastavení → Notch), a když Windows zahodí oříznutí okna na tvar notche, JARVIS ho do dvou sekund vrátí." },
     { icon: "smiley", title: "Mochi ožívá", line: "Když pracují agenti, odštěpí se od Mochiho malí pomocníci a po práci s ním zase splynou (dvojklik = rozdělí se pro radost). Mochiho si můžeš vzít do telefonu, odkazy a soubory mezi PC a mobilem viditelně přeletí, po delším klidu proběhne po okraji obrazovky a notch se přesune nad okno, ve kterém JARVIS právě pracuje. Zvuky přicházejí ze strany, kde se něco děje. Nově je tu nápověda (F1) s prohlídkou, 3D pohled do počítače a ovládání telefonu jednou rukou." },

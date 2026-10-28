@@ -42,7 +42,7 @@ function setAlpha(on: boolean) {
 (window as any).__notchAlpha = setAlpha;
 if (window.pywebview) document.documentElement.classList.add("native");
 
-let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6,
+let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6, monitor: 0, offset_x: 0,
   open_on: "hover", tuck_minutes: 10 };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
@@ -128,6 +128,13 @@ async function resizeWindow(w: number, hh: number) {
 /** One window big enough for every mode. The window region is the visible shape, so the window itself never has
  *  to change size while the notch opens or closes – resizing it at the start and end of every animation made
  *  the notch jump. Same formula as notch_window_size() in desktop/host.py; changes only with the settings. */
+/** Notch settings from the core. A panel narrower than 760 px has no room for its three columns: such a value
+ *  (the old default was 600) means the default 1000 × 410, like notch_window_size() in desktop/host.py. */
+function takeNotchSettings(n: any) {
+  if (!n) return;
+  cfg = { ...cfg, ...n };
+  if (!(cfg.expanded_width >= 760)) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
+}
 function windowSize(): [number, number] {
   const w = Math.max(cfg.expanded_width || 1000, 560, Math.round(cfg.width * 1.1), Math.max(cfg.width, 300));
   const hh = Math.max(340, cfg.expanded_height || 390, Math.round(cfg.height * 1.15), cfg.height);
@@ -137,7 +144,7 @@ let windowKey = "";
 function ensureWindow() {
   if (!window.pywebview?.api?.resize) return;
   const [w, hh] = windowSize();
-  const key = `${w}x${hh}`;
+  const key = `${w}x${hh}@${cfg.monitor}:${cfg.offset_x}`;   // monitor / offset: the host places the window again
   if (key === windowKey) return;
   windowKey = key;
   resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
@@ -624,8 +631,7 @@ client.on("welcome", (m) => {
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   task = m.task || null;
-  cfg = { ...cfg, ...(m.settings?.notch || {}) };
-  if (!m.settings?.notch?.expanded_width || m.settings.notch.expanded_width < 900) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
+  takeNotchSettings(m.settings?.notch);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   upd = m.update;
@@ -646,11 +652,11 @@ client.on("settings_changed", (m) => {
   configureSounds(m.settings?.appearance);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
-  if (m.settings?.notch) cfg = { ...cfg, open_on: m.settings.notch.open_on ?? cfg.open_on, tuck_minutes: m.settings.notch.tuck_minutes ?? cfg.tuck_minutes };
-  const n = m.settings?.notch;
-  if (n?.expanded_width >= 900) { cfg.expanded_width = n.expanded_width; cfg.expanded_height = n.expanded_height ?? cfg.expanded_height; }
-  if (n?.width) { cfg.width = n.width; cfg.height = n.height ?? cfg.height; }
-  ensureWindow();
+  if (m.settings?.notch) {        // every size and timing setting takes effect right away, without a restart
+    takeNotchSettings(m.settings.notch);
+    ensureWindow();
+    apply(mode);
+  }
 
 });
 client.on("mood", onMood);

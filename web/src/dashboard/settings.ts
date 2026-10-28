@@ -192,9 +192,13 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           el.onchange = () => upd(k, el.value.trim());
           return field(label, el);
         };
-        const key = h("input", { class: "input", type: "password", placeholder: secretsFlags[p.id] ? "•••••• (uloženo)" : (presets[p.preset]?.needs_key ? "vlož API klíč" : "není potřeba"), autocomplete: "off" }) as HTMLInputElement;
-        key.onchange = () => { client.send("secret_set", { name: p.id, value: key.value.trim() }); key.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok"); };
+        const key = h("input", { class: "input", type: "password", placeholder: secretsFlags[p.id] ? "•••••• (uloženo)" : (presets[p.preset]?.needs_key ? "vlož API klíč"
+          : p.preset === "omniroute" ? "API klíč z OmniRoute (stačí vložit, model si JARVIS najde)" : "není potřeba"), autocomplete: "off" }) as HTMLInputElement;
         const out = h("span", { class: "test-out" });
+        key.onchange = () => {
+          client.send("secret_set", { name: p.id, value: key.value.trim() }); key.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok");
+          out.className = "test-out"; out.textContent = "zkouším klíč…"; client.send("provider_test", { id: p.id });   // a key is enough: try it right away
+        };
         const en = h("input", { type: "checkbox", "aria-label": "Zapnuto" }) as HTMLInputElement;
         en.checked = p.enabled;
         en.onchange = () => upd("enabled", en.checked);
@@ -304,10 +308,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             "V HUD přepneš i klávesami Alt+1 až Alt+4.")),
         appActionsCard(),
         card("Dlaždice v rozevřeném notchi", "Pořadí odpovídá pořadí zaškrtnutí.", tileBox),
-        card("Rozměry a chování", null,
-          h("div", { class: "grid2" }, text("notch.monitor", "Monitor (0 = hlavní)", "", "number"), text("notch.offset_x", "Posun vodorovně (px)", "", "number")),
+        card("Rozměry a chování", "Všechno se projeví hned, bez restartu.",
+          h("div", { class: "grid2" }, text("notch.monitor", "Monitor (0 = hlavní)", "", "number"), text("notch.offset_x", "Posun vodorovně (px)", "Záporné číslo = doleva", "number")),
           h("div", { class: "grid2" }, text("notch.width", "Šířka v klidu", "", "number"), text("notch.height", "Výška v klidu", "", "number")),
-          h("div", { class: "grid2" }, text("notch.expanded_width", "Šířka rozevřeného", "", "number"), text("notch.expanded_height", "Výška rozevřeného", "", "number")),
+          h("div", { class: "grid2" }, text("notch.expanded_width", "Šířka rozevřeného", "Nejméně 760 (menší = výchozí 1000)", "number"), text("notch.expanded_height", "Výška rozevřeného", "Nejméně 340", "number")),
           h("div", { class: "grid2" }, text("notch.open_delay_ms", "Zpoždění otevření (ms)", "", "number"), text("notch.close_delay_ms", "Zpoždění zavření (ms)", "", "number")),
           text("notch.linger_s", "Jak dlouho ukázat odpověď (s)", "", "number")),
       ];

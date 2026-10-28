@@ -31,6 +31,14 @@ class ProviderError(Exception):
         return self.status == 400 and any(w in m for w in ("tool", "function"))
 
     @property
+    def is_unknown_model(self) -> bool:
+        """The gateway does not know this model name (e.g. OmniRoute without an "auto" route)."""
+        m = str(self).lower()
+        return self.status in (400, 404, 422) and "model" in m and any(
+            w in m for w in ("not found", "unknown", "invalid", "does not exist", "not exist", "unsupported", "no such",
+                             "not available", "not allowed"))
+
+    @property
     def is_vision_unsupported(self) -> bool:
         m = str(self).lower()
         return self.status in (400, 422) and any(w in m for w in ("image", "vision", "multimodal"))

@@ -13,7 +13,7 @@ import httpx
 from ..config import Brain, ProviderCfg
 from .base import AllProvidersFailed, Chunk, ProviderError
 from .ollama import Ollama
-from .openai_compat import OpenAICompat
+from .openai_compat import OpenAICompat, friendly_error, pick_model
 from .presets import PRESETS
 
 log = logging.getLogger(__name__)
@@ -65,6 +65,7 @@ class Router:
         self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
         self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
         self.cache = None                                                           # OMEGA 584: aiplus.AICache
+        self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -94,15 +95,18 @@ class Router:
                 errors[pcfg.id] = why
                 continue
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if pcfg.id in self.resolved_models:
+                prov.model = self.resolved_models[pcfg.id]
             model = (pcfg.vision_model if need_vision and pcfg.vision_model else
                      pcfg.fast_model if fast and pcfg.fast_model else None)
+            resolved = False
             msgs = messages
             if need_vision and pcfg.id in self.no_vision:
                 msgs = _strip_images(messages)
             use_tools = tools if pcfg.id not in self.no_tools else None
             local = self.local_queue is not None and PRESETS.get(pcfg.preset, {}).get("local")
             async with self.local_queue.slot() if local else contextlib.nullcontext():   # OMEGA 577: one local inference at a time
-                for attempt in range(3):
+                for attempt in range(4):   # retries: without tools, without images, another model
                     started = False
                     try:
                         agen = prov.stream(msgs, use_tools, model=model)
@@ -142,7 +146,16 @@ class Router:
                             self.no_vision.add(pcfg.id)
                             msgs = _strip_images(messages)
                             continue
-                        errors[pcfg.id] = str(e)[:200]
+                        if e.is_unknown_model and not resolved and hasattr(prov, "list_models"):
+                            # the configured model (e.g. "auto") does not exist there: ask the gateway what it has
+                            resolved = True
+                            found = pick_model(await prov.list_models())
+                            if found and found != (model or prov.model):
+                                log.info("%s: model %s unknown, using %s", pcfg.id, model or prov.model, found)
+                                self.resolved_models[pcfg.id] = prov.model = found
+                                model = None
+                                continue
+                        errors[pcfg.id] = friendly_error(pcfg.preset, prov.base_url if hasattr(prov, "base_url") else "", e)
                         break
         self.last_errors = errors
         raise AllProvidersFailed(errors)
