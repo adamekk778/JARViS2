@@ -178,7 +178,15 @@ class DesktopHost:
         except Exception as e:
             log.debug("taskbar: %s", e)
         self.place_notch(*self._notch_size)
+        self.no_backdrop()
         self._smooth_edges()
+
+    def no_backdrop(self) -> None:
+        """No Mica behind the notch: pywebview sets it in dark mode (again whenever the theme changes) and Windows
+        then paints a grey box over the whole notch window, region or not. Checked with the region every 1.5 s."""
+        was = winutil.no_backdrop(self.notch_hwnd()) if self.notch else None
+        if was is not None:
+            log.info("notch: Windows backdrop %s was on, turned off", was)
 
     def _smooth_edges(self) -> None:
         """Anti-aliased notch edges: a transparent WebView2 on a per-pixel-alpha window. The page then paints only the
@@ -271,6 +279,7 @@ class DesktopHost:
         time.sleep(0.2)
         hwnd = self._place_hud()
         threading.Timer(0.8, self._place_hud).start()   # pywebview may still apply its own size right after "shown"
+        winutil.no_backdrop(hwnd)                        # its own see-through glass, not Windows' Mica
         self.hud_alpha = self._make_alpha(self.hud, hwnd)
         try:
             self.hud.evaluate_js(f"window.__hud && window.__hud.alpha({'true' if self.hud_alpha else 'false'})")
@@ -331,6 +340,7 @@ class DesktopHost:
             time.sleep(1.5)
             try:
                 self.heal_region()
+                self.no_backdrop()
             except Exception as e:
                 log.debug("heal_region: %s", e)
             if not self.notch or not self.rt.cfg.notch.hide_in_fullscreen:

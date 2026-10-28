@@ -115,6 +115,11 @@ jobs:
           $env:JARVIS_NO_NET = "1"
           $shots = "$env:RUNNER_TEMP\notch-shots"
           New-Item -ItemType Directory -Force $shots | Out-Null
+          # dark mode (as on the user's PC): pywebview then gives windows a Mica backdrop, which Windows painted as a
+          # grey box around the notch (never seen here before, because this runner was always light)
+          $pk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+          if (-not (Test-Path $pk)) { New-Item -Path $pk -Force | Out-Null }
+          Set-ItemProperty -Path $pk -Name AppsUseLightTheme -Value 0 -Type DWord
           $p = Start-Process -FilePath dist\JARVIS\JARVIS.exe -ArgumentList "--no-voice" -PassThru
           for ($i = 0; $i -lt 45; $i++) { Start-Sleep -Seconds 2; try { if ((Invoke-RestMethod -TimeoutSec 30 http://127.0.0.1:8765/api/health).name -eq "JARVIS") { break } } catch {} }
           Start-Sleep -Seconds 8
@@ -162,6 +167,16 @@ jobs:
             Write-Host $line; Add-Content "$shots\region.txt" $line
             return $kind
           }
+          function Corner($label) {   # a pixel inside the window rectangle but outside the notch: must be the backdrop
+            $seen = New-Object 'System.Collections.Generic.List[string]'
+            $h = [W]::Notch([uint32]$p.Id, $seen)
+            $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
+            $b = New-Object System.Drawing.Bitmap 1, 1
+            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($wr.L + 3, $wr.B - 3, 0, 0, $b.Size)
+            $c = $b.GetPixel(0, 0)
+            $line = "corner $label rgb=($($c.R),$($c.G),$($c.B))"; Write-Host $line; Add-Content "$shots\region.txt" $line
+            return ($c.R -gt 200 -and $c.G -lt 120)
+          }
           function Zoom($label) {
             # the notch window enlarged 6x without smoothing: jagged steps vs. anti-aliased edges are plain to see
             $seen = New-Object 'System.Collections.Generic.List[string]'
@@ -190,7 +205,7 @@ jobs:
           $bd.Show(); [System.Windows.Forms.Application]::DoEvents()
           $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2; [System.Windows.Forms.Application]::DoEvents()
-          Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"
+          Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"; $c1 = Corner "closed"
           [W]::SetCursorPos([int]($sw / 2), 8) | Out-Null; Start-Sleep -Milliseconds 1500
           [System.Windows.Forms.Application]::DoEvents()
           Shot "2-hover"; $k2 = Region "hover"; Zoom "hover"
@@ -204,6 +219,8 @@ jobs:
           $bd.Close()
           $smooth = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "smooth edges" -ErrorAction SilentlyContinue | Select-Object -Last 1
           $line = "smooth: $smooth"; Write-Host $line; Add-Content "$shots\region.txt" $line
+          $mica = Select-String -Path "$env:JARVIS_HOME\logs\jarvis.log" -Pattern "backdrop" -ErrorAction SilentlyContinue | Select-Object -Last 1
+          $line = "backdrop: $mica"; Write-Host $line; Add-Content "$shots\region.txt" $line
           function Show($view) {   # on a hang: is the server alive at all, and where is its loop stuck (stall watch)
             try { Invoke-RestMethod -TimeoutSec 30 -Method Post "http://127.0.0.1:8765/api/show?view=$view" | Out-Null }
             catch {
@@ -242,6 +259,7 @@ jobs:
           # 0 = ERROR (no region), 1 = NULLREGION: the notch would show a box around it
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
           if ($k4 -lt 2) { throw "the notch region did not come back after Windows dropped it" }
+          if (-not $c1) { throw "something is painted around the notch inside its window (grey box): see corner in region.txt" }
           if ($full -eq [IntPtr]::Zero) { throw "the full chat window did not open" }
           if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
           if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }

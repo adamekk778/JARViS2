@@ -64,6 +64,17 @@ def test_region_resent_unchanged_is_not_reapplied_but_a_lost_one_comes_back(rt, 
     assert api.region([[[0, 0], [20, 0], [20, 5]]]) is False            # not taken → the page will send it again
 
 
+def test_mica_backdrop_turned_off_on_the_notch(rt, fake_win, monkeypatch):
+    """pywebview gives windows Mica in dark mode and Windows paints it as a grey box around the notch."""
+    seen = []
+    monkeypatch.setattr(winutil, "no_backdrop", lambda hwnd: seen.append(hwnd) or 2)
+    h = _host(rt)
+    h.no_backdrop()
+    assert seen == [4242]
+    monkeypatch.undo()
+    assert winutil.no_backdrop(0) is None and winutil.DWMWA_SYSTEMBACKDROP_TYPE == 38
+
+
 def test_notch_handle_found_again_when_window_recreated(rt, fake_win, monkeypatch):
     alive = {4242}
     monkeypatch.setattr(winutil, "is_window", lambda hwnd: hwnd in alive)

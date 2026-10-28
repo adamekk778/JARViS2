@@ -191,6 +191,29 @@ def region_kind(hwnd: int) -> int:
         g.DeleteObject(ctypes.c_void_p(rgn))
 
 
+DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE = 38, 1
+
+
+def no_backdrop(hwnd: int) -> int | None:
+    """Turn off the Windows 11 system backdrop (Mica) of a window; returns the backdrop it had when it was not
+    'none', else None. pywebview gives every window Mica in dark mode, and DWM paints it over the whole window
+    rectangle – ignoring the window region – so the notch sat in a grey (#202020) box."""
+    if not IS_WIN or not hwnd:
+        return None
+    try:
+        dwm = ctypes.windll.dwmapi
+        cur = ctypes.c_int(0)
+        if dwm.DwmGetWindowAttribute(ctypes.c_void_p(hwnd), DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(cur), 4) != 0:
+            return None                     # Windows 10 / older 11: no system backdrops at all
+        if cur.value in (0, DWMSBT_NONE):   # 0 = auto, which for a window like this means none
+            return None
+        none = ctypes.c_int(DWMSBT_NONE)
+        dwm.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(none), 4)
+        return cur.value
+    except (AttributeError, OSError):
+        return None
+
+
 def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> bool:
     """Clip the window to these polygons (window coordinates, physical px). Outside them the window simply does not
     exist: nothing is painted (no white/grey WinForms background) and the mouse goes to whatever is below.
