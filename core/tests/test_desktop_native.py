@@ -104,9 +104,22 @@ def test_window_handle_prefers_own_native_handle(monkeypatch):
     assert winutil.window_handle(SimpleNamespace(), "JARVIS Notch") == 777   # no native handle → own-process lookup
 
 
-def test_smooth_edges_is_safe_off_windows_and_on_by_default():
+def test_hard_edges_by_default_smooth_only_when_chosen(rt, monkeypatch):
+    """Per-pixel alpha made Windows draw a grey box (and a white rim) around the notch on a user's PC, so the
+    window is cut to the shape by default; smooth edges only when chosen in Settings – also for old config
+    files that still say smooth_edges = true."""
     from jarvis import config
     from jarvis.desktop import winutil
 
     assert winutil.enable_alpha(0) is False   # no window, no change (and off Windows it never touches DWM)
-    assert config.Config().notch.smooth_edges is True
+    old = config.Config.model_validate({"notch": {"smooth_edges": True}})
+    assert old.notch.edges == "hard"
+    h = _host(rt)
+    tried = []
+    monkeypatch.setattr(h, "_make_alpha", lambda win, hwnd: tried.append(hwnd) or True)
+    h.notch.evaluate_js = lambda js: None
+    h._smooth_edges()
+    assert tried == [] and h.alpha is False
+    rt.cfg.notch.edges = "smooth"
+    h._smooth_edges()
+    assert tried and h.alpha is True

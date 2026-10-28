@@ -183,7 +183,7 @@ class DesktopHost:
     def _smooth_edges(self) -> None:
         """Anti-aliased notch edges: a transparent WebView2 on a per-pixel-alpha window. The page then paints only the
         shape and the region (slightly larger) is just for the mouse. Without it nothing changes: black + region."""
-        if not self.rt.cfg.notch.smooth_edges:
+        if self.rt.cfg.notch.edges != "smooth":
             return
         if self._make_alpha(self.notch, self.notch_hwnd()):
             self.alpha = True

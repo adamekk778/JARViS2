@@ -98,7 +98,10 @@ class Notch(BaseModel):
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
     pinned: bool = False   # big panel stays open (also after restart)
-    smooth_edges: bool = True   # per-pixel alpha (anti-aliased curves); False = the 3.0 hard-edged window region
+    smooth_edges: bool = True   # replaced by `edges` (kept so older config files still load)
+    # "hard" = the window is cut to the notch shape (works on every PC); "smooth" = per-pixel alpha with
+    # anti-aliased curves, which on some PCs made Windows draw a grey box around the notch
+    edges: Literal["hard", "smooth"] = "hard"
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
     open_on: Literal["hover", "click"] = "hover"   # OMEGA 092: "click" = najetí myší panel neotevře (proti náhodnému otevření)

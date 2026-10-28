@@ -294,6 +294,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
           sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
+          select("notch.edges", "Okraje notche", [["hard", "Ostré (spolehlivé)"], ["smooth", "Vyhlazené"]],
+            "Vyhlazené okraje vypadají hezčeji, ale na některých počítačích se kolem notche objeví šedý obdélník – pak vrať Ostré. Projeví se po restartu JARVISe."),
           select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],
             "„Jen kliknutím“ = notch se při přejetí myší jen probudí, panel otevře až klik. Hodí se proti náhodnému otevření."),
           select("notch.tuck_minutes", "Schovávání postavičky", [["0", "Nikdy"], ["5", "Po 5 min klidu"], ["10", "Po 10 min klidu"], ["30", "Po 30 min klidu"]],
