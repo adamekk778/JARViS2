@@ -15,6 +15,15 @@ HUD_TITLE = "JARVIS HUD"
 PAD = 28  # must match web/src/notch/main.ts
 
 
+def notch_window_size(n) -> tuple[int, int]:
+    """The notch window's one size (CSS px), big enough for every mode – same formula as windowSize() in
+    web/src/notch/main.ts. The region is the visible shape, so the window never resizes while it animates."""
+    ew, eh = (n.expanded_width, n.expanded_height) if n.expanded_width >= 900 else (1000, 410)
+    w = max(ew, 560, round(n.width * 1.1), max(n.width, 300))
+    h = max(340, eh, round(n.height * 1.15), n.height)
+    return w + PAD * 2, h + PAD
+
+
 class NotchApi:
     """Exposed to notch JS as window.pywebview.api."""
 
@@ -24,10 +33,10 @@ class NotchApi:
     def resize(self, w: int, h: int) -> None:
         self._host.place_notch(int(w), int(h))
 
-    def region(self, polygons: list) -> bool:
+    def region(self, polygons: list, seq: int | None = None) -> bool:
         """The page sends the notch outline (window coords, physical px) every frame while it animates and again
-        every 2 s; False tells it the region did not take, so it sends it again."""
-        return self._host.set_notch_region(polygons)
+        every 2 s; False tells it the region did not take, so it sends it again. `seq` rises with every frame."""
+        return self._host.set_notch_region(polygons, seq)
 
     def cursor_inside(self) -> bool:
         return winutil.cursor_over(self._host.notch_hwnd())
@@ -66,7 +75,7 @@ class DesktopHost:
         self.full = None   # the full-screen ChatGPT-style chat, created on first use
         self.tray = None
         self._quitting = False
-        self._notch_size = (rt.cfg.notch.width + PAD * 2, rt.cfg.notch.height + PAD)
+        self._notch_size = notch_window_size(rt.cfg.notch)
         self._hidden_fullscreen = False
         self.alpha = False
         self.hud = None
@@ -77,6 +86,8 @@ class DesktopHost:
         self._region: list = []            # the last notch outline from the page, put back if Windows drops it
         self._region_applied: tuple | None = None
         self._region_warned = 0.0
+        self._region_seq = 0
+        self._region_lock = threading.Lock()
 
     # ---------- geometry ----------
     def _screen(self):
@@ -98,15 +109,20 @@ class DesktopHost:
         if size:
             self.place_notch(*size)
 
-    def set_notch_region(self, polygons: list) -> bool:
+    def set_notch_region(self, polygons: list, seq: int | None = None) -> bool:
         polys = [[(round(x), round(y)) for x, y in poly] for poly in polygons or []]
-        self._region = polys
-        hwnd = self.notch_hwnd()
-        if self._region_applied == (hwnd, str(polys)) and winutil.region_kind(hwnd) >= 2:
-            return True                            # the page re-sends every 2 s: no repaint when nothing changed
-        ok = winutil.set_region(hwnd, polys)
-        self._region_applied = (hwnd, str(polys)) if ok else None
-        return bool(ok)
+        with self._region_lock:                    # pywebview calls arrive on separate threads, in any order
+            if seq is not None:
+                if self._region_seq - 5_000_000 < seq <= self._region_seq:
+                    return True                    # an older animation frame that arrived late: skip it
+                self._region_seq = seq             # (a number far below = the page was reloaded: take it)
+            self._region = polys
+            hwnd = self.notch_hwnd()
+            if self._region_applied == (hwnd, str(polys)) and winutil.region_kind(hwnd) >= 2:
+                return True                        # the page re-sends every 2 s: no repaint when nothing changed
+            ok = winutil.set_region(hwnd, polys)
+            self._region_applied = (hwnd, str(polys)) if ok else None
+            return bool(ok)
 
     def heal_region(self) -> bool:
         """Without its region the notch window shows as a grey box around the notch. Windows can drop it (the

@@ -64,6 +64,33 @@ def test_region_resent_unchanged_is_not_reapplied_but_a_lost_one_comes_back(rt, 
     assert api.region([[[0, 0], [20, 0], [20, 5]]]) is False            # not taken → the page will send it again
 
 
+def test_late_animation_frames_are_dropped(rt, fake_win, monkeypatch):
+    """pywebview runs each call on its own thread: an older frame arriving after a newer one must not win."""
+    monkeypatch.setattr(winutil, "region_kind", lambda hwnd: 3)
+    api = host_mod.NotchApi(_host(rt))
+    frame = lambda n: [[[0, 0], [n, 0], [n, 5]]]                       # noqa: E731
+    base = 1_700_000_000_000_000
+    assert api.region(frame(30), base + 3) and api.region(frame(10), base + 1)   # frame 1 arrives last
+    regions = [c[2] for c in fake_win if c[0] == "region"]
+    assert regions == [[[(0, 0), (30, 0), (30, 5)]]]
+    assert api.region(frame(40), base + 4) and api.region(frame(50), 5)          # page reloaded: numbers restart
+    assert [c[2][0][1][0] for c in fake_win if c[0] == "region"] == [30, 40, 50]
+
+
+def test_notch_window_fits_every_mode_and_matches_the_page():
+    from jarvis import config
+
+    n = config.Config().notch
+    w, h = host_mod.notch_window_size(n)
+    assert (w, h) == (max(n.expanded_width, 560) + 2 * host_mod.PAD, max(340, n.expanded_height) + host_mod.PAD)
+    small = n.model_copy(update={"expanded_width": 600})                # the page treats < 900 as the default
+    assert host_mod.notch_window_size(small) == (1000 + 2 * host_mod.PAD, 410 + host_mod.PAD)
+    import pathlib
+
+    ts = (pathlib.Path(host_mod.__file__).parents[3] / "web" / "src" / "notch" / "main.ts").read_text(encoding="utf-8")
+    assert "Math.max(cfg.expanded_width || 1000, 560" in ts and "Math.max(340, cfg.expanded_height || 390" in ts
+
+
 def test_mica_backdrop_turned_off_on_the_notch(rt, fake_win, monkeypatch):
     """pywebview gives windows Mica in dark mode and Windows paints it as a grey box around the notch."""
     seen = []

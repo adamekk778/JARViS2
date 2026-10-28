@@ -125,6 +125,23 @@ const PAD = 28; // keep in sync with desktop/host.py
 async function resizeWindow(w: number, hh: number) {
   try { await window.pywebview?.api.resize(Math.round(w), Math.round(hh)); } catch { /* browser preview */ }
 }
+/** One window big enough for every mode. The window region is the visible shape, so the window itself never has
+ *  to change size while the notch opens or closes – resizing it at the start and end of every animation made
+ *  the notch jump. Same formula as notch_window_size() in desktop/host.py; changes only with the settings. */
+function windowSize(): [number, number] {
+  const w = Math.max(cfg.expanded_width || 1000, 560, Math.round(cfg.width * 1.1), Math.max(cfg.width, 300));
+  const hh = Math.max(340, cfg.expanded_height || 390, Math.round(cfg.height * 1.15), cfg.height);
+  return [w + PAD * 2, hh + PAD];
+}
+let windowKey = "";
+function ensureWindow() {
+  if (!window.pywebview?.api?.resize) return;
+  const [w, hh] = windowSize();
+  const key = `${w}x${hh}`;
+  if (key === windowKey) return;
+  windowKey = key;
+  resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
+}
 function openChat(view = "chat") {
   if (window.pywebview) window.pywebview.api.open_chat(view);
   else window.open(view === "full" ? "/chat" : view === "hud" ? "/hud" : `/#${view}`, "_blank");
@@ -194,22 +211,21 @@ function springStep(now: number) {
   else { S.raf = 0; settleBox(); }
 }
 function settleBox() {
-  // after the animation: the box and the window fit the shape exactly
+  // after the animation the box fits the shape exactly (the window keeps its size, see windowSize)
   setBox(S.tw, S.th);
-  resizeWindow(S.tw + PAD * 2, S.th + PAD);
-  window.setTimeout(syncRegion, 60);
+  syncRegion(true);
 }
 function animateShape(w: number, hh: number, r: number) {
   S.grow = w >= S.w && hh >= S.h;
   S.tw = w; S.th = hh; S.tr = r;
   // the box is never smaller than what is on screen during the move
   const bw = Math.max(w, Math.ceil(S.w)), bh = Math.max(hh, Math.ceil(S.h));
-  if (bw > boxW || bh > boxH) resizeWindow(Math.max(bw, boxW) + PAD * 2, Math.max(bh, boxH) + PAD);
+  ensureWindow();
   setBox(Math.max(bw, boxW), Math.max(bh, boxH));
   if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
   if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(springStep); }
 }
-window.addEventListener("pywebviewready", () => { syncRegion(); window.setTimeout(syncRegion, 500); });
+window.addEventListener("pywebviewready", () => { ensureWindow(); syncRegion(); window.setTimeout(() => syncRegion(true), 500); });
 window.addEventListener("resize", () => window.setTimeout(syncRegion, 30));
 // keep the region honest: if Windows ever drops it (DPI change, display change, a failed first send), it comes
 // back within 2 s – sent even unchanged, the host only re-applies it when it is really missing
@@ -622,6 +638,7 @@ client.on("welcome", (m) => {
   claudeAsks = m.claude_pending || [];
   onMood(m.mood || { mood: m.busy ? "thinking" : "idle" });
   renderClaudeAsk();
+  ensureWindow();
   if (m.settings?.notch?.pinned) { setPinned(true, false); openPanel(); } else settle();
 });
 client.on("settings_changed", (m) => {
@@ -630,6 +647,10 @@ client.on("settings_changed", (m) => {
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   if (m.settings?.notch) cfg = { ...cfg, open_on: m.settings.notch.open_on ?? cfg.open_on, tuck_minutes: m.settings.notch.tuck_minutes ?? cfg.tuck_minutes };
+  const n = m.settings?.notch;
+  if (n?.expanded_width >= 900) { cfg.expanded_width = n.expanded_width; cfg.expanded_height = n.expanded_height ?? cfg.expanded_height; }
+  if (n?.width) { cfg.width = n.width; cfg.height = n.height ?? cfg.height; }
+  ensureWindow();
 
 });
 client.on("mood", onMood);

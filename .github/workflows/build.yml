@@ -172,7 +172,7 @@ jobs:
             $h = [W]::Notch([uint32]$p.Id, $seen)
             $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
             $b = New-Object System.Drawing.Bitmap 1, 1
-            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($wr.L + 3, $wr.B - 3, 0, 0, $b.Size)
+            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($wr.L + 3, $wr.T + 40, 0, 0, $b.Size)
             $c = $b.GetPixel(0, 0)
             $line = "corner $label rgb=($($c.R),$($c.G),$($c.B))"; Write-Host $line; Add-Content "$shots\region.txt" $line
             return ($c.R -gt 200 -and $c.G -lt 120)

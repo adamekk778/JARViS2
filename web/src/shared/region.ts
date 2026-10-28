@@ -50,7 +50,10 @@ export function domeOutline(r: DOMRect, dpr: number, pad = 3): Poly {
 }
 
 /** Sends the polygons to the desktop shell when they change (cheap no-op in a normal browser). `force` sends them
- *  even unchanged; a call that fails or that the shell reports as not applied (false) is sent again next time. */
+ *  even unchanged; a call that fails or that the shell reports as not applied (false) is sent again next time.
+ *  pywebview runs every call in its own thread, so frames can arrive out of order: each carries a rising number
+ *  and the shell drops the older ones (an older outline arriving late made the edge jump back and forth). */
+let seqBase = Date.now() * 1000, seqN = 0;
 export function regionSender(apiName = "region") {
   let last = "";
   return (polys: Poly[], force = false) => {
@@ -60,6 +63,7 @@ export function regionSender(apiName = "region") {
     if (key === last && !force) return;
     last = key;
     const forget = () => { if (last === key) last = ""; };
-    Promise.resolve(api[apiName](polys)).then((ok) => { if (ok === false) forget(); }, forget);
+    const seq = seqBase + ++seqN;
+    Promise.resolve(api[apiName](polys, seq)).then((ok) => { if (ok === false) forget(); }, forget);
   };
 }
