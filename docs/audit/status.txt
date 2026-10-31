@@ -1135,3 +1135,32 @@
 386 | HOTOVO | compare_articles: shoda pojmů, co je jen v jednom, čísla, která se liší, stejná tvrzení řečená jinak
 390 | HOTOVO | research_to_tasks: věty „je potřeba…“, „doporučuji…“ → úkoly, připne je na požádání
 452 | HOTOVO | learning_schedule: témata podle předpokladů (známé přeskočí) rozložená do dnů s opakováním po 1, 3 a 7 dnech
+
+# Vlna F5e: disky, hraní, rozhodování, připojení, titulky, zvuk + přehodnocení existujících funkcí
+289 | HOTOVO | disk_partitions: oddíly – písmeno, název, souborový systém, velikost, volno, role (systém / EFI / obnova / data), stav
+698 | HOTOVO | disk_triage: disk ve Správci zařízení, ale ne v seznamu disků; chyba zařízení; offline / RAW s radou nic neformátovat
+693 | HOTOVO | rada u disků v USB rámečku (kabel, napájení, firmware převodníku) + opakované odpojování v diagnostice USB
+694 | HOTOVO | rozpoznání převodníku USB–SATA/NVMe podle USB vendor ID (JMicron, ASMedia, Realtek, VIA, Genesys…) i podle názvu
+313 | HOTOVO | gaming_stats: hodiny hraní za den, nejhranější hry, nejdelší souvislé hraní, hraní v noci (22–6)
+005 | HOTOVO | simulate_decision: Monte Carlo (20 000 průběhů) se ziskem a náklady jako trojúhelníková rozdělení a šancí na úspěch – očekávaný výsledek, riziko ztráty, 5./95. percentil; compare_options dál pro slovní porovnání
+586 | HOTOVO | dostupné integrace: MCP servery, API konektory (api_connectors), přehled všech připojení (connections_health)
+587 | HOTOVO | connections_health: AI poskytovatelé (volitelně i test odpovědi), Ollama, e-mail, Home Assistant, telefon, MCP – co funguje a proč ne
+128 | HOTOVO | make_subtitles: přepis řeči → .srt vedle souboru (řádky ≤ 42 znaků, 2 řádky, délka zobrazení 1–6 s, bez překryvů)
+268 | HOTOVO | audio_summary: text / soubor namluvený zvoleným hlasem do zvukového souboru
+103 | HOTOVO | hlasové potvrzení rizikových akcí: v hlasovém režimu stačí říct „ano“ / „ne“ (voice/loop.py parse_yes_no) + potvrzení v UI a otiskem
+259 | HOTOVO | detekce řeči v hlasové smyčce + VAD filtr rozpoznávání (faster-whisper vad_filter)
+262 | HOTOVO | výběr a přepnutí výstupu i mikrofonu (audio_device: sluchátka, reproduktory, TV, Bluetooth)
+270 | HOTOVO | hlas bez internetu: místní rozpoznávání (faster-whisper) a místní hlas (Piper), stahování modelů jen se souhlasem
+286 | HOTOVO | system_integrity_check: DISM /CheckHealth + SFC /VERIFYONLY (jen kontrola) s výsledkem do důkazů mise
+315 | HOTOVO | ke každému zjištění diagnostiky a výkonu bezpečná rada; JARVIS sám nic neladí ani nemění (záměr)
+395 | HOTOVO | bezpečnostní aktualizace: čekající aktualizace Windows (bezpečnostní nejdřív, windows_updates) + stáří aktualizací a definic Defenderu
+400 | HOTOVO | bezpečnostní přehled: Bezpečnostní centrum (odkaz, soubor, klíče v kódu, kopie, uniklé heslo, systémové soubory, bod obnovy) + oblast security + firewall a oprávnění aplikací
+406 | HOTOVO | zařízení v síti: vyhledání, pojmenování, upozornění na nová, graf sítě, probuzení (Wake-on-LAN), spárované telefony
+417 | HOTOVO | baterie: PC a telefon (phone_battery), stav PC s baterií v mobilní aplikaci
+573 | HOTOVO | výběr místního modelu podle VRAM: local_models_fit (kvantizace, GPU / GPU+CPU / CPU podle VRAM a RAM)
+585 | HOTOVO | stav místních modelů (načtené, VRAM), benchmark, zahřátí a kontrola připojení modelů v connections_health
+002 | HOTOVO | Mission Control = stránka Úkoly: plán, kroky (i graf závislostí), audit akcí, kritéria, artefakty, důkazy, rizika, pauza / zrušení / pokračování
+202 | HOTOVO | plán se průběžně aktualizuje (update_plan), mise navazuje od posledního hotového kroku, Omega Brain přeřazuje priority
+209 | HOTOVO | vyhodnocení cílů: akceptační kritéria mise ověřená důkazy (co se měřilo, zdroj, výsledek)
+231 | HOTOVO | náhled příkazu v potvrzovacím dialogu (details: přesný příkaz, cesty, co se změní) před každou rizikovou akcí
+237 | HOTOVO | kontextové karty výsledků nástrojů v chatu (taskcard) s náhledy a odkazy

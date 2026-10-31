@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 666 | 88 |
-| 🟡 ČÁSTEČNĚ | 118 | 62 |
+| ✅ HOTOVO | 693 | 88 |
+| 🟡 ČÁSTEČNĚ | 91 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -22,15 +22,15 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 01. Super Intelligence
 
-✅ 8 · 🟡 2
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 001 | Goal Mode — z cíle sestaví reálný plán. | ✅ HOTOVO | goal_plan: z cíle fáze, kroky (kdo je udělá), akceptační kritéria a rizika → sledovaná mise v Úkolech |
-| 002 | Mission Control — řídí složité mise. | 🟡 ČÁSTEČNĚ | Mission Control = stránka Úkoly: plán, kroky, audit akcí, kritéria, artefakty, důkazy, pauza/zrušení (tasks.py, dashboard/tasks.ts, tests/test_omega.py); chybí DAG |
+| 002 | Mission Control — řídí složité mise. | ✅ HOTOVO | Mission Control = stránka Úkoly: plán, kroky (i graf závislostí), audit akcí, kritéria, artefakty, důkazy, rizika, pauza / zrušení / pokračování |
 | 003 | Deep Research — rozsáhlý výzkum s citacemi. | ✅ HOTOVO | deep_research: víc dotazů, přečtené zdroje, report s citacemi [n], mechanická kontrola citací, uložený jako artefakt |
 | 004 | Autonomous Problem Solver — testování více řešení. | ✅ HOTOVO | solve_problem: AI navrhne 2–5 opravdu různých přístupů; u kódu každý zkusí proti testům ve vlastní dočasné kopii (improve_loop) a vybere ten, který testy projde s nejmenší změnou; jinak každý plán prověří předpovědí chyb a ohodnotí; apply_solution zapíše vybrané řešení jen s potvrzením (omega.py, tools/omega_tools.py, tests/test_omega_brain.py) |
-| 005 | Decision Simulator — simuluje důsledky rozhodnutí. | 🟡 ČÁSTEČNĚ | compare_options: u každé varianty pravděpodobné důsledky a rizika (odhad AI, ne simulace) |
+| 005 | Decision Simulator — simuluje důsledky rozhodnutí. | ✅ HOTOVO | simulate_decision: Monte Carlo (20 000 průběhů) se ziskem a náklady jako trojúhelníková rozdělení a šancí na úspěch – očekávaný výsledek, riziko ztráty, 5./95. percentil; compare_options dál pro slovní porovnání |
 | 006 | AI Debate — porovnání argumentů modelů. | ✅ HOTOVO | ask_models: víc poskytovatelů, nebo jedna brána (OmniRoute, OpenRouter) s modely různých rodin (Claude, GPT, Gemini, Llama…) – shoda, rozdíly, společná odpověď |
 | 007 | Confidence Engine — vyjadřuje míru nejistoty. | ✅ HOTOVO | jistota u doporučení (compare_options) a podle shody modelů (ask_models); research hlásí nesedící citace |
 | 008 | Error Prediction — předvídání pravděpodobných chyb. | ✅ HOTOVO | predict_errors: před spuštěním plánu neexistující nástroje a soubory, plný disk, vypnutá oprávnění, nenastavený e-mail / domácnost / telefon, chybějící internet, nástroje, které poslední měsíc často selhávaly, a kroky s potvrzením; u každé nové mise se rizika uloží a ukážou v Úkolech |
@@ -173,7 +173,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 09. Voice Intelligence
 
-✅ 7 · 🟡 3
+✅ 8 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -184,7 +184,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 100 | Rozpoznání více příkazů ve větě. | 🟡 ČÁSTEČNĚ | více příkazů ve větě řeší jazykový model |
 | 101 | Nastavitelná délka a rychlost odpovědi. | ✅ HOTOVO | rychlost a hlasitost hlasu, osobnost |
 | 102 | Prostorové audio efekty. | ✅ HOTOVO | prostorové zvuky: stereo umístění zvuků rozhraní (notch uprostřed, telefon a upozornění vpravo, e-mail vlevo, okno, ve kterém JARVIS pracuje), i u vlastních zvuků; vypínatelné |
-| 103 | Hlasové potvrzení rizikových akcí. | 🟡 ČÁSTEČNĚ | potvrzení rizikových akcí v UI a otiskem na telefonu; hlasové potvrzení chybí |
+| 103 | Hlasové potvrzení rizikových akcí. | ✅ HOTOVO | hlasové potvrzení rizikových akcí: v hlasovém režimu stačí říct „ano“ / „ne“ (voice/loop.py parse_yes_no) + potvrzení v UI a otiskem |
 | 104 | Vlastní hlasová makra. | ✅ HOTOVO | hlasová makra = protokoly („spusť protokol …“) |
 | 105 | Výběr vhodného mikrofonu. | ✅ HOTOVO | výběr mikrofonu (audio_devices) |
 
@@ -224,13 +224,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 12. Creative Studio
 
-✅ 9 · 🟡 1
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 126 | Video storyboard. | ✅ HOTOVO | storyboard_timeline (vlna 26): záběry → časová osa, EDL a SRT |
 | 127 | Návrhy animovaných scén. | ✅ HOTOVO | scene_animation: sled záběrů podle zadání a nálady (časy, kamera, pohyb), živý náhled v prohlížeči (CSS animace) a skript pro Blender s klíčovými snímky |
-| 128 | Automatické titulky. | 🟡 ČÁSTEČNĚ | přepis řeči z nahrávek (notetaker.py) |
+| 128 | Automatické titulky. | ✅ HOTOVO | make_subtitles: přepis řeči → .srt vedle souboru (řádky ≤ 42 znaků, 2 řádky, délka zobrazení 1–6 s, bez překryvů) |
 | 129 | Synchronizace titulků. | ✅ HOTOVO | sync_subtitles: posun i postupné natažení titulků podle řeči (korelace aktivity řeči a titulků, dvě poloviny) |
 | 130 | Odšumění zvuku. | ✅ HOTOVO | clean_speech (vlna 18) + filtr hluku v hlasové smyčce (vlna 28) |
 | 131 | Výběr krátkých klipů. | ✅ HOTOVO | extract_clips: nejživější momenty jako samostatná krátká videa (ve frontě) |
@@ -343,7 +343,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -353,14 +353,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 199 | Assumption Checker — validace předpokladů. | ✅ HOTOVO | check_assumptions: skryté předpoklady, riziko, jak ověřit |
 | 200 | Evidence Verifier — kontrola zdrojů a důkazů. | ✅ HOTOVO | kontrola citací výzkumu (neexistující a nepoužité zdroje, odstavce bez citace) |
 | 201 | Task Dependency Engine — závislosti mezi úkoly. | ✅ HOTOVO | task_plan: pořadí úkolů, nejdřívější začátek, kritická cesta, rezervy, souběžné úkoly, kruhové a neznámé závislosti |
-| 202 | Adaptive Planning — průběžné aktualizace plánu. | 🟡 ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan) |
+| 202 | Adaptive Planning — průběžné aktualizace plánu. | ✅ HOTOVO | plán se průběžně aktualizuje (update_plan), mise navazuje od posledního hotového kroku, Omega Brain přeřazuje priority |
 | 203 | Risk Scoring — hodnocení rizika akcí. | ✅ HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py) |
 | 204 | AI Consensus — porovnávání výstupů modelů. | ✅ HOTOVO | AI Consensus přes ask_models i s jedinou bránou (model z každé rodiny) |
 | 205 | Contradiction Detection — detekce rozporů. | ✅ HOTOVO | find_contradictions: různá čísla pro stejnou věc (stejný kmen slov v klauzuli, stejná jednotka) a popření (je/není, smí/nesmí…) v jednom i mezi více dokumenty (PDF, Word, text) |
 | 206 | Solution Ranking — řazení řešení. | ✅ HOTOVO | seřazení variant s odůvodněním |
 | 207 | Knowledge Gap Detection — identifikace chybějících dat. | ✅ HOTOVO | co chybí vědět (missing_info) u rozhodování |
 | 208 | Experiment Designer — návrh ověřovacích testů. | ✅ HOTOVO | experiment_design: úplný i poloviční faktoriální plán, opakování, bloky, náhodné pořadí, počet běhů podle efektu a rozptylu, záznamový list |
-| 209 | Outcome Evaluation — vyhodnocení dosažených cílů. | 🟡 ČÁSTEČNĚ | akceptační kritéria mise + ověření (tasks.py criteria, evidence) |
+| 209 | Outcome Evaluation — vyhodnocení dosažených cílů. | ✅ HOTOVO | vyhodnocení cílů: akceptační kritéria mise ověřená důkazy (co se měřilo, zdroj, výsledek) |
 | 210 | Recursive Task Improvement — vylepšení na základě testů. | ✅ HOTOVO | improve_until_tests_pass: v dočasné kopii testy → AI upraví jen zadané soubory (ne testy) → znovu testy, víc kol; výsledek diff, do projektu jen na přání; vše s potvrzením |
 
 ## 20. Autonomous Mission Engine
@@ -387,7 +387,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 21. Next-Gen Desktop
 
-✅ 11 · 🟡 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -396,13 +396,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 228 | Window Grouping — seskupování oken. | ✅ HOTOVO | profil = skupina oken (programy + pozice), uložení a obnovení jedním příkazem |
 | 229 | Workspace Profiles — profily prostředí. | ✅ HOTOVO | workspace_save / workspace_restore: spustí chybějící programy a rozmístí okna jako minule |
 | 230 | Spatial Window Navigator — prostorová navigace. | ✅ HOTOVO | mapa oken v panelu notche (Plochy): okna na obrazovce v měřítku, klik přepne, šipky přepínají prostorově (nejbližší okno v daném směru); hlasem window_switch |
-| 231 | Command Preview — náhled příkazů. | 🟡 ČÁSTEČNĚ | náhled akce v potvrzovacím dialogu (details) |
+| 231 | Command Preview — náhled příkazů. | ✅ HOTOVO | náhled příkazu v potvrzovacím dialogu (details: přesný příkaz, cesty, co se změní) před každou rizikovou akcí |
 | 232 | Interactive Action Timeline — historie operací. | ✅ HOTOVO | časová osa akcí každé mise (audit) |
 | 233 | Floating Assistant Bubble — mini bublina. | ✅ HOTOVO | notch s postavičkou |
 | 234 | Transparent Focus Mode — nerušivé UI. | ✅ HOTOVO | focus_mode / focus_set: režim soustředění na N minut – notch téměř zprůhlední, bez pruhů hudby, lišta „Soustředění do … · čeká N upozornění · Ukončit“ |
 | 235 | Drag-to-JARVIS — přetažení obsahu. | ✅ HOTOVO | přetažení do notche |
 | 236 | Smart Clipboard Panel — historie schránky. | ✅ HOTOVO | historie schránky (powers.py) |
-| 237 | Animated Context Cards — kontextové karty. | 🟡 ČÁSTEČNĚ | karty výsledků nástrojů v chatu |
+| 237 | Animated Context Cards — kontextové karty. | ✅ HOTOVO | kontextové karty výsledků nástrojů v chatu (taskcard) s náhledy a odkazy |
 | 238 | Cross-Monitor Docking — přesun mezi monitory. | ✅ HOTOVO | window_to_monitor: okno na jiný monitor |
 | 239 | Accessibility Interface — podporované asistivní ovládání. | 🟡 ČÁSTEČNĚ | aria popisky, klávesnice |
 | 240 | Low-Power UI — úsporné vykreslování. | 🟡 ČÁSTEČNĚ | vypnutí animací, úsporný režim místních modelů |
@@ -431,25 +431,25 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 23. Voice & Audio Intelligence
 
-✅ 8 · 🟡 7
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 256 | Far-Field Voice Recognition — dálkový mikrofon. | 🟡 ČÁSTEČNĚ | vzdálený mikrofon: automatické zesílení řeči + filtr hluku + mic_check s radami; směrování více mikrofony (beamforming) ne |
 | 257 | Noise Suppression — filtr hluku. | ✅ HOTOVO | filtr hluku před rozpoznáním: Wienerův filtr s odhadem SNR, šum z vteřiny před „Hey Jarvis“ (Nastavení → Hlas → Čistý zvuk) |
 | 258 | Echo Cancellation — potlačení ozvěny. | ✅ HOTOVO | potlačení ozvěny: adaptivní filtr (PBFDAF-NLMS) z toho, co JARVIS přehrává, odhad zpoždění zvukovky (GCC-PHAT), detekce současné řeči – jde mu skočit do řeči |
-| 259 | Voice Activity Detection — detekce řeči. | 🟡 ČÁSTEČNĚ | detekce řeči v hlasové smyčce (voice/loop.py) |
+| 259 | Voice Activity Detection — detekce řeči. | ✅ HOTOVO | detekce řeči v hlasové smyčce + VAD filtr rozpoznávání (faster-whisper vad_filter) |
 | 260 | Wake Word Sensitivity — citlivost fráze. | ✅ HOTOVO | wake_word_calibrate: změří skóre okolního zvuku a vyslovení fráze, doporučí a na požádání uloží práh |
 | 261 | Speech Speed Adaptation — rychlost hlasu. | ✅ HOTOVO | rychlost hlasu |
-| 262 | Audio Context Switching — výběr výstupů. | 🟡 ČÁSTEČNĚ | výběr zvukových zařízení |
+| 262 | Audio Context Switching — výběr výstupů. | ✅ HOTOVO | výběr a přepnutí výstupu i mikrofonu (audio_device: sluchátka, reproduktory, TV, Bluetooth) |
 | 263 | Voice Shortcuts — hlasové zkratky. | ✅ HOTOVO | hlasové zkratky = protokoly |
 | 264 | Technical Vocabulary — odborné názvy. | ✅ HOTOVO | slovník a zkratky diktování |
 | 265 | Dictation Correction — opravy přepisu. | ✅ HOTOVO | úprava přepisu diktování |
 | 266 | Conversation Bookmarks — záložky. | ✅ HOTOVO | voice_bookmark / voice_bookmarks: záložka na vteřině nahrávaného hovoru nebo u výměny v konverzaci, s okolním přepisem |
 | 267 | Speaker Labels — identifikace mluvčích. | 🟡 ČÁSTEČNĚ | label_speakers + v přepisech hovorů „Ostatní 1 / 2…“: barva hlasu (MFCC) a výška hlasu, shlukování se silhouette a minimálním odstupem; přesnost neuronových modelů ne |
-| 268 | Audio Summaries — audio souhrny. | 🟡 ČÁSTEČNĚ | odpovědi nahlas |
+| 268 | Audio Summaries — audio souhrny. | ✅ HOTOVO | audio_summary: text / soubor namluvený zvoleným hlasem do zvukového souboru |
 | 269 | Conversation Translation — překlady dialogů. | 🟡 ČÁSTEČNĚ | překlad přes AI |
-| 270 | Offline Voice Pipeline — lokální hlas. | 🟡 ČÁSTEČNĚ | volitelné místní modely (stahování jen s potvrzením) |
+| 270 | Offline Voice Pipeline — lokální hlas. | ✅ HOTOVO | hlas bez internetu: místní rozpoznávání (faster-whisper) a místní hlas (Piper), stahování modelů jen se souhlasem |
 
 ## 24. Advanced Vision
 
@@ -475,14 +475,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 25. JARVIS PC Rescue
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 286 | Windows Integrity Inspector — integrita Windows. | 🟡 ČÁSTEČNĚ | system_integrity_check: DISM /CheckHealth + SFC /VERIFYONLY (jen kontrola); CI ho nespouští (trvá minuty) |
+| 286 | Windows Integrity Inspector — integrita Windows. | ✅ HOTOVO | system_integrity_check: DISM /CheckHealth + SFC /VERIFYONLY (jen kontrola) s výsledkem do důkazů mise |
 | 287 | Driver Rollback Assistant — návrat ovladače. | ✅ HOTOVO | driver_rollback_check: ovladače za 90 dní proti pádům 30 dní před / po, starší verze v úložišti ovladačů (pnputil, i česky), postup vrácení, Správce zařízení |
 | 288 | Boot Problem Analyzer — chyby startu. | ✅ HOTOVO | Boot Problem Analyzer = oblast boot |
-| 289 | Disk Partition Inspector — přehled oddílů. | 🟡 ČÁSTEČNĚ | oddíly a jejich zaplnění v reportu |
+| 289 | Disk Partition Inspector — přehled oddílů. | ✅ HOTOVO | disk_partitions: oddíly – písmeno, název, souborový systém, velikost, volno, role (systém / EFI / obnova / data), stav |
 | 290 | USB Connection Analyzer — diagnostika USB. | ✅ HOTOVO | USB Connection Analyzer = oblast usb |
 | 291 | Storage Error Correlation — souvislosti diskových chyb. | ✅ HOTOVO | chyby disku seskupené podle druhu + pády systému, kterým chyby disku předcházely (15 min) – rescue.disk_crash_links |
 | 292 | File System Health — souborový systém. | ✅ HOTOVO | stav svazků + chyby NTFS (55/98/140) z logu |
@@ -497,7 +497,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 26. Extreme Performance
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -513,9 +513,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 310 | Resource Priority Profiles — profily výkonu. | ✅ HOTOVO | performance_profile: hra / práce / tichý / vlastní – priority jen tvých procesů, přesné vrácení (i když mezitím proces skončil) |
 | 311 | Network Latency Monitor — síťová odezva. | ✅ HOTOVO | odezva, kolísání a ztráta (TCP handshake, bez práv správce) |
 | 312 | Performance History — historie výkonu. | ✅ HOTOVO | historie výkonu každých 5 min, 30 dní, graf na stránce, perf_history |
-| 313 | Gaming Session Analyzer — analýza hraní. | 🟡 ČÁSTEČNĚ | čas v aplikacích (screen_time) |
+| 313 | Gaming Session Analyzer — analýza hraní. | ✅ HOTOVO | gaming_stats: hodiny hraní za den, nejhranější hry, nejdelší souvislé hraní, hraní v noci (22–6) |
 | 314 | Optimization Before/After — A/B měření změn. | ✅ HOTOVO | perf_benchmark s popiskem a porovnáním s minulým měřením (před/po) |
-| 315 | Safe Optimization Advisor — bezpečná doporučení. | 🟡 ČÁSTEČNĚ | ke každému zjištění bezpečná rada; JARVIS sám nic neladí |
+| 315 | Safe Optimization Advisor — bezpečná doporučení. | ✅ HOTOVO | ke každému zjištění diagnostiky a výkonu bezpečná rada; JARVIS sám nic neladí ani nemění (záměr) |
 
 ## 27. Intelligent File Universe
 
@@ -629,7 +629,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 32. Cybersecurity Center
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -637,12 +637,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 392 | Local Port Inspector — místní porty. | ✅ HOTOVO | porty otevřené do sítě a jejich programy (Get-NetTCPConnection) |
 | 393 | Firewall Rule Explorer — firewall. | ✅ HOTOVO | příchozí pravidla firewallu od programů: program z Temp/Stažených/AppData, pravidla otevřená do veřejných sítí, přehled – rescue.firewall_findings |
 | 394 | Suspicious Startup Detector — podezřelé položky startu. | ✅ HOTOVO | podezřelé položky startu (podpis, umístění) a naplánované úlohy (skryté PowerShell, AppData) |
-| 395 | Security Update Tracker — bezpečnostní aktualizace. | 🟡 ČÁSTEČNĚ | stáří aktualizací Windows a definic Defenderu |
+| 395 | Security Update Tracker — bezpečnostní aktualizace. | ✅ HOTOVO | bezpečnostní aktualizace: čekající aktualizace Windows (bezpečnostní nejdřív, windows_updates) + stáří aktualizací a definic Defenderu |
 | 396 | Credential Exposure Checker — kontrola známých úniků. | ✅ HOTOVO | uniklé heslo přes Have I Been Pwned (k-anonymita: odejde 5 znaků otisku), jen ze stránky, nikdy přes AI |
 | 397 | Phishing Link Analyzer — rizika URL. | ✅ HOTOVO | check_link: podvodné domény, napodobení bank/obchodů, IP, punycode, zkracovače – bez otevření |
 | 398 | Download Safety Inspector — kontrola downloadů. | ✅ HOTOVO | check_download: původ (Zone.Identifier), skutečný typ, dvojitá přípona, podpis, SHA-256, sken Defenderem |
 | 399 | Ransomware Recovery Planner — plán obnovy. | ✅ HOTOVO | plán pro ransomware: skóre připravenosti (antivirus, ochrana složek, body obnovení, čerstvá a offline záloha) a postup krok za krokem k vytištění |
-| 400 | Local Security Dashboard — bezpečnostní přehled. | 🟡 ČÁSTEČNĚ | Bezpečnostní centrum na stránce Záchrana a výkon + oblast security |
+| 400 | Local Security Dashboard — bezpečnostní přehled. | ✅ HOTOVO | bezpečnostní přehled: Bezpečnostní centrum (odkaz, soubor, klíče v kódu, kopie, uniklé heslo, systémové soubory, bod obnovy) + oblast security + firewall a oprávnění aplikací |
 | 401 | Secret Detection — úniky API klíčů v kódu. | ✅ HOTOVO | scan_secrets: klíče a hesla v kódu, tajemství nikdy nevypíše celé |
 | 402 | Device Trust Manager — důvěryhodná zařízení. | ✅ HOTOVO | každý telefon dostane po spárování vlastní klíč (uložen jen otisk SHA-256), párovací kód jde změnit bez odpojení ostatních |
 | 403 | Session Revocation Center — odpojení sessions. | ✅ HOTOVO | odpojení jednotlivých zařízení i všech najednou (živá spojení se ukončí kódem 4401) |
@@ -651,11 +651,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 33. Multi-Device Ecosystem
 
-✅ 7 · 🟡 8
+✅ 9 · 🟡 6
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 406 | Device Discovery — hledání vlastních zařízení. | 🟡 ČÁSTEČNĚ | zařízení v síti (network.py) |
+| 406 | Device Discovery — hledání vlastních zařízení. | ✅ HOTOVO | zařízení v síti: vyhledání, pojmenování, upozornění na nová, graf sítě, probuzení (Wake-on-LAN), spárované telefony |
 | 407 | Encrypted Device Pairing — párování. | 🟡 ČÁSTEČNĚ | párování tokenem; v LAN bez TLS (viz DECISIONS.md) |
 | 408 | Cross-Device Clipboard History — historie schránky. | 🟡 ČÁSTEČNĚ | send_to_phone |
 | 409 | Remote Terminal Sessions — zabezpečený remote terminal. | 🟡 ČÁSTEČNĚ | příkazy z telefonu jen přes potvrzovaný run_shell s otiskem prstu a oprávněními zařízení; plnohodnotný vzdálený terminál záměrně ne |
@@ -666,7 +666,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 414 | Audio Device Handoff — přenos hovoru. | 🟡 ČÁSTEČNĚ | audio_device: seznam zařízení, výběr podle slov (sluchátka, reproduktory, TV, Bluetooth), přepnutí výstupu i mikrofonu pro všechny role přes Windows API (IPolicyConfig) – na skutečném PC zatím neověřeno; předání hovoru mezi telefonem a PC ne |
 | 415 | Cross-Device File Browser — sdílené soubory. | ✅ HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně |
 | 416 | Remote Wake Support — Wake-on-LAN. | ✅ HOTOVO | wake_device (Wake-on-LAN) |
-| 417 | Device Battery Dashboard — baterie. | 🟡 ČÁSTEČNĚ | baterie PC + telefonu (phone_battery) |
+| 417 | Device Battery Dashboard — baterie. | ✅ HOTOVO | baterie: PC a telefon (phone_battery), stav PC s baterií v mobilní aplikaci |
 | 418 | Offline Device Sync — offline synchronizace. | 🟡 ČÁSTEČNĚ | offline fronta zpráv, seznamů a připnutých úkolů; plná obousměrná synchronizace dat ne |
 | 419 | Device-Specific Permissions — povolení zařízení. | ✅ HOTOVO | oprávnění podle zařízení: co smí spárovaný telefon (zvlášť od PC), host jen hudbu |
 | 420 | Lost Device Protection — ochrana při ztrátě. | ✅ HOTOVO | najdi můj telefon (FindPhone) + odpojení ztraceného telefonu jedním tlačítkem |
@@ -893,13 +893,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 44. Local AI Supercomputer
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 571 | Local Model Benchmarking — porovnání rychlosti. | ✅ HOTOVO | local_model_benchmark: skutečné generování na každém nainstalovaném modelu, tokeny/s, načtení, GPU/CPU |
 | 572 | Automatic Model Quantization Advisor — kvantizace modelu. | ✅ HOTOVO | quantization_advice: Q2–F16 podle velikosti modelu, VRAM, RAM a kontextu → doporučení a očekávaná rychlost |
-| 573 | VRAM-Aware Model Loading — výběr modelu dle VRAM. | 🟡 ČÁSTEČNĚ | test GPU pro místní modely |
+| 573 | VRAM-Aware Model Loading — výběr modelu dle VRAM. | ✅ HOTOVO | výběr místního modelu podle VRAM: local_models_fit (kvantizace, GPU / GPU+CPU / CPU podle VRAM a RAM) |
 | 574 | CPU/GPU Hybrid Inference — hybridní výpočty. | ✅ HOTOVO | gpu_split: kolik vrstev modelu na grafiku vs. procesor (VRAM, KV cache, rezerva), odhad rychlosti; brain.local_gpu_layers → Ollama num_gpu |
 | 575 | Model Warm-Up Manager — rychlejší start. | ✅ HOTOVO | warm_up_model: načtení dopředu s keep_alive, změřená doba načtení a pohotovosti |
 | 576 | Idle Model Unloading — uvolnění paměti. | ✅ HOTOVO | uvolnění místního modelu (local_unload) |
@@ -911,16 +911,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 582 | Model Accuracy Testing — kvalita odpovědí. | ✅ HOTOVO | test_model_accuracy: otázky se známou odpovědí (výchozí česká sada nebo vlastní), skóre a chybné odpovědi |
 | 583 | Automatic Resource Throttling — řízení zdrojů. | ✅ HOTOVO | adaptivní ustoupení místního modelu (hra přes celou obrazovku, baterie < 30 % bez nabíječky, RAM > 92 %) – jen když je jiný poskytovatel; přepínač v nastavení |
 | 584 | Local AI Cache — cache odpovědí. | ✅ HOTOVO | AICache (SQLite, platnost 7 dní, max 2000) – router.complete(cache=True); statistika a smazání přes ai_queue |
-| 585 | Model Health Monitor — stav modelů. | 🟡 ČÁSTEČNĚ | stav místních modelů |
+| 585 | Model Health Monitor — stav modelů. | ✅ HOTOVO | stav místních modelů (načtené, VRAM), benchmark, zahřátí a kontrola připojení modelů v connections_health |
 
 ## 45. Universal Integration Gateway
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 586 | Connector Discovery — dostupné integrace. | 🟡 ČÁSTEČNĚ | MCP servery |
-| 587 | Connector Health Checks — funkčnost připojení. | 🟡 ČÁSTEČNĚ | test poskytovatele AI (provider_test) |
+| 586 | Connector Discovery — dostupné integrace. | ✅ HOTOVO | dostupné integrace: MCP servery, API konektory (api_connectors), přehled všech připojení (connections_health) |
+| 587 | Connector Health Checks — funkčnost připojení. | ✅ HOTOVO | connections_health: AI poskytovatelé (volitelně i test odpovědi), Ollama, e-mail, Home Assistant, telefon, MCP – co funguje a proč ne |
 | 588 | API Schema Importer — OpenAPI specifikace. | ✅ HOTOVO | api_import: libovolné API z OpenAPI (soubor / adresa), ověření none / bearer / hlavička / parametr |
 | 589 | Natural Language API Builder — API požadavky řečí. | ✅ HOTOVO | api_ask: požadavek běžnou řečí → operace a parametry z kontraktu; čtení hned, změna jen jako návrh k potvrzení |
 | 590 | Webhook Event Router — události. | ✅ HOTOVO | příchozí webhooky /api/hook/{id}: klíč v trezoru Windows (token nebo HMAC-SHA256), limit 30/min, max 256 kB; upozornění nebo spouštěč automatizace „webhook“; obsah jen data |
@@ -1069,18 +1069,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 52. Advanced Hardware Rescue
 
-✅ 10 · 🟡 4 · 🔌 1
+✅ 13 · 🟡 1 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 691 | USB Power Diagnostics — napájení USB. | 🟡 ČÁSTEČNĚ | usb_check: zařízení s chybou 43/10 (typicky napájení) + události resetu / přepětí portu a rady; měření proudu na portu Windows nedává |
 | 692 | USB Controller Mapping — řadiče USB. | ✅ HOTOVO | usb_check: strom řadič → rozbočovač → zařízení (DEVPKEY_Device_Parent), problémové kódy |
-| 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | 🟡 ČÁSTEČNĚ | rada u disků v USB rámečku a opakovaného odpojování |
-| 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | 🟡 ČÁSTEČNĚ | rozpoznání USB rámečku podle názvu (JMicron, ASMedia, Realtek…) |
+| 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | ✅ HOTOVO | rada u disků v USB rámečku (kabel, napájení, firmware převodníku) + opakované odpojování v diagnostice USB |
+| 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | ✅ HOTOVO | rozpoznání převodníku USB–SATA/NVMe podle USB vendor ID (JMicron, ASMedia, Realtek, VIA, Genesys…) i podle názvu |
 | 695 | NVMe Enumeration Inspector — enumerace NVMe. | ✅ HOTOVO | disk_errors: NVMe i SATA – stav, teplota, opotřebení, neopravitelné chyby, firmware, sériové číslo, události řadiče |
 | 696 | SATA Error Log Reader — SATA logy. | ✅ HOTOVO | disk_errors: log disků (vadný blok, opakování, reset řadiče, NTFS) po discích a v čase |
 | 697 | SMART Passthrough Tester — SMART přes USB. | 🔌 VYŽADUJE_INTEGRACI | plný SMART přes smartctl, když je nainstalovaný smartmontools (rescue.smart_data) |
-| 698 | Invisible Disk Triage — disky nedetekované systémem. | 🟡 ČÁSTEČNĚ | disky offline / RAW / bez oddílů (Get-Disk) |
+| 698 | Invisible Disk Triage — disky nedetekované systémem. | ✅ HOTOVO | disk_triage: disk ve Správci zařízení, ale ne v seznamu disků; chyba zařízení; offline / RAW s radou nic neformátovat |
 | 699 | Read-Only Imaging Planner — image dat v read-only režimu. | ✅ HOTOVO | disk_copy_plan: nic nezapisovat na zdroj, nejcennější složky přes robocopy s přeskakováním vadných míst, obraz disku, když cíl stačí |
 | 700 | Clone Verification Assistant — integrita klonu. | ✅ HOTOVO | verify_copy: SHA-256 každého souboru, chybějící a odlišné |
 | 701 | Read Error Heatmap — vadné oblasti dle logů. | ✅ HOTOVO | disk_errors: mapa chyb čtení podle LBA z událostí disku (40 polí přes celý povrch) |
