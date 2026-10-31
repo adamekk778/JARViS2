@@ -150,6 +150,19 @@ async def ask_models(rt, question: str, max_models: int = 3) -> dict:
     a consensus answer and a confidence derived from the agreement."""
     provs = [p for p in rt.router.providers()][:max_models]
     answers = []
+    if len(provs) < 2 and provs:                       # 006 / 204: one gateway, several models (OmniRoute, OpenRouter…)
+        models = await gateway_models(rt, provs[0])
+        if len(models) >= 2:
+            for m in models[:max_models]:
+                try:
+                    text = await rt.router.complete([{"role": "system", "content": "Odpověz česky, stručně a věcně. Na konci "
+                                                      "napiš „Jistota: N %“."}, {"role": "user", "content": question}],
+                                                    only=provs[0].id, model=m)
+                    if text.strip():
+                        answers.append({"provider": f"{provs[0].id} · {m}", "model": m, "answer": text.strip()})
+                except Exception as e:  # noqa: BLE001
+                    answers.append({"provider": f"{provs[0].id} · {m}", "error": f"{type(e).__name__}: {str(e)[:120]}"})
+            provs = []
     for p in provs:
         try:
             text = await rt.router.complete([{"role": "system", "content": "Odpověz česky, stručně a věcně. Na konci napiš "
@@ -171,6 +184,38 @@ async def ask_models(rt, question: str, max_models: int = 3) -> dict:
     return {"answers": answers, "compared": True, "agree": cmp.get("agree") or [], "disagree": cmp.get("disagree") or [],
             "consensus": cmp.get("consensus") or "", "agreement": agreement,
             "confidence": "vysoká" if agreement >= 80 else "střední" if agreement >= 50 else "nízká – modely se neshodují"}
+
+
+FAMILIES = [("claude", r"claude|sonnet|opus|haiku"), ("gpt", r"gpt|\bo[134]\b|o[134]-"), ("gemini", r"gemini"),
+            ("llama", r"llama"), ("mistral", r"mistral|mixtral"), ("deepseek", r"deepseek"), ("qwen", r"qwen"), ("grok", r"grok")]
+SKIP_MODEL = re.compile(r"embed|whisper|tts|dall|image|vision-preview|moderation|rerank|^auto", re.I)
+
+
+def diverse_models(models: list[str], k: int = 3) -> list[str]:
+    """One model from each family (Claude, GPT, Gemini, Llama…), so the comparison is between different AIs."""
+    out, seen = [], set()
+    for fam, pat in FAMILIES:
+        for m in models:
+            if not SKIP_MODEL.search(m) and re.search(pat, m.lower()) and fam not in seen:
+                out.append(m)
+                seen.add(fam)
+                break
+        if len(out) >= k:
+            break
+    return out
+
+
+async def gateway_models(rt, pcfg) -> list[str]:
+    from .llm.router import build_provider
+
+    try:
+        prov = build_provider(pcfg, rt.router.key_lookup(pcfg.id) if hasattr(rt.router, "key_lookup") else "", rt.cfg.brain,
+                              getattr(rt.router, "transport", None))
+        if not hasattr(prov, "list_models"):
+            return []
+        return diverse_models(await prov.list_models())
+    except Exception:                                   # a provider that cannot list its models: compare providers only
+        return []
 
 
 # ---------------------------------------------------------------------------------------------- 001 / 198 goal mode

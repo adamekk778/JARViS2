@@ -1033,3 +1033,10 @@
 009 | HOTOVO | dynamické priority fronty misí: skóre z termínu (čím blíž, tím výš), důležitosti (zadaná nebo poznaná z textu), čekání (nic neuhnije), souvislosti s tím, na čem pracuješ; mission_queue ukáže pořadí s důvody, při změně pořadí přijde upozornění
 069 | HOTOVO | specialista 3D a scény: kontrola modelů, kostry postav, scény a animace, voxely, osvětlení, kamera, Blender (agents.py)
 070 | HOTOVO | specialista Elektronika: výpočty obvodů, schéma, DPS, kompatibilita součástek, kusovník, firmware (stavba, nahrání jen s potvrzením), sériová linka, krabička
+# 3.11 propojení
+116 | HOTOVO | Roblox Open Cloud s vlastním klíčem: nahrání místa (.rbxl/.rbxlx) jako zveřejněné nebo uložené verze (s potvrzením), čtení DataStore, projekt Rojo pro kód v souborech (bridges.py, tools/bridge_tools.py, tests/test_bridges.py)
+117 | HOTOVO | Blender přímo přes jeho příkazovou řádku na pozadí: obsah scény, render snímku, export glTF/GLB/FBX/OBJ/STL, skript od AI jen po potvrzení; specialista 3D ho používá
+118 | HOTOVO | Unity: přehled projektu ze souborů (verze, scény, balíčky, skripty, testy) a testy EditMode/PlayMode v editoru na pozadí s výsledky NUnit
+784 | HOTOVO | spojení vlak/bus/MHD po ČR: otevře hotové vyhledávání IDOS (veřejné API neexistuje); odjezdy pražské MHD v reálném čase přes PID Golemio s bezplatným klíčem
+006 | HOTOVO | ask_models: víc poskytovatelů, nebo jedna brána (OmniRoute, OpenRouter) s modely různých rodin (Claude, GPT, Gemini, Llama…) – shoda, rozdíly, společná odpověď
+204 | HOTOVO | AI Consensus přes ask_models i s jedinou bránou (model z každé rodiny)

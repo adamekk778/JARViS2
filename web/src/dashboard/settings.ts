@@ -491,6 +491,15 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "row" }, h("div", { style: { flex: "1" } }, name),
             h("button", { class: "btn primary", type: "button", onclick: () => { if (name.value.trim()) save([...servers, { name: name.value.trim(), command: "", args: [], url: "", env: {}, enabled: true }]); } }, icon("plus"), "Přidat server"))),
         card("Obrázky", null, select("integrations.image_provider", "Generování obrázků", [["pollinations", "Pollinations.ai (zdarma, bez klíče)"]])),
+        // keys for the creative tools and Czech public transport (stored in Windows Credential Manager)
+        card("Klíče služeb", "Blender a Unity JARVIS najde sám (stačí je mít nainstalované). Tady jsou klíče služeb, které ho potřebují.",
+          ...([["roblox", "Roblox Open Cloud", "create.roblox.com → Credentials → API klíč (oprávnění universe-places:write, datastores:read)"],
+            ["golemio", "Odjezdy MHD Praha (Golemio)", "bezplatný klíč z api.golemio.cz – spojení po celé ČR jde i bez něj přes IDOS"]] as [string, string, string][])
+            .map(([id, label, help]) => {
+              const k = h("input", { class: "input", type: "password", autocomplete: "off", placeholder: "vlož klíč" }) as HTMLInputElement;
+              k.onchange = () => { client.send("secret_set", { name: id, value: k.value.trim() }); k.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok"); };
+              return field(label, k, help);
+            })),
       ];
     },
 

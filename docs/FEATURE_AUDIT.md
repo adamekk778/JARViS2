@@ -9,10 +9,10 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 587 | 88 |
+| ✅ HOTOVO | 593 | 88 |
 | 🟡 ČÁSTEČNĚ | 179 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
+| 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
 | 🗓️ PLÁNOVÁNO | 16 | 3 |
 | ⬜ CHYBÍ | 0 | 0 |
@@ -22,7 +22,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 01. Super Intelligence
 
-✅ 7 · 🟡 2 · 🔌 1
+✅ 8 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -31,7 +31,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 003 | Deep Research — rozsáhlý výzkum s citacemi. | ✅ HOTOVO | deep_research: víc dotazů, přečtené zdroje, report s citacemi [n], mechanická kontrola citací, uložený jako artefakt |
 | 004 | Autonomous Problem Solver — testování více řešení. | ✅ HOTOVO | solve_problem: AI navrhne 2–5 opravdu různých přístupů; u kódu každý zkusí proti testům ve vlastní dočasné kopii (improve_loop) a vybere ten, který testy projde s nejmenší změnou; jinak každý plán prověří předpovědí chyb a ohodnotí; apply_solution zapíše vybrané řešení jen s potvrzením (omega.py, tools/omega_tools.py, tests/test_omega_brain.py) |
 | 005 | Decision Simulator — simuluje důsledky rozhodnutí. | 🟡 ČÁSTEČNĚ | compare_options: u každé varianty pravděpodobné důsledky a rizika (odhad AI, ne simulace) |
-| 006 | AI Debate — porovnání argumentů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: stejná otázka víc AI poskytovatelům a porovnání – potřebuje aspoň dva nastavené poskytovatele |
+| 006 | AI Debate — porovnání argumentů modelů. | ✅ HOTOVO | ask_models: víc poskytovatelů, nebo jedna brána (OmniRoute, OpenRouter) s modely různých rodin (Claude, GPT, Gemini, Llama…) – shoda, rozdíly, společná odpověď |
 | 007 | Confidence Engine — vyjadřuje míru nejistoty. | ✅ HOTOVO | jistota u doporučení (compare_options) a podle shody modelů (ask_models); research hlásí nesedící citace |
 | 008 | Error Prediction — předvídání pravděpodobných chyb. | ✅ HOTOVO | predict_errors: před spuštěním plánu neexistující nástroje a soubory, plný disk, vypnutá oprávnění, nenastavený e-mail / domácnost / telefon, chybějící internet, nástroje, které poslední měsíc často selhávaly, a kroky s potvrzením; u každé nové mise se rizika uloží a ukážou v Úkolech |
 | 009 | Dynamic Task Priorities — dynamické priority. | ✅ HOTOVO | dynamické priority fronty misí: skóre z termínu (čím blíž, tím výš), důležitosti (zadaná nebo poznaná z textu), čekání (nic neuhnije), souvislosti s tím, na čem pracuješ; mission_queue ukáže pořadí s důvody, při změně pořadí přijde upozornění |
@@ -207,13 +207,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 11. Gaming & Development
 
-✅ 7 · 🔌 3
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 116 | Integrace Roblox Studio. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
-| 117 | Pomoc s Blenderem. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
-| 118 | Inspekce Unity projektů. | 🔌 VYŽADUJE_INTEGRACI | Roblox Studio / Blender / Unity – jen přes computer_use, bez nativní integrace |
+| 116 | Integrace Roblox Studio. | ✅ HOTOVO | Roblox Open Cloud s vlastním klíčem: nahrání místa (.rbxl/.rbxlx) jako zveřejněné nebo uložené verze (s potvrzením), čtení DataStore, projekt Rojo pro kód v souborech (bridges.py, tools/bridge_tools.py, tests/test_bridges.py) |
+| 117 | Pomoc s Blenderem. | ✅ HOTOVO | Blender přímo přes jeho příkazovou řádku na pozadí: obsah scény, render snímku, export glTF/GLB/FBX/OBJ/STL, skript od AI jen po potvrzení; specialista 3D ho používá |
+| 118 | Inspekce Unity projektů. | ✅ HOTOVO | Unity: přehled projektu ze souborů (verze, scény, balíčky, skripty, testy) a testy EditMode/PlayMode v editoru na pozadí s výsledky NUnit |
 | 119 | Testovací herní scény. | ✅ HOTOVO | testovací herní scény pro Godot 4 (.tscn): stěny s kolizemi, start, cíl, testovací nepřátelé – ze semínka |
 | 120 | Koncepční návrhy prostředí. | ✅ HOTOVO | koncepty prostředí (les, poušť, sci-fi, zima, jeskyně): moodboard s paletou, náčrtem rozvržení, rekvizitami, světlem a zadáním pro obrázek |
 | 121 | Analýza herních logů. | ✅ HOTOVO | rozbor herních logů (Unity, Unreal, Godot): chyby seskupené, záseky, paměť, chybějící soubory, první výskyt |
@@ -343,7 +343,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 19. Hyper Intelligence Engine
 
-✅ 12 · 🟡 2 · 🔌 1
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -355,7 +355,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 201 | Task Dependency Engine — závislosti mezi úkoly. | ✅ HOTOVO | task_plan: pořadí úkolů, nejdřívější začátek, kritická cesta, rezervy, souběžné úkoly, kruhové a neznámé závislosti |
 | 202 | Adaptive Planning — průběžné aktualizace plánu. | 🟡 ČÁSTEČNĚ | plán se průběžně aktualizuje (update_plan) |
 | 203 | Risk Scoring — hodnocení rizika akcí. | ✅ HOTOVO | riziko 1–5 s důvodem u každé varianty; nebezpečné akce se potvrzují (tools/base.py) |
-| 204 | AI Consensus — porovnávání výstupů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: shoda/rozpory/společná odpověď – s aspoň dvěma poskytovateli |
+| 204 | AI Consensus — porovnávání výstupů modelů. | ✅ HOTOVO | AI Consensus přes ask_models i s jedinou bránou (model z každé rodiny) |
 | 205 | Contradiction Detection — detekce rozporů. | ✅ HOTOVO | find_contradictions: různá čísla pro stejnou věc (stejný kmen slov v klauzuli, stejná jednotka) a popření (je/není, smí/nesmí…) v jednom i mezi více dokumenty (PDF, Word, text) |
 | 206 | Solution Ranking — řazení řešení. | ✅ HOTOVO | seřazení variant s odůvodněním |
 | 207 | Knowledge Gap Detection — identifikace chybějících dat. | ✅ HOTOVO | co chybí vědět (missing_info) u rozhodování |
@@ -1201,14 +1201,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 58. Everyday Intelligence & Accessibility
 
-✅ 12 · 🟡 2 · 🔌 1
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 781 | Life Event Planner — osobní události. | ✅ HOTOVO | life_event_plan: stěhování, svatba, miminko, dovolená, nová práce, narozeniny, STK – kroky na časové ose, do seznamu |
 | 782 | Travel Packing Assistant — balení na cesty. | ✅ HOTOVO | packing_list: podle nocí, skutečné předpovědi v cíli (zima, déšť, UV, horko) a aktivit, do seznamu |
 | 783 | Weather-Aware Planning — plány podle počasí. | ✅ HOTOVO | best_time_outside: nejlepší hodina/den podle hodinové předpovědi (déšť, teplota, vítr) pro aktivitu |
-| 784 | Public Transport Connector — dopravní spojení. | 🔌 VYŽADUJE_INTEGRACI | veřejné API pro jízdní řády ČR chybí |
+| 784 | Public Transport Connector — dopravní spojení. | ✅ HOTOVO | spojení vlak/bus/MHD po ČR: otevře hotové vyhledávání IDOS (veřejné API neexistuje); odjezdy pražské MHD v reálném čase přes PID Golemio s bezplatným klíčem |
 | 785 | Smart Grocery List — nákupní seznam. | ✅ HOTOVO | nákupní seznam + shopping_by_aisle (seřazení podle oddělení) |
 | 786 | Recipe Ingredient Substitution — náhrady surovin. | ✅ HOTOVO | ingredient_substitute: ověřené náhrady surovin vč. veganských/bezlepkových |
 | 787 | Daily Focus Report — soustředění. | ✅ HOTOVO | focus_report: práce / komunikace / zábava / hry, podíl soustředění, nejproduktivnější hodina |

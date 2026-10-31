@@ -81,7 +81,10 @@ class Router:
         return order
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
-                     need_vision: bool = False, fast: bool = False, only: str | None = None) -> AsyncIterator[Chunk]:
+                     need_vision: bool = False, fast: bool = False, only: str | None = None,
+                     model: str | None = None) -> AsyncIterator[Chunk]:
+        """`model` asks one particular model of the provider (to compare several models of one gateway)."""
+        want_model = model
         errors: dict[str, str] = {}
         cands = self.providers()
         if only:   # OMEGA 204 / 006: ask one particular provider (to compare models)
@@ -97,8 +100,8 @@ class Router:
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
             if pcfg.id in self.resolved_models:
                 prov.model = self.resolved_models[pcfg.id]
-            model = (pcfg.vision_model if need_vision and pcfg.vision_model else
-                     pcfg.fast_model if fast and pcfg.fast_model else None)
+            model = (want_model or (pcfg.vision_model if need_vision and pcfg.vision_model else
+                     pcfg.fast_model if fast and pcfg.fast_model else None))
             resolved = False
             msgs = messages
             if need_vision and pcfg.id in self.no_vision:
@@ -161,12 +164,12 @@ class Router:
         raise AllProvidersFailed(errors)
 
     async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None,
-                       cache: bool = False) -> str:
+                       cache: bool = False, model: str | None = None) -> str:
         key = self.cache.key(messages, vision=need_vision, fast=fast, only=only) if cache and self.cache else ""
         if key and (hit := self.cache.get(key)) is not None:      # OMEGA 584: the same question again → no model call
             return hit
         out = []
-        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only):
+        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only, model=model):
             out.append(ch.text)
         text = "".join(out)
         if key:

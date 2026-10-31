@@ -6,11 +6,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 |---|---|
 | `Claude Code` | 046, 049, 331, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
 | `Home Assistant` | 165, 421, 423, 431, 434, P13.02, P13.05 |
-| `computer_use` | 116, 117, 118, 531, P2.02, P4.04, P11.03 |
 | `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
+| `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_python` | 766, 768, P5.12, P11.10 |
@@ -148,6 +148,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `bought_together` | 436 |
 | `brand_check` | 661 |
 | `break_minutes` | 077 |
+| `bridges.py` | 116 |
 | `broken_links` | 383 |
 | `business_dashboard` | 450 |
 | `calendar_.py` | 171 |
@@ -490,11 +491,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_agent.py` | 182 |
 | `tests/test_agent_swarm.py` | P1.08 |
 | `tests/test_automations.py` | 147 |
+| `tests/test_bridges.py` | 116 |
 | `tests/test_home.py` | 435 |
 | `tests/test_omega_brain.py` | 004 |
 | `to_list` | 570 |
 | `token_expiry` | 592 |
 | `tolerance_stackup` | 773 |
+| `tools/bridge_tools.py` | 116 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
 | `tools/omega_tools.py` | 004 |
