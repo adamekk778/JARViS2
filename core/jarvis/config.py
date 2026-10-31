@@ -66,6 +66,12 @@ class Voice(BaseModel):
     stt_provider: Literal["local", "groq"] = "local"
     tts_voice: str = "cs-CZ-AntoninNeural"
     piper_voice: str = "cs_CZ-jirka-medium"
+    # voice studio: which engine speaks, an imported own Piper voice, an ElevenLabs voice, an effect on top
+    tts_engine: Literal["edge", "piper", "elevenlabs"] = "edge"
+    piper_custom: str = ""            # name of an imported voice in models/piper/custom (empty = piper_voice)
+    eleven_voice_id: str = ""
+    eleven_model: str = "eleven_multilingual_v2"
+    effect: Literal["none", "jarvis", "radio", "robot", "hall"] = "none"
     tts_rate: str = "+0%"
     tts_pitch: str = "+0Hz"
     tts_volume: str = "+0%"

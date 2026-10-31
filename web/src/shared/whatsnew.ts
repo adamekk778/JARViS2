@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "microphone-stage", title: "Hlasová dílna", line: "V Nastavení → Hlas si vybereš z desítek hlasů (i vícejazyčných, které umí česky), přidáš vlastní hlas ze souboru, nebo si ho vytvoříš na ElevenLabs a vložíš klíč. Každému hlasu můžeš dát efekt – JARVIS, rádio, robot, dozvuk – a hned si ho poslechnout." },
     { icon: "plugs", title: "OmniRoute jen s klíčem", line: "U OmniRoute stačí vložit API klíč: JARVIS ho hned vyzkouší a sám si najde model, který tvůj OmniRoute nabízí. Když něco chybí, napíše srozumitelně co. Všechny rozměry a časy notche v Nastavení se navíc projeví hned." },
     { icon: "wave-sine", title: "Plynulý notch", line: "Notch se otevírá a zavírá plynule: jeho okraj už při animaci neposkakuje a okno notche nemění velikost na začátku a na konci každého pohybu." },
     { icon: "wrench", title: "Notch bez šedého rámečku", line: "Kolem notche už není šedý obdélník: v tmavém režimu Windows za notch kreslily efekt Mica, ten je teď vypnutý. Notch má zase ostré okraje, které fungují na každém počítači (vyhlazené si můžeš zapnout v Nastavení → Notch), a když Windows zahodí oříznutí okna na tvar notche, JARVIS ho do dvou sekund vrátí." },

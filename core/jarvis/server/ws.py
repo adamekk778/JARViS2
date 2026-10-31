@@ -45,7 +45,7 @@ CLIENT_TYPES = [
     "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
     "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
-    "mochi_move", "hardware_get",
+    "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -63,7 +63,7 @@ SERVER_TYPES = [
     "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
-    "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level",
+    "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample",
     "focus", "caption", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware",
 ]
@@ -78,7 +78,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -91,7 +91,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "fact_update", "fac
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1157,6 +1157,19 @@ class Connection:
                             devices=[c for c in rt.clients.values() if c.get("client") == "mobile"])
         elif t == "speak":
             rt.speak(m.get("text", ""))
+        elif t == "voices_get":
+            await self.send("voices", **(await self._voices()))
+        elif t == "voice_preview":
+            await self._voice_preview(m)
+        elif t == "voice_import":
+            await self._voice_import(m)
+        elif t == "voice_delete":
+            from ..voice import studio
+
+            studio.delete_custom(str(m.get("name", "")))
+            if rt.cfg.voice.piper_custom == m.get("name"):
+                rt.update_config({"voice": {"piper_custom": ""}})
+            await self.send("voices", **(await self._voices()))
         elif t == "tts_request":
             self.spawn(self._tts(m.get("text", ""), m.get("message_id")))
         elif t == "shelf_add":
@@ -1287,6 +1300,62 @@ class Connection:
             return
         rt.bus.publish("transcript", text=text, final=True)
         await rt.agent.handle(text, [], self._source(voice=True))
+
+    async def _voices(self) -> dict:
+        """Everything the voice studio can offer: Edge, the Piper catalogue, own Piper voices, ElevenLabs voices."""
+        from ..voice import studio
+
+        out: dict = {"effects": studio.EFFECTS, "custom": studio.custom_voices(), "eleven_key": secrets.has("elevenlabs")}
+        for key, fn in (("edge", studio.edge_voices), ("piper", studio.piper_catalog)):
+            try:
+                out[key] = await fn()
+            except Exception as e:                 # offline: the settings page keeps its short built-in list
+                out[key] = []
+                out[f"{key}_error"] = str(e)[:200]
+        try:
+            out["eleven"] = await studio.eleven_voices(secrets.get("elevenlabs"))
+        except Exception as e:
+            out["eleven"], out["eleven_error"] = [], str(e)[:200]
+        return out
+
+    async def _voice_preview(self, m: dict) -> None:
+        """Say a sample sentence with the studio settings the user is trying (not saved yet)."""
+        rt = self.rt
+        if not rt.speaker:
+            await self.send("voice_sample", ok=False, message="Hlasový výstup není dostupný.")
+            return
+        allowed = {"tts_engine", "tts_voice", "piper_voice", "piper_custom", "eleven_voice_id", "eleven_model", "effect",
+                   "tts_rate", "tts_pitch"}
+        override = {k: v for k, v in (m.get("voice") or {}).items() if k in allowed}
+        text = str(m.get("text") or "Dobrý den, tady JARVIS. Takhle zním s tímhle nastavením.")[:300]
+        try:
+            checked = config_mod.Voice.model_validate({**rt.cfg.voice.model_dump(), **override})
+            audio, mime = await rt.speaker.synth(text, "cs", override={k: getattr(checked, k) for k in override})
+        except Exception as e:
+            await self.send("voice_sample", ok=False, message=f"Ukázka nejde přehrát: {e}")
+            return
+        att = await rt.store.save(f"ukazka-hlasu.{'mp3' if 'mpeg' in mime else 'wav'}", audio, mime)
+        await self.send("voice_sample", ok=True, attachment=att.public())
+
+    async def _voice_import(self, m: dict) -> None:
+        """An own Piper voice from two uploaded files (.onnx + .onnx.json)."""
+        from pathlib import Path
+
+        from ..voice import studio
+
+        rt = self.rt
+        onnx, cfg = rt.store.get(str(m.get("onnx", ""))), rt.store.get(str(m.get("json", "")))
+        if not onnx or not cfg:
+            await self.send("voice_sample", ok=False, message="Nahraj oba soubory hlasu: .onnx i .onnx.json.")
+            return
+        try:
+            name = await asyncio.to_thread(studio.import_piper, Path(onnx.path), Path(cfg.path),
+                                           str(m.get("name") or onnx.name))
+        except ValueError as e:
+            await self.send("voice_sample", ok=False, message=str(e))
+            return
+        rt.update_config({"voice": {"tts_engine": "piper", "piper_custom": name}})
+        await self.send("voices", **(await self._voices()), imported=name)
 
     async def _tts(self, text: str, message_id: str | None) -> None:
         rt = self.rt

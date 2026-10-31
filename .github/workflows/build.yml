@@ -171,8 +171,12 @@ jobs:
             $seen = New-Object 'System.Collections.Generic.List[string]'
             $h = [W]::Notch([uint32]$p.Id, $seen)
             $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
+            $rr = New-Object W+RECT; [W]::GetWindowRgnBox($h, [ref]$rr) | Out-Null
+            # just left of and below the notch shape: inside the window rectangle (which may be wider than this
+            # small screen) but outside the region
+            $px = [Math]::Max(0, $wr.L + $rr.L - 30); $py = $wr.T + $rr.B + 6
             $b = New-Object System.Drawing.Bitmap 1, 1
-            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($wr.L + 3, $wr.T + 40, 0, 0, $b.Size)
+            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($px, $py, 0, 0, $b.Size)
             $c = $b.GetPixel(0, 0)
             $line = "corner $label rgb=($($c.R),$($c.G),$($c.B))"; Write-Host $line; Add-Content "$shots\region.txt" $line
             return ($c.R -gt 200 -and $c.G -lt 120)

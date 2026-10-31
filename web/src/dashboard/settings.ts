@@ -266,9 +266,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           select("voice.stt_provider", "Kde rozpoznávat", [["local", "Lokálně (offline, faster-whisper)"], ["groq", "Groq API (rychlé, zdarma, potřebuje klíč u poskytovatele groq)"]]),
           select("voice.stt_model", "Model", [["tiny", "tiny (nejrychlejší)"], ["base", "base (slabé PC)"], ["small", "small (doporučeno)"], ["medium", "medium (přesnější)"], ["large-v3-turbo", "large-v3-turbo (GPU)"]])),
         select("voice.stt_language", "Jazyk řeči", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "Angličtina"], ["auto", "Automaticky"]])),
+      voiceStudio(),
       card("Hlas JARVISe", null,
-        select("voice.tts_voice", "Hlas", VOICES as [string, string][], "Microsoft Edge neurální hlasy, zdarma. Offline záloha: Piper."),
-        select("voice.tts_voice_en", "Hlas pro angličtinu", VOICES.filter(([v]) => v.startsWith("en-")) as [string, string][], "Když na JARVISe promluvíš nebo napíšeš anglicky, odpoví anglicky tímhle hlasem."),
         (() => {
           const outs: string[] | undefined = extra.audio?.outputs;
           if (!extra.audioAsked) { extra.audioAsked = true; client.send("audio_devices_get"); }
@@ -281,7 +280,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           range("voice.tts_pitch", "Výška", -30, 30, 2, (v) => signed(v, " Hz"), (s) => parseInt(String(s).replace("Hz", ""), 10) || 0, (v) => signed(v, "Hz"))),
         range("voice.tts_volume", "Hlasitost hlasu", -50, 50, 5, (v) => signed(v, " %"), pct, (v) => signed(v, "%")),
         select("voice.speak_mode", "Kdy mluvit nahlas", [["voice", "Jen když na něj mluvím"], ["always", "Vždy (i odpovědi v chatu)"], ["never", "Nikdy (jen text)"]]),
-        h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("speak", { text: "Dobrý den, pane. Všechny systémy jsou připraveny." }) }, icon("speaker-high"), "Přehrát ukázku"))),
+        h("p", { class: "help" }, "Rychlost, výška a hlasitost platí pro hlasy Microsoft."),
+        h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("speak", { text: "Dobrý den, pane. Všechny systémy jsou připraveny." }) }, icon("speaker-high"), "Přehrát nahlas"))),
     ],
 
     notch: () => {
@@ -722,6 +722,84 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         h("button", { class: "btn", type: "button", onclick: () => { const w = window.open("", "_blank"); if (w) { w.document.write(`<title>${q.text.replace(/</g, "&lt;")}</title><div style="text-align:center;font:20px system-ui">${q.svg}<p>${q.text.replace(/</g, "&lt;")}</p></div>`); w.print(); } } }, icon("printer"), "Vytisknout"))) : null);
   }
 
+  /** Voice studio: find a voice, bring your own (a Piper file or an ElevenLabs voice), give it a character. */
+  function voiceStudio() {
+    const V = S.voice || {};
+    const D = extra.voices || {};
+    if (!extra.voicesAsked) { extra.voicesAsked = true; client.send("voices_get"); }
+    const engine = V.tts_engine || "edge";
+    const listen = h("button", { class: "btn primary", type: "button", onclick: () => {
+      extra.voiceMsg = "připravuji ukázku…"; render(); client.send("voice_preview", {});
+    } }, icon("speaker-high"), "Poslechnout ukázku");
+    const status = h("span", { class: "test-out" }, extra.voiceMsg || "");
+    const parts: (Node | null)[] = [
+      select("voice.tts_engine", "Odkud je hlas", [["edge", "Microsoft hlasy – zdarma, potřebuje internet"],
+        ["piper", "Piper – offline, i tvůj vlastní hlas ze souboru"], ["elevenlabs", "ElevenLabs – hlas, který si vytvoříš (účet)"]],
+        "Když vybraný hlas zrovna nejde (třeba bez internetu), JARVIS promluví záložním."),
+    ];
+    if (engine === "edge") {
+      const edge: any[] = D.edge || [];
+      const opts: [string, string][] = edge.length
+        ? edge.map((v) => [v.id, `${v.name} – ${v.lang}, ${v.gender}${v.multi ? " · vícejazyčný (zkus, jak mluví česky)" : ""}`])
+        : (VOICES as [string, string][]);
+      parts.push(select("voice.tts_voice", "Hlas", opts, edge.length ? `${edge.length} hlasů pro češtinu, slovenštinu a angličtinu včetně vícejazyčných.` : "Celý seznam se načte, až bude internet."),
+        select("voice.tts_voice_en", "Hlas pro angličtinu", (edge.length ? opts.filter(([v]) => v.startsWith("en-") || v.includes("Multilingual")) : VOICES.filter(([v]) => v.startsWith("en-"))) as [string, string][],
+          "Když na JARVISe promluvíš nebo napíšeš anglicky, odpoví anglicky tímhle hlasem."));
+    } else if (engine === "piper") {
+      const own: any[] = D.custom || [];
+      const cat: any[] = D.piper || [];
+      parts.push(select("voice.piper_custom", "Tvůj hlas", [["", "– hlas z katalogu níže –"], ...own.map((v) => [v.id, `${v.id} (${v.mb} MB)`] as [string, string])]));
+      if (!V.piper_custom) {
+        parts.push(select("voice.piper_voice", "Hlas z katalogu Piper", cat.length
+          ? cat.map((v) => [v.id, `${v.id} – ${v.quality}${v.downloaded ? "" : `, stáhne se ${v.mb} MB`}`] as [string, string])
+          : [[V.piper_voice, V.piper_voice]], "Hlas se stáhne jen jednou, až ho vybereš a poslechneš."));
+      } else {
+        parts.push(h("div", { class: "btn-row" }, h("button", { class: "btn ghost sm", type: "button", onclick: () => {
+          if (confirm(`Smazat hlas ${V.piper_custom}?`)) client.send("voice_delete", { name: V.piper_custom });
+        } }, icon("trash"), "Smazat tenhle hlas")));
+      }
+      const fOnnx = h("input", { type: "file", accept: ".onnx", class: "input" }) as HTMLInputElement;
+      const fJson = h("input", { type: "file", accept: ".json", class: "input" }) as HTMLInputElement;
+      const nm = h("input", { class: "input", placeholder: "Jméno hlasu (nepovinné)" }) as HTMLInputElement;
+      const add = h("button", { class: "btn", type: "button", onclick: async () => {
+        const a = fOnnx.files?.[0], b = fJson.files?.[0];
+        if (!a || !b) return toast("Vyber oba soubory: .onnx i .onnx.json", "error");
+        try {
+          extra.voiceMsg = "nahrávám hlas…"; render();
+          const [x, y] = [await client.upload(a), await client.upload(b)];
+          client.send("voice_import", { onnx: x.id, json: y.id, name: nm.value.trim() });
+        } catch (e: any) { extra.voiceMsg = ""; toast(e.message || String(e), "error"); render(); }
+      } }, icon("upload-simple"), "Přidat hlas");
+      parts.push(field("Přidat vlastní hlas ze souboru", h("div", { style: { display: "grid", gap: "6px" } },
+        h("div", { class: "grid2" }, field("Model (.onnx)", fOnnx), field("Popis (.onnx.json)", fJson)), nm, add),
+        "Hlas Piper jsou vždy dva soubory se stejným jménem. Hotové najdeš na huggingface.co/rhasspy/piper-voices."));
+    } else {
+      const key = h("input", { class: "input", type: "password", autocomplete: "off",
+        placeholder: D.eleven_key ? "•••••• (uloženo)" : "API klíč z elevenlabs.io (Profil → API Keys)" }) as HTMLInputElement;
+      key.onchange = () => { client.send("secret_set", { name: "elevenlabs", value: key.value.trim() }); key.value = "";
+        toast("Klíč uložen do Správce pověření Windows", "ok"); extra.voices = null; extra.voicesAsked = false; window.setTimeout(render, 400); };
+      const voices: any[] = D.eleven || [];
+      parts.push(field("API klíč ElevenLabs", key, D.eleven_error || ""),
+        voices.length
+          ? select("voice.eleven_voice_id", "Hlas", [["", "– vyber –"], ...voices.map((v) => [v.id, `${v.own ? "★ " : ""}${v.name}`] as [string, string])],
+            "★ = hlas, který sis vytvořil(a) ty. Ostatní jsou hotové hlasy ElevenLabs.")
+          : h("p", { class: "help" }, D.eleven_key ? "V účtu zatím nejsou žádné hlasy." : "Po vložení klíče se tu objeví hlasy z tvého účtu."),
+        select("voice.eleven_model", "Model", [["eleven_multilingual_v2", "Multilingual v2 – nejlepší čeština"], ["eleven_flash_v2_5", "Flash v2.5 – rychlejší a levnější"]]),
+        h("p", { class: "help" }, "Text odpovědí se posílá na servery ElevenLabs. Bezplatný tarif má měsíční limit znaků."));
+    }
+    const eff: Record<string, string> = D.effects || { none: "Bez efektu", jarvis: "JARVIS – jemný kovový lesk", radio: "Vysílačka / rádio", robot: "Robot", hall: "Velká místnost (dozvuk)" };
+    parts.push(select("voice.effect", "Efekt", Object.entries(eff) as [string, string][], "Dá libovolnému hlasu charakter. Funguje se všemi hlasy."),
+      h("div", { class: "btn-row" }, listen, status),
+      h("details", { class: "help-box" }, h("summary", {}, "Kde vzít hlas? (návod)"),
+        h("ol", {},
+          h("li", {}, h("b", {}, "Najít hotový: "), "vyber v seznamu výše a dej „Poslechnout ukázku“. Microsoft má desítky hlasů, vícejazyčné umí i česky (s lehkým přízvukem)."),
+          h("li", {}, h("b", {}, "Vylepšit ho: "), "zvol efekt (JARVIS, rádio, robot…) a níže uprav rychlost a výšku."),
+          h("li", {}, h("b", {}, "Stáhnout hlas ze souboru: "), "přepni na Piper. Hlasy jsou na huggingface.co/rhasspy/piper-voices – stáhni soubor .onnx i .onnx.json a přidej je tady."),
+          h("li", {}, h("b", {}, "Vytvořit úplně vlastní: "), "založ si účet na elevenlabs.io → Voices → přidat hlas. Buď „Voice Design“ (napíšeš, jak má znít, třeba „hluboký klidný mužský hlas s britským přízvukem“), nebo naklonuj svůj vlastní hlas z 1–2 minut nahrávky (podle tarifu může být placené). Pak v profilu vytvoř API klíč, přepni tady na ElevenLabs a vlož ho."),
+          h("li", {}, h("b", {}, "Pozor: "), "hlas skutečného člověka (herce, známé osobnosti, kamaráda) jen s jeho výslovným svolením."))));
+    return card("Hlasová dílna", "Najdi hlas, nahraj svůj nebo si ho vytvoř – a hned si ho poslechni.", ...parts);
+  }
+
   /** OMEGA 089: your own quick actions for an app (shown in the notch and the ring around the character). */
   function appActionsCard() {
     const list: any[] = (S.notch?.app_actions || []).map((a: any) => ({ ...a }));
@@ -853,6 +931,17 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   });
   client.on("local_model_missing", (m) => toast(`Pro offline režim stáhni ${m.name} (${m.size_gb} GB) v Nastavení → Mozek → Lokální AI.`, "info", 9000));
   client.on("audio_devices", (m) => { extra.audio = m; if (current === "voice") render(); });
+  client.on("voices", (m) => {
+    extra.voices = m;
+    if (m.imported) { extra.voiceMsg = `Hlas ${m.imported} přidán a zapnut`; toast(extra.voiceMsg, "ok"); }
+    if (current === "voice") render();
+  });
+  client.on("voice_sample", (m) => {
+    extra.voiceMsg = m.ok ? "" : m.message;
+    if (m.ok) new Audio(client.url(m.attachment.url)).play().catch(() => toast("Prohlížeč nechce přehrát zvuk – klikni ještě jednou", "info"));
+    else toast(m.message, "error", 8000);
+    if (current === "voice") render();
+  });
   client.on("skills", (m) => { extra.skills = m.items; if (current === "tools") render(); });
   client.on("memory_export_data", (m) => {
     const blob = new Blob([JSON.stringify(m.data, null, 2)], { type: "application/json" });

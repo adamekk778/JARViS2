@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import re
 import threading
 import time
 import wave
@@ -27,12 +28,16 @@ async def edge_synth(text: str, voice: str, rate: str, pitch: str, volume: str) 
     return bytes(out)
 
 
-def piper_synth(text: str, voice_name: str) -> bytes:
+def piper_synth(text: str, voice_name: str, custom: bool = False) -> bytes:
+    if not re.fullmatch(r"[\w.-]{1,80}", voice_name) or voice_name.startswith("."):
+        raise RuntimeError("neplatný název hlasu")
     from piper import PiperVoice
 
     d = paths.sub("models") / "piper"
     d.mkdir(parents=True, exist_ok=True)
-    model = d / f"{voice_name}.onnx"
+    model = (d / "custom" if custom else d) / f"{voice_name}.onnx"
+    if custom and not model.exists():
+        raise RuntimeError(f"vlastní hlas {voice_name} už není ve složce hlasů")
     if not model.exists():
         from piper.download_voices import download_voice
 
@@ -80,15 +85,40 @@ class Speaker:
         v = self.rt.cfg.voice
         return (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
 
-    async def synth(self, text: str, lang: str = "cs") -> tuple[bytes, str]:
-        v = self.rt.cfg.voice
-        edge_voice, piper_voice = self._voice_for(lang)
+    async def synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
+        """The chosen engine (Edge, Piper incl. an own voice, ElevenLabs), then the others as a fallback, and the
+        studio effect on top. `override` = unsaved studio settings for a preview."""
+        v = self.rt.cfg.voice.model_copy(update=override) if override else self.rt.cfg.voice
+        edge_voice, piper_voice = (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
         spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")
-        try:
-            return await edge_synth(spoken, edge_voice, v.tts_rate, v.tts_pitch, v.tts_volume), "audio/mpeg"
-        except Exception as e:
-            log.info("edge-tts failed (%s), using piper", e)
-            return await asyncio.to_thread(piper_synth, spoken, piper_voice), "audio/wav"
+        order = [v.tts_engine] + [e for e in ("edge", "piper") if e != v.tts_engine]
+        audio, mime, err = b"", "", None
+        for eng in order:
+            try:
+                if eng == "elevenlabs":
+                    from .. import secrets
+                    from .studio import eleven_synth
+
+                    audio, mime = await eleven_synth(spoken, secrets.get("elevenlabs"), v.eleven_voice_id, v.eleven_model), "audio/mpeg"
+                elif eng == "piper":
+                    own = bool(v.piper_custom) and lang != "en"
+                    args = (spoken, v.piper_custom, True) if own else (spoken, piper_voice)
+                    audio = await asyncio.to_thread(piper_synth, *args)
+                    mime = "audio/wav"
+                else:
+                    audio, mime = await edge_synth(spoken, edge_voice, v.tts_rate, v.tts_pitch, v.tts_volume), "audio/mpeg"
+                break
+            except Exception as e:
+                err = e
+                log.info("tts %s failed (%s)%s", eng, e, ", trying the next engine" if eng != order[-1] else "")
+        if not audio:
+            raise RuntimeError(str(err) if err else "žádný hlas nefunguje")
+        if v.effect != "none":
+            from .studio import apply_effect, encode_wav
+
+            pcm, sr = await asyncio.to_thread(decode_to_pcm, audio)
+            audio, mime = encode_wav(await asyncio.to_thread(apply_effect, pcm, sr, v.effect), sr), "audio/wav"
+        return audio, mime
 
     def stop(self) -> None:
         self._stop.set()
