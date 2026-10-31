@@ -116,7 +116,11 @@ const radialBox = h("div", { class: "n-radial", role: "menu", "aria-label": "Akc
 // OMEGA P12.02: little bars at the right edge of the closed notch that move with the music (only while something plays)
 const musicBars = h("div", { class: "n-music", "aria-hidden": "true" }, ...Array.from({ length: 7 }, () => h("i")));
 let musicOff = 0;
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+// 3.11 island look: just two glowing eyes instead of the whole character, live info on the left and the right
+const eyes = h("div", { class: "n-eyes", "aria-hidden": "true" }, h("i"), h("i"));
+const lead = h("div", { class: "n-lead" });
+const trail = h("div", { class: "n-trail" });
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -162,7 +166,7 @@ function sizeFor(m: Mode): [number, number] {
     case "alert": return [440, 92];
     case "radial": return [340, 320];
     case "live": return [560, liveHeight()];
-    default: return [activity ? Math.max(cfg.width, 300) : cfg.width, cfg.height];
+    default: return [activity ? Math.max(cfg.width, island() ? 380 : 300) : cfg.width, cfg.height];
   }
 }
 function liveHeight() {
@@ -592,6 +596,45 @@ function dictActivity(): boolean {
   }
   return false;
 }
+function island() { return document.documentElement.dataset.nstyle !== "mochi"; }
+/** A ring that empties as the timer runs (the focus timer in the closed island). */
+function ring(frac: number) {
+  const c = 2 * Math.PI * 7;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 18 18");
+  svg.setAttribute("class", "n-ring");
+  svg.innerHTML = `<circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.5"/>`
+    + `<circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" `
+    + `stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(2)}" transform="rotate(-90 9 9)"/>`;
+  return svg;
+}
+const CLAUDE_SHORT: Record<string, string> = { working: "Pracuje", thinking: "Přemýšlí", waiting: "Čeká na tebe" };
+/** What the closed island shows on its left and right (the same priority as the activity text). */
+function islandActivity(t: any) {
+  let kind = "", l: (Node | string)[] = [], r: (Node | string)[] = [];
+  const cc = claudeSessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
+  if (dict.state === "listening" || dict.state === "transcribing") {
+    kind = "dict"; l = [icon("microphone", "ph-fill"), h("span", {}, dict.state === "listening" ? "Poslouchám" : "Přepisuji")]; r = [dictBars];
+  } else if (cc) {
+    const secs = Math.max(0, Math.round(Date.now() / 1000 - (cc.started || Date.now() / 1000)));
+    kind = "claude"; l = [icon("asterisk", "ph-bold"), h("span", {}, CLAUDE_SHORT[cc.state] || "Pracuje")];
+    r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
+  } else if (timers.length) {
+    const tm = timers[0], left = Math.max(0, Math.round(tm.ends_at - Date.now() / 1000));
+    kind = "focus"; l = [ring(tm.seconds ? left / tm.seconds : 1)]; r = [`${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`];
+  } else if (t && t.total) {
+    kind = "task"; l = [icon("list-checks"), h("span", {}, `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`)];
+    r = [`${Math.round((t.done / t.total) * 100)} %`];
+  } else if (upd?.available && upd.state !== "error") {
+    kind = "update"; l = [icon("arrow-circle-up"), h("span", {}, upd.state === "downloading" ? "Stahuji" : `Verze ${upd.latest}`)];
+    r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : [];
+  } else if (media?.playing && media.title) {
+    kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
+  }
+  lead.replaceChildren(...l);
+  trail.replaceChildren(...r);
+  shape.dataset.island = kind;
+}
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
   shape.classList.toggle("has-task", !!(t && t.total));
@@ -620,6 +663,7 @@ function updateActivity() {
     activity = "";
     actText.replaceChildren();
   }
+  islandActivity(t);
   shape.classList.toggle("has-act", !!activity);
   if (mode === "closed") apply("closed");
 }
@@ -632,6 +676,7 @@ client.on("welcome", (m) => {
   configureSounds(m.settings?.appearance);
   task = m.task || null;
   takeNotchSettings(m.settings?.notch);
+  document.documentElement.dataset.nstyle = m.settings?.notch?.style || "island";
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   upd = m.update;
@@ -654,6 +699,7 @@ client.on("settings_changed", (m) => {
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   if (m.settings?.notch) {        // every size and timing setting takes effect right away, without a restart
     takeNotchSettings(m.settings.notch);
+    document.documentElement.dataset.nstyle = m.settings.notch.style || "island";
     ensureWindow();
     apply(mode);
   }

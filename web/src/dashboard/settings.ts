@@ -298,6 +298,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
           sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
+          select("notch.style", "Vzhled notche", [["island", "Ostrov – svítící oči, živé info a velké karty"], ["mochi", "Mochi – celá postavička"]],
+            "Ostrov ukazuje vlevo a vpravo, co se děje (hudba, časovač, Claude Code), a po otevření tři velké karty."),
           select("notch.edges", "Okraje notche", [["hard", "Ostré (spolehlivé)"], ["smooth", "Vyhlazené"]],
             "Vyhlazené okraje vypadají hezčeji, ale na některých počítačích se kolem notche objeví šedý obdélník – pak vrať Ostré. Projeví se po restartu JARVISe."),
           select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],

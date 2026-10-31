@@ -108,6 +108,8 @@ class Notch(BaseModel):
     # "hard" = the window is cut to the notch shape (works on every PC); "smooth" = per-pixel alpha with
     # anti-aliased curves, which on some PCs made Windows draw a grey box around the notch
     edges: Literal["hard", "smooth"] = "hard"
+    # 3.11: "island" = two glowing eyes + live info left / right and a home screen of big cards; "mochi" = the character
+    style: Literal["island", "mochi"] = "island"
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
     open_on: Literal["hover", "click"] = "hover"   # OMEGA 092: "click" = najetí myší panel neotevře (proti náhodnému otevření)
