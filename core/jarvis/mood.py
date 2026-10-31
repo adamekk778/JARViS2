@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import collections
 import logging
 import random
 import re
@@ -102,6 +103,7 @@ class MoodEngine:
         self.last_toy = clock()
         self.wall = time.time
         self._last_wall: float | None = None
+        self.log: collections.deque = collections.deque(maxlen=200)   # OMEGA 085: reactions and mood changes (memory only)
 
     # ---------- inputs ----------
     def touch(self) -> None:
@@ -135,6 +137,8 @@ class MoodEngine:
         self._reaction_seq += 1
         self.reaction = {"name": name, "id": self._reaction_seq, "detail": detail or {},
                          "until": self.clock() + (ttl or REACTION_TTL.get(name, 2.5))}
+        self.log.append({"ts": self.wall(), "kind": "reaction", "name": name,
+                         "detail": {k: v for k, v in (detail or {}).items() if isinstance(v, (int, float, bool, str))}})
 
     def personality(self) -> dict:
         ch = getattr(getattr(self.rt, "cfg", None), "character", None)
@@ -313,9 +317,16 @@ class MoodEngine:
     def _emit(self, now: float | None = None) -> dict:
         cur = self.compute(now)
         if cur != self._last:
+            if not self._last or self._last.get("mood") != cur.get("mood"):
+                self.log.append({"ts": self.wall(), "kind": "mood", "name": cur.get("mood", ""), "detail": {"why": str(cur.get("detail") or "")[:120]}})
             self._last = cur
             self.rt.bus.publish("mood", **cur)
         return cur
+
+    def history(self, limit: int = 50, kind: str = "") -> list[dict]:
+        """OMEGA 085: what Mochi did lately (newest first) – reactions and the moods it went through."""
+        rows = [r for r in self.log if not kind or r["kind"] == kind]
+        return list(reversed(rows))[:limit]
 
     # ---------- background ----------
     def start(self) -> None:

@@ -270,7 +270,12 @@ class TaskManager:
             risks = json.loads(row.get("risks") or "[]")
         except ValueError:
             risks = []
-        return {**row, "criteria": criteria, "spec": spec, "risks": risks, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
+        graph = None
+        if isinstance(spec, list) and any(isinstance(x, dict) and x.get("needs") for x in spec):
+            from .uixplus import step_layers
+
+            graph = step_layers(spec)           # OMEGA 222: the mission's dependency graph for the detail view
+        return {**row, "criteria": criteria, "spec": spec, "risks": risks, "graph": graph, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
                 "total": len(steps),
                 "done": sum(s["status"] == "done" for s in steps),
                 "current_action": self._current_action if task_id == self._id else ""}

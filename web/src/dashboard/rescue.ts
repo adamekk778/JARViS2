@@ -6,6 +6,7 @@ import { hero, HEROES } from "../shared/hero";
 import { fmtSize, h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import { pcExplorer } from "../shared/pcexplorer";
+import { lineChart, routeMap } from "../shared/charts";
 
 const AREAS: [string, string, string][] = [
   ["crashes", "Pády a modré obrazovky", "warning-octagon"], ["drivers", "Ovladače", "cpu"], ["apps", "Padající aplikace", "app-window"],
@@ -60,7 +61,47 @@ export function buildRescue(client: JarvisClient) {
   // ---------------------------------------------------------------- performance
   const perfOut = h("div", { class: "rs-out" }, h("p", { class: "muted" }, "Změřím, co právě brzdí počítač (3 s)."));
   const benchOut = h("div", { class: "rs-out" });
-  const histBox = h("div", { class: "rs-hist", "aria-label": "Vytížení za 24 hodin" });
+  const histBox = h("div", { "aria-label": "Vytížení za 24 hodin" });
+  // Wave F1: disks (309), programs (305) and the line (719) over time, watched webs (708 / 709), Windows updates (013)
+  const COLORS = ["#34d399", "#f59e0b", "#60a5fa", "#f472b6", "#a78bfa", "#facc15"];
+  const diskBox = h("div", {}), procBox = h("div", {}), lineBox = h("div", {}), watchBox = h("div", {}), updOut = h("div", { class: "rs-out" });
+  const watchUrl = h("input", { class: "input", placeholder: "web k hlídání, např. mojefirma.cz", "aria-label": "Web k hlídání" }) as HTMLInputElement;
+  const addWatch = () => { const u = watchUrl.value.trim(); if (u) { client.send("netwatch_set", { url: u }); watchUrl.value = ""; } };
+  watchUrl.onkeydown = (e) => { if (e.key === "Enter") addWatch(); };
+  const updBtn = h("button", { class: "btn", type: "button" }, icon("arrows-clockwise"), "Čekající aktualizace Windows") as HTMLButtonElement;
+  updBtn.onclick = () => { busy(updBtn, true, "Čekající aktualizace Windows"); updOut.replaceChildren(h("p", { class: "muted" }, "Ptám se Windows Update… (až 2 minuty)")); client.send("winupd_get"); };
+  client.on("winupd", (m) => {
+    busy(updBtn, false, "Čekající aktualizace Windows");
+    updOut.replaceChildren(h("p", {}, m.summary), (m.updates || []).length ? h("ul", { class: "rs-list" }, ...m.updates.slice(0, 20).map((u: any) =>
+      finding({ level: u.severity === "Critical" || u.severity === "Important" ? "warn" : "info", text: `${u.title}${u.mb ? ` (${u.mb} MB)` : ""}`,
+        source: [u.kb, u.category, u.severity].filter(Boolean).join(" · ") }))) : "");
+  });
+  client.on("netwatch", (m) => {
+    const disks = Object.entries(m.disks || {}) as [string, any[]][];
+    diskBox.replaceChildren(disks.length ? lineChart(disks.flatMap(([d, rows], i) => [
+      { name: `${d} čtení`, color: COLORS[(i * 2) % COLORS.length], unit: "MB/s", points: rows.map((r) => ({ t: r.ts, v: r.read })) },
+      { name: `${d} zápis`, color: COLORS[(i * 2 + 1) % COLORS.length], unit: "MB/s", points: rows.map((r) => ({ t: r.ts, v: r.write })) }]), { label: "Disky v čase" })
+      : h("p", { class: "muted" }, "Historie disků se plní každých 5 minut."));
+    const top: any[] = m.procs?.top || [];
+    procBox.replaceChildren(top.length ? h("table", { class: "task-actions" },
+      h("thead", {}, h("tr", {}, ...["Program", "Průměr CPU", "Špička CPU", "Paměť ~", "Mezi nejnáročnějšími"].map((x) => h("th", {}, x)))),
+      h("tbody", {}, ...top.map((r) => h("tr", {}, h("td", {}, r.name), h("td", {}, `${r.cpu_avg} %`), h("td", {}, `${r.cpu_max} %`),
+        h("td", {}, `${r.ram_avg} MB`), h("td", {}, `${r.seen_pct} % času`)))))
+      : h("p", { class: "muted" }, "Profil programů se plní každých 5 minut."));
+    const loss: any[] = m.loss || [], ls = m.loss_summary || {};
+    lineBox.replaceChildren(loss.length ? lineChart([
+      { name: "Ztráta paketů", color: "#ef4444", unit: "%", points: loss.map((r) => ({ t: r.ts, v: r.loss_pct })) },
+      { name: "Odezva", color: "#38bdf8", unit: "ms", points: loss.map((r) => ({ t: r.ts, v: r.avg_ms })) }], { label: "Linka v čase" }) : "",
+      h("p", { class: "muted" }, ls.samples ? `Za ${ls.hours} h: ztráta průměrně ${ls.loss_avg} % (nejvíc ${ls.loss_max} %), odezva ${ls.ms_avg ?? "—"} ms${ls.outages ? `, ${ls.outages}× výpadek` : ""}.`
+        : "Linku měřím každých 10 minut – historie se teprve plní."));
+    const w: any[] = m.watched || [];
+    watchBox.replaceChildren(...(w.length ? w.map((r) => h("div", { class: "nw-row" },
+      h("span", { class: `nw-dot ${r.up === true ? "up" : r.up === false ? "down" : ""}`, title: r.up ? "běží" : r.up === false ? "neběží" : "zatím nezkontrolováno" }),
+      h("span", {}, r.url), h("span", { class: "muted" }, r.ms != null ? `${r.ms} ms` : "—"),
+      h("span", { class: r.days_left != null && r.days_left <= 14 ? "rs-badge warn" : "muted" }, r.days_left != null ? `certifikát ${r.days_left} dní` : "—"),
+      h("button", { class: "btn ghost sm", type: "button", title: "Přestat hlídat", onclick: () => client.send("netwatch_set", { url: r.url, remove: true }) }, icon("x"))))
+      : [h("p", { class: "muted" }, "Zatím nic nehlídám. Přidej web – zkontroluju ho každých 10 minut a ozvu se, jen když spadne nebo když brzy vyprší certifikát.")]));
+  });
   const perfBtn = h("button", { class: "btn primary", type: "button" }, icon("gauge"), "Co brzdí PC?") as HTMLButtonElement;
   const benchLabel = h("input", { class: "input sm", placeholder: "popisek, např. po úklidu", "aria-label": "Popisek měření" }) as HTMLInputElement;
   const benchBtn = h("button", { class: "btn", type: "button" }, icon("timer"), "Test výkonu (6 s)") as HTMLButtonElement;
@@ -68,8 +109,11 @@ export function buildRescue(client: JarvisClient) {
   benchBtn.onclick = () => { busy(benchBtn, true, "Test výkonu (6 s)"); client.send("perf_bench", { label: benchLabel.value.trim() }); };
   const renderHist = (rows: any[]) => {
     if (!rows?.length) { histBox.replaceChildren(h("p", { class: "muted" }, "Historie se plní každých 5 minut.")); return; }
-    histBox.replaceChildren(...rows.slice(-96).map((r) => h("i", { title: `${new Date(r.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })}: CPU ${Math.round(r.cpu ?? 0)} %, RAM ${Math.round(r.ram ?? 0)} %`,
-      style: { height: `${Math.max(3, r.cpu ?? 0)}%` } })));
+    histBox.replaceChildren(lineChart([
+      { name: "Procesor", color: "#f87171", unit: "%", points: rows.map((r) => ({ t: r.ts, v: r.cpu })) },
+      { name: "Paměť", color: "#60a5fa", unit: "%", points: rows.map((r) => ({ t: r.ts, v: r.ram })) },
+      { name: "Grafika", color: "#a78bfa", unit: "%", points: rows.filter((r) => r.gpu != null).map((r) => ({ t: r.ts, v: r.gpu })) },
+    ], { max: 100, label: "Vytížení za 24 hodin" }));
   };
   const renderBenches = (bs: any[], cmp: string[] = []) => {
     benchOut.replaceChildren(
@@ -104,7 +148,8 @@ export function buildRescue(client: JarvisClient) {
     busy(netBtn, false, "Zkontrolovat síť");
     const d = m.data || {};
     netOut.replaceChildren(h("p", {}, m.summary),
-      d.trace?.length ? h("ol", { class: "rs-trace" }, ...d.trace.map((x: any) => h("li", {}, `${x.ip}${x.ms != null ? ` · ${x.ms} ms` : ""}`))) : "");
+      d.trace?.length ? routeMap(d.trace) : "",
+      d.trace?.length ? h("details", {}, h("summary", {}, "Skoky jako seznam"), h("ol", { class: "rs-trace" }, ...d.trace.map((x: any) => h("li", {}, `${x.ip}${x.ms != null ? ` · ${x.ms} ms` : ""}`)))) : "");
   });
 
   // ---------------------------------------------------------------- security center
@@ -165,10 +210,15 @@ export function buildRescue(client: JarvisClient) {
     pcx.el,
     h("h2", { class: "group-label" }, "Diagnostika"), h("div", { class: "card sec-card" }, chips, h("div", { class: "btn-row" }, runBtn, allBtn), diagOut),
     h("h2", { class: "group-label" }, "Výkon"), h("div", { class: "card sec-card" }, h("div", { class: "btn-row" }, perfBtn), perfOut,
-      h("h4", {}, "Vytížení procesoru za 24 h"), histBox, h("h4", {}, "Test výkonu"), h("div", { class: "list-add" }, benchLabel, benchBtn), benchOut),
+      h("h4", {}, "Vytížení za 24 h"), histBox, h("h4", {}, "Disky za 24 h"), diskBox, h("h4", {}, "Programy, které nejvíc zatěžovaly (24 h)"), procBox,
+      h("h4", {}, "Test výkonu"), h("div", { class: "list-add" }, benchLabel, benchBtn), benchOut,
+      h("h4", {}, "Aktualizace"), h("div", { class: "btn-row" }, updBtn), updOut),
     h("h2", { class: "group-label" }, "Síť"), h("div", { class: "card sec-card" }, h("div", { class: "list-add" }, target, netBtn),
-      h("label", { class: "rs-check" }, route, "i trasa k cíli (tracert, do 1 min)"), netOut),
+      h("label", { class: "rs-check" }, route, "i trasa k cíli (tracert, do 1 min)"), netOut,
+      h("h4", {}, "Linka za 24 h (ztráta paketů a odezva)"), lineBox,
+      h("h4", {}, "Hlídané weby a certifikáty"), watchBox,
+      h("div", { class: "list-add" }, watchUrl, h("button", { class: "btn", type: "button", onclick: addWatch }, icon("eye"), "Hlídat"))),
     h("h2", { class: "group-label" }, "Bezpečnostní centrum"), secBox);
   let loaded = false;
-  return { el, show: () => { pcx.refresh(); if (!loaded) { loaded = true; client.send("perf_get"); } } };
+  return { el, show: () => { pcx.refresh(); if (!loaded) { loaded = true; client.send("perf_get"); } client.send("netwatch_get", {}); } };
 }

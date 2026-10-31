@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "chart-line", title: "Síť a výkon v čase", line: "Hlídání webů a certifikátů (ozve se jen při výpadku nebo když certifikát brzy vyprší), historie ztráty paketů, grafy vytížení, disků a programů, grafická trasa sítě, mapa domácí sítě, graf kroků mise a čekající aktualizace Windows." },
     { icon: "hand-waving", title: "Gesta a dílna", line: "Zapni si v Nastavení → Vzhled ovládání gesty: mávnutím ruky před kamerou přepneš skladbu, změníš hlasitost nebo posuneš krok postupu (v notchi pak svítí červená tečka). Z modelu v Blenderu udělá JARVIS rozložený pohled a montážní návod a v dílenském režimu tě jím provede nahlas." },
     { icon: "users-three", title: "Tým agentů a propojení", line: "Na velký úkol nasadí JARVIS celý tým specialistů najednou (programátor, 3D, elektronika, tester, výzkum…). Umí přímo Blender (render, export, skripty), Unity (přehled, testy) a Roblox (nahrání hry, DataStore, Rojo), najde spojení po ČR v IDOS a odjezdy MHD v Praze a porovná odpovědi víc AI i přes jednu bránu." },
     { icon: "brain", title: "Omega Brain", line: "JARVIS umí problém vyřešit víc způsoby a vybrat nejlepší – u kódu každý vyzkouší proti testům. Před misí předpoví, co by mohlo selhat (chybějící soubor, internet, nenastavený e-mail…), a frontu misí si sám řadí podle termínů, důležitosti a toho, jak dlouho čekají." },

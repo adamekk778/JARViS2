@@ -344,6 +344,7 @@ class Powers(BaseModel):
     clipboard_history: bool = True   # the last 30 copied texts, in memory only (never written to disk)
     download_watch: bool = True      # OMEGA P10.03: "stahování dokončeno" / "instalace dokončena"
     screen_time: bool = True         # which app is in front, minutes per day (30 days)
+    net_watch: bool = True           # OMEGA 708/709/719: watched webs + line loss history every 10 minutes
     break_minutes: int = 90          # remind a pause after this long at the PC without a break; 0 = off
 
 

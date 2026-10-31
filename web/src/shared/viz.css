@@ -38,3 +38,31 @@
   border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--bg, #0b0d12)); box-shadow: 0 6px 24px rgb(0 0 0 / .3); }
 .focus-banner[hidden] { display: none; }
 .focus-banner span { flex: 1; }
+
+/* Wave F1 charts */
+.chart { position: relative; margin: 6px 0 10px; }
+.chart-svg { width: 100%; height: 160px; display: block; touch-action: none; }
+.chart-grid { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-ax { fill: var(--text-2); font-size: 10px; }
+.chart-cursor { stroke: var(--text-2); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-2); }
+.chart-legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.chart-tip { position: absolute; top: 4px; right: 8px; display: grid; gap: 2px; padding: 6px 10px; border-radius: 10px; font-size: 12px;
+  background: var(--surface); border: 1px solid var(--border); pointer-events: none; }
+.route-scroll, .dag { overflow-x: auto; }
+.route-svg .chart-ax { font-size: 11px; }
+.netgraph-svg { width: 100%; max-height: 380px; }
+.ng-edge { stroke: var(--border); stroke-width: 1.5; }
+.ng-node circle { fill: var(--accent); }
+.ng-node.new circle { fill: #f59e0b; }
+.ng-node.router circle { fill: var(--text-1, #e5e7eb); }
+.ng-node text { fill: var(--text-2); font-size: 11px; }
+.dag-edge { fill: none; stroke: var(--text-2); stroke-width: 1.5; opacity: .6; }
+.dag-node rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.dag-node text { fill: var(--text-1, currentColor); font-size: 12px; }
+.dag-node.s-done rect { stroke: #22c55e; }
+.dag-node.s-running rect { stroke: var(--accent); stroke-width: 2.5; }
+.dag-node.s-failed rect { stroke: #ef4444; }
+.nw-row { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.nw-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+.nw-dot.up { background: #22c55e; } .nw-dot.down { background: #ef4444; }

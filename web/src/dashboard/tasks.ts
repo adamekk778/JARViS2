@@ -4,6 +4,7 @@ import { fmtSize, fmtTime, h, icon, toast } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
 import { TASK_STATUS, TaskCard, type Task } from "../shared/taskcard";
 import { agentMap } from "../shared/viz";
+import { stepDag } from "../shared/charts";
 import type { JarvisClient } from "../shared/ws";
 
 export function buildTasks(client: JarvisClient) {
@@ -45,6 +46,7 @@ export function buildTasks(client: JarvisClient) {
         h("ul", { class: "mission-crit" }, ...((t as any).risks as any[]).map((r) => h("li", { class: r.level === "blok" ? "bad" : r.level === "riziko" ? "wait" : "" },
           icon(r.level === "blok" ? "prohibit" : r.level === "riziko" ? "warning" : "info", "ph-fill"),
           h("span", {}, `krok ${r.step + 1}: ${r.text}${r.fix ? ` → ${r.fix}` : ""}`))))) : "",
+      (t as any).graph?.layers?.length > 1 ? h("div", { class: "mission-block" }, h("h4", {}, "Graf kroků (co běží souběžně)"), stepDag(t.steps, (t as any).graph)) : "",
       t.steps.length ? h("ol", { class: "task-steps" }, ...t.steps.map((s) => h("li", { class: `s-${s.status}` }, s.title))) : "",
       h("h4", {}, "Provedené akce (audit)"),
       (t.actions || []).length ? h("table", { class: "task-actions" },

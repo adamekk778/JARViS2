@@ -116,6 +116,9 @@ class Runtime:
         self.learning = Learning(self)         # OMEGA §10 / §36: flashcards, tests, weak spots, exam plans
 
         self.perf = PerfHistory(self)          # OMEGA 312: a light performance sample every 5 minutes
+        from .netwatch import NetWatch
+
+        self.netwatch = NetWatch(self)         # OMEGA 708/709/719: watched webs, certificates, line loss history
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -143,6 +146,9 @@ class Runtime:
         self._sys_tasks = [asyncio.get_running_loop().create_task(sysplus.watch_loop(self)),    # OMEGA P10.03
                            asyncio.get_running_loop().create_task(sysplus.music_loop(self)),    # OMEGA P12.02
                            asyncio.get_running_loop().create_task(sysplus.volume_loop(self))]   # 3.11 volume bar
+        from . import netwatch
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(netwatch.loop(self)))   # OMEGA 708/709/719
         try:
             from .updater import Updater
 

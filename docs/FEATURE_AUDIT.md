@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 597 | 88 |
-| 🟡 ČÁSTEČNĚ | 187 | 62 |
+| ✅ HOTOVO | 607 | 88 |
+| 🟡 ČÁSTEČNĚ | 177 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -39,13 +39,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 10 · 🟡 5
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 011 | Automatické hledání vadných nebo chybějících ovladačů. | ✅ HOTOVO | pc_diagnose drivers: zařízení s chybovým kódem (česky co znamená), nepodepsané a staré ovladače (rescue._an_drivers) |
 | 012 | Vyhodnocení Windows Event Viewer. | ✅ HOTOVO | logy System/Application vyhodnocené po oblastech: pády, aplikace, služby, disky (rescue.PROBES) |
-| 013 | Sledování Windows Update. | 🟡 ČÁSTEČNĚ | stáří poslední aktualizace a virových definic (oblast security); čekající aktualizace se nesledují |
+| 013 | Sledování Windows Update. | ✅ HOTOVO | čekající aktualizace Windows (Windows Update Agent, jen čtení), bezpečnostní nejdřív, čeká restart – winupd.py, nástroj windows_updates, Záchrana a výkon |
 | 014 | Analýza příčin BSOD. | ✅ HOTOVO | kódy modrých obrazovek z událostí 1001 → název + česká příčina + rada, opakování, nečekaná vypnutí (rescue.BUGCHECKS, explain_crash_code) |
 | 015 | Analýza minidump po pádu. | 🟡 ČÁSTEČNĚ | seznam výpisů pádů (Minidump) a kód z logu; rozbor obsahu výpisu potřebuje ladicí nástroj Windows (cdb) – zatím ne |
 | 016 | Diagnostika pomalého startu Windows. | ✅ HOTOVO | časy startu a co ho zdržuje (Diagnostics-Performance 100–109), počet programů po spuštění, rychlé spuštění |
@@ -134,7 +134,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 07. Mochi 2.0
 
-✅ 11 · 🟡 4
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -152,7 +152,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 082 | Sezónní drobné animace. | ✅ HOTOVO | sezónní oblečky (Vánoce, Halloween, Silvestr, léto) + doplňky podle počasí a denní doby |
 | 083 | Animovaný cross-device handoff. | ✅ HOTOVO | animované předání: co jde na telefon, odletí z notche doprava (a na telefonu přiletí shora), co přijde z telefonu, vletí do notche; i přesun Mochiho |
 | 084 | Kontextové zjevení vedle okna. | 🟡 ČÁSTEČNĚ | zjevení u okna: když JARVIS pracuje v okně, notch se přesune nad jeho střed (a zvuky přicházejí z té strany) – na skutečném PC zatím neověřeno |
-| 085 | Nastavitelná historie reakcí. | 🟡 ČÁSTEČNĚ | historie úkolů a mise; samostatná historie reakcí chybí |
+| 085 | Nastavitelná historie reakcí. | ✅ HOTOVO | historie reakcí a nálad Mochiho (posledních 200, jen v paměti) – mood.py history, nástroj mochi_history |
 
 ## 08. Dynamic Island Pro
 
@@ -326,7 +326,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 18. Iron Man — Future Tech
 
-✅ 5 · 🟡 5
+✅ 6 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -338,7 +338,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 191 | Command Center pro velké displeje. | 🟡 ČÁSTEČNĚ | HUD na celou obrazovku |
 | 192 | Vizualizovaná simulace misí. | ✅ HOTOVO | „Nanečisto“ u protokolu: animovaná simulace po fázích – co který krok udělá, co se zeptá, jaké oprávnění, odhad času (i se souběhem) |
 | 193 | 3D Explorer komponent PC. | ✅ HOTOVO | 3D průzkumník PC v Záchraně a výkonu: procesor, paměť, grafika, disky, síť, baterie jako otočitelné 3D bloky (velikost podle kapacity, barva podle vytížení), klik = detail |
-| 194 | Vizualizace vlastní sítě a spojení. | 🟡 ČÁSTEČNĚ | seznam zařízení v síti (bez grafu) |
+| 194 | Vizualizace vlastní sítě a spojení. | ✅ HOTOVO | graf domácí sítě (router uprostřed, nová zařízení zvýrazněná) – shared/charts.ts netGraph, Domov → Síť |
 | 195 | Přenos Mochiho stavu mezi zařízeními. | ✅ HOTOVO | Mochi na telefon a zpět: na PC zůstane prázdné místo (klik ho vrátí), na telefonu žije ve stejné náladě, dvojí ťuknutí ho pošle zpátky |
 
 ## 19. Hyper Intelligence Engine
@@ -365,7 +365,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 20. Autonomous Mission Engine
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -380,7 +380,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 219 | Approval Queue — fronta schválení. | ✅ HOTOVO | fronta schválení: víc čekajících potvrzení najednou (agent.confirm_info, taskcard) |
 | 220 | Deadline Awareness — hlídání termínů. | ✅ HOTOVO | termín mise: upozornění 15 min předem a po vypršení (missions.tick) |
 | 221 | Mission Budget — nákladové limity. | ✅ HOTOVO | rozpočet mise: max. akcí a minut, pak zastavení (tasks.over_budget, BudgetExceeded) |
-| 222 | Mission Dependency Graph — vizualizace závislostí. | 🟡 ČÁSTEČNĚ | vlny kroků vidět v seznamu kroků („vlna N“); grafické DAG zatím ne |
+| 222 | Mission Dependency Graph — vizualizace závislostí. | ✅ HOTOVO | graf závislostí kroků mise v detailu úkolu (sloupce = souběžně, barva = stav) – tasks.py graph, charts.ts stepDag |
 | 223 | Mission Reports — důkazy výsledků. | ✅ HOTOVO | výsledky mise: artefakty se SHA-256 a důkazy (tasks.py) |
 | 224 | Result Validation — ověření dokončení. | ✅ HOTOVO | ověření dokončení proti kritériím (pc_health_report) |
 | 225 | Mission Recovery — recovery po pádu. | ✅ HOTOVO | obnova po pádu: Přerušeno → Pokračovat ve stejné misi (tasks.recover, missions.resume) |
@@ -497,7 +497,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 26. Extreme Performance
 
-✅ 11 · 🟡 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -505,11 +505,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 302 | GPU Bottleneck Detector — limit grafiky. | ✅ HOTOVO | vytížení grafiky (čítače GPU Engine) a „brzdí grafika, ne procesor“ |
 | 303 | RAM Pressure Analyzer — tlak na RAM. | ✅ HOTOVO | tlak na RAM + nejnáročnější programy |
 | 304 | VRAM Usage Tracking — využití VRAM. | ✅ HOTOVO | využití VRAM (GPU Adapter Memory) |
-| 305 | Background Task Profiler — procesy na pozadí. | 🟡 ČÁSTEČNĚ | nejnáročnější procesy během měření; profil v čase chybí |
+| 305 | Background Task Profiler — procesy na pozadí. | ✅ HOTOVO | profil programů v čase (CPU z rozdílu času procesoru, paměť; průměr, špička, podíl času) – perf.py proc_profile, nástroj process_profile, tabulka v UI |
 | 306 | Frame-Time Analyzer — nepravidelnosti snímků. | ✅ HOTOVO | frame_time_report: PresentMon / CapFrameX / Afterburner – průměr, 1% a 0,1% minima, zaseknutí za minutu a kdy, graf |
 | 307 | Startup Performance Timeline — start systému. | ✅ HOTOVO | časová osa startu z Diagnostics-Performance |
 | 308 | App Launch Benchmarking — rychlost spouštění. | ✅ HOTOVO | app_launch_time: čas do zobrazení okna za studena a za tepla, zavře jen to, co sám spustil (se schválením) |
-| 309 | Disk I/O Visualizer — diskové I/O. | 🟡 ČÁSTEČNĚ | čtení/zápis/vytížení každého disku během měření; graf chybí |
+| 309 | Disk I/O Visualizer — diskové I/O. | ✅ HOTOVO | čtení/zápis každého disku v čase s grafem – perf.py disk_series, nástroj disk_activity |
 | 310 | Resource Priority Profiles — profily výkonu. | ✅ HOTOVO | performance_profile: hra / práce / tichý / vlastní – priority jen tvých procesů, přesné vrácení (i když mezitím proces skončil) |
 | 311 | Network Latency Monitor — síťová odezva. | ✅ HOTOVO | odezva, kolísání a ztráta (TCP handshake, bez práv správce) |
 | 312 | Performance History — historie výkonu. | ✅ HOTOVO | historie výkonu každých 5 min, 30 dní, graf na stránce, perf_history |
@@ -1091,14 +1091,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 53. Network & Cloud Command Center
 
-✅ 9 · 🟡 6
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 706 | Visual Traceroute — mapa síťové cesty. | 🟡 ČÁSTEČNĚ | trasa po skocích (tracert); grafická mapa chybí |
+| 706 | Visual Traceroute — mapa síťové cesty. | ✅ HOTOVO | grafická trasa: skoky obarvené podle odezvy, zvýrazněný skok, kde přibude nejvíc zdržení (bez zeměpisné mapy – IP adresy se nikam neposílají) – charts.ts routeMap |
 | 707 | DNS Propagation Tracker — DNS propagace. | ✅ HOTOVO | co o doméně říká Google DNS, Cloudflare a tento PC |
-| 708 | TLS Certificate Watch — certifikáty. | 🟡 ČÁSTEČNĚ | kontrola certifikátu na požádání (platnost, vydavatel, protokol); průběžné hlídání chybí |
-| 709 | HTTP Synthetic Monitoring — dostupnost API. | 🟡 ČÁSTEČNĚ | dostupnost webu/API na požádání; průběžné hlídání chybí |
+| 708 | TLS Certificate Watch — certifikáty. | ✅ HOTOVO | průběžné hlídání certifikátů vybraných webů (každých 10 min, upozornění při 30/14/7/3/1 dnech, jednou) – netwatch.py |
+| 709 | HTTP Synthetic Monitoring — dostupnost API. | ✅ HOTOVO | průběžné hlídání dostupnosti webů (upozornění jen při změně, dostupnost za 24 h) – netwatch.py, nástroj web_watch |
 | 710 | Cloud Resource Inventory — cloud zdroje. | 🟡 ČÁSTEČNĚ | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení přes tvoje přihlášené CLI; bez CLI nic |
 | 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ✅ HOTOVO | anomálie nákladů v cloudu z exportu vyúčtování (robustní odchylka od mediánu po službách) |
 | 712 | Hosting Health Inspector — stav hostingu. | ✅ HOTOVO | hosting_health: DNS, MX/SPF/DMARC, certifikát, http→https, bezpečnostní hlavičky, rychlost, stav |
@@ -1108,7 +1108,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ✅ HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy |
 | 717 | Local Network Throughput Tester — propustnost vlastní sítě. | 🟡 ČÁSTEČNĚ | speed_test (internet, ne LAN) |
 | 718 | Jitter Analysis — kolísání latence. | ✅ HOTOVO | kolísání latence (jitter) v perf_check a network_check |
-| 719 | Packet Loss History — ztrátovost paketů. | 🟡 ČÁSTEČNĚ | ztráta paketů při měření; historie jen z měření na požádání |
+| 719 | Packet Loss History — ztrátovost paketů. | ✅ HOTOVO | historie ztráty paketů a odezvy linky (každých 10 min, 30 dní, výpadky, nejhorší chvíle) s grafem – netwatch.py, nástroj line_history |
 | 720 | Infrastructure Outage Timeline — historie výpadků. | ✅ HOTOVO | outage_timeline: historie kontrol, dostupnost v %, výpadky s délkou |
 
 ## 54. Next-Gen Mobile

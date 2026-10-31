@@ -1053,3 +1053,15 @@
 492 | HOTOVO | dílenský režim bez rukou: kroky nahlas, další/předchozí hlasem nebo mávnutím ruky, krok v notchi; zapnutí gest jen po potvrzení (workshop_mode, workshop_step)
 493 | ČÁSTEČNĚ | gesta kamerou ovládají hudbu, hlasitost a kroky dílny; otáčení 3D modelů gesty zatím ne
 494 | ČÁSTEČNĚ | upozornění JARVISe chodí do aplikace v telefonu; hodinky s Wear OS / Galaxy Watch je zrcadlí jako ostatní oznámení telefonu (neověřeno na hodinkách)
+
+# Vlna F1: síť a výkon v čase
+013 | HOTOVO | čekající aktualizace Windows (Windows Update Agent, jen čtení), bezpečnostní nejdřív, čeká restart – winupd.py, nástroj windows_updates, Záchrana a výkon
+085 | HOTOVO | historie reakcí a nálad Mochiho (posledních 200, jen v paměti) – mood.py history, nástroj mochi_history
+194 | HOTOVO | graf domácí sítě (router uprostřed, nová zařízení zvýrazněná) – shared/charts.ts netGraph, Domov → Síť
+222 | HOTOVO | graf závislostí kroků mise v detailu úkolu (sloupce = souběžně, barva = stav) – tasks.py graph, charts.ts stepDag
+305 | HOTOVO | profil programů v čase (CPU z rozdílu času procesoru, paměť; průměr, špička, podíl času) – perf.py proc_profile, nástroj process_profile, tabulka v UI
+309 | HOTOVO | čtení/zápis každého disku v čase s grafem – perf.py disk_series, nástroj disk_activity
+706 | HOTOVO | grafická trasa: skoky obarvené podle odezvy, zvýrazněný skok, kde přibude nejvíc zdržení (bez zeměpisné mapy – IP adresy se nikam neposílají) – charts.ts routeMap
+708 | HOTOVO | průběžné hlídání certifikátů vybraných webů (každých 10 min, upozornění při 30/14/7/3/1 dnech, jednou) – netwatch.py
+709 | HOTOVO | průběžné hlídání dostupnosti webů (upozornění jen při změně, dostupnost za 24 h) – netwatch.py, nástroj web_watch
+719 | HOTOVO | historie ztráty paketů a odezvy linky (každých 10 min, 30 dní, výpadky, nejhorší chvíle) s grafem – netwatch.py, nástroj line_history

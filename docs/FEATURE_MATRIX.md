@@ -9,15 +9,15 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
+| `mood.py` | 076, 085, 241, 737, P7.01 |
 | `serial_monitor` | 161, 163, 471, 477, 486 |
+| `tasks.py` | 002, 209, 217, 222, 223 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
-| `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_python` | 766, 768, P5.12, P11.10 |
 | `run_tests` | 058, 062, 334, P5.08 |
 | `sensor_chart` | 163, 472, 477, 486 |
-| `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `ask_models` | 006, 007, 204 |
 | `check_answer` | 111, 115, 459 |
@@ -29,6 +29,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
 | `memory.py` | 039, 041, P1.03 |
+| `netwatch.py` | 708, 709, 719 |
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
 | `perf_check` | 063, 301, 718 |
@@ -45,6 +46,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `bill_of_materials` | 160, 469 |
 | `browser_type` | 530, P11.03 |
 | `character/looks.ts` | 250, 251 |
+| `charts.ts` | 222, 706 |
 | `check_subtitles` | 369, 674 |
 | `circuit_tutor` | 451, 456 |
 | `claude_bridge.py` | 046, P5.01 |
@@ -72,6 +74,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `oral_exam` | 115, 459 |
 | `parts_compatibility` | 160, 470 |
 | `pcreport.py` | 025, P2.08 |
+| `perf.py` | 305, 309 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
 | `physics_sim` | 490, 776 |
@@ -236,7 +239,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `device_test` | 638 |
 | `dialogue_check` | 647 |
 | `dictation.py` | 097 |
+| `disk_activity` | 309 |
 | `disk_copy_plan` | 699 |
+| `disk_series` | 309 |
 | `driver_rollback_check` | 287 |
 | `duck_music` | 363 |
 | `economy_sim` | 649 |
@@ -326,6 +331,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `level_generator` | 652 |
 | `life_event_plan` | 781 |
 | `lighting_plan` | 666 |
+| `line_history` | 719 |
 | `link_alive` | 410 |
 | `lip_sync` | 668 |
 | `list_folder` | P2.11 |
@@ -363,6 +369,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mission_save_file` | 215 |
 | `mix_advice` | 669 |
 | `mobile/native.ts` | 143 |
+| `mochi_history` | 085 |
 | `mock_server_start` | 621 |
 | `module_graph` | 047 |
 | `module_map` | 332 |
@@ -401,6 +408,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pricing_scenarios` | 442 |
 | `privacy.py` | P14.10 |
 | `privacy_report` | 539 |
+| `proc_profile` | 305 |
+| `process_profile` | 305 |
 | `product_demo` | 673 |
 | `project_perms` | 180 |
 | `project_profitability` | 449 |
@@ -464,6 +473,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `set_private` | 041 |
 | `setup_check` | 795 |
 | `sfx_library` | 373 |
+| `shared/charts.ts` | 194 |
 | `shared/gestures.ts` | 188 |
 | `shared/taskcard.ts` | 087 |
 | `shopping_by_aisle` | 785 |
@@ -530,9 +540,12 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `wake_word_calibrate` | 260 |
 | `warm_up_model` | 575 |
 | `watch_website` | 378 |
+| `web_watch` | 709 |
 | `window_control` | P2.01 |
 | `window_switch` | 230 |
 | `window_to_monitor` | 238 |
+| `windows_updates` | 013 |
+| `winupd.py` | 013 |
 | `workflow_export` | 153 |
 | `workflow_import` | 153 |
 | `workflow_record` | 146 |

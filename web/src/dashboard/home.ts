@@ -2,6 +2,7 @@
 import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
+import { netGraph } from "../shared/charts";
 
 interface Device { id: string; name: string; domain: string; state: string; unit?: string; brightness?: number; target?: number; current?: number; position?: number }
 interface NetDevice { ip: string; mac: string; name: string; host: string; new: boolean }
@@ -131,7 +132,8 @@ export function buildHome(client: JarvisClient) {
         h("span", { class: "help" }, "Když se do sítě připojí něco, co tu ještě nebylo, JARVIS to řekne (kontrola každých 10 minut).")),
         h("span", { class: "switch" }, watch, h("span"))),
       h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: scan, disabled: scanning }, icon("wifi-high"), scanning ? "Hledám…" : "Prohledat síť")),
-      ...(items.length ? [h("div", { class: "net-table", role: "table" }, ...items.map((d) => {
+      ...(items.length ? [netGraph(items, (items.find((d: any) => d.gateway) as any)?.ip || items.map((d) => d.ip).find((ip) => /\.1$/.test(ip)) || ""),
+        h("div", { class: "net-table", role: "table" }, ...items.map((d) => {
         const nm = h("input", { class: "input sm", value: d.name, placeholder: d.host || "pojmenovat…", "aria-label": `Název zařízení ${d.ip}` }) as HTMLInputElement;
         nm.onchange = () => client.send("network_name", { mac: d.mac, name: nm.value });
         return h("div", { class: "net-row", role: "row" }, h("span", { class: "ht-ico" }, icon(d.new ? "warning-circle" : "devices")), nm,

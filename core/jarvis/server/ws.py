@@ -38,7 +38,7 @@ CLIENT_TYPES = [
     "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
     "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
     "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
-    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run",
+    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get",
     "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
     "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
     "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
@@ -60,7 +60,7 @@ SERVER_TYPES = [
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
     "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
-    "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
+    "rescue", "perf", "netwatch", "winupd", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
@@ -93,7 +93,7 @@ LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "voice_import", "vo
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
 SLOW = {"voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
-        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
+        "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
 
 class Connection:
@@ -690,6 +690,26 @@ class Connection:
                 lat = await asyncio.to_thread(perf.tcp_latency, "1.1.1.1", 443, 5)
                 out.update(sample=s_, findings=perf.bottlenecks(s_), latency=lat)
             await self.send("perf", **out)
+        elif t in ("netwatch_get", "netwatch_set"):
+            nw = rt.netwatch
+            if t == "netwatch_set":
+                u = str(m.get("url") or "")[:300]
+                if m.get("remove"):
+                    nw.remove(u)
+                else:
+                    r_ = nw.add(u)
+                    if not r_["ok"]:
+                        await self.send("error", message=r_["error"])
+                    else:
+                        nw.apply(await nw.check(r_["url"]))
+            hours = max(1.0, min(24 * 30, float(m.get("hours") or 24)))
+            await self.send("netwatch", watched=nw.list(), loss=nw.loss_series(hours), loss_summary=nw.loss_summary(hours),
+                            procs=rt.perf.proc_profile(hours), disks=rt.perf.disk_series(hours), hours=hours)
+        elif t == "winupd_get":
+            from .. import winupd
+
+            r_ = await asyncio.to_thread(winupd.pending)
+            await self.send("winupd", **r_, summary=winupd.summary(r_))
         elif t == "netcheck":
             from ..tools.rescue_tools import network_check
 

@@ -21,6 +21,8 @@ HIST_SQL = """
 CREATE TABLE IF NOT EXISTS perf_history (ts REAL, cpu REAL, ram REAL, disk_mb_s REAL, gpu REAL, net_ms REAL);
 CREATE TABLE IF NOT EXISTS perf_bench (ts REAL, label TEXT, cpu_score REAL, disk_write_mb_s REAL, disk_read_mb_s REAL,
   ram_gb_s REAL);
+CREATE TABLE IF NOT EXISTS perf_procs (ts REAL, name TEXT, cpu REAL, ram_mb REAL);
+CREATE TABLE IF NOT EXISTS perf_disks (ts REAL, disk TEXT, read_mb_s REAL, write_mb_s REAL);
 """
 GPU_PS = r"""
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
@@ -186,7 +188,51 @@ class PerfHistory:
     def __init__(self, rt):
         self.rt = rt
         self._io_prev: tuple[float, int] | None = None
+        self._cpu_prev: tuple[float, dict] | None = None      # OMEGA 305: per-process CPU time at the previous row
+        self._disk_prev: tuple[float, dict] | None = None     # OMEGA 309: per-disk counters at the previous row
         rt.db.conn.executescript(HIST_SQL)
+
+    def proc_top(self, n: int = 5) -> list[dict]:
+        """The busiest programs since the previous row, from CPU-time deltas (no extra waiting), grouped by name."""
+        now = time.time()
+        cur: dict[int, tuple[str, float, int]] = {}
+        for p in psutil.process_iter(["name"]):
+            try:
+                t = p.cpu_times()
+                cur[p.pid] = (p.info["name"] or "?", t.user + t.system, p.memory_info().rss)
+            except (psutil.Error, OSError):
+                pass
+        prev, self._cpu_prev = self._cpu_prev, (now, cur)
+        if not prev or now <= prev[0]:
+            return []
+        wall = (now - prev[0]) * (psutil.cpu_count() or 1)
+        by: dict[str, list[float]] = {}
+        for pid, (name, t, rss) in cur.items():
+            old = prev[1].get(pid)
+            d = t - old[1] if old and old[0] == name else 0.0
+            a = by.setdefault(name, [0.0, 0.0])
+            a[0] += max(0.0, d) / wall * 100
+            a[1] += rss / 2**20
+        top = sorted(by.items(), key=lambda kv: -kv[1][0])[:n]
+        return [{"name": k, "cpu": round(v[0], 1), "ram_mb": round(v[1])} for k, v in top if v[0] >= 0.1]
+
+    def disk_rates(self) -> list[dict]:
+        """Read / write MB/s of each disk since the previous row."""
+        now = time.time()
+        try:
+            cur = {k: (v.read_bytes, v.write_bytes) for k, v in (psutil.disk_io_counters(perdisk=True) or {}).items()}
+        except (OSError, RuntimeError):
+            return []
+        prev, self._disk_prev = self._disk_prev, (now, cur)
+        if not prev or now <= prev[0]:
+            return []
+        dt = now - prev[0]
+        out = []
+        for k, (r, w) in cur.items():
+            if k in prev[1]:
+                r0, w0 = prev[1][k]
+                out.append({"disk": k, "read_mb_s": round(max(0, r - r0) / dt / 2**20, 3), "write_mb_s": round(max(0, w - w0) / dt / 2**20, 3)})
+        return out
 
     def record(self, cpu: float | None, ram: float | None, gpu: float | None = None, net_ms: float | None = None) -> dict:
         """One row; the disk rate is the average since the previous row (cumulative psutil counters)."""
@@ -202,6 +248,15 @@ class PerfHistory:
         self._io_prev = (now, total) if total is not None else None
         self.rt.db.exec("INSERT INTO perf_history VALUES (?,?,?,?,?,?)", (now, cpu, ram, disk, gpu, net_ms))
         self.rt.db.exec("DELETE FROM perf_history WHERE ts < ?", (now - 30 * 86400,))
+        try:
+            for p in self.proc_top():
+                self.rt.db.exec("INSERT INTO perf_procs VALUES (?,?,?,?)", (now, p["name"], p["cpu"], p["ram_mb"]))
+            for d in self.disk_rates():
+                self.rt.db.exec("INSERT INTO perf_disks VALUES (?,?,?,?)", (now, d["disk"], d["read_mb_s"], d["write_mb_s"]))
+            self.rt.db.exec("DELETE FROM perf_procs WHERE ts < ?", (now - 30 * 86400,))
+            self.rt.db.exec("DELETE FROM perf_disks WHERE ts < ?", (now - 30 * 86400,))
+        except Exception:  # noqa: BLE001 – the history row above matters more than the detail
+            pass
         return {"ts": now, "cpu": cpu, "ram": ram, "disk_mb_s": disk, "gpu": gpu, "net_ms": net_ms}
 
     def summary(self, hours: float = 24) -> dict:
@@ -216,6 +271,28 @@ class PerfHistory:
 
     def series(self, hours: float = 24) -> list[dict]:
         return self.rt.db.all("SELECT * FROM perf_history WHERE ts>=? ORDER BY ts", (time.time() - hours * 3600,))
+
+    def proc_profile(self, hours: float = 24, name: str = "") -> dict:
+        """OMEGA 305: which programs loaded the PC over time – average/peak CPU and RAM per program, or one program's curve."""
+        since = time.time() - hours * 3600
+        if name:
+            rows = self.rt.db.all("SELECT ts, cpu, ram_mb FROM perf_procs WHERE ts>=? AND lower(name) LIKE ? ORDER BY ts",
+                                  (since, f"%{name.lower()}%"))
+            return {"name": name, "series": rows}
+        rows = self.rt.db.all("SELECT name, COUNT(*) AS n, AVG(cpu) AS cpu_avg, MAX(cpu) AS cpu_max, AVG(ram_mb) AS ram_avg, "
+                              "MAX(ram_mb) AS ram_max FROM perf_procs WHERE ts>=? GROUP BY name ORDER BY SUM(cpu) DESC LIMIT 12", (since,))
+        samples = (self.rt.db.one("SELECT COUNT(DISTINCT ts) AS n FROM perf_procs WHERE ts>=?", (since,)) or {"n": 0})["n"]
+        return {"samples": samples, "top": [{**r, "cpu_avg": round(r["cpu_avg"] * r["n"] / max(1, samples), 1),
+                                              "cpu_max": round(r["cpu_max"], 1), "ram_avg": round(r["ram_avg"]), "ram_max": round(r["ram_max"]),
+                                              "seen_pct": round(100 * r["n"] / max(1, samples))} for r in rows]}
+
+    def disk_series(self, hours: float = 24) -> dict:
+        """OMEGA 309: read/write per disk over time (for the chart)."""
+        rows = self.rt.db.all("SELECT ts, disk, read_mb_s, write_mb_s FROM perf_disks WHERE ts>=? ORDER BY ts", (time.time() - hours * 3600,))
+        out: dict[str, list] = {}
+        for r in rows:
+            out.setdefault(r["disk"], []).append({"ts": r["ts"], "read": r["read_mb_s"], "write": r["write_mb_s"]})
+        return out
 
     def save_bench(self, b: dict) -> None:
         self.rt.db.exec("INSERT INTO perf_bench VALUES (?,?,?,?,?,?)",
