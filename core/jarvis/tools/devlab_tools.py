@@ -560,3 +560,96 @@ async def monorepo_map(ctx, project: str) -> ToolResult:
         return ToolResult(False, "Nevidím žádný balíček (package.json, pyproject.toml, Cargo.toml, .csproj).")
     return ToolResult(True, f"{r['count']} balíčků: " + "; ".join(f"{p['name']} ({p['kind']}, {p['path']})" + (f" → {', '.join(p['internal'])}" if p["internal"] else "")
                                                          for p in r["packages"][:12]) + ".", data=r)
+
+
+def _container_details(a: dict, ctx=None) -> list[str]:
+    return [f"Do projektu {a.get('project')} zapíše Dockerfile, .dockerignore a .devcontainer/devcontainer.json "
+            "(existující soubory nepřepíše). Nic nespouští ani nestahuje."]
+
+
+@tool("container_setup", "Kontejner pro projekt: Dockerfile, .dockerignore a nastavení Dev Containers se stejnou verzí Pythonu / "
+      "Node jako na tomhle PC (Python, Node nebo .NET projekt). Bez write jen ukáže, s write=true soubory zapíše (existující "
+      "nepřepíše). Na „udělej mi na to Docker“, „ať to jede i jinde“.", category="programování", perm="files_write",
+      danger_if=lambda a, ctx=None: bool(a.get("write")), details=_container_details)
+async def container_setup(ctx, project: str, write: bool = False) -> ToolResult:
+    from .. import devlab
+
+    root = resolve_project(ctx, project)
+    if isinstance(root, ToolResult):
+        return root
+    if not root.is_dir():
+        return ToolResult(False, f"Složka neexistuje: {root}")
+    snap = await asyncio.to_thread(devlab.env_snapshot)
+    try:
+        r = devlab.container_files(root, snap)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    written, kept = [], []
+    if write:
+        for rel, text in r["files"].items():
+            f = root / rel
+            if f.exists():
+                kept.append(rel)
+                continue
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text, encoding="utf-8")
+            written.append(rel)
+    head = f"Projekt {r['kind']}: " + (f"zapsáno {', '.join(written)}" if written else "náhled souborů")
+    if kept:
+        head += f"; ponechal jsem existující {', '.join(kept)}"
+    body = "\n\n".join(f"{k}:\n{v}" for k, v in r["files"].items())
+    return ToolResult(True, head + ". " + " ".join(r["notes"]) + "\n\n" + body[:3000], data={**r, "written": written, "kept": kept})
+
+
+def coverage_plan(root: Path, out_dir: Path) -> tuple[list[str], Path] | None:
+    """OMEGA 334: the commands that run the tests WITH coverage measuring and where the report lands (Python: coverage.py,
+    JavaScript: c8). None = unknown project."""
+    from .dev import _detect_tests
+
+    test = _detect_tests(root) or ""
+    if test.startswith("python"):
+        rep = out_dir / "coverage.json"
+        return ["python -m coverage run -m pytest -q", f'python -m coverage json -o "{rep}"'], rep
+    if test.startswith("npm"):
+        return [f'npx --no-install c8 --reporter=lcov --report-dir "{out_dir}" npm test'], out_dir / "lcov.info"
+    return None
+
+
+def _cov_details(a: dict, ctx=None) -> list[str]:
+    return [f"Spustí testy projektu {a.get('project')} s měřením pokrytí (Python: coverage, JavaScript: c8).",
+            "Testy spouští kód projektu. Report se uloží do dočasné složky, projekt se nemění."]
+
+
+@tool("measure_coverage", "Spustí testy projektu s měřením pokrytí a řekne, které soubory a řádky testy nepokrývají "
+      "(Python přes coverage.py, JavaScript přes c8 – musí být nainstalované v projektu).", danger=True,
+      category="programování", perm="shell", details=_cov_details)
+async def measure_coverage(ctx, project: str) -> ToolResult:
+    from .. import devlab
+    from .dev import _run_cmd
+
+    root = resolve_project(ctx, project)
+    if isinstance(root, ToolResult):
+        return root
+    with tempfile.TemporaryDirectory(prefix="jarvis-cov-") as td:
+        plan = coverage_plan(root, Path(td))
+        if not plan:
+            return ToolResult(False, "Pokrytí umím změřit u projektů v Pythonu (pytest) a JavaScriptu (npm test).")
+        cmds, rep = plan
+        out = ""
+        for c in cmds:
+            code, o = await asyncio.to_thread(_run_cmd, c, root, 900)
+            out += o
+            if "No module named coverage" in o:
+                return ToolResult(False, "V projektu chybí balíček coverage – nainstaluj ho příkazem: python -m pip install coverage")
+            if "c8" in c and code != 0 and not rep.exists():
+                return ToolResult(False, "Pro měření pokrytí v JavaScriptu chybí c8 – přidej ho: npm i -D c8")
+        if not rep.exists():
+            return ToolResult(False, "Report pokrytí nevznikl. Konec výstupu: " + out[-600:])
+        r, err = await _run(devlab.coverage, rep)
+    if err:
+        return err
+    worst = [f for f in r["files"] if f["pct"] < 100][:6]
+    msg = f"Celkové pokrytí {r['total_pct']} % ({len(r['files'])} souborů)."
+    if worst:
+        msg += " Nejhůř: " + "; ".join(f"{Path(f['file']).name} {f['pct']} % (chybí ř. {', '.join(f['ranges'][:3])})" for f in worst)
+    return ToolResult(True, msg, data=r)

@@ -1059,3 +1059,64 @@ def monorepo(root: Path) -> dict:
 
 def python_exe() -> str:
     return sys.executable
+
+
+# ---------------------------------------------------------------- 342 a container that matches "it works on my PC"
+def container_files(project: Path, snap: dict | None = None) -> dict:
+    """A Dockerfile, .dockerignore and .devcontainer/devcontainer.json for the project, with the same Python / Node major
+    versions as this PC (from the environment snapshot). Answers {files: {rel: text}, kind, notes}; writes nothing."""
+    snap = snap or {}
+    has = lambda n: (project / n).exists()            # noqa: E731
+    py = ".".join((snap.get("python") or "3.12").split(".")[:2])
+    node = (snap.get("tools", {}).get("node") or "20").lstrip("v").split(".")[0]
+    notes: list[str] = []
+    if has("package.json") and not (has("pyproject.toml") or has("requirements.txt")):
+        kind = "node"
+        if has("pnpm-lock.yaml"):
+            install = "corepack enable && pnpm install --frozen-lockfile"
+        elif has("yarn.lock"):
+            install = "corepack enable && yarn install --frozen-lockfile"
+        elif has("package-lock.json"):
+            install = "npm ci"
+        else:
+            install = "npm install"
+            notes.append("Chybí package-lock.json – verze balíčků se v kontejneru můžou lišit; spusť jednou npm install a lock ulož do gitu.")
+        try:
+            pkg = json.loads((project / "package.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pkg = {}
+        start = "npm start" if (pkg.get("scripts") or {}).get("start") else "node ."
+        docker = (f"FROM node:{node}-slim\nWORKDIR /app\nCOPY package*.json pnpm-lock.yaml* yarn.lock* ./\nRUN {install}\nCOPY . .\n"
+                  f"CMD {json.dumps(start.split())}\n")
+        image = f"mcr.microsoft.com/devcontainers/javascript-node:{node}"
+    elif has("pyproject.toml") or has("requirements.txt"):
+        kind = "python"
+        if has("requirements.txt"):
+            install = "pip install --no-cache-dir -r requirements.txt"
+            copy_req = "COPY requirements.txt ./\n"
+        else:
+            install = "pip install --no-cache-dir ."
+            copy_req = "COPY . .\n"
+            notes.append("Bez requirements.txt se instaluje z pyproject.toml; pro přesné verze použij zámek (environment_snapshot → requirements_lock).")
+        main = next((n for n in ("main.py", "app.py", "manage.py", "run.py") if has(n)), "")
+        cmd = '["python", "' + main + '"]' if main else '["python"]'
+        if not main:
+            notes.append("Nenašel jsem main.py / app.py – uprav poslední řádek CMD na to, co se má spustit.")
+        docker = (f"FROM python:{py}-slim\nENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\nWORKDIR /app\n{copy_req}RUN {install}\n"
+                  + ("COPY . .\n" if copy_req != "COPY . .\n" else "") + f"CMD {cmd}\n")
+        image = f"mcr.microsoft.com/devcontainers/python:{py}"
+    elif any(project.glob("*.csproj")) or any(project.glob("*.sln")):
+        kind = "dotnet"
+        ver = ".".join((snap.get("tools", {}).get("dotnet") or "8.0").split(".")[:2])
+        docker = (f"FROM mcr.microsoft.com/dotnet/sdk:{ver} AS build\nWORKDIR /src\nCOPY . .\nRUN dotnet publish -c Release -o /out\n\n"
+                  f"FROM mcr.microsoft.com/dotnet/runtime:{ver}\nWORKDIR /app\nCOPY --from=build /out .\n"
+                  'ENTRYPOINT ["dotnet", "' + next(project.glob("*.csproj")).stem + '.dll"]\n' if any(project.glob("*.csproj"))
+                  else f"FROM mcr.microsoft.com/dotnet/sdk:{ver}\nWORKDIR /src\nCOPY . .\nRUN dotnet build -c Release\n")
+        image = f"mcr.microsoft.com/devcontainers/dotnet:{ver}"
+    else:
+        raise ValueError("Nepoznal jsem druh projektu (chybí package.json, pyproject.toml / requirements.txt nebo .csproj).")
+    ignore = "\n".join([".git", "node_modules", "__pycache__", "*.pyc", ".venv", "venv", "dist", "build", "bin", "obj", ".env", ".env.*", "*.log"]) + "\n"
+    dev = json.dumps({"name": project.name, "image": image, "postCreateCommand": install if kind != "dotnet" else "dotnet restore"},
+                     ensure_ascii=False, indent=2) + "\n"
+    notes.append(".env se do obrazu nekopíruje (mohou v něm být hesla) – předávej ho při spuštění (docker run --env-file .env).")
+    return {"kind": kind, "files": {"Dockerfile": docker, ".dockerignore": ignore, ".devcontainer/devcontainer.json": dev}, "notes": notes}

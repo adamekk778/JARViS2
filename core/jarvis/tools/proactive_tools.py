@@ -47,6 +47,29 @@ async def my_routines(ctx) -> ToolResult:
     return ToolResult(True, "\n".join(x["text"] for x in r[:8]) + "\nChceš z některé udělat automatizaci (create_automation)?", data=r)
 
 
+@tool("compose_routine", "Složí z tvých rutin jednu automatizaci: v obvyklou hodinu otevře aplikace, které tou dobou "
+      "používáš (např. ráno pošta, kalendář, Teams). Bez save jen ukáže návrh, save=true ji uloží (jde vypnout a vrátit).",
+      category="proaktivita", perm="apps", danger_if=lambda a, ctx=None: bool(a.get("save")),
+      details=lambda a, ctx=None: ["Uloží novou automatizaci, která bude v danou hodinu sama otevírat aplikace."])
+async def compose_routine(ctx, when: Annotated[str, "všední den / víkend"] = "všední den",
+                          hour: Annotated[int, "od kolika hodin (-1 = nejdřívější rutina)"] = -1, save: bool = False) -> ToolResult:
+    import uuid
+
+    from .. import proactive
+
+    when = "víkend" if "víkend" in when.lower() or "vikend" in when.lower() else "všední den"
+    r = proactive.compose_routine(proactive.routines(ctx), when, None if hour < 0 else hour)
+    if not r:
+        return ToolResult(False, "Na tuhle dobu zatím žádnou rutinu nevidím (potřebuji pár dní dat o čase v aplikacích).")
+    txt = f"{r['name']}: v {r['hour']}:00 otevřu {', '.join(r['apps'])}."
+    if not save:
+        return ToolResult(True, txt + " Mám ji uložit?", data=r)
+    item = {k: v for k, v in r.items() if k not in ("apps", "hour")} | {"id": uuid.uuid4().hex[:8]}
+    items = [a.model_dump(mode="json") for a in ctx.cfg.automations.items] + [item]
+    ctx.update_config({"automations": {"items": items}})
+    return ToolResult(True, txt + " Uloženo jako automatizace – najdeš ji v Automatizacích.", data=item)
+
+
 @tool("deadline_risks", "Které termíny jsou v ohrožení: mise s termínem (kolik zbývá času a kroků) a zkoušky bez opakování.",
       category="proaktivita")
 async def deadline_risks(ctx) -> ToolResult:

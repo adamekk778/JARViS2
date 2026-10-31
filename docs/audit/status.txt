@@ -1081,3 +1081,13 @@
 501 | HOTOVO | návrhy podle aplikace v popředí (tabulka, dokument, pošta, programování, Blender, Unity, hovor, grafika, střih, hry) + pauza po dlouhé době v ní – proactive.app_context
 545 | HOTOVO | k přílohám e-mailu najde v PC stejný soubor pod jiným názvem (otisk SHA-256) a podobné dokumenty podle textu (jiná verze smlouvy apod.) – comms.match_attachments
 703 | HOTOVO | odhad šance na záchranu dat podle stavu disku (zdraví, chyby čtení/zápisu, vadné sektory, timeouty, opotřebení) s doporučením – secutils.recovery_odds v data_rescue_plan
+
+# Vlna F4: firewall, teplota, síť k telefonu, kontejner, pokrytí, rutina
+022 | HOTOVO | teplota CPU: přesně z LibreHardwareMonitor / OpenHardwareMonitor (když běží), jinak odhad z ACPI zóny; přehřátí → rada; bez zdroje JARVIS řekne, jak ji zapnout – perf.cpu_temp
+297 | HOTOVO | teploty disků (SMART) + teplota CPU (LibreHardwareMonitor / ACPI) v měření výkonu a na stránce Záchrana a výkon
+140 | HOTOVO | karta Stav PC v mobilu (procesor, paměť, volné místo, doba běhu, baterie)
+334 | HOTOVO | measure_coverage: spustí testy s měřením pokrytí (coverage.py / c8, se souhlasem) a vyhodnotí nepokryté soubory a řádky
+342 | HOTOVO | container_setup: Dockerfile, .dockerignore a devcontainer.json se stejnou verzí Pythonu / Node / .NET jako na PC (náhled, zápis se souhlasem, nepřepisuje)
+393 | HOTOVO | příchozí pravidla firewallu od programů: program z Temp/Stažených/AppData, pravidla otevřená do veřejných sítí, přehled – rescue.firewall_findings
+504 | HOTOVO | compose_routine: z rutin složí jednu automatizaci (v obvyklou hodinu otevře aplikace v obvyklém pořadí), uloží jen na požádání
+717 | HOTOVO | test rychlosti domácí sítě telefon ↔ PC (stahování, nahrávání, odezva) v mobilní aplikaci; internet dál speed_test

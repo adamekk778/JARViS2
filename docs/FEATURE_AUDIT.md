@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 618 | 88 |
-| 🟡 ČÁSTEČNĚ | 166 | 62 |
+| ✅ HOTOVO | 626 | 88 |
+| 🟡 ČÁSTEČNĚ | 158 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -39,7 +39,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -54,7 +54,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 019 | Rozpoznávání konfliktů zařízení a ovladačů. | 🟡 ČÁSTEČNĚ | kódy ConfigManager vč. konfliktu prostředků (12); mapa konfliktů chybí |
 | 020 | Bezpečné body obnovy před zásahy. | ✅ HOTOVO | create_restore_point – se schválením, srozumitelné chyby (správce, 24 h, vypnutá ochrana) + přehled bodů obnovy |
 | 021 | Diagnostika sítí, DNS a Wi-Fi. | ✅ HOTOVO | network_check: Wi-Fi signál, DNS, odezva, ztráta, trasa, certifikát, dostupnost webu, veřejné DNS |
-| 022 | Sledování thermal throttlingu. | 🟡 ČÁSTEČNĚ | škrcení poznám podle frekvence CPU pod zátěží (perf.bottlenecks); teplotu CPU Windows bez ovladače výrobce nehlásí |
+| 022 | Sledování thermal throttlingu. | ✅ HOTOVO | teplota CPU: přesně z LibreHardwareMonitor / OpenHardwareMonitor (když běží), jinak odhad z ACPI zóny; přehřátí → rada; bez zdroje JARVIS řekne, jak ji zapnout – perf.cpu_temp |
 | 023 | Graf závislostí služeb a procesů. | ✅ HOTOVO | service_dependencies: co služba potřebuje a co na ní závisí (i nepřímo), automatické služby, které neběží, a co tím nefunguje |
 | 024 | Kontrola podezřelých aplikací a oprávnění. | 🟡 ČÁSTEČNĚ | podezřelý autostart (nepodepsané z AppData/Temp), skryté naplánované úlohy, programy otevřené do sítě; oprávnění aplikací ne |
 | 025 | Technická zpráva o stavu PC. | ✅ HOTOVO | pc_health_report: read-only diagnostika, HTML report, ověření 5 kritérií (pcreport.py, tools/mission_tools.py, tests/test_omega.py, CI --selftest-report) |
@@ -241,7 +241,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 13. Mobile Super Assistant
 
-✅ 5 · 🟡 5
+✅ 6 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -249,7 +249,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 137 | Rychlé akce z notifikací. | 🟡 ČÁSTEČNĚ | akce v notifikacích hovoru JARVISe (Přijmout/Odmítnout/Odpovědět) |
 | 138 | Schránka mezi zařízeními. | 🟡 ČÁSTEČNĚ | send_to_phone, clipboard_set z telefonu |
 | 139 | Spouštění PC úkolů na dálku. | ✅ HOTOVO | Ovládání v mobilu: protokoly, média, aplikace, napájení (web/src/mobile) |
-| 140 | Zobrazení stavu počítače. | 🟡 ČÁSTEČNĚ | stav úkolu v mobilu; stav PC jen přes chat |
+| 140 | Zobrazení stavu počítače. | ✅ HOTOVO | karta Stav PC v mobilu (procesor, paměť, volné místo, doba běhu, baterie) |
 | 141 | Hlasové poznámky z mobilu. | ✅ HOTOVO | hlasové zprávy z mobilu (push-to-talk upload) |
 | 142 | Fotografie přiřazené k projektu. | 🟡 ČÁSTEČNĚ | přílohy fotek do chatu |
 | 143 | Biometrické potvrzení citlivých akcí. | ✅ HOTOVO | otisk prstu pro citlivá schválení (mobile/native.ts verify) |
@@ -475,7 +475,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 25. JARVIS PC Rescue
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -490,7 +490,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 294 | Service Dependency Inspector — závislosti služeb. | ✅ HOTOVO | strom závislostí neběžících služeb: na čem služba visí (neběžící příčina) a co čeká na ni – rescue.service_tree |
 | 295 | Power Plan Diagnostics — energetické plány. | ✅ HOTOVO | power_check: aktivní plán, omezení CPU, uspávání, obrazovka, USB, zdraví baterie a cykly (powercfg); power_plan_set se schválením |
 | 296 | Memory Error Testing Assistant — test RAM. | ✅ HOTOVO | schedule_memory_test (Diagnostika paměti Windows, se schválením) + čtení výsledku testu (MemoryDiagnostics-Results) |
-| 297 | Thermal Health Report — teploty. | 🟡 ČÁSTEČNĚ | teploty disků (StorageReliabilityCounter, SMART); teplotu CPU Windows bez ovladače výrobce nehlásí |
+| 297 | Thermal Health Report — teploty. | ✅ HOTOVO | teploty disků (SMART) + teplota CPU (LibreHardwareMonitor / ACPI) v měření výkonu a na stránce Záchrana a výkon |
 | 298 | Hardware Change Detector — změny zařízení. | ✅ HOTOVO | strážce každých 5 min porovná zařízení a řekne, co se připojilo/odpojilo (stark.Guardian.check_hardware, hardware_changes) |
 | 299 | Recovery Media Assistant — záchranné médium. | ✅ HOTOVO | recovery_media_check: flash disk ≥ 16 GB, obnovovací oddíl, BitLocker a klíč, postup; průvodce Windows se schválením |
 | 300 | Data Rescue Priority Mode — přednost ochrany dat. | ✅ HOTOVO | data_rescue_plan: pořadí záchrany složek, nic nekopíruje ani nemaže; u RAW/offline disku „NEFORMÁTUJ“ |
@@ -541,14 +541,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 28. Developer God Mode
 
-✅ 11 · 🟡 3 · 🔌 1
+✅ 13 · 🟡 1 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 331 | Repository Knowledge Index — kódová znalostní báze. | 🔌 VYŽADUJE_INTEGRACI | Claude Code |
 | 332 | Architecture Refactor Planner — plán refaktoringu. | ✅ HOTOVO | module_map: graf importů (Python, TS/JS), cykly (Tarjan), nejzatíženější a největší moduly → plán refaktoringu |
 | 333 | Dependency Risk Detector — rizika závislostí. | ✅ HOTOVO | dependency_risks (neomezené verze, git/URL, instalační skripty, cizí registr, podvržené názvy) + dependency_vulnerabilities (OSV) |
-| 334 | Test Coverage Explorer — pokrytí testů. | 🟡 ČÁSTEČNĚ | test_coverage: čte coverage.xml / lcov.info / coverage.json, nejhorší soubory a nepokryté řádky; samotné měření pustí run_tests |
+| 334 | Test Coverage Explorer — pokrytí testů. | ✅ HOTOVO | measure_coverage: spustí testy s měřením pokrytí (coverage.py / c8, se souhlasem) a vyhodnotí nepokryté soubory a řádky |
 | 335 | Mutation Testing Assistant — mutační testy. | ✅ HOTOVO | mutation_test: AST mutace Pythonu v kopii projektu, skóre a přeživší mutace (s potvrzením) |
 | 336 | API Contract Validator — API kontrakty. | ✅ HOTOVO | api_contract_check: odpověď (živá GET nebo soubor) proti OpenAPI, $ref, povinná pole, typy, enum |
 | 337 | Database Migration Preview — náhled migrace. | ✅ HOTOVO | migration_preview: SQL na kopii SQLite – změny struktury, počty řádků, chyba, integrita; originál beze změny |
@@ -556,7 +556,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 339 | Regression Detector — detekce regresí. | ✅ HOTOVO | test_regressions: JUnit před/po – nově padající, opravené, zmizelé, výrazně pomalejší |
 | 340 | Build Failure Root-Cause Analysis — příčiny buildu. | ✅ HOTOVO | explain_build_failure: první skutečná chyba v logu, význam, soubor:řádek, řešení (Python, Node, TS, Rust, C#, paměť, disk, síť) |
 | 341 | Dependency Update Planner — aktualizace knihoven. | ✅ HOTOVO | dependency_update_plan: nejnovější verze z PyPI / npm, patch → minor → major po jedné |
-| 342 | Environment Reproducer — reprodukovatelné prostředí. | 🟡 ČÁSTEČNĚ | environment_snapshot / environment_compare + zámek verzí; automatické sestavení kontejneru ne |
+| 342 | Environment Reproducer — reprodukovatelné prostředí. | ✅ HOTOVO | container_setup: Dockerfile, .dockerignore a devcontainer.json se stejnou verzí Pythonu / Node / .NET jako na PC (náhled, zápis se souhlasem, nepřepisuje) |
 | 343 | Automated Release Notes — release notes. | ✅ HOTOVO | release_notes: commity od posledního tagu podle typu (i české zprávy), Markdown |
 | 344 | Feature Flag Manager — přepínače funkcí. | ✅ HOTOVO | feature_flags (stav, použití v kódu, nepoužívané, nedefinované) + set_feature_flag (se záchytným bodem) |
 | 345 | Code Experiment Sandbox — experimentální kód. | 🟡 ČÁSTEČNĚ | záchytné body + Claude Code |
@@ -629,13 +629,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 32. Cybersecurity Center
 
-✅ 9 · 🟡 6
+✅ 10 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 391 | Permission Audit — aplikace a oprávnění. | ✅ HOTOVO | audit oprávnění aplikací: kamera, mikrofon, poloha… – kdo smí, kdo naposledy a kdo právě teď (záznamy Windows) |
 | 392 | Local Port Inspector — místní porty. | ✅ HOTOVO | porty otevřené do sítě a jejich programy (Get-NetTCPConnection) |
-| 393 | Firewall Rule Explorer — firewall. | 🟡 ČÁSTEČNĚ | firewall zapnutý/vypnutý po profilech; pravidla neprocházím |
+| 393 | Firewall Rule Explorer — firewall. | ✅ HOTOVO | příchozí pravidla firewallu od programů: program z Temp/Stažených/AppData, pravidla otevřená do veřejných sítí, přehled – rescue.firewall_findings |
 | 394 | Suspicious Startup Detector — podezřelé položky startu. | ✅ HOTOVO | podezřelé položky startu (podpis, umístění) a naplánované úlohy (skryté PowerShell, AppData) |
 | 395 | Security Update Tracker — bezpečnostní aktualizace. | 🟡 ČÁSTEČNĚ | stáří aktualizací Windows a definic Defenderu |
 | 396 | Credential Exposure Checker — kontrola známých úniků. | ✅ HOTOVO | uniklé heslo přes Have I Been Pwned (k-anonymita: odejde 5 znaků otisku), jen ze stránky, nikdy přes AI |
@@ -783,7 +783,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 39. Proactive Intelligence
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -795,7 +795,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 501 | Contextual Suggestion Engine — kontextové funkce. | ✅ HOTOVO | návrhy podle aplikace v popředí (tabulka, dokument, pošta, programování, Blender, Unity, hovor, grafika, střih, hry) + pauza po dlouhé době v ní – proactive.app_context |
 | 502 | Deadline Risk Forecasting — rizika termínů. | ✅ HOTOVO | deadline_risks: mise (čas vs. zbývající kroky) a zkoušky bez opakování |
 | 503 | Task Effort Estimator — odhad pracnosti. | ✅ HOTOVO | estimate_effort: medián času a kroků z podobných dokončených misí |
-| 504 | Personal Routine Builder — osobní rutina. | 🟡 ČÁSTEČNĚ | rutiny se dají převést na automatizaci; skládání osobní rutiny zatím ne |
+| 504 | Personal Routine Builder — osobní rutina. | ✅ HOTOVO | compose_routine: z rutin složí jednu automatizaci (v obvyklou hodinu otevře aplikace v obvyklém pořadí), uloží jen na požádání |
 | 505 | Automatic Priority Negotiation — změny priorit. | ✅ HOTOVO | negotiate_priorities: plán podle nejbližšího termínu a priority, co nestihneš, co odložit (nejdřív priorita 3, pak 2), nové termíny a kolik hodin chybí; nic sám nemění |
 | 506 | Unfinished Conversation Detection — nedořešené otázky. | ✅ HOTOVO | nedořešené rozhovory: tvoje otázka bez odpovědi / JARVISova otázka bez reakce |
 | 507 | Idle-Time Task Suggestions — vhodné krátké úkoly. | ✅ HOTOVO | what_next s minutes: jen úkoly, které stihneš (kartičky, krátké položky) |
@@ -1091,7 +1091,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 53. Network & Cloud Command Center
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1106,7 +1106,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 714 | Deployment Difference Analyzer — rozdíly nasazení. | ✅ HOTOVO | deploy_diff: přidané / odebrané / změněné soubory a rozdíly konfigurace s maskovanými hesly |
 | 715 | Infrastructure Rollback Rehearsal — cvičná obnova. | ✅ HOTOVO | cvičná obnova: předchozí verze v dočasné kopii, spuštěné testy, postup návratu; pracovní kopie beze změny |
 | 716 | Cloud Backup Receipt Checker — potvrzení záloh. | ✅ HOTOVO | check_backups: stáří poslední zálohy, vynechané, prázdné a podezřele malé zálohy |
-| 717 | Local Network Throughput Tester — propustnost vlastní sítě. | 🟡 ČÁSTEČNĚ | speed_test (internet, ne LAN) |
+| 717 | Local Network Throughput Tester — propustnost vlastní sítě. | ✅ HOTOVO | test rychlosti domácí sítě telefon ↔ PC (stahování, nahrávání, odezva) v mobilní aplikaci; internet dál speed_test |
 | 718 | Jitter Analysis — kolísání latence. | ✅ HOTOVO | kolísání latence (jitter) v perf_check a network_check |
 | 719 | Packet Loss History — ztrátovost paketů. | ✅ HOTOVO | historie ztráty paketů a odezvy linky (každých 10 min, 30 dní, výpadky, nejhorší chvíle) s grafem – netwatch.py, nástroj line_history |
 | 720 | Infrastructure Outage Timeline — historie výpadků. | ✅ HOTOVO | outage_timeline: historie kontrol, dostupnost v %, výpadky s délkou |

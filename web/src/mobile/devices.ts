@@ -192,3 +192,60 @@ export function guestView(c: JarvisClient, guest: any): HTMLElement {
       h("div", { class: "card" }, h("h2", {}, "Pustit"), yt),
       h("p", { class: "help" }, "Jako host ovládáš jen hudbu a hlasitost. Chat, soubory ani nastavení nevidíš.")));
 }
+
+// ---------------------------------------------------------------- 717 home network speed phone ↔ PC
+export function mbps(bytes: number, ms: number): number {
+  return ms > 0 ? Math.round((bytes * 8) / (ms / 1000) / 1e5) / 10 : 0;
+}
+
+export function lanSpeedCard(c: JarvisClient): HTMLElement {
+  const out = h("div", { class: "m-stats" });
+  const btn = h("button", { class: "btn primary", type: "button" }, icon("gauge"), "Změřit") as HTMLButtonElement;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    out.replaceChildren(h("p", { class: "help" }, "Měřím… (asi 10 s, přenese se ~30 MB jen po domácí síti)"));
+    try {
+      const pings: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        const t = performance.now();
+        await fetch(c.url("/api/health"), { cache: "no-store" });
+        pings.push(performance.now() - t);
+      }
+      let t = performance.now();
+      const r = await fetch(c.url("/api/speedtest?mb=20"), { cache: "no-store" });
+      const down = (await r.arrayBuffer()).byteLength;
+      const dMs = performance.now() - t;
+      const body = new Uint8Array(10 << 20);
+      for (let i = 0; i < body.length; i += 4096) body[i] = (i * 31) & 255;
+      t = performance.now();
+      await fetch(c.url("/api/speedtest"), { method: "POST", body, cache: "no-store" });
+      const uMs = performance.now() - t;
+      const ping = Math.round(pings.sort((a, b) => a - b)[2]);
+      const dl = mbps(down, dMs), ul = mbps(body.length, uMs);
+      out.replaceChildren(
+        ...[["Do telefonu", `${dl} Mb/s`], ["Do PC", `${ul} Mb/s`], ["Odezva", `${ping} ms`]].map(([k, v]) => h("div", {}, h("strong", {}, v), h("span", { class: "muted" }, k))),
+        h("p", { class: "help" }, dl < 20 ? "Pomalé – přibliž se k routeru, nebo přepni telefon na Wi-Fi 5 GHz." : dl < 100 ? "Dobré na běžné věci." : "Výborné."));
+    } catch {
+      out.replaceChildren(h("p", { class: "help" }, "Měření se nepovedlo – je telefon ve stejné síti jako PC?"));
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  return h("div", { class: "card" }, h("h2", {}, "Rychlost Wi-Fi k PC"),
+    h("p", { class: "help" }, "Jak rychle si telefon a počítač posílají data po domácí síti (ne internet)."), out, btn);
+}
+
+// ---------------------------------------------------------------- 140 the PC at a glance
+export function pcStatusCard(c: JarvisClient): HTMLElement {
+  const out = h("div", { class: "m-stats" }, h("p", { class: "help" }, "Načítám…"));
+  c.on("system", (s) => {
+    const items: [string, string][] = [["Procesor", `${Math.round(s.cpu_percent ?? 0)} %`], ["Paměť", `${Math.round(s.ram_percent ?? 0)} %`],
+      ["Disk volno", `${s.disk_free_gb ?? "—"} GB`], ["Zapnuto", `${s.uptime_h ?? "—"} h`]];
+    if (s.battery_percent != null) items.push(["Baterie", `${s.battery_percent} %${s.charging ? " ⚡" : ""}`]);
+    out.replaceChildren(...items.map(([k, v]) => h("div", {}, h("strong", {}, v), h("span", { class: "muted" }, k))));
+  });
+  const load = () => c.send("system_get", {});
+  c.on("welcome", load);
+  return h("div", { class: "card" }, h("h2", {}, "Stav PC"), out,
+    h("button", { class: "btn", type: "button", onclick: load }, icon("arrows-clockwise"), "Obnovit"));
+}

@@ -131,9 +131,11 @@ export function buildRescue(client: JarvisClient) {
       perfOut.replaceChildren(
         h("div", { class: "rs-stats" },
           ...[["Procesor", `${s.cpu} %`], ["Paměť", `${s.ram_pct} %`], ["Grafika", typeof s.gpu?.gpu === "number" ? `${s.gpu.gpu} %` : "—"],
+            ["Teplota CPU", typeof s.temp?.cpu_c === "number" ? `${s.temp.cpu_c} °C` : "—"],
             ["Odezva", l.avg_ms != null ? `${l.avg_ms} ms` : "—"], ["Kolísání", l.jitter_ms != null ? `${l.jitter_ms} ms` : "—"], ["Ztráta", l.loss_pct != null ? `${l.loss_pct} %` : "—"]]
             .map(([k, v]) => h("div", {}, h("strong", {}, v), h("span", { class: "muted" }, k)))),
         h("ul", { class: "rs-list" }, ...(m.findings || []).map(finding)),
+        s.temp && s.temp.cpu_c == null && s.temp.hint ? h("p", { class: "help" }, s.temp.hint) : "",
         (s.top_cpu || []).length ? h("p", { class: "muted" }, "Nejnáročnější: " + s.top_cpu.slice(0, 5).map((p: any) => `${p.name} ${p.cpu} %`).join(", ")) : "");
     }
   });

@@ -64,11 +64,12 @@ T 'stopped_auto' { @(Get-CimInstance Win32_Service | Where-Object { $_.StartMode
 T 'scm_events' { @(Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Service Control Manager'; Level=2; StartTime=(Get-Date).AddDays(-7)} -MaxEvents 100 -ErrorAction SilentlyContinue | Select-Object Id, @{n='Time'; e={ $_.TimeCreated.ToString('s') }}, @{n='Text'; e={ ($_.Message -split "`n")[0] }}) }
 T 'deps' { @(Get-CimInstance Win32_Service | Where-Object { $_.StartMode -eq 'Auto' -and $_.State -ne 'Running' -and $_.ExitCode -ne 0 } | Select-Object -First 15 Name | ForEach-Object { $s = Get-Service -Name $_.Name -ErrorAction SilentlyContinue; if ($s) { [pscustomobject]@{ Name = $s.Name; Display = $s.DisplayName; Needs = @($s.ServicesDependedOn | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Display = $_.DisplayName; Status = "$($_.Status)" } }); Waiting = @($s.DependentServices | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Display = $_.DisplayName; Status = "$($_.Status)" } }) } } }) }
 """},
-    "security": {"title": "Bezpečnost", "timeout": 90, "script": r"""
+    "security": {"title": "Bezpečnost", "timeout": 120, "script": r"""
 T 'defender' { Get-MpComputerStatus -ErrorAction Stop | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureAge, @{n='QuickScanAge'; e={ $_.QuickScanAge }}, IsTamperProtected }
 T 'cfa' { (Get-MpPreference -ErrorAction Stop).EnableControlledFolderAccess }
 T 'threats' { @(Get-MpThreatDetection -ErrorAction Stop | Select-Object -First 20 ThreatID, @{n='Time'; e={ $_.InitialDetectionTime.ToString('s') }}, @{n='Resources'; e={ ($_.Resources -join '; ') }}, ActionSuccess) }
 T 'firewall' { @(Get-NetFirewallProfile -ErrorAction Stop | Select-Object Name, Enabled) }
+T 'fw_rules' { @(Get-NetFirewallRule -Direction Inbound -Action Allow -Enabled True -ErrorAction Stop | Where-Object { -not $_.Group -or $_.Group -notlike '@*' } | Select-Object -First 60 | ForEach-Object { $a = $_ | Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue; $pf = $_ | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue; [pscustomobject]@{ Name = $_.DisplayName; Profile = "$($_.Profile)"; Program = "$($a.Program)"; Port = "$($pf.LocalPort)"; Protocol = "$($pf.Protocol)" } }) }
 T 'listening' { @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Select-Object LocalAddress, LocalPort, OwningProcess | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; [pscustomobject]@{ Address = $_.LocalAddress; Port = $_.LocalPort; Process = "$($p.ProcessName)"; Path = "$($p.Path)" } }) }
 T 'startup' { @(Get-CimInstance Win32_StartupCommand | ForEach-Object { $cmd = $_.Command; $exe = if ($cmd -match '^"([^"]+)"') { $Matches[1] } elseif ($cmd -match '^(\S+\.exe)') { $Matches[1] } else { '' }; $sig = if ($exe -and (Test-Path -LiteralPath $exe)) { "$((Get-AuthenticodeSignature -LiteralPath $exe).Status)" } else { 'Unknown' }; [pscustomobject]@{ Name = $_.Name; Command = $cmd; Location = $_.Location; Exe = $exe; Signature = $sig } }) }
 T 'tasks' { @(Get-ScheduledTask -ErrorAction Stop | Where-Object { $_.TaskPath -notlike '\Microsoft\*' -and $_.State -ne 'Disabled' } | Select-Object -First 40 TaskName, TaskPath, @{n='Action'; e={ ($_.Actions | ForEach-Object { $_.Execute }) -join '; ' }}) }
@@ -93,7 +94,8 @@ ALLOWED = {"Get-CimInstance", "Get-WinEvent", "Get-ChildItem", "Get-ItemProperty
            "Get-MpThreatDetection", "Get-NetFirewallProfile", "Get-NetTCPConnection", "Get-Process", "Get-AuthenticodeSignature",
            "Get-ScheduledTask", "Get-HotFix", "Get-NetAdapter", "Get-NetIPConfiguration", "Get-ComputerRestorePoint",
            "Get-Date", "Select-Object", "Where-Object", "Sort-Object", "Group-Object", "ForEach-Object", "ConvertTo-Json",
-           "Test-Path", "Get-PnpDeviceProperty", "Get-Service"}
+           "Test-Path", "Get-PnpDeviceProperty", "Get-Service",
+           "Get-NetFirewallRule", "Get-NetFirewallApplicationFilter", "Get-NetFirewallPortFilter"}
 
 
 def cmdlets(script: str) -> set[str]:
@@ -433,6 +435,28 @@ def _an_services(d: dict) -> list[dict]:
 SUSPICIOUS_DIRS = re.compile(r"\\(appdata\\(local\\temp|roaming)|temp|downloads|stažené soubory|public)\\", re.I)
 
 
+def firewall_findings(rules: list) -> list[dict]:
+    """OMEGA 393: allowed inbound rules added by programs (not Windows' own): a program from Temp / Downloads / AppData
+    allowed in, a rule open on public networks for any port, and a short list of what is let in."""
+    out = []
+    for r in rules:
+        prog = str(r.get("Program") or "")
+        prof = str(r.get("Profile") or "")
+        port = str(r.get("Port") or "")
+        if prog and prog.lower() != "any" and SUSPICIOUS_DIRS.search(prog + "\\"):
+            out.append(F("bad", f"Firewall pouští ze sítě program z podezřelého místa: {r.get('Name')} ({prog}).",
+                         "Pokud ho neznáš, pravidlo vypni (Windows Defender Firewall → Upřesnit nastavení → Příchozí pravidla) a soubor prověř antivirem.",
+                         "Get-NetFirewallRule"))
+        elif ("Public" in prof or prof in ("Any", "")) and port.lower() in ("any", "") and prog.lower() in ("any", ""):
+            out.append(F("warn", f"Pravidlo „{r.get('Name')}“ pouští dovnitř cokoli i ve veřejných sítích.",
+                         "Omez ho na Soukromé sítě nebo na konkrétní port.", "Get-NetFirewallRule"))
+    if rules and not out:
+        names = ", ".join(sorted({str(r.get("Name") or "?")[:40] for r in rules})[:8])
+        out.append(F("info", f"Firewall pouští dovnitř {len(rules)} pravidel od programů (např. {names}).",
+                     "Pokud nějaký program neznáš, pravidlo vypni.", "Get-NetFirewallRule"))
+    return out
+
+
 def _an_security(d: dict) -> list[dict]:
     out = []
     av = d.get("defender") if isinstance(d.get("defender"), dict) and not err(d.get("defender")) else None
@@ -453,6 +477,8 @@ def _an_security(d: dict) -> list[dict]:
     for fw in L(d.get("firewall")):
         if fw.get("Enabled") in (False, 0):
             out.append(F("bad", f"Firewall je vypnutý pro síť typu {fw.get('Name')}.", "Zabezpečení Windows → Brána firewall → zapnout.", "Get-NetFirewallProfile"))
+    for f_ in firewall_findings(L(d.get("fw_rules"))):
+        out.append(f_)
     exposed = [x for x in L(d.get("listening")) if x.get("Address") in ("0.0.0.0", "::") and int(x.get("Port") or 0) not in (135, 139, 445, 5040, 7680)
                and int(x.get("Port") or 0) < 49152]
     if exposed:

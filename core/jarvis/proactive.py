@@ -75,6 +75,28 @@ def routines(rt, weeks: int = 4, min_days: int = 3, min_minutes: float = 5, toda
     return sorted(out, key=lambda x: (-x["days"], x["hour"]))
 
 
+def compose_routine(found: list[dict], when: str = "všední den", hour: int | None = None, span: int = 2) -> dict | None:
+    """OMEGA 504: your apps around one time of day put together into one automation – at the start hour JARVIS opens
+    them in the order you usually do (a "start of the work day" made from what you really do)."""
+    rs = [r for r in found if r["when"] == when]
+    if not rs:
+        return None
+    start = hour if hour is not None else min(r["hour"] for r in rs)
+    block = sorted((r for r in rs if start <= r["hour"] < start + span), key=lambda r: (r["hour"], -r["days"]))
+    if not block:
+        return None
+    apps: list[str] = []
+    for r in block:
+        if r["app"] not in apps:
+            apps.append(r["app"])
+    days = [0, 1, 2, 3, 4] if when == "všední den" else [5, 6]
+    name = f"{'Ranní' if start < 11 else 'Odpolední' if start < 17 else 'Večerní'} rutina ({'všední dny' if days[0] == 0 else 'víkend'})"
+    steps = [{"say": f"Dobré {'ráno' if start < 11 else 'odpoledne' if start < 17 else 'večer'}, otevírám, co touhle dobou obvykle používáš."}]
+    steps += [{"tool": "open_app", "args": {"name": a}} for a in apps[:6]]
+    return {"id": "", "name": name, "enabled": True, "trigger": {"type": "time", "value": f"{start:02d}:00", "text": "", "days": days},
+            "steps": steps, "apps": apps, "hour": start}
+
+
 # ---------------------------------------------------------------------------------------------- 502 deadlines
 def deadline_risks(rt, now: float | None = None) -> list[dict]:
     now = now or time.time()

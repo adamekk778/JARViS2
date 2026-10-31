@@ -34,6 +34,62 @@ $o | ConvertTo-Json -Compress
 """
 
 
+TEMP_PS = r"""
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$o = @{ sensors = @() }
+foreach ($ns in 'root\LibreHardwareMonitor', 'root\OpenHardwareMonitor') {
+  try {
+    $s = Get-CimInstance -Namespace $ns -ClassName Sensor -ErrorAction Stop | Where-Object { $_.SensorType -eq 'Temperature' }
+    foreach ($x in $s) { $o.sensors += @{ name = $x.Name; parent = $x.Parent; value = [math]::Round($x.Value, 1); source = $ns } }
+    if ($o.sensors.Count) { break }
+  } catch {}
+}
+if (-not $o.sensors.Count) {
+  try { Get-CimInstance -Namespace root\wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | ForEach-Object {
+    $o.sensors += @{ name = "ACPI $($_.InstanceName)"; parent = 'acpi'; value = [math]::Round($_.CurrentTemperature / 10 - 273.15, 1); source = 'acpi' } } } catch { $o.acpi_error = $_.Exception.Message }
+}
+$o | ConvertTo-Json -Depth 4 -Compress
+"""
+
+
+def parse_temps(d: dict) -> dict:
+    """OMEGA 022 / 297: the CPU temperature when something reports it – LibreHardwareMonitor / OpenHardwareMonitor running
+    (exact per-core values) or the ACPI thermal zone (the board's estimate, often near the CPU)."""
+    sensors = d.get("sensors") or []
+    if isinstance(sensors, dict):
+        sensors = [sensors]
+    vals = [x for x in sensors if isinstance(x.get("value"), (int, float)) and 0 < x["value"] < 130]
+    cpu = [x for x in vals if any(k in str(x.get("name", "")).lower() for k in ("cpu", "package", "core", "tctl", "tdie"))]
+    if cpu:
+        pkg = next((x for x in cpu if any(k in str(x["name"]).lower() for k in ("package", "tctl", "tdie"))), None)
+        v = pkg["value"] if pkg else max(x["value"] for x in cpu)
+        return {"cpu_c": v, "source": "LibreHardwareMonitor" if "Libre" in str(cpu[0].get("source")) else "OpenHardwareMonitor", "exact": True,
+                "sensors": len(vals)}
+    acpi = [x for x in vals if x.get("source") == "acpi"]
+    if acpi:
+        return {"cpu_c": max(x["value"] for x in acpi), "source": "ACPI (odhad desky)", "exact": False, "sensors": len(acpi)}
+    return {"cpu_c": None, "source": "", "exact": False,
+            "hint": "Windows teplotu procesoru sám nehlásí. Stačí spustit zdarma LibreHardwareMonitor (Options → Run On Windows Startup) a JARVIS ji pak čte."}
+
+
+def cpu_temp() -> dict:
+    if sys.platform != "win32":
+        try:
+            t = psutil.sensors_temperatures()                     # Linux / macOS where available
+            for k in ("coretemp", "k10temp", "cpu_thermal", "zenpower"):
+                if t.get(k):
+                    return {"cpu_c": round(max(x.current for x in t[k]), 1), "source": k, "exact": True, "sensors": len(t[k])}
+        except (AttributeError, OSError):
+            pass
+        return parse_temps({})
+    enc = base64.b64encode(TEMP_PS.encode("utf-16-le")).decode()
+    _code, out, _err = run_quiet(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", enc], 30)
+    try:
+        return parse_temps(json.loads(out[out.find("{"):]) if "{" in out else {})
+    except ValueError:
+        return parse_temps({})
+
+
 def gpu_sample() -> dict:
     if sys.platform != "win32":
         return {"error": "jen na Windows"}
@@ -101,6 +157,7 @@ def sample(seconds: float = 5.0, gpu: bool = True) -> dict:
     }
     if gpu:
         out["gpu"] = gpu_sample()
+        out["temp"] = cpu_temp()
     return out
 
 
@@ -124,6 +181,13 @@ def bottlenecks(s: dict) -> list[dict]:
         if v.get("busy_pct") and v["busy_pct"] >= 90:
             out.append(F("warn", f"Disk {k} je vytížený na {v['busy_pct']} % (čtení {v['read_mb_s']} MB/s, zápis {v['write_mb_s']} MB/s).",
                          "Něco intenzivně pracuje s diskem (aktualizace, antivir, indexování, synchronizace).", "psutil.disk_io_counters"))
+    t = s.get("temp") or {}
+    if isinstance(t.get("cpu_c"), (int, float)):
+        c = t["cpu_c"]
+        if c >= 90:
+            out.append(F("bad", f"Procesor je přehřátý: {c} °C ({t['source']}).", "Vyčisti prach z chladiče a větráků, vyměň teplovodivou pastu; notebook nedávej na měkkou podložku.", t["source"]))
+        elif c >= 80:
+            out.append(F("warn", f"Procesor je hodně teplý: {c} °C ({t['source']}).", "Zkontroluj chlazení a prach.", t["source"]))
     g = s.get("gpu") or {}
     if isinstance(g.get("gpu"), (int, float)):
         if g["gpu"] >= 95 and s["cpu"] < 70:

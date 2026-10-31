@@ -124,6 +124,35 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Bez náhledu")
         return FileResponse(p)
 
+    # OMEGA 717: the speed of the home network between the phone and this PC (paired devices only)
+    @app.get("/api/speedtest")
+    async def speedtest_down(request: Request, mb: int = 20):
+        import os
+
+        from fastapi.responses import StreamingResponse
+
+        require_auth(request)
+        n = max(1, min(100, int(mb)))
+        block = os.urandom(1 << 20)                  # random → nothing on the way can compress it
+
+        async def gen():
+            for _ in range(n):
+                yield block
+        return StreamingResponse(gen(), media_type="application/octet-stream",
+                                 headers={"Cache-Control": "no-store", "Content-Length": str(n << 20)})
+
+    @app.post("/api/speedtest")
+    async def speedtest_up(request: Request):
+        import time as _t
+
+        require_auth(request)
+        t0, total = _t.perf_counter(), 0
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > 100 << 20:
+                raise HTTPException(413, "Moc dat")
+        return {"bytes": total, "seconds": round(_t.perf_counter() - t0, 3)}
+
     @app.get("/api/pc_file")
     async def pc_file(request: Request, root: str, path: str):
         """OMEGA 415: a file from a folder shared with the phone (read-only; nothing outside the shared folders)."""

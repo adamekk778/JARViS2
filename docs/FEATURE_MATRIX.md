@@ -16,7 +16,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_python` | 766, 768, P5.12, P11.10 |
-| `run_tests` | 058, 062, 334, P5.08 |
 | `sensor_chart` | 163, 472, 477, 486 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `ask_models` | 006, 007, 204 |
@@ -33,6 +32,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
 | `perf_check` | 063, 301, 718 |
+| `run_tests` | 058, 062, P5.08 |
 | `test_wave` | 041, 152, 177 |
 | `tests/test_omega.py` | 002, 025, 076 |
 | `tools/base.py` | 183, 203, 682 |
@@ -197,15 +197,19 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `compare_groups` | 779 |
 | `compare_offers` | 172 |
 | `competitor_watch` | 445 |
+| `compose_routine` | 504 |
 | `confirm_info` | 219 |
 | `connector_from_curl` | 600 |
 | `connector_sandbox` | 593 |
 | `contact_card` | 553 |
+| `container_setup` | 342 |
 | `contrast_check` | 348 |
 | `convert_file` | 324 |
 | `copy_file` | P2.11 |
 | `corrupt_test_data` | 643 |
 | `corruption_test` | 643 |
+| `coverage.py` | 334 |
+| `cpu_temp` | 022 |
 | `crash_dumps` | 015 |
 | `crashdump.py` | 015 |
 | `create_restore_point` | 020 |
@@ -252,8 +256,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `duck_music` | 363 |
 | `economy_sim` | 649 |
 | `email_search` | 551 |
-| `environment_compare` | 342 |
-| `environment_snapshot` | 342 |
 | `estimate_effort` | 503 |
 | `event_log` | 599 |
 | `event_replay` | 599 |
@@ -283,6 +285,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_similar_image` | 283 |
 | `find_similar_photos` | 318 |
 | `find_workflow` | 524 |
+| `firewall_findings` | 393 |
 | `flaky_tests` | 636 |
 | `flashcards_from` | 112 |
 | `focus_mode` | 234 |
@@ -353,6 +356,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `match_attachments` | 545 |
 | `match_shot` | 371 |
 | `mcp_client` | 048 |
+| `measure_coverage` | 334 |
 | `measure_on_photo` | 482 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
@@ -509,7 +513,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `task_plan` | 201 |
 | `task_steps` | 216 |
 | `test_agent` | 176 |
-| `test_coverage` | 334 |
 | `test_model_accuracy` | 582 |
 | `test_regressions` | 339 |
 | `test_tasks` | 176 |
