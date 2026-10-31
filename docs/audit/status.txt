@@ -1112,3 +1112,26 @@
 565 | HOTOVO | kalendář milníků: všechny termíny dopředu do jednoho .ics pro Google / Outlook / telefon
 446 | HOTOVO | marketingový kalendář: témata rozložená do týdnů na kanály + .ics s připomenutím (content_calendar)
 175 | HOTOVO | týdenní report práce: dokončené / nedokončené mise, schůzky, čas v aplikacích, diktování, termíny na příští týden – soubor (weekly_report)
+
+# Vlna F5c–d: vývoj, soubory, barvy, čidla, učení, výzkum
+050 | HOTOVO | changelog: release_notes z commitů + update_changelog zapíše záznam verze na začátek CHANGELOG.md (se souhlasem)
+058 | HOTOVO | verify_build: po změnách sestaví projekt a spustí kontroly a testy (npm/pytest/dotnet/cargo), řekne první, co neprošlo
+060 | HOTOVO | package_release: dist/<projekt>-<verze>.zip bez .git / node_modules / .env + RELEASE.md + SHA256SUMS (nic nepublikuje)
+626 | HOTOVO | ci_setup: GitHub Actions pro projekt (Windows + Linux, instalace, build, testy, verze z PC); vlastní CI JARVISe dál
+618 | HOTOVO | record_decision: číslované ADR v docs/adr (kontext, rozhodnutí, důsledky, stav)
+345 | HOTOVO | code_sandbox: příkaz v jednorázové kopii projektu, výstup a seznam souborů, které by se změnily; originál beze změny
+744 | HOTOVO | Mochi se zatváří zmateně („?“, přimhouřené oko), když selže build / testy (run_tests, verify_build, code_sandbox…)
+316 | HOTOVO | find_by_meaning: hledání podle významu s místním modelem embeddingů (Ollama, uložené vektory podle změny souboru), jinak podle profilu písmen (zvládá české koncovky)
+328 | HOTOVO | automatické verze: ve zvolených složkách se po každém uložení souboru uloží verze (50 na soubor), obnova restore_file_version
+133 | HOTOVO | palety: color_theme (škály, světlý/tmavý režim, WCAG) + paleta z fotky (k-means, podíly, názvy barev)
+282 | HOTOVO | color_info: barva z kódu nebo z bodu obrázku/snímku – český název, RGB, kontrast s bílou a černou, jaký text na ní
+132 | HOTOVO | make_thumbnail: náhled 1280×720 z fotky nebo přechodu, nadpis ve dvou řádcích s obrysem a tmavým pruhem
+163 | HOTOVO | sensor_check: zamrzlá hodnota, výpadky, mimo rozsah, špičky, šum, drift – z hodnot nebo CSV
+486 | HOTOVO | sensor_fuse: víc čidel téže veličiny → jeden odhad vážený jejich šumem (odhad z dat nebo zadaný), výpadky jednoho nevadí
+766 | HOTOVO | solve_equation: lineární a kvadratické rovnice krok za krokem (převod, diskriminant, kořeny, zkouška / Vièta)
+106 | HOTOVO | výuka postupů: solve_equation píše každý krok + check_math_steps najde chybný krok v tvém výpočtu
+768 | HOTOVO | run_notebook: sešit .ipynb buňku po buňce bez Jupyteru (sdílený stav), kopie s výstupy, která buňka spadla (se souhlasem)
+464 | HOTOVO | concept_map: pojmy z textu (český stemming) a jejich souvislosti podle společného výskytu, mapa SVG
+386 | HOTOVO | compare_articles: shoda pojmů, co je jen v jednom, čísla, která se liší, stejná tvrzení řečená jinak
+390 | HOTOVO | research_to_tasks: věty „je potřeba…“, „doporučuji…“ → úkoly, připne je na požádání
+452 | HOTOVO | learning_schedule: témata podle předpokladů (známé přeskočí) rozložená do dnů s opakováním po 1, 3 a 7 dnech

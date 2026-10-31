@@ -42,7 +42,7 @@ export const SERVER_TYPES = [
   "diagnostics", "diagnostics_file",
   "dictation", "dictation_data", "recap", "notetaker", "notes", "note", "render",
   "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot", "selection", "selection_result", "mail_status", "mail_new", "calendar",
-  "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
+  "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "versions_saved", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
   "rescue", "perf", "netwatch", "winupd", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
   "learn", "learn_card", "learn_result",
   "app_context", "pins", "workspaces", "workspace_result",

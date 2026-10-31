@@ -24,7 +24,8 @@ THANKS = re.compile(r"\b(díky|dík|děkuj\w*|dekuj\w*|super|skvěl\w*|skvel\w*|
 STATE_MOOD = {"listening": "listening", "thinking": "thinking", "acting": "working", "speaking": "speaking",
               "waiting": "waiting"}
 # OMEGA 72 / 73 / 74 / 81 / 738 / 746 / 747 / 749 / 750: short reactions layered over the mood (the UI plays them once)
-REACTION_TTL = {"stretch": 3.0, "volume": 1.6, "mute": 2.4, "unmute": 1.6, "plug": 2.6, "unplug": 2.2, "switch": 2.2, "copy": 2.5,
+BUILD_TOOLS = {"run_tests", "verify_build", "measure_coverage", "code_sandbox", "mutation_test"}
+REACTION_TTL = {"confused": 4.0, "stretch": 3.0, "volume": 1.6, "mute": 2.4, "unmute": 1.6, "plug": 2.6, "unplug": 2.2, "switch": 2.2, "copy": 2.5,
                 "toy": 6.0, "easter": 3.0, "custom": 3.0}
 COPY_TOOLS = {"copy_file", "move_file", "backup_folder", "organize_media", "organize_downloads", "sort_folder", "make_zip",
               "extract_archive", "rename_files", "save_attachment"}
@@ -178,6 +179,8 @@ class MoodEngine:
                 self._custom("message", text)
         elif t == "assistant_done":
             tools = m.get("tools") or []
+            if any(not x.get("ok") and x.get("name") in BUILD_TOOLS for x in tools):
+                self.react("confused", {"tool": next(x.get("name") for x in tools if not x.get("ok") and x.get("name") in BUILD_TOOLS)})
             if any(not x.get("ok") for x in tools):
                 self._flash("error", next((x.get("summary", "") for x in tools if not x.get("ok")), ""))
             elif tools:

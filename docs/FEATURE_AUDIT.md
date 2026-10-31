@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 645 | 88 |
-| 🟡 ČÁSTEČNĚ | 139 | 62 |
+| ✅ HOTOVO | 666 | 88 |
+| 🟡 ČÁSTEČNĚ | 118 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -95,7 +95,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 05. Ultimate Developer
 
-✅ 9 · 🟡 3 · 🔌 3
+✅ 12 · 🔌 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -103,7 +103,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 047 | Graf závislostí mezi soubory. | ✅ HOTOVO | graf závislostí mezi soubory a moduly (module_graph: importy Python/JS, cykly, vrstvy – vlna 13) |
 | 048 | Vytváření GitHub issues. | 🔌 VYŽADUJE_INTEGRACI | přes MCP server GitHubu (integrations/mcp_client) |
 | 049 | AI review pull requestů. | 🔌 VYŽADUJE_INTEGRACI | přes Claude Code |
-| 050 | Automatický changelog. | 🟡 ČÁSTEČNĚ | git_log + AI shrnutí (tools/dev.py) |
+| 050 | Automatický changelog. | ✅ HOTOVO | changelog: release_notes z commitů + update_changelog zapíše záznam verze na začátek CHANGELOG.md (se souhlasem) |
 | 051 | Generování DB migrací. | ✅ HOTOVO | generování DB migrací (SQLite) z rozdílu struktur: nové tabulky, sloupce, indexy; mazání jen zakomentované; ověřeno spuštěním |
 | 052 | Detekce chybných DB dotazů. | ✅ HOTOVO | chybné / pomalé dotazy: plán dotazu s procházením celé tabulky a návrhem indexu, měření pomalých dotazů (vlna 12) |
 | 053 | Výkonnostní analýza backendu. | ✅ HOTOVO | výkonnostní analýza backendu: nejpomalejší a nejvytíženější endpointy z access logu (p50/p95, chybovost), měření místních adres |
@@ -111,9 +111,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 055 | SEO audit a optimalizace webů. | ✅ HOTOVO | seo_audit: projde web (robots.txt respektuje), titulky, popisy, H1, alt texty, málo textu, noindex, lang, og:, rychlost, nefunkční odkazy, duplicity, sitemap |
 | 056 | Příprava testovacího deploymentu. | ✅ HOTOVO | příprava testovacího nasazení: Dockerfile, compose, .env šablona jen s názvy proměnných, postup; zápis po potvrzení, nic nepřepíše |
 | 057 | Bezpečné zátěžové testování. | ✅ HOTOVO | bezpečné zátěžové testy jen na vlastním počítači / místní síti (load_test, vlna 14) |
-| 058 | Ověřování buildu po změnách. | 🟡 ČÁSTEČNĚ | run_tests (tools/dev.py) |
+| 058 | Ověřování buildu po změnách. | ✅ HOTOVO | verify_build: po změnách sestaví projekt a spustí kontroly a testy (npm/pytest/dotnet/cargo), řekne první, co neprošlo |
 | 059 | Vizuální porovnávání UI. | ✅ HOTOVO | vizuální porovnání UI: rozdíl dvou snímků s vyznačenými oblastmi (visual_diff, vlna 18) |
-| 060 | Příprava release balíčků. | 🟡 ČÁSTEČNĚ | vlastní CI JARVISe staví EXE/APK; obecně pro cizí projekty chybí |
+| 060 | Příprava release balíčků. | ✅ HOTOVO | package_release: dist/<projekt>-<verze>.zip bez .git / node_modules / .env + RELEASE.md + SHA256SUMS (nic nepublikuje) |
 
 ## 06. Agent Army
 
@@ -190,11 +190,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 10. JARVIS Teacher
 
-✅ 9 · 🟡 1
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 106 | Výuka matematických postupů. | 🟡 ČÁSTEČNĚ | check_math_steps najde chybný krok výpočtu (skutečný výpočet); vysvětlení postupu dělá AI v chatu |
+| 106 | Výuka matematických postupů. | ✅ HOTOVO | výuka postupů: solve_equation píše každý krok + check_math_steps najde chybný krok v tvém výpočtu |
 | 107 | Procvičovací testy. | ✅ HOTOVO | quiz_from: procvičovací test z dokumentu (výběr i otevřené otázky) |
 | 108 | Detekce slabých míst při učení. | ✅ HOTOVO | learning_weak_spots: nejslabší témata, druhy chyb, zapomínané kartičky |
 | 109 | Flashcards. | ✅ HOTOVO | kartičky: přidání, z dokumentu, opakování na stránce Učení i hlasem |
@@ -224,7 +224,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 12. Creative Studio
 
-✅ 7 · 🟡 3
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -234,8 +234,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 129 | Synchronizace titulků. | ✅ HOTOVO | sync_subtitles: posun i postupné natažení titulků podle řeči (korelace aktivity řeči a titulků, dvě poloviny) |
 | 130 | Odšumění zvuku. | ✅ HOTOVO | clean_speech (vlna 18) + filtr hluku v hlasové smyčce (vlna 28) |
 | 131 | Výběr krátkých klipů. | ✅ HOTOVO | extract_clips: nejživější momenty jako samostatná krátká videa (ve frontě) |
-| 132 | Náhledové obrázky. | 🟡 ČÁSTEČNĚ | generate_image |
-| 133 | Barevné palety. | 🟡 ČÁSTEČNĚ | palety přes AI chat |
+| 132 | Náhledové obrázky. | ✅ HOTOVO | make_thumbnail: náhled 1280×720 z fotky nebo přechodu, nadpis ve dvou řádcích s obrysem a tmavým pruhem |
+| 133 | Barevné palety. | ✅ HOTOVO | palety: color_theme (škály, světlý/tmavý režim, WCAG) + paleta z fotky (k-means, podíly, názvy barev) |
 | 134 | Animace z grafických prvků. | ✅ HOTOVO | animate_elements: logo, obrázky a texty s příjezdem, zvětšením, vyblednutím → MP4 |
 | 135 | Exporty pro sociální sítě. | ✅ HOTOVO | social_formats (obrázky, vlna 26) + reframe_video (video na 9:16 / 1:1 / 4:5) |
 
@@ -275,7 +275,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 15. Hardware Lab
 
-✅ 7 · 🟡 3
+✅ 8 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -286,7 +286,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 160 | Výpočty a kontrola součástek. | ✅ HOTOVO | parts_compatibility (napájení, logické úrovně, proud z pinů, odběr) + circuit_calc (vlna 16) + bill_of_materials |
 | 161 | Sériový port a data. | ✅ HOTOVO | serial_monitor: porty, čtení, odeslání řádku, čísla z výpisu |
 | 162 | Jednoduché PCB návrhy. | 🟡 ČÁSTEČNĚ | šířka cesty pro proud (IPC-2221) a odhad velikosti desky; automatické rozmístění a routování ne |
-| 163 | Diagnostika senzorů. | 🟡 ČÁSTEČNĚ | data senzoru: serial_monitor + sensor_chart (min / max / průměr, graf); automatické rozpoznání vadného čidla ne |
+| 163 | Diagnostika senzorů. | ✅ HOTOVO | sensor_check: zamrzlá hodnota, výpadky, mimo rozsah, špičky, šum, drift – z hodnot nebo CSV |
 | 164 | Firmware projektový management. | ✅ HOTOVO | firmwarové projekty: deska, port, verze (patch/minor/major), historie sestavení s využitím flash a RAM |
 | 165 | Přehled IoT zařízení. | 🟡 ČÁSTEČNĚ | Home Assistant + zařízení v síti (home.py, network.py) |
 
@@ -453,7 +453,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 24. Advanced Vision
 
-✅ 10 · 🟡 5
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -468,7 +468,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 279 | Visual Error Localization — místo chyby. | ✅ HOTOVO | lokalizace chyby na obrazovce: červená hlášení a ikony zakroužkované s čísly a přečtené AI |
 | 280 | Scene Description — popis scény. | 🟡 ČÁSTEČNĚ | popis obrazovky přes vision model |
 | 281 | Camera Measurement Helper — měření s kalibrací. | ✅ HOTOVO | měření z fotky podle reference (karta, A4, mince): předměty na jednobarevném podkladu, focení shora |
-| 282 | Color Inspector — čtení barev. | 🟡 ČÁSTEČNĚ | přes vision model |
+| 282 | Color Inspector — čtení barev. | ✅ HOTOVO | color_info: barva z kódu nebo z bodu obrázku/snímku – český název, RGB, kontrast s bílou a černou, jaký text na ní |
 | 283 | Visual Similarity Search — podobné obrázky. | ✅ HOTOVO | find_similar_image: podobné obrázky k zadanému ve složce (dHash, i zmenšené / překódované) |
 | 284 | Motion Analysis — pohybová analýza. | ✅ HOTOVO | analýza pohybu ve videu: časy největšího pohybu, podíl klidu, teplotní mapa míst |
 | 285 | Vision Privacy Masking — maskování citlivých oblastí. | ✅ HOTOVO | maskování citlivých oken: správci hesel a bankovnictví se před odesláním snímku obrazovky AI zakryjí (vlastní slova v nastavení) |
@@ -519,11 +519,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 27. Intelligent File Universe
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 316 | Semantic File Search — hledání podle významu. | 🟡 ČÁSTEČNĚ | find_in_files hledá v textu PDF/Word/txt podle slov; hledání podle významu (embeddingy) chybí |
+| 316 | Semantic File Search — hledání podle významu. | ✅ HOTOVO | find_by_meaning: hledání podle významu s místním modelem embeddingů (Ollama, uložené vektory podle změny souboru), jinak podle profilu písmen (zvládá české koncovky) |
 | 317 | Duplicate Detection — duplicity souborů. | ✅ HOTOVO | find_duplicates / remove_duplicates: stejný obsah (SHA-256), ponechá nejstarší, jen do koše, ověří ponechanou kopii |
 | 318 | Similar Image Finder — podobné snímky. | ✅ HOTOVO | find_similar_photos: rozdílový hash – najde zmenšené, překomprimované a upravené kopie |
 | 319 | Document Classification — třídění. | ✅ HOTOVO | sort_documents: faktury, smlouvy, výpisy, úřady, zdraví, práce, pojištění, účtenky, škola podle obsahu, jinak podle typu; jde vrátit |
@@ -535,13 +535,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 325 | Bulk Rename Planner — hromadné názvy. | ✅ HOTOVO | rename_files: vzor s datem pořízení, pořadím, najdi/nahraď; náhled, dvoufázové přejmenování, undo_rename |
 | 326 | Metadata Cleaner — čištění metadat. | ✅ HOTOVO | file_metadata / clean_metadata: GPS, fotoaparát, autor, program z fotek, Wordu a PDF; ověří výsledek |
 | 327 | Folder Size Explorer — využití místa. | ✅ HOTOVO | storage_report (co zabírá místo) |
-| 328 | Automatic Version Snapshots — verzování souborů. | 🟡 ČÁSTEČNĚ | save_file_version / file_versions / restore_file_version (otisk, 50 verzí); verze se uloží i před přepsáním; automatické sledování změn chybí |
+| 328 | Automatic Version Snapshots — verzování souborů. | ✅ HOTOVO | automatické verze: ve zvolených složkách se po každém uložení souboru uloží verze (50 na soubor), obnova restore_file_version |
 | 329 | File Integrity Checker — hash/integrita. | ✅ HOTOVO | folder_fingerprint / folder_check: co se změnilo, chybí, přibylo (SHA-256) |
 | 330 | Intelligent Backup Selection — výběr záloh. | ✅ HOTOVO | backup_plan (co zálohovat první) + backup_folder (jen nové/změněné, ověření SHA-256) |
 
 ## 28. Developer God Mode
 
-✅ 13 · 🟡 1 · 🔌 1
+✅ 14 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -559,7 +559,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 342 | Environment Reproducer — reprodukovatelné prostředí. | ✅ HOTOVO | container_setup: Dockerfile, .dockerignore a devcontainer.json se stejnou verzí Pythonu / Node / .NET jako na PC (náhled, zápis se souhlasem, nepřepisuje) |
 | 343 | Automated Release Notes — release notes. | ✅ HOTOVO | release_notes: commity od posledního tagu podle typu (i české zprávy), Markdown |
 | 344 | Feature Flag Manager — přepínače funkcí. | ✅ HOTOVO | feature_flags (stav, použití v kódu, nepoužívané, nedefinované) + set_feature_flag (se záchytným bodem) |
-| 345 | Code Experiment Sandbox — experimentální kód. | 🟡 ČÁSTEČNĚ | záchytné body + Claude Code |
+| 345 | Code Experiment Sandbox — experimentální kód. | ✅ HOTOVO | code_sandbox: příkaz v jednorázové kopii projektu, výstup a seznam souborů, které by se změnily; originál beze změny |
 
 ## 29. AI Design Studio
 
@@ -607,7 +607,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 12 · 🟡 3
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -621,11 +621,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
 | 384 | Competitor Feature Comparison — srovnání konkurence. | ✅ HOTOVO | feature_matrix: které vlastnosti / služby zmiňuje který web konkurence, co má jen jeden, co komu chybí |
 | 385 | Search Query Optimizer — vyhledávací strategie. | ✅ HOTOVO | lepší vyhledávací dotazy: chybové kódy v uvozovkách, fráze, OR synonyma, filetype:, site:reddit / gov.cz |
-| 386 | Article Comparison — srovnání článků. | 🟡 ČÁSTEČNĚ | přes AI |
+| 386 | Article Comparison — srovnání článků. | ✅ HOTOVO | compare_articles: shoda pojmů, co je jen v jednom, čísla, která se liší, stejná tvrzení řečená jinak |
 | 387 | Domain Health Inspector — DNS/TLS/dostupnost. | ✅ HOTOVO | zdraví domény: DNS, e-mailové záznamy, TLS certifikát, dostupnost (hosting_health, vlna 22) |
 | 388 | Website Performance Audit — výkon webů. | ✅ HOTOVO | website_audit: rychlost, velikost, komprese, cache, obrázky bez rozměrů, počet skriptů |
 | 389 | Web Content Structure Analyzer — struktura obsahu. | ✅ HOTOVO | website_audit: titulek, popis, h1, viewport, og:title, jazyk, osnova nadpisů |
-| 390 | Research-to-Action — závěry na úkoly. | 🟡 ČÁSTEČNĚ | závěry → úkoly přes AI |
+| 390 | Research-to-Action — závěry na úkoly. | ✅ HOTOVO | research_to_tasks: věty „je potřeba…“, „doporučuji…“ → úkoly, připne je na požádání |
 
 ## 32. Cybersecurity Center
 
@@ -717,12 +717,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 36. Learning Lab
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 451 | Adaptive Difficulty — adaptivní náročnost. | ✅ HOTOVO | adaptivní obtížnost i u ústního zkoušení a dalšího procvičování podle témat (3 dobré za sebou → těžší, 2 slabé ze 3 → lehčí, úspěšnost) – learning.adaptive_level |
-| 452 | Learning Path Builder — studijní cesta. | 🟡 ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan |
+| 452 | Learning Path Builder — studijní cesta. | ✅ HOTOVO | learning_schedule: témata podle předpokladů (známé přeskočí) rozložená do dnů s opakováním po 1, 3 a 7 dnech |
 | 453 | Knowledge Prerequisite Map — předpoklady učiva. | ✅ HOTOVO | learning_path: mapa předpokladů → pořadí učení k cíli, přeskočí známé, odhalí kruhy a nedefinovaná témata |
 | 454 | Spaced Repetition Engine — časované opakování. | ✅ HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní) |
 | 455 | Mistake Classification — druhy chyb. | ✅ HOTOVO | druh chyby u každé odpovědi (nepochopení, chybějící znalost, početní, nepozornost, neúplná) |
@@ -734,7 +734,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 461 | Study Time Analytics — metriky učení. | ✅ HOTOVO | study_stats: opakování, úspěšnost, odpovědi, dny v řadě |
 | 462 | Document-to-Quiz — test z dokumentu. | ✅ HOTOVO | Document-to-Quiz |
 | 463 | Exam Countdown Planner — plán před zkouškou. | ✅ HOTOVO | Exam Countdown Planner |
-| 464 | Concept Connection Map — vztahy konceptů. | 🟡 ČÁSTEČNĚ | souvislosti mezi pojmy v myšlenkové mapě |
+| 464 | Concept Connection Map — vztahy konceptů. | ✅ HOTOVO | concept_map: pojmy z textu (český stemming) a jejich souvislosti podle společného výskytu, mapa SVG |
 | 465 | Project-Based Learning — učení projekty. | ✅ HOTOVO | learning_project: projekt podle cíle (web, Python, Arduino, Excel, hra) s 5 kroky – co se naučit a jak poznat hotovo, sledování postupu, pojmy do kartiček |
 
 ## 37. Engineering & Robotics
@@ -761,7 +761,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 38. Iron Man Experimental
 
-✅ 3 · 🟡 8 · 🗓️ 4
+✅ 4 · 🟡 7 · 🗓️ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -770,7 +770,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 483 | Spatial Voice Commands — hlas v prostorové UI. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 484 | 3D Exploded View — rozložené modely. | ✅ HOTOVO | exploded_view: rozložený pohled na model z Blenderu – díly odsunuté od středu sestavy, vyrenderovaný obrázek (bridges.blender_exploded) |
 | 485 | Mechanical Assembly Guide — montážní návody. | ✅ HOTOVO | assembly_guide: montážní návod z modelu – díly odspodu jeden po druhém, obrázek po každém kroku, HTML návod; navazuje dílenský režim |
-| 486 | Environmental Sensor Fusion — data více senzorů. | 🟡 ČÁSTEČNĚ | grafy z čidel přes sériovou linku (serial_monitor, sensor_chart); spojování víc čidel do jednoho modelu ne |
+| 486 | Environmental Sensor Fusion — data více senzorů. | ✅ HOTOVO | sensor_fuse: víc čidel téže veličiny → jeden odhad vážený jejich šumem (odhad z dat nebo zadaný), výpadky jednoho nevadí |
 | 487 | Smart Glasses Companion — chytré brýle. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 488 | Virtual Engineering Table — virtuální pracovní stůl. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 489 | Robot Fleet Dashboard — řízení flotily. | 🗓️ PLÁNOVÁNO | vize, M8 |
@@ -959,13 +959,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 47. Autonomous Software Factory
 
-✅ 11 · 🟡 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 616 | Requirements Extractor — záměr na požadavky. | ✅ HOTOVO | requirements_from_idea: funkční / nefunkční požadavky, otázky, mimo rozsah (AI) + deterministická kontrola mezer a vágních slov, Markdown |
 | 617 | Acceptance Criteria Generator — akceptační kritéria. | ✅ HOTOVO | akceptační kritéria Given/When/Then, každý požadavek musí mít své; .feature soubor pro Cucumber / behave |
-| 618 | Architecture Decision Records — ADR. | 🟡 ČÁSTEČNĚ | docs/DECISIONS.md |
+| 618 | Architecture Decision Records — ADR. | ✅ HOTOVO | record_decision: číslované ADR v docs/adr (kontext, rozhodnutí, důsledky, stav) |
 | 619 | Monorepo Organizer — více aplikací. | ✅ HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi |
 | 620 | SDK Generator — klientské SDK. | ✅ HOTOVO | generate_api_client: SDK z OpenAPI v Pythonu (httpx, ověřeno překladem a voláním mock serveru) a TypeScriptu (fetch) |
 | 621 | Mock Server Builder — testovací server. | ✅ HOTOVO | mock_server_start / stop: odpovědi z ukázek nebo ze schématu, 400 s důvody u špatného těla, 404/405, záznam požadavků |
@@ -973,7 +973,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 623 | Automated Rollback Planner — návrat verze. | ✅ HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky |
 | 624 | Software Bill of Materials — SBOM. | ✅ HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením |
 | 625 | Supply Chain Inspector — rizika knihoven. | ✅ HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce |
-| 626 | CI Pipeline Designer — CI/CD. | 🟡 ČÁSTEČNĚ | vlastní CI (.github/workflows/build.yml) |
+| 626 | CI Pipeline Designer — CI/CD. | ✅ HOTOVO | ci_setup: GitHub Actions pro projekt (Windows + Linux, instalace, build, testy, verze z PC); vlastní CI JARVISe dál |
 | 627 | Release Compatibility Checker — kompatibilita vydání. | ✅ HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů |
 | 628 | Background Job Inspector — worker jobs. | ✅ HOTOVO | background_jobs: Plánovač úloh Windows (výsledek, zmeškané a nespouštěné úlohy) + rutiny JARVISe, které neproběhly |
 | 629 | Mobile Deep-Link Tester — deep links. | ✅ HOTOVO | check_app_links: assetlinks.json a apple-app-site-association – formát, otisky, Content-Type, přesměrování, otevře se cesta v aplikaci |
@@ -1135,7 +1135,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 55. Mochi Reactive Companion
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1147,7 +1147,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 741 | Ambient Light Adaptation — adaptace jasu. | 🟡 ČÁSTEČNĚ | v noci tlumenější záře; skutečný senzor okolního světla se nečte |
 | 742 | Accessibility Animation Mode — omezený pohyb. | ✅ HOTOVO | omezení animací |
 | 743 | Soft Body Physics — pružná fyzika. | ✅ HOTOVO | pružné tělo postavičky: tlumená pružina – po dopadu, šťouchnutí a změně nálady se zhoupne a usadí |
-| 744 | Code Error Confusion — reakce na chybu buildu. | 🟡 ČÁSTEČNĚ | nálada chyba při selhání |
+| 744 | Code Error Confusion — reakce na chybu buildu. | ✅ HOTOVO | Mochi se zatváří zmateně („?“, přimhouřené oko), když selže build / testy (run_tests, verify_build, code_sandbox…) |
 | 745 | Test Success Celebration — oslava testu. | ✅ HOTOVO | radost po ověřené misi |
 | 746 | Rare Easter Eggs — překvapivé animace. | ✅ HOTOVO | velikonoční vajíčka: „barrel roll“, „smysl života“ (42), „mrkni“, „žongluj“ + vzácná náhodná překvapení |
 | 747 | Idle Toys — hračky při nečinnosti. | ✅ HOTOVO | hračky při nečinnosti (míč, jojo, vlaštovka, bublina), nejvýš jednou za 15 min, ne když spí nebo pracuje |
@@ -1179,13 +1179,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 57. Science & Simulation
 
-✅ 11 · 🟡 4
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 766 | Interactive Equation Solver — rovnice s postupem. | 🟡 ČÁSTEČNĚ | run_python / AI |
+| 766 | Interactive Equation Solver — rovnice s postupem. | ✅ HOTOVO | solve_equation: lineární a kvadratické rovnice krok za krokem (převod, diskriminant, kořeny, zkouška / Vièta) |
 | 767 | Dataset Cleaning Assistant — čištění dat. | ✅ HOTOVO | dataset_check + dataset_clean: duplicity, mezery, desetinná čárka, formáty dat, varianty kategorií, odlehlé hodnoty → nový soubor |
-| 768 | Computational Notebook Runner — výpočetní notebooky. | 🟡 ČÁSTEČNĚ | run_python |
+| 768 | Computational Notebook Runner — výpočetní notebooky. | ✅ HOTOVO | run_notebook: sešit .ipynb buňku po buňce bez Jupyteru (sdílený stav), kopie s výstupy, která buňka spadla (se souhlasem) |
 | 769 | Experiment Logbook — záznam experimentů. | ✅ HOTOVO | deník experimentů (viz 479), hledání podle slova a projektu |
 | 770 | Chart Interpretation Engine — interpretace grafů. | 🟡 ČÁSTEČNĚ | chart_insights: trend, zlom (skok úrovně), výkyvy (robustní z-skóre), perioda (autokorelace), souběžné řady s varováním před kauzalitou – z dat; z obrázku grafu ne |
 | 771 | Data Lineage Viewer — původ dat. | ✅ HOTOVO | data_lineage: původ každého sloupce pohledu / dotazu SQLite přes autorizátor SQLite (i přes vnořené pohledy), filtry a spojení zvlášť, jen čtení |

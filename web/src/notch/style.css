@@ -527,3 +527,10 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 .notch[data-island="gesture"] .n-lead i { color: var(--accent, #4fd1ff); }
 .notch[data-island="workshop"] .n-lead i { color: #ffb84d; }
 .notch[data-island="workshop"] .n-trail { color: #f2f5f8; font-weight: 500; }
+
+/* OMEGA 744: confused after a failed build – one eye squints, a small "?" */
+.notch[data-react="confused"] .n-eyes { --eye: #ffb84d; }
+.notch[data-react="confused"] .n-eyes i:first-child { height: 4px; transform: translateY(3px) rotate(-12deg); }
+.notch[data-react="confused"] .n-eyes::after { content: "?"; position: absolute; right: -14px; top: -10px; font: 700 12px/1 system-ui;
+  color: var(--eye); text-shadow: 0 0 6px var(--eye); animation: n-q 1.2s ease-in-out infinite; }
+@keyframes n-q { 50% { transform: translateY(-3px) rotate(8deg); } }

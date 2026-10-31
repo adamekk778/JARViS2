@@ -295,6 +295,9 @@ function updateBlob() {
   blob.setMood(displayMood(), { badge: moodInfo.badge, progress: moodInfo.progress ?? null, reaction: moodInfo.reaction,
     secondary: moodInfo.secondary ?? null, ambient: moodInfo.ambient });
   shape.dataset.mood = displayMood();
+  // OMEGA 744: a short-lived reaction the eyes can show (e.g. "confused" after a failed build)
+  const re = moodInfo.reaction;
+  shape.dataset.react = re && re.name && (!re.until || re.until * 1000 > 0) ? String(re.name) : "";
 }
 
 /** JARVIS itself is doing something (STOP makes sense). */
