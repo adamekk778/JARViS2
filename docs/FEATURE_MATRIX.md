@@ -106,7 +106,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
 | `ab_test` | 780 |
+| `agent_swarm` | P1.08 |
 | `agent_team` | 218 |
+| `agents.py` | 069 |
 | `ai_usage` | 154 |
 | `analyze_feedback` | 444 |
 | `animate_elements` | 134 |
@@ -486,6 +488,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `test_regressions` | 339 |
 | `test_tasks` | 176 |
 | `tests/test_agent.py` | 182 |
+| `tests/test_agent_swarm.py` | P1.08 |
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
 | `tests/test_omega_brain.py` | 004 |

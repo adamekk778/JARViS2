@@ -514,3 +514,10 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 .p-vol-range { -webkit-appearance: none; appearance: none; width: 96px; height: 4px; border-radius: 2px; cursor: pointer;
   background: linear-gradient(90deg, #fff var(--v, 50%), rgb(255 255 255 / .18) var(--v, 50%)); }
 .p-vol-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+/* specialists working together: their icons stacked in the island */
+.n-team { display: inline-flex; }
+.n-team i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: #fff;
+  background: linear-gradient(135deg, var(--accent, #4fd1ff), #7b5cff); border: 2px solid #000; margin-left: -6px; }
+.n-team i:first-child { margin-left: 0; }
+.n-team i i { width: auto; height: auto; border: 0; background: none; margin: 0; font-size: 12px; }
+.notch[data-island="team"] .n-eyes { --eye: #9f8bff; }

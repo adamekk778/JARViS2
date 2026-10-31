@@ -7,7 +7,7 @@ P1.04 | HOTOVO | historie konverzace v kontextu | 036 | Krátkodobá paměť
 P1.05 | ČÁSTEČNĚ | Režim Agent + update_plan | 001, 198 | Autonomní plánování
 P1.06 | ČÁSTEČNĚ | agent vidí chyby nástrojů a zkouší jinak; ověření misí | 210 | Self-correction
 P1.07 | ČÁSTEČNĚ | Režim Agent (až 25 kroků) | 001 | Reasoning mode
-P1.08 | PLÁNOVÁNO | dnes jeden agent + Claude Code; Agent Swarm = M3 | 061-070 | Multi-agent systém
+P1.08 | HOTOVO | agent_swarm: koordinátor rozdělí cíl mezi 13 specialistů (programátor, 3D, elektronika, tester, výzkum…), nezávislé části běží zároveň (nejvýš 3), závislé dostanou výsledky, na konci souhrn; každý se stejnými pravidly; v notchi ikony pracujícího týmu (agents.swarm, tests/test_agent_swarm.py) | 061-070 | Multi-agent systém
 P1.09 | ČÁSTEČNĚ | fakta se dají opravit; učení z oprav chybí | 039 | Učení z oprav a zpětné vazby
 P1.10 | ČÁSTEČNĚ | místní modely (Ollama) jako fallback, offline režim | 270, 597 | Offline fallback
 P2.01 | HOTOVO | open_app, close_app, window_control | 026 | Spouštět, zavírat a přepínat aplikace

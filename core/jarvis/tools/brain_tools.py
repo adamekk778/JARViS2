@@ -4,6 +4,7 @@ the specialists use (read-only SQL, accessibility audit, translation check)."""
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -44,6 +45,22 @@ async def agent_team(ctx, steps: Annotated[list[dict], "[{agent, task}]"]) -> To
     rs = await agents.team(ctx, steps)
     return ToolResult(all(r["ok"] for r in rs), "\n\n".join(f"**{r['agent']}**: {r['answer']}" for r in rs),
                       data=[{k: r.get(k) for k in ("agent", "answer", "ok")} for r in rs])
+
+
+@tool("agent_swarm", "Tým specialistů najednou: koordinátor rozdělí cíl mezi specialisty (programátor, 3D, elektronika, "
+      "tester, výzkum, architekt…), co na sobě nezávisí, dělají zároveň, a nakonec výsledky spojí. Na „ať na tom "
+      "pracuje celý tým“, „udělejte to společně“. Každý dodržuje stejná pravidla (potvrzení, oprávnění).", category="agenti")
+async def agent_swarm(ctx, goal: Annotated[str, "co má tým udělat"]) -> ToolResult:
+    from .. import agents
+
+    try:
+        r = await agents.swarm(ctx, goal)
+    except (ValueError, json.JSONDecodeError) as e:
+        return ToolResult(False, f"Tým se nepodařilo sestavit: {e}")
+    waves = " → ".join(" + ".join(agents.AGENTS[a]["name"] for a in w) for w in r["waves"])
+    atts = [a for x in r["results"] for a in x.get("attachments", [])]
+    return ToolResult(r["ok"], f"Postup týmu: {waves}.\n\n{r['summary']}", attachments=atts,
+                      data={"waves": r["waves"], "results": [{k: x.get(k) for k in ("agent", "answer", "ok", "seconds")} for x in r["results"]]})
 
 
 @tool("deep_research", "Hloubkový výzkum: víc vyhledávání, přečte nejlepší zdroje a sepíše report, kde je každé tvrzení "

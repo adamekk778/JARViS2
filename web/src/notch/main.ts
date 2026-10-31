@@ -619,6 +619,12 @@ const CLAUDE_SHORT: Record<string, string> = { working: "Pracuje", thinking: "P�
 const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "Přemýšlí", working: "Pracuje", speaking: "Mluví", waiting: "Čeká na tebe" };
 // the AI that answers now (the core says which provider + model once the first words arrive)
 let brain: { provider: string; model: string } | null = null;
+const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
+client.on("agent_activity", (m) => {
+  if (m.state === "start") team.set(m.key, { icon: m.icon || "robot", name: m.name, since: team.get(m.key)?.since || Date.now() });
+  if (m.state === "done") team.delete(m.key);
+  updateActivity();
+});
 let vol: { level: number; muted: boolean } | null = null, volUntil = 0;
 client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
 client.on("volume", (m) => {
@@ -641,6 +647,13 @@ function islandActivity(t: any) {
     kind = "volume";
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
+  } else if (team.size) {
+    const all = [...team.values()];
+    const secs = Math.round((Date.now() - Math.min(...all.map((a) => a.since))) / 1000);
+    kind = "team";
+    l = [h("span", { class: "n-team" }, ...all.slice(0, 4).map((a) => h("i", { title: a.name }, icon(a.icon, "ph-fill")))),
+         h("span", {}, all.length === 1 ? all[0].name : `Tým · ${all.length}`)];
+    r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
   } else if (jarvisBusy() && brain && coreMood !== "listening") {
     const b = brandOf(brain.provider, brain.model);
     kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")]; r = [b.name];

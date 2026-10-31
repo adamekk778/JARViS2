@@ -9,12 +9,12 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 585 | 87 |
+| ✅ HOTOVO | 587 | 88 |
 | 🟡 ČÁSTEČNĚ | 179 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
-| 🗓️ PLÁNOVÁNO | 18 | 4 |
+| 🗓️ PLÁNOVÁNO | 16 | 3 |
 | ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
 
@@ -117,7 +117,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 06. Agent Army
 
-✅ 7 · 🟡 1 · 🗓️ 2
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -129,8 +129,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 066 | Documentation Agent — dokumentace. | ✅ HOTOVO | specialista Dokumentace: čte kód, píše dokumentaci (zápis se schválením) |
 | 067 | Accessibility Agent — přístupnost. | ✅ HOTOVO | specialista Přístupnost + a11y_check (WCAG: alt, popisky polí, kontrast, nadpisy, odkazy, jazyk, klávesnice) |
 | 068 | Localization Agent — překlady aplikací. | ✅ HOTOVO | specialista Překlady + check_translation (chybějící klíče, rozbité zástupné znaky, nepřeložené texty) |
-| 069 | 3D Agent — modely a scény. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
-| 070 | Hardware Agent — elektronika. | 🗓️ PLÁNOVÁNO | Agent Swarm – dnes jeden agent + Claude Code; registr agentů je milník M3 |
+| 069 | 3D Agent — modely a scény. | ✅ HOTOVO | specialista 3D a scény: kontrola modelů, kostry postav, scény a animace, voxely, osvětlení, kamera, Blender (agents.py) |
+| 070 | Hardware Agent — elektronika. | ✅ HOTOVO | specialista Elektronika: výpočty obvodů, schéma, DPS, kompatibilita součástek, kusovník, firmware (stavba, nahrání jen s potvrzením), sériová linka, krabička |
 
 ## 07. Mochi 2.0
 
@@ -1232,7 +1232,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | P1.05 | Autonomní plánování | 🟡 ČÁSTEČNĚ | Režim Agent + update_plan | 001, 198 |
 | P1.06 | Self-correction | 🟡 ČÁSTEČNĚ | agent vidí chyby nástrojů a zkouší jinak; ověření misí | 210 |
 | P1.07 | Reasoning mode | 🟡 ČÁSTEČNĚ | Režim Agent (až 25 kroků) | 001 |
-| P1.08 | Multi-agent systém | 🗓️ PLÁNOVÁNO | dnes jeden agent + Claude Code; Agent Swarm = M3 | 061-070 |
+| P1.08 | Multi-agent systém | ✅ HOTOVO | agent_swarm: koordinátor rozdělí cíl mezi 13 specialistů (programátor, 3D, elektronika, tester, výzkum…), nezávislé části běží zároveň (nejvýš 3), závislé dostanou výsledky, na konci souhrn; každý se stejnými pravidly; v notchi ikony pracujícího týmu (agents.swarm, tests/test_agent_swarm.py) | 061-070 |
 | P1.09 | Učení z oprav a zpětné vazby | 🟡 ČÁSTEČNĚ | fakta se dají opravit; učení z oprav chybí | 039 |
 | P1.10 | Offline fallback | 🟡 ČÁSTEČNĚ | místní modely (Ollama) jako fallback, offline režim | 270, 597 |
 | P2.01 | Spouštět, zavírat a přepínat aplikace | ✅ HOTOVO | open_app, close_app, window_control | 026 |
