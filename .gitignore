@@ -17,3 +17,6 @@ mobile/package-lock.json
 
 # written by CI with the build number
 core/jarvis/_version.py
+
+# náhledy notche pro uživatele (nejsou součást aplikace)
+/notch-*.png
