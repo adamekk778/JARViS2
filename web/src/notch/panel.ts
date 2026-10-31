@@ -7,6 +7,7 @@ import type { JarvisClient } from "../shared/ws";
 import { TaskCard } from "../shared/taskcard";
 import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
+import { brandEl, brandOf, BRANDS } from "../shared/brands";
 
 export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings";
 
@@ -38,6 +39,8 @@ export function buildPanel(ctx: PanelCtx) {
   let timers: any[] = [];
   let sessions: any[] = [];
   let moodDetail = "";
+  let brain: { provider: string; model: string } | null = null;
+  let volume: { level: number; muted: boolean } | null = null;
   let agentBtn: HTMLElement | undefined;
   let mood = "idle";
 
@@ -271,23 +274,25 @@ export function buildPanel(ctx: PanelCtx) {
   const MOOD_WORD: Record<string, string> = { idle: "Připraven", listening: "Poslouchám", thinking: "Přemýšlím", working: "Pracuji",
     speaking: "Mluvím", waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", notify: "Novinka" };
   const CLAUDE_WORD: Record<string, string> = { working: "Pracuje", thinking: "Přemýšlí", waiting: "Čeká na tebe", done: "Hotovo", idle: "Hotovo" };
-  const homeDate = h("div", { class: "home-date" });
+  const homeDate = h("div", { class: "home-date" });          // shown in the panel head (island look)
   const cardAi = h("button", { class: "hcard ai", type: "button", onclick: () => show("chat") });
   const cardMusic = h("div", { class: "hcard music", role: "group" });
   const cardFocus = h("div", { class: "hcard focus", role: "group" });
-  const homeView = h("div", { class: "home" }, homeDate, h("div", { class: "home-cards" }, cardAi, cardMusic, cardFocus));
+  const homeView = h("div", { class: "home" }, h("div", { class: "home-cards" }, cardAi, cardMusic, cardFocus));
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
   function renderHome() {
-    if (current !== "home") return;
     const now = new Date();
     homeDate.replaceChildren(h("i", { class: "home-eyes", "aria-hidden": "true" }, h("b"), h("b")),
       now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric", year: "numeric" }), " ",
       h("strong", {}, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })));
+    if (current !== "home") return;
     const cc = sessions.find((s) => ["working", "thinking", "waiting"].includes(s.state)) || sessions[0];
+    const b = cc ? BRANDS.claude : brain ? brandOf(brain.provider, brain.model) : null;
+    cardAi.style.setProperty("--tint", b ? b.color : "#2563eb");
     const word = cc ? (CLAUDE_WORD[cc.state] || "Hotovo") : (MOOD_WORD[mood] || "Připraven");
     const sub = cc ? (cc.step || cc.prompt || cc.project || "") : (moodDetail || "Klikni a napiš mi, co potřebuješ");
-    cardAi.replaceChildren(h("span", { class: "h-label" }, cc ? "Claude Code" : "JARVIS"),
-      h("span", { class: "h-btn" }, icon(cc ? "asterisk" : "chat-circle-dots", "ph-bold")),
+    cardAi.replaceChildren(h("span", { class: "h-label" }, cc ? "Claude Code" : b ? `JARVIS · ${b.name}` : "JARVIS"),
+      h("span", { class: "h-btn brand" }, b ? brandEl(b) : icon("chat-circle-dots", "ph-bold")),
       h("strong", { class: "h-big" }, word), h("span", { class: "h-sub" }, sub));
     const playing = !!media?.playing;
     cardMusic.replaceChildren(h("span", { class: "h-label" }, "Hudba"),
@@ -310,8 +315,21 @@ export function buildPanel(ctx: PanelCtx) {
   const centre = h("section", { class: "p-centre" });
   const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView };
 
+  // the volume of the PC, right in the tab bar (follows changes made anywhere else)
+  const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
+    onclick: () => quick("volume", { action: volume?.muted ? "unmute" : "mute" }) });
+  const volRange = h("input", { type: "range", min: 0, max: 100, step: 2, class: "p-vol-range", "aria-label": "Hlasitost" }) as HTMLInputElement;
+  volRange.onchange = () => quick("volume", { action: "set", level: Number(volRange.value) });
+  const paintVol = () => {
+    const lv = volume ? volume.level : 50;
+    volIcon.replaceChildren(icon(volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high", "ph-fill"));
+    if (document.activeElement !== volRange) volRange.value = String(lv);
+    volRange.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
+  };
+  paintVol();
   const navEl = h("nav", { class: "p-tabs", "aria-label": "Sekce" },
-    ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, title: label, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
+    ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, title: label, onclick: () => show(k) }, icon(ic), h("span", {}, label))),
+    h("div", { class: "p-vol" }, volIcon, volRange));
 
   function show(s: Section) {
     current = s;
@@ -341,6 +359,7 @@ export function buildPanel(ctx: PanelCtx) {
     pins = m.pins || [];
     timers = m.timers || [];
     sessions = m.claude_sessions || [];
+    if (m.volume) { volume = { level: Number(m.volume.level) || 0, muted: !!m.volume.muted }; paintVol(); }
     renderShelf(); renderMedia(); renderSettings(); renderUpdate(); syncAgent(); renderPins();
   });
   client.on("pins", (m) => { pins = m.items || []; renderPins(); });
@@ -352,6 +371,8 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("media", (m) => { media = m; renderMedia(); renderHome(); });
   client.on("timers", (m) => { timers = m.items || []; renderHome(); });
   client.on("claude_sessions", (m) => { sessions = m.items || []; renderHome(); });
+  client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderHome(); });
+  client.on("volume", (m) => { volume = { level: Number(m.level) || 0, muted: !!m.muted }; paintVol(); });
   client.on("update_status", (m) => { update = m; renderUpdate(); });
   client.on("system", (m) => {
     sysVals.cpu.textContent = `${Math.round(m.cpu_percent)} %`;
@@ -375,5 +396,5 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("skills", (m) => skillsBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: "p-chip" }, icon("wrench"), s.name)) : [h("span", { class: "muted" }, "Zatím žádné. Řekni třeba: Nauč se převádět měny.")])));
   client.on("mcp", (m) => mcpBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: `p-chip ${s.ok ? "ok" : "bad"}` }, icon("plug"), `${s.name} · ${s.ok ? `${s.tools} nástrojů` : "nepřipojeno"}`)) : [h("span", { class: "muted" }, "Žádné. Přidáš je v celém nastavení → Integrace.")])));
 
-  return { el, show, chat, get section() { return current; } };
+  return { el, show, chat, dateEl: homeDate, get section() { return current; } };
 }

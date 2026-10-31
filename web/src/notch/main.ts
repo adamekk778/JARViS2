@@ -9,6 +9,7 @@ import { configureSounds, panFor, play, setAnchorPan, setCustomSounds } from "..
 import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
+import { brandEl, brandOf, BRANDS } from "../shared/brands";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -95,7 +96,7 @@ const panel = buildPanel({
   pin: (v) => { holding = v; if (!v && !hovering) scheduleClose(); },
 });
 const panelHead = h("div", { class: "p-head" },
-  h("span", { class: "p-title" }, "J A R V I S"),
+  h("span", { class: "p-title" }, "J A R V I S"), panel.dateEl,
   h("div", { class: "p-head-r" },
     h("button", { class: "p-icon", type: "button", title: "Nová konverzace", "aria-label": "Nová konverzace", onclick: () => client.send("new_chat") }, icon("note-pencil")),
     h("button", { class: "p-icon", type: "button", title: "Otevřít celý chat", "aria-label": "Otevřít celý chat", onclick: () => { openChat("full"); settle(true); } }, icon("arrows-out-simple")),
@@ -120,7 +121,9 @@ let musicOff = 0;
 const eyes = h("div", { class: "n-eyes", "aria-hidden": "true" }, h("i"), h("i"));
 const lead = h("div", { class: "n-lead" });
 const trail = h("div", { class: "n-trail" });
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+const volBar = h("div", { class: "n-vol", "aria-hidden": "true" }, h("b"));
+const brandBadge = h("div", { class: "n-brand" });            // which AI answers, in the live bubble
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -166,7 +169,11 @@ function sizeFor(m: Mode): [number, number] {
     case "alert": return [440, 92];
     case "radial": return [340, 320];
     case "live": return [560, liveHeight()];
-    default: return [activity ? Math.max(cfg.width, island() ? 380 : 300) : cfg.width, cfg.height];
+    default: {
+      const kind = island() ? shape.dataset.island || "" : "";
+      if (kind === "volume") return [Math.max(cfg.width, 420), cfg.height];
+      return [activity || kind ? Math.max(cfg.width, island() ? 380 : 300) : cfg.width, cfg.height];
+    }
   }
 }
 function liveHeight() {
@@ -609,15 +616,41 @@ function ring(frac: number) {
   return svg;
 }
 const CLAUDE_SHORT: Record<string, string> = { working: "Pracuje", thinking: "Přemýšlí", waiting: "Čeká na tebe" };
+const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "Přemýšlí", working: "Pracuje", speaking: "Mluví", waiting: "Čeká na tebe" };
+// the AI that answers now (the core says which provider + model once the first words arrive)
+let brain: { provider: string; model: string } | null = null;
+let vol: { level: number; muted: boolean } | null = null, volUntil = 0;
+client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
+client.on("volume", (m) => {
+  vol = { level: Number(m.level) || 0, muted: !!m.muted };
+  volUntil = Date.now() + 1600;
+  updateActivity();
+  window.setTimeout(updateActivity, 1700);
+});
+function renderBrand() {
+  if (!brain || !jarvisBusy()) { brandBadge.replaceChildren(); return; }
+  const b = brandOf(brain.provider, brain.model);
+  brandBadge.replaceChildren(brandEl(b), h("span", {}, b.name));
+  shape.style.setProperty("--brand", b.color);
+}
 /** What the closed island shows on its left and right (the same priority as the activity text). */
 function islandActivity(t: any) {
   let kind = "", l: (Node | string)[] = [], r: (Node | string)[] = [];
   const cc = claudeSessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
-  if (dict.state === "listening" || dict.state === "transcribing") {
+  if (vol && Date.now() < volUntil) {
+    kind = "volume";
+    l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
+    (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
+  } else if (jarvisBusy() && brain && coreMood !== "listening") {
+    const b = brandOf(brain.provider, brain.model);
+    kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")]; r = [b.name];
+    shape.style.setProperty("--brand", b.color);
+  } else if (dict.state === "listening" || dict.state === "transcribing") {
     kind = "dict"; l = [icon("microphone", "ph-fill"), h("span", {}, dict.state === "listening" ? "Poslouchám" : "Přepisuji")]; r = [dictBars];
   } else if (cc) {
     const secs = Math.max(0, Math.round(Date.now() / 1000 - (cc.started || Date.now() / 1000)));
-    kind = "claude"; l = [icon("asterisk", "ph-bold"), h("span", {}, CLAUDE_SHORT[cc.state] || "Pracuje")];
+    kind = "claude"; l = [brandEl(BRANDS.claude), h("span", {}, CLAUDE_SHORT[cc.state] || "Pracuje")];
+    shape.style.setProperty("--brand", BRANDS.claude.color);
     r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
   } else if (timers.length) {
     const tm = timers[0], left = Math.max(0, Math.round(tm.ends_at - Date.now() / 1000));
@@ -706,6 +739,7 @@ client.on("settings_changed", (m) => {
 
 });
 client.on("mood", onMood);
+client.on("mood", () => renderBrand());
 client.on("level", (m) => blob.setLevel(m.rms || 0));
 // OMEGA 083: something goes to the phone (flies off to the right) or comes from it (flies into the notch)
 const HANDOFF_ICON: Record<string, string> = { link: "link", text: "text-aa", file: "file", url: "link", mochi: "smiley", photo: "image" };

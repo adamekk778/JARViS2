@@ -376,6 +376,25 @@ def peak_meter():                                             # pragma: no cover
     return cast(iface, POINTER(IAudioMeterInformation))
 
 
+async def volume_loop(rt, interval: float = 0.35, rounds: int | None = None) -> None:
+    """The system volume as it changes (keys, the mixer, another app): the notch shows a volume bar for a moment.
+    The first reading is only remembered; nothing is published until the volume really changes."""
+    last: tuple | None = None
+    n = 0
+    while rounds is None or n < rounds:
+        n += 1
+        try:
+            state = await asyncio.to_thread(rt.platform.audio_state)
+        except Exception:                                   # no speaker / COM hiccup: try again later
+            state = (None, None)
+        if state[0] is not None:
+            rt.last_audio = {"level": state[0], "muted": bool(state[1])}     # for windows that connect later
+            if last is not None and state != last:
+                rt.bus.publish("volume", level=state[0], muted=bool(state[1]))
+            last = state
+        await asyncio.sleep(interval if state[0] is not None else 5)
+
+
 async def music_loop(rt) -> None:                             # pragma: no cover – Windows
     import sys
 

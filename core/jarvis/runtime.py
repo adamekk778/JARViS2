@@ -141,7 +141,8 @@ class Runtime:
         from . import sysplus
 
         self._sys_tasks = [asyncio.get_running_loop().create_task(sysplus.watch_loop(self)),    # OMEGA P10.03
-                           asyncio.get_running_loop().create_task(sysplus.music_loop(self))]    # OMEGA P12.02
+                           asyncio.get_running_loop().create_task(sysplus.music_loop(self)),    # OMEGA P12.02
+                           asyncio.get_running_loop().create_task(sysplus.volume_loop(self))]   # 3.11 volume bar
         try:
             from .updater import Updater
 
