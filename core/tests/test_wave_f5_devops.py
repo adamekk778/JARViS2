@@ -81,7 +81,7 @@ def test_sandbox_and_diff(tmp_path):
     r = _repo(tmp_path)
     box = devops.sandbox_copy(r)
     assert (box / "app.py").exists() and not (box / ".git").exists() and not (box / ".env").exists()
-    (box / "app.py").write_text("print('změna')\n")
+    (box / "app.py").write_text("print('změna')\n", encoding="utf-8")
     (box / "new.txt").write_text("x")
     d = devops.changed_files(r, box)
     assert d["changed"] == ["app.py"] and d["added"] == ["new.txt"]
