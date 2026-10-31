@@ -673,8 +673,61 @@ DATE_RX = re.compile(r"\b(\d{1,2})\.\s?(\d{1,2})\.\s?(20\d\d)\b|\b(20\d\d)-(\d\d
 ORG_RX = re.compile(r"([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\w&.\- ]{1,40}?)\s*,?\s*(s\.\s?r\.\s?o\.|a\.\s?s\.|spol\. s r\.\s?o\.|GmbH|Ltd|Inc)", re.U)
 
 
+SMART_DOCS = {".pdf", ".docx", ".txt", ".md"}
+SMART_MEDIA = {".jpg", ".jpeg", ".png", ".heic", ".webp", ".tif", ".tiff", ".mp4", ".mov", ".m4v", ".avi", ".mkv", ".3gp",
+               ".mp3", ".m4a", ".flac", ".ogg", ".opus", ".wav", ".aac"}
+_CLEAN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+
+def _camera(p: Path) -> str:
+    try:
+        from PIL import Image
+
+        with Image.open(p) as im:
+            ex = im.getexif()
+            model = str(ex.get(272) or "").strip().strip("\x00")
+            make = str(ex.get(271) or "").strip().strip("\x00")
+    except Exception:  # noqa: BLE001
+        return ""
+    if model and make and not model.lower().startswith(make.lower().split()[0]):
+        model = f"{make.split()[0]} {model}"
+    return re.sub(r"\s+", "-", model)[:24]
+
+
+def _audio_tags(p: Path) -> tuple[str, str]:
+    try:
+        import av
+
+        with av.open(str(p)) as c:
+            md = {k.lower(): v for k, v in (c.metadata or {}).items()}
+        return str(md.get("artist") or "").strip()[:40], str(md.get("title") or "").strip()[:60]
+    except Exception:  # noqa: BLE001
+        return "", ""
+
+
+def media_smart_name(p: Path) -> str:
+    """OMEGA 320 for photos, videos and sound: Foto_2026-06-14_14-03_iPhone-13.jpg, Video_…, Interpret - Skladba.mp3."""
+    ext = p.suffix.lower()
+    if ext in (".mp3", ".m4a", ".flac", ".ogg", ".opus", ".wav", ".aac"):
+        artist, title = _audio_tags(p)
+        if title:
+            return _CLEAN.sub("", f"{artist} - {title}" if artist else title) + ext
+    from .mediapro import media_date
+
+    d = media_date(p)
+    kind = "Video" if ext in (".mp4", ".mov", ".m4v", ".avi", ".mkv", ".3gp") else "Nahravka" if ext in (".mp3", ".m4a", ".flac", ".ogg", ".opus", ".wav", ".aac") else "Foto"
+    parts = [kind, d.strftime("%Y-%m-%d_%H-%M")]
+    if kind == "Foto":
+        cam = _camera(p)
+        if cam:
+            parts.append(cam)
+    return _CLEAN.sub("", "_".join(parts)) + ext
+
+
 def smart_name(p: Path) -> str:
     """A readable name from the content: <Type>_<date>_<company>.ext (what is not found is left out)."""
+    if p.suffix.lower() in SMART_MEDIA:
+        return media_smart_name(p)
     text = doc_text(p)
     cat, _why = classify(p)
     kind = {"Faktury": "Faktura", "Smlouvy": "Smlouva", "Banka a výpisy": "Vypis", "Účtenky": "Uctenka",

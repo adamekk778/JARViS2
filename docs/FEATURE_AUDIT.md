@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 607 | 88 |
-| 🟡 ČÁSTEČNĚ | 177 | 62 |
+| ✅ HOTOVO | 613 | 88 |
+| 🟡 ČÁSTEČNĚ | 171 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -258,15 +258,15 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 14. Automation of the Future
 
-✅ 7 · 🟡 3
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 146 | Workflow Recorder — záznam postupu. | ✅ HOTOVO | workflow_record: nahrávání kroků JARVISe a přepnutých aplikací (jen názvy, žádné klávesy / obrazovka / schránka), viditelné upozornění, po „stop“ schválená dovednost |
 | 147 | Conditional Builder — tvorba podmínek. | ✅ HOTOVO | automatizace „Když … tak …“ (automations.py, tests/test_automations.py) |
 | 148 | Trigger Explorer — spouštěče událostí. | ✅ HOTOVO | 11 spouštěčů: čas, start PC, aplikace, e-mail, zpráva/hovor na mobilu, baterie, nabíječka, odchod/návrat |
-| 149 | Workflow Simulator — zkoušení bez změn. | 🟡 ČÁSTEČNĚ | tlačítko Vyzkoušet spustí automatizaci se zkušebními daty (ne dry-run) |
-| 150 | Workflow Versions — verzování postupů. | 🟡 ČÁSTEČNĚ | verze a návrat zpět u protokolů (skillforge.py); automatizace zatím bez verzí |
+| 149 | Workflow Simulator — zkoušení bez změn. | ✅ HOTOVO | „Nanečisto“: kroky automatizace se zkušebními údaji jako graf, co se zeptá a jak dlouho to potrvá – nic se neprovede (ws mission_simulate kind=automation) |
+| 150 | Workflow Versions — verzování postupů. | ✅ HOTOVO | verze automatizací (každá uložená změna) a návrat na kteroukoli verzi – skillforge.py (auto:<id>), stránka Automatizace |
 | 151 | Automation Templates — šablony automatizací. | 🟡 ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace |
 | 152 | Failure Recovery — navázání při přerušení. | ✅ HOTOVO | přerušená mise → Pokračovat od posledního hotového kroku (missions.resume, tests/test_wave1.py) |
 | 153 | Workflow Sharing — bezpečné sdílení. | ✅ HOTOVO | workflow_export / workflow_import: sdílený soubor bez hesel, klíčů, čísel karet a domovské složky, kontrolní součet; import ověří změnu, neznámé nástroje, ukáže kroky ke schválení, měnící kroky se dál potvrzují |
@@ -475,7 +475,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 25. JARVIS PC Rescue
 
-✅ 10 · 🟡 5
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -484,10 +484,10 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 288 | Boot Problem Analyzer — chyby startu. | ✅ HOTOVO | Boot Problem Analyzer = oblast boot |
 | 289 | Disk Partition Inspector — přehled oddílů. | 🟡 ČÁSTEČNĚ | oddíly a jejich zaplnění v reportu |
 | 290 | USB Connection Analyzer — diagnostika USB. | ✅ HOTOVO | USB Connection Analyzer = oblast usb |
-| 291 | Storage Error Correlation — souvislosti diskových chyb. | 🟡 ČÁSTEČNĚ | chyby disku seskupené podle druhu (vadné sektory, timeouty, NTFS); časová souvislost s pády chybí |
+| 291 | Storage Error Correlation — souvislosti diskových chyb. | ✅ HOTOVO | chyby disku seskupené podle druhu + pády systému, kterým chyby disku předcházely (15 min) – rescue.disk_crash_links |
 | 292 | File System Health — souborový systém. | ✅ HOTOVO | stav svazků + chyby NTFS (55/98/140) z logu |
 | 293 | Crash Pattern Detector — opakující se pády. | ✅ HOTOVO | opakující se pády podle kódu a podle aplikace + modulu (grafický ovladač, systémová knihovna) |
-| 294 | Service Dependency Inspector — závislosti služeb. | 🟡 ČÁSTEČNĚ | automatické služby, které neběží, a chyby spouštění; graf závislostí chybí |
+| 294 | Service Dependency Inspector — závislosti služeb. | ✅ HOTOVO | strom závislostí neběžících služeb: na čem služba visí (neběžící příčina) a co čeká na ni – rescue.service_tree |
 | 295 | Power Plan Diagnostics — energetické plány. | ✅ HOTOVO | power_check: aktivní plán, omezení CPU, uspávání, obrazovka, USB, zdraví baterie a cykly (powercfg); power_plan_set se schválením |
 | 296 | Memory Error Testing Assistant — test RAM. | ✅ HOTOVO | schedule_memory_test (Diagnostika paměti Windows, se schválením) + čtení výsledku testu (MemoryDiagnostics-Results) |
 | 297 | Thermal Health Report — teploty. | 🟡 ČÁSTEČNĚ | teploty disků (StorageReliabilityCounter, SMART); teplotu CPU Windows bez ovladače výrobce nehlásí |
@@ -519,7 +519,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 27. Intelligent File Universe
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -527,7 +527,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 317 | Duplicate Detection — duplicity souborů. | ✅ HOTOVO | find_duplicates / remove_duplicates: stejný obsah (SHA-256), ponechá nejstarší, jen do koše, ověří ponechanou kopii |
 | 318 | Similar Image Finder — podobné snímky. | ✅ HOTOVO | find_similar_photos: rozdílový hash – najde zmenšené, překomprimované a upravené kopie |
 | 319 | Document Classification — třídění. | ✅ HOTOVO | sort_documents: faktury, smlouvy, výpisy, úřady, zdraví, práce, pojištění, účtenky, škola podle obsahu, jinak podle typu; jde vrátit |
-| 320 | Smart File Naming — chytré názvy. | 🟡 ČÁSTEČNĚ | smart_rename: typ_datum_firma z obsahu dokumentu (bez AI); u jiných souborů název zůstane |
+| 320 | Smart File Naming — chytré názvy. | ✅ HOTOVO | smart_rename i pro fotky (datum_čas_fotoaparát z EXIF), videa a nahrávky (datum) a hudbu (Interpret - Skladba) |
 | 321 | File Relationship Graph — vztahy souborů. | ✅ HOTOVO | vztahy souborů: stejný název v jiném formátu, zmínky, použití (HTML/CSS/JS/MD), stejný obsah, graf SVG |
 | 322 | Lost File Finder — hledání ztracených souborů. | ✅ HOTOVO | recent_files (na čem jsem pracoval) + find_in_files (podle obsahu) |
 | 323 | Archive Explorer — obsah archivů. | ✅ HOTOVO | archive_contents / extract_archive (ZIP, TAR; 7Z a RAR se 7-Zipem), ochrana proti „zip slip“, jen do nové složky; create_zip s ověřením |
@@ -1025,7 +1025,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 50. AI Creative Production
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1036,7 +1036,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 665 | Virtual Camera Director — 3D kamerové pohyby. | 🟡 ČÁSTEČNĚ | camera_move: orbit / dolly / jeřáb / push-in s plynulým náběhem, klíčové snímky + skript pro Blender; samotný render ne |
 | 666 | Lighting Setup Planner — 3D osvětlení. | 🟡 ČÁSTEČNĚ | lighting_plan: tříbodové, Rembrandt, butterfly, split, high/low key – pozice, výkon z poměru, EV, skript pro Blender |
 | 667 | 3D Rigging Assistant — rigging modelů. | ✅ HOTOVO | rig_assistant: lidská / čtyřnohá kostra podle výšky (.L/.R), skript pro Blender s automatickými vahami k modelu, kontrola kostry z .gltf/.glb (chybějící strana, různé délky, smyčky, nulové kosti, víc kořenů) |
-| 668 | Lip-Sync Animator — synchronizace úst. | 🟡 ČÁSTEČNĚ | lip_sync: tvar úst na snímek podle hlasitosti (4 tvary, držení proti blikání), export Moho/Papagayo; fonémy ne |
+| 668 | Lip-Sync Animator — synchronizace úst. | ✅ HOTOVO | lip_sync s textem repliky: české hlásky → tvary úst Preston Blair (MBP, O, U, FV, L…) rozložené do úseků řeči; bez textu podle hlasitosti |
 | 669 | Audio Mixing Advisor — mix audia. | ✅ HOTOVO | mix_advice: LUFS a špička stop, zisk vůči dialogu (hudba −12 LU, efekty −6, atmosféra −18), maskování pásma řeči, součet špiček |
 | 670 | Render Cost Planner — nároky renderu. | ✅ HOTOVO | render_cost: přepočet testovacího snímku na rozlišení a vzorky, strojové hodiny, čas na N strojích, cena, disk |
 | 671 | Color Management Assistant — barevné profily. | ✅ HOTOVO | color_profile: ICC profil (sRGB, P3, Adobe RGB, CMYK…), rady pro web, převod do sRGB (LittleCMS, percepční) |
@@ -1192,7 +1192,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 772 | Physical Unit Validator — jednotky. | ✅ HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce) |
 | 773 | CAD Tolerance Assistant — tolerance. | ✅ HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle |
 | 774 | Generative Engineering Concepts — technické alternativy. | ✅ HOTOVO | technické alternativy nosníku / držáku: materiály × profily, pevnost i průhyb, seřazeno podle hmotnosti |
-| 775 | Technical Model Inspector — geometrie 3D. | 🟡 ČÁSTEČNĚ | check_3d_model: geometrie STL (objem, povrch, rozměry, topologie); STEP / OBJ zatím ne |
+| 775 | Technical Model Inspector — geometrie 3D. | 🟡 ČÁSTEČNĚ | check_3d_model: STL, OBJ a 3MF (jednotky převedené na mm); STEP/IGES potřebuje CAD jádro – JARVIS poradí export do STL/3MF |
 | 776 | Physics Parameter Explorer — parametry simulací. | ✅ HOTOVO | physics_sim: vrh s odporem, kyvadlo (velké výchylky), tlumená pružina, RC, chladnutí (RK4) + průchod parametrem s nejlepší hodnotou |
 | 777 | Scientific Citation Checker — vědecké zdroje. | ✅ HOTOVO | citation_check: DOI v Crossrefu, název / rok / autor, stažené články (retraction), citace bez DOI dohledá |
 | 778 | Signal Frequency Analyzer — frekvenční analýza. | ✅ HOTOVO | frequency_analysis: WAV (8/16/24/32 bit) nebo CSV → spektrum s Hannovým oknem, špičky v Hz a dB, RMS, DC |

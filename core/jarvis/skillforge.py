@@ -50,11 +50,31 @@ def record(rt, protocols: list[dict], note: str = "") -> list[tuple[str, int]]:
     return out
 
 
+AUTO = "auto:"          # OMEGA 150: automations are versioned in the same table, their ids prefixed
+
+
+def _record_one(rt, key: str, data: dict, note: str) -> int | None:
+    db = _db(rt)
+    last = db.one("SELECT version, data FROM skill_versions WHERE proto_id=? ORDER BY version DESC LIMIT 1", (key,))
+    if last and _canon(json.loads(last["data"])) == _canon(data):
+        return None
+    v = (last["version"] if last else 0) + 1
+    db.exec("INSERT INTO skill_versions VALUES (?,?,?,?,?)", (key, v, time.time(), _canon(data), note[:200]))
+    return v
+
+
 def rollback(rt, pid: str, version: int) -> dict:
     row = _db(rt).one("SELECT data FROM skill_versions WHERE proto_id=? AND version=?", (pid, int(version)))
     if not row:
         raise ValueError(f"Verze {version} dovednosti {pid} neexistuje.")
     old = json.loads(row["data"])
+    if pid.startswith(AUTO):
+        aid = pid[len(AUTO):]
+        items = [x.model_dump(mode="json") for x in rt.cfg.automations.items]
+        items = [old if x["id"] == aid else x for x in items] if any(x["id"] == aid for x in items) else items + [old]
+        rt.skill_note = f"návrat na verzi {version}"
+        rt.update_config({"automations": {"items": items}})
+        return old
     items = [x.model_dump(mode="json") for x in rt.cfg.stark.protocols]
     items = [old if x["id"] == pid else x for x in items] if any(x["id"] == pid for x in items) else items + [old]
     rt.skill_note = f"návrat na verzi {version}"
@@ -128,5 +148,12 @@ def on_config_change(rt, old: Any, new: Any) -> None:
         after = [p.model_dump(mode="json") for p in new.stark.protocols]
         if any(before.get(p["id"]) != p for p in after):
             record(rt, after, getattr(rt, "skill_note", "") or "uloženo")
+        a_before = {a.id: a.model_dump(mode="json") for a in old.automations.items}
+        a_after = [a.model_dump(mode="json") for a in new.automations.items]
+        changed = [a for a in a_after if a_before.get(a["id"]) != a]
+        if changed:
+            note = getattr(rt, "skill_note", "") or "uloženo"
+            for a in changed:                      # the stored id carries the prefix, the data stays the automation
+                _record_one(rt, AUTO + a["id"], a, note)
     finally:
         rt.skill_note = ""

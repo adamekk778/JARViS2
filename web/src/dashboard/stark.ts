@@ -204,6 +204,7 @@ export function buildStark(client: JarvisClient) {
   }
 
   client.on("mission_sim", (m) => {         // OMEGA 192 / 755: the steps as a graph, played as a dry run
+    if (m.kind === "automation") return;     // the Automations page shows its own
     const g = missionGraph(m.steps || [], m.graph, m.seconds || 0);
     editor.hidden = false;
     editor.replaceChildren(h("h3", {}, `Nanečisto: ${m.name}`), g.el,
@@ -216,6 +217,7 @@ export function buildStark(client: JarvisClient) {
   });
 
   client.on("skill_versions", (m) => {
+    if (String(m.id).startsWith("auto:")) return;      // automations' versions – shown on their page
     const p = protocols.find((x) => x.id === m.id);
     const items: any[] = m.items || [];
     editor.hidden = false;

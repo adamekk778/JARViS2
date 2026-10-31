@@ -4,6 +4,7 @@ import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import { stepsEditor, stepText, type Step } from "./stark";
+import { missionGraph } from "../shared/viz";
 
 interface Trigger { type: string; value: string; text: string; days: number[] }
 interface Automation { id: string; name: string; enabled: boolean; trigger: Trigger; steps: Step[] }
@@ -75,7 +76,9 @@ export function buildAutomations(client: JarvisClient) {
           a.steps.length > 4 ? h("li", { class: "muted" }, `…a ${a.steps.length - 4} další`) : null),
         h("div", { class: "btn-row" },
           h("button", { class: "btn", type: "button", onclick: () => { client.send("automation_run", { id: a.id }); toast(`Zkouším ${a.name}`, "ok"); } }, icon("play", "ph-fill"), "Vyzkoušet"),
+          h("button", { class: "btn", type: "button", title: "Ukáže, co by se stalo – nic neprovede", onclick: () => client.send("mission_simulate", { id: a.id, kind: "automation" }) }, icon("eye"), "Nanečisto"),
           h("button", { class: "btn", type: "button", onclick: () => edit(a) }, icon("pencil-simple"), "Upravit"),
+          h("button", { class: "btn ghost", type: "button", title: "Verze a návrat zpět", "aria-label": `Verze automatizace ${a.name}`, onclick: () => client.send("skill_versions_get", { id: `auto:${a.id}` }) }, icon("clock-counter-clockwise")),
           h("button", { class: "btn ghost", type: "button", "aria-label": `Smazat automatizaci ${a.name}`, onclick: () => {
             if (confirm(`Smazat automatizaci ${a.name}?`)) save(items.filter((x) => x.id !== a.id));
           } }, icon("trash"))));
@@ -83,6 +86,36 @@ export function buildAutomations(client: JarvisClient) {
     h("button", { class: "proto-card card proto-new", type: "button", onclick: () => edit(null) }, icon("plus-circle"), h("strong", {}, "Nová automatizace"),
       h("span", { class: "muted" }, "Třeba: když otevřu Steam → herní protokol.")));
   }
+
+  // OMEGA 149: dry run – the steps with test data, what would ask first and how long it takes; nothing is executed
+  client.on("mission_sim", (m) => {
+    if (m.kind !== "automation") return;
+    const g = missionGraph(m.steps || [], m.graph, m.seconds || 0);
+    editor.hidden = false;
+    editor.replaceChildren(h("h3", {}, `Nanečisto: ${m.name}`),
+      h("p", { class: "help" }, "Se zkušebními údaji (odesílatel „Test“, předmět „Zkouška“…). Nic se neprovedlo – „Vyzkoušet“ to spustí doopravdy."), g.el,
+      h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: g.play }, icon("play", "ph-fill"), "Přehrát"),
+        h("button", { class: "btn ghost", type: "button", onclick: () => { editor.hidden = true; } }, "Zavřít")));
+    editor.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(g.play, 300);
+  });
+  // OMEGA 150: every saved change is a version; any one can be restored
+  client.on("skill_versions", (m) => {
+    if (!String(m.id).startsWith("auto:")) return;
+    const id = String(m.id).slice(5), a = items.find((x) => x.id === id);
+    const vs: any[] = m.items || [];
+    editor.hidden = false;
+    editor.replaceChildren(h("h3", {}, `Verze: ${a?.name || id}`),
+      vs.length ? h("ol", { class: "pe-steps", reversed: true }, ...vs.map((v, i) => h("li", { class: "pe-version" },
+        h("strong", {}, `v${v.version}`), h("span", { class: "muted" }, `${new Date(v.ts * 1000).toLocaleString("cs-CZ")} · ${v.note || ""}`),
+        h("span", { class: "muted" }, `${whenText(v.protocol.trigger)} → ${(v.protocol.steps || []).map(stepText).join(" → ")}`),
+        i === 0 ? h("span", { class: "muted" }, "aktuální") : h("button", { class: "btn", type: "button", onclick: () => {
+          if (confirm(`Vrátit ${a?.name || id} na verzi ${v.version}?`)) client.send("skill_rollback", { id: m.id, version: v.version });
+        } }, icon("arrow-counter-clockwise"), "Vrátit"))))
+        : h("p", { class: "muted" }, "Zatím žádná uložená verze – vznikne při první úpravě."),
+      h("div", { class: "btn-row" }, h("button", { class: "btn ghost", type: "button", onclick: () => { editor.hidden = true; } }, "Zavřít")));
+    editor.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   function edit(a: Automation | null) {
     const draft: Automation = a ? JSON.parse(JSON.stringify(a)) : { id: "", name: "", enabled: true, trigger: { type: "app_open", value: "", text: "", days: [] }, steps: [{ say: "" }] };

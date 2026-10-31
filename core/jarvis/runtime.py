@@ -295,10 +295,10 @@ class Runtime:
         self.cfg = config_mod.apply_patch(self.cfg, patch)
         if "privacy" in patch:
             self.memory.set_private(self.cfg.privacy.private_mode)
-        if "stark" in patch:
+        if "stark" in patch or "automations" in patch:
             from . import skillforge
 
-            skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill = a new version
+            skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill / automation = a new version
         if was_local and not self.cfg.brain.local_enabled:
             try:
                 asyncio.get_running_loop().create_task(self.local.unload())

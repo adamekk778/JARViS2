@@ -130,6 +130,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_launch_time` | 308 |
 | `apply_solution` | 004 |
 | `archive_contents` | 323 |
+| `as_fotoapar` | 320 |
 | `ask_documents` | 581 |
 | `assembly_guide` | 485 |
 | `asset_lineage` | 675 |
@@ -241,6 +242,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dictation.py` | 097 |
 | `disk_activity` | 309 |
 | `disk_copy_plan` | 699 |
+| `disk_crash_links` | 291 |
 | `disk_series` | 309 |
 | `driver_rollback_check` | 287 |
 | `duck_music` | 363 |
@@ -367,6 +369,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `missing_info` | 207 |
 | `mission_queue` | 009 |
 | `mission_save_file` | 215 |
+| `mission_simulate` | 149 |
 | `mix_advice` | 669 |
 | `mobile/native.ts` | 143 |
 | `mochi_history` | 085 |
@@ -469,6 +472,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `server/pairing.py` | 144 |
 | `server_capacity` | 657 |
 | `service_dependencies` | 023 |
+| `service_tree` | 294 |
 | `set_feature_flag` | 344 |
 | `set_private` | 041 |
 | `setup_check` | 795 |
@@ -519,7 +523,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tools/shell.py` | 702 |
 | `top_processes` | P2.06 |
 | `translation_overflow` | 639 |
-| `typ_datum_firma` | 320 |
 | `type_text` | P2.02 |
 | `typography_check` | 359 |
 | `ui_click` | P2.02 |

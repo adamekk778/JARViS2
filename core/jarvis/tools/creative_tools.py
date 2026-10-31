@@ -170,9 +170,10 @@ async def lighting_plan(ctx, style: str = "three_point", subject: list[float] | 
                       data=r, attachments=[str(script)])
 
 
-@tool("lip_sync", "Pohyb úst podle zvuku (WAV/MP3): tvar úst na každý snímek (zavřená, pootevřená, otevřená, dokořán) jako "
-      "klíčové snímky a soubor pro Moho / Papagayo.", category="média", perm="files_read")
-async def lip_sync(ctx, audio: str, fps: int = 24) -> ToolResult:
+@tool("lip_sync", "Pohyb úst podle zvuku (WAV/MP3): tvar úst na každý snímek jako klíčové snímky a soubor pro Moho / Papagayo. "
+      "S textem repliky (text) podle skutečných hlásek (MBP zavře rty, O/U zakulatí…), bez textu podle hlasitosti "
+      "(zavřená, pootevřená, otevřená, dokořán).", category="média", perm="files_read")
+async def lip_sync(ctx, audio: str, fps: int = 24, text: Annotated[str, "co se v nahrávce říká (volitelné, přesnější)"] = "") -> ToolResult:
     from .. import creative, media
 
     p = resolve(audio)
@@ -182,11 +183,13 @@ async def lip_sync(ctx, audio: str, fps: int = 24) -> ToolResult:
         x, rate = await asyncio.to_thread(media.read_audio, p, 1800)
     except (ValueError, OSError) as e:
         return ToolResult(False, f"Zvuk nejde přečíst: {e}")
-    r = await asyncio.to_thread(creative.lipsync, x, rate, max(6, min(fps, 60)))
+    fps = max(6, min(fps, 60))
+    r = await asyncio.to_thread(creative.lipsync_text, x, rate, text, fps) if text.strip() else await asyncio.to_thread(creative.lipsync, x, rate, fps)
     out = _out_dir("lipsync") / f"{p.stem}-{_stamp()}.dat"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(r["moho"], encoding="utf-8")
-    return ToolResult(True, f"{r['frames']} snímků, {len(r['keys'])} změn úst, pusa otevřená {r['open_pct']} % času. Soubor {out.name}.",
+    how = f" podle {r['sounds']} hlásek z {r['words']} slov" if r.get("mode") == "hlásky" else " podle hlasitosti"
+    return ToolResult(True, f"{r['frames']} snímků, {len(r['keys'])} změn úst{how}, pusa otevřená {r['open_pct']} % času. Soubor {out.name}.",
                       data={k: v for k, v in r.items() if k != "moho"} | {"path": str(out)}, attachments=[str(out)])
 
 

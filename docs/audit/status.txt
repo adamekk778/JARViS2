@@ -1065,3 +1065,12 @@
 708 | HOTOVO | průběžné hlídání certifikátů vybraných webů (každých 10 min, upozornění při 30/14/7/3/1 dnech, jednou) – netwatch.py
 709 | HOTOVO | průběžné hlídání dostupnosti webů (upozornění jen při změně, dostupnost za 24 h) – netwatch.py, nástroj web_watch
 719 | HOTOVO | historie ztráty paketů a odezvy linky (každých 10 min, 30 dní, výpadky, nejhorší chvíle) s grafem – netwatch.py, nástroj line_history
+
+# Vlna F2: automatizace, soubory, diagnostika, 3D, animace
+149 | HOTOVO | „Nanečisto“: kroky automatizace se zkušebními údaji jako graf, co se zeptá a jak dlouho to potrvá – nic se neprovede (ws mission_simulate kind=automation)
+150 | HOTOVO | verze automatizací (každá uložená změna) a návrat na kteroukoli verzi – skillforge.py (auto:<id>), stránka Automatizace
+291 | HOTOVO | chyby disku seskupené podle druhu + pády systému, kterým chyby disku předcházely (15 min) – rescue.disk_crash_links
+294 | HOTOVO | strom závislostí neběžících služeb: na čem služba visí (neběžící příčina) a co čeká na ni – rescue.service_tree
+320 | HOTOVO | smart_rename i pro fotky (datum_čas_fotoaparát z EXIF), videa a nahrávky (datum) a hudbu (Interpret - Skladba)
+668 | HOTOVO | lip_sync s textem repliky: české hlásky → tvary úst Preston Blair (MBP, O, U, FV, L…) rozložené do úseků řeči; bez textu podle hlasitosti
+775 | ČÁSTEČNĚ | check_3d_model: STL, OBJ a 3MF (jednotky převedené na mm); STEP/IGES potřebuje CAD jádro – JARVIS poradí export do STL/3MF

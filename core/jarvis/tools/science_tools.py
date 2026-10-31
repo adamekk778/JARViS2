@@ -262,7 +262,7 @@ async def tolerance_stackup(ctx, dims: Annotated[list[dict], "[{name, nominal, p
     return ToolResult(True, msg, data=r)
 
 
-@tool("check_3d_model", "Kontrola 3D modelu (STL) před tiskem: rozměry, objem, uzavřenost, otočené normály, převisy (podpěry), "
+@tool("check_3d_model", "Kontrola 3D modelu (STL, OBJ nebo 3MF) před tiskem: rozměry, objem, uzavřenost, otočené normály, převisy (podpěry), "
       "jestli se vejde na tiskárnu, odhad filamentu v gramech a metrech.", category="věda", perm="files_read")
 async def check_3d_model(ctx, file: str, printer_mm: Annotated[list[float] | None, "tisková plocha x, y, z"] = None,
                          infill_pct: float = 20) -> ToolResult:
@@ -273,7 +273,7 @@ async def check_3d_model(ctx, file: str, printer_mm: Annotated[list[float] | Non
         return ToolResult(False, f"Soubor neexistuje: {p}")
     try:
         r = await asyncio.to_thread(science.inspect_stl, p, tuple(printer_mm or (220, 220, 250)), infill_pct)
-    except (ValueError, struct.error) as e:
+    except (ValueError, struct.error, IndexError, KeyError, TypeError) as e:
         return ToolResult(False, str(e))
     sz = " × ".join(_n(x, 1) for x in r["size_mm"])
     msg = f"{sz} mm, objem {_n(r['volume_cm3'], 1)} cm³, {r['triangles']} trojúhelníků; filament asi {_n(r['filament_g'], 0)} g ({_n(r['filament_m_175'], 1)} m při 1,75 mm)."

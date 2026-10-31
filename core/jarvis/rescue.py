@@ -57,10 +57,12 @@ T 'physical' { @(Get-PhysicalDisk -ErrorAction Stop | Select-Object DeviceId, Fr
 T 'reliability' { @(Get-PhysicalDisk -ErrorAction Stop | ForEach-Object { $c = $_ | Get-StorageReliabilityCounter -ErrorAction SilentlyContinue; [pscustomobject]@{ DeviceId = $_.DeviceId; Temperature = $c.Temperature; Wear = $c.Wear; ReadErrors = $c.ReadErrorsTotal; WriteErrors = $c.WriteErrorsTotal; PowerOnHours = $c.PowerOnHours } }) }
 T 'volumes' { @(Get-Volume -ErrorAction Stop | Where-Object { $_.DriveLetter } | Select-Object @{n='Letter'; e={ "$($_.DriveLetter)" }}, FileSystem, @{n='Health'; e={ "$($_.HealthStatus)" }}, Size, SizeRemaining) }
 T 'io_events' { @(Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=(Get-Date).AddDays(-30)} -MaxEvents 4000 -ErrorAction SilentlyContinue | Where-Object { ($_.ProviderName -in 'disk','Disk' -and $_.Id -in 7, 51, 153) -or ($_.ProviderName -like '*Ntfs*' -and $_.Id -in 55, 98, 140) -or ($_.ProviderName -in 'storahci','stornvme','iaStorA','iaStorAC','storport' -and $_.Id -in 129, 11) } | Select-Object Id, ProviderName, @{n='Time'; e={ $_.TimeCreated.ToString('s') }}, @{n='Text'; e={ ($_.Message -split "`n")[0] }}) }
+T 'crash_times' { @(Get-WinEvent -FilterHashtable @{LogName='System'; Id=41,1001,6008; StartTime=(Get-Date).AddDays(-30)} -MaxEvents 60 -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne 1001 -or $_.ProviderName -like '*WER-SystemErrorReporting*' } | Select-Object Id, @{n='Time'; e={ $_.TimeCreated.ToString('s') }}) }
 """},
     "services": {"title": "Služby Windows", "timeout": 60, "script": r"""
 T 'stopped_auto' { @(Get-CimInstance Win32_Service | Where-Object { $_.StartMode -eq 'Auto' -and $_.State -ne 'Running' -and $_.ExitCode -ne 0 } | Select-Object Name, DisplayName, State, ExitCode) }
 T 'scm_events' { @(Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Service Control Manager'; Level=2; StartTime=(Get-Date).AddDays(-7)} -MaxEvents 100 -ErrorAction SilentlyContinue | Select-Object Id, @{n='Time'; e={ $_.TimeCreated.ToString('s') }}, @{n='Text'; e={ ($_.Message -split "`n")[0] }}) }
+T 'deps' { @(Get-CimInstance Win32_Service | Where-Object { $_.StartMode -eq 'Auto' -and $_.State -ne 'Running' -and $_.ExitCode -ne 0 } | Select-Object -First 15 Name | ForEach-Object { $s = Get-Service -Name $_.Name -ErrorAction SilentlyContinue; if ($s) { [pscustomobject]@{ Name = $s.Name; Display = $s.DisplayName; Needs = @($s.ServicesDependedOn | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Display = $_.DisplayName; Status = "$($_.Status)" } }); Waiting = @($s.DependentServices | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Display = $_.DisplayName; Status = "$($_.Status)" } }) } } }) }
 """},
     "security": {"title": "Bezpečnost", "timeout": 90, "script": r"""
 T 'defender' { Get-MpComputerStatus -ErrorAction Stop | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureAge, @{n='QuickScanAge'; e={ $_.QuickScanAge }}, IsTamperProtected }
@@ -91,7 +93,7 @@ ALLOWED = {"Get-CimInstance", "Get-WinEvent", "Get-ChildItem", "Get-ItemProperty
            "Get-MpThreatDetection", "Get-NetFirewallProfile", "Get-NetTCPConnection", "Get-Process", "Get-AuthenticodeSignature",
            "Get-ScheduledTask", "Get-HotFix", "Get-NetAdapter", "Get-NetIPConfiguration", "Get-ComputerRestorePoint",
            "Get-Date", "Select-Object", "Where-Object", "Sort-Object", "Group-Object", "ForEach-Object", "ConvertTo-Json",
-           "Test-Path", "Get-PnpDeviceProperty"}
+           "Test-Path", "Get-PnpDeviceProperty", "Get-Service"}
 
 
 def cmdlets(script: str) -> set[str]:
@@ -364,6 +366,9 @@ def _an_disks(d: dict) -> list[dict]:
         bad = any(k in kinds for k in ("vadné sektory", "chyba stránkování (čtení/zápis)", "reset řadiče (timeout)"))
         out.append(F("bad" if bad else "warn", f"Systémový log za 30 dní: {txt}.",
                      "Vadné sektory nebo timeouty = zálohuj HNED; timeouty bývají i kabel/napájení. Nic neformátuj.", "Get-WinEvent disk/Ntfs/stor*"))
+    for c in disk_crash_links(ev, L(d.get("crash_times"))):
+        out.append(F("bad", f"Pád systému {c['crash'].replace('T', ' ')} předcházely chyby disku ({c['errors']}× během {c['minutes']} min před ním).",
+                     "Pády nejspíš způsobuje disk nebo jeho kabel/řadič – zálohuj data a vyměň kabel, případně disk.", "Get-WinEvent disk + 41/1001/6008"))
     if err(d.get("reliability")) and needs_admin(err(d.get("reliability"))):
         out.append(F("info", "Podrobné údaje SMART (opotřebení, teplota) smí číst jen správce.", "Spusť JARVIS jako správce.", "StorageReliabilityCounter"))
     if not out:
@@ -371,8 +376,49 @@ def _an_disks(d: dict) -> list[dict]:
     return out
 
 
+def disk_crash_links(io_events: list, crashes: list, window_min: int = 15) -> list[dict]:
+    """OMEGA 291: crashes preceded by disk errors within the window → the likely cause."""
+    import datetime as dt
+
+    def t(x):
+        try:
+            return dt.datetime.fromisoformat(str(x.get("Time") or "")[:19])
+        except ValueError:
+            return None
+    errs = [e for e in (t(x) for x in io_events) if e]
+    out = []
+    for c in crashes:
+        ct = t(c)
+        if not ct:
+            continue
+        n = sum(1 for e in errs if dt.timedelta(0) <= ct - e <= dt.timedelta(minutes=window_min))
+        if n:
+            out.append({"crash": ct.isoformat(), "errors": n, "minutes": window_min})
+    return out[:5]
+
+
+def service_tree(deps: list) -> list[dict]:
+    """OMEGA 294: for each stopped automatic service – what it needs that is not running (the likely cause) and what
+    else waits on it."""
+    out = []
+    for s_ in deps:
+        needs = L(s_.get("Needs"))
+        waiting = L(s_.get("Waiting"))
+        out.append({"name": s_.get("Display") or s_.get("Name"),
+                    "blocked_by": [n.get("Display") or n.get("Name") for n in needs if str(n.get("Status")) not in ("Running", "4")],
+                    "needs": [n.get("Display") or n.get("Name") for n in needs],
+                    "affects": [w.get("Display") or w.get("Name") for w in waiting]})
+    return out
+
+
 def _an_services(d: dict) -> list[dict]:
     out = []
+    for t_ in service_tree(L(d.get("deps"))):
+        if t_["blocked_by"]:
+            out.append(F("warn", f"„{t_['name']}“ neběží, protože nejede služba, na které závisí: {', '.join(t_['blocked_by'])}.",
+                         f"Nejdřív oprav/spusť {t_['blocked_by'][0]} – „{t_['name']}“ se pak rozběhne s ní.", "Get-Service ServicesDependedOn"))
+        if t_["affects"]:
+            out.append(F("info", f"Na „{t_['name']}“ čeká: {', '.join(t_['affects'][:6])}.", "", "Get-Service DependentServices"))
     for s_ in L(d.get("stopped_auto"))[:10]:
         out.append(F("warn", f"Služba „{s_.get('DisplayName')}“ se má spouštět sama, ale neběží (kód {s_.get('ExitCode')}).",
                      "Pokud ji nepoužíváš, nevadí; jinak Služby → spustit / restart PC.", "Win32_Service"))

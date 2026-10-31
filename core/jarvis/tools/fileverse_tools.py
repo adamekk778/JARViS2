@@ -180,19 +180,20 @@ def _smart_details(a: dict) -> list[str]:
     from .. import fileuniverse as fu
 
     try:
-        files = [q for q in _files(a.get("path", "")) if q.suffix.lower() in (".pdf", ".docx", ".txt", ".md")]
+        files = [q for q in _files(a.get("path", "")) if q.suffix.lower() in fu.SMART_DOCS | fu.SMART_MEDIA]
     except ValueError as e:
         return [str(e)]
-    return [f"{q.name} → {fu.smart_name(q)}" for q in files[:20]] or ["Žádné dokumenty (PDF, Word, text)."]
+    return [f"{q.name} → {fu.smart_name(q)}" for q in files[:20]] or ["Žádné dokumenty, fotky ani nahrávky."]
 
 
-@tool("smart_rename", "Pojmenuje dokumenty podle obsahu: typ_datum_firma (např. Faktura_2026-10-03_Alza.pdf). Náhled, "
+@tool("smart_rename", "Pojmenuje soubory podle obsahu: dokumenty typ_datum_firma (Faktura_2026-10-03_Alza.pdf), fotky "
+      "datum_čas_fotoaparát (Foto_2026-06-14_14-03_iPhone-13.jpg), videa a nahrávky podle data, hudbu Interpret - Skladba. Náhled, "
       "schválení, jde vrátit. Na „pojmenuj ty faktury rozumně“.", danger=True, category="soubory", perm="files_write",
       details=_smart_details)
 async def smart_rename(ctx, path: Annotated[str, "soubor nebo složka"]) -> ToolResult:
     from .. import fileuniverse as fu
 
-    files = [q for q in _files(path) if q.suffix.lower() in (".pdf", ".docx", ".txt", ".md")]
+    files = [q for q in _files(path) if q.suffix.lower() in fu.SMART_DOCS | fu.SMART_MEDIA]
     plan, used = [], set()
     for q in files:
         name = fu.smart_name(q)
@@ -204,9 +205,9 @@ async def smart_rename(ctx, path: Annotated[str, "soubor nebo složka"]) -> Tool
         if new != q:
             plan.append({"src": str(q), "dst": str(new)})
     if not plan:
-        return ToolResult(True, "Názvy už odpovídají obsahu (nebo jsem v dokumentech nic nenašel).")
+        return ToolResult(True, "Názvy už odpovídají obsahu (nebo jsem v souborech nic nenašel).")
     r = await asyncio.to_thread(fu.apply_rename, plan)
-    return ToolResult(True, f"Přejmenováno {r['renamed']} dokumentů, např. {Path(plan[0]['dst']).name}. Jde to vrátit.", data=plan)
+    return ToolResult(True, f"Přejmenováno {r['renamed']} souborů, např. {Path(plan[0]['dst']).name}. Jde to vrátit.", data=plan)
 
 
 # ---------------------------------------------------------------------------------------------- archives, conversion

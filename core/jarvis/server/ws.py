@@ -295,16 +295,26 @@ class Connection:
             clip = ""
         return uiplus.suggestions(rt, events, clip)
 
-    async def _mission_sim(self, pid: str) -> None:
+    async def _mission_sim(self, pid: str, kind: str = "protocol") -> None:
         from .. import stark, tools, uixplus
         from ..agent import describe_call
         from ..permissions import LABELS, perm_of
 
-        p = stark.find_protocol(self.rt, pid)
-        if p is None:
-            await self.send("error", message="Ten protokol neexistuje.")
-            return
-        steps = [s.model_dump() for s in p.steps]
+        if kind == "automation":                 # OMEGA 149: an automation's dry run – nothing is executed
+            from ..automations import TEST_VARS, fill
+
+            p = self.rt.automations.find(pid)
+            if p is None:
+                await self.send("error", message="Ta automatizace neexistuje.")
+                return
+            steps = [{**s.model_dump(), "say": fill(s.say, TEST_VARS), "ask": fill(s.ask, TEST_VARS),
+                      "args": {k: fill(v, TEST_VARS) if isinstance(v, str) else v for k, v in s.args.items()}} for s in p.steps]
+        else:
+            p = stark.find_protocol(self.rt, pid)
+            if p is None:
+                await self.send("error", message="Ten protokol neexistuje.")
+                return
+            steps = [s.model_dump() for s in p.steps]
         graph = uixplus.step_layers(steps)
 
         def describe(name, args):
@@ -321,7 +331,7 @@ class Connection:
             spec = tools.REGISTRY.get(name)
             return LABELS.get(perm_of(spec), "") if spec else ""
         sim = uixplus.simulate(steps, describe, dangerous, perm)
-        await self.send("mission_sim", id=p.id, name=p.name, steps=sim, graph=graph, seconds=uixplus.critical_seconds(sim, graph) if sim else 0)
+        await self.send("mission_sim", id=p.id, name=p.name, kind=kind, steps=sim, graph=graph, seconds=uixplus.critical_seconds(sim, graph) if sim else 0)
 
     async def _windows(self, t: str, m: dict) -> None:
         from .. import uixplus
@@ -486,8 +496,9 @@ class Connection:
             if a is None:
                 await self.send("error", message="Ta automatizace neexistuje.")
             else:
-                rt.automations.fire(a, {"sender": "Test", "subject": "Zkouška", "text": "Zkušební zpráva", "app": "Test",
-                                        "percent": 50, "minutes": 10, "time": "teď"}, reason="zkouška", force=True)
+                from ..automations import TEST_VARS
+
+                rt.automations.fire(a, dict(TEST_VARS), reason="zkouška", force=True)
         elif t == "home_set":             # Settings → Domov: address + token, tested before saving
             from .. import home, secrets
 
@@ -888,7 +899,7 @@ class Connection:
         elif t == "focus_set":            # OMEGA 234: quiet focus mode for N minutes (0 = off)
             rt.attention.focus(float(m.get("minutes") or 0))
         elif t == "mission_simulate":     # OMEGA 192 / 755: a protocol's steps as a graph + a dry run
-            await self._mission_sim(str(m.get("id") or ""))
+            await self._mission_sim(str(m.get("id") or ""), "automation" if m.get("kind") == "automation" else "protocol")
         elif t in ("windows_get", "window_focus", "window_nav"):     # OMEGA 230
             await self._windows(t, m)
         elif t == "mochi_move":            # OMEGA 195: Mochi to the phone and back

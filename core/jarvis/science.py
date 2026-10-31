@@ -756,10 +756,72 @@ def read_stl(path: Path) -> list[tuple[tuple[float, float, float], ...]]:
     return [tuple(verts[i:i + 3]) for i in range(0, len(verts) - 2, 3)]
 
 
+def read_obj(path: Path) -> list:
+    """Wavefront OBJ: v x y z / f a b c … (v/vt/vn, negative indices, polygons fanned into triangles)."""
+    verts: list[tuple[float, float, float]] = []
+    tris = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        if parts[0] == "v" and len(parts) >= 4:
+            verts.append((float(parts[1]), float(parts[2]), float(parts[3])))
+        elif parts[0] == "f" and len(parts) >= 4:
+            idx = []
+            for tok in parts[1:]:
+                i = int(tok.split("/")[0])
+                idx.append(i - 1 if i > 0 else len(verts) + i)
+            for k in range(1, len(idx) - 1):
+                tris.append((verts[idx[0]], verts[idx[k]], verts[idx[k + 1]]))
+    if not verts:
+        raise ValueError("Soubor OBJ nemá žádné vrcholy.")
+    return tris
+
+
+MM_PER_UNIT = {"micron": 0.001, "millimeter": 1.0, "centimeter": 10.0, "inch": 25.4, "foot": 304.8, "meter": 1000.0}
+
+
+def read_3mf(path: Path) -> list:
+    """3MF (zip + XML, the format of PrusaSlicer / Bambu Studio / Cura): every mesh object, converted to millimetres."""
+    import xml.etree.ElementTree as ET
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(path) as z:
+            name = next((n for n in z.namelist() if n.lower().endswith(".model")), None)
+            if not name:
+                raise ValueError("V souboru 3MF chybí model.")
+            root = ET.fromstring(z.read(name))
+    except zipfile.BadZipFile as e:
+        raise ValueError("Soubor není platný 3MF (zip).") from e
+    k = MM_PER_UNIT.get(root.get("unit", "millimeter"), 1.0)
+    tris = []
+    for mesh in root.iter():
+        if not mesh.tag.endswith("mesh"):
+            continue
+        vs = [(float(v.get("x")) * k, float(v.get("y")) * k, float(v.get("z")) * k) for v in mesh.iter() if v.tag.endswith("}vertex") or v.tag == "vertex"]
+        for t in mesh.iter():
+            if t.tag.endswith("}triangle") or t.tag == "triangle":
+                tris.append((vs[int(t.get("v1"))], vs[int(t.get("v2"))], vs[int(t.get("v3"))]))
+    return tris
+
+
+def read_mesh(path: Path) -> list:
+    """OMEGA 775: STL, OBJ or 3MF → triangles in millimetres. STEP is a CAD format that needs a CAD kernel – not read."""
+    ext = path.suffix.lower()
+    if ext == ".obj":
+        return read_obj(path)
+    if ext == ".3mf":
+        return read_3mf(path)
+    if ext in (".step", ".stp", ".iges", ".igs"):
+        raise ValueError("STEP/IGES je CAD formát – vyexportuj ho prosím jako STL, OBJ nebo 3MF (ve Fusion / FreeCADu: Export).")
+    return read_stl(path)
+
+
 def inspect_stl(path: Path, printer: tuple[float, float, float] = (220, 220, 250), infill_pct: float = 20, density: float = 1.24) -> dict:
     """Size, volume, surface, watertight / flipped / degenerate, whether it fits the printer, overhangs needing support,
     and an estimate of filament."""
-    tris = read_stl(path)
+    tris = read_mesh(path)
     if not tris:
         raise ValueError("Model nemá žádné trojúhelníky.")
     xs = [v[0] for t in tris for v in t]

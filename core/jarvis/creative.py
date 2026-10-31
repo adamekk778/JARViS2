@@ -11,6 +11,7 @@ import html
 import io
 import json
 import math
+import re
 import time
 from pathlib import Path
 import numpy as np
@@ -369,6 +370,75 @@ def lipsync(x: np.ndarray, rate: int, fps: int = 24, hold: int = 2) -> dict:
     keys = [{"frame": i + 1, "mouth": s} for i, s in enumerate(out) if i == 0 or out[i - 1] != s]
     moho = "MohoSwitch1\n" + "\n".join(f"{k['frame']} {'rest' if k['mouth'] == 'X' else {'A': 'E', 'B': 'O', 'C': 'AI'}[k['mouth']]}" for k in keys) + "\n"
     return {"frames": n, "fps": fps, "keys": keys, "moho": moho, "open_pct": round(100 * sum(s != "X" for s in out) / n, 1)}
+
+
+# Czech letters → Preston Blair mouth shapes (the set Moho / Papagayo use). Digraph "ch" first.
+VISEME = {"a": "AI", "á": "AI", "i": "AI", "í": "AI", "y": "AI", "ý": "AI", "e": "E", "é": "E", "ě": "E",
+          "o": "O", "ó": "O", "u": "U", "ú": "U", "ů": "U", "m": "MBP", "b": "MBP", "p": "MBP", "f": "FV", "v": "FV", "w": "WQ",
+          "l": "L", "t": "etc", "d": "etc", "n": "etc", "ň": "etc", "ť": "etc", "ď": "etc", "k": "etc", "g": "etc", "h": "etc",
+          "c": "etc", "č": "etc", "s": "etc", "š": "etc", "z": "etc", "ž": "etc", "r": "etc", "ř": "etc", "j": "etc", "x": "etc", "q": "WQ"}
+
+
+def czech_visemes(text: str) -> list[list[str]]:
+    """Words → mouth shapes per sound (one shape per letter group; repeated shapes merged)."""
+    out = []
+    for w in re.findall(r"[^\W\d_]+", (text or "").lower()):
+        w = w.replace("ch", "h").replace("ou", "u").replace("au", "a")
+        shapes: list[str] = []
+        for ch in w:
+            v = VISEME.get(ch)
+            if v and (not shapes or shapes[-1] != v):
+                shapes.append(v)
+        if shapes:
+            out.append(shapes)
+    return out
+
+
+def lipsync_text(x: np.ndarray, rate: int, text: str, fps: int = 24) -> dict:
+    """OMEGA 668 with the words known: speech stretches from the loudness, words spread over them by length, each
+    word's sounds → mouth shapes (MBP closes the lips, O / U round them…), "rest" in the pauses."""
+    base = lipsync(x, rate, fps, hold=1)
+    n = base["frames"]
+    talk = [k["mouth"] != "X" for k in _expand(base["keys"], n)]
+    runs, i = [], 0
+    while i < n:                                              # speech stretches (with gaps under 3 frames bridged)
+        if talk[i]:
+            j = i
+            while j < n and (talk[j] or any(talk[j:j + 3])):
+                j += 1
+            runs.append((i, j))
+            i = j
+        else:
+            i += 1
+    words = czech_visemes(text)
+    frames = ["rest"] * n
+    total_frames = sum(b - a for a, b in runs)
+    total_sounds = sum(len(w) for w in words)
+    if runs and total_sounds:
+        per = total_frames / total_sounds                    # frames per sound
+        flat = [v for w in words for v in w + ["rest"]][:-1]  # a short rest between words
+        pos = 0.0
+        slots = [f for a, b in runs for f in range(a, b)]
+        for v in flat:
+            span = per if v != "rest" else per * 0.4
+            a, b = int(pos), max(int(pos) + 1, int(pos + span))
+            for k in range(a, min(b, len(slots))):
+                frames[slots[k]] = v
+            pos += span
+    keys = [{"frame": i + 1, "mouth": f} for i, f in enumerate(frames) if i == 0 or frames[i - 1] != f]
+    moho = "MohoSwitch1\n" + "\n".join(f"{k['frame']} {k['mouth']}" for k in keys) + "\n"
+    return {"frames": n, "fps": fps, "keys": keys, "moho": moho, "words": len(words), "sounds": total_sounds,
+            "open_pct": round(100 * sum(f != "rest" for f in frames) / n, 1), "mode": "hlásky"}
+
+
+def _expand(keys: list[dict], n: int) -> list[dict]:
+    out, cur, ki = [], keys[0] if keys else {"mouth": "X"}, 0
+    for f in range(1, n + 1):
+        while ki + 1 < len(keys) and keys[ki + 1]["frame"] <= f:
+            ki += 1
+            cur = keys[ki]
+        out.append(cur)
+    return out
 
 
 # ============================================================================================== 669 mix advice
