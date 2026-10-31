@@ -1,0 +1,59 @@
+/* JARVIS option picker (see picker.ts) + filled sliders */
+select.pk-open { border-color: var(--accent-line) !important; box-shadow: 0 0 0 3px var(--accent-soft) !important; }
+
+.pk-pop {
+  position: fixed; z-index: 9000; display: flex; flex-direction: column; overflow: hidden;
+  padding: 6px; border-radius: 14px;
+  background: color-mix(in oklab, var(--surface) 97%, var(--text) 3%);
+  backdrop-filter: blur(22px) saturate(1.4); -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 1px 0 rgb(255 255 255 / .05) inset, 0 22px 50px -12px rgb(0 0 0 / .65), 0 4px 14px -4px rgb(0 0 0 / .4);
+  transform-origin: top center; animation: pk-in .18s var(--ease);
+}
+.pk-pop.up { transform-origin: bottom center; }
+.pk-pop.bye { animation: pk-out .14s ease forwards; pointer-events: none; }
+:root[data-theme="light"] .pk-pop { box-shadow: 0 22px 50px -14px rgb(15 23 42 / .25), 0 4px 14px -6px rgb(15 23 42 / .15); }
+@keyframes pk-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+@keyframes pk-out { to { opacity: 0; transform: translateY(-3px) scale(.98); } }
+.pk-pop.up { animation-name: pk-in-up; }
+@keyframes pk-in-up { from { opacity: 0; transform: translateY(4px) scale(.97); } }
+
+.pk-search-row { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 0 10px; height: 34px; border-radius: 9px; background: var(--glass-2); color: var(--muted); flex: none; }
+.pk-search { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: 13px var(--font); }
+.pk-search::placeholder { color: var(--faint); }
+
+.pk-list { overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 1px; scrollbar-width: thin; }
+.pk-group { padding: 8px 10px 4px; font: 700 10.5px var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.pk-opt {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  color: var(--text-2); transition: background .12s, color .12s;
+}
+.pk-opt.act { background: var(--glass-3); color: var(--text); }
+.pk-opt.on { color: var(--text); }
+.pk-opt.on .pk-name { font-weight: 600; }
+.pk-opt.off { opacity: .4; cursor: default; }
+.pk-check { flex: none; width: 16px; font-size: 14px; color: var(--accent); opacity: 0; transform: scale(.6); transition: opacity .15s, transform .2s var(--spring); }
+.pk-opt.on .pk-check { opacity: 1; transform: none; }
+.pk-text { display: grid; gap: 1px; min-width: 0; }
+.pk-name { font: 500 13.5px var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-desc { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.pk-empty { padding: 14px 10px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* filled sliders (settings: Kreativita, Citlivost, …) */
+.range input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: 22px; background: transparent; cursor: pointer; margin: 0;
+}
+.range input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent) 0 var(--p, 50%), color-mix(in oklab, var(--text) 14%, transparent) var(--p, 50%) 100%);
+}
+.range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / .4), 0 0 0 0 var(--accent-soft); transition: transform .2s var(--spring), box-shadow .2s;
+}
+.range input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+.range input[type="range"]:active::-webkit-slider-thumb, .range input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 1px 4px rgb(0 0 0 / .4), 0 0 0 6px var(--accent-soft); }
+.range input[type="range"]::-moz-range-track { height: 6px; border-radius: 99px; background: color-mix(in oklab, var(--text) 14%, transparent); }
+.range input[type="range"]::-moz-range-progress { height: 6px; border-radius: 99px; background: var(--accent); }
+.range input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .4); }
+.range output { padding: 3px 8px; border-radius: 7px; background: var(--glass-2); font-size: 12px !important; min-width: 0 !important; white-space: nowrap; }

@@ -8,6 +8,7 @@ import { h, icon, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildSettings, type Section } from "./settings";
 import { stopButton } from "../shared/taskcard";
+import { autoControls } from "../shared/picker";
 import { buildTasks } from "./tasks";
 import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
@@ -118,6 +119,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
 recapOverlay(client);
 whatsNewOverlay(client);
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
+autoControls(document.body);   // JARVIS-styled option lists and filled sliders everywhere in the window
 
 const settingsUI = buildSettings(client, settingsHost);
 
