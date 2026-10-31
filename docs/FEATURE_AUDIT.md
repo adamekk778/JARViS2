@@ -9,12 +9,12 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 593 | 88 |
-| 🟡 ČÁSTEČNĚ | 179 | 62 |
+| ✅ HOTOVO | 597 | 88 |
+| 🟡 ČÁSTEČNĚ | 187 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
-| 🗓️ PLÁNOVÁNO | 16 | 3 |
+| 🗓️ PLÁNOVÁNO | 4 | 3 |
 | ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
 
@@ -326,14 +326,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 18. Iron Man — Future Tech
 
-✅ 4 · 🟡 3 · 🗓️ 3
+✅ 5 · 🟡 5
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 186 | Futuristický JARVIS HUD. | ✅ HOTOVO | Stark HUD přes celou obrazovku (web/src/hud, CI kontrola) |
-| 187 | AR Companion. | 🗓️ PLÁNOVÁNO | AR / gesta kamerou – vize, M8 |
-| 188 | Ovládání gesty kamerou. | 🗓️ PLÁNOVÁNO | AR / gesta kamerou – vize, M8 |
-| 189 | Prostorová pracovní plocha. | 🗓️ PLÁNOVÁNO | AR / gesta kamerou – vize, M8 |
+| 187 | AR Companion. | 🟡 ČÁSTEČNĚ | „Co to je?“ z kamery telefonu, Mochi na telefonu; překryv do obrazu (AR) zatím ne |
+| 188 | Ovládání gesty kamerou. | ✅ HOTOVO | ovládání gesty kamerou PC (Nastavení → Vzhled, vypnuté výchozí): mávnutí doprava/doleva/nahoru/dolů a zamávání → hudba, hlasitost, kroky dílenského režimu; rozpoznání pohybu přímo v okně (bez modelu ke stažení, nic se neukládá ani neposílá), červená tečka v notchi po celou dobu (shared/gestures.ts) |
+| 189 | Prostorová pracovní plocha. | 🟡 ČÁSTEČNĚ | mapa oken a pracovní plochy (uloží a obnoví rozložení); 3D prostorová plocha zatím ne |
 | 190 | Digitální dvojče PC. | 🟡 ČÁSTEČNĚ | system_snapshot + report stavu PC |
 | 191 | Command Center pro velké displeje. | 🟡 ČÁSTEČNĚ | HUD na celou obrazovku |
 | 192 | Vizualizovaná simulace misí. | ✅ HOTOVO | „Nanečisto“ u protokolu: animovaná simulace po fázích – co který krok udělá, co se zeptá, jaké oprávnění, odhad času (i se souběhem) |
@@ -761,24 +761,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 38. Iron Man Experimental
 
-🟡 2 · 🗓️ 13
+✅ 3 · 🟡 8 · 🗓️ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 481 | Holographic-Style Interface — 3D styl hologramu. | 🟡 ČÁSTEČNĚ | holografický styl HUD |
-| 482 | AR Object Annotations — anotace objektů. | 🗓️ PLÁNOVÁNO | vize, M8 |
+| 482 | AR Object Annotations — anotace objektů. | 🟡 ČÁSTEČNĚ | popis a měření objektů z fotky (vision, measure_on_photo); značky přímo v živém obraze kamery ne |
 | 483 | Spatial Voice Commands — hlas v prostorové UI. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 484 | 3D Exploded View — rozložené modely. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 485 | Mechanical Assembly Guide — montážní návody. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 486 | Environmental Sensor Fusion — data více senzorů. | 🗓️ PLÁNOVÁNO | vize, M8 |
+| 484 | 3D Exploded View — rozložené modely. | ✅ HOTOVO | exploded_view: rozložený pohled na model z Blenderu – díly odsunuté od středu sestavy, vyrenderovaný obrázek (bridges.blender_exploded) |
+| 485 | Mechanical Assembly Guide — montážní návody. | ✅ HOTOVO | assembly_guide: montážní návod z modelu – díly odspodu jeden po druhém, obrázek po každém kroku, HTML návod; navazuje dílenský režim |
+| 486 | Environmental Sensor Fusion — data více senzorů. | 🟡 ČÁSTEČNĚ | grafy z čidel přes sériovou linku (serial_monitor, sensor_chart); spojování víc čidel do jednoho modelu ne |
 | 487 | Smart Glasses Companion — chytré brýle. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 488 | Virtual Engineering Table — virtuální pracovní stůl. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 489 | Robot Fleet Dashboard — řízení flotily. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 490 | Digital Twin Simulator — simulační dvojče. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 491 | Virtual Lab Experiments — virtuální fyzika. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 492 | Hands-Free Workshop Mode — hands-free dílna. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 493 | Gesture-Based 3D Manipulation — gesta ve 3D. | 🗓️ PLÁNOVÁNO | vize, M8 |
-| 494 | Wearable Notifications — hodinky a wearables. | 🗓️ PLÁNOVÁNO | vize, M8 |
+| 490 | Digital Twin Simulator — simulační dvojče. | 🟡 ČÁSTEČNĚ | fyzikální simulace (physics_sim) a 3D průzkumník PC; úplné digitální dvojče ne |
+| 491 | Virtual Lab Experiments — virtuální fyzika. | 🟡 ČÁSTEČNĚ | fyzikální modely ověřené proti analytickým výsledkům, návrh a vyhodnocení experimentů |
+| 492 | Hands-Free Workshop Mode — hands-free dílna. | ✅ HOTOVO | dílenský režim bez rukou: kroky nahlas, další/předchozí hlasem nebo mávnutím ruky, krok v notchi; zapnutí gest jen po potvrzení (workshop_mode, workshop_step) |
+| 493 | Gesture-Based 3D Manipulation — gesta ve 3D. | 🟡 ČÁSTEČNĚ | gesta kamerou ovládají hudbu, hlasitost a kroky dílny; otáčení 3D modelů gesty zatím ne |
+| 494 | Wearable Notifications — hodinky a wearables. | 🟡 ČÁSTEČNĚ | upozornění JARVISe chodí do aplikace v telefonu; hodinky s Wear OS / Galaxy Watch je zrcadlí jako ostatní oznámení telefonu (neověřeno na hodinkách) |
 | 495 | Integrated Command Environment — jeden řídicí prostor. | 🟡 ČÁSTEČNĚ | HUD + dashboard |
 
 ## 39. Proactive Intelligence

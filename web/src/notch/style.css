@@ -521,3 +521,9 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 .n-team i:first-child { margin-left: 0; }
 .n-team i i { width: auto; height: auto; border: 0; background: none; margin: 0; font-size: 12px; }
 .notch[data-island="team"] .n-eyes { --eye: #9f8bff; }
+/* OMEGA 188: the camera is on (gestures) – a red dot, always visible, in every mode */
+.n-inner > .n-cam { top: 6px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 6px #ff3b30; }
+.notch.cam-on .n-cam { opacity: 1; }
+.notch[data-island="gesture"] .n-lead i { color: var(--accent, #4fd1ff); }
+.notch[data-island="workshop"] .n-lead i { color: #ffb84d; }
+.notch[data-island="workshop"] .n-trail { color: #f2f5f8; font-weight: 500; }

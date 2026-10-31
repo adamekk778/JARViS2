@@ -209,3 +209,91 @@ async def transit_departures(ctx, stop: str, limit: int = 8) -> ToolResult:
         return ToolResult(True, f"Ze zastávky {stop} teď nic nejede (nebo ji neznám).")
     return ToolResult(True, "; ".join(f"{d['line']} → {d['to']} {d['time']}" + (f" (+{d['delay_min']} min)" if d["delay_min"] > 0 else "")
                                       for d in deps), data=deps)
+
+
+@tool("exploded_view", "Rozložený pohled na 3D model z Blenderu (.blend): díly se odsunou od středu sestavy a vyrenderuje "
+      "se obrázek – vidět, z čeho se skládá.", category="design", perm="apps")
+async def exploded_view(ctx, file: str, factor: Annotated[float, "jak daleko od sebe (0.5–3)"] = 1.0) -> ToolResult:
+    from .. import bridges
+
+    exe, blend = _blender(ctx), _blend(file)
+    for x in (exe, blend):
+        if isinstance(x, ToolResult):
+            return x
+    out = paths.sub("blender") / f"{blend.stem}-rozlozeny.png"
+    try:
+        r = await asyncio.to_thread(bridges.blender_exploded, exe, str(blend), str(out), max(0.2, min(float(factor), 5.0)))
+    except Exception as e:  # noqa: BLE001
+        return ToolResult(False, str(e)[:300])
+    return ToolResult(True, f"Rozložený pohled: {len(r['parts'])} dílů.", attachments=[str(out)], data=r)
+
+
+@tool("assembly_guide", "Montážní návod z 3D modelu (.blend): díly se přidávají jeden po druhém odspodu, po každém kroku "
+      "obrázek; výsledek je návod v HTML. Krok za krokem ho pak přečte dílenský režim.", category="design", perm="apps")
+async def assembly_guide(ctx, file: str, max_steps: int = 12) -> ToolResult:
+    from .. import bridges
+
+    exe, blend = _blender(ctx), _blend(file)
+    for x in (exe, blend):
+        if isinstance(x, ToolResult):
+            return x
+    folder = paths.sub("blender") / f"{blend.stem}-navod"
+    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        r = await asyncio.to_thread(bridges.blender_assembly, exe, str(blend), str(folder), max(1, min(int(max_steps), 30)))
+    except Exception as e:  # noqa: BLE001
+        return ToolResult(False, str(e)[:300])
+    html = folder / "navod.html"
+    html.write_text(bridges.assembly_html(f"Montáž – {blend.stem}", r["steps"]), encoding="utf-8")
+    WORKSHOP["guide"] = [f"Přidej díl {s['part']}" for s in r["steps"]]
+    return ToolResult(True, f"Návod má {len(r['steps'])} kroků (z {r['total_parts']} dílů). Řekni „dílenský režim“ a provedu tě "
+                      "jím krok za krokem.", attachments=[str(html)], data=r)
+
+
+# OMEGA 492 hands-free workshop: steps read aloud, "další / zpět" by voice or by a hand gesture, the camera dot visible
+WORKSHOP: dict = {"on": False, "steps": [], "i": 0, "guide": []}
+
+
+def _publish_workshop(ctx) -> None:
+    w = WORKSHOP
+    ctx.bus.publish("workshop", on=w["on"], step=w["i"] + 1, total=len(w["steps"]),
+                    text=w["steps"][w["i"]] if w["on"] and w["steps"] else "")
+
+
+@tool("workshop_mode", "Dílenský režim bez rukou: JARVIS čte postup krok po kroku nahlas, další / předchozí krok řekneš "
+      "hlasem nebo mávnutím ruky před kamerou (zapne gesta – v notchi pak svítí červená tečka). steps = kroky postupu; "
+      "prázdné = poslední montážní návod.", category="každý den", perm="apps", danger_if=lambda a, ctx=None: bool(a.get("on", True)),
+      details=lambda a, ctx=None: ["Zapne ovládání gesty kamerou PC (obraz zůstává v počítači) a hlasové pokračování v rozhovoru."])
+async def workshop_mode(ctx, on: bool = True, steps: Annotated[list[str], "kroky postupu"] = []) -> ToolResult:  # noqa: B006
+    if not on:
+        WORKSHOP.update(on=False)
+        ctx.update_config({"appearance": {"gestures": False}})
+        _publish_workshop(ctx)
+        return ToolResult(True, "Dílenský režim vypnutý, kamera je vypnutá.")
+    items = [s for s in (steps or WORKSHOP["guide"]) if str(s).strip()]
+    if not items:
+        return ToolResult(False, "Dej mi kroky postupu (nebo nejdřív udělej montážní návod).")
+    WORKSHOP.update(on=True, steps=items[:60], i=0)
+    ctx.update_config({"appearance": {"gestures": True}, "voice": {"followup": True}})
+    _publish_workshop(ctx)
+    return ToolResult(True, f"Dílenský režim: {len(items)} kroků. Krok 1: {items[0]}. Další krok řekni „další“ nebo mávni rukou doprava.")
+
+
+@tool("workshop_step", "Další / předchozí / zopakovat krok v dílenském režimu.", category="každý den", perm="apps")
+async def workshop_step(ctx, move: Literal["next", "prev", "repeat"] = "next") -> ToolResult:
+    w = WORKSHOP
+    if not w["on"]:
+        return ToolResult(False, "Dílenský režim není zapnutý.")
+    if move == "next":
+        if w["i"] >= len(w["steps"]) - 1:
+            return ToolResult(True, "To byl poslední krok – hotovo!")
+        w["i"] += 1
+    elif move == "prev":
+        w["i"] = max(0, w["i"] - 1)
+    _publish_workshop(ctx)
+    text = f"Krok {w['i'] + 1} z {len(w['steps'])}: {w['steps'][w['i']]}"
+    try:
+        ctx.speak(text)
+    except Exception:  # noqa: BLE001 – no voice output: the notch still shows it
+        pass
+    return ToolResult(True, text)

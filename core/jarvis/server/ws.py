@@ -63,7 +63,7 @@ SERVER_TYPES = [
     "rescue", "perf", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
-    "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume",
+    "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "caption", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware",
 ]
@@ -75,7 +75,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
               "convert_file": "Převést soubor", "file_metadata": "Metadata", "clean_metadata": "Vyčistit metadata",
               "folder_fingerprint": "Uložit otisky složky", "folder_check": "Zkontrolovat složku", "recent_files": "Nedávné soubory",
               "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
-QUICK_ACTIONS = {"call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
+QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",

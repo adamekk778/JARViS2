@@ -9,13 +9,14 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
 | `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
+| `serial_monitor` | 161, 163, 471, 477, 486 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `mood.py` | 076, 241, 737, P7.01 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_python` | 766, 768, P5.12, P11.10 |
 | `run_tests` | 058, 062, 334, P5.08 |
-| `serial_monitor` | 161, 163, 471, 477 |
+| `sensor_chart` | 163, 472, 477, 486 |
 | `tasks.py` | 002, 209, 217, 223 |
 | `ui_read` | 028, 033, P2.03, P4.03 |
 | `ask_models` | 006, 007, 204 |
@@ -31,7 +32,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
 | `perf_check` | 063, 301, 718 |
-| `sensor_chart` | 163, 472, 477 |
 | `test_wave` | 041, 152, 177 |
 | `tests/test_omega.py` | 002, 025, 076 |
 | `tools/base.py` | 183, 203, 682 |
@@ -74,6 +74,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `pcreport.py` | 025, P2.08 |
 | `perf_benchmark` | 018, 314 |
 | `permissions.py` | 177, P14.01 |
+| `physics_sim` | 490, 776 |
 | `predict_next_steps` | 196, P15.04 |
 | `price_quote` | 168, 441 |
 | `project_resume` | 044, 509 |
@@ -127,6 +128,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `apply_solution` | 004 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
+| `assembly_guide` | 485 |
 | `asset_lineage` | 675 |
 | `asset_register` | 664 |
 | `assets_report` | 664 |
@@ -144,6 +146,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `battery_level` | 427 |
 | `best_time_outside` | 783 |
 | `billing_basis` | 169 |
+| `blender_exploded` | 484 |
 | `bluetooth_devices` | P13.04 |
 | `bought_together` | 436 |
 | `brand_check` | 661 |
@@ -249,6 +252,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `expiring_logins` | 537 |
 | `explain_build_failure` | 340 |
 | `explain_crash_code` | 014 |
+| `exploded_view` | 484 |
 | `explore_logs` | 713 |
 | `export_all` | 793 |
 | `export_audit` | 687 |
@@ -336,6 +340,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `map_data` | 595 |
 | `match_shot` | 371 |
 | `mcp_client` | 048 |
+| `measure_on_photo` | 482 |
 | `media_control` | P12.01 |
 | `media_player` | P13.03 |
 | `media_quality` | 375 |
@@ -386,7 +391,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `performance_profile` | 310 |
 | `phone.py` | 145 |
 | `phone_battery` | 417 |
-| `physics_sim` | 776 |
 | `podcast_chapters` | 370 |
 | `power_check` | 295 |
 | `power_cost` | 474 |
@@ -460,6 +464,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `set_private` | 041 |
 | `setup_check` | 795 |
 | `sfx_library` | 373 |
+| `shared/gestures.ts` | 188 |
 | `shared/taskcard.ts` | 087 |
 | `shopping_by_aisle` | 785 |
 | `simulate_automations` | 430 |
@@ -531,6 +536,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `workflow_export` | 153 |
 | `workflow_import` | 153 |
 | `workflow_record` | 146 |
+| `workshop_mode` | 492 |
+| `workshop_step` | 492 |
 | `write_text_file` | P5.05 |
 
 ## Překryvy původního seznamu s katalogem

@@ -122,6 +122,7 @@ class Appearance(BaseModel):
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
+    gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced"] = "full"
     sounds: bool = True        # subtle interface sounds in the notch

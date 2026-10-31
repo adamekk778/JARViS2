@@ -10,6 +10,7 @@ import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
 import { brandEl, brandOf, BRANDS } from "../shared/brands";
+import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -123,7 +124,8 @@ const lead = h("div", { class: "n-lead" });
 const trail = h("div", { class: "n-trail" });
 const volBar = h("div", { class: "n-vol", "aria-hidden": "true" }, h("b"));
 const brandBadge = h("div", { class: "n-brand" });            // which AI answers, in the live bubble
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+const camDot = h("div", { class: "n-cam", title: "Kamera je zapnutá – ovládání gesty" });
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -620,6 +622,27 @@ const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "P�
 // the AI that answers now (the core says which provider + model once the first words arrive)
 let brain: { provider: string; model: string } | null = null;
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
+// OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
+let lastGesture: { g: Gesture; until: number } | null = null;
+// OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
+let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
+client.on("workshop", (m) => { workshop = { on: !!m.on, step: m.step || 0, total: m.total || 0, text: m.text || "" }; updateActivity(); });
+const GESTURE_ACTION: Record<Gesture, [string, any]> = {
+  left: ["media_control", { action: "previous" }], right: ["media_control", { action: "next" }],
+  up: ["volume", { action: "up" }], down: ["volume", { action: "down" }], wave: ["media_control", { action: "play_pause" }],
+};
+const gestureCam = new GestureCam({
+  onGesture: (g) => {
+    const [action, args] = workshop.on && g !== "up" && g !== "down"
+      ? ["workshop_step", { move: g === "right" ? "next" : g === "left" ? "prev" : "repeat" }] : GESTURE_ACTION[g];
+    client.send("quick_action", { action, args });
+    lastGesture = { g, until: Date.now() + 1300 };
+    updateActivity();
+    window.setTimeout(updateActivity, 1400);
+  },
+  onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
+});
+function syncGestures(on: boolean) { if (on && !gestureCam.on) gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop(); }
 client.on("agent_activity", (m) => {
   if (m.state === "start") team.set(m.key, { icon: m.icon || "robot", name: m.name, since: team.get(m.key)?.since || Date.now() });
   if (m.state === "done") team.delete(m.key);
@@ -643,7 +666,14 @@ function renderBrand() {
 function islandActivity(t: any) {
   let kind = "", l: (Node | string)[] = [], r: (Node | string)[] = [];
   const cc = claudeSessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
-  if (vol && Date.now() < volUntil) {
+  if (lastGesture && Date.now() < lastGesture.until) {
+    kind = "gesture";
+    l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
+  } else if (workshop.on && workshop.total) {
+    kind = "workshop";
+    l = [icon("wrench", "ph-fill"), h("span", {}, `Krok ${workshop.step}/${workshop.total}`)];
+    r = [workshop.text.length > 28 ? workshop.text.slice(0, 27) + "…" : workshop.text];
+  } else if (vol && Date.now() < volUntil) {
     kind = "volume";
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
@@ -723,6 +753,7 @@ client.on("welcome", (m) => {
   task = m.task || null;
   takeNotchSettings(m.settings?.notch);
   document.documentElement.dataset.nstyle = m.settings?.notch?.style || "island";
+  syncGestures(!!m.settings?.appearance?.gestures);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   upd = m.update;
@@ -746,6 +777,7 @@ client.on("settings_changed", (m) => {
   if (m.settings?.notch) {        // every size and timing setting takes effect right away, without a restart
     takeNotchSettings(m.settings.notch);
     document.documentElement.dataset.nstyle = m.settings.notch.style || "island";
+    syncGestures(!!m.settings?.appearance?.gestures);
     ensureWindow();
     apply(mode);
   }

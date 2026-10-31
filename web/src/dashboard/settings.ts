@@ -333,6 +333,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.input_mode", "Ovládání", [["auto", "Automaticky (podle zařízení)"], ["mouse", "Myš a klávesnice"], ["touch", "Dotyk – větší tlačítka"], ["voice", "Hlas – velké tlačítko mikrofonu"]],
           "Automaticky: na dotykové obrazovce se tlačítka zvětší, jakmile se jí dotkneš. Mikrofon se sám nikdy nezapne."),
         sw("appearance.captions", "Živé titulky", "Velké titulky toho, co JARVIS říká a co od tebe slyšel – i bez zvuku."),
+        sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
         sw("stark.attention_aware", "Nerušit při soustředění", "Při schůzce v kalendáři nebo hře přes celou obrazovku nedůležitá upozornění počkají a přijdou potom najednou. Budíky a časovače vždy hned.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),

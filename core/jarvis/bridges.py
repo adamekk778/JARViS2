@@ -113,6 +113,73 @@ def blender_script(exe: str, blend: str | None, code: str, runner: Runner | None
         os.unlink(f.name)
 
 
+EXPLODE_SCRIPT = r"""
+import bpy, json, mathutils
+sc = bpy.context.scene
+meshes = [o for o in sc.objects if o.type == "MESH"]
+if not meshes:
+    print("JARVIS_JSON" + json.dumps({"error": "ve scéně nejsou žádné díly"})); raise SystemExit
+def centre(o):
+    return sum((o.matrix_world @ mathutils.Vector(c) for c in o.bound_box), mathutils.Vector()) / 8
+mid = sum((centre(o) for o in meshes), mathutils.Vector()) / len(meshes)
+for o in meshes:
+    o.location += (centre(o) - mid) * FACTOR
+sc.render.filepath = OUT
+sc.render.image_settings.file_format = "PNG"
+bpy.ops.render.render(write_still=True)
+print("JARVIS_JSON" + json.dumps({"parts": [o.name for o in meshes], "out": OUT}))
+"""
+
+ASSEMBLY_SCRIPT = r"""
+import bpy, json, os
+sc = bpy.context.scene
+meshes = [o for o in sc.objects if o.type == "MESH"]
+def low(o):
+    return min((o.matrix_world @ __import__("mathutils").Vector(c)).z for c in o.bound_box)
+def size(o):
+    d = o.dimensions
+    return d.x * d.y * d.z
+order = sorted(meshes, key=lambda o: (round(low(o), 3), -size(o)))[:MAX_STEPS]
+for o in meshes:
+    o.hide_render = True
+steps = []
+sc.render.image_settings.file_format = "PNG"
+for i, o in enumerate(order):
+    o.hide_render = False
+    path = os.path.join(FOLDER, f"krok_{i + 1:02d}.png")
+    sc.render.filepath = path
+    bpy.ops.render.render(write_still=True)
+    steps.append({"part": o.name, "image": path, "size": [round(v, 3) for v in o.dimensions]})
+print("JARVIS_JSON" + json.dumps({"steps": steps, "total_parts": len(meshes)}))
+"""
+
+
+def blender_exploded(exe: str, blend: str, out_png: str, factor: float = 1.0, runner: Runner | None = None) -> dict:
+    """OMEGA 484: every part pushed away from the centre of the assembly, rendered as one picture."""
+    expr = f"FACTOR = {float(factor)!r}\nOUT = {out_png!r}\n" + EXPLODE_SCRIPT
+    res = _json_line(_run(blender_cmd(exe, blend, expr=expr), 1800, runner).stdout)
+    if res.get("error"):
+        raise RuntimeError(res["error"])
+    return res
+
+
+def blender_assembly(exe: str, blend: str, folder: str, max_steps: int = 12, runner: Runner | None = None) -> dict:
+    """OMEGA 485: parts added one by one from the bottom up (bigger first), a picture after each step."""
+    expr = f"FOLDER = {folder!r}\nMAX_STEPS = {int(max_steps)}\n" + ASSEMBLY_SCRIPT
+    return _json_line(_run(blender_cmd(exe, blend, expr=expr), 3600, runner).stdout)
+
+
+def assembly_html(title: str, steps: list[dict]) -> str:
+    import html as _h
+
+    rows = "".join(f'<section><h2>Krok {i + 1}</h2><p>Přidej díl <b>{_h.escape(s["part"])}</b>'
+                   f' ({" × ".join(f"{v:g}" for v in s.get("size", []))})</p>'
+                   f'<img src="{_h.escape(Path(s["image"]).name)}" alt="Krok {i + 1}"></section>' for i, s in enumerate(steps))
+    return (f"<!doctype html><meta charset=utf-8><title>{_h.escape(title)}</title><style>body{{font:16px system-ui;max-width:900px;"
+            f"margin:auto;padding:16px}}img{{max-width:100%;border-radius:12px;border:1px solid #ddd}}section{{margin:24px 0}}</style>"
+            f"<h1>{_h.escape(title)}</h1>{rows}")
+
+
 # ---------------------------------------------------------------- Unity
 def unity_project(root: Path) -> dict:
     ver_file = root / "ProjectSettings" / "ProjectVersion.txt"
