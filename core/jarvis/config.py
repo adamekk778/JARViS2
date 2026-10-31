@@ -109,7 +109,8 @@ class Notch(BaseModel):
     # anti-aliased curves, which on some PCs made Windows draw a grey box around the notch
     edges: Literal["hard", "smooth"] = "hard"
     # 3.11: "island" = two glowing eyes + live info left / right and a home screen of big cards; "mochi" = the character
-    style: Literal["island", "mochi"] = "island"
+    style: Literal["dynamic", "island", "mochi"] = "dynamic"
+    style_rev: int = 1             # 3.12: configs saved before Dynamic Island (0) move from "island" to "dynamic" once
     tiles: list[str] = Field(default_factory=lambda: [
         "ask", "media", "shelf", "quick", "timers", "system", "weather", "phone"])
     open_on: Literal["hover", "click"] = "hover"   # OMEGA 092: "click" = najetí myší panel neotevře (proti náhodnému otevření)
@@ -500,6 +501,13 @@ class Config(BaseModel):
         if isinstance(data, dict) and "permissions" not in data:
             if (data.get("tools") or {}).get("computer_use") is False:
                 data = {**data, "permissions": {"input": False}}
+        # 3.12: the old default look ("island") becomes the new Dynamic Island once; "mochi" (a real choice) stays
+        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("style_rev", 0) or 0) < 1:
+            n = dict(data["notch"])
+            if n.get("style", "island") == "island":
+                n["style"] = "dynamic"
+            n["style_rev"] = 1
+            data = {**data, "notch": n}
         return data
 
 

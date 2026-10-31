@@ -1,0 +1,149 @@
+/* =====================================================================================
+   3.12 Dynamic Island (iPhone look) – the default. A floating black pill a few pixels below the top edge, fully
+   rounded, no "ears". It morphs: idle pill → live activity (wider) → answer card → the big panel. Every rule is
+   scoped to html[data-nstyle="dynamic"], so the older looks (island, mochi) stay exactly as they were.
+   ===================================================================================== */
+html[data-nstyle="dynamic"] {
+  --dy-gap: 6px;
+  --dy-ink: #000;
+  --dy-text: #f5f7fa;
+  --dy-sub: #9aa3ae;
+  --dy-chip: rgb(255 255 255 / .09);
+  --dy-chip-hi: rgb(255 255 255 / .16);
+}
+/* the shape: a floating pill, every corner rounded */
+html[data-nstyle="dynamic"] .notch::before, html[data-nstyle="dynamic"] .notch::after { display: none; }
+html[data-nstyle="dynamic"] .n-inner {
+  top: var(--dy-gap); background: var(--dy-ink);
+  clip-path: inset(0 calc((100% - var(--cw)) / 2) calc(100% - var(--ch)) calc((100% - var(--cw)) / 2) round var(--r));
+}
+html[data-nstyle="dynamic"] .notch[data-mode="panel"] .n-inner { background: #000; }
+/* what the iPhone look does not use */
+html[data-nstyle="dynamic"] :is(.n-blob, .n-eyes, .n-glow, .bar-top, .n-progress) { display: none !important; }
+html[data-nstyle="dynamic"] .n-inner > .act { display: none !important; }
+
+/* the content blurs for a moment while the shape changes, then settles (like iOS) */
+html[data-nstyle="dynamic"] .n-inner > * { transition: opacity .22s ease, filter .28s ease, transform .45s var(--spring); }
+html[data-nstyle="dynamic"] .notch.swap .n-inner > * { filter: blur(6px); }
+
+/* ---- compact: leading and trailing live activity ---- */
+html[data-nstyle="dynamic"] .n-inner > :is(.n-lead, .n-trail) { height: 36px; top: 0; font-size: 13px; font-weight: 600; letter-spacing: -.1px; }
+html[data-nstyle="dynamic"] .n-inner > .n-lead { left: 12px; gap: 8px; }
+html[data-nstyle="dynamic"] .n-inner > .n-trail { right: 14px; color: var(--dy-text); }
+html[data-nstyle="dynamic"] .notch[data-mode="hover"] :is(.n-lead, .n-trail) { height: 38px; }
+html[data-nstyle="dynamic"] .n-art { width: 24px; height: 24px; border-radius: 7px; }
+html[data-nstyle="dynamic"] .n-ring { width: 20px; height: 20px; }
+html[data-nstyle="dynamic"] .notch[data-island="focus"] :is(.n-lead, .n-trail) { color: #ff9f0a; }   /* iOS timer orange */
+html[data-nstyle="dynamic"] .notch[data-island="claude"] .n-trail,
+html[data-nstyle="dynamic"] .notch[data-island="ai"] .n-trail { color: var(--brand, var(--dy-sub)); }
+html[data-nstyle="dynamic"] .notch[data-island="download"] .n-lead i { color: #0a84ff; }
+html[data-nstyle="dynamic"] .notch[data-island="update"] .n-lead i { color: #30d158; }
+/* music: artwork left, live bars right */
+html[data-nstyle="dynamic"] .n-inner > .n-music { right: 16px; top: 10px; }
+html[data-nstyle="dynamic"] .n-music i { background: #ff375f; width: 3px; }
+/* volume: icon left, a thin bar filling the rest */
+html[data-nstyle="dynamic"] .n-inner > .n-vol { left: 44px; right: 18px; top: 15px; height: 6px; }
+/* voice: a breathing orb left, a waveform right */
+.n-orb { width: 20px; height: 20px; border-radius: 50%; display: block; flex: none;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #7fd3ff 22%, #2a7bff 55%, #6b2bff 100%);
+  box-shadow: 0 0 10px #2a7bff, 0 0 18px rgb(107 43 255 / .5); animation: dy-orb 1.6s ease-in-out infinite; }
+@keyframes dy-orb { 50% { transform: scale(.82); filter: hue-rotate(40deg); } }
+.n-wave { display: inline-flex; align-items: center; gap: 3px; height: 16px; }
+.n-wave i { width: 3px; height: 100%; border-radius: 2px; background: linear-gradient(#7fd3ff, #6b2bff); animation: dy-wave .9s ease-in-out infinite; }
+.n-wave i:nth-child(2) { animation-delay: -.2s; } .n-wave i:nth-child(3) { animation-delay: -.45s; }
+.n-wave i:nth-child(4) { animation-delay: -.1s; } .n-wave i:nth-child(5) { animation-delay: -.6s; }
+@keyframes dy-wave { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+html[data-nstyle="dynamic"] .notch[data-mood="thinking"] .n-wave i,
+html[data-nstyle="dynamic"] .notch[data-mood="working"] .n-wave i { animation-duration: 1.6s; opacity: .7; }
+
+/* ---- bar (click / hover open): time left, round buttons right ---- */
+html[data-nstyle="dynamic"] .bar-side { top: 15px; gap: 6px; }
+html[data-nstyle="dynamic"] .bar-side.l { left: 14px; }
+html[data-nstyle="dynamic"] .bar-side.r { right: 14px; }
+html[data-nstyle="dynamic"] .n-btn { width: 34px; height: 34px; background: var(--dy-chip); font-size: 16px; }
+html[data-nstyle="dynamic"] .n-btn:hover { background: var(--dy-chip-hi); }
+
+/* ---- live: the answer card. Head: which AI + STOP; then the text ---- */
+html[data-nstyle="dynamic"] .n-inner > .n-brand { top: 14px; left: 16px; bottom: auto; right: auto; height: 26px; padding: 0 10px 0 8px;
+  background: var(--dy-chip); font-size: 12px; font-weight: 600; }
+html[data-nstyle="dynamic"] .n-inner > .stop-btn { top: 14px; right: 14px; height: 26px; padding: 0 10px; font-size: 11px; animation: none; }
+html[data-nstyle="dynamic"] .n-bubble { left: 20px; right: 20px; width: auto; top: 50px; bottom: 16px; justify-content: flex-start; gap: 6px; font-size: 14px; }
+html[data-nstyle="dynamic"] .b-state { color: var(--dy-sub); font-size: 12.5px; font-weight: 600; }
+html[data-nstyle="dynamic"] .b-answer { color: var(--dy-text); line-height: 1.5; font-size: 14px; max-height: none; flex: 1; }
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-bubble:has(.b-answer:empty) { justify-content: center; }
+
+/* ---- alert ---- */
+html[data-nstyle="dynamic"] .n-alert-text { left: 22px; right: 22px; }
+html[data-nstyle="dynamic"] .n-alert-text strong { font-size: 14.5px; }
+
+/* ---- panel ---- */
+html[data-nstyle="dynamic"] .p-head { height: 60px; padding: 0 14px 0 22px; gap: 12px; }
+html[data-nstyle="dynamic"] .p-title { display: none; }
+html[data-nstyle="dynamic"] .p-head .home-date { position: static; transform: none; font-size: 13px; color: var(--dy-sub); }
+html[data-nstyle="dynamic"] .p-head .home-date strong { color: var(--dy-text); font-size: 15px; }
+html[data-nstyle="dynamic"] .home-eyes { display: none; }
+/* the section tabs: an iOS segmented control in the head */
+html[data-nstyle="dynamic"] .p-head .p-tabs { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 99px; background: rgb(255 255 255 / .07);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+html[data-nstyle="dynamic"] .p-head .p-tabs button { height: 30px; padding: 0 14px; border-radius: 99px; color: #c7cdd5; font-size: 13px; font-weight: 600; gap: 6px; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button span { display: inline; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button i { font-size: 15px; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button.active { background: #fff; color: #000; }
+html[data-nstyle="dynamic"] .p-head .p-tabs .nav-extra, html[data-nstyle="dynamic"] .p-head .p-tabs .p-vol { display: none; }
+html:not([data-nstyle="dynamic"]) .p-tabs .nav-more { display: none; }
+html[data-nstyle="dynamic"] .panel { grid-template-rows: minmax(0, 1fr); padding: 2px 16px 16px; }
+html[data-nstyle="dynamic"] .p-head-r .p-icon { color: #c7cdd5; }
+html[data-nstyle="dynamic"] .p-head-r .p-icon:hover { background: var(--dy-chip); color: #fff; }
+
+/* home: three cards + a row of controls */
+html[data-nstyle="dynamic"] .home { gap: 12px; }
+html[data-nstyle="dynamic"] .home-cards { gap: 12px; }
+html[data-nstyle="dynamic"] .hcard { border-radius: 26px; border: 0; padding: 16px 18px; }
+html[data-nstyle="dynamic"] .hcard:hover { transform: scale(1.015); }
+html[data-nstyle="dynamic"] .hcard.focus { background: radial-gradient(130% 90% at 50% 120%, #ff9f0a 0%, #6b3a00 45%, #110b05 80%); }
+html[data-nstyle="dynamic"] .h-big { font-size: 34px; }
+html[data-nstyle="dynamic"] .h-btn { border-width: 0; background: rgb(255 255 255 / .18); backdrop-filter: blur(8px); }
+html[data-nstyle="dynamic"] .h-btn:hover { background: rgb(255 255 255 / .3); }
+.home-row { display: flex; align-items: center; gap: 8px; flex: none; }
+.home-vol { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 160px; height: 40px; padding: 0 14px 0 6px; border-radius: 99px; background: rgb(255 255 255 / .07); }
+.home-vol .p-vol-range { flex: 1; width: auto; height: 6px; border-radius: 3px; }
+.home-vol .p-vol-ico { color: #fff; }
+.home-chip { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 0; border-radius: 99px;
+  background: rgb(255 255 255 / .07); color: #e9edf2; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, transform .12s; }
+.home-chip i { font-size: 16px; }
+.home-chip:hover { background: rgb(255 255 255 / .14); }
+.home-chip:active { transform: scale(.95); }
+.home-chip:last-child { background: rgb(255 69 58 / .2); color: #ff6961; }
+.home-chip:last-child:hover { background: rgb(255 69 58 / .32); }
+html:not([data-nstyle="dynamic"]) .home-row { display: none; }
+
+/* "Více": big tiles for the rest */
+.p-sec.more { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; align-content: start; padding: 6px 2px; }
+.more-tile { display: grid; justify-items: start; gap: 4px; padding: 18px; border: 0; border-radius: 22px; background: rgb(255 255 255 / .06);
+  color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .15s, transform .15s; }
+.more-tile i { font-size: 26px; color: #0a84ff; margin-bottom: 6px; }
+.more-tile strong { font-size: 15px; }
+.more-tile span { font-size: 12.5px; color: var(--dy-sub, #9aa3ae); }
+.more-tile:hover { background: rgb(255 255 255 / .1); transform: translateY(-1px); }
+
+/* shared controls in the panel look cleaner */
+html[data-nstyle="dynamic"] .p-card { border-radius: 20px; border: 0; background: rgb(255 255 255 / .05); }
+html[data-nstyle="dynamic"] .qbtn { border: 0; border-radius: 18px; background: rgb(255 255 255 / .06); }
+html[data-nstyle="dynamic"] .qbtn:hover { background: rgb(255 255 255 / .11); }
+html[data-nstyle="dynamic"] .p-pill { height: 32px; padding: 0 14px; font-weight: 600; }
+
+:root[data-motion="reduced"] .n-orb, :root[data-motion="reduced"] .n-wave i { animation: none; }
+
+/* 3.12 polish: the live head carries the state, smaller card when there is no text yet */
+html[data-nstyle="dynamic"] .b-state { display: none; }
+html[data-nstyle="dynamic"] .n-inner > .n-brand { gap: 7px; max-width: calc(100% - 120px); overflow: hidden; white-space: nowrap; }
+.dy-state { color: var(--dy-sub, #9aa3ae); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.dy-state::before { content: "·"; margin-right: 6px; opacity: .6; }
+.n-orb.sm { width: 14px; height: 14px; }
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .n-brand:not(:empty) { opacity: 1; }
+html[data-nstyle="dynamic"] .n-inner > .stop-btn { box-shadow: none; }
+html[data-nstyle="dynamic"] .n-inner > .n-music { display: none; }
+.n-wave.music i { background: linear-gradient(#ff8fa3, #ff375f); }
+html[data-nstyle="dynamic"] .notch[data-mood="speaking"] .n-orb { animation-duration: .7s; }
+html[data-nstyle="dynamic"] .hcard.music .h-big { padding-right: 56px; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button { white-space: nowrap; }

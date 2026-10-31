@@ -1,5 +1,6 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
+import "./dynamic.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
@@ -7,7 +8,7 @@ import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
 import { configureSounds, panFor, play, setAnchorPan, setCustomSounds } from "../shared/sounds";
 import { stopButton, type Task } from "../shared/taskcard";
-import { notchOutline, regionSender } from "../shared/region";
+import { notchOutline, regionSender, roundRect } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
 import { brandEl, brandOf, BRANDS } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
@@ -104,6 +105,14 @@ const panelHead = h("div", { class: "p-head" },
     (pinBtn = h("button", { class: "p-icon pin", type: "button", title: "Připnout (zůstane otevřený i po restartu)", "aria-label": "Připnout", onclick: () => setPinned(!pinned) }, icon("push-pin"))),
     h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { if (pinned) setPinned(false); settle(true); } }, icon("minus"))));
 const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
+/** The look (Nastavení → Notch): "dynamic" (default) puts the panel's section tabs in its head, like iOS. */
+function setStyle(style?: string) {
+  const st = style || "dynamic";
+  document.documentElement.dataset.nstyle = st;
+  if (st === "dynamic") panelHead.insertBefore(panel.navEl, panelHead.querySelector(".p-head-r"));
+  else panel.el.append(panel.navEl);
+}
+setStyle(params.get("nstyle") || "dynamic");
 function setPinned(v: boolean, save = true) {
   pinned = v;
   pinBtn.classList.toggle("on", v);
@@ -163,7 +172,32 @@ function openChat(view = "chat") {
   else window.open(view === "full" ? "/chat" : view === "hud" ? "/hud" : `/#${view}`, "_blank");
 }
 
+// 3.12 Dynamic Island (iPhone look, default): a floating black pill a few pixels below the top edge that morphs
+// between a small idle pill, a wider "live activity", a card with the answer and the big panel.
+const GAP = 6;
+function dyn() { return document.documentElement.dataset.nstyle === "dynamic"; }
+function dynSize(m: Mode): [number, number] {
+  const kind = shape.dataset.island || "";
+  switch (m) {
+    case "panel": return [780, 400];
+    case "bar": return [400, 64];
+    case "alert": return [420, 76];
+    case "radial": return [340, 320];
+    case "live": {
+      const kids = [...bubble.children].filter((c) => c !== bubbleState && (c as HTMLElement).textContent) as HTMLElement[];
+      const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(240, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 6;
+      return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
+    }
+    case "hover": return kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
+    default: return kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
+  }
+}
+function dynRadius(m: Mode, hh: number): number {
+  return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
+}
+
 function sizeFor(m: Mode): [number, number] {
+  if (dyn()) return dynSize(m);
   switch (m) {
     case "panel": return [cfg.expanded_width || 1000, Math.max(340, cfg.expanded_height || 390)];
     case "bar": return [400, 104];
@@ -204,6 +238,11 @@ function syncRegion(force = false) {
   if (!window.pywebview) return;
   const box = shape.getBoundingClientRect();
   const cx = box.left + box.width / 2;
+  if (dyn()) {
+    const top = box.top + GAP;
+    sendRegion([roundRect({ left: cx - S.w / 2, right: cx + S.w / 2, top, bottom: top + S.h } as DOMRect, Math.max(0, S.r), window.devicePixelRatio || 1, regionPad)], force);
+    return;
+  }
   const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
   sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1, regionPad)], force);
 }
@@ -211,13 +250,13 @@ function setBox(w: number, hh: number) {
   if (w === boxW && hh === boxH) return;
   boxW = w; boxH = hh;
   shape.style.setProperty("--w", `${w}px`);
-  shape.style.setProperty("--h", `${hh}px`);
+  shape.style.setProperty("--h", `${hh + (dyn() ? GAP : 0)}px`);
 }
 function springStep(now: number) {
   const dt = Math.min(0.034, (now - S.last) / 1000 || 0.016);
   S.last = now;
   // growing: lively with a little overshoot; shrinking: quicker and without bounce
-  const k = S.grow ? 340 : 520, c = S.grow ? 27 : 46;
+  const k = dyn() ? (S.grow ? 300 : 420) : (S.grow ? 340 : 520), c = dyn() ? (S.grow ? 24 : 36) : (S.grow ? 27 : 46);
   let moving = false;
   for (const [x, v, t] of [["w", "vw", "tw"], ["h", "vh", "th"], ["r", "vr", "tr"]] as const) {
     const a = k * (S[t] - S[x]) - c * S[v];
@@ -256,10 +295,16 @@ async function cursorInside(): Promise<boolean> {
   try { return !!(await window.pywebview?.api.cursor_inside?.()); } catch { return false; }
 }
 
+let swapTimer = 0;
 function apply(m: Mode) {
   const [w, hh] = sizeFor(m);
+  if (dyn() && shape.dataset.mode !== m && !reducedMotion()) {   // the content blurs while the shape morphs (iOS feel)
+    shape.classList.add("swap");
+    window.clearTimeout(swapTimer);
+    swapTimer = window.setTimeout(() => shape.classList.remove("swap"), 230);
+  }
   shape.dataset.mode = m;
-  animateShape(w, hh, RADIUS[m] ?? 26);
+  animateShape(w, hh, dyn() ? dynRadius(m, hh) : RADIUS[m] ?? 26);
   updateBlob();
 }
 
@@ -458,6 +503,7 @@ function renderLive() {
   const text = liveText.length > 600 ? "…" + liveText.slice(-600) : liveText;
   bubbleAnswer.innerHTML = text ? renderMarkdown(text) : "";
   bubbleAnswer.scrollTop = bubbleAnswer.scrollHeight;
+  renderBrand();
   if (mode === "live") apply("live");
 }
 
@@ -611,7 +657,7 @@ function dictActivity(): boolean {
   }
   return false;
 }
-function island() { return document.documentElement.dataset.nstyle !== "mochi"; }
+function island() { return document.documentElement.dataset.nstyle !== "mochi"; }   // island + dynamic
 /** A ring that empties as the timer runs (the focus timer in the closed island). */
 function ring(frac: number) {
   const c = 2 * Math.PI * 7;
@@ -663,6 +709,15 @@ client.on("volume", (m) => {
   window.setTimeout(updateActivity, 1700);
 });
 function renderBrand() {
+  if (dyn()) {          // Dynamic Island: the card's head says who answers and what it is doing
+    const b = brain ? brandOf(brain.provider, brain.model) : null;
+    const state = bubbleState.textContent || (liveText ? "Odpovídám" : "");
+    if (!b && !state) { brandBadge.replaceChildren(); return; }
+    if (b) shape.style.setProperty("--brand", b.color);
+    brandBadge.replaceChildren(b ? brandEl(b) : h("span", { class: "n-orb sm" }), h("span", {}, b ? b.name : "JARVIS"),
+      state ? h("span", { class: "dy-state" }, state) : "");
+    return;
+  }
   if (!brain || !jarvisBusy()) { brandBadge.replaceChildren(); return; }
   const b = brandOf(brain.provider, brain.model);
   brandBadge.replaceChildren(brandEl(b), h("span", {}, b.name));
@@ -715,8 +770,12 @@ function islandActivity(t: any) {
     const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;
     kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
     r = [`${mb(d.bytes)}${d.speed > 0 ? ` · ${mb(d.speed)}/s` : ""}`];
+  } else if (dyn() && ["listening", "speaking", "thinking", "working"].includes(coreMood)) {
+    kind = "voice"; l = [h("span", { class: "n-orb" })];
+    r = [h("span", { class: "n-wave" }, ...Array.from({ length: 5 }, () => h("i")))];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
+    if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
   }
   lead.replaceChildren(...l);
   trail.replaceChildren(...r);
@@ -763,7 +822,7 @@ client.on("welcome", (m) => {
   configureSounds(m.settings?.appearance);
   task = m.task || null;
   takeNotchSettings(m.settings?.notch);
-  document.documentElement.dataset.nstyle = m.settings?.notch?.style || "island";
+  setStyle(m.settings?.notch?.style);
   syncGestures(!!m.settings?.appearance?.gestures);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
@@ -787,7 +846,7 @@ client.on("settings_changed", (m) => {
   if (ch) { charColor = [ch.color, ch.glow || undefined]; paintUpdate(); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
   if (m.settings?.notch) {        // every size and timing setting takes effect right away, without a restart
     takeNotchSettings(m.settings.notch);
-    document.documentElement.dataset.nstyle = m.settings.notch.style || "island";
+    setStyle(m.settings.notch.style);
     syncGestures(!!m.settings?.appearance?.gestures);
     ensureWindow();
     apply(mode);

@@ -402,7 +402,7 @@ html[data-focus="1"] .n-music { display: none; }
    right, and a home screen of three big cards with a tab bar when the notch opens.
    ===================================================================================== */
 html[data-nstyle="island"] .n-blob, html[data-nstyle="island"] .n-inner > .act { display: none !important; }
-html:not([data-nstyle="island"]) .n-inner > :is(.n-eyes, .n-lead, .n-trail) { display: none !important; }
+html:not([data-nstyle="island"]):not([data-nstyle="dynamic"]) .n-inner > :is(.n-eyes, .n-lead, .n-trail) { display: none !important; }
 .n-inner > .n-eyes { --eye: #eef4ff; opacity: 1; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 11px;
   transition: left .45s var(--spring), top .45s var(--spring), transform .45s var(--spring), opacity .2s; }
 .n-eyes i { width: 7px; height: 11px; border-radius: 4px; background: var(--eye); box-shadow: 0 0 6px var(--eye), 0 0 14px color-mix(in srgb, var(--eye) 45%, transparent);

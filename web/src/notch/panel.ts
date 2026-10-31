@@ -9,18 +9,21 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS } from "../shared/brands";
 
-export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings";
+export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
   ["chat", "chat-circle-dots", "Chat"],
-  ["quick", "squares-four", "Rychlé akce"],
+  ["quick", "squares-four", "Akce"],
   ["system", "gear-six", "Systém"],
   ["files", "folder-simple", "Soubory"],
   ["workspaces", "browsers", "Plochy"],
   ["tools", "wrench", "Nástroje"],
   ["settings", "sliders-horizontal", "Nastavení"],
+  ["more", "dots-three-circle", "Více"],
 ];
+// 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
+const EXTRA: Section[] = ["files", "workspaces", "tools", "settings"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -278,7 +281,19 @@ export function buildPanel(ctx: PanelCtx) {
   const cardAi = h("button", { class: "hcard ai", type: "button", onclick: () => show("chat") });
   const cardMusic = h("div", { class: "hcard music", role: "group" });
   const cardFocus = h("div", { class: "hcard focus", role: "group" });
-  const homeView = h("div", { class: "home" }, h("div", { class: "home-cards" }, cardAi, cardMusic, cardFocus));
+  const homeVolIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
+    onclick: () => quick("volume", { action: volume?.muted ? "unmute" : "mute" }) });
+  const homeVol = h("input", { type: "range", min: 0, max: 100, step: 2, class: "p-vol-range", "aria-label": "Hlasitost" }) as HTMLInputElement;
+  homeVol.onchange = () => quick("volume", { action: "set", level: Number(homeVol.value) });
+  const chip = (ic: string, label: string, fn: () => void) => h("button", { class: "home-chip", type: "button", onclick: fn }, icon(ic), h("span", {}, label));
+  const homeRow = h("div", { class: "home-row" },
+    h("div", { class: "home-vol" }, homeVolIcon, homeVol),
+    chip("microphone", "Mluvit", () => client.send("push_to_talk")),
+    chip("camera", "Snímek", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
+    chip("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" })),
+    chip("lock", "Zamknout", () => quick("system_power", { action: "lock" })),
+    chip("hand-palm", "STOP", () => client.send("stop_all")));
+  const homeView = h("div", { class: "home" }, h("div", { class: "home-cards" }, cardAi, cardMusic, cardFocus), homeRow);
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
   function renderHome() {
     const now = new Date();
@@ -312,8 +327,16 @@ export function buildPanel(ctx: PanelCtx) {
   }
   window.setInterval(renderHome, 1000);
 
+  const tile = (sec: Section, ic: string, label: string, sub: string) =>
+    h("button", { class: "more-tile", type: "button", onclick: () => show(sec) }, icon(ic), h("strong", {}, label), h("span", {}, sub));
+  const moreView = h("div", { class: "p-sec more" },
+    tile("files", "folder-simple", "Soubory", "Police – přetáhni, zeptej se, pošli do mobilu"),
+    tile("workspaces", "browsers", "Plochy", "Uložená rozložení oken"),
+    tile("tools", "wrench", "Nástroje", "Co JARVIS umí a co se naučil"),
+    tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled"),
+    h("button", { class: "more-tile", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), h("strong", {}, "Celé okno"), h("span", {}, "Všechny stránky a nastavení JARVISe")));
   const centre = h("section", { class: "p-centre" });
-  const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView };
+  const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -325,15 +348,19 @@ export function buildPanel(ctx: PanelCtx) {
     volIcon.replaceChildren(icon(volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high", "ph-fill"));
     if (document.activeElement !== volRange) volRange.value = String(lv);
     volRange.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
+    homeVolIcon.replaceChildren(icon(volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high", "ph-fill"));
+    if (document.activeElement !== homeVol) homeVol.value = String(lv);
+    homeVol.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
   };
   paintVol();
   const navEl = h("nav", { class: "p-tabs", "aria-label": "Sekce" },
-    ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, title: label, onclick: () => show(k) }, icon(ic), h("span", {}, label))),
+    ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, title: label, class: EXTRA.includes(k) ? "nav-extra" : k === "more" ? "nav-more" : "",
+      onclick: () => show(k) }, icon(ic), h("span", {}, label))),
     h("div", { class: "p-vol" }, volIcon, volRange));
 
   function show(s: Section) {
     current = s;
-    navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s));
+    navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s || ((b as HTMLElement).dataset.sec === "more" && EXTRA.includes(s))));
     centre.replaceChildren(views[s]);
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
@@ -396,5 +423,5 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("skills", (m) => skillsBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: "p-chip" }, icon("wrench"), s.name)) : [h("span", { class: "muted" }, "Zatím žádné. Řekni třeba: Nauč se převádět měny.")])));
   client.on("mcp", (m) => mcpBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: `p-chip ${s.ok ? "ok" : "bad"}` }, icon("plug"), `${s.name} · ${s.ok ? `${s.tools} nástrojů` : "nepřipojeno"}`)) : [h("span", { class: "muted" }, "Žádné. Přidáš je v celém nastavení → Integrace.")])));
 
-  return { el, show, chat, dateEl: homeDate, get section() { return current; } };
+  return { el, show, chat, dateEl: homeDate, navEl, get section() { return current; } };
 }

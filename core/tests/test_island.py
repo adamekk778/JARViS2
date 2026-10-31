@@ -23,12 +23,16 @@ async def test_no_speaker_is_quiet(rt, monkeypatch):
     assert not [e for e in drain(q) if e["type"] == "volume"]
 
 
-def test_island_is_the_default_look():
+def test_dynamic_island_is_the_default_look():
     import pathlib
 
     from jarvis import config
     from jarvis.server import ws
 
-    assert config.Config().notch.style == "island" and "volume" in ws.SERVER_TYPES
+    assert config.Config().notch.style == "dynamic" and "volume" in ws.SERVER_TYPES
+    # 3.12: an older saved "island" moves to Dynamic Island once; "mochi" (a deliberate choice) stays
+    assert config.Config.model_validate({"notch": {"style": "island"}}).notch.style == "dynamic"
+    assert config.Config.model_validate({"notch": {"style": "mochi"}}).notch.style == "mochi"
+    assert config.Config.model_validate({"notch": {"style": "island", "style_rev": 1}}).notch.style == "island"
     ts = (pathlib.Path(__file__).parents[2] / "web" / "src" / "shared" / "protocol.ts").read_text(encoding="utf-8")
     assert '"volume"' in ts
