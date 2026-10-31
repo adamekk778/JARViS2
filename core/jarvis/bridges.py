@@ -338,3 +338,54 @@ async def pid_departures(key: str, stop: str, limit: int = 8, transport=None) ->
                     "delay_min": round(((d.get("delay") or {}).get("seconds") or 0) / 60),
                     "platform": (d.get("stop") or {}).get("platform_code") or ""})
     return out
+
+
+
+def render_script_preview(exe: str, blend: str | None, script: str, out_png: str, frame: int | None = None,
+                          runner: Runner | None = None) -> str:
+    """OMEGA 665 / 666: run JARVIS's own camera / lights script in a copy of the scene (the .blend is never saved) and
+    render one still – the preview of the move or the lighting."""
+    tail = ("\nimport bpy\nsc = bpy.context.scene\n" + (f"sc.frame_set({int(frame)})\n" if frame else "") +
+            f"sc.render.filepath = {out_png!r}\nsc.render.image_settings.file_format = 'PNG'\n"
+            "sc.render.resolution_percentage = 50\nbpy.ops.render.render(write_still=True)\nprint('JARVIS_RENDER_OK')\n")
+    log = blender_script(exe, blend, script + tail, runner)
+    if "JARVIS_RENDER_OK" not in log or not Path(out_png).exists():
+        raise RuntimeError("Render se nepovedl: " + log[-300:])
+    return out_png
+
+
+# ---------------------------------------------------------------- 467 slicer
+SLICERS = ("prusa-slicer", "prusa-slicer-console", "superslicer", "orca-slicer", "OrcaSlicer")
+
+
+def find_slicer() -> str | None:
+    for name in SLICERS:
+        if (w := shutil.which(name)):
+            return w
+    for base in (os.environ.get("ProgramFiles", r"C:\Program Files"),):
+        for rel in ("Prusa3D/PrusaSlicer/prusa-slicer-console.exe", "OrcaSlicer/orca-slicer.exe", "SuperSlicer/superslicer_console.exe"):
+            p = Path(base) / rel
+            if p.is_file():
+                return str(p)
+    return None
+
+
+def slice_cmd(exe: str, model: str, out_gcode: str, config: str = "", layer: float = 0.2, infill: int = 20, supports: bool = False) -> list[str]:
+    cmd = [exe, "--export-gcode", "--output", out_gcode]
+    if config:
+        cmd += ["--load", config]
+    else:
+        cmd += ["--layer-height", str(layer), "--fill-density", f"{int(infill)}%"]
+    if supports:
+        cmd += ["--support-material"]
+    return cmd + [model]
+
+
+def gcode_summary(text: str) -> dict:
+    """Print time and filament from the slicer's G-code comments (PrusaSlicer / Orca / SuperSlicer style)."""
+    def grab(rx):
+        m = re.search(rx, text)
+        return m.group(1).strip() if m else None
+    mm = grab(r";\s*filament used \[mm\]\s*=\s*([\d.]+)")
+    return {"time": grab(r";\s*estimated printing time.*?=\s*(.+)"), "filament_m": round(float(mm) / 1000, 2) if mm else None,
+            "filament_g": grab(r";\s*(?:total )?filament used \[g\]\s*=\s*([\d.]+)"), "layers": len(re.findall(r";LAYER_CHANGE", text)) or None}

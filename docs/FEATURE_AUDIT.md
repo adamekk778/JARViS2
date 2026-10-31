@@ -9,11 +9,11 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 723 | 88 |
-| 🟡 ČÁSTEČNĚ | 57 | 62 |
+| ✅ HOTOVO | 736 | 88 |
+| 🟡 ČÁSTEČNĚ | 42 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 10 | 10 |
-| ⛔ BLOKOVÁNO_PLATFORMOU | 1 | 0 |
+| 🔌 VYŽADUJE_INTEGRACI | 11 | 10 |
+| ⛔ BLOKOVÁNO_PLATFORMOU | 2 | 0 |
 | 🗓️ PLÁNOVÁNO | 4 | 3 |
 | ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
@@ -61,18 +61,18 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 03. Context Awareness
 
-✅ 6 · 🟡 4
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 026 | Detekce aktivní aplikace. | ✅ HOTOVO | foreground_info + Activity sampler (powers.py), automatizace „když otevřu…“ |
 | 027 | Práce s označeným textem. | ✅ HOTOVO | označený text Ctrl+Alt+E: opravit/přeložit/zkrátit/vysvětlit (powers.py; CI test v Notepadu) |
-| 028 | Vysvětlení prvku pod kurzorem. | 🟡 ČÁSTEČNĚ | ui_inspect / ui_read přes UI Automation (tools/uia.py) |
-| 029 | Porovnávání otevřených dokumentů. | 🟡 ČÁSTEČNĚ | compare_files (tools/files.py) |
+| 028 | Vysvětlení prvku pod kurzorem. | ✅ HOTOVO | explain_under_cursor: výřez kolem myši se zakroužkovaným místem → co to je a k čemu slouží (model, který vidí obrázky) + ui_inspect |
+| 029 | Porovnávání otevřených dokumentů. | ✅ HOTOVO | compare_open_documents: dva otevřené dokumenty podle názvů oken → shoda, přidané a ubrané věty |
 | 030 | Paměť pracovního rozložení oken. | ✅ HOTOVO | workspace_save / workspace_restore / workspace_compare (dřívější vlna) – pojmenovaná rozložení oken s programy a polohami |
 | 031 | Obnova pracovního prostředí po restartu. | ✅ HOTOVO | rozložení oken se ukládá každých 10 min a při vypnutí JARVISe; po restartu jednou nabídne „obnov okna z minula“ (nic samo nespouští) |
 | 032 | Nabídnutí pomoci při opakovaných chybách. | ✅ HOTOVO | program spadl dnes 3× → jednou denně nabídne zjistit proč (s modulem, ve kterém padá) |
-| 033 | Kontextová diagnostika chybových dialogů. | 🟡 ČÁSTEČNĚ | screenshot + vision model, ui_read chybových dialogů |
+| 033 | Kontextová diagnostika chybových dialogů. | ✅ HOTOVO | explain_error: chybový kód z textu nebo z okna v popředí (0x8007…, 0xC000…, Win32, MSI 1603) → co znamená a co s tím + screen_errors najde chyby na obrazovce |
 | 034 | Režim práce/hry/učení dle aktivních aplikací. | 🟡 ČÁSTEČNĚ | protokoly Pracovní/Herní režim + automatizace app_open (stark.py, automations.py) |
 | 035 | Interaktivní popisky funkcí aplikace. | ✅ HOTOVO | nápověda k funkcím: tlačítko „?“ nebo F1 – najetí na sekci ukáže, co dělá a jak o to požádat hlasem; „Prohlídka“ projde sekce jednu po druhé (šipky, Další / Zpět) |
 
@@ -134,15 +134,15 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 07. Mochi 2.0
 
-✅ 12 · 🟡 3
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 071 | Oči sledující kurzor. | ✅ HOTOVO | oči sledují kurzor (character/blob.ts lookAt) |
 | 072 | Protažení při probuzení PC. | ✅ HOTOVO | protažení po probuzení PC: skok nástěnných hodin proti monotónním (mood.tick) → reakce „stretch“ (zívne, protáhne se, poskočí) |
 | 073 | Reakce na změnu hlasitosti. | ✅ HOTOVO | reakce na změnu hlasitosti: platform.audio_state každých 1,5 s (pycaw) → ukazatel hlasitosti u postavičky |
-| 074 | Animace při kopírování souborů. | 🟡 ČÁSTEČNĚ | animace kopírování, když JARVIS kopíruje / přesouvá / zálohuje / balí soubory; kopírování v Průzkumníku nevidí |
-| 075 | Pravdivá vizualizace stahování. | 🟡 ČÁSTEČNĚ | pravdivý průběh stahování aktualizace (mood update_progress) |
+| 074 | Animace při kopírování souborů. | ✅ HOTOVO | animace kopírování i při kopírování v Průzkumníku (podle okna „… % dokončeno“), nejen když kopíruje JARVIS |
+| 075 | Pravdivá vizualizace stahování. | ✅ HOTOVO | pravdivé stahování: velikost a rychlost stahovaného souboru ze složky Stažené (z prohlížeče) v ostrově notche + průběh aktualizace JARVISe |
 | 076 | Oslava dokončeného úkolu. | ✅ HOTOVO | radost po ověřené misi / úspěchu (mood.py joy/success, tests/test_omega.py) |
 | 077 | Nenápadná nabídka přestávky. | ✅ HOTOVO | připomínka pauzy po N minutách u PC (powers.py break_minutes) |
 | 078 | Schovávání za okraj ostrova. | ✅ HOTOVO | po N minutách klidu (Nastavení → Notch) se postavička schová za horní okraj a občas vykoukne; při dění se vrátí |
@@ -173,7 +173,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 09. Voice Intelligence
 
-✅ 8 · 🟡 2
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -181,7 +181,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 097 | Diktování do aplikací. | ✅ HOTOVO | diktování kamkoli (dictation.py) |
 | 098 | Vlastní aktivační fráze. | ✅ HOTOVO | vlastní aktivační fráze (voice.wake_word) |
 | 099 | Ztišení hudby při mluvení. | ✅ HOTOVO | ztišení ostatních programů, když JARVIS poslouchá nebo mluví (relace zvuku Windows, vrácení přesně na původní hlasitost) |
-| 100 | Rozpoznání více příkazů ve větě. | 🟡 ČÁSTEČNĚ | více příkazů ve větě řeší jazykový model |
+| 100 | Rozpoznání více příkazů ve větě. | ✅ HOTOVO | více příkazů v jedné větě: agent je rozloží na víc kroků / nástrojů v jednom tahu (souběžně, kde to jde) |
 | 101 | Nastavitelná délka a rychlost odpovědi. | ✅ HOTOVO | rychlost a hlasitost hlasu, osobnost |
 | 102 | Prostorové audio efekty. | ✅ HOTOVO | prostorové zvuky: stereo umístění zvuků rozhraní (notch uprostřed, telefon a upozornění vpravo, e-mail vlevo, okno, ve kterém JARVIS pracuje), i u vlastních zvuků; vypínatelné |
 | 103 | Hlasové potvrzení rizikových akcí. | ✅ HOTOVO | hlasové potvrzení rizikových akcí: v hlasovém režimu stačí říct „ano“ / „ne“ (voice/loop.py parse_yes_no) + potvrzení v UI a otiskem |
@@ -409,14 +409,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 22. Mochi Ultra
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 241 | Emotion Animation Library — knihovna expresí. | ✅ HOTOVO | nálady postavičky (mood.py PRIORITY) |
 | 242 | Personality Presets — styly osobnosti. | ✅ HOTOVO | povaha postavičky: vyvážená / hravá / klidná / profesionální (síla pohybu, četnost hraní a překvapení) |
 | 243 | Mood Transitions — plynulé stavy. | ✅ HOTOVO | plynulé přechody nálad |
-| 244 | Music Beat Animation — synchronizace rytmu. | 🟡 ČÁSTEČNĚ | tančí, když hraje hudba (bez synchronizace rytmu) |
+| 244 | Music Beat Animation — synchronizace rytmu. | ✅ HOTOVO | tanec v rytmu: tempo hudby odhadnuté z měřiče hlasitosti (autokorelace náběhů, bez nahrávání zvuku) → pohyb Mochiho v taktu |
 | 245 | Physics-Based Movement — pružné pohyby. | ✅ HOTOVO | pružná fyzika postavičky |
 | 246 | Cursor Curiosity — interakce s kurzorem. | ✅ HOTOVO | oči sledují kurzor |
 | 247 | Screen Edge Play — hravý okraj displeje. | ✅ HOTOVO | hra na okraji: po 8 minutách klidu Mochi proběhne po okraji notche a zpět, ťuknutím ho zastavíš; ne při soustředění a omezených animacích; vypínatelné |
@@ -431,11 +431,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 23. Voice & Audio Intelligence
 
-✅ 13 · 🟡 2
+✅ 13 · 🟡 1 · ⛔ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 256 | Far-Field Voice Recognition — dálkový mikrofon. | 🟡 ČÁSTEČNĚ | vzdálený mikrofon: automatické zesílení řeči + filtr hluku + mic_check s radami; směrování více mikrofony (beamforming) ne |
+| 256 | Far-Field Voice Recognition — dálkový mikrofon. | ⛔ BLOKOVÁNO_PLATFORMOU | dálkový mikrofon: zesílení řeči, filtr hluku, mic_check; směrování mikrofonním polem (beamforming) dělá ovladač mikrofonu ve Windows, aplikace k jednotlivým mikrofonům přístup nemá |
 | 257 | Noise Suppression — filtr hluku. | ✅ HOTOVO | filtr hluku před rozpoznáním: Wienerův filtr s odhadem SNR, šum z vteřiny před „Hey Jarvis“ (Nastavení → Hlas → Čistý zvuk) |
 | 258 | Echo Cancellation — potlačení ozvěny. | ✅ HOTOVO | potlačení ozvěny: adaptivní filtr (PBFDAF-NLMS) z toho, co JARVIS přehrává, odhad zpoždění zvukovky (GCC-PHAT), detekce současné řeči – jde mu skočit do řeči |
 | 259 | Voice Activity Detection — detekce řeči. | ✅ HOTOVO | detekce řeči v hlasové smyčce + VAD filtr rozpoznávání (faster-whisper vad_filter) |
@@ -585,7 +585,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 30. Multimedia Production
 
-✅ 14 · 🟡 1
+✅ 14 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -595,7 +595,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 364 | Video Highlight Finder — zajímavé momenty. | ✅ HOTOVO | audio_highlights / video_scenes: nejživější momenty podle hlasitosti (+ blízké střihy), s rozestupy |
 | 365 | Automatic Reframing — poměr stran videa. | ✅ HOTOVO | reframe_video: 9:16 / 1:1 / 4:5 … s výřezem po ději (detail + pohyb, těžiště, vyhlazení po scénách), H.264 + zvuk, ve frontě |
 | 366 | Speech Enhancement — čištění řeči. | ✅ HOTOVO | clean_speech: horní propust proti dunění, spektrální brána podle profilu šumu, normalizace špičky |
-| 367 | Background Removal — odstranění pozadí. | 🟡 ČÁSTEČNĚ | remove_background: jednobarevné pozadí → PNG s průhledností (barva z okraje, souvislá oblast, změkčené hrany), varování u rušného pozadí; AI model ne |
+| 367 | Background Removal — odstranění pozadí. | 🔌 VYŽADUJE_INTEGRACI | remove_background: jednobarevné pozadí hotové bez AI; fotky s rušným pozadím potřebují AI model pro segmentaci (stažení jen se souhlasem) |
 | 368 | Media Asset Organizer — uspořádání médií. | ✅ HOTOVO | organize_media: fotky, videa i zvuky podle data pořízení (EXIF, metadata videa) do Rok / akce, duplicity stranou, vratné |
 | 369 | Subtitle Style Generator — styly titulků. | ✅ HOTOVO | check_subtitles + restyle_subtitles: rychlost čtení, délka a počet řádků, překryvy; zalomení a prodloužení; ASS se stylem |
 | 370 | Podcast Chapter Generator — kapitoly audia. | ✅ HOTOVO | podcast_chapters: kapitoly podle změn tématu v přepisu (TextTiling), názvy z typických slov, formát YouTube 00:00 |
@@ -739,12 +739,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 37. Engineering & Robotics
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 466 | CAD Project Assistant — CAD. | 🟡 ČÁSTEČNĚ | parametrická krabička s víkem (OpenSCAD + STL k tisku, otvory v .scad); obecný CAD ne |
-| 467 | 3D Print Preparation — tisková příprava. | 🟡 ČÁSTEČNĚ | check_3d_model: příprava k tisku (rozměry, vejde se, podpěry, filament g/m); samotné slicování dělá slicer |
+| 467 | 3D Print Preparation — tisková příprava. | ✅ HOTOVO | příprava tisku: check_3d_model + slice_model (PrusaSlicer / OrcaSlicer / SuperSlicer, jsou-li nainstalované) → G-code, čas tisku, filament |
 | 468 | Printability Checker — tisknutelnost. | ✅ HOTOVO | check_3d_model: uzavřenost, otočené normály, zdegenerované plošky, převisy > 45°, velikost |
 | 469 | Bill of Materials Generator — BOM součástek. | ✅ HOTOVO | bill_of_materials: kusovník z CSV / exportu KiCadu – sloučení stejných součástek, kusy × desky, cena, chybějící ceny, různá pouzdra |
 | 470 | Component Compatibility Checker — kompatibilita komponent. | ✅ HOTOVO | parts_compatibility: napájení v rozsahu, logické úrovně 3,3 V / 5 V mezi řadičem a moduly, proud z pinů, celkový odběr proti zdroji |
@@ -805,12 +805,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 40. Semantic Operating System
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 511 | Natural Language File Commands — soubory přirozenou řečí. | ✅ HOTOVO | soubory přirozenou řečí (tools/files.py) |
-| 512 | Universal App Search — hledání uvnitř aplikací. | 🟡 ČÁSTEČNĚ | search_everything: paměť, konverzace, dokumenty, kalendář, seznamy, e-maily, postupy najednou; uvnitř cizích aplikací ne |
+| 512 | Universal App Search — hledání uvnitř aplikací. | ✅ HOTOVO | windows_search: index Windows (soubory podle obsahu, e-maily Outlooku, OneNote, kontakty) + search_everything ve vlastních datech JARVISe |
 | 513 | Cross-App Actions — navazující operace mezi aplikacemi. | ✅ HOTOVO | cross_app: schránka / soubor → tabulka Excel (čísla jako čísla), koncept e-mailu .eml (X-Unsent, neodesílá), událost v kalendáři (datum, čas, místo z textu), položky seznamu, poznámka |
 | 514 | App Capability Discovery — zjištění schopností aplikací. | ✅ HOTOVO | app_capabilities: přepínače a příkazy z nápovědy (--help, /?, -h), přípony a odkazy z registru Windows, které nástroje JARVISe na aplikaci už jsou; s potvrzením |
 | 515 | Semantic Desktop Index — propojování desktopových dat. | ✅ HOTOVO | desktop_links: index entit (e-maily, telefony, jména, IČO, projekty) z dokumentů, kalendáře, hovorů, paměti, seznamů, připnutých úkolů a chatů → vše o člověku/projektu napříč zdroji + co s tím souvisí |
@@ -827,7 +827,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 41. Super Browser Agent
 
-✅ 11 · 🟡 4
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -835,7 +835,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 527 | Smart Tab Classification — třídění tabů. | ✅ HOTOVO | sort_tabs: karty prohlížeče JARVISe podle druhu (práce, nákupy, video, zprávy, sítě, banka…), duplicity, zavření duplicit |
 | 528 | Browser Session Restore — relace prohlížeče. | ✅ HOTOVO | save_browser_session / restore_browser_session: karty pod názvem s poznámkou, obnovení |
 | 529 | Website Workflow Recording — zaznamenání postupu. | ✅ HOTOVO | record_workflow_start / stop + replay_workflow: nahrané kliky a vyplnění → kroky; hesla se nikdy neukládají ({heslo}), přehrání se snímky |
-| 530 | Form Field Validation — kontrola formulářů. | 🟡 ČÁSTEČNĚ | browser_type + čtení |
+| 530 | Form Field Validation — kontrola formulářů. | ✅ HOTOVO | check_form_values: e-mail, telefon, PSČ, IČO (kontrolní číslice), DIČ, rodné číslo, IBAN (mod 97), karta (Luhn), datum – před odesláním + form_fields přečte formulář |
 | 531 | Captcha Handoff — předání ručního ověření. | 🟡 ČÁSTEČNĚ | computer_use předá uživateli, co samo nesmí (captcha, přihlášení) |
 | 532 | Page Structure Comparison — změny struktury. | ✅ HOTOVO | page_structure_check: nadpisy, oblasti, formuláře, tlačítka, odkazy – co přibylo / zmizelo od minula |
 | 533 | Navigation Route Finder — navigace webem. | ✅ HOTOVO | find_page_route: cesta kliknutí k obsahu po vlastních odkazech webu |
@@ -1025,7 +1025,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 50. AI Creative Production
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1033,8 +1033,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 662 | Batch Content Producer — více výstupů. | ✅ HOTOVO | social_formats: jedna fotka → Instagram, příběh, Facebook, LinkedIn, X, náhled YouTube, Pinterest, ořez podle detailu (gradientní energie) |
 | 663 | Caption A/B Generator — varianty textu. | ✅ HOTOVO | caption_variants: varianty popisku od AI ohodnocené podle limitu sítě, viditelné části, hashtagů a háčku; nic nepublikuje |
 | 664 | Content Licensing Tracker — licence obsahu. | ✅ HOTOVO | asset_register + assets_report: licence, autor, zdroj, platnost (vypršelé / brzy), hotové texty uvedení autora, soubory bez evidence |
-| 665 | Virtual Camera Director — 3D kamerové pohyby. | 🟡 ČÁSTEČNĚ | camera_move: orbit / dolly / jeřáb / push-in s plynulým náběhem, klíčové snímky + skript pro Blender; samotný render ne |
-| 666 | Lighting Setup Planner — 3D osvětlení. | 🟡 ČÁSTEČNĚ | lighting_plan: tříbodové, Rembrandt, butterfly, split, high/low key – pozice, výkon z poměru, EV, skript pro Blender |
+| 665 | Virtual Camera Director — 3D kamerové pohyby. | ✅ HOTOVO | camera_move + náhledový render prostředního snímku přímo v Blenderu (scéna se neukládá) |
+| 666 | Lighting Setup Planner — 3D osvětlení. | ✅ HOTOVO | lighting_plan + náhledový render se světly v Blenderu (scéna se neukládá) |
 | 667 | 3D Rigging Assistant — rigging modelů. | ✅ HOTOVO | rig_assistant: lidská / čtyřnohá kostra podle výšky (.L/.R), skript pro Blender s automatickými vahami k modelu, kontrola kostry z .gltf/.glb (chybějící strana, různé délky, smyčky, nulové kosti, víc kořenů) |
 | 668 | Lip-Sync Animator — synchronizace úst. | ✅ HOTOVO | lip_sync s textem repliky: české hlásky → tvary úst Preston Blair (MBP, O, U, FV, L…) rozložené do úseků řeči; bez textu podle hlasitosti |
 | 669 | Audio Mixing Advisor — mix audia. | ✅ HOTOVO | mix_advice: LUFS a špička stop, zisk vůči dialogu (hudba −12 LU, efekty −6, atmosféra −18), maskování pásma řeči, součet špiček |
@@ -1135,7 +1135,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 55. Mochi Reactive Companion
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1144,7 +1144,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 738 | Mute Awareness — reakce na ztlumení. | ✅ HOTOVO | reakce na ztlumení a zrušení ztlumení zvuku |
 | 739 | Weather Accessories — doplňky dle počasí. | ✅ HOTOVO | doplňky podle počasí: deštník (déšť, bouřka), vločka (sníh, mráz), slunce (horko) – Open-Meteo každých 30 min |
 | 740 | Time-Based Outfits — doplňky dle času. | ✅ HOTOVO | doplňky podle denní doby: ráno káva, v noci měsíc |
-| 741 | Ambient Light Adaptation — adaptace jasu. | 🟡 ČÁSTEČNĚ | v noci tlumenější záře; skutečný senzor okolního světla se nečte |
+| 741 | Ambient Light Adaptation — adaptace jasu. | ✅ HOTOVO | senzor okolního světla (Windows LightSensor, má-li ho notebook / tablet) → záře notche tlumenější ve tmě; bez senzoru noční ztlumení |
 | 742 | Accessibility Animation Mode — omezený pohyb. | ✅ HOTOVO | omezení animací |
 | 743 | Soft Body Physics — pružná fyzika. | ✅ HOTOVO | pružné tělo postavičky: tlumená pružina – po dopadu, šťouchnutí a změně nálady se zhoupne a usadí |
 | 744 | Code Error Confusion — reakce na chybu buildu. | ✅ HOTOVO | Mochi se zatváří zmateně („?“, přimhouřené oko), když selže build / testy (run_tests, verify_build, code_sandbox…) |

@@ -502,6 +502,9 @@ function showAlert(title: string, body: string) {
 
 // ---------- a new version waits (3.0): JARVIS turns blue and the capsule says so ----------
 let upd: any = null;
+// OMEGA 075: what the browser is downloading right now – real bytes and speed from the Downloads folder
+let dls: { file: string; bytes: number; speed: number }[] = [];
+let dlsAt = 0;
 let charColor: [any, string | undefined] = ["black", undefined];
 function paintUpdate() {
   const waiting = upd?.available && upd.state !== "error";
@@ -707,6 +710,11 @@ function islandActivity(t: any) {
   } else if (upd?.available && upd.state !== "error") {
     kind = "update"; l = [icon("arrow-circle-up"), h("span", {}, upd.state === "downloading" ? "Stahuji" : `Verze ${upd.latest}`)];
     r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : [];
+  } else if (dls.length && Date.now() - dlsAt < 15000) {
+    const d = dls[0];
+    const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;
+    kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
+    r = [`${mb(d.bytes)}${d.speed > 0 ? ` · ${mb(d.speed)}/s` : ""}`];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
   }
@@ -900,6 +908,9 @@ client.on("screen_capture", (m) => {
 });
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => { media = m; updateActivity(); });
+client.on("ambient", (m) => document.documentElement.style.setProperty("--room-glow", String(m.glow ?? 1)));
+client.on("beat", (m) => { if (m.bpm) document.documentElement.style.setProperty("--beat", `${(60 / m.bpm).toFixed(3)}s`); });
+client.on("download_progress", (m) => { dls = m.items || []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;
   if (m.state === "listening") dict = { state: "listening", level: m.level ?? 0, text: m.hands_free ? "Diktuji · ťukni pro vložení" : "Poslouchám", until: 0 };

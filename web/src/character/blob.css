@@ -64,7 +64,7 @@
 
 /* dancing: notes around */
 .acc-notes { inset: 0 -22%; }
-.acc-notes span { position: absolute; animation: blob-sway 1s infinite ease-in-out alternate; }
+.acc-notes span { position: absolute; animation: blob-sway var(--beat, 1s) infinite ease-in-out alternate; }   /* OMEGA 244: in time with the music */
 .acc-notes span:nth-child(1) { left: 6%; top: 18%; font-size: .95em; }
 .acc-notes span:nth-child(2) { right: 2%; top: 18%; font-size: 1.15em; animation-delay: .5s; }
 .acc-notes span:nth-child(3) { left: 4%; top: 52%; font-size: .75em; animation-delay: .25s; }

@@ -1200,3 +1200,20 @@
 710 | VYŽADUJE_INTEGRACI | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení – potřebuje tvoje přihlášené CLI daného cloudu
 065 | VYŽADUJE_INTEGRACI | DevOps: git, CI (ci_setup), testy, balíček k vydání, dostupnost a certifikáty hotové; nasazení do cloudu potřebuje tvůj účet a CLI
 691 | BLOKOVÁNO_PLATFORMOU | usb_check: chyby 43/10, resety a přepětí portu s radami; skutečný proud na portu Windows nehlásí
+
+# Vlna F5g: plocha, chyby, formuláře, stahování, hudba, světlo, 3D
+033 | HOTOVO | explain_error: chybový kód z textu nebo z okna v popředí (0x8007…, 0xC000…, Win32, MSI 1603) → co znamená a co s tím + screen_errors najde chyby na obrazovce
+530 | HOTOVO | check_form_values: e-mail, telefon, PSČ, IČO (kontrolní číslice), DIČ, rodné číslo, IBAN (mod 97), karta (Luhn), datum – před odesláním + form_fields přečte formulář
+512 | HOTOVO | windows_search: index Windows (soubory podle obsahu, e-maily Outlooku, OneNote, kontakty) + search_everything ve vlastních datech JARVISe
+029 | HOTOVO | compare_open_documents: dva otevřené dokumenty podle názvů oken → shoda, přidané a ubrané věty
+028 | HOTOVO | explain_under_cursor: výřez kolem myši se zakroužkovaným místem → co to je a k čemu slouží (model, který vidí obrázky) + ui_inspect
+075 | HOTOVO | pravdivé stahování: velikost a rychlost stahovaného souboru ze složky Stažené (z prohlížeče) v ostrově notche + průběh aktualizace JARVISe
+074 | HOTOVO | animace kopírování i při kopírování v Průzkumníku (podle okna „… % dokončeno“), nejen když kopíruje JARVIS
+244 | HOTOVO | tanec v rytmu: tempo hudby odhadnuté z měřiče hlasitosti (autokorelace náběhů, bez nahrávání zvuku) → pohyb Mochiho v taktu
+741 | HOTOVO | senzor okolního světla (Windows LightSensor, má-li ho notebook / tablet) → záře notche tlumenější ve tmě; bez senzoru noční ztlumení
+665 | HOTOVO | camera_move + náhledový render prostředního snímku přímo v Blenderu (scéna se neukládá)
+666 | HOTOVO | lighting_plan + náhledový render se světly v Blenderu (scéna se neukládá)
+467 | HOTOVO | příprava tisku: check_3d_model + slice_model (PrusaSlicer / OrcaSlicer / SuperSlicer, jsou-li nainstalované) → G-code, čas tisku, filament
+100 | HOTOVO | více příkazů v jedné větě: agent je rozloží na víc kroků / nástrojů v jednom tahu (souběžně, kde to jde)
+367 | VYŽADUJE_INTEGRACI | remove_background: jednobarevné pozadí hotové bez AI; fotky s rušným pozadím potřebují AI model pro segmentaci (stažení jen se souhlasem)
+256 | BLOKOVÁNO_PLATFORMOU | dálkový mikrofon: zesílení řeči, filtr hluku, mic_check; směrování mikrofonním polem (beamforming) dělá ovladač mikrofonu ve Windows, aplikace k jednotlivým mikrofonům přístup nemá

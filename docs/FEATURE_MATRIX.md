@@ -9,12 +9,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
 | `mood.py` | 076, 085, 241, 737, P7.01 |
 | `STOP` | 176, P3.04, P6.07, P14.04 |
-| `UI Automation` | 028, 274, P2.03, P4.02 |
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `picture_to_data` | 276, 277, 278, 770 |
 | `powers.py` | 026, 027, 077, 236 |
 | `run_tests` | 062, 411, 744, P5.08 |
-| `ui_read` | 028, 033, P2.03, P4.03 |
+| `UI Automation` | 274, P2.03, P4.02 |
 | `ask_models` | 006, 007, 204 |
 | `check_answer` | 111, 115, 459 |
 | `circuit_calc` | 160, 473, 474 |
@@ -41,7 +40,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_open` | 034, P12.06 |
 | `automations.py` | 034, 147 |
 | `bill_of_materials` | 160, 469 |
-| `browser_type` | 530, P11.03 |
 | `character/looks.ts` | 250, 251 |
 | `chart_insights` | 276, 770 |
 | `charts.ts` | 222, 706 |
@@ -97,9 +95,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `storage_report` | 327, P2.11 |
 | `storyboard_timeline` | 126, 672 |
 | `tests/test_omega.py` | 025, 076 |
-| `tools/files.py` | 029, 511 |
-| `tools/uia.py` | 028, 274 |
 | `ui_inspect` | 028, P2.03 |
+| `ui_read` | P2.03, P4.03 |
 | `update_plan` | 202, P1.05 |
 | `usage.py` | 178, 678 |
 | `video_scenes` | 361, 364 |
@@ -168,6 +165,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `break_minutes` | 077 |
 | `bridges.py` | 116 |
 | `broken_links` | 383 |
+| `browser_type` | P11.03 |
 | `business_dashboard` | 450 |
 | `calendar_check` | 558 |
 | `camera_move` | 665 |
@@ -179,6 +177,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_assumptions` | 199 |
 | `check_backups` | 716 |
 | `check_download` | 398 |
+| `check_form_values` | 530 |
 | `check_formula_units` | 772 |
 | `check_hardware` | 298 |
 | `check_link` | 397 |
@@ -201,9 +200,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `communication_digest` | 555 |
 | `compare_articles` | 386 |
 | `compare_embedding_models` | 580 |
-| `compare_files` | 029 |
 | `compare_groups` | 779 |
 | `compare_offers` | 172 |
+| `compare_open_documents` | 029 |
 | `competitor_watch` | 445 |
 | `compose_routine` | 504 |
 | `concept_map` | 464 |
@@ -281,6 +280,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `expiring_logins` | 537 |
 | `explain_build_failure` | 340 |
 | `explain_crash_code` | 014 |
+| `explain_error` | 033 |
+| `explain_under_cursor` | 028 |
 | `exploded_view` | 484 |
 | `explore_logs` | 713 |
 | `export_all` | 793 |
@@ -316,6 +317,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `foreground_info` | 026 |
 | `foreign_key_check` | 605 |
 | `forgotten_work` | 499 |
+| `form_fields` | 530 |
 | `formula_explorer` | 460 |
 | `frame_time_report` | 306 |
 | `free_time` | 568 |
@@ -392,7 +394,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `memory_timeline` | 036 |
 | `merge_records` | 598 |
 | `message_actions` | 544 |
-| `mic_check` | 256 |
 | `migration_preview` | 337 |
 | `missing_info` | 207 |
 | `mission_queue` | 009 |
@@ -496,6 +497,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `schedule_memory_test` | 296 |
 | `scheduler.py` | 155 |
 | `score_leads` | 438 |
+| `screen_errors` | 033 |
 | `screen_region` | 280 |
 | `screen_share` | P9.08 |
 | `screen_time` | 792 |
@@ -521,6 +523,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `simulate_automations` | 430 |
 | `simulate_decision` | 005 |
 | `skillforge.py` | 150 |
+| `slice_model` | 467 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
 | `solve_problem` | 004 |
@@ -555,9 +558,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tolerance_stackup` | 773 |
 | `tools/bridge_tools.py` | 116 |
 | `tools/dev.py` | 046 |
+| `tools/files.py` | 511 |
 | `tools/mission_tools.py` | 025 |
 | `tools/omega_tools.py` | 004 |
 | `tools/shell.py` | 702 |
+| `tools/uia.py` | 274 |
 | `top_processes` | P2.06 |
 | `translation_overflow` | 639 |
 | `type_text` | P2.02 |
@@ -567,7 +572,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `undo_rename` | 325 |
 | `unit_calc` | 772 |
 | `update_changelog` | 050 |
-| `update_progress` | 075 |
 | `usb_check` | 692 |
 | `user_flow_test` | 631 |
 | `vad_filter` | 259 |
@@ -588,6 +592,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `window_control` | P2.01 |
 | `window_switch` | 230 |
 | `window_to_monitor` | 238 |
+| `windows_search` | 512 |
 | `winupd.py` | 013 |
 | `workflow_export` | 153 |
 | `workflow_import` | 153 |

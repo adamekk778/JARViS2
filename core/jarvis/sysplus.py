@@ -42,6 +42,21 @@ class DownloadWatch:
         self.folder = folder
         self.partial: dict[str, float] = {}           # final name → since
         self.pending: dict[str, int] = {}             # final name → last size (waiting for it to settle)
+        self.sizes: dict[str, tuple[float, int]] = {}  # partial file → (when, bytes) for the speed (OMEGA 075)
+
+    def progress(self, snap: dict[str, int], now: float) -> list[dict]:
+        """Files being downloaded right now: real size so far and speed since the last look."""
+        out = []
+        for name, size in snap.items():
+            f = self.final_name(name)
+            if not f:
+                continue
+            prev = self.sizes.get(name)
+            speed = (size - prev[1]) / (now - prev[0]) if prev and now > prev[0] and size >= prev[1] else 0.0
+            self.sizes[name] = (now, size)
+            out.append({"file": f, "bytes": size, "speed": round(speed)})
+        self.sizes = {k: v for k, v in self.sizes.items() if k in snap}
+        return sorted(out, key=lambda x: -x["speed"])
 
     @staticmethod
     def final_name(name: str) -> str | None:
@@ -72,6 +87,56 @@ class DownloadWatch:
                     self.partial.pop(f)                   # cancelled download
                     self.pending.pop(f, None)
         return done
+
+
+LUX_PS = r"""
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+try {
+  $null = [Windows.Devices.Sensors.LightSensor, Windows.Devices.Sensors, ContentType = WindowsRuntime]
+  $s = [Windows.Devices.Sensors.LightSensor]::GetDefault()
+  if ($s) { $r = $s.GetCurrentReading(); "{""lux"": $([math]::Round($r.IlluminanceInLux, 1))}" } else { '{"lux": null}' }
+} catch { '{"lux": null}' }
+"""
+
+
+def ambient_lux() -> float | None:
+    """OMEGA 741: the ambient light sensor (laptops / tablets that have one) through the Windows sensor API; None = no sensor."""
+    import base64
+    import json as _json
+    import sys as _sys
+
+    if _sys.platform != "win32":
+        return None
+    from .pcreport import run_quiet
+
+    enc = base64.b64encode(LUX_PS.encode("utf-16-le")).decode()
+    _c, out, _e = run_quiet(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", enc], 20)
+    try:
+        v = _json.loads(out[out.find("{"):]).get("lux") if "{" in out else None
+    except ValueError:
+        return None
+    return float(v) if isinstance(v, (int, float)) else None
+
+
+def glow_for_lux(lux: float | None) -> float:
+    """How bright the notch glow should be (0.35–1): dim in a dark room, full in daylight; no sensor → full."""
+    if lux is None:
+        return 1.0
+    import math
+
+    return round(max(0.35, min(1.0, 0.35 + 0.65 * math.log10(1 + lux) / math.log10(1 + 500))), 2)
+
+
+EXPLORER_COPY = re.compile(r"(\d{1,3})\s*%\s*(dokončeno|complete|hotovo)", re.I)
+
+
+def explorer_copy(titles: list[str]) -> int | None:
+    """OMEGA 074: a copy / move running in File Explorer – its progress dialog's title ("45 % dokončeno") → the percent."""
+    for t in titles:
+        m = EXPLORER_COPY.search(t or "")
+        if m:
+            return int(m.group(1))
+    return None
 
 
 INSTALLER = re.compile(r"(setup|install|installer|uninstall|update)[\w.-]*\.exe$|^(winget|choco|scoop)\.exe$", re.I)
@@ -425,6 +490,37 @@ async def volume_loop(rt, interval: float = 0.35, rounds: int | None = None) -> 
         await asyncio.sleep(interval if state[0] is not None else 5)
 
 
+def tempo_bpm(levels: list[float], rate_hz: float, lo: float = 60, hi: float = 180) -> tuple[float | None, float]:
+    """OMEGA 244: the beat of the music from the loudness meter alone (no recording): onsets = rises of the level,
+    their autocorrelation peaks at the beat period. Answers (bpm, confidence 0–1); None when there is no clear beat."""
+    import numpy as np
+
+    x = np.asarray(levels, dtype=float)
+    if len(x) < rate_hz * 4:
+        return None, 0.0
+    on = np.maximum(np.diff(x), 0)
+    on = on - on.mean()
+    if not on.any() or np.std(on) < 1e-6:
+        return None, 0.0
+    ac = np.correlate(on, on, mode="full")[len(on) - 1:]
+    ac = ac / (ac[0] or 1)
+    lmin, lmax = int(rate_hz * 60 / hi), int(rate_hz * 60 / lo) + 1
+    if lmax >= len(ac) or lmin < 1:
+        return None, 0.0
+    k = lmin + int(np.argmax(ac[lmin:lmax]))
+    conf = float(max(0.0, ac[k]))
+    if 0 < k < len(ac) - 1:                       # parabolic refinement of the peak
+        a, b, c = ac[k - 1], ac[k], ac[k + 1]
+        d = (a - c) / (2 * (a - 2 * b + c)) if (a - 2 * b + c) else 0.0
+        k = k + max(-0.5, min(0.5, d))
+    bpm = 60 * rate_hz / k
+    while bpm < 80:
+        bpm *= 2
+    while bpm > 170:
+        bpm /= 2
+    return (round(float(bpm), 1) if conf >= 0.2 else None), round(conf, 2)
+
+
 async def music_loop(rt) -> None:                             # pragma: no cover – Windows
     import sys
 
@@ -432,6 +528,9 @@ async def music_loop(rt) -> None:                             # pragma: no cover
         return
     meter = None
     hist: list[float] = []
+    beat: list[float] = []                       # OMEGA 244: ~12 s of levels at 20 Hz → the tempo for Mochi's dance
+    beat_at = 0.0
+    tick = 0
     quiet_since = time.time()
     while True:
         try:
@@ -444,9 +543,18 @@ async def music_loop(rt) -> None:                             # pragma: no cover
             hist = (hist + [p])[-12:]
             if p > 0.01:
                 quiet_since = time.time()
-                rt.bus.publish("music_level", bars=bars(hist, 7, time.time()))
-                await asyncio.sleep(0.1)
+                beat = (beat + [p])[-240:]
+                tick += 1
+                if tick % 2 == 0:                    # the bars stay at 10 Hz, the meter is read at 20 Hz
+                    rt.bus.publish("music_level", bars=bars(hist, 7, time.time()))
+                if len(beat) >= 160 and time.time() - beat_at > 8:
+                    beat_at = time.time()
+                    bpm, conf = tempo_bpm(beat, 20.0)
+                    if bpm:
+                        rt.bus.publish("beat", bpm=bpm, confidence=conf)
+                await asyncio.sleep(0.05)
             else:
+                beat = []
                 if time.time() - quiet_since < 1.5:
                     rt.bus.publish("music_level", bars=[0.0] * 7)
                 await asyncio.sleep(0.5)
@@ -543,8 +651,16 @@ async def watch_loop(rt, every: float = 5.0) -> None:
 
     dl = DownloadWatch(Path.home() / "Downloads")
     inst = InstallWatch()
+    lux_at, lux_ok = 0.0, True
     while True:
         await asyncio.sleep(every)
+        if lux_ok and time.time() - lux_at > 60:            # OMEGA 741: room light → notch glow (only if a sensor exists)
+            lux_at = time.time()
+            lux = await asyncio.to_thread(ambient_lux)
+            if lux is None:
+                lux_ok = False
+            else:
+                rt.bus.publish("ambient", lux=lux, glow=glow_for_lux(lux))
         try:                                      # OMEGA 240 / 764: battery ↔ charger → the UI can save power
             bat = psutil.sensors_battery()
             on_bat = bool(bat and not bat.power_plugged)
@@ -561,7 +677,16 @@ async def watch_loop(rt, every: float = 5.0) -> None:
         if not getattr(rt.cfg.powers, "download_watch", True):
             continue
         try:
-            for d in await asyncio.to_thread(dl.step):
+            pct = explorer_copy(await asyncio.to_thread(rt.platform.list_windows))
+            if pct is not None and time.time() - getattr(rt, "_copy_seen", 0) > 20 and getattr(rt, "mood", None):
+                rt._copy_seen = time.time()            # Mochi carries boxes while Explorer copies (once per copy)
+                rt.mood.react("copy", {"tool": "explorer", "percent": pct})
+            snap = await asyncio.to_thread(_snapshot, dl.folder)
+            prog = dl.progress(snap, time.time())
+            if prog or getattr(rt, "_dl_shown", False):
+                rt.bus.publish("download_progress", items=prog[:3])
+                rt._dl_shown = bool(prog)
+            for d in dl.step(snap):
                 rt.notify("Stahování dokončeno", f"{d['file']} ({d['bytes'] / 2**20:.1f} MB)", speak=False)
             procs = await asyncio.to_thread(lambda: [p.info for p in psutil.process_iter(["pid", "name", "cmdline"])])
             for d in inst.step(installers(procs)):

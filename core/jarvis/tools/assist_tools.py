@@ -197,7 +197,7 @@ async def feature_audit(ctx, project: str, spec: Annotated[str, "soubor se zadá
 # ---------------------------------------------------------------- 277 / 276 / 278 picture → data
 def rows_to_csv(rows: list[list]) -> str:
     buf = io.StringIO()
-    csv.writer(buf, delimiter=";").writerows(rows)
+    csv.writer(buf, delimiter=";", lineterminator="\n").writerows(rows)   # text mode adds \r on Windows itself
     return buf.getvalue()
 
 

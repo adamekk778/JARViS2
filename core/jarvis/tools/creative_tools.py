@@ -135,7 +135,8 @@ async def asset_lineage(ctx, file: str) -> ToolResult:
       "klíčové snímky s plynulým rozjezdem a dojezdem a skript pro Blender (spustíš sám).", category="design")
 async def camera_move(ctx, kind: Annotated[str, "orbit / dolly / crane / push-in"], target: list[float] | None = None, distance: float = 5,
                       height: float = 1.6, seconds: float = 5, fps: int = 24, degrees: float = 360, end_distance: float | None = None,
-                      end_height: float | None = None, ease: Annotated[str, "in-out / in / out / linear"] = "in-out") -> ToolResult:
+                      end_height: float | None = None, ease: Annotated[str, "in-out / in / out / linear"] = "in-out",
+                      blend: Annotated[str, "scéna .blend pro náhledový render (volitelné)"] = "") -> ToolResult:
     from .. import creative
 
     try:
@@ -146,15 +147,41 @@ async def camera_move(ctx, kind: Annotated[str, "orbit / dolly / crane / push-in
     script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text(creative.blender_camera_script(r), encoding="utf-8")
     r["script"] = str(script)
+    atts, extra = [str(script)], ""
+    if blend:
+        png = await _preview_render(ctx, blend, script, f"kamera-{kind}", r["keys"][len(r["keys"]) // 2][0])
+        if isinstance(png, ToolResult):
+            return png
+        atts.append(png)
+        extra = f" Náhled prostředního snímku: {Path(png).name}."
     return ToolResult(True, f"{kind}: {len(r['keys'])} snímků ({r['seconds']} s), rychlost na začátku {r['speed_start']}, uprostřed {r['speed_mid']} m/s. "
-                            f"Skript pro Blender: {script.name}.", data={k: v for k, v in r.items() if k != "keys"} | {"keys": r["keys"][:: max(1, len(r["keys"]) // 24)]},
-                      attachments=[str(script)])
+                            f"Skript pro Blender: {script.name}." + extra, data={k: v for k, v in r.items() if k != "keys"} | {"keys": r["keys"][:: max(1, len(r["keys"]) // 24)]},
+                      attachments=atts)
+
+
+async def _preview_render(ctx, blend: str, script, name: str, frame: int | None = None):
+    """OMEGA 665 / 666: the generated script run in a copy of the scene in Blender and one frame rendered (nothing saved)."""
+    from .. import bridges
+    from .bridge_tools import _blend, _blender
+
+    exe = _blender(ctx)
+    if isinstance(exe, ToolResult):
+        return exe
+    b = _blend(blend)
+    if isinstance(b, ToolResult):
+        return b
+    out = _out_dir("blender") / f"{name}-{_stamp()}.png"
+    try:
+        return await asyncio.to_thread(bridges.render_script_preview, exe, str(b), Path(script).read_text(encoding="utf-8"), str(out), frame)
+    except (RuntimeError, OSError) as e:
+        return ToolResult(False, str(e))
 
 
 @tool("lighting_plan", "Rozestavění světel (tříbodové, Rembrandt, butterfly, split, high key, low key): kam dát klíčové, výplňové "
       "a kontra světlo vůči kameře, jaký výkon podle poměru, a skript pro Blender.", category="design")
 async def lighting_plan(ctx, style: str = "three_point", subject: list[float] | None = None, camera: list[float] | None = None,
-                        distance: float = 2.5, key_watts: float = 1000) -> ToolResult:
+                        distance: float = 2.5, key_watts: float = 1000,
+                        blend: Annotated[str, "scéna .blend pro náhledový render (volitelné)"] = "") -> ToolResult:
     from .. import creative
 
     subj = subject or [0, 0, 1.5]
@@ -166,8 +193,14 @@ async def lighting_plan(ctx, style: str = "three_point", subject: list[float] | 
     script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text(creative.blender_lights_script(r, subj), encoding="utf-8")
     r["script"] = str(script)
-    return ToolResult(True, f"{style}: poměr {r['ratio']} ({r['stops']} EV); " + "; ".join(f"{x['name']} {x['watts']:g} W na {x['position']}" for x in r["lights"]) + ".",
-                      data=r, attachments=[str(script)])
+    atts = [str(script)]
+    if blend:
+        png = await _preview_render(ctx, blend, script, f"svetla-{style}")
+        if isinstance(png, ToolResult):
+            return png
+        atts.append(png)
+    return ToolResult(True, f"{style}: poměr {r['ratio']} ({r['stops']} EV); " + "; ".join(f"{x['name']} {x['watts']:g} W na {x['position']}" for x in r["lights"]) + "."
+                      + (" Náhled renderu přiložen." if len(atts) > 1 else ""), data=r, attachments=atts)
 
 
 @tool("lip_sync", "Pohyb úst podle zvuku (WAV/MP3): tvar úst na každý snímek jako klíčové snímky a soubor pro Moho / Papagayo. "

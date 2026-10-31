@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import subprocess
 import time
 from pathlib import Path
 from typing import Annotated, Literal
@@ -297,3 +298,28 @@ async def workshop_step(ctx, move: Literal["next", "prev", "repeat"] = "next") -
     except Exception:  # noqa: BLE001 – no voice output: the notch still shows it
         pass
     return ToolResult(True, text)
+
+
+
+@tool("slice_model", "Připraví model k tisku slicerem (PrusaSlicer / OrcaSlicer / SuperSlicer, pokud je nainstalovaný): G-code "
+      "vedle modelu, čas tisku a spotřeba filamentu. Vlastní profil tiskárny přes config (.ini).", category="věda", perm="files_write")
+async def slice_model(ctx, model: str, layer_height: float = 0.2, infill: int = 20, supports: bool = False, config: str = "") -> ToolResult:
+    from .. import bridges
+
+    exe = bridges.find_slicer()
+    if not exe:
+        return ToolResult(False, "Slicer jsem nenašel. Nainstaluj zdarma PrusaSlicer nebo OrcaSlicer, pak to zkus znovu "
+                                 "(model ti mezitím zkontroluji příkazem check_3d_model).")
+    p = resolve(model)
+    if not p.is_file() or p.suffix.lower() not in (".stl", ".3mf", ".obj"):
+        return ToolResult(False, "Zadej model .stl, .3mf nebo .obj.")
+    out = p.with_suffix(".gcode")
+    cmd = bridges.slice_cmd(exe, str(p), str(out), str(resolve(config)) if config else "", layer_height, infill, supports)
+    r = await asyncio.to_thread(lambda: subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900,
+                                                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)))
+    if r.returncode != 0 or not out.exists():
+        return ToolResult(False, "Slicer skončil chybou: " + (r.stdout + r.stderr).strip()[-400:])
+    g = bridges.gcode_summary(out.read_text(encoding="utf-8", errors="ignore")[-200_000:] + out.read_text(encoding="utf-8", errors="ignore")[:20_000])
+    return ToolResult(True, f"G-code hotový: {out.name}" + (f", tisk {g['time']}" if g["time"] else "") +
+                      (f", filament {g['filament_m']} m" if g["filament_m"] else "") + (f" ({g['filament_g']} g)" if g["filament_g"] else "") + ".",
+                      data={"path": str(out), **g})

@@ -534,3 +534,5 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 .notch[data-react="confused"] .n-eyes::after { content: "?"; position: absolute; right: -14px; top: -10px; font: 700 12px/1 system-ui;
   color: var(--eye); text-shadow: 0 0 6px var(--eye); animation: n-q 1.2s ease-in-out infinite; }
 @keyframes n-q { 50% { transform: translateY(-3px) rotate(8deg); } }
+/* OMEGA 741: the glow follows the room light (ambient sensor) – dimmer in a dark room */
+.n-glow { filter: brightness(var(--room-glow, 1)); }
