@@ -20,7 +20,7 @@ LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávněn
 # except the reading tools listed below.
 READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
-    "data_lens",
+    "data_lens", "predict_errors",
     "voice_tone", "knowledge_graph",
     "responsive_check", "animation_curve", "glass_material", "icon_set", "motion_timeline", "layout_heatmap",
     "workflow_export", "scene_animation",

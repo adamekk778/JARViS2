@@ -376,22 +376,52 @@ def peak_meter():                                             # pragma: no cover
     return cast(iface, POINTER(IAudioMeterInformation))
 
 
+def _volume_publish(rt, state: tuple, last: tuple | None, publish) -> tuple:
+    rt.last_audio = {"level": state[0], "muted": bool(state[1])}     # for windows that connect later
+    if last is not None and state != last:
+        publish("volume", level=state[0], muted=bool(state[1]))
+    return state
+
+
+def _win_volume_thread(rt, interval: float) -> None:                 # pragma: no cover – Windows
+    """One thread for the whole life of JARVIS: COM initialised once, the speaker opened once. Opening it on a fresh
+    worker thread every poll and letting Python free it later on another thread crashed the process (comtypes
+    Release after CoUninitialize)."""
+    import comtypes
+
+    comtypes.CoInitialize()
+    ep, last = None, None
+    while True:
+        try:
+            if ep is None:
+                ep = rt.platform._endpoint()
+            state = (round(ep.GetMasterVolumeLevelScalar() * 100), bool(ep.GetMute()))
+            last = _volume_publish(rt, state, last, rt.bus.publish_threadsafe)
+            time.sleep(interval)
+        except Exception:                                    # no speaker / device changed: open it again later
+            ep = None
+            time.sleep(5)
+
+
 async def volume_loop(rt, interval: float = 0.35, rounds: int | None = None) -> None:
     """The system volume as it changes (keys, the mixer, another app): the notch shows a volume bar for a moment.
     The first reading is only remembered; nothing is published until the volume really changes."""
+    import sys
+    import threading
+
+    if sys.platform == "win32" and hasattr(rt.platform, "_endpoint") and rounds is None:
+        threading.Thread(target=_win_volume_thread, args=(rt, interval), daemon=True, name="volume").start()
+        return
     last: tuple | None = None
     n = 0
     while rounds is None or n < rounds:
         n += 1
         try:
-            state = await asyncio.to_thread(rt.platform.audio_state)
-        except Exception:                                   # no speaker / COM hiccup: try again later
+            state = rt.platform.audio_state()
+        except Exception:
             state = (None, None)
         if state[0] is not None:
-            rt.last_audio = {"level": state[0], "muted": bool(state[1])}     # for windows that connect later
-            if last is not None and state != last:
-                rt.bus.publish("volume", level=state[0], muted=bool(state[1]))
-            last = state
+            last = _volume_publish(rt, state, last, rt.bus.publish)
         await asyncio.sleep(interval if state[0] is not None else 5)
 
 

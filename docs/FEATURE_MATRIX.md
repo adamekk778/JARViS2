@@ -122,6 +122,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_capabilities` | 514 |
 | `app_hours` | 196 |
 | `app_launch_time` | 308 |
+| `apply_solution` | 004 |
 | `archive_contents` | 323 |
 | `ask_documents` | 581 |
 | `asset_lineage` | 675 |
@@ -300,6 +301,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_scene` | 423 |
 | `hone.java` | 420 |
 | `icon_set` | 355 |
+| `improve_loop` | 004 |
 | `improve_until_tests_pass` | 210 |
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
@@ -349,6 +351,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mic_check` | 256 |
 | `migration_preview` | 337 |
 | `missing_info` | 207 |
+| `mission_queue` | 009 |
 | `mission_save_file` | 215 |
 | `mix_advice` | 669 |
 | `mobile/native.ts` | 143 |
@@ -366,6 +369,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `network_fault_start` | 634 |
 | `num_gpu` | 574 |
 | `offline_test` | 641 |
+| `omega.py` | 004 |
 | `organize_media` | 368 |
 | `outage_timeline` | 720 |
 | `over_budget` | 221 |
@@ -384,6 +388,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `power_check` | 295 |
 | `power_cost` | 474 |
 | `power_plan_set` | 295 |
+| `predict_errors` | 008 |
 | `press_keys` | P2.02 |
 | `price_history` | 379 |
 | `pricing_scenarios` | 442 |
@@ -458,6 +463,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `skillforge.py` | 150 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
+| `solve_problem` | 004 |
 | `sort_documents` | 319 |
 | `sort_tabs` | 527 |
 | `source_reliability` | 376 |
@@ -482,11 +488,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `tests/test_agent.py` | 182 |
 | `tests/test_automations.py` | 147 |
 | `tests/test_home.py` | 435 |
+| `tests/test_omega_brain.py` | 004 |
 | `to_list` | 570 |
 | `token_expiry` | 592 |
 | `tolerance_stackup` | 773 |
 | `tools/mission_tools.py` | 025 |
 | `tools/notes.py` | 380 |
+| `tools/omega_tools.py` | 004 |
 | `tools/shell.py` | 702 |
 | `top_processes` | P2.06 |
 | `translation_overflow` | 639 |

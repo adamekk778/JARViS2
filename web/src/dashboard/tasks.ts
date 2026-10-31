@@ -40,6 +40,11 @@ export function buildTasks(client: JarvisClient) {
       measured.length ? h("details", { class: "mission-block" }, h("summary", {}, `Důkazy – co se měřilo (${measured.length})`),
         h("table", { class: "task-actions" }, h("tbody", {}, ...measured.map((e) => h("tr", { class: e.ok ? "" : "fail" },
           h("td", {}, e.claim), h("td", {}, e.value), h("td", { class: "muted" }, e.source)))))) : "",
+      // Omega Brain 008: what could go wrong, predicted when the plan was made
+      ((t as any).risks || []).length ? h("div", { class: "mission-block" }, h("h4", {}, "Možná rizika (odhad před spuštěním)"),
+        h("ul", { class: "mission-crit" }, ...((t as any).risks as any[]).map((r) => h("li", { class: r.level === "blok" ? "bad" : r.level === "riziko" ? "wait" : "" },
+          icon(r.level === "blok" ? "prohibit" : r.level === "riziko" ? "warning" : "info", "ph-fill"),
+          h("span", {}, `krok ${r.step + 1}: ${r.text}${r.fix ? ` → ${r.fix}` : ""}`))))) : "",
       t.steps.length ? h("ol", { class: "task-steps" }, ...t.steps.map((s) => h("li", { class: `s-${s.status}` }, s.title))) : "",
       h("h4", {}, "Provedené akce (audit)"),
       (t.actions || []).length ? h("table", { class: "task-actions" },

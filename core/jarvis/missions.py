@@ -45,8 +45,8 @@ class Missions:
 
     # ---------- queue ----------
     def enqueue(self, goal: str, steps: list[dict] | None = None, deadline: float | None = None,
-                not_before: float | None = None) -> str:
-        return self.rt.tasks.enqueue(goal, steps, deadline, not_before, self.rt.memory.current_conversation)
+                not_before: float | None = None, priority: str = "") -> str:
+        return self.rt.tasks.enqueue(goal, steps, deadline, not_before, self.rt.memory.current_conversation, priority)
 
     def enqueue_template(self, name: str, deadline: float | None = None, not_before: float | None = None) -> str:
         goal, steps = TEMPLATES[name]
@@ -82,6 +82,11 @@ class Missions:
     async def tick(self, now: float | None = None) -> None:
         rt = self.rt
         now = now or time.time()
+        q = rt.tasks.queue(now)                          # 009: say once when the order changes because of time
+        top = q[0]["id"] if q else None
+        if top and getattr(self, "_top", None) not in (None, top) and len(q) > 1:
+            rt.notify("Pořadí misí", f"Dopředu jde „{q[0]['goal'][:70]}“ – {', '.join(q[0]['why'])}.", target="all")
+        self._top = top
         if not rt.agent.busy and rt.tasks.current is None:
             nxt = rt.tasks.next_queued(now)
             if nxt:

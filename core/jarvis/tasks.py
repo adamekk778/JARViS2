@@ -50,7 +50,8 @@ class TaskManager:
             cols = {r[1] for r in self.db.conn.execute("PRAGMA table_info(tasks)")}
             if "criteria" not in cols:     # 3.6 missions: acceptance criteria
                 self.db.conn.execute("ALTER TABLE tasks ADD COLUMN criteria TEXT DEFAULT '[]'")
-            for col, typ in (("deadline", "REAL"), ("spec", "TEXT"), ("not_before", "REAL")):   # 3.7 queue
+            for col, typ in (("deadline", "REAL"), ("spec", "TEXT"), ("not_before", "REAL"),   # 3.7 queue
+                             ("priority", "TEXT"), ("risks", "TEXT")):                         # 3.11 Omega Brain
                 if col not in cols:
                     self.db.conn.execute(f"ALTER TABLE tasks ADD COLUMN {col} {typ}")
         self._id: str | None = None
@@ -91,25 +92,29 @@ class TaskManager:
 
     # ---------- 3.7 queue, deadlines, budget ----------
     def enqueue(self, goal: str, steps: list[dict] | None = None, deadline: float | None = None,
-                not_before: float | None = None, conv_id: str = "") -> str:
+                not_before: float | None = None, conv_id: str = "", priority: str = "") -> str:
         """OMEGA 211 / 220: a mission waiting its turn (optionally not before a time, with a deadline)."""
         tid = uuid.uuid4().hex[:12]
         self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary, deadline, spec, not_before) "
                      "VALUES (?,?,?,?,?,?,?,?,?,?)",
                      (tid, conv_id, goal[:500], "queued", time.time(), None, "", deadline,
                       json.dumps(steps, ensure_ascii=False) if steps else None, not_before))
+        if priority:
+            self.db.exec("UPDATE tasks SET priority=? WHERE id=?", (priority, tid))
         self.rt.bus.publish("task_update", task=self.get(tid))
         return tid
 
     def next_queued(self, now: float | None = None) -> dict | None:
+        """009: the highest dynamic priority among the missions that may start now."""
         now = now or time.time()
-        row = self.db.one("SELECT id FROM tasks WHERE status='queued' AND (not_before IS NULL OR not_before<=?) "
-                          "ORDER BY COALESCE(deadline, 9e18), created LIMIT 1", (now,))
-        return self.get(row["id"]) if row else None
+        ready = [q for q in self.queue(now) if q["score"] > -1e5]
+        return self.get(ready[0]["id"]) if ready else None
 
-    def queue(self) -> list[dict]:
-        return self.db.all("SELECT id, goal, created, deadline, not_before FROM tasks WHERE status='queued' "
-                           "ORDER BY COALESCE(deadline, 9e18), created")
+    def queue(self, now: float | None = None) -> list[dict]:
+        from .omega import rank
+
+        rows = self.db.all("SELECT id, goal, created, deadline, not_before, priority FROM tasks WHERE status='queued'")
+        return rank(rows, now, focus=getattr(self.rt, "focus_text", "") or "")
 
     def set_spec(self, steps: list[dict]) -> None:
         """A structured mission remembers its steps, so an interrupted run can continue where it stopped."""
@@ -136,6 +141,14 @@ class TaskManager:
             return
         steps = [str(s)[:200] for s in steps if str(s).strip()][:30]
         current = max(0, min(int(current), len(steps)))
+        if current == 0:                                   # 008: what could go wrong, once, when the plan is new
+            try:
+                from .omega import predict_errors
+
+                risks = predict_errors(self.rt, steps)
+                self.db.exec("UPDATE tasks SET risks=? WHERE id=?", (json.dumps(risks, ensure_ascii=False), self._id))
+            except Exception:
+                pass
         self.db.exec("DELETE FROM task_steps WHERE task_id=?", (self._id,))
         for i, title in enumerate(steps):
             status = "done" if i < current else "running" if i == current else "pending"
@@ -253,7 +266,11 @@ class TaskManager:
             spec = json.loads(row.get("spec") or "null")
         except ValueError:
             spec = None
-        return {**row, "criteria": criteria, "spec": spec, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
+        try:
+            risks = json.loads(row.get("risks") or "[]")
+        except ValueError:
+            risks = []
+        return {**row, "criteria": criteria, "spec": spec, "risks": risks, "steps": steps, "actions": actions, "artifacts": arts, "evidence": ev,
                 "total": len(steps),
                 "done": sum(s["status"] == "done" for s in steps),
                 "current_action": self._current_action if task_id == self._id else ""}

@@ -1027,3 +1027,7 @@
 195 | HOTOVO | Mochi na telefon a zpět: na PC zůstane prázdné místo (klik ho vrátí), na telefonu žije ve stejné náladě, dvojí ťuknutí ho pošle zpátky
 247 | HOTOVO | hra na okraji: po 8 minutách klidu Mochi proběhne po okraji notche a zpět, ťuknutím ho zastavíš; ne při soustředění a omezených animacích; vypínatelné
 789 | HOTOVO | ovládání jednou rukou v aplikaci telefonu: levá / pravá ruka – lišta a záhlaví dolů k palci, větší tlačítka, obsah níž
+# 3.11 Omega Brain
+004 | HOTOVO | solve_problem: AI navrhne 2–5 opravdu různých přístupů; u kódu každý zkusí proti testům ve vlastní dočasné kopii (improve_loop) a vybere ten, který testy projde s nejmenší změnou; jinak každý plán prověří předpovědí chyb a ohodnotí; apply_solution zapíše vybrané řešení jen s potvrzením (omega.py, tools/omega_tools.py, tests/test_omega_brain.py)
+008 | HOTOVO | predict_errors: před spuštěním plánu neexistující nástroje a soubory, plný disk, vypnutá oprávnění, nenastavený e-mail / domácnost / telefon, chybějící internet, nástroje, které poslední měsíc často selhávaly, a kroky s potvrzením; u každé nové mise se rizika uloží a ukážou v Úkolech
+009 | HOTOVO | dynamické priority fronty misí: skóre z termínu (čím blíž, tím výš), důležitosti (zadaná nebo poznaná z textu), čekání (nic neuhnije), souvislosti s tím, na čem pracuješ; mission_queue ukáže pořadí s důvody, při změně pořadí přijde upozornění

@@ -9,12 +9,12 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 582 | 87 |
+| ✅ HOTOVO | 585 | 87 |
 | 🟡 ČÁSTEČNĚ | 179 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 13 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
-| 🗓️ PLÁNOVÁNO | 21 | 4 |
+| 🗓️ PLÁNOVÁNO | 18 | 4 |
 | ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
 
@@ -22,19 +22,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 01. Super Intelligence
 
-✅ 4 · 🟡 2 · 🔌 1 · 🗓️ 3
+✅ 7 · 🟡 2 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 001 | Goal Mode — z cíle sestaví reálný plán. | ✅ HOTOVO | goal_plan: z cíle fáze, kroky (kdo je udělá), akceptační kritéria a rizika → sledovaná mise v Úkolech |
 | 002 | Mission Control — řídí složité mise. | 🟡 ČÁSTEČNĚ | Mission Control = stránka Úkoly: plán, kroky, audit akcí, kritéria, artefakty, důkazy, pauza/zrušení (tasks.py, dashboard/tasks.ts, tests/test_omega.py); chybí DAG |
 | 003 | Deep Research — rozsáhlý výzkum s citacemi. | ✅ HOTOVO | deep_research: víc dotazů, přečtené zdroje, report s citacemi [n], mechanická kontrola citací, uložený jako artefakt |
-| 004 | Autonomous Problem Solver — testování více řešení. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
+| 004 | Autonomous Problem Solver — testování více řešení. | ✅ HOTOVO | solve_problem: AI navrhne 2–5 opravdu různých přístupů; u kódu každý zkusí proti testům ve vlastní dočasné kopii (improve_loop) a vybere ten, který testy projde s nejmenší změnou; jinak každý plán prověří předpovědí chyb a ohodnotí; apply_solution zapíše vybrané řešení jen s potvrzením (omega.py, tools/omega_tools.py, tests/test_omega_brain.py) |
 | 005 | Decision Simulator — simuluje důsledky rozhodnutí. | 🟡 ČÁSTEČNĚ | compare_options: u každé varianty pravděpodobné důsledky a rizika (odhad AI, ne simulace) |
 | 006 | AI Debate — porovnání argumentů modelů. | 🔌 VYŽADUJE_INTEGRACI | ask_models: stejná otázka víc AI poskytovatelům a porovnání – potřebuje aspoň dva nastavené poskytovatele |
 | 007 | Confidence Engine — vyjadřuje míru nejistoty. | ✅ HOTOVO | jistota u doporučení (compare_options) a podle shody modelů (ask_models); research hlásí nesedící citace |
-| 008 | Error Prediction — předvídání pravděpodobných chyb. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
-| 009 | Dynamic Task Priorities — dynamické priority. | 🗓️ PLÁNOVÁNO | Omega Brain – milník M3 v ROADMAP.md |
+| 008 | Error Prediction — předvídání pravděpodobných chyb. | ✅ HOTOVO | predict_errors: před spuštěním plánu neexistující nástroje a soubory, plný disk, vypnutá oprávnění, nenastavený e-mail / domácnost / telefon, chybějící internet, nástroje, které poslední měsíc často selhávaly, a kroky s potvrzením; u každé nové mise se rizika uloží a ukážou v Úkolech |
+| 009 | Dynamic Task Priorities — dynamické priority. | ✅ HOTOVO | dynamické priority fronty misí: skóre z termínu (čím blíž, tím výš), důležitosti (zadaná nebo poznaná z textu), čekání (nic neuhnije), souvislosti s tím, na čem pracuješ; mission_queue ukáže pořadí s důvody, při změně pořadí přijde upozornění |
 | 010 | Mission Replay — auditovatelná historie kroků. | ✅ HOTOVO | Přehrát průběh mise (dashboard/tasks.ts replay) + audit akcí |
 
 ## 02. Windows Superpowers

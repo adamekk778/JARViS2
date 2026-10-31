@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "brain", title: "Omega Brain", line: "JARVIS umí problém vyřešit víc způsoby a vybrat nejlepší – u kódu každý vyzkouší proti testům. Před misí předpoví, co by mohlo selhat (chybějící soubor, internet, nenastavený e-mail…), a frontu misí si sám řadí podle termínů, důležitosti a toho, jak dlouho čekají." },
     { icon: "speaker-high", title: "Hlasitost a logo AI", line: "Když změníš hlasitost, notch na chvíli ukáže pruh. Když JARVIS přemýšlí, uvidíš logo AI, která právě odpovídá – Claude, ChatGPT, Gemini, Llama, Mistral, DeepSeek a další – a oči se zbarví do její barvy. Hlasitost jde nastavit i v liště otevřeného notche." },
     { icon: "circles-four", title: "Nový vzhled notche", line: "Notch je teď „ostrov“: uprostřed svítící oči, které mění barvu podle nálady (oranžové při práci, srdíčka u soustředění, zelený úsměv, když je hotovo), vlevo a vpravo hudba, časovač nebo Claude Code. Po otevření uvidíš datum a tři velké karty – JARVIS, hudbu a soustředění – a sekce v liště dole. Původní Mochi vrátíš v Nastavení → Notch → Vzhled." },
     { icon: "microphone-stage", title: "Hlasová dílna", line: "V Nastavení → Hlas si vybereš z desítek hlasů (i vícejazyčných, které umí česky), přidáš vlastní hlas ze souboru, nebo si ho vytvoříš na ElevenLabs a vložíš klíč. Každému hlasu můžeš dát efekt – JARVIS, rádio, robot, dozvuk – a hned si ho poslechnout." },

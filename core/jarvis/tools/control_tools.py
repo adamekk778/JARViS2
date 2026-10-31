@@ -33,7 +33,8 @@ def _when(text: str, now: dt.datetime | None = None) -> float | None:
 @tool("queue_mission", "Zařadí misi do fronty JARVISe: proběhne, až bude volno, nebo v daný čas (at: „18:30“, „za 20 "
       "minut“), volitelně s termínem (deadline), o kterém JARVIS dá vědět. template „pc_report“ = kontrola PC bez AI; "
       "jinak goal = úkol v přirozené řeči.", category="systém", perm="apps")
-async def queue_mission(ctx, goal: str = "", template: str = "", at: str = "", deadline: str = "") -> ToolResult:
+async def queue_mission(ctx, goal: str = "", template: str = "", at: str = "", deadline: str = "",
+                        priority: Annotated[str, "vysoká / normální / nízká (prázdné = odhadne se z textu)"] = "") -> ToolResult:
     from ..missions import TEMPLATES
 
     nb, dl = _when(at), _when(deadline)
@@ -45,7 +46,7 @@ async def queue_mission(ctx, goal: str = "", template: str = "", at: str = "", d
         tid = ctx.missions.enqueue_template(template, dl, nb)
         goal = TEMPLATES[template][0]
     elif goal.strip():
-        tid = ctx.missions.enqueue(goal.strip(), None, dl, nb)
+        tid = ctx.missions.enqueue(goal.strip(), None, dl, nb, priority if priority in ("vysoká", "normální", "nízká") else "")
     else:
         return ToolResult(False, "Řekni, co má mise udělat (goal), nebo zvol šablonu.")
     when = dt.datetime.fromtimestamp(nb).strftime("%d.%m. %H:%M") if nb else "hned, až bude volno"
@@ -58,8 +59,9 @@ async def mission_queue(ctx) -> ToolResult:
     q = ctx.tasks.queue()
     if not q:
         return ToolResult(True, "Fronta misí je prázdná.")
-    lines = [f"{t['goal'][:80]}" + (f" – od {dt.datetime.fromtimestamp(t['not_before']):%H:%M}" if t["not_before"] else "")
-             + (f" – termín {dt.datetime.fromtimestamp(t['deadline']):%d.%m. %H:%M}" if t["deadline"] else "") for t in q]
+    lines = [f"{i}. {t['goal'][:80]}" + (f" – od {dt.datetime.fromtimestamp(t['not_before']):%H:%M}" if t["not_before"] else "")
+             + (f" – termín {dt.datetime.fromtimestamp(t['deadline']):%d.%m. %H:%M}" if t["deadline"] else "")
+             + f" ({', '.join(t['why'])})" for i, t in enumerate(q, 1)]
     return ToolResult(True, "\n".join(lines), data=q)
 
 
