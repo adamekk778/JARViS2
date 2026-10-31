@@ -191,7 +191,7 @@ class ClaudeBridge:
             cwd = str(p.get("cwd") or "")
             s = self.sessions[sid] = {"id": sid, "project": Path(cwd).name if cwd else "Claude Code", "cwd": cwd,
                                       "state": "idle", "step": "", "prompt": "", "started": time.time(),
-                                      "updated": time.time(), "edits": 0, "commands": 0, "steps": []}
+                                      "updated": time.time(), "edits": 0, "commands": 0, "steps": [], "changes": []}
         s["updated"] = time.time()
         return s
 
@@ -204,7 +204,8 @@ class ClaudeBridge:
         cutoff = time.time() - 6 * 3600
         for sid in [k for k, v in self.sessions.items() if v["updated"] < cutoff]:
             self.sessions.pop(sid, None)
-        return sorted(({k: v for k, v in s.items() if k != "steps"} | {"steps": s["steps"][-8:]} for s in self.sessions.values()),
+        return sorted(({k: v for k, v in s.items() if k not in ("steps", "changes")} | {"steps": s["steps"][-12:], "changes": s.get("changes", [])[-12:]}
+                       for s in self.sessions.values()),
                       key=lambda s: -s["updated"])
 
     def _step(self, s: dict, text: str) -> None:
@@ -230,6 +231,15 @@ class ClaudeBridge:
             self._step(s, describe(tool, inp)[0])
             if tool in ("Edit", "MultiEdit", "Write", "NotebookEdit"):
                 s["edits"] += 1
+            try:                                   # 3.12: what exactly it adds and removes, for the notch
+                from .changes import from_claude
+
+                ch = from_claude(tool, inp)
+                if ch:
+                    s.setdefault("changes", []).append(ch)
+                    del s["changes"][:-20]
+            except Exception:  # noqa: BLE001 – the diff is a bonus; the hook must never fail on it
+                pass
             if tool == "Bash":
                 s["commands"] += 1
         elif event == "PostToolUseFailure":

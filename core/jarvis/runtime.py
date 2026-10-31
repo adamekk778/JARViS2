@@ -116,6 +116,9 @@ class Runtime:
         self.learning = Learning(self)         # OMEGA §10 / §36: flashcards, tests, weak spots, exam plans
 
         self.perf = PerfHistory(self)          # OMEGA 312: a light performance sample every 5 minutes
+        import collections as _collections
+
+        self.recent_changes: _collections.deque = _collections.deque(maxlen=20)   # 3.12: JARVIS's own file edits (diffs)
         from .netwatch import NetWatch
 
         self.netwatch = NetWatch(self)         # OMEGA 708/709/719: watched webs, certificates, line loss history

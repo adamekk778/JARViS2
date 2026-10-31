@@ -366,7 +366,26 @@ class Agent:
                         rt.set_anchor(win)
                 except Exception as e:  # noqa: BLE001
                     log.debug("anchor: %s", e)
+                before = None
+                if call.name == "write_text_file":        # 3.12: what JARVIS changes in a file, line by line
+                    try:
+                        from .changes import _read
+                        from .tools.files import resolve as _resolve
+
+                        before = await asyncio.to_thread(_read, str(_resolve((call.arguments or {}).get("path", ""))))
+                    except Exception:  # noqa: BLE001
+                        before = None
                 res = await tools.call(call.name, call.arguments, rt)
+                if before is not None and res.ok:
+                    try:
+                        from .changes import from_text
+                        from .tools.files import resolve as _resolve
+
+                        ch = from_text(str(_resolve(call.arguments.get("path", ""))), before, str(call.arguments.get("content", "")))
+                        rt.recent_changes.append(ch)
+                        rt.bus.publish("jarvis_changes", items=list(rt.recent_changes)[-12:])
+                    except Exception as e:  # noqa: BLE001
+                        log.debug("change diff: %s", e)
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
                 if call.name != "update_plan":
                     rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,

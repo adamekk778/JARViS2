@@ -60,7 +60,7 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note", "render",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "versions_saved", "power_state", "download_progress", "beat", "ambient", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "versions_saved", "power_state", "download_progress", "beat", "ambient", "jarvis_changes", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
     "rescue", "perf", "netwatch", "winupd", "clipboard_history", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
@@ -297,6 +297,7 @@ class Connection:
                         local_missing=rt.local.missing,
                         pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         claude_sessions=rt.claude.list(), claude_pending=rt.claude.pending_public(),
+                        jarvis_changes=list(getattr(rt, "recent_changes", []))[-12:],
                         whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(),
                         update=rt.updater.status if rt.updater else None, pins=uiplus.list_pins(rt))
 

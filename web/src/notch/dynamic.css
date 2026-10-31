@@ -147,3 +147,58 @@ html[data-nstyle="dynamic"] .n-inner > .n-music { display: none; }
 html[data-nstyle="dynamic"] .notch[data-mood="speaking"] .n-orb { animation-duration: .7s; }
 html[data-nstyle="dynamic"] .hcard.music .h-big { padding-right: 56px; }
 html[data-nstyle="dynamic"] .p-head .p-tabs button { white-space: nowrap; }
+
+/* =====================================================================================
+   3.12.1 Průběh: what the AI is doing and exactly what it changed (green = added, red = removed)
+   ===================================================================================== */
+.p-sec.activity { display: grid; gap: 12px; align-content: start; padding: 2px 4px 8px; }
+.act-block { display: grid; gap: 10px; padding: 14px 16px; border-radius: 22px; background: rgb(255 255 255 / .05); }
+.act-block.live { box-shadow: inset 0 0 0 1px rgb(255 138 61 / .35); }
+.act-head { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+.act-head .brand-logo { font-size: 20px; }
+.act-head strong { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; }
+.act-state { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: rgb(255 255 255 / .08); color: #c7cdd5; }
+.act-state.working, .act-state.thinking { background: rgb(255 138 61 / .18); color: #ffb37a; }
+.act-state.waiting { background: rgb(255 214 10 / .18); color: #ffd60a; }
+.act-state.done { background: rgb(48 209 88 / .16); color: #6ee38f; }
+.act-state.error { background: rgb(255 69 58 / .18); color: #ff7b72; }
+.act-head .chg-n { margin-left: auto; }
+.act-prompt { margin: 0; font-size: 13px; color: #c7cdd5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-now { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chg-list { display: grid; gap: 6px; }
+.chg { border-radius: 14px; background: rgb(0 0 0 / .35); overflow: hidden; }
+.chg > summary { list-style: none; display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 12px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+.chg > summary::-webkit-details-marker { display: none; }
+.chg > summary > i { font-size: 16px; color: #8ab4ff; flex: none; }
+.chg.cmd > summary > i { color: #c7cdd5; }
+.chg > summary strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chg > summary:hover { background: rgb(255 255 255 / .04); }
+.chg-cmd { font: 12px var(--mono, ui-monospace, monospace); color: #9aa3ae; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.chg-n { display: inline-flex; gap: 6px; font: 600 12px var(--mono, ui-monospace, monospace); flex: none; }
+.chg-n .add { color: #3fb950; } .chg-n .rem { color: #f85149; }
+.chg-t { margin-left: auto; font-size: 11.5px; color: #7d8794; flex: none; }
+.chg-n + .chg-t { margin-left: 8px; }
+.chg > summary .chg-n { margin-left: auto; }
+.diff { max-height: 260px; overflow: auto; padding: 4px 0 8px; font: 12px/1.55 var(--mono, ui-monospace, monospace); border-top: 1px solid rgb(255 255 255 / .06); }
+.dl { display: grid; grid-template-columns: 22px 1fr; padding-right: 12px; white-space: pre; color: #c9d1d9; }
+.dl i { font-style: normal; text-align: center; color: #6e7681; user-select: none; }
+.dl.add { background: rgb(46 160 67 / .16); color: #aff5b4; } .dl.add i { color: #3fb950; }
+.dl.rem { background: rgb(248 81 73 / .14); color: #ffdcd7; } .dl.rem i { color: #f85149; }
+.dl.hunk { color: #6e7681; background: rgb(56 139 253 / .08); }
+.act-steps > summary { cursor: pointer; font-size: 12.5px; color: #9aa3ae; }
+.act-steps ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 12.5px; color: #c7cdd5; }
+.act-steps li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-steps .chg-t { margin: 0 8px 0 0; }
+.act-empty { display: grid; justify-items: center; gap: 6px; padding: 40px 20px; text-align: center; color: #9aa3ae; }
+.act-empty i { font-size: 34px; color: #0a84ff; }
+.act-empty strong { color: #fff; font-size: 15px; }
+
+/* 3.12.1 design polish: one-line labels everywhere, softer surfaces, crisper type */
+html[data-nstyle="dynamic"] .notch :is(button, .p-pill, .home-chip, .p-tabs button) { white-space: nowrap; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button { padding: 0 13px; }
+html[data-nstyle="dynamic"] .n-inner { -webkit-font-smoothing: antialiased; }
+html[data-nstyle="dynamic"] .notch[data-mode="panel"] .n-inner { background: radial-gradient(120% 70% at 50% -10%, #151a22 0%, #000 60%); }
+html[data-nstyle="dynamic"] .hcard { box-shadow: inset 0 1px 0 rgb(255 255 255 / .08); }
+html[data-nstyle="dynamic"] .h-label { letter-spacing: .01em; color: rgb(255 255 255 / .85); }
+html[data-nstyle="dynamic"] .notch[data-island="claude"], html[data-nstyle="dynamic"] .notch[data-island="ai"] { cursor: pointer; }
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner { cursor: pointer; }

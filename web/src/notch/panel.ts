@@ -9,7 +9,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS } from "../shared/brands";
 
-export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more";
+export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -21,9 +21,10 @@ const NAV: [Section, string, string][] = [
   ["tools", "wrench", "Nástroje"],
   ["settings", "sliders-horizontal", "Nastavení"],
   ["more", "dots-three-circle", "Více"],
+  ["activity", "pulse", "Průběh"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["files", "workspaces", "tools", "settings"];
+const EXTRA: Section[] = ["files", "workspaces", "tools", "settings", "activity"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -278,7 +279,8 @@ export function buildPanel(ctx: PanelCtx) {
     speaking: "Mluvím", waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", notify: "Novinka" };
   const CLAUDE_WORD: Record<string, string> = { working: "Pracuje", thinking: "Přemýšlí", waiting: "Čeká na tebe", done: "Hotovo", idle: "Hotovo" };
   const homeDate = h("div", { class: "home-date" });          // shown in the panel head (island look)
-  const cardAi = h("button", { class: "hcard ai", type: "button", onclick: () => show("chat") });
+  const cardAi = h("button", { class: "hcard ai", type: "button",
+    onclick: () => show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat") });
   const cardMusic = h("div", { class: "hcard music", role: "group" });
   const cardFocus = h("div", { class: "hcard focus", role: "group" });
   const homeVolIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -330,13 +332,69 @@ export function buildPanel(ctx: PanelCtx) {
   const tile = (sec: Section, ic: string, label: string, sub: string) =>
     h("button", { class: "more-tile", type: "button", onclick: () => show(sec) }, icon(ic), h("strong", {}, label), h("span", {}, sub));
   const moreView = h("div", { class: "p-sec more" },
+    tile("activity", "pulse", "Průběh", "Co AI právě dělá a co přesně změnila"),
     tile("files", "folder-simple", "Soubory", "Police – přetáhni, zeptej se, pošli do mobilu"),
     tile("workspaces", "browsers", "Plochy", "Uložená rozložení oken"),
     tile("tools", "wrench", "Nástroje", "Co JARVIS umí a co se naučil"),
     tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled"),
     h("button", { class: "more-tile", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), h("strong", {}, "Celé okno"), h("span", {}, "Všechny stránky a nastavení JARVISe")));
+  // ---------- 3.12 Průběh: what Claude Code / JARVIS is doing and exactly what it changed (added / removed lines) ----------
+  let jChanges: any[] = [];
+  const openDiffs = new Set<string>(), closedDiffs = new Set<string>();
+  const activityView = h("div", { class: "p-sec activity" });
+  const ago = (t: number) => {
+    const s = Math.max(0, Math.round(Date.now() / 1000 - t));
+    return s < 60 ? `před ${s} s` : s < 3600 ? `před ${Math.floor(s / 60)} min` : new Date(t * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  };
+  const KIND: Record<string, [string, string]> = { edit: ["pencil-simple", "Úprava"], write: ["file-arrow-up", "Přepsání"], new: ["file-plus", "Nový soubor"], cmd: ["terminal-window", "Příkaz"] };
+  const changeEl = (c: any, i = 1) => {
+    const key = `${c.t}:${c.path || c.diff?.[0]?.[1] || ""}`;
+    const [ic, label] = KIND[c.kind] || ["file", "Změna"];
+    const d = h("details", { class: `chg ${c.kind}` }) as HTMLDetailsElement;
+    d.open = openDiffs.has(key) || (i === 0 && c.kind !== "cmd" && !closedDiffs.has(key));   // the newest edit opens by itself
+    d.addEventListener("toggle", () => {
+      if (d.open) { openDiffs.add(key); closedDiffs.delete(key); } else { openDiffs.delete(key); closedDiffs.add(key); }
+    });
+    d.append(
+      h("summary", {}, icon(ic), h("strong", {}, c.kind === "cmd" ? (c.note || "Příkaz") : c.file || label),
+        c.kind === "cmd" ? h("code", { class: "chg-cmd" }, c.diff?.[0]?.[1] || "") : "",
+        c.kind !== "cmd" ? h("span", { class: "chg-n" }, h("b", { class: "add" }, `+${c.add}`), h("b", { class: "rem" }, `−${c.rem}`)) : "",
+        h("span", { class: "chg-t" }, ago(c.t))),
+      c.kind === "cmd" ? "" : h("div", { class: "diff" }, ...(c.diff || []).map(([k, text]: [string, string]) =>
+        h("div", { class: `dl ${k === "+" ? "add" : k === "-" ? "rem" : k === "@" ? "hunk" : ""}` },
+          h("i", {}, k === "@" ? "⋯" : k === " " ? "" : k), h("span", {}, k === "@" ? "" : text || " ")))));
+    return d;
+  };
+  function renderActivity() {
+    if (current !== "activity") return;
+    const blocks: HTMLElement[] = [];
+    for (const s of sessions.filter((x) => x.state !== "idle" || (x.changes || []).length)) {
+      const live = ["working", "thinking", "waiting"].includes(s.state);
+      const changes: any[] = [...(s.changes || [])].reverse();
+      const add = changes.reduce((a, c) => a + (c.add || 0), 0), rem = changes.reduce((a, c) => a + (c.rem || 0), 0);
+      blocks.push(h("section", { class: `act-block ${live ? "live" : ""}` },
+        h("div", { class: "act-head" }, brandEl(BRANDS.claude), h("strong", {}, `Claude Code · ${s.project}`),
+          h("span", { class: `act-state ${s.state}` }, CLAUDE_WORD[s.state] || s.state),
+          changes.length ? h("span", { class: "chg-n" }, h("b", { class: "add" }, `+${add}`), h("b", { class: "rem" }, `−${rem}`)) : ""),
+        s.prompt ? h("p", { class: "act-prompt" }, `„${s.prompt}“`) : "",
+        live && s.step ? h("p", { class: "act-now" }, h("span", { class: "n-orb sm" }), s.step) : "",
+        changes.length ? h("div", { class: "chg-list" }, ...changes.map((c, i) => changeEl(c, changes.findIndex((x) => x.kind !== "cmd") === i ? 0 : 1)))
+          : h("p", { class: "muted" }, "Zatím nic nezměnil."),
+        (s.steps || []).length ? h("details", { class: "act-steps" }, h("summary", {}, `Všechny kroky (${s.steps.length})`),
+          h("ol", {}, ...[...s.steps].reverse().map((st: any) => h("li", {}, h("span", { class: "chg-t" }, ago(st.t)), st.text)))) : ""));
+    }
+    if (jChanges.length) {
+      const changes = [...jChanges].reverse();
+      blocks.push(h("section", { class: "act-block" },
+        h("div", { class: "act-head" }, brain ? brandEl(brandOf(brain.provider, brain.model)) : icon("sparkle", "ph-fill"), h("strong", {}, "JARVIS"),
+          h("span", { class: "act-state" }, "změny souborů")),
+        h("div", { class: "chg-list" }, ...changes.map((c, i) => changeEl(c, i)))));
+    }
+    activityView.replaceChildren(...(blocks.length ? blocks : [h("div", { class: "act-empty" }, icon("pulse"),
+      h("strong", {}, "Teď se nic nemění"), h("span", {}, "Až Claude Code nebo JARVIS začne upravovat soubory, uvidíš tu každou změnu – co přidal zeleně, co ubral červeně."))]));
+  }
   const centre = h("section", { class: "p-centre" });
-  const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView };
+  const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -369,6 +427,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "chat") client.send("notch_context_get");
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }
     if (s === "home") renderHome();
+    if (s === "activity") renderActivity();
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
 
@@ -386,6 +445,7 @@ export function buildPanel(ctx: PanelCtx) {
     pins = m.pins || [];
     timers = m.timers || [];
     sessions = m.claude_sessions || [];
+    jChanges = m.jarvis_changes || [];
     if (m.volume) { volume = { level: Number(m.volume.level) || 0, muted: !!m.volume.muted }; paintVol(); }
     renderShelf(); renderMedia(); renderSettings(); renderUpdate(); syncAgent(); renderPins();
   });
@@ -397,7 +457,8 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
   client.on("media", (m) => { media = m; renderMedia(); renderHome(); });
   client.on("timers", (m) => { timers = m.items || []; renderHome(); });
-  client.on("claude_sessions", (m) => { sessions = m.items || []; renderHome(); });
+  client.on("claude_sessions", (m) => { sessions = m.items || []; renderHome(); renderActivity(); });
+  client.on("jarvis_changes", (m) => { jChanges = m.items || []; renderActivity(); });
   client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderHome(); });
   client.on("volume", (m) => { volume = { level: Number(m.level) || 0, muted: !!m.muted }; paintVol(); });
   client.on("update_status", (m) => { update = m; renderUpdate(); });

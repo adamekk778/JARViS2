@@ -398,6 +398,14 @@ function leave() {
   if (mode === "bar" || mode === "hover" || mode === "panel" || mode === "radial") scheduleClose();
 }
 shape.addEventListener("click", (e) => {
+  // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
+  const tgt = e.target as HTMLElement;
+  const busyKind = ["claude", "ai", "team", "task"].includes(shape.dataset.island || "");
+  if (dyn() && !tgt.closest("button, a, input, textarea, select, .n-panel")
+      && ((mode === "live") || ((mode === "closed" || mode === "hover" || mode === "bar") && busyKind))) {
+    openPanel("activity");
+    return;
+  }
   if (cfg.open_on === "click" && (mode === "hover" || mode === "closed") && !(e.target as HTMLElement).closest(".n-blob")) setMode("bar");
 });
 shape.addEventListener("mouseleave", async () => {
