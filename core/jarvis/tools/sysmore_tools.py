@@ -194,7 +194,8 @@ async def audio_summary(ctx, text: str = "", file: str = "", title: str = "shrnu
     d = paths.sub("vystupy")
     d.mkdir(parents=True, exist_ok=True)
     ext = ".mp3" if "mpeg" in mime else ".ogg" if "ogg" in mime else ".wav"
-    out = d / f"{re.sub(r'[^\w-]+', '_', title)[:40]}_{dt.datetime.now():%Y%m%d_%H%M}{ext}"
+    safe = re.sub(r"[^\w-]+", "_", title)[:40]
+    out = d / f"{safe}_{dt.datetime.now():%Y%m%d_%H%M}{ext}"
     out.write_bytes(audio)
     return ToolResult(True, f"Namluveno do {out.name} ({len(audio) / 2**20:.1f} MB).", data={"path": str(out)}, attachments=[str(out)])
 
