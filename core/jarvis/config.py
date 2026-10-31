@@ -188,8 +188,12 @@ class Integrations(BaseModel):
 
 
 class Device(BaseModel):
+    """OMEGA 184 / 185 / 402: a paired phone with its own key (only a hash is stored) – revocable one by one."""
     id: str
     name: str = "Telefon"
+    token_hash: str = ""
+    created: float = 0.0
+    last_seen: float = 0.0
 
 
 class Guest(BaseModel):
@@ -388,9 +392,9 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back", "zone_enter", "zone_leave", "webhook"] = "time"
+                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state"] = "time"
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
-    text: str = ""     # …and the subject / message must contain this
+    text: str = ""     # …and the subject / message must contain this · home_state: the state ("on", "open") or "> 25" / "< 10"
     days: list[int] = Field(default_factory=list)   # time: 0 = Monday … 6 = Sunday; empty = every day
 
 

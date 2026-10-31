@@ -48,7 +48,7 @@ export class JarvisClient {
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;
-      ws.send(JSON.stringify({ type: "hello", client: this.client, name: this.name }));
+      ws.send(JSON.stringify({ type: "hello", client: this.client, name: this.name, caps: ["device_token"] }));
       this.setStatus("open");
       for (const q of this.queue.splice(0)) ws.send(q);
     };

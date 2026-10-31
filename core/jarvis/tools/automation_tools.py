@@ -8,7 +8,7 @@ from typing import Annotated, Literal
 from .base import ToolResult, tool
 
 Trigger = Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back"]
+                  "away", "back", "home_state"]
 
 
 def _steps(say: str, ask: str, protocol: str) -> list:
@@ -61,7 +61,8 @@ def _problem(a) -> str:
       "Vytvoří automatizaci „Když … tak …“, která běží sama. trigger: time (value HH:MM, days 0=po…6=ne), boot (start PC), "
       "app_open / app_close (value = název aplikace), mail (value = od koho, text = předmět obsahuje), phone_message "
       "(value = kdo píše, text = zpráva obsahuje), phone_call (value = kdo volá), battery (value = %), power (value in/out "
-      "= nabíječka připojena/odpojena), away / back (value = minuty pryč od PC). Co udělat: say = co JARVIS řekne "
+      "= nabíječka připojena/odpojena), away / back (value = minuty pryč od PC), home_state (value = čidlo / zařízení v Home "
+      "Assistantu, text = stav „on“, „open“ nebo hodnota „> 25“, „< 10“). Co udělat: say = co JARVIS řekne "
       "(může obsahovat {sender}, {subject}, {text}, {app}, {percent}, {minutes}), ask = úkol pro JARVISe v přirozené řeči "
       "(např. „ztlum zvuk na 30 %“, „přečti mi ten e-mail“), protocol = název protokolu ke spuštění. "
       "Vždy se uživatele zeptá na potvrzení.",

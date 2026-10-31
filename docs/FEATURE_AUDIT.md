@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 626 | 88 |
-| 🟡 ČÁSTEČNĚ | 158 | 62 |
+| ✅ HOTOVO | 645 | 88 |
+| 🟡 ČÁSTEČNĚ | 139 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -39,7 +39,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -56,7 +56,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 021 | Diagnostika sítí, DNS a Wi-Fi. | ✅ HOTOVO | network_check: Wi-Fi signál, DNS, odezva, ztráta, trasa, certifikát, dostupnost webu, veřejné DNS |
 | 022 | Sledování thermal throttlingu. | ✅ HOTOVO | teplota CPU: přesně z LibreHardwareMonitor / OpenHardwareMonitor (když běží), jinak odhad z ACPI zóny; přehřátí → rada; bez zdroje JARVIS řekne, jak ji zapnout – perf.cpu_temp |
 | 023 | Graf závislostí služeb a procesů. | ✅ HOTOVO | service_dependencies: co služba potřebuje a co na ní závisí (i nepřímo), automatické služby, které neběží, a co tím nefunguje |
-| 024 | Kontrola podezřelých aplikací a oprávnění. | 🟡 ČÁSTEČNĚ | podezřelý autostart (nepodepsané z AppData/Temp), skryté naplánované úlohy, programy otevřené do sítě; oprávnění aplikací ne |
+| 024 | Kontrola podezřelých aplikací a oprávnění. | ✅ HOTOVO | podezřelý autostart a úlohy, programy otevřené do sítě, pravidla firewallu + oprávnění aplikací (kamera, mikrofon, poloha…) a kdo je používá teď – secplus app_permissions |
 | 025 | Technická zpráva o stavu PC. | ✅ HOTOVO | pc_health_report: read-only diagnostika, HTML report, ověření 5 kritérií (pcreport.py, tools/mission_tools.py, tests/test_omega.py, CI --selftest-report) |
 
 ## 03. Context Awareness
@@ -292,24 +292,24 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 16. Business
 
-✅ 6 · 🟡 4
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 166 | Schůzky → seznam úkolů. | 🟡 ČÁSTEČNĚ | nahrávání a shrnutí hovorů/schůzek (notetaker.py) |
-| 167 | Zápisy z meetingů. | 🟡 ČÁSTEČNĚ | nahrávání a shrnutí hovorů/schůzek (notetaker.py) |
+| 166 | Schůzky → seznam úkolů. | ✅ HOTOVO | ze schůzky úkoly: meeting_minutes (úkoly s vlastníky a termíny do seznamu) + meeting_tasks (připnuté úkoly s termínem a připomínkou) |
+| 167 | Zápisy z meetingů. | ✅ HOTOVO | zápis ze schůzky: rozhodnutí, úkoly s vlastníky, otevřené otázky, podíl mluvčích, návrh shrnujícího e-mailu (meeting_minutes) |
 | 168 | Nabídky zákazníkům. | ✅ HOTOVO | price_quote číslování N-RRRR-NNNN + evidence nabídek, quote_status (přijatá / odmítnutá), quotes_overview: otevřené, propadající, úspěšnost, doba rozhodnutí |
 | 169 | Fakturační podklady. | ✅ HOTOVO | billing_basis: z výkazu práce po klientech hodiny × sazba po projektech, přefakturované náklady, DPH, co se dělalo, jen nevyfakturované; dokument Word |
 | 170 | Zákaznické požadavky. | ✅ HOTOVO | customer_request / customer_requests: požadavky s prioritou podle textu a termínem, po termínu, po zákaznících, vyřízení |
-| 171 | Projektové termíny. | 🟡 ČÁSTEČNĚ | kalendář a připomínky (calendar_.py) |
+| 171 | Projektové termíny. | ✅ HOTOVO | projektové termíny: termíny misí, zkoušky a připnuté úkoly jako kalendář .ics s připomenutím (deadlines_calendar) |
 | 172 | Srovnání dodavatelských nabídek. | ✅ HOTOVO | compare_offers: vážené skóre (nejlepší = 1), náklady za dobu užívání (TCO), náskok vítěze a test citlivosti vah |
 | 173 | Analýza kampaní. | ✅ HOTOVO | campaign_report: CTR, CPC, konverzní poměr, CPA, ROAS, ROI, z-test rozdílu konverzí, přesun rozpočtu z prodělečných kampaní |
 | 174 | Přehled příjmů a výdajů. | ✅ HOTOVO | cashflow_report: výpis z banky (desetinné čárky, mezery v tisících, cp1250), měsíce, úspora, kategorie (i vlastní), pravidelné platby, výkyvy, největší platby |
-| 175 | Týdenní report práce. | 🟡 ČÁSTEČNĚ | týdenní recap diktování/úkolů |
+| 175 | Týdenní report práce. | ✅ HOTOVO | týdenní report práce: dokončené / nedokončené mise, schůzky, čas v aplikacích, diktování, termíny na příští týden – soubor (weekly_report) |
 
 ## 17. Security & Control
 
-✅ 8 · 🟡 2
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -321,8 +321,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 181 | Dočasná oprávnění. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
 | 182 | Dvojí potvrzení nebezpečných operací. | ✅ HOTOVO | nevratné akce (mazání, vypnutí PC, odemčení) se ptají dvakrát (agent._needs_second, tests/test_agent.py) |
 | 183 | Detekce škodlivých instrukcí z externích zdrojů. | ✅ HOTOVO | skener skrytých pokynů v e-mailech, webech, souborech a zprávách (injection.py, tools/base.py UNTRUSTED_OUTPUT) |
-| 184 | Správa propojených zařízení. | 🟡 ČÁSTEČNĚ | seznam připojených telefonů (pairing_get devices) |
-| 185 | Revokace ztracených zařízení. | 🟡 ČÁSTEČNĚ | nový párovací kód odpojí všechna zařízení naráz |
+| 184 | Správa propojených zařízení. | ✅ HOTOVO | spárovaná zařízení s vlastním klíčem: seznam (spárováno, naposledy, online) v Nastavení → Telefon a nástroj paired_devices |
+| 185 | Revokace ztracených zařízení. | ✅ HOTOVO | odpojení jednoho ztraceného zařízení (jeho klíč přestane platit, spojení se ukončí); ostatní zůstanou spárované |
 
 ## 18. Iron Man — Future Tech
 
@@ -629,7 +629,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 32. Cybersecurity Center
 
-✅ 10 · 🟡 5
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -644,14 +644,14 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 399 | Ransomware Recovery Planner — plán obnovy. | ✅ HOTOVO | plán pro ransomware: skóre připravenosti (antivirus, ochrana složek, body obnovení, čerstvá a offline záloha) a postup krok za krokem k vytištění |
 | 400 | Local Security Dashboard — bezpečnostní přehled. | 🟡 ČÁSTEČNĚ | Bezpečnostní centrum na stránce Záchrana a výkon + oblast security |
 | 401 | Secret Detection — úniky API klíčů v kódu. | ✅ HOTOVO | scan_secrets: klíče a hesla v kódu, tajemství nikdy nevypíše celé |
-| 402 | Device Trust Manager — důvěryhodná zařízení. | 🟡 ČÁSTEČNĚ | párování telefonu tokenem |
-| 403 | Session Revocation Center — odpojení sessions. | 🟡 ČÁSTEČNĚ | nový token = odpojení všech zařízení |
+| 402 | Device Trust Manager — důvěryhodná zařízení. | ✅ HOTOVO | každý telefon dostane po spárování vlastní klíč (uložen jen otisk SHA-256), párovací kód jde změnit bez odpojení ostatních |
+| 403 | Session Revocation Center — odpojení sessions. | ✅ HOTOVO | odpojení jednotlivých zařízení i všech najednou (živá spojení se ukončí kódem 4401) |
 | 404 | Security Incident Timeline — časová osa incidentů. | ✅ HOTOVO | časová osa bezpečnostních incidentů: Defender, nové služby a úlohy, vymazané protokoly, nové účty, hromadné hádání hesla |
-| 405 | Emergency Lockdown — zastavení vzdálených akcí. | 🟡 ČÁSTEČNĚ | STOP vše + Režim jen pro čtení; odpojení vzdálených zařízení = nový párovací kód |
+| 405 | Emergency Lockdown — zastavení vzdálených akcí. | ✅ HOTOVO | nouzové uzamčení: všechna zařízení i hosté odpojeni, nový párovací kód, režim jen pro čtení, zastavení úkolu (Nastavení i hlasem „zamkni všechno“) |
 
 ## 33. Multi-Device Ecosystem
 
-✅ 6 · 🟡 9
+✅ 7 · 🟡 8
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -669,23 +669,23 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 417 | Device Battery Dashboard — baterie. | 🟡 ČÁSTEČNĚ | baterie PC + telefonu (phone_battery) |
 | 418 | Offline Device Sync — offline synchronizace. | 🟡 ČÁSTEČNĚ | offline fronta zpráv, seznamů a připnutých úkolů; plná obousměrná synchronizace dat ne |
 | 419 | Device-Specific Permissions — povolení zařízení. | ✅ HOTOVO | oprávnění podle zařízení: co smí spárovaný telefon (zvlášť od PC), host jen hudbu |
-| 420 | Lost Device Protection — ochrana při ztrátě. | 🟡 ČÁSTEČNĚ | najdi můj telefon (FindPhone.java) |
+| 420 | Lost Device Protection — ochrana při ztrátě. | ✅ HOTOVO | najdi můj telefon (FindPhone) + odpojení ztraceného telefonu jedním tlačítkem |
 
 ## 34. Smart Home
 
-✅ 11 · 🟡 4
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 421 | Room Awareness — přiřazení do místností. | ✅ HOTOVO | home_rooms + room_control: místnosti z oblastí Home Assistantu, světla / vše v místnosti najednou (zámky, vrata, alarm nikdy) |
 | 422 | Energy Usage Analysis — spotřeba energie. | ✅ HOTOVO | home_energy: kWh po měřičích a dnech z historie (Wh i kWh, reset měřiče), cena |
 | 423 | Smart Lighting Scenes — světelné scény. | ✅ HOTOVO | scény Home Assistantu (home_scene) |
-| 424 | Climate Automation — termostaty. | 🟡 ČÁSTEČNĚ | nastavení teploty (home_control climate) |
-| 425 | Sensor Event Rules — pravidla senzorů. | 🟡 ČÁSTEČNĚ | automatizace JARVISe; spouštěče ze senzorů HA chybí |
+| 424 | Climate Automation — termostaty. | ✅ HOTOVO | termostaty: nastavení teploty (home_control) + automatizace podle času i podle čidel (home_state) |
+| 425 | Sensor Event Rules — pravidla senzorů. | ✅ HOTOVO | spouštěč automatizace z čidla Home Assistantu: stav (on/open…) nebo hodnota (> 25, < 10), spustí se, když podmínka začne platit – automations.home_state |
 | 426 | Home Network Map — mapa domácí sítě. | ✅ HOTOVO | mapa domácí sítě = seznam zařízení (network_devices) |
 | 427 | Device Battery Alerts — upozornění na baterie. | ✅ HOTOVO | home_batteries: baterie z device_class battery, battery_level i binárních čidel slabé baterie |
-| 428 | Smart Plug Scheduling — chytré zásuvky. | 🟡 ČÁSTEČNĚ | zásuvky + časové automatizace |
-| 429 | Media Room Control — multimédia. | 🟡 ČÁSTEČNĚ | přehrávače HA |
+| 428 | Smart Plug Scheduling — chytré zásuvky. | ✅ HOTOVO | chytré zásuvky: zapnutí/vypnutí + časové automatizace a spouštění podle čidel |
+| 429 | Media Room Control — multimédia. | ✅ HOTOVO | přehrávače v Home Assistantu: pustit / pauza / další / předchozí / hlasitost % |
 | 430 | Home Automation Simulator — test pravidel. | ✅ HOTOVO | simulate_automations: pravidla „Když … tak …“ nanečisto na vymyšlených událostech, co by udělala, která nikdy, kde se sejdou |
 | 431 | Device Firmware Tracker — firmware. | ✅ HOTOVO | home_firmware: aktualizace čekající v Home Assistantu (update.*), verze nainstalovaná → nová |
 | 432 | Voice-Controlled Scenes — hlasové scény. | ✅ HOTOVO | hlasové scény |
@@ -695,7 +695,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 35. Business & Startup
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -709,7 +709,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 443 | Revenue Forecasting — predikce výnosů. | ✅ HOTOVO | revenue_forecast: Holt–Winters se sezónou (2+ roky) nebo trend, zpětný test s MAPE a mírou důvěry |
 | 444 | Customer Feedback Analyzer — zpětná vazba. | ✅ HOTOVO | analyze_feedback: sentiment (česky i anglicky, s negací), témata (doručení, cena, kvalita, podpora…), nejhorší ohlasy |
 | 445 | Competitor Monitoring — změny konkurence. | ✅ HOTOVO | competitor_watch: uložené stránky konkurence a rozdíly od minula – nové a zmizelé nadpisy a položky, změny cen v % |
-| 446 | Marketing Content Calendar — marketingový kalendář. | 🟡 ČÁSTEČNĚ | kalendář |
+| 446 | Marketing Content Calendar — marketingový kalendář. | ✅ HOTOVO | marketingový kalendář: témata rozložená do týdnů na kanály + .ics s připomenutím (content_calendar) |
 | 447 | SEO Opportunity Finder — SEO příležitosti. | ✅ HOTOVO | keyword_gap: slova a dvojice slov, které konkurence používá (i v nadpisech) a tvoje stránka ne |
 | 448 | Client Portal Assistant — zákaznický portál. | ✅ HOTOVO | client_portal: soukromá stránka klienta (nabídky, stav požadavků) na tajné adrese, obnovení na stejné adrese, bez skriptů, escapovaný obsah |
 | 449 | Project Profitability Analyzer — ziskovost projektů. | ✅ HOTOVO | project_profitability: zisk, marže a skutečná hodinovka po projektech, prodělečné zakázky |
@@ -849,7 +849,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 42. Communication
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -863,7 +863,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 548 | Multilingual Message Drafting — různé jazyky. | 🟡 ČÁSTEČNĚ | překlad |
 | 549 | Inbox Noise Reduction — méně spamu. | ✅ HOTOVO | filtr newsletterů |
 | 550 | Message Source Linking — zdroje konverzací. | ✅ HOTOVO | u každé odpovědi „Zdroje“: weby, soubory (i stránka), e-maily, ze kterých nástroje čerpaly – uložené v historii, klik otevře |
-| 551 | Communication Search Assistant — vyhledání rozhodnutí. | 🟡 ČÁSTEČNĚ | email_search |
+| 551 | Communication Search Assistant — vyhledání rozhodnutí. | ✅ HOTOVO | hledání rozhodnutí v e-mailech (email_search) i ve schůzkách (search_meetings) |
 | 552 | Response Time Analytics — doby odpovědí. | ✅ HOTOVO | průměrná doba tvé odpovědi (odeslaná pošta vs. doručená) |
 | 553 | Contact Context Cards — přehled kontaktů. | ✅ HOTOVO | contact_card: zprávy, poslední kontakt, adresy, co o něm JARVIS ví, společné události |
 | 554 | Draft Approval System — schválení odeslání. | ✅ HOTOVO | odeslání e-mailu/SMS jen po schválení |
@@ -871,7 +871,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 43. Meetings
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -884,8 +884,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 562 | Meeting Follow-Up Generator — následné zprávy. | ✅ HOTOVO | návrh následného e-mailu (odešle se až po schválení přes email_send) |
 | 563 | Calendar Travel Buffer — cestovní rezerva. | ✅ HOTOVO | málo času na přesun mezi schůzkami na různých místech |
 | 564 | Meeting Relevance Checker — opakující se schůzky. | ✅ HOTOVO | meeting_relevance: série opakovaných schůzek (stejný název bez čísel a dat), hodiny měsíčně, kolik nahraných přineslo úkoly / rozhodnutí → nechat / zkrátit / zředit / zrušit |
-| 565 | Project Milestone Calendar — kalendář milníků. | 🟡 ČÁSTEČNĚ | kalendář |
-| 566 | Meeting Notes Search — hledání poznámek. | 🟡 ČÁSTEČNĚ | hledání v poznámkách |
+| 565 | Project Milestone Calendar — kalendář milníků. | ✅ HOTOVO | kalendář milníků: všechny termíny dopředu do jednoho .ics pro Google / Outlook / telefon |
+| 566 | Meeting Notes Search — hledání poznámek. | ✅ HOTOVO | hledání ve schůzkách: přepisy, shrnutí, body i úkoly, s větou, kde to padlo – search_meetings |
 | 567 | Recurring Meeting Review — hodnocení schůzek. | ✅ HOTOVO | meeting_review: přetahování (délka nahrávky vs. kalendář), trend výstupů, podíl řeči účastníků z přepisů |
 | 568 | Availability Sharing Assistant — sdílení možností termínů. | ✅ HOTOVO | free_time: volné termíny jako text k poslání |
 | 569 | Meeting Document Organizer — soubory schůzek. | ✅ HOTOVO | meeting_folder: složka „datum název“ se zápisem (shrnutí, body, úkoly jako zaškrtávátka, přepis) a kopiemi dokumentů upravovaných kolem schůzky |

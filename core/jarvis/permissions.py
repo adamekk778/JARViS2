@@ -20,7 +20,7 @@ LABELS = {**PERMS, READ_ONLY: "Režim jen pro čtení (Nastavení → Oprávněn
 # except the reading tools listed below.
 READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
-    "line_history", "process_profile", "disk_activity", "windows_updates", "mochi_history", "crash_dumps",
+    "line_history", "process_profile", "disk_activity", "windows_updates", "mochi_history", "crash_dumps", "search_meetings",
     "data_lens", "predict_errors", "blender_scene", "unity_project", "roblox_datastore", "transit_departures",
     "voice_tone", "knowledge_graph",
     "responsive_check", "animation_curve", "glass_material", "icon_set", "motion_timeline", "layout_heatmap",

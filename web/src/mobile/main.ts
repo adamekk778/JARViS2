@@ -237,6 +237,13 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   c.on("error", (m) => {
     if (m.auth) { savePairing(null); connectScreen(null, "Token už neplatí. Spáruj telefon znovu."); }
   });
+  // OMEGA 184: the PC gave this phone its own key – keep it instead of the pairing code (revocable alone)
+  c.on("device_token", (m) => {
+    if (!m.token) return;
+    pairing = { ...pairing, token: m.token };
+    savePairing(pairing);
+    c.ep.token = m.token;
+  });
   c.connect();
 
   // Re-resolve host when the network changes (Wi-Fi ↔ mobile data)

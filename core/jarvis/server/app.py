@@ -45,7 +45,14 @@ ACTIVE_MIME = ("text/html", "image/svg", "application/xhtml", "text/xml", "appli
 
 
 def _token_ok(rt: Any, supplied: str | None) -> bool:
-    return bool(supplied) and hmac.compare_digest(supplied, rt.cfg.phone.token)
+    """The pairing code or a paired device's own key (OMEGA 184: each phone can be revoked alone)."""
+    if not supplied:
+        return False
+    if hmac.compare_digest(supplied, rt.cfg.phone.token):
+        return True
+    from .. import mobileplus
+
+    return mobileplus.device_for(rt, supplied) is not None
 
 
 def _req_token(request: Request) -> str | None:
@@ -92,7 +99,12 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             await ws.close(code=4401)
             return
         await ws.accept()
-        await Connection(ws, rt, local, guest).run()
+        conn = Connection(ws, rt, local, guest)
+        dev = None if local else mobileplus.device_for(rt, token)
+        if dev:
+            conn.device_id = dev["id"]
+            mobileplus.touch_device(rt, dev["id"])
+        await conn.run()
 
     @app.post("/api/upload")
     async def upload(request: Request, file: UploadFile):

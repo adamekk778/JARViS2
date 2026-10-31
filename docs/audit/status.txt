@@ -1091,3 +1091,24 @@
 393 | HOTOVO | příchozí pravidla firewallu od programů: program z Temp/Stažených/AppData, pravidla otevřená do veřejných sítí, přehled – rescue.firewall_findings
 504 | HOTOVO | compose_routine: z rutin složí jednu automatizaci (v obvyklou hodinu otevře aplikace v obvyklém pořadí), uloží jen na požádání
 717 | HOTOVO | test rychlosti domácí sítě telefon ↔ PC (stahování, nahrávání, odezva) v mobilní aplikaci; internet dál speed_test
+
+# Vlna F5a–b: zařízení, domácnost, schůzky, termíny
+184 | HOTOVO | spárovaná zařízení s vlastním klíčem: seznam (spárováno, naposledy, online) v Nastavení → Telefon a nástroj paired_devices
+185 | HOTOVO | odpojení jednoho ztraceného zařízení (jeho klíč přestane platit, spojení se ukončí); ostatní zůstanou spárované
+402 | HOTOVO | každý telefon dostane po spárování vlastní klíč (uložen jen otisk SHA-256), párovací kód jde změnit bez odpojení ostatních
+403 | HOTOVO | odpojení jednotlivých zařízení i všech najednou (živá spojení se ukončí kódem 4401)
+405 | HOTOVO | nouzové uzamčení: všechna zařízení i hosté odpojeni, nový párovací kód, režim jen pro čtení, zastavení úkolu (Nastavení i hlasem „zamkni všechno“)
+420 | HOTOVO | najdi můj telefon (FindPhone) + odpojení ztraceného telefonu jedním tlačítkem
+024 | HOTOVO | podezřelý autostart a úlohy, programy otevřené do sítě, pravidla firewallu + oprávnění aplikací (kamera, mikrofon, poloha…) a kdo je používá teď – secplus app_permissions
+425 | HOTOVO | spouštěč automatizace z čidla Home Assistantu: stav (on/open…) nebo hodnota (> 25, < 10), spustí se, když podmínka začne platit – automations.home_state
+424 | HOTOVO | termostaty: nastavení teploty (home_control) + automatizace podle času i podle čidel (home_state)
+428 | HOTOVO | chytré zásuvky: zapnutí/vypnutí + časové automatizace a spouštění podle čidel
+429 | HOTOVO | přehrávače v Home Assistantu: pustit / pauza / další / předchozí / hlasitost %
+166 | HOTOVO | ze schůzky úkoly: meeting_minutes (úkoly s vlastníky a termíny do seznamu) + meeting_tasks (připnuté úkoly s termínem a připomínkou)
+167 | HOTOVO | zápis ze schůzky: rozhodnutí, úkoly s vlastníky, otevřené otázky, podíl mluvčích, návrh shrnujícího e-mailu (meeting_minutes)
+566 | HOTOVO | hledání ve schůzkách: přepisy, shrnutí, body i úkoly, s větou, kde to padlo – search_meetings
+551 | HOTOVO | hledání rozhodnutí v e-mailech (email_search) i ve schůzkách (search_meetings)
+171 | HOTOVO | projektové termíny: termíny misí, zkoušky a připnuté úkoly jako kalendář .ics s připomenutím (deadlines_calendar)
+565 | HOTOVO | kalendář milníků: všechny termíny dopředu do jednoho .ics pro Google / Outlook / telefon
+446 | HOTOVO | marketingový kalendář: témata rozložená do týdnů na kanály + .ics s připomenutím (content_calendar)
+175 | HOTOVO | týdenní report práce: dokončené / nedokončené mise, schůzky, čas v aplikacích, diktování, termíny na příští týden – soubor (weekly_report)

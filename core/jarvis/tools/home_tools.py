@@ -47,12 +47,12 @@ async def home_devices(ctx, query: Annotated[str, "část názvu, např. obývá
 
 
 @tool("home_control", "Ovládá chytrou domácnost (Home Assistant). action: on, off, toggle, set (value = jas % u světla, "
-      "teplota °C u topení, poloha % u žaluzií), open, close, stop, lock, unlock, play, pause. target = název zařízení, "
+      "teplota °C u topení, poloha % u žaluzií, hlasitost % u přehrávače), open, close, stop, lock, unlock, play, pause, next, previous. target = název zařízení, "
       "místnosti nebo scény („obývák“, „lampa“, „scéna kino“); „všechna světla“ = všechna. Zámky, alarm a otevírání "
       "garáže/brány se vždy nejdřív zeptá.", category="domácnost", perm="home", danger_if=_risky,
       details=lambda a: [f"Zařízení: {a.get('target', '')}", f"Akce: {a.get('action', '')}" + (f" {a.get('value')}" if a.get("value") is not None else "")])
 async def home_control(ctx, target: str,
-                       action: Literal["on", "off", "toggle", "set", "open", "close", "stop", "lock", "unlock", "play", "pause"] = "toggle",
+                       action: Literal["on", "off", "toggle", "set", "open", "close", "stop", "lock", "unlock", "play", "pause", "next", "previous"] = "toggle",
                        value: float | None = None, domain: str = "") -> ToolResult:
     from ..home import configured
 

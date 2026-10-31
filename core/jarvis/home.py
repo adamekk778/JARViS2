@@ -180,6 +180,12 @@ class Home:
         if d == "light" and a == "set" and value is not None:
             await self.service(d, "turn_on", {**data, "brightness_pct": int(max(1, min(100, value)))})
             return f"{e['name']}: jas {int(value)} %."
+        if d == "media_player" and a == "set" and value is not None:          # OMEGA 429: the room's player volume
+            await self.service(d, "volume_set", {**data, "volume_level": round(max(0, min(100, value)) / 100, 2)})
+            return f"{e['name']}: hlasitost {int(value)} %."
+        if d == "media_player" and a in ("next", "previous"):
+            await self.service(d, "media_next_track" if a == "next" else "media_previous_track", data)
+            return f"{e['name']}: {'další' if a == 'next' else 'předchozí'} skladba."
         svc = {"on": "turn_on", "open": "turn_on", "off": "turn_off", "close": "turn_off", "set": "turn_on"}.get(a, "toggle")
         if d == "media_player" and a in ("pause", "play"):
             svc = "media_pause" if a == "pause" else "media_play"

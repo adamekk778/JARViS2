@@ -317,3 +317,27 @@ class Notetaker:
             return
         shutil.rmtree(paths.sub("notes") / nid, ignore_errors=True)
         self.rt.db.exec("DELETE FROM notes WHERE id=?", (nid,))
+
+
+# ---------------------------------------------------------------- 566 / 551 search in meetings
+def search_notes(rt, query: str, limit: int = 10) -> list[dict]:
+    """Meetings whose summary, points, to-dos or transcript contain all the words; with the matching line."""
+    from .comms import fold
+
+    words = [w for w in fold(query).split() if len(w) > 1]
+    if not words:
+        return []
+    rows = rt.db.all("SELECT id, created, title, summary, points, todos, transcript FROM notes WHERE status='done' ORDER BY created DESC LIMIT 500")
+    out = []
+    for r in rows:
+        hay = fold(" ".join(str(r.get(k) or "") for k in ("title", "summary", "points", "todos", "transcript")))
+        if all(w in hay for w in words):
+            try:
+                lines = [f"{x.get('who', '')}: {x.get('text', '')}" for x in json.loads(r.get("transcript") or "[]")]
+            except (ValueError, AttributeError):
+                lines = []
+            line = next((ln for ln in lines + (r.get("summary") or "").split(". ") if any(w in fold(ln) for w in words)), "")
+            out.append({"id": r["id"], "created": r["created"], "title": r["title"], "match": line.strip()[:240]})
+        if len(out) >= limit:
+            break
+    return out

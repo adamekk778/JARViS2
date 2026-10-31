@@ -517,7 +517,16 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
                 h("button", { class: "btn", type: "button", onclick: () => copyText(p.url, "Odkaz zkopírován") }, icon("link"), "Kopírovat odkaz"),
                 h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Vygenerovat nový token? Všechny telefony se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový token"))))
             : h("p", { class: "help" }, "Načítám…")),
-        card("Připojená zařízení", null, ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" }, h("span", {}, icon("device-mobile"), " ", d.name || "Telefon"), h("span", { class: "chip" }, "online"))) : [h("p", { class: "help" }, "Teď není připojený žádný telefon.")])),
+        card("Spárovaná zařízení", "Každý telefon má vlastní klíč – ztracený odpojíš sám, ostatní zůstanou spárované.",
+          ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" },
+            h("div", { class: "row-text" }, h("strong", {}, icon("device-mobile"), " ", d.name || "Telefon"),
+              h("span", { class: "help" }, `spárováno ${d.created ? new Date(d.created * 1000).toLocaleDateString("cs-CZ") : "—"} · naposledy ${d.last_seen ? new Date(d.last_seen * 1000).toLocaleString("cs-CZ") : "—"}`)),
+            d.online ? h("span", { class: "chip" }, "online") : h("span"),
+            h("button", { class: "btn ghost", type: "button", onclick: () => { if (confirm(`Odpojit ${d.name || "telefon"}? Bude se muset spárovat znovu.`)) client.send("device_revoke", { id: d.id }); } }, icon("link-break"), "Odpojit")))
+            : [h("p", { class: "help" }, "Zatím žádný telefon s vlastním klíčem. Starší aplikace se připojují párovacím kódem – po aktualizaci dostanou vlastní klíč.")]),
+          h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => {
+            if (confirm("Nouzové uzamčení: odpojí VŠECHNA zařízení i hosty, vytvoří nový párovací kód, zapne režim jen pro čtení a zastaví běžící úkol. Pokračovat?")) client.send("lockdown");
+          } }, icon("lock"), "Nouzové uzamčení"))),
         phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
@@ -969,6 +978,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("tools", (m) => { extra.tools = m.items; if (current === "tools") render(); });
   client.on("mcp", (m) => { extra.mcp = m.items; if (current === "integrations") render(); });
   client.on("pairing", (m) => { extra.pairing = m; if (current === "phone") render(); });
+  client.on("lockdown_done", (m) => toast(`Uzamčeno: odpojeno ${m.revoked} zařízení, nový párovací kód, režim jen pro čtení.`, "ok"));
   client.on("memory", (m) => { extra.facts = m.facts; if (current === "memory" || current === "backup") render(); });
   client.on("jobs", (m) => { extra.jobs = m.items; if (current === "jobs") render(); });
 

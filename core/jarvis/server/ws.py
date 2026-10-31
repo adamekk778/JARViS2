@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import weakref
 import base64
 import logging
 import time
@@ -21,7 +22,7 @@ CLIENT_TYPES = [
     "hello", "user_text", "audio_chunk", "audio_end", "voice_upload", "confirm_response", "stop", "quick_action",
     "share", "history_get", "conversations_get", "switch_conversation", "new_chat", "delete_conversation",
     "regenerate", "settings_get", "settings_set", "secret_set", "provider_test", "memory_get", "fact_update",
-    "fact_delete", "memory_wipe", "pairing_get", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
+    "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
     "stop_all", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
@@ -59,7 +60,7 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note", "render",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
     "rescue", "perf", "netwatch", "winupd", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
@@ -78,7 +79,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"device_revoke", "lockdown", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -96,6 +97,22 @@ SLOW = {"voices_get", "voice_preview", "voice_import", "hardware_get", "notch_co
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
 
+LIVE: "weakref.WeakSet[Connection]" = weakref.WeakSet()
+
+
+async def close_devices(which) -> int:
+    """OMEGA 185 / 403: drop the live connections of revoked devices (the app then asks to pair again)."""
+    n = 0
+    for c in list(LIVE):
+        if which(c):
+            try:
+                await c.ws.close(code=4401)
+                n += 1
+            except Exception:  # noqa: BLE001 – already gone
+                pass
+    return n
+
+
 class Connection:
     def __init__(self, ws: WebSocket, rt: Any, local: bool, guest: dict | None = None):
         self.ws = ws
@@ -107,6 +124,8 @@ class Connection:
         self.id = uuid.uuid4().hex[:8]
         self.client = "unknown"
         self.name = ""
+        self.device_id: str | None = None   # OMEGA 184: the paired phone's own key (None = the PC itself / pairing code)
+        LIVE.add(self)
         self.audio = bytearray()
         self.audio_sr = 16000
         self.send_lock = asyncio.Lock()
@@ -175,7 +194,7 @@ class Connection:
         if not self.local:     # OMEGA 419: a paired device may use only the permission areas allowed for phones
             mobileplus.set_device_perms(mobileplus.guest_perms() if self.guest else set(self.rt.cfg.phone.allowed))
         q = self.rt.bus.subscribe()
-        self.rt.clients[self.id] = {"client": self.client, "name": self.name, "local": self.local}
+        self.rt.clients[self.id] = {"client": self.client, "name": self.name, "local": self.local, "device": self.device_id}
         pump = asyncio.get_running_loop().create_task(self._pump(q))
         try:
             await self.send_welcome()
@@ -416,7 +435,14 @@ class Connection:
         if t == "hello":
             self.client = m.get("client", "unknown")
             self.name = m.get("name", "")
-            rt.clients[self.id] = {"client": self.client, "name": self.name, "local": self.local}
+            if (self.client == "mobile" and not self.local and not self.guest and not self.device_id
+                    and "device_token" in (m.get("caps") or [])):
+                from .. import mobileplus     # paired with the code → this phone gets its own revocable key
+
+                token, dev = mobileplus.issue_device(rt, self.name or "Telefon")
+                self.device_id = dev["id"]
+                await self.send("device_token", token=token, id=dev["id"])
+            rt.clients[self.id] = {"client": self.client, "name": self.name, "local": self.local, "device": self.device_id}
         elif t == "ping":
             await self.send("pong", t=m.get("t"))
         elif t == "user_text":
@@ -1184,8 +1210,23 @@ class Connection:
                 import secrets as pysecrets
 
                 rt.update_config({"phone": {"token": pysecrets.token_urlsafe(32)}})
-            await self.send("pairing", **pairing_info(rt.cfg.phone.token, rt.cfg.phone.port),
-                            devices=[c for c in rt.clients.values() if c.get("client") == "mobile"])
+            from ..mobileplus import device_list
+
+            await self.send("pairing", **pairing_info(rt.cfg.phone.token, rt.cfg.phone.port), devices=device_list(rt))
+        elif t in ("device_revoke", "lockdown"):
+            from .. import mobileplus
+
+            if t == "device_revoke":
+                did = str(m.get("id") or "")
+                mobileplus.revoke_device(rt, did)
+                await close_devices(lambda c: c.device_id == did)
+            else:
+                r_ = mobileplus.lockdown(rt)
+                await close_devices(lambda c: not c.local)
+                await self.send("lockdown_done", revoked=r_["revoked"])
+            from .pairing import pairing_info
+
+            await self.send("pairing", **pairing_info(rt.cfg.phone.token, rt.cfg.phone.port), devices=mobileplus.device_list(rt))
         elif t == "speak":
             rt.speak(m.get("text", ""))
         elif t == "voices_get":

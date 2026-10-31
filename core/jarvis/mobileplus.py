@@ -208,3 +208,62 @@ def device_blocks(required: list[str]) -> str | None:
     if allowed is None:
         return None
     return next((p for p in required if p not in allowed), None)
+
+
+# ---------------------------------------------------------------- 184 / 185 / 402 / 403 / 405 per-device keys
+DEVICE_PREFIX = "d_"
+
+
+def device_for(rt, token: str | None) -> dict | None:
+    """The paired device this key belongs to (None = not a device key or revoked)."""
+    if not token or not token.startswith(DEVICE_PREFIX):
+        return None
+    h = _hash(token)
+    for d in rt.cfg.phone.devices:
+        if d.token_hash and secrets.compare_digest(d.token_hash, h):
+            return d.model_dump(exclude={"token_hash"})
+    return None
+
+
+def issue_device(rt, name: str) -> tuple[str, dict]:
+    """A phone that connected with the pairing code gets its own key; the code can later change without it."""
+    import uuid
+
+    token = DEVICE_PREFIX + secrets.token_urlsafe(32)
+    now = time.time()
+    d = {"id": uuid.uuid4().hex[:8], "name": (name or "Telefon")[:60], "token_hash": _hash(token), "created": now, "last_seen": now}
+    rt.update_config({"phone": {"devices": [x.model_dump() for x in rt.cfg.phone.devices] + [d]}})
+    return token, {k: v for k, v in d.items() if k != "token_hash"}
+
+
+def touch_device(rt, did: str, every: float = 600) -> None:
+    now = time.time()
+    devs = rt.cfg.phone.devices
+    if any(d.id == did and now - d.last_seen > every for d in devs):
+        rt.update_config({"phone": {"devices": [{**x.model_dump(), "last_seen": now} if x.id == did else x.model_dump() for x in devs]}})
+
+
+def revoke_device(rt, did: str) -> bool:
+    keep = [x for x in rt.cfg.phone.devices if x.id != did]
+    if len(keep) == len(rt.cfg.phone.devices):
+        return False
+    rt.update_config({"phone": {"devices": [x.model_dump() for x in keep]}})
+    return True
+
+
+def device_list(rt) -> list[dict]:
+    online = {c.get("device") for c in rt.clients.values() if c.get("device")}
+    return [{**d.model_dump(exclude={"token_hash"}), "online": d.id in online} for d in rt.cfg.phone.devices]
+
+
+def lockdown(rt) -> dict:
+    """OMEGA 405: everything remote stops – every phone and guest key revoked, a new pairing code, read-only mode, the
+    running task stopped. The PC itself keeps working; pair the phone again when it is safe."""
+    n = len(rt.cfg.phone.devices) + len(rt.cfg.phone.guests)
+    rt.update_config({"phone": {"devices": [], "guests": [], "token": secrets.token_urlsafe(32)},
+                      "limits": {"read_only": True}})
+    try:
+        rt.stop_all()
+    except Exception:  # noqa: BLE001 – nothing running
+        pass
+    return {"revoked": n}

@@ -5,13 +5,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | Modul / nástroj | Funkce (ID) |
 |---|---|
 | `Claude Code` | 046, 049, 331, 345, 735, P5.01, P5.02, P5.03, P5.04, P5.05, P5.06, P5.07, P5.10, P5.13, P5.14, P6.02, P10.05 |
-| `Home Assistant` | 165, 421, 423, 431, 434, P13.02, P13.05 |
+| `Home Assistant` | 165, 421, 423, 425, 429, 431, 434, P13.02, P13.05 |
 | `run_shell` | 409, 702, P2.05, P2.13, P5.11, P5.12 |
-| `STOP` | 176, 405, P3.04, P6.07, P14.04 |
 | `make_website` | 352, 353, 354, P5.02, P6.05 |
 | `mood.py` | 076, 085, 241, 737, P7.01 |
 | `serial_monitor` | 161, 163, 471, 477, 486 |
 | `tasks.py` | 002, 209, 217, 222, 223 |
+| `STOP` | 176, P3.04, P6.07, P14.04 |
 | `UI Automation` | 028, 274, P2.03, P4.02 |
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `powers.py` | 026, 027, 077, 236 |
@@ -27,9 +27,9 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `disk_errors` | 695, 696, 701 |
 | `goal_plan` | 001, 198, 452 |
 | `home.py` | 165, 435, P13.01 |
+| `meeting_minutes` | 166, 167, 559 |
 | `memory.py` | 039, 041, P1.03 |
 | `netwatch.py` | 708, 709, 719 |
-| `notetaker.py` | 128, 166, 167 |
 | `pc_health_report` | 025, 224, P6.04 |
 | `perf_check` | 063, 301, 718 |
 | `run_tests` | 058, 062, P5.08 |
@@ -62,6 +62,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `find_file` | P2.11, P11.11 |
 | `find_in_files` | 316, 322 |
 | `home_control` | 424, P13.01 |
+| `home_state` | 424, 425 |
 | `hosting_health` | 387, 712 |
 | `injection.py` | 183, P14.11 |
 | `keyboard_test` | 054, 644 |
@@ -86,6 +87,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `restyle_subtitles` | 369, 674 |
 | `run_steps` | 212, 213 |
 | `screen_time` | 313, 792 |
+| `search_meetings` | 551, 566 |
 | `send_to_phone` | 138, 408 |
 | `social_formats` | 135, 662 |
 | `stark.py` | 034, 508 |
@@ -130,6 +132,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `app_context` | 501 |
 | `app_hours` | 196 |
 | `app_launch_time` | 308 |
+| `app_permissions` | 024 |
 | `apply_solution` | 004 |
 | `archive_contents` | 323 |
 | `as_fotoapar` | 320 |
@@ -160,7 +163,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `bridges.py` | 116 |
 | `broken_links` | 383 |
 | `business_dashboard` | 450 |
-| `calendar_.py` | 171 |
 | `calendar_check` | 558 |
 | `camera_move` | 665 |
 | `campaign_report` | 173 |
@@ -203,6 +205,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `connector_sandbox` | 593 |
 | `contact_card` | 553 |
 | `container_setup` | 342 |
+| `content_calendar` | 446 |
 | `contrast_check` | 348 |
 | `convert_file` | 324 |
 | `copy_file` | P2.11 |
@@ -236,6 +239,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `db_snapshot` | 610 |
 | `db_verify_backup` | 606 |
 | `deadline_risks` | 502 |
+| `deadlines_calendar` | 171 |
 | `deep_research` | 003 |
 | `delegate_to_agent` | 061 |
 | `delete_file` | P14.02 |
@@ -320,7 +324,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_history` | 433 |
 | `home_rooms` | 421 |
 | `home_scene` | 423 |
-| `hone.java` | 420 |
 | `icon_set` | 355 |
 | `improve_loop` | 004 |
 | `improve_until_tests_pass` | 210 |
@@ -362,10 +365,10 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `media_player` | P13.03 |
 | `media_quality` | 375 |
 | `meeting_folder` | 569 |
-| `meeting_minutes` | 559 |
 | `meeting_prep` | 556 |
 | `meeting_relevance` | 564 |
 | `meeting_review` | 567 |
+| `meeting_tasks` | 166 |
 | `memory_export` | 045 |
 | `memory_import` | 045 |
 | `memory_leak_check` | 635 |
@@ -394,6 +397,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `negotiate_priorities` | 505 |
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
+| `notetaker.py` | 128 |
 | `num_gpu` | 574 |
 | `offline_test` | 641 |
 | `omega.py` | 004 |
@@ -402,7 +406,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `over_budget` | 221 |
 | `packing_list` | 782 |
 | `page_structure_check` | 532 |
-| `pairing_get` | 184 |
+| `paired_devices` | 184 |
 | `pc_diagnose` | 011 |
 | `pc_link` | P9.09 |
 | `pc_send` | P9.09 |
@@ -553,6 +557,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `warm_up_model` | 575 |
 | `watch_website` | 378 |
 | `web_watch` | 709 |
+| `weekly_report` | 175 |
 | `window_control` | P2.01 |
 | `window_switch` | 230 |
 | `window_to_monitor` | 238 |

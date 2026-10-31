@@ -10,6 +10,7 @@ import datetime as dt
 import logging
 import re
 import time
+from typing import Any
 from collections import deque
 from types import SimpleNamespace
 
@@ -26,7 +27,24 @@ KIND_LABEL = {
     "mail": "Přijde e-mail", "phone_message": "Zpráva na telefonu", "phone_call": "Volá mi někdo",
     "battery": "Slabá baterie", "power": "Nabíječka", "away": "Odejdu od PC", "back": "Vrátím se k PC",
     "zone_enter": "Přijdu na místo (telefon)", "zone_leave": "Odejdu z místa (telefon)",
+    "home_state": "Čidlo v domácnosti (Home Assistant)",
 }
+HOME_POLL_S = 30
+
+
+def state_matches(cond: str, state: str) -> bool:
+    """OMEGA 425: '> 25', '< 10', '>= 3' compare numbers; anything else = the state word (on / off / open / home…)."""
+    c = (cond or "").strip().lower()
+    st = (state or "").strip().lower()
+    m = re.match(r"^(>=|<=|>|<|=)\s*(-?\d+(?:[.,]\d+)?)$", c)
+    if m:
+        try:
+            v = float(st.replace(",", "."))
+        except ValueError:
+            return False
+        x = float(m.group(2).replace(",", "."))
+        return {">": v > x, "<": v < x, ">=": v >= x, "<=": v <= x, "=": v == x}[m.group(1)]
+    return bool(c) and st == c
 # "Vyzkoušet" and the dry run fill the event placeholders with these (OMEGA 149)
 TEST_VARS = {"sender": "Test", "subject": "Zkouška", "text": "Zkušební zpráva", "app": "Test", "percent": 50, "minutes": 10, "time": "teď"}
 DAYS = ["po", "út", "st", "čt", "pá", "so", "ne"]
@@ -69,6 +87,9 @@ def describe_trigger(t) -> str:
         return f"když s telefonem odejdu z místa „{v or 'Domov'}“"
     if t.type == "webhook":
         return f"když přijde webhook „{v or 'jakýkoli'}“"
+    if t.type == "home_state":
+        cond = x or "změní stav"
+        return f"když {v or 'čidlo'} " + (f"je {cond}" if not cond.startswith(("<", ">", "=")) else f"má hodnotu {cond}")
     return t.type
 
 
@@ -140,6 +161,8 @@ class Automations:
         self._away_fired: set[str] = set()
         self._tasks: list[asyncio.Task] = []
         self._q: asyncio.Queue | None = None
+        self._home_prev: dict[str, Any] = {}      # automation id → did its condition hold at the last look (+ last state)
+        self._home_at = 0.0
 
     # ---------- lifecycle ----------
     def start(self) -> None:
@@ -238,10 +261,40 @@ class Automations:
 
                 snap = await asyncio.to_thread(system_snapshot)
             self._power(items, snap)
+        if "home_state" in kinds and time.monotonic() - self._home_at >= HOME_POLL_S:
+            self._home_at = time.monotonic()
+            await self._home(items)
         if kinds & {"away", "back"}:
             if idle is None:
                 idle = await asyncio.to_thread(self.rt.platform.idle_seconds)
             self._presence(items, idle, time.time())
+
+    async def _home(self, items, states: list[dict] | None = None) -> None:
+        """Fires when an entity's condition becomes true (not on every look while it stays true)."""
+        from . import home
+
+        if states is None:
+            if not home.configured(self.rt):
+                return
+            states = await self.rt.home.states(fresh=True)
+        for a in items:
+            if a.trigger.type != "home_state":
+                continue
+            hits = home.match(states, a.trigger.value, tuple({e["domain"] for e in states}))
+            if not hits:
+                continue
+            e = hits[0]
+            now_ok = (state_matches(a.trigger.text, e["state"]) if a.trigger.text else True)
+            before = self._home_prev.get(a.id)
+            key_state = f"{a.id}:state"
+            changed = self._home_prev.get(key_state) not in (None, e["state"])
+            self._home_prev[key_state] = e["state"]
+            self._home_prev[a.id] = now_ok
+            if before is None:
+                continue                       # the first look only learns the current state
+            if (a.trigger.text and now_ok and not before) or (not a.trigger.text and changed):
+                self.fire(a, {"device": e["name"], "state": e["state"], "text": f"{e['name']}: {e['state']}"},
+                          reason=f"{e['name']} je teď {e['state']}")
 
     def _times(self, items, now: dt.datetime) -> None:
         key = now.strftime("%Y-%m-%d %H:%M")
