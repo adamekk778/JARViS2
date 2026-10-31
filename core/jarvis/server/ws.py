@@ -39,7 +39,7 @@ CLIENT_TYPES = [
     "mission_start", "artifact_open", "skill_from_task", "skill_versions_get", "skill_rollback",
     "usage_get", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all",
     "perm_grant", "approvals_get", "queue_get", "queue_add", "queue_cancel", "mission_resume",
-    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get",
+    "rescue_run", "rescue_open", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "clipboard_history_get",
     "knowledge_get", "knowledge_search", "timeline_get", "project_set", "conflict_resolve",
     "learn_get", "learn_next", "learn_grade", "learn_add", "learn_tool",
     "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
@@ -60,8 +60,8 @@ SERVER_TYPES = [
     "dictation", "dictation_data", "recap", "notetaker", "notes", "note", "render",
     "claude_sessions", "claude_permission", "claude_permission_resolved", "claude_hooks", "sounds", "sites", "protocol", "briefing", "guardian", "boot",
     "selection", "selection_result", "mail_status", "mail_new", "calendar",
-    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "versions_saved", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
-    "rescue", "perf", "netwatch", "winupd", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
+    "phone_cmd", "phone_ack", "phone_ring", "phone_notification", "phone_status", "device_token", "lockdown_done", "versions_saved", "power_state", "automation", "automations", "home", "lists", "network", "skill_draft", "skill_versions", "usage", "privacy", "approvals", "queue", "export_done",
+    "rescue", "perf", "netwatch", "winupd", "clipboard_history", "netcheck", "seccheck", "files_result", "knowledge", "knowledge_hits", "timeline", "project_resume",
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
@@ -287,6 +287,7 @@ class Connection:
                             settings=self._guest_settings(), media=rt.media_state)
             return
         await self.send("welcome", version=__import__("jarvis").__version__, local=self.local,
+                        power={"on_battery": bool(getattr(rt, "on_battery", False))},
                         settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
@@ -1213,6 +1214,12 @@ class Connection:
             from ..mobileplus import device_list
 
             await self.send("pairing", **pairing_info(rt.cfg.phone.token, rt.cfg.phone.port), devices=device_list(rt))
+        elif t == "clipboard_history_get":     # OMEGA 138 / 408: what was copied on the PC, to pick from on the phone
+            if not self.local and "input" not in rt.cfg.phone.allowed:
+                await self.send("error", message="Telefon nemá povolené sdílení schránky (Nastavení → Telefon).")
+            else:
+                clips = list(getattr(getattr(rt, "activity", None), "clips", []) or [])
+                await self.send("clipboard_history", items=[{"text": c["text"][:4000], "ts": c["ts"], "app": c.get("app", "")} for c in clips[:30]])
         elif t in ("device_revoke", "lockdown"):
             from .. import mobileplus
 

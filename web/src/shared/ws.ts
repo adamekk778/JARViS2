@@ -1,4 +1,5 @@
 import type { Attachment, ClientType, ServerMsg, ServerType } from "./protocol";
+import { applyPower } from "./base";
 
 export interface Endpoint {
   base: string; // http://host:port (no trailing slash)
@@ -60,6 +61,7 @@ export class JarvisClient {
         return;
       }
       if (m.type === "welcome") this.local = !!m.local;
+      if (m.type === "power_state" || (m.type === "welcome" && (m as any).power)) applyPower(!!((m as any).power?.on_battery ?? (m as any).on_battery));
       this.handlers.get(m.type)?.forEach((h) => h(m));
       this.handlers.get("*")?.forEach((h) => h(m));
     };

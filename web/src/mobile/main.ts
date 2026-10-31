@@ -9,7 +9,7 @@ import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing }
 import { native, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
-import { confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
+import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
 import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
@@ -459,6 +459,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
         + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
     pcStatusCard(c),
+    clipHistoryCard(c),
     pcFilesCard(c),
     lanSpeedCard(c),
     placesCard(c),

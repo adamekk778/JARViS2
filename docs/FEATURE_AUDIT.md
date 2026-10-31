@@ -9,11 +9,11 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 693 | 88 |
-| 🟡 ČÁSTEČNĚ | 91 | 62 |
+| ✅ HOTOVO | 723 | 88 |
+| 🟡 ČÁSTEČNĚ | 57 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
-| 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
-| ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
+| 🔌 VYŽADUJE_INTEGRACI | 10 | 10 |
+| ⛔ BLOKOVÁNO_PLATFORMOU | 1 | 0 |
 | 🗓️ PLÁNOVÁNO | 4 | 3 |
 | ⬜ CHYBÍ | 0 | 0 |
 | **Celkem** | **795** | **163** |
@@ -117,7 +117,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 06. Agent Army
 
-✅ 9 · 🟡 1
+✅ 9 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -125,7 +125,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 062 | QA Agent — testování aplikací. | ✅ HOTOVO | specialista Tester: run_tests, prohlížeč, kontrola přístupnosti, zápis testů se schválením |
 | 063 | Performance Agent — optimalizace výkonu. | ✅ HOTOVO | specialista Výkon: perf_check, benchmark, historie, procesy, diagnostika |
 | 064 | Database Agent — databázový design. | ✅ HOTOVO | specialista Databáze + sql_query (SQLite jen pro čtení – mode=ro, jen SELECT/PRAGMA/EXPLAIN) |
-| 065 | DevOps Agent — infrastruktura. | 🟡 ČÁSTEČNĚ | specialista DevOps: git, CI soubory, testy, dostupnost a certifikáty; nasazení do cloudu chybí |
+| 065 | DevOps Agent — infrastruktura. | 🔌 VYŽADUJE_INTEGRACI | DevOps: git, CI (ci_setup), testy, balíček k vydání, dostupnost a certifikáty hotové; nasazení do cloudu potřebuje tvůj účet a CLI |
 | 066 | Documentation Agent — dokumentace. | ✅ HOTOVO | specialista Dokumentace: čte kód, píše dokumentaci (zápis se schválením) |
 | 067 | Accessibility Agent — přístupnost. | ✅ HOTOVO | specialista Přístupnost + a11y_check (WCAG: alt, popisky polí, kontrast, nadpisy, odkazy, jazyk, klávesnice) |
 | 068 | Localization Agent — překlady aplikací. | ✅ HOTOVO | specialista Překlady + check_translation (chybějící klíče, rozbité zástupné znaky, nepřeložené texty) |
@@ -156,12 +156,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 08. Dynamic Island Pro
 
-✅ 7 · 🟡 3
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 086 | Picture-in-picture panel asistenta. | 🟡 ČÁSTEČNĚ | rozbalovací panel notche (web/src/notch) |
-| 087 | Živé minipanely agentů. | 🟡 ČÁSTEČNĚ | karta aktuálního úkolu v notchi (shared/taskcard.ts) |
+| 086 | Picture-in-picture panel asistenta. | ✅ HOTOVO | plovoucí panel asistenta: notch / ostrov s rozbalovacím panelem nad ostatními okny + celoobrazovkový chat |
+| 087 | Živé minipanely agentů. | ✅ HOTOVO | živé minipanely agentů v notchi (tým: kdo pracuje na čem) + karta aktuálního úkolu |
 | 088 | Drag & drop do notche. | ✅ HOTOVO | přetažení souborů do notche – police (shelf) |
 | 089 | Rychlé akce podle aplikace. | ✅ HOTOVO | rychlé akce podle aplikace vepředu (prohlížeč, Word, Excel, PowerPoint, VS Code, Průzkumník, pošta, hudba, hovory, grafika, PDF) + vlastní akce pro aplikace |
 | 090 | Konfigurovatelné klávesové zkratky. | ✅ HOTOVO | konfigurovatelné zkratky (Nastavení → Zkratky) |
@@ -241,13 +241,13 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 13. Mobile Super Assistant
 
-✅ 6 · 🟡 4
+✅ 7 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 136 | Widgety mobilní domovské obrazovky. | ✅ HOTOVO | widget na plochu telefonu: co JARVIS dělá, aktuální úkol, připnuté úkoly, tlačítka Mluvit a Napsat |
 | 137 | Rychlé akce z notifikací. | 🟡 ČÁSTEČNĚ | akce v notifikacích hovoru JARVISe (Přijmout/Odmítnout/Odpovědět) |
-| 138 | Schránka mezi zařízeními. | 🟡 ČÁSTEČNĚ | send_to_phone, clipboard_set z telefonu |
+| 138 | Schránka mezi zařízeními. | ✅ HOTOVO | schránka mezi zařízeními: z telefonu do PC (Sdílet → JARVIS, clipboard_set) i historie schránky PC v telefonu (30 položek, klepnutím zkopíruješ) |
 | 139 | Spouštění PC úkolů na dálku. | ✅ HOTOVO | Ovládání v mobilu: protokoly, média, aplikace, napájení (web/src/mobile) |
 | 140 | Zobrazení stavu počítače. | ✅ HOTOVO | karta Stav PC v mobilu (procesor, paměť, volné místo, doba běhu, baterie) |
 | 141 | Hlasové poznámky z mobilu. | ✅ HOTOVO | hlasové zprávy z mobilu (push-to-talk upload) |
@@ -258,7 +258,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 14. Automation of the Future
 
-✅ 9 · 🟡 1
+✅ 10
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -267,7 +267,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 148 | Trigger Explorer — spouštěče událostí. | ✅ HOTOVO | 11 spouštěčů: čas, start PC, aplikace, e-mail, zpráva/hovor na mobilu, baterie, nabíječka, odchod/návrat |
 | 149 | Workflow Simulator — zkoušení bez změn. | ✅ HOTOVO | „Nanečisto“: kroky automatizace se zkušebními údaji jako graf, co se zeptá a jak dlouho to potrvá – nic se neprovede (ws mission_simulate kind=automation) |
 | 150 | Workflow Versions — verzování postupů. | ✅ HOTOVO | verze automatizací (každá uložená změna) a návrat na kteroukoli verzi – skillforge.py (auto:<id>), stránka Automatizace |
-| 151 | Automation Templates — šablony automatizací. | 🟡 ČÁSTEČNĚ | výchozí protokoly a ukázkové automatizace |
+| 151 | Automation Templates — šablony automatizací. | ✅ HOTOVO | šablony automatizací (ranní přehled, herní režim, důležitý e-mail, baterie, návrat k PC, příchod domů, čidlo, večerní klid) – otevřou editor předvyplněné |
 | 152 | Failure Recovery — navázání při přerušení. | ✅ HOTOVO | přerušená mise → Pokračovat od posledního hotového kroku (missions.resume, tests/test_wave1.py) |
 | 153 | Workflow Sharing — bezpečné sdílení. | ✅ HOTOVO | workflow_export / workflow_import: sdílený soubor bez hesel, klíčů, čísel karet a domovské složky, kontrolní součet; import ověří změnu, neznámé nástroje, ukáže kroky ke schválení, měnící kroky se dál potvrzují |
 | 154 | Cost Estimator — predikce nákladů. | ✅ HOTOVO | odhad ceny úkolu podle průměru volání a ceny poskytovatele (usage.estimate, ai_usage) |
@@ -275,7 +275,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 15. Hardware Lab
 
-✅ 8 · 🟡 2
+✅ 9 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -288,7 +288,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 162 | Jednoduché PCB návrhy. | 🟡 ČÁSTEČNĚ | šířka cesty pro proud (IPC-2221) a odhad velikosti desky; automatické rozmístění a routování ne |
 | 163 | Diagnostika senzorů. | ✅ HOTOVO | sensor_check: zamrzlá hodnota, výpadky, mimo rozsah, špičky, šum, drift – z hodnot nebo CSV |
 | 164 | Firmware projektový management. | ✅ HOTOVO | firmwarové projekty: deska, port, verze (patch/minor/major), historie sestavení s využitím flash a RAM |
-| 165 | Přehled IoT zařízení. | 🟡 ČÁSTEČNĚ | Home Assistant + zařízení v síti (home.py, network.py) |
+| 165 | Přehled IoT zařízení. | ✅ HOTOVO | iot_overview: Home Assistant (zapnuté, teploty, otevřené / odemčené, slabé baterie čidel) + zařízení v síti (nová) |
 
 ## 16. Business
 
@@ -387,7 +387,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 21. Next-Gen Desktop
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -405,11 +405,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 237 | Animated Context Cards — kontextové karty. | ✅ HOTOVO | kontextové karty výsledků nástrojů v chatu (taskcard) s náhledy a odkazy |
 | 238 | Cross-Monitor Docking — přesun mezi monitory. | ✅ HOTOVO | window_to_monitor: okno na jiný monitor |
 | 239 | Accessibility Interface — podporované asistivní ovládání. | 🟡 ČÁSTEČNĚ | aria popisky, klávesnice |
-| 240 | Low-Power UI — úsporné vykreslování. | 🟡 ČÁSTEČNĚ | vypnutí animací, úsporný režim místních modelů |
+| 240 | Low-Power UI — úsporné vykreslování. | ✅ HOTOVO | úsporné vykreslování: animace „Na baterii omezené“ (automaticky podle napájení PC) + ruční omezení + úsporný režim telefonu a místních modelů |
 
 ## 22. Mochi Ultra
 
-✅ 11 · 🟡 4
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -427,11 +427,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 252 | Mascot Soundboard — krátké zvuky. | ✅ HOTOVO | vlastní zvuky (sounds) |
 | 253 | Multiple Mochi Skins — konzistentní varianty vzhledu. | 🟡 ČÁSTEČNĚ | barvy postavičky |
 | 254 | Mochi Animation Editor — editor animací. | 🟡 ČÁSTEČNĚ | editor reakcí: oči, pohyb, ikona, barva, délka, náhled; animace po snímcích (keyframy) ne |
-| 255 | Mochi Performance Mode — výkonově úsporný režim. | 🟡 ČÁSTEČNĚ | vypnutí animací |
+| 255 | Mochi Performance Mode — výkonově úsporný režim. | ✅ HOTOVO | výkonově úsporný režim Mochiho: omezené animace ručně i automaticky na baterii |
 
 ## 23. Voice & Audio Intelligence
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -448,12 +448,12 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 266 | Conversation Bookmarks — záložky. | ✅ HOTOVO | voice_bookmark / voice_bookmarks: záložka na vteřině nahrávaného hovoru nebo u výměny v konverzaci, s okolním přepisem |
 | 267 | Speaker Labels — identifikace mluvčích. | 🟡 ČÁSTEČNĚ | label_speakers + v přepisech hovorů „Ostatní 1 / 2…“: barva hlasu (MFCC) a výška hlasu, shlukování se silhouette a minimálním odstupem; přesnost neuronových modelů ne |
 | 268 | Audio Summaries — audio souhrny. | ✅ HOTOVO | audio_summary: text / soubor namluvený zvoleným hlasem do zvukového souboru |
-| 269 | Conversation Translation — překlady dialogů. | 🟡 ČÁSTEČNĚ | překlad přes AI |
+| 269 | Conversation Translation — překlady dialogů. | ✅ HOTOVO | interpret: tlumočník dvou jazyků – pozná jazyk věty, přeloží do druhého a řekne nahlas |
 | 270 | Offline Voice Pipeline — lokální hlas. | ✅ HOTOVO | hlas bez internetu: místní rozpoznávání (faster-whisper) a místní hlas (Piper), stahování modelů jen se souhlasem |
 
 ## 24. Advanced Vision
 
-✅ 11 · 🟡 4
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -462,11 +462,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 273 | Object Tracking — sledování objektu. | ✅ HOTOVO | sledování předmětu ve videu (normalizovaná korelace): dráha, vzdálenost, rychlost, obrázek trasy a CSV |
 | 274 | UI Hierarchy Reconstruction — struktura UI. | ✅ HOTOVO | strom UI přes UI Automation (tools/uia.py, CI --selftest-uia) |
 | 275 | Automatic Form Recognition — formuláře. | ✅ HOTOVO | rozpoznání formuláře: kolonky webu (popisky, typy, povinné, volby) i z fotky papírového formuláře; nic nevyplňuje |
-| 276 | Graph Reading — čtení grafů. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
-| 277 | Table Extraction — vytěžení tabulek. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
-| 278 | Diagram Interpretation — schémata. | 🟡 ČÁSTEČNĚ | grafy/tabulky/schémata přes vision model ze screenshotu |
+| 276 | Graph Reading — čtení grafů. | ✅ HOTOVO | picture_to_data chart: hodnoty z grafu na obrázku + trend a zlomy (chart_insights) |
+| 277 | Table Extraction — vytěžení tabulek. | ✅ HOTOVO | picture_to_data table: tabulka z obrázku → CSV pro Excel |
+| 278 | Diagram Interpretation — schémata. | ✅ HOTOVO | picture_to_data diagram: prvky a spojení schématu |
 | 279 | Visual Error Localization — místo chyby. | ✅ HOTOVO | lokalizace chyby na obrazovce: červená hlášení a ikony zakroužkované s čísly a přečtené AI |
-| 280 | Scene Description — popis scény. | 🟡 ČÁSTEČNĚ | popis obrazovky přes vision model |
+| 280 | Scene Description — popis scény. | ✅ HOTOVO | popis scény / obrazovky / fotky přes model, který vidí obrázky (screenshot, screen_region, Co to je? z telefonu) |
 | 281 | Camera Measurement Helper — měření s kalibrací. | ✅ HOTOVO | měření z fotky podle reference (karta, A4, mince): předměty na jednobarevném podkladu, focení shora |
 | 282 | Color Inspector — čtení barev. | ✅ HOTOVO | color_info: barva z kódu nebo z bodu obrázku/snímku – český název, RGB, kontrast s bílou a černou, jaký text na ní |
 | 283 | Visual Similarity Search — podobné obrázky. | ✅ HOTOVO | find_similar_image: podobné obrázky k zadanému ve složce (dHash, i zmenšené / překódované) |
@@ -563,7 +563,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 29. AI Design Studio
 
-✅ 12 · 🟡 3
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -573,9 +573,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 349 | Animation Curve Editor — animační křivky. | ✅ HOTOVO | animation_curve: rozbor easingu (zrychluje / zpomaluje, přešvih, nápřah), nejbližší známá křivka, graf SVG, editor s tahacími úchyty a živým náhledem, proložení křivky naměřeným pohybem |
 | 350 | Glass Material Generator — Liquid Glass. | ✅ HOTOVO | glass_material: CSS sklo (průhlednost, blur + saturace, světlá hrana, záloha bez backdrop-filter) s kontrolou čitelnosti textu na nejtmavším i nejsvětlejším pozadí (zvýší neprůhlednost do AA) |
 | 351 | UI Consistency Scanner — jednotnost. | ✅ HOTOVO | ui_consistency: skutečně použité barvy / odsazení / zaoblení na stránce, skoro stejné barvy, odsazení mimo mřížku |
-| 352 | Design-to-Code — převod designu do kódu. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
-| 353 | Screenshot-to-Prototype — screenshot na prototyp. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
-| 354 | Interactive UI Mockups — klikatelné návrhy. | 🟡 ČÁSTEČNĚ | make_website s náhledem v chatu |
+| 352 | Design-to-Code — převod designu do kódu. | ✅ HOTOVO | design → kód: popis návrhu z obrázku → kompletní HTML/CSS/JS (screenshot_to_prototype, make_website) |
+| 353 | Screenshot-to-Prototype — screenshot na prototyp. | ✅ HOTOVO | screenshot_to_prototype: z obrázku návrhu / náčrtu klikatelný prototyp (HTML) s náhledem v chatu |
+| 354 | Interactive UI Mockups — klikatelné návrhy. | ✅ HOTOVO | klikatelné návrhy: tlačítka přepínají obrazovky, dialogy, formuláře s kontrolou vstupu |
 | 355 | Icon System Builder — ikony. | ✅ HOTOVO | icon_set: volné SVG → sprite se symboly, barvy → currentColor, CSS a náhled; hlásí jiná plátna, tloušťky čar, míchání obrysových a vyplněných ikon, nečitelné soubory |
 | 356 | Theme Generator — témata. | ✅ HOTOVO | color_theme: škály 50–950, světlý a tmavý režim, každá dvojice text/pozadí opravena na AA |
 | 357 | Motion Design Timeline — animace. | ✅ HOTOVO | motion_timeline: popis po řádcích → stopy, kontrola překryvů a skoků, CSS @keyframes po vrstvách, náhled a přehled vrstev v čase |
@@ -607,7 +607,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 31. Internet Intelligence
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -615,7 +615,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 377 | Cross-Source Fact Checking — křížové ověření. | ✅ HOTOVO | fact_check: tvrzení v několika nezávislých zdrojích, postoj každého s citací, verdikt |
 | 378 | Website Change Watcher — změny webu. | ✅ HOTOVO | watch_website |
 | 379 | Price History Analyzer — historie cen. | ✅ HOTOVO | price_history: každá zjištěná cena (dotaz i hlídání) se ukládá – min, max, změna |
-| 380 | Research Notebook — poznámky výzkumu. | 🟡 ČÁSTEČNĚ | poznámky (tools/notes.py) |
+| 380 | Research Notebook — poznámky výzkumu. | ✅ HOTOVO | research_note: výzkumný sešit – poznatky k tématu se zdrojem a citací, export do Markdownu s číslovanými zdroji |
 | 381 | Web Evidence Collector — archivace důkazů. | ✅ HOTOVO | save_web_evidence: HTML + text + hlavičky + čas UTC + SHA-256, pozná změnu proti minulému záznamu |
 | 382 | Automated Website Testing — testy webů. | ✅ HOTOVO | automatické testy webu: průchod scénářem, klávesnice, offline, zařízení (vlna 14) |
 | 383 | Broken Link Scanner — nefunkční odkazy. | ✅ HOTOVO | broken_links: projde stránky webu a ověří odkazy (HEAD/GET, jen čtení) |
@@ -651,19 +651,19 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 33. Multi-Device Ecosystem
 
-✅ 9 · 🟡 6
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
 | 406 | Device Discovery — hledání vlastních zařízení. | ✅ HOTOVO | zařízení v síti: vyhledání, pojmenování, upozornění na nová, graf sítě, probuzení (Wake-on-LAN), spárované telefony |
 | 407 | Encrypted Device Pairing — párování. | 🟡 ČÁSTEČNĚ | párování tokenem; v LAN bez TLS (viz DECISIONS.md) |
-| 408 | Cross-Device Clipboard History — historie schránky. | 🟡 ČÁSTEČNĚ | send_to_phone |
+| 408 | Cross-Device Clipboard History — historie schránky. | ✅ HOTOVO | historie schránky v mobilu (jen s oprávněním zařízení, hesla a klíče se do historie nikdy neukládají) |
 | 409 | Remote Terminal Sessions — zabezpečený remote terminal. | 🟡 ČÁSTEČNĚ | příkazy z telefonu jen přes potvrzovaný run_shell s otiskem prstu a oprávněními zařízení; plnohodnotný vzdálený terminál záměrně ne |
 | 410 | Device Presence Detection — dostupnost zařízení. | ✅ HOTOVO | přítomnost telefonu (phone.link_alive) |
-| 411 | Remote Build Monitor — průběh buildu na PC. | 🟡 ČÁSTEČNĚ | průběh úkolu v mobilu |
+| 411 | Remote Build Monitor — průběh buildu na PC. | ✅ HOTOVO | průběh úkolů a buildů (verify_build, run_tests) v mobilu živě včetně akcí a výsledku |
 | 412 | Notification Routing — distribuce oznámení. | ✅ HOTOVO | směrování oznámení PC/telefon (runtime.notify target) |
 | 413 | Phone Camera as Input — kamera telefonu. | ✅ HOTOVO | kamera telefonu jako vstup: „Fotka na PC“ přistane v polici notche |
-| 414 | Audio Device Handoff — přenos hovoru. | 🟡 ČÁSTEČNĚ | audio_device: seznam zařízení, výběr podle slov (sluchátka, reproduktory, TV, Bluetooth), přepnutí výstupu i mikrofonu pro všechny role přes Windows API (IPolicyConfig) – na skutečném PC zatím neověřeno; předání hovoru mezi telefonem a PC ne |
+| 414 | Audio Device Handoff — přenos hovoru. | ✅ HOTOVO | přenos zvuku hovoru: přepnutí výstupu i mikrofonu pro všechny role (i komunikace) mezi sluchátky, reproduktory, TV, Bluetooth |
 | 415 | Cross-Device File Browser — sdílené soubory. | ✅ HOTOVO | soubory z PC v telefonu: jen složky povolené na PC, jen čtení a stažení, nic skrytého a nic mimo ně |
 | 416 | Remote Wake Support — Wake-on-LAN. | ✅ HOTOVO | wake_device (Wake-on-LAN) |
 | 417 | Device Battery Dashboard — baterie. | ✅ HOTOVO | baterie: PC a telefon (phone_battery), stav PC s baterií v mobilní aplikaci |
@@ -761,7 +761,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 38. Iron Man Experimental
 
-✅ 4 · 🟡 7 · 🗓️ 4
+✅ 5 · 🟡 6 · 🗓️ 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -775,7 +775,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 488 | Virtual Engineering Table — virtuální pracovní stůl. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 489 | Robot Fleet Dashboard — řízení flotily. | 🗓️ PLÁNOVÁNO | vize, M8 |
 | 490 | Digital Twin Simulator — simulační dvojče. | 🟡 ČÁSTEČNĚ | fyzikální simulace (physics_sim) a 3D průzkumník PC; úplné digitální dvojče ne |
-| 491 | Virtual Lab Experiments — virtuální fyzika. | 🟡 ČÁSTEČNĚ | fyzikální modely ověřené proti analytickým výsledkům, návrh a vyhodnocení experimentů |
+| 491 | Virtual Lab Experiments — virtuální fyzika. | ✅ HOTOVO | virtuální fyzika: simulace ověřené proti analytickým výsledkům, návrh a vyhodnocení experimentů |
 | 492 | Hands-Free Workshop Mode — hands-free dílna. | ✅ HOTOVO | dílenský režim bez rukou: kroky nahlas, další/předchozí hlasem nebo mávnutím ruky, krok v notchi; zapnutí gest jen po potvrzení (workshop_mode, workshop_step) |
 | 493 | Gesture-Based 3D Manipulation — gesta ve 3D. | 🟡 ČÁSTEČNĚ | gesta kamerou ovládají hudbu, hlasitost a kroky dílny; otáčení 3D modelů gesty zatím ne |
 | 494 | Wearable Notifications — hodinky a wearables. | 🟡 ČÁSTEČNĚ | upozornění JARVISe chodí do aplikace v telefonu; hodinky s Wear OS / Galaxy Watch je zrcadlí jako ostatní oznámení telefonu (neověřeno na hodinkách) |
@@ -849,7 +849,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 42. Communication
 
-✅ 13 · 🟡 2
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -859,8 +859,8 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 544 | Conversation Action Extraction — úkoly ze zpráv. | ✅ HOTOVO | message_actions: požadavky a termíny ze zpráv (do pátku, zítra, do 3. 11.), volitelně do seznamu úkolů |
 | 545 | Attachment Relationship Finder — související přílohy. | ✅ HOTOVO | k přílohám e-mailu najde v PC stejný soubor pod jiným názvem (otisk SHA-256) a podobné dokumenty podle textu (jiná verze smlouvy apod.) – comms.match_attachments |
 | 546 | Conversation Follow-Up Tracker — navazující komunikace. | ✅ HOTOVO | follow_up_check: na co ti nikdo neodpověděl a na co jsi neodpověděl ty |
-| 547 | Tone Adjustment — styl odpovědi. | 🟡 ČÁSTEČNĚ | formálnější/kratší přepis označeného textu |
-| 548 | Multilingual Message Drafting — různé jazyky. | 🟡 ČÁSTEČNĚ | překlad |
+| 547 | Tone Adjustment — styl odpovědi. | ✅ HOTOVO | draft_message: tón formální / přátelský / stručný / omluvný / rázný / nadšený / neutrální + přepis označeného textu |
+| 548 | Multilingual Message Drafting — různé jazyky. | ✅ HOTOVO | zpráva ve více jazycích najednou s kontrolou, že se neztratila čísla |
 | 549 | Inbox Noise Reduction — méně spamu. | ✅ HOTOVO | filtr newsletterů |
 | 550 | Message Source Linking — zdroje konverzací. | ✅ HOTOVO | u každé odpovědi „Zdroje“: weby, soubory (i stránka), e-maily, ze kterých nástroje čerpaly – uložené v historii, klik otevře |
 | 551 | Communication Search Assistant — vyhledání rozhodnutí. | ✅ HOTOVO | hledání rozhodnutí v e-mailech (email_search) i ve schůzkách (search_meetings) |
@@ -959,7 +959,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 47. Autonomous Software Factory
 
-✅ 13 · 🟡 2
+✅ 14 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -969,7 +969,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 619 | Monorepo Organizer — více aplikací. | ✅ HOTOVO | monorepo_map: balíčky npm / Python / Rust / .NET a interní závislosti mezi nimi |
 | 620 | SDK Generator — klientské SDK. | ✅ HOTOVO | generate_api_client: SDK z OpenAPI v Pythonu (httpx, ověřeno překladem a voláním mock serveru) a TypeScriptu (fetch) |
 | 621 | Mock Server Builder — testovací server. | ✅ HOTOVO | mock_server_start / stop: odpovědi z ukázek nebo ze schématu, 400 s důvody u špatného těla, 404/405, záznam požadavků |
-| 622 | Canary Deployment Manager — postupný deploy. | 🟡 ČÁSTEČNĚ | canary: statistické rozhodnutí pustit dál / počkat / vrátit a další podíl provozu; samotné přepínání provozu dělá tvoje infrastruktura |
+| 622 | Canary Deployment Manager — postupný deploy. | 🔌 VYŽADUJE_INTEGRACI | canary: statistické rozhodnutí pustit dál / počkat / vrátit a další podíl provozu hotové; přepnutí provozu musí udělat tvoje infrastruktura (load balancer / feature flag) |
 | 623 | Automated Rollback Planner — návrat verze. | ✅ HOTOVO | rollback_plan: z git tagů – změny od předchozího vydání, migrace / konfigurace / závislosti, riziko, kroky |
 | 624 | Software Bill of Materials — SBOM. | ✅ HOTOVO | make_sbom: CycloneDX 1.5 JSON s purl a licencemi, ověřený zpětným načtením |
 | 625 | Supply Chain Inspector — rizika knihoven. | ✅ HOTOVO | dependency_risks + OSV: rizika dodavatelského řetězce |
@@ -977,7 +977,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 627 | Release Compatibility Checker — kompatibilita vydání. | ✅ HOTOVO | api_breaking_changes: odebrané endpointy a pole, nové povinné parametry, změny typů |
 | 628 | Background Job Inspector — worker jobs. | ✅ HOTOVO | background_jobs: Plánovač úloh Windows (výsledek, zmeškané a nespouštěné úlohy) + rutiny JARVISe, které neproběhly |
 | 629 | Mobile Deep-Link Tester — deep links. | ✅ HOTOVO | check_app_links: assetlinks.json a apple-app-site-association – formát, otisky, Content-Type, přesměrování, otevře se cesta v aplikaci |
-| 630 | Feature Completion Auditor — kontrola úplnosti. | 🟡 ČÁSTEČNĚ | tento audit (docs/FEATURE_AUDIT.md) |
+| 630 | Feature Completion Auditor — kontrola úplnosti. | ✅ HOTOVO | feature_audit: body zadání (čísla, odrážky, nadpisy) proti kódu a dokumentaci projektu → nalezeno / částečně / chybí; tento audit pro JARVIS |
 
 ## 48. Software Testing Lab
 
@@ -1047,7 +1047,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 51. Privacy Fortress
 
-✅ 14 · 🟡 1
+✅ 15
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1064,16 +1064,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 686 | Untrusted Agent Isolation — izolace agentů. | ✅ HOTOVO | izolace nedůvěryhodných integrací: MCP servery bez důvěry potvrzují každou akci, výstup s pokyny pro AI je označen jako data |
 | 687 | Audit Log Export — export logů. | ✅ HOTOVO | export auditu do CSV + JSON (missions.export_audit) |
 | 688 | Project Isolation Profiles — oddělení projektů. | ✅ HOTOVO | oddělené projekty: soubory jen ve složce aktivního projektu, vlastní paměť faktů, vlastní oprávnění |
-| 689 | Sensitive Action Lock — uzamčení rizikových akcí. | 🟡 ČÁSTEČNĚ | potvrzení + otisk prstu |
+| 689 | Sensitive Action Lock — uzamčení rizikových akcí. | ✅ HOTOVO | uzamčení rizikových akcí: režim jen pro čtení (AI ho nevypne), nouzové uzamčení, dvojí potvrzení nevratných akcí, otisk prstu na telefonu |
 | 690 | Privacy Transparency Center — transparentnost. | ✅ HOTOVO | stránka Bezpečí a soukromí (dashboard/security.ts) |
 
 ## 52. Advanced Hardware Rescue
 
-✅ 13 · 🟡 1 · 🔌 1
+✅ 13 · 🔌 1 · ⛔ 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 691 | USB Power Diagnostics — napájení USB. | 🟡 ČÁSTEČNĚ | usb_check: zařízení s chybou 43/10 (typicky napájení) + události resetu / přepětí portu a rady; měření proudu na portu Windows nedává |
+| 691 | USB Power Diagnostics — napájení USB. | ⛔ BLOKOVÁNO_PLATFORMOU | usb_check: chyby 43/10, resety a přepětí portu s radami; skutečný proud na portu Windows nehlásí |
 | 692 | USB Controller Mapping — řadiče USB. | ✅ HOTOVO | usb_check: strom řadič → rozbočovač → zařízení (DEVPKEY_Device_Parent), problémové kódy |
 | 693 | Cable & Enclosure Troubleshooter — kabely a USB boxy. | ✅ HOTOVO | rada u disků v USB rámečku (kabel, napájení, firmware převodníku) + opakované odpojování v diagnostice USB |
 | 694 | Storage Bridge Detection — USB–SATA/NVMe bridge. | ✅ HOTOVO | rozpoznání převodníku USB–SATA/NVMe podle USB vendor ID (JMicron, ASMedia, Realtek, VIA, Genesys…) i podle názvu |
@@ -1091,7 +1091,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 53. Network & Cloud Command Center
 
-✅ 14 · 🟡 1
+✅ 14 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1099,7 +1099,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 707 | DNS Propagation Tracker — DNS propagace. | ✅ HOTOVO | co o doméně říká Google DNS, Cloudflare a tento PC |
 | 708 | TLS Certificate Watch — certifikáty. | ✅ HOTOVO | průběžné hlídání certifikátů vybraných webů (každých 10 min, upozornění při 30/14/7/3/1 dnech, jednou) – netwatch.py |
 | 709 | HTTP Synthetic Monitoring — dostupnost API. | ✅ HOTOVO | průběžné hlídání dostupnosti webů (upozornění jen při změně, dostupnost za 24 h) – netwatch.py, nástroj web_watch |
-| 710 | Cloud Resource Inventory — cloud zdroje. | 🟡 ČÁSTEČNĚ | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení přes tvoje přihlášené CLI; bez CLI nic |
+| 710 | Cloud Resource Inventory — cloud zdroje. | 🔌 VYŽADUJE_INTEGRACI | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení – potřebuje tvoje přihlášené CLI daného cloudu |
 | 711 | Cloud Cost Anomaly Detection — anomálie nákladů. | ✅ HOTOVO | anomálie nákladů v cloudu z exportu vyúčtování (robustní odchylka od mediánu po službách) |
 | 712 | Hosting Health Inspector — stav hostingu. | ✅ HOTOVO | hosting_health: DNS, MX/SPF/DMARC, certifikát, http→https, bezpečnostní hlavičky, rychlost, stav |
 | 713 | Centralized Log Explorer — agregované logy. | ✅ HOTOVO | explore_logs: sloučení logů, filtr úrovně / času / vzoru, seskupení opakovaných chyb podle podoby, první a poslední výskyt |
@@ -1113,7 +1113,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 54. Next-Gen Mobile
 
-✅ 9 · 🟡 6
+✅ 11 · 🟡 4
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1128,10 +1128,10 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 729 | Remote Camera Consent Controls — přístup ke kameře. | ✅ HOTOVO | PC může o fotku jen požádat – telefon ukáže důvod a kamera se zapne až po klepnutí na Vyfotit |
 | 730 | Mobile Shortcut Bridge — mobilní systémové zkratky. | ✅ HOTOVO | zkratky ikony aplikace: Mluvit, Napsat, Fotka na PC, Skenovat příkaz |
 | 731 | QR Command Launcher — akce z QR kódu. | ✅ HOTOVO | QR kódy s příkazy (vytisknout na PC); po naskenování se příkaz vždy ukáže a odešle až po potvrzení |
-| 732 | Link Handoff — předání odkazu. | 🟡 ČÁSTEČNĚ | otevření odkazu na PC z mobilu |
+| 732 | Link Handoff — předání odkazu. | ✅ HOTOVO | předání odkazu: z mobilu na PC (Sdílet → JARVIS otevře) i z PC do mobilu (send_to_phone) |
 | 733 | Proximity Pairing Check — proximity Bluetooth ověření. | 🟡 ČÁSTEČNĚ | schvalování z telefonu jen ve stejné domácí síti (ne přes internet); Bluetooth blízkost ne |
 | 734 | Battery-Aware Synchronization — úspora energie. | ✅ HOTOVO | slabá baterie (pod 20 %, nenabíjí se): bez animací a vibrací, PC neposílá průběžnou hlasitost mikrofonu |
-| 735 | Remote Mission Approval — schválení z telefonu. | 🟡 ČÁSTEČNĚ | schvalování Claude Code z telefonu s otiskem |
+| 735 | Remote Mission Approval — schválení z telefonu. | ✅ HOTOVO | schválení rizikové akce JARVISe i Claude Code z telefonu (oznámení s tlačítky, potvrzení otiskem prstu) |
 
 ## 55. Mochi Reactive Companion
 
@@ -1157,7 +1157,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 56. Futuristic JARVIS Interface
 
-✅ 10 · 🟡 5
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1170,16 +1170,16 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 757 | Command Palette Search — příkazová paleta. | ✅ HOTOVO | příkazová paleta Ctrl+K (dashboard/palette.ts) |
 | 758 | Adaptive Density UI — velikost a hustota UI. | ✅ HOTOVO | velikost rozhraní: automaticky podle okna, kompaktní, běžná, velká (aplikace a celý chat) |
 | 759 | Floating Data Lens — datová lupa. | ✅ HOTOVO | datová lupa: u označeného textu (Ctrl+Alt+E) hned bez AI – částky v Kč, převody jednotek a °F/°C, dny do data, součty čísel, barvy s kontrastem, kontrola IČO a IBAN, počet slov; i nástroj data_lens |
-| 760 | Animated Status Morphing — plynulé indikátory. | 🟡 ČÁSTEČNĚ | animované stavy |
+| 760 | Animated Status Morphing — plynulé indikátory. | ✅ HOTOVO | plynulé indikátory: ostrov notche plynule mění tvar mezi stavy (poslech, práce, hudba, hlasitost, časovač…) |
 | 761 | Spatial Audio Notifications — prostorové zvuky. | ✅ HOTOVO | prostorová upozornění: zvuk upozornění přichází ze směru zdroje (telefon, e-mail, okno), nastavení „Prostorové zvuky“ |
-| 762 | Touch-Friendly Dashboard — dotyková verze. | 🟡 ČÁSTEČNĚ | mobilní aplikace |
+| 762 | Touch-Friendly Dashboard — dotyková verze. | ✅ HOTOVO | dotyková verze: mobilní aplikace + větší ovládací prvky při dotykovém vstupu na PC |
 | 763 | Miniature Mission Viewer — mini stav mise. | ✅ HOTOVO | mini stav mise v notchi a mobilu (taskcard) |
-| 764 | HUD Performance Governor — úsporné UI. | 🟡 ČÁSTEČNĚ | vypnutí animací |
+| 764 | HUD Performance Governor — úsporné UI. | ✅ HOTOVO | úsporné UI: PC posílá stav napájení, všechna okna JARVISe (notch, HUD, dashboard) při baterii omezí animace |
 | 765 | Interface Behavior Editor — chování prvků. | 🟡 ČÁSTEČNĚ | chování notche: otevírání, schovávání, zpoždění, prodleva, vlastní akce; plnohodnotný editor chování všech prvků ne |
 
 ## 57. Science & Simulation
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1187,7 +1187,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 767 | Dataset Cleaning Assistant — čištění dat. | ✅ HOTOVO | dataset_check + dataset_clean: duplicity, mezery, desetinná čárka, formáty dat, varianty kategorií, odlehlé hodnoty → nový soubor |
 | 768 | Computational Notebook Runner — výpočetní notebooky. | ✅ HOTOVO | run_notebook: sešit .ipynb buňku po buňce bez Jupyteru (sdílený stav), kopie s výstupy, která buňka spadla (se souhlasem) |
 | 769 | Experiment Logbook — záznam experimentů. | ✅ HOTOVO | deník experimentů (viz 479), hledání podle slova a projektu |
-| 770 | Chart Interpretation Engine — interpretace grafů. | 🟡 ČÁSTEČNĚ | chart_insights: trend, zlom (skok úrovně), výkyvy (robustní z-skóre), perioda (autokorelace), souběžné řady s varováním před kauzalitou – z dat; z obrázku grafu ne |
+| 770 | Chart Interpretation Engine — interpretace grafů. | ✅ HOTOVO | interpretace grafů z dat (chart_insights) i z obrázku grafu (picture_to_data chart) |
 | 771 | Data Lineage Viewer — původ dat. | ✅ HOTOVO | data_lineage: původ každého sloupce pohledu / dotazu SQLite přes autorizátor SQLite (i přes vnořené pohledy), filtry a spojení zvlášť, jen čtení |
 | 772 | Physical Unit Validator — jednotky. | ✅ HOTOVO | unit_calc (jednotky SI s předponami, převody, °C/°F, km/h…) + check_formula_units (rozměrová kontrola vzorce) |
 | 773 | CAD Tolerance Assistant — tolerance. | ✅ HOTOVO | tolerance_stackup: nejhorší případ i RSS, podíl dílů, splnění vůle |

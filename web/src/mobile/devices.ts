@@ -249,3 +249,18 @@ export function pcStatusCard(c: JarvisClient): HTMLElement {
   return h("div", { class: "card" }, h("h2", {}, "Stav PC"), out,
     h("button", { class: "btn", type: "button", onclick: load }, icon("arrows-clockwise"), "Obnovit"));
 }
+
+// ---------------------------------------------------------------- 138 / 408 the PC's clipboard history on the phone
+export function clipHistoryCard(c: JarvisClient): HTMLElement {
+  const box = h("div", { class: "m-files" }, h("p", { class: "help" }, "Klepni na Načíst."));
+  c.on("clipboard_history", (m) => {
+    const items: any[] = m.items || [];
+    box.replaceChildren(...(items.length ? items.map((it) => h("button", { class: "m-file", type: "button", title: it.text.slice(0, 300),
+      onclick: async () => { try { await navigator.clipboard.writeText(it.text); toast("Zkopírováno do telefonu", "ok"); } catch { toast("Kopírování se nepovedlo", "error"); } } },
+      icon("clipboard-text"), h("span", {}, it.text.replace(/\s+/g, " ").slice(0, 90)), h("em", {}, new Date(it.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }))))
+      : [h("p", { class: "help" }, "Na PC se zatím nic nekopírovalo (hesla a klíče se do historie nikdy neukládají).")]));
+  });
+  return h("div", { class: "card" }, h("h2", {}, "Schránka z PC"),
+    h("p", { class: "help" }, "Posledních 30 věcí, které jsi na PC zkopíroval – klepnutím je máš v telefonu. Do PC pošleš text přes Sdílet → JARVIS."),
+    box, h("button", { class: "btn", type: "button", onclick: () => c.send("clipboard_history_get", {}) }, icon("arrows-clockwise"), "Načíst"));
+}

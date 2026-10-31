@@ -1164,3 +1164,39 @@
 209 | HOTOVO | vyhodnocení cílů: akceptační kritéria mise ověřená důkazy (co se měřilo, zdroj, výsledek)
 231 | HOTOVO | náhled příkazu v potvrzovacím dialogu (details: přesný příkaz, cesty, co se změní) před každou rizikovou akcí
 237 | HOTOVO | kontextové karty výsledků nástrojů v chatu (taskcard) s náhledy a odkazy
+
+# Vlna F5f: schránka, šablony, úspora, IoT, tlumočení, výzkum, obrázky → data + přehodnocení
+138 | HOTOVO | schránka mezi zařízeními: z telefonu do PC (Sdílet → JARVIS, clipboard_set) i historie schránky PC v telefonu (30 položek, klepnutím zkopíruješ)
+408 | HOTOVO | historie schránky v mobilu (jen s oprávněním zařízení, hesla a klíče se do historie nikdy neukládají)
+151 | HOTOVO | šablony automatizací (ranní přehled, herní režim, důležitý e-mail, baterie, návrat k PC, příchod domů, čidlo, večerní klid) – otevřou editor předvyplněné
+240 | HOTOVO | úsporné vykreslování: animace „Na baterii omezené“ (automaticky podle napájení PC) + ruční omezení + úsporný režim telefonu a místních modelů
+255 | HOTOVO | výkonově úsporný režim Mochiho: omezené animace ručně i automaticky na baterii
+764 | HOTOVO | úsporné UI: PC posílá stav napájení, všechna okna JARVISe (notch, HUD, dashboard) při baterii omezí animace
+165 | HOTOVO | iot_overview: Home Assistant (zapnuté, teploty, otevřené / odemčené, slabé baterie čidel) + zařízení v síti (nová)
+269 | HOTOVO | interpret: tlumočník dvou jazyků – pozná jazyk věty, přeloží do druhého a řekne nahlas
+547 | HOTOVO | draft_message: tón formální / přátelský / stručný / omluvný / rázný / nadšený / neutrální + přepis označeného textu
+548 | HOTOVO | zpráva ve více jazycích najednou s kontrolou, že se neztratila čísla
+380 | HOTOVO | research_note: výzkumný sešit – poznatky k tématu se zdrojem a citací, export do Markdownu s číslovanými zdroji
+630 | HOTOVO | feature_audit: body zadání (čísla, odrážky, nadpisy) proti kódu a dokumentaci projektu → nalezeno / částečně / chybí; tento audit pro JARVIS
+277 | HOTOVO | picture_to_data table: tabulka z obrázku → CSV pro Excel
+276 | HOTOVO | picture_to_data chart: hodnoty z grafu na obrázku + trend a zlomy (chart_insights)
+278 | HOTOVO | picture_to_data diagram: prvky a spojení schématu
+353 | HOTOVO | screenshot_to_prototype: z obrázku návrhu / náčrtu klikatelný prototyp (HTML) s náhledem v chatu
+352 | HOTOVO | design → kód: popis návrhu z obrázku → kompletní HTML/CSS/JS (screenshot_to_prototype, make_website)
+354 | HOTOVO | klikatelné návrhy: tlačítka přepínají obrazovky, dialogy, formuláře s kontrolou vstupu
+280 | HOTOVO | popis scény / obrazovky / fotky přes model, který vidí obrázky (screenshot, screen_region, Co to je? z telefonu)
+770 | HOTOVO | interpretace grafů z dat (chart_insights) i z obrázku grafu (picture_to_data chart)
+689 | HOTOVO | uzamčení rizikových akcí: režim jen pro čtení (AI ho nevypne), nouzové uzamčení, dvojí potvrzení nevratných akcí, otisk prstu na telefonu
+735 | HOTOVO | schválení rizikové akce JARVISe i Claude Code z telefonu (oznámení s tlačítky, potvrzení otiskem prstu)
+732 | HOTOVO | předání odkazu: z mobilu na PC (Sdílet → JARVIS otevře) i z PC do mobilu (send_to_phone)
+411 | HOTOVO | průběh úkolů a buildů (verify_build, run_tests) v mobilu živě včetně akcí a výsledku
+414 | HOTOVO | přenos zvuku hovoru: přepnutí výstupu i mikrofonu pro všechny role (i komunikace) mezi sluchátky, reproduktory, TV, Bluetooth
+087 | HOTOVO | živé minipanely agentů v notchi (tým: kdo pracuje na čem) + karta aktuálního úkolu
+086 | HOTOVO | plovoucí panel asistenta: notch / ostrov s rozbalovacím panelem nad ostatními okny + celoobrazovkový chat
+760 | HOTOVO | plynulé indikátory: ostrov notche plynule mění tvar mezi stavy (poslech, práce, hudba, hlasitost, časovač…)
+762 | HOTOVO | dotyková verze: mobilní aplikace + větší ovládací prvky při dotykovém vstupu na PC
+491 | HOTOVO | virtuální fyzika: simulace ověřené proti analytickým výsledkům, návrh a vyhodnocení experimentů
+622 | VYŽADUJE_INTEGRACI | canary: statistické rozhodnutí pustit dál / počkat / vrátit a další podíl provozu hotové; přepnutí provozu musí udělat tvoje infrastruktura (load balancer / feature flag)
+710 | VYŽADUJE_INTEGRACI | přehled zdrojů v cloudu (AWS / Azure / GCP) jen pro čtení – potřebuje tvoje přihlášené CLI daného cloudu
+065 | VYŽADUJE_INTEGRACI | DevOps: git, CI (ci_setup), testy, balíček k vydání, dostupnost a certifikáty hotové; nasazení do cloudu potřebuje tvůj účet a CLI
+691 | BLOKOVÁNO_PLATFORMOU | usb_check: chyby 43/10, resety a přepětí portu s radami; skutečný proud na portu Windows nehlásí

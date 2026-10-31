@@ -124,7 +124,7 @@ class Appearance(BaseModel):
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
-    animations: Literal["full", "reduced"] = "full"
+    animations: Literal["full", "reduced", "auto"] = "full"   # auto = reduced on battery (OMEGA 240 / 764)
     sounds: bool = True        # subtle interface sounds in the notch
     sound_volume: int = 30     # 0–100
     spatial_sounds: bool = True   # OMEGA 102 / 761: sounds come from where things happen (phone right, notch centre…)

@@ -327,7 +327,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
-        select("appearance.animations", "Animace", [["full", "Plné"], ["reduced", "Omezené"]]),
+        select("appearance.animations", "Animace", [["full", "Plné"], ["auto", "Na baterii omezené"], ["reduced", "Omezené"]]),
         select("appearance.density", "Velikost rozhraní", [["auto", "Automaticky podle okna"], ["compact", "Kompaktní"], ["comfortable", "Běžná"], ["large", "Velká"]],
           "Automaticky: v malém okně kompaktní, na velkém monitoru větší."),
         select("appearance.input_mode", "Ovládání", [["auto", "Automaticky (podle zařízení)"], ["mouse", "Myš a klávesnice"], ["touch", "Dotyk – větší tlačítka"], ["voice", "Hlas – velké tlačítko mikrofonu"]],

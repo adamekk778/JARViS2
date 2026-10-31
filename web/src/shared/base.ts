@@ -6,6 +6,17 @@ import "@phosphor-icons/web/fill";
 import "highlight.js/styles/github-dark.css";
 import "./theme.css";
 
+// OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
+let motionPref = "full";
+let onBattery = false;
+function applyMotion() {
+  document.documentElement.dataset.motion = motionPref === "reduced" || (motionPref === "auto" && onBattery) ? "reduced" : "full";
+}
+export function applyPower(battery: boolean) {
+  onBattery = !!battery;
+  applyMotion();
+}
+
 export function applyAppearance(s: any) {
   const a = s?.appearance;
   if (!a) return;
@@ -16,7 +27,8 @@ export function applyAppearance(s: any) {
     root.style.setProperty("--accent", a.accent);
     root.style.setProperty("--accent-ink", inkFor(a.accent));
   }
-  root.dataset.motion = a.animations === "reduced" ? "reduced" : "full";
+  motionPref = a.animations || "full";
+  applyMotion();
   densityPref = a.density || "auto";
   applyDensity();
   inputPref = a.input_mode || "auto";

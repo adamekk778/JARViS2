@@ -52,6 +52,20 @@ export function whenText(t: Trigger): string {
   }
 }
 
+// OMEGA 151: ready-made automations – one click opens the editor filled in; nothing is saved until "Uložit"
+const T = (name: string, type: string, value: string, steps: Step[], text = "", days: number[] = []): Automation =>
+  ({ id: "", name, enabled: true, trigger: { type, value, text, days }, steps });
+export const TEMPLATES: { ico: string; why: string; a: Automation }[] = [
+  { ico: "sun-horizon", why: "ráno přehled dne", a: T("Dobré ráno", "time", "07:30", [{ ask: "Řekni mi počasí, dnešní schůzky a nepřečtené důležité e-maily." } as Step], "", [0, 1, 2, 3, 4]) },
+  { ico: "game-controller", why: "hra = klid a výkon", a: T("Herní režim", "app_open", "Steam", [{ ask: "Ztlum oznámení a zavři zbytečné programy na pozadí." } as Step]) },
+  { ico: "envelope-simple", why: "důležitý e-mail nahlas", a: T("Píše šéf", "mail", "šéf@firma.cz", [{ say: "Přišel e-mail od {sender}: {subject}" } as Step]) },
+  { ico: "battery-warning", why: "baterie dochází", a: T("Slabá baterie", "battery", "20", [{ say: "Baterie je na {percent} %, připoj nabíječku." } as Step]) },
+  { ico: "coffee", why: "návrat od PC", a: T("Vítej zpátky", "back", "15", [{ ask: "Co se stalo, zatímco jsem byl pryč? Stručně." } as Step]) },
+  { ico: "house", why: "příchod domů (telefon)", a: T("Jsem doma", "zone_enter", "Domov", [{ ask: "Rozsviť obývák a pusť moji hudbu potichu." } as Step]) },
+  { ico: "thermometer-hot", why: "čidlo v domácnosti", a: T("Horko v pokoji", "home_state", "Teplota obývák", [{ ask: "Zapni ventilátor v obýváku." } as Step], "> 26") },
+  { ico: "moon-stars", why: "večer zklidnit", a: T("Večerní klid", "time", "22:30", [{ ask: "Ztlum hlasitost na 20 % a připomeň mi, ať jdu spát." } as Step]) },
+];
+
 export function buildAutomations(client: JarvisClient) {
   let items: Automation[] = [];
   let enabledAll = true;
@@ -209,6 +223,10 @@ export function buildAutomations(client: JarvisClient) {
       h("span", { class: "help" }, "Hlavní vypínač. Hlasem: „vypni všechny automatizace“.")), h("span", { class: "switch" }, master, h("span"))),
     h("p", { class: "help" }, "Novou můžeš říct i hlasem: „Když otevřu Spotify, dej hlasitost na 30“ nebo „Když mi napíše máma, řekni mi to nahlas“."),
     grid, editor,
+    h("h2", { class: "group-label" }, "Šablony"),
+    h("div", { class: "proto-grid" }, ...TEMPLATES.map((t) => h("button", { class: "proto-card card", type: "button", onclick: () => edit(JSON.parse(JSON.stringify(t.a))) },
+      h("div", { class: "pc-head" }, h("span", { class: "pc-ico" }, icon(t.ico)), h("strong", {}, t.a.name)),
+      h("p", { class: "auto-when" }, icon("arrow-bend-down-right"), whenText(t.a.trigger)), h("span", { class: "muted" }, t.why)))),
     h("h2", { class: "group-label" }, "Naposledy spuštěné"),
     logBox);
   return { el };

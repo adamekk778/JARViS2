@@ -545,6 +545,14 @@ async def watch_loop(rt, every: float = 5.0) -> None:
     inst = InstallWatch()
     while True:
         await asyncio.sleep(every)
+        try:                                      # OMEGA 240 / 764: battery ↔ charger → the UI can save power
+            bat = psutil.sensors_battery()
+            on_bat = bool(bat and not bat.power_plugged)
+            if on_bat != getattr(rt, "on_battery", False):
+                rt.on_battery = on_bat
+                rt.bus.publish("power_state", on_battery=on_bat, percent=round(bat.percent) if bat else None)
+        except (AttributeError, OSError, RuntimeError):
+            pass
         att = getattr(rt, "attention", None)
         if att is not None:
             summary = att.flush()                  # OMEGA 753: what waited during the focus / meeting / game
