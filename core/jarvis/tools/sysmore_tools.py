@@ -52,7 +52,8 @@ async def gaming_stats(ctx, days: int = 7) -> ToolResult:
     r = sysmore.gaming_sessions(rows, max(1, days))
     if not r["total_h"]:
         return ToolResult(True, f"Za posledních {days} dní jsem žádné hraní nezaznamenal.", data=r)
-    txt = f"Za {days} dní {r['total_h']} h (průměrně {r['avg_h']} h denně); nejvíc {', '.join(f'{t['app']} {t['hours']} h' for t in r['top'][:3])}"
+    top = ", ".join(f"{t['app']} {t['hours']} h" for t in r["top"][:3])
+    txt = f"Za {days} dní {r['total_h']} h (průměrně {r['avg_h']} h denně); nejvíc {top}"
     if r["longest_h"] >= 3:
         txt += f"; nejdelší kus v kuse {r['longest_h']} h – dej si pauzu aspoň po hodině"
     if r["late_h"]:
