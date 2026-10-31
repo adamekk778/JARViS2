@@ -4,6 +4,7 @@ import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.10": [
+    { icon: "first-aid-kit", title: "Proč padá PC a další", line: "Řekni „rozeber výpisy pádů“ – JARVIS přečte z modré obrazovky kód chyby a poradí, co s tím. U e-mailu najde přílohu v PC i pod jiným jménem nebo její starší verzi, „co teď?“ radí podle aplikace, ve které právě jsi, záchrana dat odhadne šanci podle stavu disku a zkoušení samo přitvrdí nebo poleví podle tvých odpovědí." },
     { icon: "clock-counter-clockwise", title: "Automatizace s verzemi", line: "U každé automatizace je „Nanečisto“ (ukáže, co by udělala, bez provedení) a historie verzí s návratem zpět. Chytré přejmenování umí i fotky, videa a hudbu, diagnostika pozná pády způsobené diskem a proč neběží služba, kontrola 3D modelu čte i OBJ a 3MF a pohyb úst jde podle skutečných hlásek." },
     { icon: "chart-line", title: "Síť a výkon v čase", line: "Hlídání webů a certifikátů (ozve se jen při výpadku nebo když certifikát brzy vyprší), historie ztráty paketů, grafy vytížení, disků a programů, grafická trasa sítě, mapa domácí sítě, graf kroků mise a čekající aktualizace Windows." },
     { icon: "hand-waving", title: "Gesta a dílna", line: "Zapni si v Nastavení → Vzhled ovládání gesty: mávnutím ruky před kamerou přepneš skladbu, změníš hlasitost nebo posuneš krok postupu (v notchi pak svítí červená tečka). Z modelu v Blenderu udělá JARVIS rozložený pohled a montážní návod a v dílenském režimu tě jím provede nahlas." },

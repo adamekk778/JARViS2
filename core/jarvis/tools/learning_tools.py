@@ -174,11 +174,14 @@ async def mind_map(ctx, source: Annotated[str, "téma, text nebo cesta k souboru
     return ToolResult(True, md.split("```")[0].strip() + f"\n\nUloženo: {path}", data=d)
 
 
-@tool("oral_exam", "Ústní zkoušení: vrátí další otázku k tématu (a na odpověď pak použij check_answer). Pro zkoušení nahlas.",
+@tool("oral_exam", "Ústní zkoušení: vrátí další otázku k tématu (a na odpověď pak použij check_answer se stejným topic). "
+      "Obtížnost se sama přizpůsobuje: 3 dobré odpovědi za sebou → těžší, 2 slabé ze 3 → lehčí. Pro zkoušení nahlas.",
       category="učení")
-async def oral_exam(ctx, topic: str, level: Annotated[str, "základní / střední / pokročilá"] = "střední") -> ToolResult:
+async def oral_exam(ctx, topic: str, level: Annotated[str, "základní / střední / pokročilá; prázdné = podle výsledků"] = "") -> ToolResult:
     from .. import thinking
 
+    ad = ctx.learning.adaptive_level(topic)            # OMEGA 451: difficulty follows the answers
+    level = level if level in ctx.learning.LEVELS else ad["level"]
     asked = [r["question"] for r in ctx.db.all("SELECT question FROM quiz_answers WHERE topic=? ORDER BY ts DESC LIMIT 15", (topic[:80],))]
     weak = ctx.learning.weak_spots()
     try:
@@ -188,4 +191,4 @@ async def oral_exam(ctx, topic: str, level: Annotated[str, "základní / středn
                                     'Formát: {"question": "…", "expected": "stručná správná odpověď"}')
     except ValueError as e:
         return ToolResult(False, str(e))
-    return ToolResult(True, d.get("question", ""), data={**d, "topic": topic})
+    return ToolResult(True, d.get("question", ""), data={**d, "topic": topic, "level": level, "adaptive": ad})

@@ -97,22 +97,31 @@ async def reply_context(ctx, id: Annotated[str, "id e-mailu z email_inbox"]) -> 
     subj = comms.norm_subject(m["subject"])
     thread = await asyncio.to_thread(acc.list, 20, subj[:60]) if subj else []
     card = await asyncio.to_thread(comms.contact_card, ctx, m["from_name"] or m["from"])
-    local = []
+    local, matches = [], []
     if m["attachments"]:
         names = {a.lower() for a in m["attachments"]}
-        for p in fileuniverse.walk(user_roots(ctx), 60_000):
-            if p.name.lower() in names:
-                local.append(str(p))
+        files = await asyncio.to_thread(lambda: list(fileuniverse.walk(user_roots(ctx), 60_000)))
+        local = [str(p) for p in files if p.name.lower() in names]
+        try:                                            # OMEGA 545: the same / a similar file by CONTENT, any name
+            atts = await asyncio.to_thread(acc.attachment_bytes, uid)
+            matches = await asyncio.to_thread(comms.match_attachments, atts, files)
+        except Exception:  # noqa: BLE001 – matching is a bonus; the reply context works without it
+            matches = []
     acts = comms.extract_actions(m["text"], m["from_name"] or m["from"])
     lines = [f"Od: {m['from_name']} <{m['from']}>, předmět: {m['subject']}",
              f"Vlákno: {len(thread)} zpráv" + (f" (od {_ago(min(t['date'] for t in thread))})" if thread else ""),
              f"S odesílatelem: {card['count']} zpráv" + (f", vím: {'; '.join(card['facts'][:2])}" if card["facts"] else "")]
     if m["attachments"]:
         lines.append("Přílohy: " + ", ".join(m["attachments"]) + (f" – v PC už máš: {', '.join(Path(x).name for x in local[:3])}" if local else ""))
+        for mt in matches:
+            if mt["same"] and not any(Path(x).name.lower() == mt["name"].lower() for x in mt["same"]):
+                lines.append(f"{mt['name']} máš v PC pod jiným jménem: {Path(mt['same'][0]).name}")
+            if mt["similar"]:
+                lines.append(f"Podobné jako {mt['name']}: " + ", ".join(f"{Path(x['path']).name} ({x['similarity']} %)" for x in mt["similar"][:3]))
     if acts:
         lines.append("Chce: " + "; ".join(a["task"] + (f" (do {a['due']})" if a["due"] else "") for a in acts[:5]))
     lines.append("Text: " + m["text"][:1500])
-    return ToolResult(True, DATA + "\n".join(lines), data={"email": m, "thread": thread, "actions": acts, "local_files": local})
+    return ToolResult(True, DATA + "\n".join(lines), data={"email": m, "thread": thread, "actions": acts, "local_files": local, "attachment_matches": matches})
 
 
 @tool("follow_up_check", "Co visí: e-maily, na které ti nikdo neodpověděl déle než N dní, e-maily, na které jsi neodpověděl "

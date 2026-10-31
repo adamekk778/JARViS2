@@ -111,10 +111,51 @@ def effort_estimate(rt, goal: str) -> dict:
             "median_actions": int(statistics.median(s["actions"] for s in sims)), "examples": [s["goal"] for s in sims[:3]]}
 
 
+# OMEGA 501: what fits the app in front – (words in the app name, [(suggestion, why, minutes)])
+APP_CONTEXT: list[tuple[tuple[str, ...], list[tuple[str, str, int]]]] = [
+    (("word", "writer", "docs", "pages"), [("Zkontrolovat pravopis a styl označeného textu", "píšeš dokument", 2),
+                                          ("Udělat z dokumentu stručné shrnutí", "píšeš dokument", 2)]),
+    (("excel", "calc", "sheets", "numbers"), [("Vysvětlit vzorec nebo najít chybu v tabulce", "pracuješ v tabulce", 3),
+                                             ("Udělat z označených dat graf a najít v nich trend", "pracuješ v tabulce", 3)]),
+    (("outlook", "thunderbird", "mail", "pošta"), [("Co visí v e-mailech (na co se čeká odpověď)", "máš otevřenou poštu", 2)]),
+    (("code", "pycharm", "visual studio", "intellij", "webstorm", "cursor", "android studio"),
+     [("Spustit testy projektu a říct, co padá", "programuješ", 3), ("Shrnout, co se v projektu změnilo od včera (git)", "programuješ", 2)]),
+    (("blender",), [("Rozložený pohled nebo render scény", "máš otevřený Blender", 5)]),
+    (("unity",), [("Spustit testy projektu Unity", "máš otevřenou Unity", 5)]),
+    (("roblox",), [("Zkontrolovat skripty a zveřejnit hru (zeptám se)", "máš otevřený Roblox Studio", 5)]),
+    (("teams", "zoom", "meet", "webex", "discord"), [("Zapnout zápis schůzky", "jsi v hovoru", 1)]),
+    (("photoshop", "gimp", "affinity", "figma", "illustrator", "inkscape", "krita"),
+     [("Zkontrolovat kontrast a čitelnost barev", "pracuješ s grafikou", 2)]),
+    (("premiere", "davinci", "resolve", "capcut", "shotcut", "kdenlive"), [("Vybrat nejlepší úseky z videa", "stříháš video", 5)]),
+    (("steam", "epic games", "battle.net", "riot"), [("Zapnout herní režim", "spouštíš hru", 1)]),
+]
+
+
+def app_context(app: str, minutes_today: float = 0) -> list[dict]:
+    """Suggestions for the app in front (by its name) + a break hint after a long stretch in it."""
+    a = (app or "").lower()
+    out = []
+    if not a:
+        return out
+    for words, items in APP_CONTEXT:
+        if any(w in a for w in words):
+            out += [{"text": t, "why": why, "minutes": m, "score": 70, "app": app} for t, why, m in items]
+            break
+    if minutes_today >= 120:
+        out.append({"text": "Dát si pět minut pauzu", "why": f"v {app} jsi dnes už {round(minutes_today / 60, 1)} h", "minutes": 5, "score": 45, "app": app})
+    return out
+
+
 # ---------------------------------------------------------------------------------------------- 496 / 507 / 501 next
-def next_actions(rt, idle_minutes: float = 0, now: float | None = None) -> list[dict]:
+def next_actions(rt, idle_minutes: float = 0, now: float | None = None, app: str = "") -> list[dict]:
     now = now or time.time()
     sug: list[dict] = []
+    if app:
+        used = 0.0
+        if _has(rt, "app_usage"):
+            row = rt.db.one("SELECT seconds FROM app_usage WHERE day=? AND lower(app)=lower(?)", (dt.date.fromtimestamp(now).isoformat(), app))
+            used = (row or {}).get("seconds", 0) / 60 if row else 0.0
+        sug += app_context(app, used)
     for r in deadline_risks(rt, now):
         if r["risk"] in ("propadlý", "vysoké"):
             sug.append({"text": r["text"], "why": f"riziko termínu: {r['risk']}", "minutes": 30, "score": 90})

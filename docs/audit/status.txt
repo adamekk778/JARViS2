@@ -1074,3 +1074,10 @@
 320 | HOTOVO | smart_rename i pro fotky (datum_čas_fotoaparát z EXIF), videa a nahrávky (datum) a hudbu (Interpret - Skladba)
 668 | HOTOVO | lip_sync s textem repliky: české hlásky → tvary úst Preston Blair (MBP, O, U, FV, L…) rozložené do úseků řeči; bez textu podle hlasitosti
 775 | ČÁSTEČNĚ | check_3d_model: STL, OBJ a 3MF (jednotky převedené na mm); STEP/IGES potřebuje CAD jádro – JARVIS poradí export do STL/3MF
+
+# Vlna F3: pády, přílohy, kontext aplikace, záchrana dat, učení
+015 | HOTOVO | rozbor výpisů pádů bez ladicího nástroje: kód a parametry z hlavičky výpisu, co znamená a co s tím, ovladače třetích stran ve výpisu, nejčastější druh – crashdump.py, nástroj crash_dumps
+451 | HOTOVO | adaptivní obtížnost i u ústního zkoušení a dalšího procvičování podle témat (3 dobré za sebou → těžší, 2 slabé ze 3 → lehčí, úspěšnost) – learning.adaptive_level
+501 | HOTOVO | návrhy podle aplikace v popředí (tabulka, dokument, pošta, programování, Blender, Unity, hovor, grafika, střih, hry) + pauza po dlouhé době v ní – proactive.app_context
+545 | HOTOVO | k přílohám e-mailu najde v PC stejný soubor pod jiným názvem (otisk SHA-256) a podobné dokumenty podle textu (jiná verze smlouvy apod.) – comms.match_attachments
+703 | HOTOVO | odhad šance na záchranu dat podle stavu disku (zdraví, chyby čtení/zápisu, vadné sektory, timeouty, opotřebení) s doporučením – secutils.recovery_odds v data_rescue_plan

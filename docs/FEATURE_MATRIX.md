@@ -48,11 +48,11 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `character/looks.ts` | 250, 251 |
 | `charts.ts` | 222, 706 |
 | `check_subtitles` | 369, 674 |
-| `circuit_tutor` | 451, 456 |
 | `claude_bridge.py` | 046, P5.01 |
 | `clean_speech` | 130, 366 |
 | `close_app` | P2.01, P2.06 |
 | `dashboard/tasks.ts` | 002, 010 |
+| `data_rescue_plan` | 300, 703 |
 | `db_growth` | 610, 613 |
 | `dependency_risks` | 333, 625 |
 | `desktop/host.py` | 226, P8.01 |
@@ -110,6 +110,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `_an_usb` | 017 |
 | `_needs_second` | 182 |
 | `ab_test` | 780 |
+| `adaptive_level` | 451 |
 | `agent_swarm` | P1.08 |
 | `agent_team` | 218 |
 | `agents.py` | 069 |
@@ -126,6 +127,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `api_rate_limits` | 594 |
 | `app_allowlist` | 682 |
 | `app_capabilities` | 514 |
+| `app_context` | 501 |
 | `app_hours` | 196 |
 | `app_launch_time` | 308 |
 | `apply_solution` | 004 |
@@ -175,6 +177,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `check_link` | 397 |
 | `check_math_steps` | 106 |
 | `check_translation` | 068 |
+| `circuit_tutor` | 456 |
 | `citation_check` | 777 |
 | `claude_code` | 046 |
 | `clean_look` | 750 |
@@ -203,6 +206,8 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `copy_file` | P2.11 |
 | `corrupt_test_data` | 643 |
 | `corruption_test` | 643 |
+| `crash_dumps` | 015 |
+| `crashdump.py` | 015 |
 | `create_restore_point` | 020 |
 | `create_zip` | 323 |
 | `cross_app` | 513 |
@@ -213,7 +218,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `dashboard/security.ts` | 690 |
 | `data_lens` | 759 |
 | `data_lineage` | 771 |
-| `data_rescue_plan` | 300 |
 | `dataset_check` | 767 |
 | `dataset_clean` | 767 |
 | `day_summary` | 510 |
@@ -346,6 +350,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `mail.py` | P11.05 |
 | `make_sbom` | 624 |
 | `map_data` | 595 |
+| `match_attachments` | 545 |
 | `match_shot` | 371 |
 | `mcp_client` | 048 |
 | `measure_on_photo` | 482 |
@@ -431,6 +436,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `recent_files` | 322 |
 | `record_workflow_start` | 529 |
 | `recovery_media_check` | 299 |
+| `recovery_odds` | 703 |
 | `redact.py` | 179 |
 | `reject_cookies` | 534 |
 | `release_notes` | 343 |

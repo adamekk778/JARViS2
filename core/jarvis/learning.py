@@ -82,6 +82,26 @@ class Learning:
         self.rt.db.exec("INSERT INTO quiz_answers (ts, subject, topic, question, score, mistake) VALUES (?,?,?,?,?,?)",
                         (time.time(), subject[:80], topic[:80], question[:500], float(score), mistake[:40]))
 
+    LEVELS = ("základní", "střední", "pokročilá")
+
+    def adaptive_level(self, topic: str, start: str = "střední") -> dict:
+        """OMEGA 451 for any practice: walk the topic's answers in order – 3 good in a row (≥ 80) → a level up,
+        2 poor (< 50) out of the last 3 → a level down. Answers the level for the next question and why."""
+        rows = self.rt.db.all("SELECT score FROM quiz_answers WHERE topic=? ORDER BY ts, id", (topic[:80],))
+        lvl = self.LEVELS.index(start) if start in self.LEVELS else 1
+        streak, recent, why = 0, [], "začátek"
+        for r in rows:
+            sc = float(r["score"] or 0)
+            recent = (recent + [sc])[-3:]
+            streak = streak + 1 if sc >= 80 else 0
+            if streak >= 3 and lvl < 2:
+                lvl, streak, recent, why = lvl + 1, 0, [], "3 dobré odpovědi za sebou"
+            elif sum(1 for x in recent if x < 50) >= 2 and lvl > 0:
+                lvl, streak, recent, why = lvl - 1, 0, [], "2 slabé odpovědi ze 3"
+        n = len(rows)
+        acc = round(sum(1 for r in rows if (r["score"] or 0) >= 80) / n * 100) if n else None
+        return {"level": self.LEVELS[lvl], "why": why if n else "zatím žádné odpovědi", "answers": n, "success_pct": acc}
+
     def weak_spots(self, subject: str = "") -> dict:
         """OMEGA 108 / 455: topics with the lowest scores, the kinds of mistakes, the cards you keep forgetting."""
         w = " WHERE subject=?" if subject else ""

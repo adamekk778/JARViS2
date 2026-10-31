@@ -256,17 +256,23 @@ async def verify_copy(ctx, source: Annotated[str, "originál"], copy: Annotated[
                       f"(např. {', '.join((r['missing'] + r['different'])[:3])}).", data=r)
 
 
-@tool("data_rescue_plan", "Záchrana dat: když disk umírá nebo hlásí chyby – co zachránit jako první (tvoje složky seřazené od "
-      "nejnovější práce). Nic nekopíruje ani nemaže.", category="soubory", perm="files_read")
+@tool("data_rescue_plan", "Záchrana dat: když disk umírá nebo hlásí chyby – odhad šance na záchranu podle stavu disku a co "
+      "zachránit jako první (tvoje složky seřazené od nejnovější práce). Nic nekopíruje ani nemaže.", category="soubory", perm="files_read")
 async def data_rescue_plan(ctx) -> ToolResult:
     from .. import secutils
+
+    from .. import rescue
 
     plan = await asyncio.to_thread(secutils.rescue_plan, ctx)
     if not plan:
         return ToolResult(False, "Nenašel jsem žádné uživatelské složky.")
+    probe = await asyncio.to_thread(rescue.run_probe, "disks")       # OMEGA 703: the chance of getting the data off
+    odds = secutils.recovery_odds(probe.get("data") or {}) if probe.get("ok") else []
     lines = [f"{i + 1}. {Path(p['folder']).name} ({p['files']} souborů, {p['bytes'] / 2**30:.1f} GB)" for i, p in enumerate(plan)]
-    return ToolResult(True, "Pořadí záchrany: " + "; ".join(lines) + ". Kopíruj na jiný disk, nic neformátuj a disk zbytečně "
-                      "nezatěžuj. Po kopii to ověřím (verify_copy).", data=plan)
+    head = "".join(f"{o['disk']}: šance na záchranu {o['level']} (odhad {o['percent']} – {', '.join(o['reasons'])}). {o['advice']} "
+                   for o in odds if o["level"] != "vysoká" or o["reasons"] != ["žádné známky poškození"])
+    return ToolResult(True, head + "Pořadí záchrany: " + "; ".join(lines) + ". Kopíruj na jiný disk, nic neformátuj a disk zbytečně "
+                      "nezatěžuj. Po kopii to ověřím (verify_copy).", data={"plan": plan, "odds": odds})
 
 
 @tool("system_integrity_check", "Zkontroluje systémové soubory Windows (DISM /CheckHealth a SFC /VERIFYONLY) – jen kontrola, "

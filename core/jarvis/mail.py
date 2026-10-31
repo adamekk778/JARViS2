@@ -198,6 +198,24 @@ class Account:
                     "attachments": files, "message_id": msg.get("Message-ID", ""), "references": msg.get("References", ""),
                     "reply_to": email.utils.parseaddr(dec(msg.get("Reply-To") or ""))[1].lower() or addr}
 
+    def attachment_bytes(self, uid: int, max_mb: float = 25) -> list[tuple[str, bytes]]:
+        """OMEGA 545: the attachments' content (read-only peek) – to find the same / a similar file in the PC."""
+        with self.lock:
+            c = self.imap()
+            c.select("INBOX", readonly=True)
+            _typ, data = c.uid("FETCH", str(uid), "(BODY.PEEK[])")
+            raw = next((x[1] for x in data or [] if isinstance(x, tuple)), None)
+        if raw is None:
+            return []
+        msg = email.message_from_bytes(raw, policy=email.policy.default)
+        out = []
+        for part in msg.iter_attachments():
+            name = part.get_filename()
+            body = part.get_payload(decode=True) or b""
+            if name and len(body) <= max_mb * 2**20:
+                out.append((name, body))
+        return out
+
     def set_flag(self, uid: int, flag: str = "\\Seen", on: bool = True) -> None:
         with self.lock:
             c = self.imap()

@@ -9,8 +9,8 @@ Stavy: ✅ HOTOVO · 🟡 ČÁSTEČNĚ · 🔴 ROZBITÉ · 🔌 VYŽADUJE_INTEGR
 
 | Stav | Katalog 001–795 | Původní seznam |
 |---|---:|---:|
-| ✅ HOTOVO | 613 | 88 |
-| 🟡 ČÁSTEČNĚ | 171 | 62 |
+| ✅ HOTOVO | 618 | 88 |
+| 🟡 ČÁSTEČNĚ | 166 | 62 |
 | 🔴 ROZBITÉ | 0 | 0 |
 | 🔌 VYŽADUJE_INTEGRACI | 7 | 10 |
 | ⛔ BLOKOVÁNO_PLATFORMOU | 0 | 0 |
@@ -39,7 +39,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 02. Windows Superpowers
 
-✅ 11 · 🟡 4
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 012 | Vyhodnocení Windows Event Viewer. | ✅ HOTOVO | logy System/Application vyhodnocené po oblastech: pády, aplikace, služby, disky (rescue.PROBES) |
 | 013 | Sledování Windows Update. | ✅ HOTOVO | čekající aktualizace Windows (Windows Update Agent, jen čtení), bezpečnostní nejdřív, čeká restart – winupd.py, nástroj windows_updates, Záchrana a výkon |
 | 014 | Analýza příčin BSOD. | ✅ HOTOVO | kódy modrých obrazovek z událostí 1001 → název + česká příčina + rada, opakování, nečekaná vypnutí (rescue.BUGCHECKS, explain_crash_code) |
-| 015 | Analýza minidump po pádu. | 🟡 ČÁSTEČNĚ | seznam výpisů pádů (Minidump) a kód z logu; rozbor obsahu výpisu potřebuje ladicí nástroj Windows (cdb) – zatím ne |
+| 015 | Analýza minidump po pádu. | ✅ HOTOVO | rozbor výpisů pádů bez ladicího nástroje: kód a parametry z hlavičky výpisu, co znamená a co s tím, ovladače třetích stran ve výpisu, nejčastější druh – crashdump.py, nástroj crash_dumps |
 | 016 | Diagnostika pomalého startu Windows. | ✅ HOTOVO | časy startu a co ho zdržuje (Diagnostics-Performance 100–109), počet programů po spuštění, rychlé spuštění |
 | 017 | Diagnostika nefunkčních USB. | ✅ HOTOVO | USB zařízení s chybou, opakované odpojování (Kernel-PnP), offline/RAW disky, USB rámečky (rescue._an_usb) |
 | 018 | Měření diskového výkonu a historie chyb. | ✅ HOTOVO | test zápisu/čtení disku s historií měření (perf_benchmark) + chyby disku z logu za 30 dní |
@@ -717,11 +717,11 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 36. Learning Lab
 
-✅ 12 · 🟡 3
+✅ 13 · 🟡 2
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
-| 451 | Adaptive Difficulty — adaptivní náročnost. | 🟡 ČÁSTEČNĚ | adaptivní obtížnost v circuit_tutor (3 správně → těžší, 2 chyby ze 3 → lehčí, úspěšnost); u ostatních procvičování ne |
+| 451 | Adaptive Difficulty — adaptivní náročnost. | ✅ HOTOVO | adaptivní obtížnost i u ústního zkoušení a dalšího procvičování podle témat (3 dobré za sebou → těžší, 2 slabé ze 3 → lehčí, úspěšnost) – learning.adaptive_level |
 | 452 | Learning Path Builder — studijní cesta. | 🟡 ČÁSTEČNĚ | exam_plan rozloží témata do dnů; obecná studijní cesta k cíli = goal_plan |
 | 453 | Knowledge Prerequisite Map — předpoklady učiva. | ✅ HOTOVO | learning_path: mapa předpokladů → pořadí učení k cíli, přeskočí známé, odhalí kruhy a nedefinovaná témata |
 | 454 | Spaced Repetition Engine — časované opakování. | ✅ HOTOVO | Spaced Repetition Engine (SM-2, opakování za 10 min / 1 / 6 / n dní) |
@@ -783,7 +783,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 39. Proactive Intelligence
 
-✅ 13 · 🟡 2
+✅ 14 · 🟡 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -792,7 +792,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 498 | Opportunity Alerts — možnosti zjednodušení. | ✅ HOTOVO | automation_opportunities + v proaktivních návrzích: opakované sledy kroků v různých sezeních (nejdelší, bez podmnožin) → nabídka udělat z nich dovednost |
 | 499 | Forgotten Task Detection — opuštěné projekty. | ✅ HOTOVO | forgotten_work: stojící mise, projekty bez práce, staré položky seznamů |
 | 500 | Intelligent Interruption Control — vhodný čas oznámení. | ✅ HOTOVO | chytré ztišení: v noci, na schůzce, v soustředění a nad aplikací přes celou obrazovku se upozornění jen ukážou; budík, časovač a připomínky vždy nahlas |
-| 501 | Contextual Suggestion Engine — kontextové funkce. | 🟡 ČÁSTEČNĚ | návrhy podle hodiny a rutin; kontext podle otevřené aplikace zatím ne |
+| 501 | Contextual Suggestion Engine — kontextové funkce. | ✅ HOTOVO | návrhy podle aplikace v popředí (tabulka, dokument, pošta, programování, Blender, Unity, hovor, grafika, střih, hry) + pauza po dlouhé době v ní – proactive.app_context |
 | 502 | Deadline Risk Forecasting — rizika termínů. | ✅ HOTOVO | deadline_risks: mise (čas vs. zbývající kroky) a zkoušky bez opakování |
 | 503 | Task Effort Estimator — odhad pracnosti. | ✅ HOTOVO | estimate_effort: medián času a kroků z podobných dokončených misí |
 | 504 | Personal Routine Builder — osobní rutina. | 🟡 ČÁSTEČNĚ | rutiny se dají převést na automatizaci; skládání osobní rutiny zatím ne |
@@ -849,7 +849,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 42. Communication
 
-✅ 11 · 🟡 4
+✅ 12 · 🟡 3
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -857,7 +857,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 542 | Message Importance Ranking — priority komunikace. | ✅ HOTOVO | pořadí podle důležitosti s důvodem (důležitý kontakt, termín, požadavek, peníze, otázka, newsletter) |
 | 543 | Reply Context Builder — podklady odpovědi. | ✅ HOTOVO | reply_context: vlákno, karta odesílatele, přílohy, co chce – podklady před odpovědí |
 | 544 | Conversation Action Extraction — úkoly ze zpráv. | ✅ HOTOVO | message_actions: požadavky a termíny ze zpráv (do pátku, zítra, do 3. 11.), volitelně do seznamu úkolů |
-| 545 | Attachment Relationship Finder — související přílohy. | 🟡 ČÁSTEČNĚ | k přílohám e-mailu najde v PC soubory se stejným názvem; podobnost obsahu ne |
+| 545 | Attachment Relationship Finder — související přílohy. | ✅ HOTOVO | k přílohám e-mailu najde v PC stejný soubor pod jiným názvem (otisk SHA-256) a podobné dokumenty podle textu (jiná verze smlouvy apod.) – comms.match_attachments |
 | 546 | Conversation Follow-Up Tracker — navazující komunikace. | ✅ HOTOVO | follow_up_check: na co ti nikdo neodpověděl a na co jsi neodpověděl ty |
 | 547 | Tone Adjustment — styl odpovědi. | 🟡 ČÁSTEČNĚ | formálnější/kratší přepis označeného textu |
 | 548 | Multilingual Message Drafting — různé jazyky. | 🟡 ČÁSTEČNĚ | překlad |
@@ -1069,7 +1069,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 
 ## 52. Advanced Hardware Rescue
 
-✅ 9 · 🟡 5 · 🔌 1
+✅ 10 · 🟡 4 · 🔌 1
 
 | ID | Funkce | Stav | Důkaz / modul / omezení |
 |---|---|---|---|
@@ -1085,7 +1085,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 700 | Clone Verification Assistant — integrita klonu. | ✅ HOTOVO | verify_copy: SHA-256 každého souboru, chybějící a odlišné |
 | 701 | Read Error Heatmap — vadné oblasti dle logů. | ✅ HOTOVO | disk_errors: mapa chyb čtení podle LBA z událostí disku (40 polí přes celý povrch) |
 | 702 | Accidental Format Protection — ochrana před formátem. | ✅ HOTOVO | run_shell nikdy nespustí format, diskpart, Clear-Disk, mazání stínových kopií… ani se schválením (tools/shell.py) |
-| 703 | Recovery Viability Assessment — možnosti obnovy. | 🟡 ČÁSTEČNĚ | plán záchrany dat podle priorit; odhad úspěšnosti obnovy chybí |
+| 703 | Recovery Viability Assessment — možnosti obnovy. | ✅ HOTOVO | odhad šance na záchranu dat podle stavu disku (zdraví, chyby čtení/zápisu, vadné sektory, timeouty, opotřebení) s doporučením – secutils.recovery_odds v data_rescue_plan |
 | 704 | I/O Timeout Analyzer — timeouty disků. | ✅ HOTOVO | timeouty a resety řadiče (129, 153, 11) z logu |
 | 705 | Hardware Incident Report — report pro servis. | ✅ HOTOVO | hardware_report: protokol pro servis (model, sériové číslo, BIOS, disky, události, USB, další zjištění) jako soubor se SHA-256 |
 

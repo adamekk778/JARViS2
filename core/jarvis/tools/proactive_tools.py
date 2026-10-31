@@ -2,6 +2,7 @@
 deadline risks, effort estimate, what you did today, and whether now is a good time to interrupt."""
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 from typing import Annotated
 
@@ -9,11 +10,15 @@ from .base import ToolResult, tool
 
 
 @tool("what_next", "Co dělat teď: návrhy dalšího kroku s důvodem (hořící termíny, kartičky na řadě, nedořešené rozhovory, co "
-      "touhle dobou obvykle děláš, zapomenuté úkoly). minutes = jen věci, které stihneš za tolik minut.", category="proaktivita")
+      "touhle dobou obvykle děláš, co se hodí k aplikaci, ve které právě jsi, zapomenuté úkoly). minutes = jen věci, které stihneš za tolik minut.", category="proaktivita")
 async def what_next(ctx, minutes: Annotated[float, "kolik mám času (0 = nezáleží)"] = 0) -> ToolResult:
     from .. import proactive
 
-    s = proactive.next_actions(ctx, minutes)
+    try:
+        app = await asyncio.to_thread(ctx.platform.foreground_app)      # OMEGA 501: what fits the app in front
+    except Exception:  # noqa: BLE001
+        app = ""
+    s = proactive.next_actions(ctx, minutes, app=app if app and "jarvis" not in app.lower() else "")
     if not s:
         return ToolResult(True, "Nic nehoří – nemám žádný návrh." if not minutes else f"Na {minutes:g} minut nemám nic vhodného.", data=[])
     return ToolResult(True, "\n".join(f"{i + 1}. {x['text']} – {x['why']} (~{x['minutes']} min)" for i, x in enumerate(s[:6])), data=s)

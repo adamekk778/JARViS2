@@ -240,7 +240,7 @@ def _an_crashes(d: dict) -> list[dict]:
     dumps = L(d.get("dumps"))
     if dumps:
         out.append(F("info", f"Uložené výpisy pádů (minidump): {len(dumps)}, poslední {dumps[0].get('Time', '')[:10]}.",
-                     "Podrobný rozbor umí JARVIS, když je nainstalovaný ladicí nástroj Windows (cdb.exe z Windows SDK).", "C:\\Windows\\Minidump"))
+                     "Řekni „rozeber výpisy pádů“ – JARVIS z nich přečte kód chyby a poradí.", "C:\\Windows\\Minidump"))
     if err(d.get("dumps")) and needs_admin(err(d.get("dumps"))):
         out.append(F("info", "Složku s výpisy pádů smí číst jen správce.", "Spusť JARVIS jako správce pro rozbor výpisů.", "C:\\Windows\\Minidump"))
     if not out:

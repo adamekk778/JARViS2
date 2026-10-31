@@ -271,3 +271,69 @@ async def minutes(rt, note: dict) -> dict:
     d["speakers"] = speaker_share(text)
     d["actions"] = [a for a in d.get("actions") or [] if isinstance(a, dict) and a.get("task")]
     return d
+
+
+# ---------------------------------------------------------------- 545 attachments ↔ files in the PC
+DOC_EXT = {".pdf", ".docx", ".txt", ".md", ".csv", ".html", ".htm"}
+
+
+def shingles(text: str, k: int = 3) -> set[str]:
+    w = re.findall(r"\w{2,}", fold(text))
+    return {" ".join(w[i:i + k]) for i in range(max(0, len(w) - k + 1))}
+
+
+def jaccard(a: set, b: set) -> float:
+    return len(a & b) / len(a | b) if a and b else 0.0
+
+
+def match_attachments(atts: list[tuple[str, bytes]], files, max_candidates: int = 200) -> list[dict]:
+    """For each attachment: the same file in the PC (identical content under any name), and for documents the most
+    similar ones by text (a newer / older version, the same contract with other dates…)."""
+    import hashlib
+    import tempfile
+    from pathlib import Path
+
+    from .fileuniverse import doc_text, sha256
+
+    files = list(files)
+    by_size: dict[int, list] = {}
+    for p in files:
+        try:
+            by_size.setdefault(p.stat().st_size, []).append(p)
+        except OSError:
+            pass
+    out = []
+    for name, data in atts:
+        ext = Path(name).suffix.lower()
+        h = hashlib.sha256(data).hexdigest()
+        same = [str(p) for p in by_size.get(len(data), []) if _safe_sha(sha256, p) == h]
+        similar = []
+        if ext in DOC_EXT:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td) / f"priloha{ext}"
+                tmp.write_bytes(data)
+                sa = shingles(doc_text(tmp, 20000))
+            if sa:
+                cands = sorted((p for p in files if p.suffix.lower() == ext and str(p) not in same),
+                               key=lambda q: -_mtime(q))[:max_candidates]      # the most recent documents first
+                for p in cands:
+                    j = jaccard(sa, shingles(doc_text(p, 20000)))
+                    if j >= 0.3:
+                        similar.append({"path": str(p), "similarity": round(j * 100)})
+                similar.sort(key=lambda x: -x["similarity"])
+        out.append({"name": name, "bytes": len(data), "sha256": h, "same": same[:5], "similar": similar[:5]})
+    return out
+
+
+def _mtime(p) -> float:
+    try:
+        return p.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _safe_sha(fn, p):
+    try:
+        return fn(p)
+    except OSError:
+        return None

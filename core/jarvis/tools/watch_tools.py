@@ -131,3 +131,14 @@ async def mochi_history(ctx, limit: Annotated[int, "kolik záznamů"] = 15) -> T
             return f"{_hm(r['ts'])} nálada: {MOOD_CS.get(r['name'], r['name'])}" + (f" ({why})" if why else "")
         return f"{_hm(r['ts'])} reakce: {r['name']}"
     return ToolResult(True, "; ".join(line(r) for r in rows) + ".", data={"history": rows})
+
+
+@tool("crash_dumps", "Rozbor výpisů pádů (modré obrazovky) ze složky Minidump bez ladicích nástrojů: kód chyby, co znamená, "
+      "co s tím, a ovladače třetích stran, které byly v paměti. Jen čte. Na „proč mi padá PC na modrou obrazovku?“, "
+      "„rozeber výpisy pádů“.", category="systém", perm="system")
+async def crash_dumps(ctx, limit: Annotated[int, "kolik posledních výpisů"] = 10) -> ToolResult:
+    from .. import crashdump
+
+    items = await asyncio.to_thread(crashdump.recent, None, max(1, min(30, int(limit))))
+    ok = [x for x in items if "error" not in x]
+    return ToolResult(bool(ok) or not items, crashdump.summary(items), data={"dumps": items})

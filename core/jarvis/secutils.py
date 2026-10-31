@@ -237,3 +237,45 @@ def rescue_plan(rt) -> list[dict]:
     # what you worked on lately and is small goes first – the most value per minute of a dying disk
     out.sort(key=lambda x: (-x["newest"], x["bytes"]))
     return out
+
+
+def recovery_odds(probe: dict) -> list[dict]:
+    """OMEGA 703: a rough chance of getting the data off each disk, from what Windows reports (health, read / write
+    errors, bad-sector and timeout events, wear). An estimate with the reasons – not a promise."""
+    from .rescue import L
+
+    rel = {str(r.get("DeviceId")): r for r in L(probe.get("reliability"))}
+    ev = L(probe.get("io_events"))
+    bad_sectors = sum(1 for e in ev if int(e.get("Id") or 0) in (7, 51, 153))
+    timeouts = sum(1 for e in ev if int(e.get("Id") or 0) in (129, 11))
+    out = []
+    for p in L(probe.get("physical")):
+        r = rel.get(str(p.get("DeviceId"))) or {}
+        name = p.get("FriendlyName") or "disk"
+        health, status = str(p.get("Health") or ""), str(p.get("Status") or "")
+        errs = (r.get("ReadErrors") or 0) + (r.get("WriteErrors") or 0)
+        why, lo, hi = [], 95, 100
+        if health not in ("", "Healthy", "0"):
+            lo, hi = min(lo, 50), min(hi, 85)
+            why.append(f"Windows hlásí stav {health}")
+        if status and status.lower() not in ("ok", "online", "2"):
+            lo, hi = min(lo, 30), min(hi, 60)
+            why.append(f"disk je ve stavu {status}")
+        if errs:
+            lo, hi = (min(lo, 70), min(hi, 90)) if errs < 50 else (min(lo, 40), min(hi, 70))
+            why.append(f"{errs} chyb čtení/zápisu")
+        if bad_sectors:
+            lo, hi = (min(lo, 70), min(hi, 90)) if bad_sectors < 20 else (min(lo, 40), min(hi, 75))
+            why.append(f"{bad_sectors}× vadné sektory v logu")
+        if (r.get("Wear") or 0) >= 100:
+            why.append("SSD je opotřebené na 100 % – často přejde jen do čtení, to je pro záchranu dobře")
+        if timeouts and not errs and not bad_sectors:
+            why.append(f"{timeouts}× timeout řadiče – často jen kabel nebo napájení")
+        level = "vysoká" if lo >= 85 else "střední" if lo >= 50 else "nízká"
+        advice = ("Kopíruj hned, nejnovější a nejmenší soubory první." if level == "vysoká" else
+                  "Kopíruj jen to nejcennější, disk zbytečně nezatěžuj a nic na něj nezapisuj." if level == "střední" else
+                  "Pokud disk cvaká nebo ho systém přestává vidět, vypni ho a obrať se na firmu na záchranu dat – každé další "
+                  "zapnutí může šanci snížit.")
+        out.append({"disk": name, "level": level, "percent": f"{lo}–{hi} %", "reasons": why or ["žádné známky poškození"],
+                    "advice": advice})
+    return out
