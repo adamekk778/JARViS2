@@ -134,35 +134,65 @@ export function buildPanel(ctx: PanelCtx) {
         card("image", "Analyzovat obrázek", "Popsat a vysvětlit", () => { show("chat"); chat.prefill("Co je na tomhle obrázku? ", true); }))));
 
   // ---------- other sections ----------
+  // Akce (3.12): Control Center look – groups of round coloured buttons with a label, a big STOP, then rows of pills
   const big = (ic: string, label: string, fn: () => void, cls = "") =>
-    h("button", { class: `qbtn ${cls}`, type: "button", onclick: fn }, icon(ic), h("span", {}, label));
-
+    h("button", { class: `qbtn ${cls}`, type: "button", onclick: (e: Event) => {
+      (e.currentTarget as HTMLElement).animate([{ transform: "scale(.9)" }, { transform: "scale(1)" }], { duration: 280, easing: "cubic-bezier(.3,1.6,.5,1)" }); fn(); } },
+      h("span", { class: "q-ico" }, icon(ic, "ph-fill")), h("span", { class: "q-lbl" }, label));
+  const group = (title: string, ...kids: HTMLElement[]) => h("div", { class: "qgroup" }, h("span", { class: "qg-title" }, title), h("div", { class: "qg-grid" }, ...kids));
   const quickView = h("div", { class: "p-sec p-quick" },
-    h("div", { class: "qbig" },
-      big("play-pause", "Play / pauza", () => quick("media_control", { action: "play_pause" })),
-      big("skip-forward", "Další", () => quick("media_control", { action: "next" })),
-      big("speaker-low", "Tišeji", () => quick("volume", { action: "down", level: 10 })),
-      big("speaker-high", "Hlasitěji", () => quick("volume", { action: "up", level: 10 })),
-      big("speaker-slash", "Ztlumit", () => quick("volume", { action: "mute" })),
-      big("camera", "Screenshot", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
-      big("lock", "Zamknout", () => quick("system_power", { action: "lock" })),
-      big("moon", "Tmavý režim", () => quick("set_dark_mode", { dark: true })),
-      big("headphones", "Fokus zap/vyp", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "accent"),
-      big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" })),
-      big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" })),
-      (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }))),
-      big("microphone-stage", "Hlasový režim", () => ctx.openChat("voice-mode")),
-      big("hand-palm", "STOP", () => client.send("stop_all"), "danger")),
-    h("div", { class: "timers-row clip-row" }, h("span", {}, icon("clipboard-text"), " Schránka"),
-      ...([["Shrň", "Shrň stručně text, který mám ve schránce."], ["Přelož", "Přelož text ze schránky (česky ↔ anglicky)."],
-        ["Vysvětli", "Vysvětli mi jednoduše text, který mám ve schránce."]] as const).map(([label, text]) =>
-        h("button", { class: "p-pill", type: "button", onclick: () => { show("chat"); client.send("user_text", { text, attachments: [] }); } }, label))),
-    h("div", { class: "timers-row" }, h("span", {}, icon("timer"), " Minutka"),
-      ...[1, 5, 10, 25].map((m) => h("button", { class: "p-pill", type: "button", onclick: () => quick("set_timer", { seconds: m * 60, label: `${m} min` }) }, `+${m} min`))));
+    h("div", { class: "qwrap" },
+      group("Média",
+        big("play-pause", "Přehrát", () => quick("media_control", { action: "play_pause" }), "c-pink"),
+        big("skip-forward", "Další", () => quick("media_control", { action: "next" }), "c-pink"),
+        big("speaker-low", "Tišeji", () => quick("volume", { action: "down", level: 10 }), "c-blue"),
+        big("speaker-high", "Hlasitěji", () => quick("volume", { action: "up", level: 10 }), "c-blue"),
+        big("speaker-slash", "Ztlumit", () => quick("volume", { action: "mute" }), "c-blue")),
+      group("Režimy",
+        big("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "c-purple"),
+        big("moon", "Tmavý režim", () => quick("set_dark_mode", { dark: true }), "c-indigo"),
+        (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }), "c-teal")),
+        big("microphone-stage", "Hlasový režim", () => ctx.openChat("voice-mode"), "c-green")),
+      group("Počítač",
+        big("camera", "Snímek", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] }), "c-gray"),
+        big("lock-simple", "Zamknout", () => quick("system_power", { action: "lock" }), "c-gray"),
+        big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" }), "c-gray"),
+        big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" }), "c-gray")),
+      h("button", { class: "qstop", type: "button", onclick: () => client.send("stop_all") }, icon("hand-palm", "ph-fill"), h("strong", {}, "STOP"), h("span", {}, "zastavit vše"))),
+    h("div", { class: "qrows" },
+      h("div", { class: "qrow" }, h("span", { class: "qr-title" }, icon("clipboard-text", "ph-fill"), "Schránka"),
+        ...([["Shrň", "Shrň stručně text, který mám ve schránce."], ["Přelož", "Přelož text ze schránky (česky ↔ anglicky)."],
+          ["Vysvětli", "Vysvětli mi jednoduše text, který mám ve schránce."]] as const).map(([label, text]) =>
+          h("button", { class: "qpill", type: "button", onclick: () => { show("chat"); client.send("user_text", { text, attachments: [] }); } }, label))),
+      h("div", { class: "qrow" }, h("span", { class: "qr-title" }, icon("timer", "ph-fill"), "Minutka"),
+        ...[1, 5, 10, 25].map((m) => h("button", { class: "qpill", type: "button", onclick: () => quick("set_timer", { seconds: m * 60, label: `${m} min` }) }, `${m} min`)))));
 
   const syncAgent = () => agentBtn?.classList.toggle("accent", !!settings?.agent?.mode);
+  // Systém (3.12): gauges with a ring each (the ring fills smoothly), the network, a bigger weather card
   const sysVals: Record<string, HTMLElement> = {};
-  const stat = (k: string, ic: string, label: string) => h("div", { class: "stat" }, icon(ic), h("span", {}, label), (sysVals[k] = h("b", {}, "–")));
+  const sysRings: Record<string, SVGCircleElement> = {};
+  const GAUGE = 2 * Math.PI * 26;
+  const stat = (k: string, ic: string, label: string) => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 60 60");
+    svg.setAttribute("class", "g-ring");
+    svg.innerHTML = '<circle cx="30" cy="30" r="26" class="g-bg"/>';
+    const arc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    for (const [a, v] of [["cx", "30"], ["cy", "30"], ["r", "26"], ["class", "g-arc"]]) arc.setAttribute(a, v);
+    arc.style.strokeDasharray = `${GAUGE}`;
+    arc.style.strokeDashoffset = `${GAUGE}`;
+    svg.append(arc);
+    sysRings[k] = arc;
+    return h("div", { class: `stat g-${k}` }, h("div", { class: "g-box" }, svg, h("span", { class: "g-ico" }, icon(ic, "ph-fill"))),
+      h("div", { class: "g-text" }, (sysVals[k] = h("b", {}, "–")), h("span", {}, label)));
+  };
+  const setGauge = (k: string, pct: number | null) => {
+    const arc = sysRings[k];
+    if (!arc) return;
+    const p = pct == null ? 0 : Math.max(0, Math.min(100, pct));
+    arc.style.strokeDashoffset = `${(GAUGE * (1 - p / 100)).toFixed(2)}`;
+    arc.closest(".stat")?.classList.toggle("hot", ["cpu", "ram", "disk"].includes(k) && p >= 85);   // only load can be "too much"
+  };
   const weatherBox = h("div", { class: "weather" }, h("span", { class: "muted" }, "Počasí se načítá…"));
   const updateBox = h("div", { class: "update" });
   const renderUpdate = () => {
@@ -583,14 +613,20 @@ export function buildPanel(ctx: PanelCtx) {
     sysVals.cpu.textContent = `${Math.round(m.cpu_percent)} %`;
     sysVals.ram.textContent = `${Math.round(m.ram_percent)} %`;
     sysVals.disk.textContent = `${Math.round(m.disk_percent)} %`;
-    sysVals.bat.textContent = m.battery_percent != null ? `${m.battery_percent} %` : "síť";
-    sysVals.net.textContent = m.ip || "online";
+    sysVals.bat.textContent = m.battery_percent != null ? `${m.battery_percent} %` : "Kabel";
+    sysVals.net.textContent = "Online";
+    sysVals.net.title = m.ip || "";
+    setGauge("cpu", m.cpu_percent); setGauge("ram", m.ram_percent); setGauge("disk", m.disk_percent);
+    setGauge("bat", m.battery_percent != null ? m.battery_percent : 100);
+    setGauge("net", 100);
   });
   client.on("mood", (m) => { mood = m.mood; moodDetail = m.detail || ""; renderHome(); if (sysVals.net) sysVals.net.textContent = m.mood === "offline" ? "offline" : sysVals.net.textContent; });
   client.on("weather", (m) => {
     if (m.error) { weatherBox.replaceChildren(h("span", { class: "muted" }, "Počasí nedostupné")); return; }
     const dn = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
-    weatherBox.replaceChildren(h("div", { class: "w-now" }, h("b", {}, `${Math.round(m.temp)}°`), h("span", {}, `${m.city}, ${m.desc}`)),
+    const wIcon = /bouř/i.test(m.desc || "") ? "cloud-lightning" : /sníh|sněž/i.test(m.desc || "") ? "snowflake" : /déšť|přeháň|mrhol/i.test(m.desc || "") ? "cloud-rain"
+      : /mlh/i.test(m.desc || "") ? "cloud-fog" : /zataž|oblač/i.test(m.desc || "") ? "cloud" : "sun";
+    weatherBox.replaceChildren(h("span", { class: "w-ico" }, icon(wIcon, "ph-fill")), h("div", { class: "w-now" }, h("b", {}, `${Math.round(m.temp)}°`), h("span", {}, `${m.city} · ${m.desc}`)),
       h("div", { class: "w-days" }, ...(m.days || []).slice(1, 4).map((d: any) => h("div", {}, h("span", {}, dn[new Date(d.date).getDay()]), h("b", {}, `${Math.round(d.max)}°`), h("span", { class: "muted" }, `${Math.round(d.min)}°`)))));
   });
   client.on("tools", (m) => {

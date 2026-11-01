@@ -1,0 +1,140 @@
+/* 3.12 the other sections of the open notch, in the same language as the new home: dark rounded cards with a hairline
+   edge, round coloured icons, clear type, nothing overflowing. Only the Dynamic Island look (the default). */
+html[data-nstyle="dynamic"] .p-sec { --c-card: #141519; --c-card-2: #1b1c21; --c-edge: rgb(255 255 255 / .06); --c-sub: rgb(255 255 255 / .58); }
+html[data-nstyle="dynamic"] .p-sec h4 { margin: 4px 2px 2px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-sub); }
+
+/* ---------- Akce ---------- */
+html[data-nstyle="dynamic"] .p-quick { display: flex; flex-direction: column; gap: 12px; }
+html[data-nstyle="dynamic"] .qwrap { display: grid; grid-template-columns: 1.25fr 1fr 1fr auto; gap: 10px; min-height: 0; }
+html[data-nstyle="dynamic"] .qgroup { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 22px; background: var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .qg-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c-sub); padding-left: 2px; }
+html[data-nstyle="dynamic"] .qg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px 4px; }
+html[data-nstyle="dynamic"] .qbtn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 2px; border: 0; background: none; color: #fff;
+  cursor: pointer; min-width: 0; }
+html[data-nstyle="dynamic"] .q-ico { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; font-size: 20px; color: #fff;
+  background: rgb(255 255 255 / .1); transition: transform .25s cubic-bezier(.3, 1.5, .5, 1), filter .2s, box-shadow .2s; }
+html[data-nstyle="dynamic"] .qbtn:hover .q-ico { transform: scale(1.08); filter: brightness(1.15); }
+html[data-nstyle="dynamic"] .q-lbl { font-size: 11px; font-weight: 600; color: rgb(255 255 255 / .82); text-align: center; line-height: 1.2;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-nstyle="dynamic"] .qbtn.c-pink .q-ico { background: linear-gradient(145deg, #ff5e8a, #e2245a); }
+html[data-nstyle="dynamic"] .qbtn.c-blue .q-ico { background: linear-gradient(145deg, #3b9bff, #0a64e0); }
+html[data-nstyle="dynamic"] .qbtn.c-purple .q-ico { background: linear-gradient(145deg, #b77bff, #7c3aed); }
+html[data-nstyle="dynamic"] .qbtn.c-indigo .q-ico { background: linear-gradient(145deg, #6e7bff, #3f45d8); }
+html[data-nstyle="dynamic"] .qbtn.c-teal .q-ico { background: linear-gradient(145deg, #2fd6c3, #0e9e8e); }
+html[data-nstyle="dynamic"] .qbtn.c-green .q-ico { background: linear-gradient(145deg, #4ade80, #16a34a); }
+html[data-nstyle="dynamic"] .qbtn.c-gray .q-ico { background: rgb(255 255 255 / .12); }
+html[data-nstyle="dynamic"] .qbtn.accent .q-ico { box-shadow: 0 0 0 3px #000, 0 0 0 5px #2fd6c3; }
+html[data-nstyle="dynamic"] .qstop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 104px; border: 0;
+  border-radius: 22px; background: radial-gradient(120% 90% at 50% 0%, rgb(255 69 58 / .38), rgb(255 69 58 / .14)); color: #ff6961; cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(255 69 58 / .25); transition: transform .25s cubic-bezier(.3, 1.5, .5, 1), background .2s; }
+html[data-nstyle="dynamic"] .qstop i { font-size: 30px; }
+html[data-nstyle="dynamic"] .qstop strong { font-size: 15px; color: #fff; letter-spacing: .04em; }
+html[data-nstyle="dynamic"] .qstop span { font-size: 11px; color: rgb(255 255 255 / .6); }
+html[data-nstyle="dynamic"] .qstop:hover { transform: scale(1.03); }
+html[data-nstyle="dynamic"] .qstop:active { transform: scale(.97); }
+html[data-nstyle="dynamic"] .qrows { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+html[data-nstyle="dynamic"] .qrow { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px; border-radius: 99px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); min-width: 0; }
+html[data-nstyle="dynamic"] .qr-title { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; font-size: 12.5px; font-weight: 600; color: var(--c-sub); white-space: nowrap; }
+html[data-nstyle="dynamic"] .qr-title i { font-size: 15px; color: #fff; }
+html[data-nstyle="dynamic"] .qpill { height: 30px; padding: 0 12px; border: 0; border-radius: 99px; background: rgb(255 255 255 / .1); color: #fff;
+  font: 600 12px var(--font); cursor: pointer; white-space: nowrap; transition: background .2s, transform .2s; }
+html[data-nstyle="dynamic"] .qpill:hover { background: rgb(255 255 255 / .18); }
+html[data-nstyle="dynamic"] .qpill:active { transform: scale(.95); }
+
+/* ---------- Systém ---------- */
+html[data-nstyle="dynamic"] .p-system { display: grid; grid-template-rows: auto 1fr auto; gap: 12px; }
+html[data-nstyle="dynamic"] .p-system .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+html[data-nstyle="dynamic"] .p-system .stat { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 22px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); min-width: 0; --g: #0a84ff; }
+html[data-nstyle="dynamic"] .p-system .stat.g-ram { --g: #bf5af2; }
+html[data-nstyle="dynamic"] .p-system .stat.g-disk { --g: #ff9f0a; }
+html[data-nstyle="dynamic"] .p-system .stat.g-bat { --g: #30d158; }
+html[data-nstyle="dynamic"] .p-system .stat.g-net { --g: #64d2ff; }
+html[data-nstyle="dynamic"] .p-system .stat.hot { --g: #ff453a; }
+html[data-nstyle="dynamic"] .g-box { position: relative; width: 46px; height: 46px; flex: none; }
+html[data-nstyle="dynamic"] .g-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+html[data-nstyle="dynamic"] .g-bg { fill: none; stroke: rgb(255 255 255 / .1); stroke-width: 6; }
+html[data-nstyle="dynamic"] .g-arc { fill: none; stroke: var(--g); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .9s cubic-bezier(.2, .9, .25, 1), stroke .4s; }
+html[data-nstyle="dynamic"] .g-ico { position: absolute; inset: 0; display: grid; place-items: center; font-size: 17px; color: var(--g); }
+html[data-nstyle="dynamic"] .g-text { display: grid; min-width: 0; }
+html[data-nstyle="dynamic"] .g-text b { font: 700 15px var(--font); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+html[data-nstyle="dynamic"] .g-text span { font-size: 11.5px; color: var(--c-sub); }
+html[data-nstyle="dynamic"] .p-system .weather { display: flex; align-items: center; gap: 18px; padding: 16px 22px; border-radius: 22px; min-height: 0;
+  background: radial-gradient(120% 140% at 0% 0%, rgb(10 132 255 / .35), transparent 60%), var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .p-system .w-ico { font-size: 54px; color: #ffd60a; filter: drop-shadow(0 6px 18px rgb(255 214 10 / .35)); }
+html[data-nstyle="dynamic"] .p-system .w-now { display: grid; gap: 2px; margin-right: auto; }
+html[data-nstyle="dynamic"] .p-system .w-now b { font-size: 46px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; color: #fff; }
+html[data-nstyle="dynamic"] .p-system .w-now span { font-size: 13px; color: rgb(255 255 255 / .7); text-transform: capitalize; }
+html[data-nstyle="dynamic"] .p-system .w-days { display: flex; gap: 8px; }
+html[data-nstyle="dynamic"] .p-system .w-days > div { display: grid; justify-items: center; gap: 2px; min-width: 58px; padding: 10px 8px; border-radius: 16px; background: rgb(255 255 255 / .06); }
+html[data-nstyle="dynamic"] .p-system .w-days span { font-size: 11.5px; color: var(--c-sub); }
+html[data-nstyle="dynamic"] .p-system .w-days b { font-size: 17px; color: #fff; }
+html[data-nstyle="dynamic"] .p-system .update { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; border-radius: 99px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .p-system .update > :first-child { margin-right: auto; }
+
+/* ---------- Více ---------- */
+html[data-nstyle="dynamic"] .p-sec.more { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 10px; }
+html[data-nstyle="dynamic"] .more-tile { position: relative; display: grid; grid-template-rows: auto auto 1fr; align-content: start; justify-items: start; gap: 4px;
+  min-width: 0; padding: 14px; border-radius: 22px; background: var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); text-align: left; overflow: hidden;
+  transition: transform .3s cubic-bezier(.2, .9, .25, 1), background .2s; }
+html[data-nstyle="dynamic"] .more-tile:hover { transform: translateY(-2px); background: var(--c-card-2); }
+html[data-nstyle="dynamic"] .more-tile i { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 0 6px; border-radius: 12px; font-size: 20px;
+  color: #fff; background: linear-gradient(145deg, #3b9bff, #0a64e0); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(2) i { background: linear-gradient(145deg, #ffb340, #f08c00); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(3) i { background: linear-gradient(145deg, #2fd6c3, #0e9e8e); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(4) i { background: linear-gradient(145deg, #8e8e93, #5a5a60); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(5) i { background: linear-gradient(145deg, #b77bff, #7c3aed); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(6) i { background: linear-gradient(145deg, #6e7bff, #3f45d8); }
+html[data-nstyle="dynamic"] .more-tile:nth-child(7) i { background: linear-gradient(145deg, #ffd60a, #e0a800); color: #000; }
+html[data-nstyle="dynamic"] .more-tile:nth-child(8) i { background: linear-gradient(145deg, #5a5a60, #2c2c30); }
+html[data-nstyle="dynamic"] .more-tile.on i { box-shadow: 0 0 0 3px #000, 0 0 0 5px #ffd60a; }
+html[data-nstyle="dynamic"] .more-tile strong { font-size: 14.5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+html[data-nstyle="dynamic"] .more-tile span { font-size: 12px; line-height: 1.35; color: var(--c-sub); max-width: 100%; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Soubory ---------- */
+html[data-nstyle="dynamic"] .p-files { display: flex; flex-direction: column; gap: 10px; }
+html[data-nstyle="dynamic"] .p-files .shelf { flex: 1; min-height: 0; }
+html[data-nstyle="dynamic"] .shelf-empty { display: grid; place-items: center; align-content: center; gap: 10px; height: 100%; min-height: 200px; border-radius: 22px;
+  border: 1.5px dashed rgb(255 255 255 / .14); background: var(--c-card); color: var(--c-sub); text-align: center; font-size: 13px; padding: 20px; }
+html[data-nstyle="dynamic"] .shelf-empty i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; color: #fff;
+  background: linear-gradient(145deg, #ffb340, #f08c00); box-shadow: 0 10px 26px -10px rgb(255 159 10 / .7); }
+html[data-nstyle="dynamic"] .shelf-item { border-radius: 16px; background: var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); }
+
+/* ---------- Plochy ---------- */
+html[data-nstyle="dynamic"] .p-ws { display: flex; flex-direction: column; gap: 10px; }
+html[data-nstyle="dynamic"] .p-ws > .muted { font-size: 12px; color: var(--c-sub); margin: 0 2px; }
+html[data-nstyle="dynamic"] .p-ws .ws-save { display: flex; gap: 8px; padding: 6px; border-radius: 99px; background: var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .p-ws .ws-save .p-input { flex: 1; border: 0; background: transparent; padding: 0 12px; }
+html[data-nstyle="dynamic"] .ws-item { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .ws-item > strong { margin-right: 4px; }
+html[data-nstyle="dynamic"] .ws-item > .muted { margin-right: auto; }
+
+/* ---------- Nástroje ---------- */
+html[data-nstyle="dynamic"] .p-tools .tool-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+html[data-nstyle="dynamic"] .p-tools .tcat { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px; border-radius: 16px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); min-width: 0; }
+html[data-nstyle="dynamic"] .p-tools .tcat b { font-size: 20px; font-weight: 700; color: #0a84ff; font-variant-numeric: tabular-nums; }
+html[data-nstyle="dynamic"] .p-tools .tcat span { font-size: 12px; color: rgb(255 255 255 / .75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Nastavení ---------- */
+html[data-nstyle="dynamic"] .p-settings { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; align-items: start; }
+html[data-nstyle="dynamic"] .p-settings .p-col { display: flex; flex-direction: column; gap: 0; padding: 4px 14px; border-radius: 22px; background: var(--c-card);
+  box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .p-settings .p-col > .p-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 0;
+  border: 0; border-radius: 0; background: none; font-size: 13.5px; font-weight: 600; }
+html[data-nstyle="dynamic"] .p-settings .p-col > .p-row + .p-row { border-top: 1px solid var(--c-edge); }
+html[data-nstyle="dynamic"] .p-settings .p-col > .p-pill { margin: 8px 0 10px; align-self: stretch; justify-content: center; }
+html[data-nstyle="dynamic"] .p-settings .p-col.char { align-items: center; gap: 12px; padding: 16px 14px; }
+html[data-nstyle="dynamic"] .p-settings .p-select { height: 32px; padding: 0 28px 0 12px; border: 0; border-radius: 10px; background-color: rgb(255 255 255 / .1); color: #fff; font: 600 12.5px var(--font); }
+
+/* Plochy: the window map as a card (an empty screen says so instead of a black box) */
+html[data-nstyle="dynamic"] .p-ws .window-map { margin: 0; flex: 1; min-height: 0; }
+html[data-nstyle="dynamic"] .p-ws .wm-stage { height: 100%; max-height: 190px; aspect-ratio: auto; border: 0; border-radius: 20px;
+  background: radial-gradient(120% 120% at 50% 0%, rgb(10 132 255 / .12), transparent 70%), var(--c-card); box-shadow: inset 0 0 0 1px var(--c-edge); }
+html[data-nstyle="dynamic"] .p-ws .wm-stage:empty::after { content: "Žádná otevřená okna – až nějaká otevřeš, uvidíš je tady jako mapu."; position: absolute; inset: 0;
+  display: grid; place-items: center; padding: 20px; text-align: center; font-size: 12.5px; color: var(--c-sub); }
+html[data-nstyle="dynamic"] .p-ws .wm-win { border-radius: 8px; background: rgb(255 255 255 / .08); border-color: rgb(255 255 255 / .18); }
