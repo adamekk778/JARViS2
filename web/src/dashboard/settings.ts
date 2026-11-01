@@ -1,5 +1,5 @@
+import "./settings.css";
 import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
-import { hero, HEROES } from "../shared/hero";
 import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
@@ -25,6 +25,29 @@ const TITLES: Record<Section, [string, string, string]> = {
   dictation: ["sliders", "Nastavení diktování", "Klávesa, diktování bez držení a úprava textu pomocí AI."],
   dictionary: ["book-open", "Slovník a zkratky", "Jména, která má JARVIS psát správně, opravy a celé texty na jedno slovo."],
 };
+
+// 3.12 own look: every section has its colour, every row a small icon tile saying what it sets
+const SEC_COLOR: Record<Section, [string, string]> = {
+  general: ["#3b9bff", "#0a64e0"], brain: ["#b77bff", "#7c3aed"], voice: ["#ff9f45", "#f0640a"], notch: ["#8e8e93", "#3a3a40"],
+  appearance: ["#ff6fa8", "#e2245a"], hotkeys: ["#2fd6c3", "#0e9e8e"], permissions: ["#4ade80", "#16a34a"], tools: ["#ffc145", "#e09400"],
+  integrations: ["#6e7bff", "#3f45d8"], phone: ["#5ad1ff", "#0a8fd6"], memory: ["#c58bff", "#8b3fe0"], jobs: ["#ff6b62", "#e0261f"],
+  backup: ["#94a3b8", "#475569"], dictation: ["#3b9bff", "#0a64e0"], dictionary: ["#ffd60a", "#d9a400"],
+};
+const ROW_ICON: [RegExp, string][] = [
+  [/user_name|address_as/, "user"], [/\.city$/, "map-pin"], [/language|stt_language/, "translate"], [/personality/, "smiley"], [/custom_prompt/, "note-pencil"],
+  [/autostart/, "rocket-launch"], [/offline_only/, "wifi-slash"], [/temperature/, "thermometer-simple"], [/max_tokens/, "text-align-left"], [/timeout/, "timer"],
+  [/wake_word/, "ear"], [/threshold/, "gauge"], [/input_device/, "microphone"], [/silence/, "hourglass-medium"], [/followup/, "chats-circle"],
+  [/emotion/, "smiley-wink"], [/noise/, "waveform"], [/auto_gain|gain/, "equalizer"], [/duck/, "speaker-low"], [/tts_rate|rate/, "gauge"],
+  [/tts|voice\.voice|speak/, "speaker-high"], [/voice\.enabled/, "microphone"], [/hotkeys\.talk/, "microphone"], [/hotkeys\.chat/, "chat-circle"],
+  [/hotkeys\.stop/, "hand-palm"], [/hotkeys\.hud/, "circle-notch"], [/hotkeys\.selection/, "selection"], [/notch_toggle/, "eye-slash"],
+  [/hotkeys\.subtitles|subs/, "closed-captioning"], [/lyrics/, "microphone-stage"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
+  [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
+  [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
+  [/animations/, "sparkle"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
+  [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
+  [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
+];
+const rowIcon = (path: string, sec: Section) => (ROW_ICON.find(([re]) => re.test(path)) || [null, TITLES[sec][0]])[1];
 
 const TILE_NAMES: Record<string, string> = {
   ask: "Zeptej se", media: "Právě hraje", shelf: "Police", quick: "Rychlé akce", timers: "Časovače",
@@ -92,20 +115,21 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   };
 
   // ----- field helpers (Coucou-style rows: text on the left, the control on the right) -----
-  const field = (label: string, control: Node, help = "", wide = false) =>
-    h("label", { class: `field ${wide ? "wide" : ""}` },
+  const ico = (path: string) => h("span", { class: "set-ico", "aria-hidden": "true" }, icon(rowIcon(path, current), "ph-fill"));
+  const field = (label: string, control: Node, help = "", wide = false, path = "") =>
+    h("label", { class: `field ${wide ? "wide" : ""} ${path ? "has-ico" : ""}` }, path && !wide ? ico(path) : null,
       h("span", { class: "f-text" }, h("span", { class: "f-title" }, label), help ? h("span", { class: "help" }, help) : null), control);
   const sw = (path: string, title: string, desc = "") => {
     const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
     inp.checked = !!getPath(S, path);
     inp.onchange = () => set(path, inp.checked);
-    return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), desc ? h("span", {}, desc) : null),
+    return h("div", { class: "row has-ico" }, ico(path), h("div", { class: "row-text" }, h("strong", {}, title), desc ? h("span", {}, desc) : null),
       h("label", { class: "switch" }, inp, h("span")));
   };
   const text = (path: string, label: string, help = "", type = "text") => {
     const inp = h("input", { class: "input", type, value: getPath(S, path) ?? "" }) as HTMLInputElement;
     inp.onchange = () => set(path, type === "number" ? Number(inp.value) : inp.value);
-    return field(label, inp, help);
+    return field(label, inp, help, false, path);
   };
   const select = (path: string, label: string, options: [string, string][], help = "", onChange?: (v: string) => void) => {
     const cur = String(getPath(S, path) ?? "");
@@ -114,13 +138,13 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const seg = h("span", { class: "segmented", role: "radiogroup", "aria-label": label },
         ...options.map(([v, l]) => h("button", { type: "button", role: "radio", "aria-checked": String(v === cur), class: v === cur ? "on" : "",
           onclick: (e: Event) => { e.preventDefault(); if (v !== cur) { set(path, v); onChange?.(v); } } }, l)));
-      return field(label, seg, help);
+      return field(label, seg, help, false, path);
     }
     const sel = h("select", { class: "input" }, ...options.map(([v, l]) => h("option", { value: v }, l))) as HTMLSelectElement;
     if (!options.some(([v]) => v === cur)) sel.append(h("option", { value: cur }, cur));
     sel.value = cur;
     sel.onchange = () => { set(path, sel.value); onChange?.(sel.value); };
-    return field(label, sel, help);
+    return field(label, sel, help, false, path);
   };
   const range = (path: string, label: string, min: number, max: number, step: number, fmt: (v: number) => string, parse?: (s: any) => number, out?: (v: number) => unknown) => {
     const raw = getPath(S, path);
@@ -129,7 +153,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     const o = h("output", {}, fmt(val));
     inp.oninput = () => (o.textContent = fmt(Number(inp.value)));
     inp.onchange = () => set(path, out ? out(Number(inp.value)) : Number(inp.value));
-    return field(label, h("div", { class: "range" }, inp, o));
+    return field(label, h("div", { class: "range" }, inp, o), "", false, path);
   };
   // a titled group: the label above, the rows inside one card, thin lines between them
   const card = (title: string, help: string | null, ...kids: (Node | null)[]) =>
@@ -156,7 +180,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       };
       window.addEventListener("keydown", onKey, true);
     };
-    return field(label, caps, help);
+    return field(label, caps, help, false, path);
   };
   const pct = (s: string) => parseInt(String(s || "0").replace("%", ""), 10) || 0;
   const signed = (v: number, unit: string) => `${v >= 0 ? "+" : ""}${v}${unit}`;
@@ -921,11 +945,21 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let searchTimer = 0;
   searchInput.oninput = () => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => { query = searchInput.value; render(); searchInput.focus(); }, 200); };
 
-  const bands = new Map<Section, HTMLElement>();
+  // header (3.12): a big tile in the section's colour, the title and what the section is for, the search on the
+  // right, and a strip of all settings sections to jump between them
+  const SEC_ORDER: Section[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup", "dictation", "dictionary"];
+  const SHORT: Partial<Record<Section, string>> = { brain: "Mozek", tools: "Nástroje", jobs: "Rutiny", dictation: "Diktování", dictionary: "Slovník" };
   const heroFor = (sec: Section) => {
-    let el = bands.get(sec);
-    if (!el) { const [, title, lead] = TITLES[sec]; el = hero(HEROES[sec], title, lead); bands.set(sec, el); }
-    return el;
+    const [ic, title, lead] = TITLES[sec];
+    const strip = h("nav", { class: "set-strip", "aria-label": "Sekce nastavení" }, ...SEC_ORDER.map((k) =>
+      h("button", { type: "button", class: k === sec ? "on" : "", style: `--a:${SEC_COLOR[k][0]};--b:${SEC_COLOR[k][1]}`, "aria-current": k === sec ? "page" : null,
+        onclick: () => { location.hash = k; } }, icon(TITLES[k][0], "ph-fill"), h("span", {}, SHORT[k] || TITLES[k][1]))));
+    return h("header", { class: "set-head" },
+      h("div", { class: "set-head-top" },
+        h("span", { class: "set-tile", "aria-hidden": "true" }, icon(ic, "ph-fill")),
+        h("div", { class: "set-title" }, h("h1", {}, title), h("p", {}, lead)),
+        h("div", { class: "hero-copy" })),
+      strip);
   };
 
   function render() {
@@ -951,7 +985,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     } else body = sections[current]();
     const band = heroFor(current);
     band.querySelector(".hero-copy")!.append(searchBox);
-    host.replaceChildren(h("div", { class: "set-page" }, band,
+    const [c1, c2] = SEC_COLOR[current];
+    host.replaceChildren(h("div", { class: "set-page", style: `--sec-a:${c1};--sec-b:${c2}` }, band,
       local ? null : h("div", { class: "readonly-note" }, "Nastavení jde měnit jen přímo na počítači."),
       ...body));
     host.scrollTop = scroll;
