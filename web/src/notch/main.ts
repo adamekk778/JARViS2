@@ -49,7 +49,7 @@ function setAlpha(on: boolean) {
 if (window.pywebview) document.documentElement.classList.add("native");
 
 let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6, monitor: 0, offset_x: 0,
-  open_on: "hover", tuck_minutes: 10 };
+  open_on: "hover", tuck_minutes: 10, native_region_anim: false };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
 let moodInfo: { badge?: number; progress?: number | null; detail?: string; reaction?: any; secondary?: any; ambient?: any } = {};
@@ -284,6 +284,9 @@ function paintShape() {
 let hostAnim = false;
 function sendRegionPlan(): boolean {
   const api = (window as any).pywebview?.api;
+  // off until it is proven on real Windows: in the CI notch test the window stopped answering after the first
+  // host-animated hover (a cross-thread SetWindowRgn per screen refresh); the page sends frames as before
+  if (!cfg.native_region_anim) return false;
   if (!api?.region_anim || regionPad) return false;          // smooth edges (per-pixel alpha): frames as before
   const box = shape.getBoundingClientRect();
   const k = dyn() ? (S.grow ? 300 : 420) : (S.grow ? 340 : 520), c = dyn() ? (S.grow ? 24 : 36) : (S.grow ? 27 : 46);

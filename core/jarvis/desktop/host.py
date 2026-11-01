@@ -136,7 +136,7 @@ class DesktopHost:
             return bool(ok)
 
     def animate_region(self, plan: dict) -> bool:
-        if self.alpha or not winutil.IS_WIN or not isinstance(plan, dict):
+        if self.alpha or not winutil.IS_WIN or not isinstance(plan, dict) or not getattr(self.rt.cfg.notch, "native_region_anim", False):
             return False
         try:
             if self._animator is None:
@@ -152,9 +152,9 @@ class DesktopHost:
     def _region_frame(self, polys: list) -> None:
         """One animation frame of the outline, straight from the animator thread (no repaint request: the WebView
         draws itself, the region only cuts it – a forced repaint every frame was part of the stutter)."""
-        with self._region_lock:
-            hwnd = self.notch_hwnd()
-            if hwnd and winutil.set_region(hwnd, polys, redraw=False):
+        hwnd = self.notch_hwnd()               # no lock held while Windows talks to the window's own thread
+        if hwnd and winutil.set_region(hwnd, polys, redraw=False):
+            with self._region_lock:
                 self._region = polys
                 self._region_applied = (hwnd, str(polys))
 

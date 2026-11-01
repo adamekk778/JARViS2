@@ -181,6 +181,8 @@ def test_notch_outline_animated_by_jarvis_not_per_frame_from_the_page(rt, monkey
     h.alpha = True
     assert h.animate_region(plan) is False
     h.alpha = False
+    assert h.animate_region(plan) is False                 # off by default (experimental)
+    rt.cfg.notch.native_region_anim = True
     calls = []
     monkeypatch.setattr(h, "notch_hwnd", lambda: 4242)
     monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys, redraw=True: calls.append((hwnd, redraw, polys)) or True)
