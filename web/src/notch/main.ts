@@ -1,6 +1,7 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./dynamic.css";
+import "./home.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
@@ -254,7 +255,20 @@ function paintShape() {
   shape.style.setProperty("--cw", `${S.w.toFixed(2)}px`);
   shape.style.setProperty("--ch", `${S.h.toFixed(2)}px`);
   shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
-  syncRegion();
+  if (!(hostAnim && S.raf)) syncRegion();      // while JARVIS animates the outline itself, no per-frame sends
+}
+// 3.12: with the window cut to the shape, the outline IS what you see – so JARVIS animates it on the PC, once per
+// screen refresh, from one plan per movement (the same spring as below). The page only sends the plan.
+let hostAnim = false;
+function sendRegionPlan(): boolean {
+  const api = (window as any).pywebview?.api;
+  if (!api?.region_anim || regionPad) return false;          // smooth edges (per-pixel alpha): frames as before
+  const box = shape.getBoundingClientRect();
+  const k = dyn() ? (S.grow ? 300 : 420) : (S.grow ? 340 : 520), c = dyn() ? (S.grow ? 24 : 36) : (S.grow ? 27 : 46);
+  const plan = { geom: dyn() ? "round" : "notch", cx: box.left + box.width / 2, top: box.top + (dyn() ? GAP : 0), dpr: window.devicePixelRatio || 1,
+    pad: regionPad, ear: 14, k, c, from: { w: S.w, h: S.h, r: Math.max(0, S.r), vw: S.vw, vh: S.vh, vr: S.vr }, to: { w: S.tw, h: S.th, r: S.tr } };
+  Promise.resolve(api.region_anim(plan)).then((ok) => { if (ok === false) { hostAnim = false; } }, () => { hostAnim = false; });
+  return true;
 }
 function syncRegion(force = false) {
   if (!window.pywebview) return;
@@ -294,9 +308,11 @@ function springStep(now: number) {
 function settleBox() {
   // after the animation the box fits the shape exactly (the window keeps its size, see windowSize)
   setBox(S.tw, S.th);
+  hostAnim = false;
   syncRegion(true);
 }
 function animateShape(w: number, hh: number, r: number) {
+  const retarget = w !== S.tw || hh !== S.th || r !== S.tr;
   S.grow = w >= S.w && hh >= S.h;
   S.tw = w; S.th = hh; S.tr = r;
   // the box is never smaller than what is on screen during the move
@@ -304,6 +320,7 @@ function animateShape(w: number, hh: number, r: number) {
   ensureWindow();
   setBox(Math.max(bw, boxW), Math.max(bh, boxH));
   if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
+  if (retarget) hostAnim = sendRegionPlan();
   if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(springStep); }
 }
 window.addEventListener("pywebviewready", () => { ensureWindow(); syncRegion(); window.setTimeout(() => syncRegion(true), 500); });
@@ -731,6 +748,33 @@ client.on("agent_activity", (m) => {
   updateActivity();
 });
 let vol: { level: number; muted: boolean } | null = null, volUntil = 0;
+// the bar glides to the new level (a critically damped spring on requestAnimationFrame, GPU transform only)
+const volNum = h("span", { class: "n-vol-num" });
+let volShown = -1, volVel = 0, volTarget = 0, volRaf = 0, volLast = 0, volHide = 0;
+function volTick(now: number) {
+  const dt = Math.min(0.05, (now - (volLast || now)) / 1000);
+  volLast = now;
+  if (volShown < 0) volShown = volTarget;
+  const k = 260, c = 2 * Math.sqrt(k);
+  volVel += (k * (volTarget - volShown) - c * volVel) * dt;
+  volShown += volVel * dt;
+  const done = Math.abs(volTarget - volShown) < 0.05 && Math.abs(volVel) < 0.5;
+  if (done) { volShown = volTarget; volVel = 0; }
+  (volBar.firstChild as HTMLElement).style.transform = `scaleX(${(Math.max(0, Math.min(100, volShown)) / 100).toFixed(4)})`;
+  const n = String(Math.round(volTarget));
+  if (volNum.textContent !== n) volNum.textContent = n;
+  volRaf = done ? 0 : requestAnimationFrame(volTick);
+  if (done) volLast = 0;
+}
+/** Replace a box's children only when they really changed (rebuilding them every second made icons blink and the
+ *  album art reload). Strings and elements are compared by their markup. */
+const kidsKey = new WeakMap<Element, string>();
+function setKids(el: HTMLElement, kids: (Node | string)[]) {
+  const key = kids.map((k) => (typeof k === "string" ? k : k instanceof Element ? k.outerHTML : k.textContent || "")).join("\u0001");
+  if (kidsKey.get(el) === key) return;
+  kidsKey.set(el, key);
+  el.replaceChildren(...kids);
+}
 client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
 client.on("lyrics", (m) => {
   lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [] };
@@ -747,9 +791,17 @@ client.on("live_subs", (m) => {
 setInterval(() => { if (subs.on && subs.lines.length && Date.now() - subs.at > 6000) { subs.lines = []; updateActivity(); } }, 1000);
 client.on("volume", (m) => {
   vol = { level: Number(m.level) || 0, muted: !!m.muted };
+  volTarget = vol.muted ? 0 : vol.level;
+  const showing = Date.now() < volUntil && shape.dataset.island === "volume";
   volUntil = Date.now() + 1600;
-  updateActivity();
-  window.setTimeout(updateActivity, 1700);
+  if (!volRaf) volRaf = requestAnimationFrame(volTick);
+  if (!showing) updateActivity();                 // only the first event of a change reshapes the island
+  else {                                          // the rest just move the bar (and the icon when it changes)
+    const ic = vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high";
+    setKids(lead, [icon(ic, "ph-fill")]);
+  }
+  window.clearTimeout(volHide);
+  volHide = window.setTimeout(updateActivity, 1700);
 });
 function renderBrand() {
   if (dyn()) {          // Dynamic Island: the card's head says who answers and what it is doing
@@ -879,7 +931,8 @@ function islandActivity(t: any) {
   } else if (vol && Date.now() < volUntil) {
     kind = "volume";
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
-    (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
+    r = [volNum];
+    if (!volRaf) volRaf = requestAnimationFrame(volTick);
   } else if (lyricsOn()) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
@@ -936,8 +989,8 @@ function islandActivity(t: any) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
     if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
   }
-  lead.replaceChildren(...l);
-  trail.replaceChildren(...r);
+  setKids(lead, l);
+  setKids(trail, r);
   shape.dataset.island = kind;
 }
 function updateActivity() {

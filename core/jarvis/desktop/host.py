@@ -48,6 +48,11 @@ class NotchApi:
         """Is the window per-pixel transparent? Then the page paints only the shape (see DesktopHost._smooth_edges)."""
         return self._host.alpha
 
+    def region_anim(self, plan: dict) -> bool:
+        """One plan per movement of the notch; JARVIS then animates the window outline itself, once per screen refresh
+        (instead of the page sending every frame). False = not used here (smooth edges / not Windows): send frames."""
+        return self._host.animate_region(plan)
+
     def hide_notch(self) -> None:
         """"Schovat notch" in the panel: hidden until the hotkey (Ctrl+Alt+N) or the tray brings it back."""
         self._host.toggle_notch(False)
@@ -93,6 +98,7 @@ class DesktopHost:
         self._region_warned = 0.0
         self._region_seq = 0
         self._region_lock = threading.Lock()
+        self._animator = None             # 3.12: the notch outline animated here, in step with the screen
 
     # ---------- geometry ----------
     def _screen(self):
@@ -128,6 +134,29 @@ class DesktopHost:
             ok = winutil.set_region(hwnd, polys)
             self._region_applied = (hwnd, str(polys)) if ok else None
             return bool(ok)
+
+    def animate_region(self, plan: dict) -> bool:
+        if self.alpha or not winutil.IS_WIN or not isinstance(plan, dict):
+            return False
+        try:
+            if self._animator is None:
+                from .regionanim import RegionAnimator
+
+                self._animator = RegionAnimator(self._region_frame)
+            self._animator.start(plan)
+            return True
+        except Exception as e:  # noqa: BLE001
+            log.debug("region animation: %s", e)
+            return False
+
+    def _region_frame(self, polys: list) -> None:
+        """One animation frame of the outline, straight from the animator thread (no repaint request: the WebView
+        draws itself, the region only cuts it – a forced repaint every frame was part of the stutter)."""
+        with self._region_lock:
+            hwnd = self.notch_hwnd()
+            if hwnd and winutil.set_region(hwnd, polys, redraw=False):
+                self._region = polys
+                self._region_applied = (hwnd, str(polys))
 
     def heal_region(self) -> bool:
         """Without its region the notch window shows as a grey box around the notch. Windows can drop it (the

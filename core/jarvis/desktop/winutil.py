@@ -222,7 +222,7 @@ def no_backdrop(hwnd: int) -> int | None:
         return None
 
 
-def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> bool:
+def set_region(hwnd: int, polygons: list[list[tuple[int, int]]], redraw: bool = True) -> bool:
     """Clip the window to these polygons (window coordinates, physical px). Outside them the window simply does not
     exist: nothing is painted (no white/grey WinForms background) and the mouse goes to whatever is below.
     True when Windows took the region."""
@@ -234,7 +234,7 @@ def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> bool:
     u, g = ctypes.windll.user32, ctypes.windll.gdi32
     polys = [p for p in polygons if len(p) >= 3]
     if not polys:
-        return bool(u.SetWindowRgn(hwnd, None, True))
+        return bool(u.SetWindowRgn(hwnd, None, redraw))
     rgn = None
     for poly in polys:
         pts = (W.POINT * len(poly))(*[W.POINT(int(x), int(y)) for x, y in poly])
@@ -244,7 +244,7 @@ def set_region(hwnd: int, polygons: list[list[tuple[int, int]]]) -> bool:
         else:
             g.CombineRgn(rgn, rgn, r, 2)  # RGN_OR
             g.DeleteObject(r)
-    if not u.SetWindowRgn(hwnd, rgn, True):  # on success the system owns the region
+    if not u.SetWindowRgn(hwnd, rgn, redraw):  # on success the system owns the region
         g.DeleteObject(rgn)
         return False
     return True

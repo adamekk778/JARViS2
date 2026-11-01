@@ -1,4 +1,5 @@
 """Notch / pet window geometry on Windows: one atomic SetWindowPos in physical pixels, window region, cursor check."""
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -164,3 +165,36 @@ def test_hard_edges_by_default_smooth_only_when_chosen(rt, monkeypatch):
     rt.cfg.notch.edges = "smooth"
     h._smooth_edges()
     assert tried and h.alpha is True
+
+
+def test_notch_outline_animated_by_jarvis_not_per_frame_from_the_page(rt, monkeypatch):
+    """3.12: the page sends one plan per movement; JARVIS sets the window outline itself each screen refresh, without
+    a forced repaint per frame. Off Windows or with smooth edges the page keeps sending frames (False)."""
+    from jarvis.desktop import winutil
+
+    h = _host(rt)
+    plan = {"geom": "round", "cx": 500, "top": 6, "dpr": 1, "pad": 0, "k": 300, "c": 24,
+            "from": {"w": 176, "h": 36, "r": 18}, "to": {"w": 348, "h": 38, "r": 19}}
+    monkeypatch.setattr(winutil, "IS_WIN", False)
+    assert h.animate_region(plan) is False
+    monkeypatch.setattr(winutil, "IS_WIN", True)
+    h.alpha = True
+    assert h.animate_region(plan) is False
+    h.alpha = False
+    calls = []
+    monkeypatch.setattr(h, "notch_hwnd", lambda: 4242)
+    monkeypatch.setattr(winutil, "set_region", lambda hwnd, polys, redraw=True: calls.append((hwnd, redraw, polys)) or True)
+    assert h.animate_region(plan) is True
+    for _ in range(300):
+        if not h._animator.running:
+            break
+        time.sleep(0.01)
+    assert calls and all(c[0] == 4242 and c[1] is False for c in calls)
+    from jarvis.desktop.regionanim import outline
+    assert calls[-1][2] == outline(plan, 348, 38, 19) and h._region == calls[-1][2]
+
+
+def test_volume_is_read_quickly_while_it_moves():
+    from jarvis import sysplus
+
+    assert sysplus.volume_pause(0.2, 0.25) == 0.04 and sysplus.volume_pause(5, 0.25) == 0.25

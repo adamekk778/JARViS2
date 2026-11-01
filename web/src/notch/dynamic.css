@@ -24,7 +24,8 @@ html[data-nstyle="dynamic"] .n-inner > .act { display: none !important; }
 
 /* the content blurs for a moment while the shape changes, then settles (like iOS) */
 html[data-nstyle="dynamic"] .n-inner > * { transition: opacity .22s ease, filter .28s ease, transform .45s var(--spring); }
-html[data-nstyle="dynamic"] .notch.swap .n-inner > * { filter: blur(6px); }
+html[data-nstyle="dynamic"] .notch.swap .n-inner > :not(.n-panel):not(.n-vol) { filter: blur(6px); }
+html[data-nstyle="dynamic"] .n-panel { will-change: opacity, transform; contain: layout paint; }
 
 /* ---- compact: leading and trailing live activity ---- */
 html[data-nstyle="dynamic"] .n-inner > :is(.n-lead, .n-trail) { height: 36px; top: 0; font-size: 13px; font-weight: 600; letter-spacing: -.1px; }
@@ -42,7 +43,8 @@ html[data-nstyle="dynamic"] .notch[data-island="update"] .n-lead i { color: #30d
 html[data-nstyle="dynamic"] .n-inner > .n-music { right: 16px; top: 10px; }
 html[data-nstyle="dynamic"] .n-music i { background: #ff375f; width: 3px; }
 /* volume: icon left, a thin bar filling the rest */
-html[data-nstyle="dynamic"] .n-inner > .n-vol { left: 44px; right: 18px; top: 15px; height: 6px; }
+html[data-nstyle="dynamic"] .n-inner > .n-vol { left: 44px; right: 50px; top: 15px; height: 6px; }
+html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .n-vol { top: 16px; }
 /* voice: a breathing orb left, a waveform right */
 .n-orb { width: 20px; height: 20px; border-radius: 50%; display: block; flex: none;
   background: radial-gradient(circle at 35% 30%, #fff 0%, #7fd3ff 22%, #2a7bff 55%, #6b2bff 100%);

@@ -7,7 +7,7 @@ import type { JarvisClient } from "../shared/ws";
 import { TaskCard } from "../shared/taskcard";
 import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
-import { brandEl, brandOf, BRANDS } from "../shared/brands";
+import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
 export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
 
@@ -274,58 +274,159 @@ export function buildPanel(ctx: PanelCtx) {
         }, s)))));
   };
 
-  // ---------- home: date and time, then three big live cards (JARVIS / Claude Code, music, focus timer) ----------
+  // ---------- home (3.12): a real "now playing" card, JARVIS / Claude and a focus ring beside it, a dock below ----------
+  // Built once and only updated in place (a text, a width, a class) – nothing is rebuilt every second, so the
+  // album art never reloads and nothing flickers; the song progress runs on requestAnimationFrame.
   const MOOD_WORD: Record<string, string> = { idle: "Připraven", listening: "Poslouchám", thinking: "Přemýšlím", working: "Pracuji",
     speaking: "Mluvím", waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", notify: "Novinka" };
   const CLAUDE_WORD: Record<string, string> = { working: "Pracuje", thinking: "Přemýšlí", waiting: "Čeká na tebe", done: "Hotovo", idle: "Hotovo" };
-  const homeDate = h("div", { class: "home-date" });          // shown in the panel head (island look)
-  const cardAi = h("button", { class: "hcard ai", type: "button",
-    onclick: () => show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat") });
-  const cardMusic = h("div", { class: "hcard music", role: "group" });
-  const cardFocus = h("div", { class: "hcard focus", role: "group" });
-  const homeVolIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
+  const homeDate = h("div", { class: "home-date" });          // shown in the panel head
+  const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
+  const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s)) % 60).padStart(2, "0")}`;
+
+  // now playing
+  const npBg = h("img", { class: "np-bg", alt: "", "aria-hidden": "true" }) as HTMLImageElement;
+  const npArt = h("img", { class: "np-art-img", alt: "" }) as HTMLImageElement;
+  const npArtBox = h("div", { class: "np-art" }, npArt, h("span", { class: "np-art-none" }, icon("music-notes", "ph-fill")));
+  const npSrc = h("span", { class: "np-src" });
+  const npTitle = h("strong", { class: "np-title" });
+  const npArtist = h("span", { class: "np-artist" });
+  const npFill = h("i", { class: "np-fill" });
+  const npKnob = h("i", { class: "np-knob" });
+  const npBar = h("div", { class: "np-bar" }, h("div", { class: "np-track" }, npFill, npKnob));
+  const npT0 = h("span", {}), npT1 = h("span", {});
+  const npPlayIco = h("span", { class: "np-play-ico" });
+  const ctl = (ic: string, label: string, action: string, cls = "") => h("button", { class: `np-btn ${cls}`, type: "button", "aria-label": label,
+    onclick: (e: Event) => { (e.currentTarget as HTMLElement).animate([{ transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(.3,1.6,.5,1)" }); quick("media_control", { action }); } },
+    ic ? icon(ic, "ph-fill") : npPlayIco);
+  const npCard = h("div", { class: "np", role: "group", "aria-label": "Právě hraje" },
+    h("div", { class: "np-glow", "aria-hidden": "true" }, npBg),
+    h("div", { class: "np-top" }, npArtBox, h("div", { class: "np-meta" }, npSrc, npTitle, npArtist)),
+    h("div", { class: "np-time" }, npBar, h("div", { class: "np-times" }, npT0, npT1)),
+    h("div", { class: "np-ctl" }, ctl("skip-back", "Předchozí", "previous"), ctl("", "Přehrát / pauza", "play_pause", "main"), ctl("skip-forward", "Další", "next")));
+  let artSrc = "", playIco = "";
+  function paintNowPlaying() {
+    const has = !!media?.title, playing = !!media?.playing;
+    npCard.classList.toggle("empty", !has);
+    npCard.classList.toggle("playing", playing);
+    const thumb = has && media.thumb ? String(media.thumb) : "";
+    if (thumb !== artSrc) {                       // only a new cover is decoded (and it fades in)
+      artSrc = thumb;
+      npArtBox.classList.toggle("has", !!thumb);
+      if (thumb) { npArt.src = thumb; npBg.src = thumb; npArt.animate([{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(.2,.9,.25,1)" }); }
+      else { npArt.removeAttribute("src"); npBg.removeAttribute("src"); }
+    }
+    setText(npTitle, has ? media.title : "Nic nehraje");
+    setText(npArtist, has ? (media.artist || (playing ? "hraje" : "pozastaveno")) : "Pusť si hudbu nebo video – uvidíš to tady");
+    const src = mediaBrand(media?.source || "");
+    const srcKey = src ? src.id : "";
+    if (npSrc.dataset.k !== srcKey) { npSrc.dataset.k = srcKey; npSrc.replaceChildren(...(src && src.id !== "browser" ? [brandEl(src), h("span", {}, src.name)] : [])); }
+    const want = playing ? "pause" : "play";
+    if (want !== playIco) { playIco = want; npPlayIco.replaceChildren(icon(want, "ph-fill")); }
+  }
+  function songNow(): [number, number] {
+    const dur = Number(media?.duration) || 0;
+    if (!dur || typeof media?.position !== "number") return [0, 0];
+    const pos = media.position + (media.playing ? Math.max(0, Date.now() / 1000 - (media.at || Date.now() / 1000)) : 0);
+    return [Math.min(pos, dur), dur];
+  }
+  function npLoop() {
+    if (current === "home" && !npCard.classList.contains("empty")) {
+      const [pos, dur] = songNow();
+      npCard.classList.toggle("no-time", !dur);
+      if (dur) {
+        const p = Math.min(1, pos / dur);
+        npFill.style.transform = `scaleX(${p.toFixed(4)})`;
+        npKnob.style.left = `${(p * 100).toFixed(2)}%`;
+        setText(npT0, mmss(pos));
+        setText(npT1, `-${mmss(dur - pos)}`);
+      }
+    }
+    requestAnimationFrame(npLoop);
+  }
+  requestAnimationFrame(npLoop);
+
+  // JARVIS / Claude Code
+  const aiLogo = h("span", { class: "ai-logo" });
+  const aiName = h("span", { class: "ai-name" }), aiWord = h("strong", { class: "ai-word" }), aiSub = h("span", { class: "ai-sub" });
+  const cardAi = h("button", { class: "tile ai", type: "button",
+    onclick: () => show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat") },
+    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
+  // focus timer with a ring
+  const RING = 2 * Math.PI * 22;
+  const ringArc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const ringSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  ringSvg.setAttribute("viewBox", "0 0 52 52");
+  ringSvg.setAttribute("class", "fx-ring");
+  ringSvg.innerHTML = '<circle cx="26" cy="26" r="22" class="fx-ring-bg"/>';
+  for (const [k, v] of [["cx", "26"], ["cy", "26"], ["r", "22"], ["class", "fx-ring-arc"]]) ringArc.setAttribute(k, v);
+  ringArc.style.strokeDasharray = `${RING}`;
+  ringSvg.append(ringArc);
+  const fxTime = h("strong", { class: "fx-time" }), fxLabel = h("span", { class: "fx-label" });
+  const fxBtnIco = h("span", {});
+  const cardFocus = h("button", { class: "tile focus", type: "button",
+    onclick: () => { const t = timers[0]; t ? quick("cancel_timer", { id_or_label: t.id }) : quick("set_timer", { seconds: 25 * 60, label: "Soustředění" }); } },
+    h("div", { class: "fx-ring-box" }, ringSvg, h("span", { class: "fx-ico" }, fxBtnIco)), h("div", { class: "fx-text" }, fxTime, fxLabel));
+  let fxIco = "";
+
+  // dock: volume (live while dragging) and round quick buttons
+  const homeVolIcon = h("button", { class: "dock-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
     onclick: () => quick("volume", { action: volume?.muted ? "unmute" : "mute" }) });
-  const homeVol = h("input", { type: "range", min: 0, max: 100, step: 2, class: "p-vol-range", "aria-label": "Hlasitost" }) as HTMLInputElement;
-  homeVol.onchange = () => quick("volume", { action: "set", level: Number(homeVol.value) });
-  const chip = (ic: string, label: string, fn: () => void) => h("button", { class: "home-chip", type: "button", onclick: fn }, icon(ic), h("span", {}, label));
-  const homeRow = h("div", { class: "home-row" },
-    h("div", { class: "home-vol" }, homeVolIcon, homeVol),
-    chip("microphone", "Mluvit", () => client.send("push_to_talk")),
-    chip("camera", "Snímek", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
-    chip("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" })),
-    chip("lock", "Zamknout", () => quick("system_power", { action: "lock" })),
-    chip("hand-palm", "STOP", () => client.send("stop_all")));
-  const homeView = h("div", { class: "home" }, h("div", { class: "home-cards" }, cardAi, cardMusic, cardFocus), homeRow);
-  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+  const homeVol = h("input", { type: "range", min: 0, max: 100, step: 1, class: "dock-range", "aria-label": "Hlasitost" }) as HTMLInputElement;
+  const homeVolNum = h("span", { class: "dock-vol-num" });
+  let volSentAt = -1e9, volTimer = 0;
+  const sendVol = () => { volSentAt = performance.now(); quick("volume", { action: "set", level: Number(homeVol.value) }); };
+  homeVol.oninput = () => {                       // the PC volume follows the finger, at most ~12× a second
+    homeVol.style.setProperty("--v", `${homeVol.value}%`);
+    setText(homeVolNum, homeVol.value);
+    window.clearTimeout(volTimer);
+    if (performance.now() - volSentAt > 80) sendVol(); else volTimer = window.setTimeout(sendVol, 80);
+  };
+  homeVol.onchange = sendVol;
+  const dockBtn = (ic: string, label: string, fn: () => void, cls = "") => h("button", { class: `dock-btn ${cls}`, type: "button", title: label, "aria-label": label,
+    onclick: (e: Event) => { (e.currentTarget as HTMLElement).animate([{ transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 280, easing: "cubic-bezier(.3,1.6,.5,1)" }); fn(); } },
+    icon(ic, "ph-fill"), h("span", { class: "dock-tip" }, label));
+  const homeRow = h("div", { class: "dock" },
+    h("div", { class: "dock-vol" }, homeVolIcon, homeVol, homeVolNum),
+    h("div", { class: "dock-btns" },
+      dockBtn("microphone", "Mluvit", () => client.send("push_to_talk")),
+      dockBtn("camera", "Snímek obrazovky", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
+      dockBtn("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" })),
+      dockBtn("lock-simple", "Zamknout PC", () => quick("system_power", { action: "lock" })),
+      dockBtn("hand-palm", "STOP – zastavit vše", () => client.send("stop_all"), "stop")));
+  const homeView = h("div", { class: "home home2" },
+    h("div", { class: "home-grid" }, npCard, h("div", { class: "home-side" }, cardAi, cardFocus)), homeRow);
+
+  let aiKey = "";
   function renderHome() {
     const now = new Date();
-    homeDate.replaceChildren(h("i", { class: "home-eyes", "aria-hidden": "true" }, h("b"), h("b")),
-      now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric", year: "numeric" }), " ",
-      h("strong", {}, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })));
+    if (!homeDate.querySelector(".hd-time")) homeDate.append(h("span", { class: "hd-day" }), h("strong", { class: "hd-time" }));
+    setText(homeDate.querySelector(".hd-day")!, now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
+    setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
     if (current !== "home") return;
+    paintNowPlaying();
     const cc = sessions.find((s) => ["working", "thinking", "waiting"].includes(s.state)) || sessions[0];
     const b = cc ? BRANDS.claude : brain ? brandOf(brain.provider, brain.model) : null;
-    cardAi.style.setProperty("--tint", b ? b.color : "#2563eb");
-    const word = cc ? (CLAUDE_WORD[cc.state] || "Hotovo") : (MOOD_WORD[mood] || "Připraven");
-    const sub = cc ? (cc.step || cc.prompt || cc.project || "") : (moodDetail || "Klikni a napiš mi, co potřebuješ");
-    cardAi.replaceChildren(h("span", { class: "h-label" }, cc ? "Claude Code" : b ? `JARVIS · ${b.name}` : "JARVIS"),
-      h("span", { class: "h-btn brand" }, b ? brandEl(b) : icon("chat-circle-dots", "ph-bold")),
-      h("strong", { class: "h-big" }, word), h("span", { class: "h-sub" }, sub));
-    const playing = !!media?.playing;
-    cardMusic.replaceChildren(h("span", { class: "h-label" }, "Hudba"),
-      media?.thumb ? h("img", { class: "h-art", src: media.thumb, alt: "" }) : h("span", { class: "h-art none" }, icon("music-notes", "ph-fill")),
-      h("strong", { class: "h-big sm" }, media?.title || "Nic nehraje"),
-      h("span", { class: "h-sub" }, media?.title ? (playing ? (media.artist || "hraje") : "pozastaveno") : "Pusť si něco a uvidíš to tady"),
-      h("button", { class: "h-play", type: "button", "aria-label": playing ? "Pauza" : "Přehrát",
-        onclick: () => quick("media_control", { action: "play_pause" }) }, icon(playing ? "pause" : "play", "ph-fill")));
+    const busy = cc ? ["working", "thinking"].includes(cc.state) : ["thinking", "working", "speaking", "listening"].includes(mood);
+    const key = `${cc ? "cc" : ""}|${b?.id || ""}`;
+    if (key !== aiKey) {
+      aiKey = key;
+      aiLogo.replaceChildren(b ? brandEl(b) : icon("sparkle", "ph-fill"));
+      cardAi.style.setProperty("--tint", b ? b.color : "#0a84ff");
+    }
+    cardAi.classList.toggle("busy", busy);
+    setText(aiName, cc ? `Claude Code · ${cc.project || ""}`.replace(/ · $/, "") : b ? `JARVIS · ${b.name}` : "JARVIS");
+    setText(aiWord, cc ? (CLAUDE_WORD[cc.state] || "Hotovo") : (MOOD_WORD[mood] || "Připraven"));
+    setText(aiSub, cc ? (cc.step || cc.prompt || "") : (moodDetail || "Napiš mi nebo řekni, co potřebuješ"));
     const t = timers[0];
-    const left = t ? Math.max(0, Math.round(t.ends_at - Date.now() / 1000)) : 0;
-    cardFocus.replaceChildren(h("span", { class: "h-label" }, t ? (t.label || "Časovač") : "Soustředění"),
-      h("button", { class: "h-btn", type: "button", "aria-label": t ? "Zastavit" : "Spustit 25 minut",
-        onclick: () => t ? quick("cancel_timer", { id_or_label: t.id }) : quick("set_timer", { seconds: 25 * 60, label: "Soustředění" }) },
-        icon(t ? "stop" : "play", "ph-fill")),
-      h("strong", { class: "h-big" }, t ? mmss(left) : "25:00"),
-      h("span", { class: "h-sub" }, t ? `zbývá ${Math.ceil(left / 60)} min` : "Klikni a začni soustředění"));
+    const left = t ? Math.max(0, Math.round(t.ends_at - Date.now() / 1000)) : 25 * 60;
+    const frac = t && t.seconds ? left / t.seconds : 1;
+    ringArc.style.strokeDashoffset = `${(RING * (1 - frac)).toFixed(2)}`;
+    cardFocus.classList.toggle("on", !!t);
+    setText(fxTime, mmss(left));
+    setText(fxLabel, t ? (t.label || "Časovač") : "Soustředění · start");
+    const fi = t ? "stop" : "play";
+    if (fi !== fxIco) { fxIco = fi; fxBtnIco.replaceChildren(icon(fi, "ph-fill")); }
   }
   window.setInterval(renderHome, 1000);
 
@@ -418,9 +519,13 @@ export function buildPanel(ctx: PanelCtx) {
     volIcon.replaceChildren(icon(volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high", "ph-fill"));
     if (document.activeElement !== volRange) volRange.value = String(lv);
     volRange.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
-    homeVolIcon.replaceChildren(icon(volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high", "ph-fill"));
-    if (document.activeElement !== homeVol) homeVol.value = String(lv);
-    homeVol.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
+    const vi = volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high";
+    if (homeVolIcon.dataset.i !== vi) { homeVolIcon.dataset.i = vi; homeVolIcon.replaceChildren(icon(vi, "ph-fill")); }
+    if (document.activeElement !== homeVol && performance.now() - volSentAt > 600) {   // not while the finger is on it
+      homeVol.value = String(lv);
+      homeVol.style.setProperty("--v", `${volume?.muted ? 0 : lv}%`);
+      setText(homeVolNum, String(volume?.muted ? 0 : lv));
+    }
   };
   paintVol();
   const navEl = h("nav", { class: "p-tabs", "aria-label": "Sekce" },

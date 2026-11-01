@@ -448,6 +448,11 @@ def _volume_publish(rt, state: tuple, last: tuple | None, publish) -> tuple:
     return state
 
 
+def volume_pause(since_change: float, idle: float) -> float:
+    """How long to wait before reading the volume again: quick right after a change, calm otherwise."""
+    return 0.04 if since_change < 1.5 else idle
+
+
 def _win_volume_thread(rt, interval: float) -> None:                 # pragma: no cover – Windows
     """One thread for the whole life of JARVIS: COM initialised once, the speaker opened once. Opening it on a fresh
     worker thread every poll and letting Python free it later on another thread crashed the process (comtypes
@@ -455,20 +460,24 @@ def _win_volume_thread(rt, interval: float) -> None:                 # pragma: n
     import comtypes
 
     comtypes.CoInitialize()
-    ep, last = None, None
+    ep, last, moved = None, None, 0.0
     while True:
         try:
             if ep is None:
                 ep = rt.platform._endpoint()
             state = (round(ep.GetMasterVolumeLevelScalar() * 100), bool(ep.GetMute()))
+            if last is not None and state != last:
+                moved = time.monotonic()
             last = _volume_publish(rt, state, last, rt.bus.publish_threadsafe)
-            time.sleep(interval)
+            # while the volume is moving (a key held, the slider dragged) read it ~25× a second so the bar in the
+            # notch glides with it; otherwise a calm pace
+            time.sleep(volume_pause(time.monotonic() - moved, interval))
         except Exception:                                    # no speaker / device changed: open it again later
             ep = None
             time.sleep(5)
 
 
-async def volume_loop(rt, interval: float = 0.35, rounds: int | None = None) -> None:
+async def volume_loop(rt, interval: float = 0.25, rounds: int | None = None) -> None:
     """The system volume as it changes (keys, the mixer, another app): the notch shows a volume bar for a moment.
     The first reading is only remembered; nothing is published until the volume really changes."""
     import sys
