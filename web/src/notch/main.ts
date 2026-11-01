@@ -776,32 +776,89 @@ function lyricsOn(): boolean {
     && songPos() >= lyr.lines[0].t - 1.5 && songPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
 }
 let cfgLyrics = true;
-/** The current line and how far it is sung: the text fills from the left and a bar runs under it. */
-function paintLyrics(force = false) {
+/** The current line, lit word by word as it is sung: each word glows up in turn with a soft, feathered edge (no hard
+ *  cut), the word being sung lifts a little, and lines cross-fade (the old one floats up, the new one rises in). */
+type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number };
+let lyrCur: LyrLine | null = null;
+let lyrFill = 0;            // eased fill in px (follows the target smoothly, never jumps)
+let lyrLast = 0;
+function buildLyrLine(text: string): LyrLine {
+  const parts = text.split(/(\s+)/).filter((x) => x.length);
+  const mk = () => parts.map((p) => (/^\s+$/.test(p) ? document.createTextNode(p) : h("span", { class: "lw" }, p)));
+  const baseKids = mk(), litKids = mk();
+  const base = h("span", { class: "lyr-base" }, ...baseKids);
+  const lit = h("span", { class: "lyr-lit", "aria-hidden": "true" }, ...litKids);
+  const el = h("span", { class: "lyr-line" }, base, lit);
+  return { el, lit, words: baseKids.filter((n): n is HTMLElement => n instanceof HTMLElement),
+    litWords: litKids.filter((n): n is HTMLElement => n instanceof HTMLElement), edges: [], w: 0 };
+}
+function measureLyr(l: LyrLine) {
+  l.edges = l.words.map((wd) => [wd.offsetLeft, wd.offsetLeft + wd.offsetWidth] as [number, number]);
+  l.w = (l.el.firstElementChild as HTMLElement).offsetWidth;
+}
+const smooth = (x: number) => x * x * (3 - 2 * x);
+function paintLyrics(_force = false) {
   const pos = songPos();
   let i = -1;
   for (let k = 0; k < lyr.lines.length && lyr.lines[k].t <= pos; k++) i = k;
   const cur = lyr.lines[Math.max(0, i)];
   const next = lyr.lines[i + 1];
-  if (i !== lyrIdx || force) {
-    if (i !== lyrIdx) {
-      lyrIdx = i;
-      const text = i < 0 ? `♪ ${lyr.title}` : cur.text || "♪ ♪ ♪";
-      const span = h("span", { class: "lyr-line" }, text);
-      lyrEl.replaceChildren(span);
-      const around = lyr.lines.slice(Math.max(0, i), i + 3).map((x) => x.text.length).concat(text.length);
-      lyrW = 132 + Math.max(...around) * 7.6;
-      if (shape.dataset.island === "lyrics" && (mode === "closed" || mode === "hover")) apply(mode);   // the pill follows the line
+  if (i !== lyrIdx) {
+    lyrIdx = i;
+    const text = i < 0 ? `♪ ${lyr.title}` : cur.text || "♪ ♪ ♪";
+    const old = lyrCur;
+    lyrCur = buildLyrLine(text);
+    lyrCur.el.classList.toggle("idle", i < 0 || !cur.text);
+    if (old) {                                  // cross-fade: the sung line floats up and away
+      old.el.classList.add("out");
+      window.setTimeout(() => old.el.remove(), 520);
+    }
+    lyrEl.append(lyrCur.el);
+    measureLyr(lyrCur);
+    lyrFill = 0;
+    const around = lyr.lines.slice(Math.max(0, i), i + 3).map((x) => x.text.length).concat(text.length);
+    lyrW = 132 + Math.max(...around) * 7.6;
+    if (shape.dataset.island === "lyrics" && (mode === "closed" || mode === "hover")) apply(mode);   // the pill follows the line
+  }
+  const L = lyrCur;
+  if (!L) return;
+  if (!L.w) measureLyr(L);
+  // how far the line is sung, word by word: the line's time is shared by the words by their length, each word
+  // eases in and out (smoothstep) so the light glides over it instead of ticking letter by letter
+  let target = 0, active = -1;
+  if (i >= 0 && cur.text && L.edges.length) {
+    const span = Math.min((next ? next.t : cur.t + 4) - cur.t, Math.max(1.6, cur.text.length * 0.078 + 0.7));
+    const p = Math.min(1, Math.max(0, (pos - cur.t) / span));
+    const total = L.words.reduce((sum, wd) => sum + (wd.textContent || "").length + 1, 0);
+    let acc = 0;
+    target = L.w;
+    for (let k = 0; k < L.edges.length; k++) {
+      const len = (L.words[k].textContent || "").length + 1;
+      const a0 = acc / total, a1 = (acc + len) / total;
+      if (p < a1) {
+        const f = smooth(Math.min(1, Math.max(0, (p - a0) / (a1 - a0))));
+        target = L.edges[k][0] + (L.edges[k][1] - L.edges[k][0]) * f;
+        active = k;
+        break;
+      }
+      acc += len;
     }
   }
-  const line = lyrEl.firstElementChild as HTMLElement | null;
-  if (!line) return;
-  let k = 0;
-  if (i >= 0) {
-    const span = Math.min((next ? next.t : cur.t + 4) - cur.t, Math.max(1.4, (cur.text.length || 4) * 0.075 + 0.6));
-    k = Math.min(1, Math.max(0, (pos - cur.t) / span));
+  // glide towards the target (frame-rate independent), so even a seek or a late timeline update stays smooth
+  const now = performance.now();
+  const dt = Math.min(0.1, (now - (lyrLast || now)) / 1000);
+  lyrLast = now;
+  lyrFill += (target - lyrFill) * (1 - Math.exp(-dt * 14));
+  if (target < lyrFill - 40) lyrFill = target;   // jumped back (a seek): no slow rewind
+  L.lit.style.setProperty("--fill", `${lyrFill.toFixed(1)}px`);
+  L.litWords.forEach((wd, k) => wd.classList.toggle("now", k === active));
+  L.words.forEach((wd, k) => wd.classList.toggle("now", k === active));
+  // a line wider than the pill scrolls with the singing so the lit word stays in view
+  const box = lyrEl.clientWidth;
+  if (L.w > box) {
+    const shift = Math.min(L.w - box, Math.max(0, lyrFill - box * 0.55));
+    L.el.style.transform = `translateX(${-shift.toFixed(1)}px)`;
   }
-  line.style.setProperty("--k", `${(k * 100).toFixed(1)}%`);
 }
 function lyricsLoop() {
   if (shape.dataset.island === "lyrics") paintLyrics();
@@ -826,7 +883,6 @@ function islandActivity(t: any) {
   } else if (lyricsOn()) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
-    shape.style.setProperty("--lyr", src && src.id !== "browser" ? src.color : "#ffffff");
     l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")),
       src ? brandEl(src, "n-src-badge") : "")];
     r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];

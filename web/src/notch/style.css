@@ -561,13 +561,25 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 .n-src-badge svg { width: 11px; height: 11px; display: block; }
 .n-src-badge i { font-size: 10px; }
 
-/* 3.12 song lyrics: the line being sung fills from the left and a bar in the app's colour runs under it */
-.n-lyr { position: absolute; inset: 0 58px 0 60px; display: none; align-items: center; justify-content: center; pointer-events: none; }
+/* 3.12 song lyrics: the line being sung lights up word by word – a feathered glow glides over the words, the word
+   being sung lifts a little and shines, lines cross-fade (the sung one floats up, the next rises in) */
+.n-lyr { position: absolute; inset: 0 58px 0 60px; display: none; align-items: center; justify-content: center; pointer-events: none; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
 .notch[data-island="lyrics"]:is([data-mode="closed"], [data-mode="hover"]) .n-lyr { display: flex; opacity: 1; }
-.lyr-line { position: relative; max-width: 100%; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font: 700 15px/1.2 var(--font); letter-spacing: -.15px; color: transparent;
-  background: linear-gradient(90deg, #fff var(--k, 0%), rgb(255 255 255 / .36) var(--k, 0%)); -webkit-background-clip: text; background-clip: text;
-  animation: lyr-in .38s var(--ease); }
-.lyr-line::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2.5px; width: var(--k, 0%); border-radius: 2px;
-  background: var(--lyr, #fff); box-shadow: 0 0 10px var(--lyr, #fff); }
-@keyframes lyr-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
+.lyr-line { position: absolute; display: inline-grid; white-space: nowrap; font: 700 15.5px/1.25 var(--font); letter-spacing: -.2px;
+  will-change: transform, opacity, filter; animation: lyr-in .55s cubic-bezier(.2, .9, .25, 1) both; transition: transform .25s linear; }
+.lyr-line > span { grid-area: 1 / 1; padding: 10px 14px; margin: -10px -14px; }   /* room for the glow (no clipped box) */
+.lyr-base { color: rgb(255 255 255 / .34); }
+.lyr-lit { color: #fff; text-shadow: 0 0 8px rgb(255 255 255 / .42), 0 0 18px rgb(255 255 255 / .16);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--fill, 0px) - 18px), transparent calc(var(--fill, 0px) + 10px));
+          mask-image: linear-gradient(90deg, #000 calc(var(--fill, 0px) - 18px), transparent calc(var(--fill, 0px) + 10px)); }
+.lyr-line .lw { display: inline-block; transition: transform .45s cubic-bezier(.2, .9, .25, 1), filter .45s ease; }
+.lyr-line .lw.now { transform: translateY(-1.5px) scale(1.035); }
+.lyr-lit .lw.now { filter: brightness(1.15); }
+.lyr-line.idle .lyr-base { color: rgb(255 255 255 / .6); animation: lyr-breathe 2.4s ease-in-out infinite; }
+.lyr-line.out { animation: lyr-out .5s cubic-bezier(.4, 0, .2, 1) forwards; }
+@keyframes lyr-in { from { opacity: 0; transform: translateY(14px) scale(.97); filter: blur(5px); } }
+@keyframes lyr-out { to { opacity: 0; transform: translateY(-14px) scale(.97); filter: blur(5px); } }
+@keyframes lyr-breathe { 50% { color: rgb(255 255 255 / .9); } }
+@media (prefers-reduced-motion: reduce) { .lyr-line, .lyr-line.out { animation-duration: .01s; } .lyr-line .lw { transition: none; } }
