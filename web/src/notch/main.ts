@@ -4,6 +4,8 @@ import "./dynamic.css";
 import "./home.css";
 import "./sections.css";
 import "./chat.css";
+import "./face.css";
+import { createFace } from "./face";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
@@ -164,7 +166,10 @@ let subs: { on: boolean; lines: string[]; lang: string; at: number; source: stri
 const lyrEl = h("div", { class: "n-lyr" });
 let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string }[] } = { title: "", artist: "", synced: false, lines: [] };
 let lyrIdx = -2, lyrW = 0;
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
+// 3.12 the island's living eyes (dynamic look): blink, look around, follow the mouse, show the mood
+const face = createFace(() => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches);
+face.init();
+const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 // 3.12 the small circle on the right of the island (a second activity); see paintPip
@@ -310,7 +315,9 @@ function syncRegion(force = false) {
     const polys = [roundRect({ left: cx - S.w / 2, right: cx + S.w / 2, top, bottom: top + S.h } as DOMRect, Math.max(0, S.r), window.devicePixelRatio || 1, regionPad)];
     if (pip.classList.contains("on")) {             // the second circle is part of the window too
       const pl = cx + S.w / 2 + 8, pt = top + (S.h - 36) / 2;
-      polys.push(roundRect({ left: pl, right: pl + 36, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
+      // while it drips out, the window also covers the gap between the island and the circle
+      const from = pip.classList.contains("pop") ? cx + S.w / 2 - 18 : pl;
+      polys.push(roundRect({ left: from, right: pl + 36, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
     }
     sendRegion(polys, force);
     return;
@@ -416,11 +423,18 @@ function updateBlob() {
   blob.setMood(displayMood(), { badge: moodInfo.badge, progress: moodInfo.progress ?? null, reaction: moodInfo.reaction,
     secondary: moodInfo.secondary ?? null, ambient: moodInfo.ambient });
   shape.dataset.mood = displayMood();
+  face.mood(displayMood());
+  faceSync();
   // OMEGA 744: a short-lived reaction the eyes can show (e.g. "confused" after a failed build)
   const re = moodInfo.reaction;
   shape.dataset.react = re && re.name && (!re.until || re.until * 1000 > 0) ? String(re.name) : "";
 }
 
+/** The eyes show in the small pill when nothing else is in it (and with the voice wave while JARVIS talks). */
+function faceSync() {
+  const k = shape.dataset.island || "";
+  face.show(dyn() && (mode === "closed" || mode === "hover") && (k === "" || k === "voice"));
+}
 /** JARVIS itself is doing something (STOP makes sense). */
 function jarvisBusy() {
   return ["listening", "thinking", "working", "speaking", "waiting"].includes(coreMood) || !!pendingConfirm;
@@ -456,6 +470,13 @@ function openPanel(section?: Parameters<typeof panel.show>[0]) {
 
 // ---------- mouse ----------
 let leaveCheck = 0;
+// the eyes look at the mouse while it is over the pill
+shape.addEventListener("pointermove", (e) => {
+  if (!dyn()) return;
+  const box = shape.getBoundingClientRect();
+  face.pointer([(e.clientX - (box.left + box.width / 2)) / Math.max(40, S.w / 2), (e.clientY - (box.top + GAP + S.h / 2)) / Math.max(18, S.h / 2)]);
+}, { passive: true });
+shape.addEventListener("pointerleave", () => face.pointer(null));
 shape.addEventListener("mouseenter", () => {
   window.clearTimeout(leaveCheck);
   hovering = true;
@@ -958,6 +979,7 @@ requestAnimationFrame(lyricsLoop);
 // right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
 const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
 let preferKind = "";
+let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
   const on: Record<string, boolean> = {
     lyrics: lyricsOn(), subs: subs.on, team: team.size > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
@@ -968,6 +990,11 @@ function activeKinds(t: any, cc: any): string[] {
 }
 function paintPip(kind: string | undefined, t: any, cc: any) {
   const show = !!kind && dyn() && (mode === "closed" || mode === "hover");
+  if (show && !pip.classList.contains("on")) {      // it drips out of the island like a drop (see .n-pip.pop)
+    pip.classList.add("pop");
+    window.clearTimeout(pipPopT);
+    pipPopT = window.setTimeout(() => { pip.classList.remove("pop"); syncRegion(true); }, 750);
+  }
   pip.classList.toggle("on", show);
   if (!show || !kind) { delete pip.dataset.kind; return; }
   pip.dataset.kind = kind;
@@ -977,7 +1004,9 @@ function paintPip(kind: string | undefined, t: any, cc: any) {
     kids = [ring(tm.seconds ? left / tm.seconds : 1), h("b", {}, String(Math.max(1, Math.ceil(left / 60))))];
     pip.title = `${tm.label || "Časovač"} · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   } else if (kind === "music" || kind === "lyrics") {
-    kids = [media.thumb ? h("img", { class: "pip-art", src: media.thumb, alt: "" }) : icon("music-notes", "ph-fill")];
+    const pos = songPos(), dur = Number(media.duration) || 0;
+    kids = [media.thumb ? h("img", { class: "pip-art", src: media.thumb, alt: "" }) : icon("music-notes", "ph-fill"),
+      dur > 0 && pos >= 0 ? ring(Math.round((pos / dur) * 60) / 60) : ""];   // the song's progress around the art
     pip.title = media.title || "Hudba";
   } else if (kind === "claude") { kids = [brandEl(BRANDS.claude)]; pip.title = "Claude Code"; }
   else if (kind === "ai" && brain) { const b = brandOf(brain.provider, brain.model); kids = [brandEl(b)]; pip.title = b.name; }
@@ -1058,7 +1087,7 @@ function islandActivity(t: any) {
     kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
     r = [`${mb(d.bytes)}${d.speed > 0 ? ` · ${mb(d.speed)}/s` : ""}`];
   } else if (dyn() && ["listening", "speaking", "thinking", "working"].includes(coreMood)) {
-    kind = "voice"; l = [h("span", { class: "n-orb" })];
+    kind = "voice"; l = [];                                       // the eyes are in the middle
     r = [h("span", { class: "n-wave" }, ...Array.from({ length: 5 }, () => h("i")))];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
@@ -1067,6 +1096,7 @@ function islandActivity(t: any) {
   setKids(lead, l);
   setKids(trail, r);
   shape.dataset.island = kind;
+  faceSync();
   // the next running thing (if any) in the small circle on the right
   paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);
 }

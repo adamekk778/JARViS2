@@ -210,20 +210,36 @@ html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner { cursor: pointer;
 /* 3.12 a second activity in a small black circle right of the island (timer ring, album art, a logo); click = swap */
 .n-pip { position: fixed; z-index: 5; top: calc(var(--dy-gap, 6px) + (var(--nch, 36px) - 36px) / 2); left: calc(50% + var(--ncw, 176px) / 2 + 8px);
   width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: #000; color: #fff; display: grid; place-items: center; cursor: pointer;
-  opacity: 0; transform: scale(.3); pointer-events: none; transition: opacity .25s ease, transform .5s cubic-bezier(.3, 1.4, .5, 1); }
+  opacity: 0; transform: translateX(-30px) scale(.25); pointer-events: none;
+  transition: opacity .2s ease, transform .45s cubic-bezier(.4, 0, .2, 1); }
 html:not([data-nstyle="dynamic"]) .n-pip { display: none; }
-.n-pip.on { opacity: 1; transform: none; pointer-events: auto; }
-.n-pip:hover { transform: scale(1.08); }
-.n-pip:active { transform: scale(.92); }
+.n-pip.on { opacity: 1; transform: none; pointer-events: auto; transition: opacity .15s ease, transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+/* a drop: it squeezes out of the island's side, stretches, snaps off and wobbles into a circle */
+.n-pip.on.pop { animation: pip-drip .7s cubic-bezier(.3, .8, .4, 1) both; }
+.n-pip::before { content: ""; position: absolute; z-index: -1; right: calc(100% - 8px); top: 50%; width: 22px; height: 26px; margin-top: -13px;
+  border-radius: 50%; background: #000; transform-origin: 100% 50%; transform: scale(0); pointer-events: none; }
+.n-pip.on.pop::before { animation: pip-neck .7s cubic-bezier(.3, .8, .4, 1) both; }
+@keyframes pip-drip {
+  0% { transform: translateX(-34px) scale(.45, .7); }
+  45% { transform: translateX(2px) scale(1.14, .88); }
+  65% { transform: translateX(-1px) scale(.95, 1.05); }
+  82% { transform: translateX(0) scale(1.02, .98); }
+  100% { transform: none; } }
+@keyframes pip-neck { 0% { transform: scale(1, .9); } 40% { transform: scale(1.1, .55); } 60% { transform: scale(.4, .15); } 100% { transform: scale(0); } }
+.n-pip.on:hover { transform: scale(1.08); }
+.n-pip.on:active { transform: scale(.92); }
 .n-pip > * { grid-area: 1 / 1; }
-.n-pip .n-ring { width: 26px; height: 26px; }
+.n-pip .n-ring { width: 30px; height: 30px; }
 .n-pip[data-kind="focus"] { color: #ff9f0a; }
 .n-pip[data-kind="task"] { color: #0a84ff; }
-.n-pip b { font: 700 10px var(--font); color: #fff; font-variant-numeric: tabular-nums; }
-.n-pip .pip-art { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
-.n-pip[data-kind="music"] .pip-art, .n-pip[data-kind="lyrics"] .pip-art { animation: pip-spin 8s linear infinite; }
+.n-pip[data-kind="music"], .n-pip[data-kind="lyrics"] { color: #fff; }
+.n-pip[data-kind="music"] .n-ring, .n-pip[data-kind="lyrics"] .n-ring { width: 34px; height: 34px; }
+.n-pip b { font: 700 11px var(--font); color: #fff; font-variant-numeric: tabular-nums; }
+.n-pip .pip-art { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px rgb(255 255 255 / .12); }
+.n-pip[data-kind="music"] .pip-art, .n-pip[data-kind="lyrics"] .pip-art { animation: pip-spin 9s linear infinite; }
 @keyframes pip-spin { to { transform: rotate(360deg); } }
-.n-pip .brand-logo svg { width: 18px; height: 18px; display: block; }
+.n-pip .brand-logo svg { width: 19px; height: 19px; display: block; }
 .n-pip > i { font-size: 17px; }
 .n-pip .n-cc { font-size: 9px; height: 16px; }
-@media (prefers-reduced-motion: reduce) { .n-pip .pip-art { animation: none !important; } }
+.n-pip[data-kind="claude"], .n-pip[data-kind="ai"] { box-shadow: inset 0 0 12px -4px var(--brand, #d97757); }
+@media (prefers-reduced-motion: reduce) { .n-pip .pip-art, .n-pip.pop, .n-pip.pop::before { animation: none !important; } }

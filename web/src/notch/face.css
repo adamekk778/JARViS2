@@ -1,0 +1,58 @@
+/* 3.12 the island's face: two glowing eyes (see face.ts). Only transform / opacity / colour change. */
+html[data-nstyle="dynamic"] .n-inner > .dy-face { position: absolute; z-index: 2; left: 50%; top: 18px; width: 64px; height: 30px; margin: -15px 0 0 -32px;
+  display: flex; align-items: center; justify-content: center; gap: 15px; pointer-events: none;
+  --c: #eaf6ff; --open: 1; --tilt: 0deg; --lx: 0px; --ly: 0px; --sl: 1; --sr: 1;
+  opacity: 0; transform: scale(.6); transition: opacity .3s ease, transform .5s cubic-bezier(.3, 1.5, .5, 1); }
+html:not([data-nstyle="dynamic"]) .dy-face { display: none; }
+html[data-nstyle="dynamic"] .n-inner > .dy-face.on { opacity: 1; transform: none; }
+html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top: 19px; }
+
+/* one eye: .fe moves (look, depth, tilt) › .fe-lid blinks › .fe-ball opens / closes and glows */
+.fe { position: relative; display: grid; place-items: center; width: 11px; height: 20px;
+  transition: transform .32s cubic-bezier(.25, .9, .3, 1.15); }
+.fe.l { transform: translate(var(--lx), var(--ly)) scale(var(--sl)) rotate(var(--tilt)); }
+.fe.r { transform: translate(var(--lx), var(--ly)) scale(var(--sr)) rotate(calc(var(--tilt) * -1)); }
+.fe-lid { display: grid; place-items: center; width: 100%; height: 100%; }
+.fe-lid > * { grid-area: 1 / 1; }
+.fe-ball { width: 11px; height: 20px; border-radius: 6px;
+  background: radial-gradient(70% 45% at 35% 28%, rgb(255 255 255 / .95), transparent 70%), var(--c);
+  box-shadow: 0 0 6px var(--c), 0 0 16px color-mix(in srgb, var(--c) 55%, transparent);
+  transform: scaleY(var(--open)); transition: transform .35s cubic-bezier(.3, 1.3, .5, 1), background-color .5s, box-shadow .5s, opacity .25s; }
+/* happy: the eyes become little arches ^ ^ */
+.fe-arc { width: 14px; height: 14px; border: 3.2px solid var(--c); border-color: var(--c) var(--c) transparent transparent; border-radius: 50%;
+  transform: translateY(3px) rotate(-45deg) scale(.4); opacity: 0;
+  filter: drop-shadow(0 0 4px var(--c)); transition: opacity .2s, transform .35s cubic-bezier(.3, 1.5, .5, 1), border-color .5s; }
+.dy-face.happy .fe-ball { opacity: 0; transform: scaleY(.2); }
+.dy-face.happy .fe-arc { opacity: 1; transform: translateY(3px) rotate(-45deg); }
+.dy-face.blink .fe-lid { animation: fe-blink .17s ease-in-out; }
+@keyframes fe-blink { 45%, 55% { transform: scaleY(.08); } }
+
+/* a soft glow of the eyes' colour on the black, like light from inside */
+.fe-glow { position: absolute; left: 50%; top: 50%; width: 120px; height: 46px; margin: -23px 0 0 -60px; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 22%, transparent), transparent); opacity: .7;
+  transition: background .6s; }
+
+/* moods */
+.dy-face[data-anim="pulse"] { animation: fe-pulse 1.1s ease-in-out infinite; }
+@keyframes fe-pulse { 50% { transform: scale(1.1); } }
+.dy-face[data-anim="talk"] { animation: fe-talk .34s ease-in-out infinite alternate; }
+@keyframes fe-talk { to { transform: translateY(-1.5px) scaleY(1.06); } }
+.dy-face[data-anim="bob"] { animation: fe-bob .6s ease-in-out infinite alternate; }
+@keyframes fe-bob { from { transform: translateY(1px) rotate(-4deg); } to { transform: translateY(-1.5px) rotate(4deg); } }
+.dy-face[data-anim="shake"] { animation: fe-shake .45s ease-in-out 2; }
+@keyframes fe-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.dy-face[data-anim="dizzy"] .fe-lid { animation: fe-spin 1.4s linear infinite; }
+@keyframes fe-spin { to { transform: rotate(360deg); } }
+.dy-face[data-anim="sleep"] .fe-ball { opacity: .55; }
+.dy-face[data-anim="sleep"] .fe-glow { opacity: .25; }
+/* sleeping: little z's float up and away */
+.fe-zz { position: absolute; left: calc(100% - 6px); top: -2px; width: 20px; height: 26px; pointer-events: none; }
+.fe-zz i { position: absolute; left: 0; bottom: 0; font: 800 9px/1 var(--font, system-ui); font-style: normal; color: #eaf6ff; opacity: 0; }
+.dy-face[data-anim="sleep"] .fe-zz i { animation: fe-z 3.6s ease-out infinite; }
+.dy-face[data-anim="sleep"] .fe-zz i:nth-child(2) { animation-delay: 1.2s; }
+.dy-face[data-anim="sleep"] .fe-zz i:nth-child(3) { animation-delay: 2.4s; }
+@keyframes fe-z { 0% { opacity: 0; transform: translate(0, 4px) scale(.6); } 20% { opacity: .8; }
+  100% { opacity: 0; transform: translate(12px, -16px) scale(1.15); } }
+
+@media (prefers-reduced-motion: reduce) { .dy-face, .dy-face *, .dy-face[data-anim] { animation: none !important; } }
+:root[data-motion="reduced"] :is(.dy-face, .dy-face *) { animation: none !important; }
