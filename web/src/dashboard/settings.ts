@@ -115,7 +115,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   };
 
   // ----- field helpers (Coucou-style rows: text on the left, the control on the right) -----
-  const ico = (path: string) => h("span", { class: "set-ico", "aria-hidden": "true" }, icon(rowIcon(path, current), "ph-fill"));
+  const ico = (path: string) => h("span", { class: "set-ico", "aria-hidden": "true" }, icon(rowIcon(path, current)));
   const field = (label: string, control: Node, help = "", wide = false, path = "") =>
     h("label", { class: `field ${wide ? "wide" : ""} ${path ? "has-ico" : ""}` }, path && !wide ? ico(path) : null,
       h("span", { class: "f-text" }, h("span", { class: "f-title" }, label), help ? h("span", { class: "help" }, help) : null), control);
