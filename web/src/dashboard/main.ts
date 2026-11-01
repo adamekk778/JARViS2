@@ -1,5 +1,6 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
+import "./shell.css";
 import { captionBar, focusBanner } from "../shared/viz";
 import { helpMode } from "../shared/help";
 import { ChatView, conversationList } from "../shared/chat";
@@ -34,7 +35,6 @@ const chat = new ChatView(client);
 
 const face = new Blob({ size: 34 });
 face.setMood("offline");
-const orb = face.el;
 const brainChip = h("span", { class: "chip brain-chip", title: "Aktuální AI mozek" }, icon("brain"), "připojuji…");
 const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslech (Hey Jarvis)", "aria-label": "Zapnout nebo vypnout poslech", onclick: () => client.send("voice_toggle") }, icon("microphone"));
 const stopBtn = stopButton(client);
@@ -49,8 +49,7 @@ type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
   ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
-  ["Nastavení", ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"]],
-  ["Systém", ["diagnostics"]],
+  ["Systém", ["diagnostics"]],          // "Nastavení" is pinned at the bottom of the sidebar (its sections are tabs inside)
 ];
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
@@ -123,8 +122,11 @@ autoControls(document.body);   // JARVIS-styled option lists and filled sliders 
 
 const settingsUI = buildSettings(client, settingsHost);
 
+const settingsBtn: HTMLButtonElement = h("button", { type: "button", class: "side-settings", "data-view": "general", title: "Nastavení", onclick: () => go("general") },
+  icon("gear-six"), h("span", {}, "Nastavení"));
+const SETTINGS_VIEWS: View[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"];
 function go(v: View) {
-  nav.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
+  [...nav.querySelectorAll("button"), settingsBtn].forEach((b) => b.classList.toggle("active", b.dataset.view === v || (b.dataset.view === "general" && SETTINGS_VIEWS.includes(v))));
   const page = pages[v as Page];
   chatView.hidden = v !== "chat";
   settingsHost.hidden = v === "chat" || !!page;
@@ -138,7 +140,8 @@ function go(v: View) {
 for (const [group, views] of GROUPS) {
   nav.append(h("div", { class: "rail-group" }, group));
   for (const v of views) {
-    const [, ic, label] = NAV.find(([n]) => n === v)!;
+    let [, ic, label] = NAV.find(([n]) => n === v)!;
+    if (v === "general") { ic = "gear-six"; label = "Nastavení"; }
     nav.append(h("button", { type: "button", "data-view": v, title: label, onclick: () => go(v) }, icon(ic), h("span", {}, label)));
   }
 }
@@ -174,9 +177,10 @@ const paletteBtn = h("button", { class: "palette-btn", type: "button", title: "R
 
 const versionText = h("div", { class: "side-version" });
 const side = h("aside", { class: "side" },
-  h("div", { class: "brand" }, orb, h("strong", {}, "JARVIS")),
+  h("div", { class: "brand" }, h("span", { class: "j-mark", "aria-hidden": "true" }, h("i"), h("i")), h("strong", {}, "JARVIS")),
   paletteBtn,
   nav,
+  settingsBtn,
   h("div", { class: "side-status" }, statusText),
   versionText);
 
