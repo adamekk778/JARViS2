@@ -563,10 +563,37 @@ export function buildPanel(ctx: PanelCtx) {
       onclick: () => show(k) }, icon(ic), h("span", {}, label))),
     h("div", { class: "p-vol" }, volIcon, volRange));
 
+  // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
+  // come in one after another (Web Animations: transform / opacity only, on the GPU)
+  const ORDER: Section[] = ["home", "chat", "quick", "system", "more", "activity", "files", "workspaces", "tools", "settings"];
+  const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
+  navEl.prepend(tabInd);
+  const moveInd = (instant = false) => {
+    const b = navEl.querySelector("button.active") as HTMLElement | null;
+    if (!b || !b.offsetWidth) { tabInd.style.opacity = "0"; return; }
+    if (instant) tabInd.style.transition = "none";
+    tabInd.style.opacity = "1";
+    tabInd.style.width = `${b.offsetWidth}px`;
+    tabInd.style.transform = `translateX(${b.offsetLeft}px)`;
+    if (instant) { void tabInd.offsetWidth; tabInd.style.transition = ""; }
+  };
+  const STAGGER = ".np, .tile, .dock, .qgroup, .qstop, .qrow, .stat, .weather, .update, .more-tile, .act-block, .tcat, .p-col, .ws-save, .shelf-empty, .p-card";
+  const reduced = () => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function intro(view: HTMLElement, dx = 0) {
+    if (reduced()) return;
+    view.animate([{ opacity: 0, transform: `translateX(${dx}px)` }, { opacity: 1, transform: "none" }], { duration: 340, easing: "cubic-bezier(.2,.9,.25,1)" });
+    [...view.querySelectorAll(STAGGER)].slice(0, 14).forEach((c, i) =>
+      (c as HTMLElement).animate([{ opacity: 0, transform: "translateY(10px) scale(.98)" }, { opacity: 1, transform: "none" }],
+        { duration: 420, delay: 40 + i * 32, easing: "cubic-bezier(.2,.9,.25,1)", fill: "backwards" }));
+  }
   function show(s: Section) {
+    const prev = current;
     current = s;
     navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s || ((b as HTMLElement).dataset.sec === "more" && EXTRA.includes(s))));
+    requestAnimationFrame(() => moveInd());
+    const changed = centre.firstChild !== views[s];
     centre.replaceChildren(views[s]);
+    if (changed && prev !== s) intro(views[s], (ORDER.indexOf(s) - ORDER.indexOf(prev)) > 0 ? 18 : -18);
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
@@ -637,5 +664,8 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("skills", (m) => skillsBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: "p-chip" }, icon("wrench"), s.name)) : [h("span", { class: "muted" }, "Zatím žádné. Řekni třeba: Nauč se převádět měny.")])));
   client.on("mcp", (m) => mcpBox.replaceChildren(...(m.items.length ? m.items.map((s: any) => h("span", { class: `p-chip ${s.ok ? "ok" : "bad"}` }, icon("plug"), `${s.name} · ${s.ok ? `${s.tools} nástrojů` : "nepřipojeno"}`)) : [h("span", { class: "muted" }, "Žádné. Přidáš je v celém nastavení → Integrace.")])));
 
-  return { el, show, chat, dateEl: homeDate, navEl, get section() { return current; } };
+  window.addEventListener("resize", () => moveInd(true));
+  /** The panel opened: the indicator jumps to its tab and the cards of the open section come in. */
+  const enter = () => { moveInd(true); requestAnimationFrame(() => moveInd(true)); intro(views[current]); };
+  return { el, show, chat, dateEl: homeDate, navEl, enter, get section() { return current; } };
 }

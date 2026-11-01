@@ -354,6 +354,7 @@ function setMode(m: Mode) {
   mode = m;
   // little transition moods (opening / closing) like the reference frames 4 and 6
   if ((m === "bar" || m === "panel") && (prev === "closed" || prev === "hover")) flashUi("opening", 420);
+  if (m === "panel" && prev !== "panel") window.setTimeout(() => panel.enter(), 90);   // cards come in as the shape opens
   if (m === "closed" && (prev === "bar" || prev === "panel" || prev === "hover")) flashUi("closing", 450);
   apply(m);
 }
@@ -1183,7 +1184,14 @@ client.on("screen_capture", (m) => {
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => { media = m; updateActivity(); });
 client.on("ambient", (m) => document.documentElement.style.setProperty("--room-glow", String(m.glow ?? 1)));
-client.on("beat", (m) => { if (m.bpm) document.documentElement.style.setProperty("--beat", `${(60 / m.bpm).toFixed(3)}s`); });
+let beatOff = 0;
+client.on("beat", (m) => {
+  if (!m.bpm) return;
+  document.documentElement.style.setProperty("--beat", `${(60 / m.bpm).toFixed(3)}s`);
+  document.documentElement.dataset.beat = "1";          // the album art in the panel pulses with the music
+  window.clearTimeout(beatOff);
+  beatOff = window.setTimeout(() => { delete document.documentElement.dataset.beat; }, 12000);
+});
 client.on("download_progress", (m) => { dls = m.items || []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;
