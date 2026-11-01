@@ -134,7 +134,10 @@ const trail = h("div", { class: "n-trail" });
 const volBar = h("div", { class: "n-vol", "aria-hidden": "true" }, h("b"));
 const brandBadge = h("div", { class: "n-brand" });            // which AI answers, in the live bubble
 const camDot = h("div", { class: "n-cam", title: "Kamera je zapnutá – ovládání gesty" });
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+// 3.12 subtitles of what the PC plays (YouTube, a film, a game): one or two lines right in the notch
+const subsEl = h("div", { class: "n-subs", "aria-live": "polite" });
+let subs: { on: boolean; lines: string[]; lang: string; at: number } = { on: false, lines: [], lang: "", at: 0 };
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -188,9 +191,17 @@ function dynSize(m: Mode): [number, number] {
       const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(240, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 6;
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
-    case "hover": return kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
-    default: return kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
+    case "hover": return kind === "subs" ? subsSize(true) : kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
+    default: return kind === "subs" ? subsSize(false) : kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
   }
+}
+/** The subtitle pill: wide enough for a line of a film subtitle, one or two lines tall. */
+function subsSize(hover: boolean): [number, number] {
+  const n = subs.lines.length;
+  if (!n) return [hover ? 262 : 252, hover ? 38 : 36];
+  const longest = Math.max(...subs.lines.map((l) => l.length));
+  const w = Math.min(640, Math.max(300, 92 + longest * 7.6));
+  return [Math.round(w), n > 1 ? 62 : 42];
 }
 function dynRadius(m: Mode, hh: number): number {
   return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
@@ -206,6 +217,7 @@ function sizeFor(m: Mode): [number, number] {
     case "radial": return [340, 320];
     case "live": return [560, liveHeight()];
     default: {
+      if (shape.dataset.island === "subs") { const [sw, sh] = subsSize(false); return [Math.max(cfg.width, sw), Math.max(cfg.height, sh)]; }
       const kind = island() ? shape.dataset.island || "" : "";
       if (kind === "volume") return [Math.max(cfg.width, 420), cfg.height];
       return [activity || kind ? Math.max(cfg.width, island() ? 380 : 300) : cfg.width, cfg.height];
@@ -710,6 +722,14 @@ client.on("agent_activity", (m) => {
 });
 let vol: { level: number; muted: boolean } | null = null, volUntil = 0;
 client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
+client.on("live_subs", (m) => {
+  const lines = Array.isArray(m.lines) ? m.lines.map(String).filter(Boolean) : [];
+  subs = { on: !!m.on, lines, lang: String(m.lang || ""), at: lines.length ? Date.now() : subs.at };
+  shape.classList.toggle("subs-tr", subs.lang.includes("→"));
+  updateActivity();
+});
+// a subtitle fades after a quiet while (nobody speaks in the video) so the notch does not keep an old line
+setInterval(() => { if (subs.on && subs.lines.length && Date.now() - subs.at > 6000) { subs.lines = []; updateActivity(); } }, 1000);
 client.on("volume", (m) => {
   vol = { level: Number(m.level) || 0, muted: !!m.muted };
   volUntil = Date.now() + 1600;
@@ -746,6 +766,15 @@ function islandActivity(t: any) {
     kind = "volume";
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
+  } else if (subs.on) {
+    kind = "subs";
+    l = [h("span", { class: "n-cc", title: "Titulky z videa – vypneš Ctrl+Alt+T" }, "CC")];
+    if (!subs.lines.length) r = [h("span", { class: "n-subs-wait" }, "Poslouchám…")];
+    const key = subs.lines.join("\n");
+    if (subsEl.dataset.key !== key) {          // only a new line animates in (this runs every second)
+      subsEl.dataset.key = key;
+      subsEl.replaceChildren(...subs.lines.map((x) => h("span", {}, x)));
+    }
   } else if (team.size) {
     const all = [...team.values()];
     const secs = Math.round((Date.now() - Math.min(...all.map((a) => a.since))) / 1000);
@@ -819,13 +848,14 @@ function updateActivity() {
   }
   islandActivity(t);
   shape.classList.toggle("has-act", !!activity);
-  if (mode === "closed") apply("closed");
+  if (mode === "closed" || (mode === "hover" && shape.dataset.island === "subs")) apply(mode);
 }
 setInterval(updateActivity, 1000);
 
 // ---------- server events ----------
 client.onStatus((s) => { if (s !== "open") { coreMood = "offline"; updateBlob(); } });
 client.on("welcome", (m) => {
+  client.send("live_subs_get", {});
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   task = m.task || null;

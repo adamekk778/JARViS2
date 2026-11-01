@@ -96,6 +96,14 @@ def foreground_is_fullscreen() -> bool:
     return rect.left <= m.left and rect.top <= m.top and rect.right >= m.right and rect.bottom >= m.bottom
 
 
+def make_topmost(hwnd: int) -> None:
+    """Put a window on top of the top-most band again (without focusing, moving or resizing it)."""
+    if not IS_WIN or not hwnd:
+        return
+    HWND_TOPMOST, SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = -1, 0x1, 0x2, 0x10
+    ctypes.windll.user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE)
+
+
 def set_autostart(enabled: bool, command: str) -> None:
     if not IS_WIN:
         return

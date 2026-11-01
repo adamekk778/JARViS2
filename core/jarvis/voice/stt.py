@@ -76,15 +76,17 @@ class Transcriber:
                 self._model_name = name
             return self._model
 
-    def _groq(self, wav: bytes, filename: str = "audio.wav", prompt: str = "") -> str:
+    def _groq(self, wav: bytes, filename: str = "audio.wav", prompt: str = "", language: str | None = None) -> str:
+        """language None = the configured one, "" = recognise whatever is spoken."""
         import httpx
 
         key = secrets.get("groq")
         if not key:
             raise RuntimeError("Groq API klíč není nastavený (poskytovatel 'groq' v Nastavení → Mozek)")
         data = {"model": "whisper-large-v3-turbo", "response_format": "json"}
-        if self._language():
-            data["language"] = self._language()
+        lang = self._language() if language is None else language
+        if lang:
+            data["language"] = lang
         if prompt:
             data["prompt"] = prompt[:800]
         r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
@@ -182,6 +184,33 @@ class Transcriber:
                            files={"file": ("audio.wav", f.read())}, data=data, timeout=120)
         r.raise_for_status()
         return [{"word": w["word"].strip(), "start": float(w["start"]), "end": float(w["end"]), "p": None} for w in r.json().get("words", [])]
+
+    def local_ready(self) -> bool:
+        """The local recogniser is already on disk (live subtitles never start a big download by themselves)."""
+        if self._model is not None:
+            return True
+        root = paths.sub("models") / "whisper"
+        name = str(self.cfg.stt_model)
+        try:
+            return any(name in p.name for p in root.iterdir() if p.is_dir()) if root.is_dir() else False
+        except OSError:
+            return False
+
+    def caption(self, audio, language: str | None = None) -> tuple[str, str]:
+        """A few seconds of what the PC plays (float32, 16 kHz) → (text, language) for live subtitles.
+        language None = whatever is spoken (a video can be in any language)."""
+        from ..lang import detect
+
+        if self.cfg.stt_provider == "groq":
+            import numpy as np
+
+            pcm = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16).tobytes()
+            text = self._groq(pcm_to_wav(pcm, 16000), language=language or "")
+            return text, (detect(text) if text else "")
+        model = self._local()
+        segments, info = model.transcribe(audio, language=language, beam_size=1, vad_filter=True, condition_on_previous_text=False)
+        text = " ".join(s.text.strip() for s in segments).strip()
+        return text, (getattr(info, "language", "") or detect(text))
 
     def _run(self, audio, prompt: str = "") -> str:
         model = self._local()

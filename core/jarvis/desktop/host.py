@@ -48,6 +48,10 @@ class NotchApi:
         """Is the window per-pixel transparent? Then the page paints only the shape (see DesktopHost._smooth_edges)."""
         return self._host.alpha
 
+    def hide_notch(self) -> None:
+        """"Schovat notch" in the panel: hidden until the hotkey (Ctrl+Alt+N) or the tray brings it back."""
+        self._host.toggle_notch(False)
+
 
 class HudApi:
     """Exposed to the HUD page as window.pywebview.api."""
@@ -77,6 +81,7 @@ class DesktopHost:
         self._quitting = False
         self._notch_size = notch_window_size(rt.cfg.notch)
         self._hidden_fullscreen = False
+        self._hidden_manual = False      # hidden by the user (hotkey / panel / tray) until they bring it back
         self.alpha = False
         self.hud = None
         self.hud_visible = False
@@ -351,6 +356,37 @@ class DesktopHost:
             log.debug("open_chat: %s", e)
 
     # ---------- background loops ----------
+    def toggle_notch(self, show: bool | None = None) -> None:
+        """Hide / show the notch by hand (Ctrl+Alt+N, the panel, the tray) – also over a game or a video."""
+        if not self.notch:
+            return
+        show = self._hidden_manual if show is None else show
+        try:
+            if show:
+                self._hidden_manual = self._hidden_fullscreen = False
+                self.notch.show()
+                self.keep_on_top()
+            else:
+                self._hidden_manual = True
+                self.notch.hide()
+                hk = self.rt.cfg.hotkeys.notch_toggle
+                self.rt.notify("Notch je schovaný", f"Zpátky ho vrátíš zkratkou {hk.upper()} nebo v ikoně JARVISe u hodin.", speak=False)
+        except Exception as e:
+            log.debug("toggle_notch: %s", e)
+
+    def keep_on_top(self) -> None:
+        """Over a borderless game or a full-screen video another top-most window can cover the notch: put it back on top."""
+        try:
+            hwnd = self.notch_hwnd()
+            if hwnd:
+                winutil.make_topmost(hwnd)
+        except Exception as e:
+            log.debug("keep_on_top: %s", e)
+
+    def _subs_on(self) -> bool:
+        subs = getattr(self.rt, "live_subs", None)
+        return bool(subs and subs.on)
+
     def _fullscreen_watch(self) -> None:
         while not self._quitting:
             time.sleep(1.5)
@@ -359,16 +395,20 @@ class DesktopHost:
                 self.no_backdrop()
             except Exception as e:
                 log.debug("heal_region: %s", e)
-            if not self.notch or not self.rt.cfg.notch.hide_in_fullscreen:
+            if not self.notch or self._hidden_manual:
                 continue
             try:
                 fs = winutil.foreground_is_fullscreen()
-                if fs and not self._hidden_fullscreen:
+                # subtitles keep the notch over the video even when it would hide there
+                hide = fs and self.rt.cfg.notch.hide_in_fullscreen and not self._subs_on()
+                if hide and not self._hidden_fullscreen:
                     self.notch.hide()
                     self._hidden_fullscreen = True
-                elif not fs and self._hidden_fullscreen:
+                elif not hide and self._hidden_fullscreen:
                     self.notch.show()
                     self._hidden_fullscreen = False
+                if fs and not hide:
+                    self.keep_on_top()
             except Exception:
                 pass
 
@@ -396,6 +436,8 @@ class DesktopHost:
             pystray.MenuItem("Otevřít JARVIS", lambda: self.open_chat("chat"), default=True),
             pystray.MenuItem("Celý chat", lambda: self.open_fullchat()),
             pystray.MenuItem("Stark HUD", lambda: self.toggle_hud()),
+            pystray.MenuItem(lambda _: "Ukázat notch" if self._hidden_manual else "Schovat notch", lambda: self.toggle_notch()),
+            pystray.MenuItem(lambda _: "Vypnout titulky z videa" if self._subs_on() else "Titulky z videa", lambda: self._toggle_subs()),
             pystray.MenuItem("Nastavení", lambda: self.open_chat("general")),
             pystray.MenuItem("Spárovat telefon", lambda: self.open_chat("phone")),
             pystray.MenuItem(voice_label, toggle_voice, visible=lambda _: self.rt.voice is not None),
@@ -422,6 +464,14 @@ class DesktopHost:
             return
         self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat"))
         self.open_chat("chat")
+
+    def _toggle_subs(self) -> None:
+        from .. import livesubs
+
+        r = livesubs.get(self.rt).toggle()
+        if self._subs_on() and self._hidden_manual:
+            self.toggle_notch(True)          # subtitles need the notch
+        self.rt.notify("Titulky z videa", r["message"], speak=False)
 
     def _hotkeys(self) -> None:
         try:
@@ -451,7 +501,10 @@ class DesktopHost:
             self.rt.submit(powers.selection_menu(self.rt))
 
         for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
-                          (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud()), (hk.selection, selection)):
+                          (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud()), (hk.selection, selection),
+                          (hk.notch_toggle, lambda: self.toggle_notch()), (hk.subtitles, lambda: self._toggle_subs())):
+            if not combo:
+                continue
             try:
                 keyboard.add_hotkey(combo, fn, suppress=False)
             except Exception as e:

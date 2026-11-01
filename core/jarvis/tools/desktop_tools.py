@@ -117,3 +117,15 @@ async def compare_open_documents(ctx, first: str = "", second: str = "") -> Tool
         txt += f" Zmizelo např.: „{removed[0][2:][:120]}“."
     return ToolResult(True, txt, data={"files": [str(p) for p in paths], "similarity": sim, "added": [x[2:] for x in added[:30]],
                                        "removed": [x[2:] for x in removed[:30]]})
+
+
+@tool("video_subtitles", "Titulky z videa v notchi: zapne nebo vypne titulky toho, co počítač přehrává (YouTube, film, hra) – "
+      "rozpozná řeč ze zvuku PC (ne z mikrofonu), cizí jazyk volitelně přeloží do češtiny. Nic se neukládá. Na „zapni titulky“, "
+      "„titulky k videu“, „vypni titulky“.", category="systém")
+async def video_subtitles(ctx, on: Annotated[bool, "true = zapnout, false = vypnout"] = True) -> ToolResult:
+    from .. import livesubs
+
+    subs = livesubs.get(ctx)
+    r = await asyncio.to_thread(subs.start if on else subs.stop)
+    return ToolResult(r["ok"], r["message"] + (" Vypneš je zkratkou Ctrl+Alt+T nebo „vypni titulky“." if on and r["ok"] else ""),
+                      data=subs.status())

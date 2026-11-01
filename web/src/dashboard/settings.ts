@@ -53,6 +53,7 @@ const MODES: [string, string][] = [["eco", "Úsporný – malý kontext, málo v
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const KEY_NAMES: Record<string, string> = { ctrl: "Ctrl", alt: "Alt", shift: "Shift", windows: "Win", space: "Mezerník", enter: "Enter", esc: "Esc", tab: "Tab", backspace: "⌫", up: "↑", down: "↓", left: "←", right: "→" };
+const combo = (c: string) => c.split("+").map((k) => keyName(k)).join("+");
 const keyName = (k: string) => KEY_NAMES[k.trim()] ?? (k.length === 1 ? k.toUpperCase() : k.trim().replace(/^f(\d+)$/, "F$1"));
 function keyId(e: KeyboardEvent): string {
   if (e.key === " ") return "space";
@@ -293,7 +294,20 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         return h("label", {}, c, label);
       }));
       return [
-        card("Notch", null, sw("notch.enabled", "Zobrazovat notch"), sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku"),
+        card("Titulky z videa", "Když se díváš na YouTube, film nebo hraješ, notch ukazuje, co se ve videu říká. Rozpozná se to ze zvuku, který PC přehrává (ne z mikrofonu), a nic se neukládá. Při zapnutých titulcích zůstane notch vidět i nad videem na celou obrazovku.",
+          (() => {
+            const on = !!extra.subs?.on;
+            const btn = h("button", { class: `btn ${on ? "" : "primary"}`, type: "button", onclick: () => client.send("live_subs_set", { on: !on }) },
+              icon("closed-captioning"), on ? "Vypnout titulky" : "Zapnout titulky");
+            return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, on ? "Titulky běží" : "Titulky jsou vypnuté"),
+              h("span", {}, `Zkratka ${combo(S.hotkeys.subtitles || "ctrl+alt+t")} nebo řekni „zapni titulky“.` + (extra.subs?.error ? ` ${extra.subs.error}` : ""))), btn);
+          })(),
+          sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),
+          S.voice?.stt_provider === "groq" ? h("p", { class: "help" }, "Rozpoznávání řeči máš přes Groq, takže zvuk videa se k rozpoznání posílá tam. Pro úplné soukromí přepni v Nastavení → Hlas na místní rozpoznávání.") : null),
+        card("Notch", null, sw("notch.enabled", "Zobrazovat notch"),
+          sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku",
+            "Vypni, když ho chceš mít i nad YouTube nebo hrou. Kdykoli ho schováš a vrátíš zkratkou " + combo(S.hotkeys.notch_toggle || "ctrl+alt+n") +
+            ". Hry ve výhradním režimu celé obrazovky nic nepřekryje – přepni je na „okno bez okrajů“ (borderless)."),
           sw("notch.music_viz", "Pruhy podle hudby", "Když hraje hudba, na okraji notche se hýbou pruhy."),
           sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
           sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
@@ -400,7 +414,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
 
     hotkeys: () => [card("Klávesové zkratky", "Klikni na zkratku a stiskni nové klávesy. Esc zastaví JARVISe jen když mluví nebo pracuje.",
       hotkey("hotkeys.talk", "Mluvit / psát JARVISovi"), hotkey("hotkeys.chat", "Otevřít okno chatu"), hotkey("hotkeys.stop", "Zastavit JARVISe (řeč i akci)"),
-      hotkey("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."))],
+      hotkey("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."),
+      hotkey("hotkeys.notch_toggle", "Schovat / ukázat notch", "Funguje i nad hrou nebo videem na celou obrazovku."),
+      hotkey("hotkeys.subtitles", "Titulky z videa v notchi", "Zapne nebo vypne titulky toho, co PC přehrává."))],
 
     permissions: () => [
       card("Oblasti oprávnění", "Platí okamžitě. Nebezpečné akce (mazání, odesílání, instalace, PowerShell…) JARVIS vždy nejdřív potvrdí s tebou.",
@@ -940,7 +956,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     host.scrollTop = scroll;
   }
 
-  client.on("welcome", (m) => { S = m.settings; local = !!m.local; voiceStatus = m.voice || {}; client.send("settings_get"); render(); });
+  client.on("welcome", (m) => { S = m.settings; local = !!m.local; voiceStatus = m.voice || {}; client.send("settings_get"); if (local) client.send("live_subs_get"); render(); });
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
@@ -952,6 +968,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   });
   client.on("local_model_missing", (m) => toast(`Pro offline režim stáhni ${m.name} (${m.size_gb} GB) v Nastavení → Mozek → Lokální AI.`, "info", 9000));
   client.on("audio_devices", (m) => { extra.audio = m; if (current === "voice") render(); });
+  client.on("live_subs", (m) => { const was = extra.subs?.on; extra.subs = m; if (current === "notch" && (was !== m.on || m.error)) render(); });
   client.on("voices", (m) => {
     extra.voices = m;
     if (m.imported) { extra.voiceMsg = `Hlas ${m.imported} přidán a zapnut`; toast(extra.voiceMsg, "ok"); }

@@ -359,6 +359,9 @@ class Runtime:
             self.speaker.stop()
         if self.voice and hasattr(self.voice, "cancel_capture"):
             self.voice.cancel_capture()
+        subs = getattr(self, "live_subs", None)
+        if subs is not None and subs.on:        # 3.12: subtitles listen to what the PC plays → stop them too
+            subs.stop()
         try:
             self.platform.release_all_input()
         except Exception as e:

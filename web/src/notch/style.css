@@ -536,3 +536,16 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 @keyframes n-q { 50% { transform: translateY(-3px) rotate(8deg); } }
 /* OMEGA 741: the glow follows the room light (ambient sensor) – dimmer in a dark room */
 .n-glow { filter: brightness(var(--room-glow, 1)); }
+
+/* 3.12 subtitles of what the PC plays (YouTube, a film, a game) – one or two lines right in the notch */
+.n-subs { position: absolute; inset: 0 18px 0 58px; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  pointer-events: none; color: #fff; font: 600 14px/1.28 var(--font); letter-spacing: -.1px; text-align: center; text-shadow: 0 1px 2px rgb(0 0 0 / .6); }
+.n-subs span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: subs-in .25s var(--ease); }
+.notch[data-island="subs"]:is([data-mode="closed"], [data-mode="hover"]) .n-subs { display: flex; opacity: 1; }
+.notch[data-island="subs"] .n-inner > .n-lead { height: 100% !important; }
+.notch[data-island="subs"]:is([data-mode="closed"], [data-mode="hover"]) :is(.n-eyes, .n-music, .n-blob, .act) { opacity: 0 !important; }
+.n-cc { display: inline-grid; place-items: center; height: 18px; padding: 0 5px; border-radius: 5px; background: #fff; color: #000;
+  font: 800 10px/1 var(--font); letter-spacing: .02em; }
+.notch.subs-tr .n-cc { background: #ffd60a; }   /* a translated line */
+.n-subs-wait { color: #9aa3ad; font-weight: 500; }
+@keyframes subs-in { from { opacity: 0; transform: translateY(3px); } }

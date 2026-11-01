@@ -27,7 +27,7 @@ export const CLIENT_TYPES = [
   "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
   "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
   "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
-  "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
+  "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
   "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
 ] as const;
 
@@ -47,7 +47,7 @@ export const SERVER_TYPES = [
   "learn", "learn_card", "learn_result",
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
-  "focus", "caption", "agent_activity", "mission_sim", "windows",
+  "focus", "caption", "live_subs", "agent_activity", "mission_sim", "windows",
   "handoff", "mochi_where", "anchor", "hardware",
 ] as const;
 

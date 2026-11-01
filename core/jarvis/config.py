@@ -103,6 +103,7 @@ class Notch(BaseModel):
     close_delay_ms: int = 400
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
+    subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
     pinned: bool = False   # big panel stays open (also after restart)
     smooth_edges: bool = True   # replaced by `edges` (kept so older config files still load)
     # "hard" = the window is cut to the notch shape (works on every PC); "smooth" = per-pixel alpha with
@@ -145,6 +146,8 @@ class Hotkeys(BaseModel):
     selection: str = "ctrl+alt+e"   # what to do with the selected text (fix, translate, explain…)
     stop: str = "esc"
     stop_all: str = "ctrl+alt+x"
+    notch_toggle: str = "ctrl+alt+n"   # 3.12: hide / show the notch (also over a game or a video)
+    subtitles: str = "ctrl+alt+t"      # 3.12: subtitles of what the PC plays, in the notch
 
 
 class Tools(BaseModel):

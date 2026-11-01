@@ -329,6 +329,14 @@ export function buildPanel(ctx: PanelCtx) {
   }
   window.setInterval(renderHome, 1000);
 
+  // 3.12 subtitles of what the PC plays, right in the notch (Ctrl+Alt+T)
+  const subsTile = h("button", { class: "more-tile", type: "button", onclick: () => ctx.client.send("live_subs_set", {}) });
+  const paintSubsTile = (on: boolean) => {
+    subsTile.classList.toggle("on", on);
+    subsTile.replaceChildren(icon("closed-captioning", on ? "ph-fill" : ""), h("strong", {}, on ? "Vypnout titulky" : "Titulky z videa"),
+      h("span", {}, on ? "Titulky běží v notchi · Ctrl+Alt+T" : "Co se říká ve videu nebo hře, v notchi"));
+  };
+  paintSubsTile(false);
   const tile = (sec: Section, ic: string, label: string, sub: string) =>
     h("button", { class: "more-tile", type: "button", onclick: () => show(sec) }, icon(ic), h("strong", {}, label), h("span", {}, sub));
   const moreView = h("div", { class: "p-sec more" },
@@ -337,7 +345,11 @@ export function buildPanel(ctx: PanelCtx) {
     tile("workspaces", "browsers", "Plochy", "Uložená rozložení oken"),
     tile("tools", "wrench", "Nástroje", "Co JARVIS umí a co se naučil"),
     tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled"),
-    h("button", { class: "more-tile", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), h("strong", {}, "Celé okno"), h("span", {}, "Všechny stránky a nastavení JARVISe")));
+    h("button", { class: "more-tile", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), h("strong", {}, "Celé okno"), h("span", {}, "Všechny stránky a nastavení JARVISe")),
+    subsTile,
+    h("button", { class: "more-tile", type: "button", title: "Zpátky ho vrátíš Ctrl+Alt+N nebo v ikoně JARVISe u hodin",
+      onclick: () => { (window as any).pywebview?.api?.hide_notch?.(); } }, icon("eye-slash"), h("strong", {}, "Schovat notch"), h("span", {}, "I nad hrou nebo videem · zpátky Ctrl+Alt+N")));
+  ctx.client.on("live_subs", (m) => paintSubsTile(!!m.on));
   // ---------- 3.12 Průběh: what Claude Code / JARVIS is doing and exactly what it changed (added / removed lines) ----------
   let jChanges: any[] = [];
   const openDiffs = new Set<string>(), closedDiffs = new Set<string>();

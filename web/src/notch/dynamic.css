@@ -118,13 +118,15 @@ html[data-nstyle="dynamic"] .h-btn:hover { background: rgb(255 255 255 / .3); }
 html:not([data-nstyle="dynamic"]) .home-row { display: none; }
 
 /* "Více": big tiles for the rest */
-.p-sec.more { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; align-content: start; padding: 6px 2px; }
+.p-sec.more { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; padding: 6px 2px; }
 .more-tile { display: grid; justify-items: start; gap: 4px; padding: 18px; border: 0; border-radius: 22px; background: rgb(255 255 255 / .06);
   color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .15s, transform .15s; }
 .more-tile i { font-size: 26px; color: #0a84ff; margin-bottom: 6px; }
 .more-tile strong { font-size: 15px; }
 .more-tile span { font-size: 12.5px; color: var(--dy-sub, #9aa3ae); }
 .more-tile:hover { background: rgb(255 255 255 / .1); transform: translateY(-1px); }
+.more-tile.on { background: rgb(10 132 255 / .22); }
+.more-tile.on i { color: #fff; }
 
 /* shared controls in the panel look cleaner */
 html[data-nstyle="dynamic"] .p-card { border-radius: 20px; border: 0; background: rgb(255 255 255 / .05); }

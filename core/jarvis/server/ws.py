@@ -45,7 +45,7 @@ CLIENT_TYPES = [
     "notch_context_get", "pins_get", "pin_add", "pin_done", "pin_remove", "pins_clear_done",
     "workspaces_get", "workspace_save", "workspace_restore", "workspace_delete",
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
-    "phone_zone", "client_state", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
+    "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
 ]
 SERVER_TYPES = [
@@ -65,7 +65,7 @@ SERVER_TYPES = [
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
-    "focus", "caption", "agent_activity", "mission_sim", "windows",
+    "focus", "caption", "live_subs", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware",
 ]
 
@@ -79,7 +79,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"device_revoke", "lockdown", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -267,6 +267,8 @@ class Connection:
                 if tgt and tgt not in ("all", self.client):
                     continue
                 if msg["type"] == "level" and (self.client == "mobile" or self.low_power):
+                    continue
+                if msg["type"] == "live_subs" and not self.local:     # what the PC plays stays on the PC
                     continue
                 if self.guest and msg["type"] not in ("media", "quick_result", "settings_changed"):
                     continue
@@ -924,6 +926,18 @@ class Connection:
             self.low_power = bool(m.get("low_power"))
         elif t in ("workspaces_get", "workspace_save", "workspace_restore", "workspace_delete"):
             await self._workspaces(t, str(m.get("name") or "").strip())
+        elif t in ("live_subs_get", "live_subs_set"):     # 3.12: subtitles of what the PC plays, in the notch
+            from .. import livesubs
+
+            subs = livesubs.get(rt)
+            msg = ""
+            if t == "live_subs_set":
+                want = m.get("on")
+                r = await asyncio.to_thread(subs.toggle if want is None else subs.start if want else subs.stop)
+                if not r["ok"]:
+                    await self.send("error", message=r["message"])
+                msg = r["message"]
+            await self.send("live_subs", **subs.status(), lines=livesubs.lines_for(subs.text), message=msg)
         elif t == "focus_set":            # OMEGA 234: quiet focus mode for N minutes (0 = off)
             rt.attention.focus(float(m.get("minutes") or 0))
         elif t == "mission_simulate":     # OMEGA 192 / 755: a protocol's steps as a graph + a dry run
