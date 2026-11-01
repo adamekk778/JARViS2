@@ -167,6 +167,10 @@ let lyrIdx = -2, lyrW = 0;
 const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
+// 3.12 the small circle on the right of the island (a second activity); see paintPip
+const pip = h("button", { class: "n-pip", type: "button", "aria-label": "Prohodit s hlavní aktivitou",
+  onclick: (e: Event) => { e.stopPropagation(); if (pip.dataset.kind) { preferKind = pip.dataset.kind; updateActivity(); } } });
+document.getElementById("notch-root")!.append(pip);
 
 // ---------- window size ----------
 const PAD = 28; // keep in sync with desktop/host.py
@@ -277,6 +281,8 @@ function paintShape() {
   shape.style.setProperty("--cw", `${S.w.toFixed(2)}px`);
   shape.style.setProperty("--ch", `${S.h.toFixed(2)}px`);
   shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
+  document.documentElement.style.setProperty("--ncw", `${S.w.toFixed(2)}px`);   // the circle on the right follows the island
+  document.documentElement.style.setProperty("--nch", `${S.h.toFixed(2)}px`);
   if (!(hostAnim && S.raf)) syncRegion();      // while JARVIS animates the outline itself, no per-frame sends
 }
 // 3.12: with the window cut to the shape, the outline IS what you see – so JARVIS animates it on the PC, once per
@@ -301,7 +307,12 @@ function syncRegion(force = false) {
   const cx = box.left + box.width / 2;
   if (dyn()) {
     const top = box.top + GAP;
-    sendRegion([roundRect({ left: cx - S.w / 2, right: cx + S.w / 2, top, bottom: top + S.h } as DOMRect, Math.max(0, S.r), window.devicePixelRatio || 1, regionPad)], force);
+    const polys = [roundRect({ left: cx - S.w / 2, right: cx + S.w / 2, top, bottom: top + S.h } as DOMRect, Math.max(0, S.r), window.devicePixelRatio || 1, regionPad)];
+    if (pip.classList.contains("on")) {             // the second circle is part of the window too
+      const pl = cx + S.w / 2 + 8, pt = top + (S.h - 36) / 2;
+      polys.push(roundRect({ left: pl, right: pl + 36, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
+    }
+    sendRegion(polys, force);
     return;
   }
   const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
@@ -943,10 +954,48 @@ function lyricsLoop() {
   requestAnimationFrame(lyricsLoop);
 }
 requestAnimationFrame(lyricsLoop);
+// 3.12 two things at once (like iPhone): the main activity in the island, the next one in a small circle on its
+// right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
+const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
+let preferKind = "";
+function activeKinds(t: any, cc: any): string[] {
+  const on: Record<string, boolean> = {
+    lyrics: lyricsOn(), subs: subs.on, team: team.size > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
+    focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000),
+    music: !lyricsOn() && !!(media?.playing && media.title),
+  };
+  return PERSIST.filter((k) => on[k]);
+}
+function paintPip(kind: string | undefined, t: any, cc: any) {
+  const show = !!kind && dyn() && (mode === "closed" || mode === "hover");
+  pip.classList.toggle("on", show);
+  if (!show || !kind) { delete pip.dataset.kind; return; }
+  pip.dataset.kind = kind;
+  let kids: (Node | string)[] = [];
+  if (kind === "focus") {
+    const tm = timers[0], left = Math.max(0, Math.round(tm.ends_at - Date.now() / 1000));
+    kids = [ring(tm.seconds ? left / tm.seconds : 1), h("b", {}, String(Math.max(1, Math.ceil(left / 60))))];
+    pip.title = `${tm.label || "Časovač"} · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  } else if (kind === "music" || kind === "lyrics") {
+    kids = [media.thumb ? h("img", { class: "pip-art", src: media.thumb, alt: "" }) : icon("music-notes", "ph-fill")];
+    pip.title = media.title || "Hudba";
+  } else if (kind === "claude") { kids = [brandEl(BRANDS.claude)]; pip.title = "Claude Code"; }
+  else if (kind === "ai" && brain) { const b = brandOf(brain.provider, brain.model); kids = [brandEl(b)]; pip.title = b.name; }
+  else if (kind === "task" && t) { kids = [ring(t.total ? t.done / t.total : 0)]; pip.title = `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`; }
+  else if (kind === "team") { kids = [icon("users-three", "ph-fill")]; pip.title = "Tým agentů"; }
+  else if (kind === "download") { kids = [icon("download-simple", "ph-fill")]; pip.title = "Stahování"; }
+  else if (kind === "subs") { kids = [h("span", { class: "n-cc" }, "CC")]; pip.title = "Titulky"; }
+  setKids(pip, kids);
+  void cc;
+}
 /** What the closed island shows on its left and right (the same priority as the activity text). */
 function islandActivity(t: any) {
   let kind = "", l: (Node | string)[] = [], r: (Node | string)[] = [];
   const cc = claudeSessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
+  const actives = activeKinds(t, cc);
+  if (preferKind && !actives.includes(preferKind)) preferKind = "";
+  const skip = new Set(preferKind ? PERSIST.slice(0, PERSIST.indexOf(preferKind)) : []);
+  const sk = (k: string) => !skip.has(k);
   if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
     l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
@@ -959,14 +1008,14 @@ function islandActivity(t: any) {
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     r = [volNum];
     if (!volRaf) volRaf = requestAnimationFrame(volTick);
-  } else if (lyricsOn()) {
+  } else if (sk("lyrics") && lyricsOn()) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
     l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")),
       src ? brandEl(src, "n-src-badge") : "")];
     r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
     paintLyrics(true);
-  } else if (subs.on) {
+  } else if (sk("subs") && subs.on) {
     kind = "subs";
     const src = mediaBrand(subs.source);
     l = [src ? brandEl(src, "n-src") : "", h("span", { class: "n-cc", title: "Titulky z videa – vypneš Ctrl+Alt+T" }, "CC")];
@@ -976,34 +1025,34 @@ function islandActivity(t: any) {
       subsEl.dataset.key = key;
       subsEl.replaceChildren(...subs.lines.map((x) => h("span", {}, x)));
     }
-  } else if (team.size) {
+  } else if (sk("team") && team.size) {
     const all = [...team.values()];
     const secs = Math.round((Date.now() - Math.min(...all.map((a) => a.since))) / 1000);
     kind = "team";
     l = [h("span", { class: "n-team" }, ...all.slice(0, 4).map((a) => h("i", { title: a.name }, icon(a.icon, "ph-fill")))),
          h("span", {}, all.length === 1 ? all[0].name : `Tým · ${all.length}`)];
     r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
-  } else if (jarvisBusy() && brain && coreMood !== "listening") {
+  } else if (sk("ai") && jarvisBusy() && brain && coreMood !== "listening") {
     const b = brandOf(brain.provider, brain.model);
     kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")]; r = [b.name];
     shape.style.setProperty("--brand", b.color);
   } else if (dict.state === "listening" || dict.state === "transcribing") {
     kind = "dict"; l = [icon("microphone", "ph-fill"), h("span", {}, dict.state === "listening" ? "Poslouchám" : "Přepisuji")]; r = [dictBars];
-  } else if (cc) {
+  } else if (sk("claude") && cc) {
     const secs = Math.max(0, Math.round(Date.now() / 1000 - (cc.started || Date.now() / 1000)));
     kind = "claude"; l = [brandEl(BRANDS.claude), h("span", {}, CLAUDE_SHORT[cc.state] || "Pracuje")];
     shape.style.setProperty("--brand", BRANDS.claude.color);
     r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
-  } else if (timers.length) {
+  } else if (sk("focus") && timers.length) {
     const tm = timers[0], left = Math.max(0, Math.round(tm.ends_at - Date.now() / 1000));
     kind = "focus"; l = [ring(tm.seconds ? left / tm.seconds : 1)]; r = [`${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`];
-  } else if (t && t.total) {
+  } else if (sk("task") && t && t.total) {
     kind = "task"; l = [icon("list-checks"), h("span", {}, `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`)];
     r = [`${Math.round((t.done / t.total) * 100)} %`];
   } else if (upd?.available && upd.state !== "error") {
     kind = "update"; l = [icon("arrow-circle-up"), h("span", {}, upd.state === "downloading" ? "Stahuji" : `Verze ${upd.latest}`)];
     r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : [];
-  } else if (dls.length && Date.now() - dlsAt < 15000) {
+  } else if (sk("download") && dls.length && Date.now() - dlsAt < 15000) {
     const d = dls[0];
     const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;
     kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
@@ -1018,6 +1067,8 @@ function islandActivity(t: any) {
   setKids(lead, l);
   setKids(trail, r);
   shape.dataset.island = kind;
+  // the next running thing (if any) in the small circle on the right
+  paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);
 }
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;

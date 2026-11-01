@@ -206,3 +206,24 @@ html[data-nstyle="dynamic"] .hcard { box-shadow: inset 0 1px 0 rgb(255 255 255 /
 html[data-nstyle="dynamic"] .h-label { letter-spacing: .01em; color: rgb(255 255 255 / .85); }
 html[data-nstyle="dynamic"] .notch[data-island="claude"], html[data-nstyle="dynamic"] .notch[data-island="ai"] { cursor: pointer; }
 html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner { cursor: pointer; }
+
+/* 3.12 a second activity in a small black circle right of the island (timer ring, album art, a logo); click = swap */
+.n-pip { position: fixed; z-index: 5; top: calc(var(--dy-gap, 6px) + (var(--nch, 36px) - 36px) / 2); left: calc(50% + var(--ncw, 176px) / 2 + 8px);
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: #000; color: #fff; display: grid; place-items: center; cursor: pointer;
+  opacity: 0; transform: scale(.3); pointer-events: none; transition: opacity .25s ease, transform .5s cubic-bezier(.3, 1.4, .5, 1); }
+html:not([data-nstyle="dynamic"]) .n-pip { display: none; }
+.n-pip.on { opacity: 1; transform: none; pointer-events: auto; }
+.n-pip:hover { transform: scale(1.08); }
+.n-pip:active { transform: scale(.92); }
+.n-pip > * { grid-area: 1 / 1; }
+.n-pip .n-ring { width: 26px; height: 26px; }
+.n-pip[data-kind="focus"] { color: #ff9f0a; }
+.n-pip[data-kind="task"] { color: #0a84ff; }
+.n-pip b { font: 700 10px var(--font); color: #fff; font-variant-numeric: tabular-nums; }
+.n-pip .pip-art { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.n-pip[data-kind="music"] .pip-art, .n-pip[data-kind="lyrics"] .pip-art { animation: pip-spin 8s linear infinite; }
+@keyframes pip-spin { to { transform: rotate(360deg); } }
+.n-pip .brand-logo svg { width: 18px; height: 18px; display: block; }
+.n-pip > i { font-size: 17px; }
+.n-pip .n-cc { font-size: 9px; height: 16px; }
+@media (prefers-reduced-motion: reduce) { .n-pip .pip-art { animation: none !important; } }
