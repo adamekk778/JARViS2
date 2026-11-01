@@ -3,6 +3,7 @@ import "./style.css";
 import "./dynamic.css";
 import "./home.css";
 import "./sections.css";
+import "./chat.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";

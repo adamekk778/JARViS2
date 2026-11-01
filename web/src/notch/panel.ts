@@ -125,7 +125,7 @@ export function buildPanel(ctx: PanelCtx) {
     ctxCard,
     pinsCard,
     mediaCard,
-    h("div", { class: "p-card" },
+    h("div", { class: "p-card qa-card" },
       h("div", { class: "p-card-head" }, h("span", {}, "Rychlé akce"), h("button", { class: "p-icon sm", type: "button", "aria-label": "Všechny akce", onclick: () => show("quick") }, icon("squares-four"))),
       h("div", { class: "qgrid" },
         card("squares-four", "Otevřít aplikaci", "Spustit program", () => { show("chat"); chat.prefill("Otevři "); }),
@@ -586,6 +586,11 @@ export function buildPanel(ctx: PanelCtx) {
       (c as HTMLElement).animate([{ opacity: 0, transform: "translateY(10px) scale(.98)" }, { opacity: 1, transform: "none" }],
         { duration: 420, delay: 40 + i * 32, easing: "cubic-bezier(.2,.9,.25,1)", fill: "backwards" }));
   }
+  /** The chat was filled while hidden (height 0), so it could not scroll: jump to the newest message when shown. */
+  const toNewest = () => requestAnimationFrame(() => {
+    const sc = chat.el.querySelector(".chat-scroll") as HTMLElement | null;
+    if (sc) sc.scrollTop = sc.scrollHeight;
+  });
   function show(s: Section) {
     const prev = current;
     current = s;
@@ -594,6 +599,7 @@ export function buildPanel(ctx: PanelCtx) {
     const changed = centre.firstChild !== views[s];
     centre.replaceChildren(views[s]);
     if (changed && prev !== s) intro(views[s], (ORDER.indexOf(s) - ORDER.indexOf(prev)) > 0 ? 18 : -18);
+    if (s === "chat") toNewest();
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
@@ -666,6 +672,6 @@ export function buildPanel(ctx: PanelCtx) {
 
   window.addEventListener("resize", () => moveInd(true));
   /** The panel opened: the indicator jumps to its tab and the cards of the open section come in. */
-  const enter = () => { moveInd(true); requestAnimationFrame(() => moveInd(true)); intro(views[current]); };
+  const enter = () => { moveInd(true); requestAnimationFrame(() => moveInd(true)); intro(views[current]); if (current === "chat") toNewest(); };
   return { el, show, chat, dateEl: homeDate, navEl, enter, get section() { return current; } };
 }
