@@ -181,6 +181,19 @@ jobs:
             $line = "corner $label rgb=($($c.R),$($c.G),$($c.B))"; Write-Host $line; Add-Content "$shots\region.txt" $line
             return ($c.R -gt 200 -and $c.G -lt 120)
           }
+          function Rim($label) {   # smooth edges: a pixel just outside the shape but inside its window region must be the
+            # backdrop – a white or grey rim there means per-pixel alpha does not work on this Windows
+            $seen = New-Object 'System.Collections.Generic.List[string]'
+            $h = [W]::Notch([uint32]$p.Id, $seen)
+            $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
+            $rr = New-Object W+RECT; [W]::GetWindowRgnBox($h, [ref]$rr) | Out-Null
+            $px = $wr.L + $rr.L; $py = $wr.T + [int](($rr.T + $rr.B) / 2)
+            $b = New-Object System.Drawing.Bitmap 1, 1
+            [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($px, $py, 0, 0, $b.Size)
+            $c = $b.GetPixel(0, 0)
+            $line = "rim $label rgb=($($c.R),$($c.G),$($c.B))"; Write-Host $line; Add-Content "$shots\region.txt" $line
+            return ($c.R -gt 200 -and $c.G -lt 120)
+          }
           function Zoom($label) {
             # the notch window enlarged 6x without smoothing: jagged steps vs. anti-aliased edges are plain to see
             $seen = New-Object 'System.Collections.Generic.List[string]'
@@ -209,7 +222,7 @@ jobs:
           $bd.Show(); [System.Windows.Forms.Application]::DoEvents()
           $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2; [System.Windows.Forms.Application]::DoEvents()
-          Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"; $c1 = Corner "closed"
+          Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"; $c1 = Corner "closed"; $r1 = Rim "closed"
           [W]::SetCursorPos([int]($sw / 2), 8) | Out-Null; Start-Sleep -Milliseconds 1500
           [System.Windows.Forms.Application]::DoEvents()
           Shot "2-hover"; $k2 = Region "hover"; Zoom "hover"
@@ -264,6 +277,7 @@ jobs:
           if ($k1 -lt 2) { throw "the notch window has no region: there would be a box around the notch" }
           if ($k4 -lt 2) { throw "the notch region did not come back after Windows dropped it" }
           if (-not $c1) { throw "something is painted around the notch inside its window (grey box): see corner in region.txt" }
+          if ($smooth -and -not $r1) { throw "smooth edges are on but a rim is painted right around the notch: see rim in region.txt" }
           if ($full -eq [IntPtr]::Zero) { throw "the full chat window did not open" }
           if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
           if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }

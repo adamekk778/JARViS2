@@ -110,7 +110,8 @@ class Notch(BaseModel):
     smooth_edges: bool = True   # replaced by `edges` (kept so older config files still load)
     # "hard" = the window is cut to the notch shape (works on every PC); "smooth" = per-pixel alpha with
     # anti-aliased curves, which on some PCs made Windows draw a grey box around the notch
-    edges: Literal["hard", "smooth"] = "hard"
+    edges: Literal["hard", "smooth"] = "smooth"
+    edges_rev: int = 1             # 3.12: saved "hard" (the 3.10.89 default, before the grey box was traced to Mica) → smooth once
     # 3.11: "island" = two glowing eyes + live info left / right and a home screen of big cards; "mochi" = the character
     style: Literal["dynamic", "island", "mochi"] = "dynamic"
     style_rev: int = 1             # 3.12: configs saved before Dynamic Island (0) move from "island" to "dynamic" once
@@ -512,6 +513,14 @@ class Config(BaseModel):
             if n.get("style", "island") == "island":
                 n["style"] = "dynamic"
             n["style_rev"] = 1
+            data = {**data, "notch": n}
+        # 3.12: smooth (anti-aliased) edges are the default again – the grey box / white rim that made 3.10.89 switch to
+        # hard edges was the Mica backdrop, turned off since 3.10.90; a saved "hard" moves to "smooth" once
+        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("edges_rev", 0) or 0) < 1:
+            n = dict(data["notch"])
+            if n.get("edges", "hard") == "hard":
+                n["edges"] = "smooth"
+            n["edges_rev"] = 1
             data = {**data, "notch": n}
         return data
 

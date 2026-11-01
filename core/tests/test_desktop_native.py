@@ -146,20 +146,22 @@ def test_window_handle_prefers_own_native_handle(monkeypatch):
     assert winutil.window_handle(SimpleNamespace(), "JARVIS Notch") == 777   # no native handle → own-process lookup
 
 
-def test_hard_edges_by_default_smooth_only_when_chosen(rt, monkeypatch):
-    """Per-pixel alpha made Windows draw a grey box (and a white rim) around the notch on a user's PC, so the
-    window is cut to the shape by default; smooth edges only when chosen in Settings – also for old config
-    files that still say smooth_edges = true."""
+def test_smooth_edges_by_default_hard_only_when_chosen(rt, monkeypatch):
+    """3.12: the notch has anti-aliased edges (per-pixel alpha) by default – a window region alone cuts whole pixels,
+    which the user saw as jagged steps. The grey box that once made hard edges the default was the Mica backdrop
+    (turned off since 3.10.90); a saved "hard" moves to "smooth" once, a later choice of "hard" stays."""
     from jarvis import config
     from jarvis.desktop import winutil
 
     assert winutil.enable_alpha(0) is False   # no window, no change (and off Windows it never touches DWM)
-    old = config.Config.model_validate({"notch": {"smooth_edges": True}})
-    assert old.notch.edges == "hard"
+    assert config.Config().notch.edges == "smooth"
+    assert config.Config.model_validate({"notch": {"edges": "hard"}}).notch.edges == "smooth"
+    assert config.Config.model_validate({"notch": {"edges": "hard", "edges_rev": 1}}).notch.edges == "hard"
     h = _host(rt)
     tried = []
     monkeypatch.setattr(h, "_make_alpha", lambda win, hwnd: tried.append(hwnd) or True)
     h.notch.evaluate_js = lambda js: None
+    rt.cfg.notch.edges = "hard"
     h._smooth_edges()
     assert tried == [] and h.alpha is False
     rt.cfg.notch.edges = "smooth"
