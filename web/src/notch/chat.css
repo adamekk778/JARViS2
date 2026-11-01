@@ -71,3 +71,42 @@ html[data-nstyle="dynamic"] .p-centre .send-btn:active { transform: scale(.88); 
 /* ---------- side column ---------- */
 html[data-nstyle="dynamic"] .p-right .ctx-list .p-pill { white-space: normal; text-align: left; height: auto; min-height: 30px; padding: 6px 12px; }
 @media (prefers-reduced-motion: reduce) { html[data-nstyle="dynamic"] .p-centre .msg { animation: none; } }
+
+/* ---------- the chat over the whole panel (nothing in a side column) ---------- */
+html[data-nstyle="dynamic"] .panel:not(.wide) { grid-template-columns: minmax(0, 1fr); }
+html[data-nstyle="dynamic"] .panel .p-right { display: none; }
+html[data-nstyle="dynamic"] .p-centre .chat-list { padding-left: 14px; padding-right: 14px; }
+html[data-nstyle="dynamic"] .p-centre .composer { padding-left: 10px; padding-right: 10px; }
+
+/* ---------- quick bar (hover / click on the island) ---------- */
+html[data-nstyle="dynamic"] .bar-side { display: none !important; }
+html:not([data-nstyle="dynamic"]) .dy-bar { display: none; }
+html[data-nstyle="dynamic"] .n-inner > .dy-bar { left: 10px; right: 10px; top: 0; height: 60px; display: flex; align-items: center; gap: 8px; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar { opacity: 1; pointer-events: auto; transition: opacity .25s ease .08s; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar > * { animation: dyb-in .45s cubic-bezier(.2, .9, .25, 1) both; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar > :nth-child(2) { animation-delay: .04s; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar > :nth-child(3) { animation-delay: .08s; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar > :nth-child(4) { animation-delay: .11s; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar > :nth-child(5) { animation-delay: .14s; }
+@keyframes dyb-in { from { opacity: 0; transform: translateY(-6px) scale(.9); } }
+.dyb-orb { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; width: 40px; height: 40px; flex: none; border: 0;
+  border-radius: 50%; cursor: pointer; background: radial-gradient(circle at 35% 30%, #6fb3ff, #2563eb 55%, #172554);
+  box-shadow: 0 0 18px -4px rgb(59 130 246 / .8), inset 0 1px 1px rgb(255 255 255 / .35); transition: transform .3s cubic-bezier(.3, 1.5, .5, 1); }
+.dyb-orb i { width: 5px; height: 8px; border-radius: 3px; background: #fff; animation: dyb-blink 4.5s infinite; }
+.dyb-orb:hover { transform: scale(1.08); }
+@keyframes dyb-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.15); } }
+.dyb-ask { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 16px; border: 0; border-radius: 20px; cursor: text;
+  background: rgb(255 255 255 / .08); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06); color: rgb(255 255 255 / .55); font: 500 13.5px var(--font);
+  text-align: left; white-space: nowrap; overflow: hidden; transition: background .2s, color .2s; }
+.dyb-ask i { color: #9ec5ff; font-size: 15px; flex: none; }
+.dyb-ask:hover { background: rgb(255 255 255 / .13); color: rgb(255 255 255 / .8); }
+.dyb-btn { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; cursor: pointer;
+  background: rgb(255 255 255 / .1); color: #fff; font-size: 18px; transition: transform .25s cubic-bezier(.3, 1.5, .5, 1), background .2s; }
+.dyb-btn:hover { background: rgb(255 255 255 / .18); transform: scale(1.06); }
+.dyb-btn:active, .dyb-orb:active { transform: scale(.9); }
+.dyb-btn.mic { background: linear-gradient(145deg, #3b9bff, #0a64e0); box-shadow: 0 6px 16px -8px rgb(10 132 255 / .9); }
+.notch[data-mood="listening"] .dyb-btn.mic { animation: dyb-rec 1.2s ease-in-out infinite; background: linear-gradient(145deg, #ff5e57, #e0261f); }
+@keyframes dyb-rec { 50% { box-shadow: 0 0 0 6px rgb(255 69 58 / .25); } }
+@media (prefers-reduced-motion: reduce) { .notch[data-mode="bar"] .dy-bar > * { animation: none; } .dyb-orb i { animation: none; } }
+html[data-nstyle="dynamic"] .p-centre .msg.assistant .a-main { flex: 0 1 auto; width: fit-content; max-width: min(84%, 620px); }
+html[data-nstyle="dynamic"] .p-centre .msg.user .bubble { max-width: min(78%, 560px); }

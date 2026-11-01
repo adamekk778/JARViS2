@@ -85,6 +85,18 @@ const barRight = h("div", { class: "bar-side r" }, barStop,
   h("button", { class: "n-btn", type: "button", title: "Stark HUD (Ctrl+Alt+H)", "aria-label": "Stark HUD", onclick: () => openChat("hud") }, icon("circle-notch")),
   h("button", { class: "n-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six")));
 
+// 3.12 Dynamic Island quick bar (hover / click): the JARVIS orb, an "ask" field that opens the chat ready to type,
+// and round coloured buttons – instead of four grey icons with a spinner-like HUD symbol
+const dyMic = h("button", { class: "dyb-btn mic", type: "button", title: "Mluvit (Ctrl+Alt+Mezerník)", "aria-label": "Mluvit",
+  onclick: () => client.send("push_to_talk") }, icon("microphone", "ph-fill"));
+const dyBar = h("div", { class: "dy-bar" },
+  h("button", { class: "dyb-orb", type: "button", title: "Domů", "aria-label": "Otevřít domovskou stránku notche", onclick: () => openPanel("home") },
+    h("i"), h("i")),
+  h("button", { class: "dyb-ask", type: "button", onclick: () => openPanel("chat") },
+    icon("sparkle", "ph-fill"), h("span", {}, "Zeptej se JARVISe…")),
+  dyMic,
+  h("button", { class: "dyb-btn", type: "button", title: "Akce", "aria-label": "Akce", onclick: () => openPanel("quick") }, icon("squares-four", "ph-fill")),
+  h("button", { class: "dyb-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six", "ph-fill")));
 const bubbleState = h("div", { class: "b-state" });
 const bubbleTranscript = h("div", { class: "b-transcript" });
 const bubbleTool = h("div", { class: "b-tool" });
@@ -144,7 +156,7 @@ let subs: { on: boolean; lines: string[]; lang: string; at: number; source: stri
 const lyrEl = h("div", { class: "n-lyr" });
 let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string }[] } = { title: "", artist: "", synced: false, lines: [] };
 let lyrIdx = -2, lyrW = 0;
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -191,7 +203,7 @@ function dynSize(m: Mode): [number, number] {
   const kind = shape.dataset.island || "";
   switch (m) {
     case "panel": return [780, 400];
-    case "bar": return [400, 64];
+    case "bar": return [470, 60];
     case "alert": return [420, 76];
     case "radial": return [340, 320];
     case "live": {
