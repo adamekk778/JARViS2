@@ -85,18 +85,26 @@ const barRight = h("div", { class: "bar-side r" }, barStop,
   h("button", { class: "n-btn", type: "button", title: "Stark HUD (Ctrl+Alt+H)", "aria-label": "Stark HUD", onclick: () => openChat("hud") }, icon("circle-notch")),
   h("button", { class: "n-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six")));
 
-// 3.12 Dynamic Island quick bar (hover / click): the JARVIS orb, an "ask" field that opens the chat ready to type,
-// and round coloured buttons – instead of four grey icons with a spinner-like HUD symbol
-const dyMic = h("button", { class: "dyb-btn mic", type: "button", title: "Mluvit (Ctrl+Alt+Mezerník)", "aria-label": "Mluvit",
-  onclick: () => client.send("push_to_talk") }, icon("microphone", "ph-fill"));
-const dyBar = h("div", { class: "dy-bar" },
-  h("button", { class: "dyb-orb", type: "button", title: "Domů", "aria-label": "Otevřít domovskou stránku notche", onclick: () => openPanel("home") },
-    h("i"), h("i")),
-  h("button", { class: "dyb-ask", type: "button", onclick: () => openPanel("chat") },
-    icon("sparkle", "ph-fill"), h("span", {}, "Zeptej se JARVISe…")),
-  dyMic,
-  h("button", { class: "dyb-btn", type: "button", title: "Akce", "aria-label": "Akce", onclick: () => openPanel("quick") }, icon("squares-four", "ph-fill")),
-  h("button", { class: "dyb-btn", type: "button", title: "Nastavení", "aria-label": "Nastavení", onclick: () => openPanel("settings") }, icon("gear-six", "ph-fill")));
+// 3.12 Dynamic Island quick bar (hover / click), the simple one: the time, what JARVIS is doing (a coloured dot and a
+// word) and three plain white icons – chat, talk, actions – nothing more
+const dyTime = h("strong", { class: "dyb-time" });
+const dyState = h("span", { class: "dyb-state" }, h("i", { class: "dyb-dot" }), h("span", {}, "Připraven"));
+const dyIcon = (ic: string, label: string, fn: () => void, cls = "") => h("button", { class: `dyb-ic ${cls}`, type: "button", title: label, "aria-label": label,
+  onclick: (e: Event) => { e.stopPropagation(); fn(); } }, icon(ic));
+const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, h("span", { class: "dyb-icons" },
+  dyIcon("chat-circle", "Chat", () => openPanel("chat")),
+  dyIcon("microphone", "Mluvit (Ctrl+Alt+Mezerník)", () => client.send("push_to_talk"), "mic"),
+  dyIcon("squares-four", "Akce", () => openPanel("quick"))));
+const DY_WORD: Record<string, string> = { idle: "Připraven", listening: "Poslouchám", thinking: "Přemýšlím", working: "Pracuji", speaking: "Mluvím",
+  waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", focus: "Soustředění" };
+function paintDyBar() {
+  const t = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  if (dyTime.textContent !== t) dyTime.textContent = t;
+  const word = DY_WORD[coreMood] || "Připraven";
+  const lbl = dyState.lastElementChild as HTMLElement;
+  if (lbl.textContent !== word) lbl.textContent = word;
+  if (dyState.dataset.m !== coreMood) dyState.dataset.m = coreMood;
+}
 const bubbleState = h("div", { class: "b-state" });
 const bubbleTranscript = h("div", { class: "b-transcript" });
 const bubbleTool = h("div", { class: "b-tool" });
@@ -203,7 +211,7 @@ function dynSize(m: Mode): [number, number] {
   const kind = shape.dataset.island || "";
   switch (m) {
     case "panel": return [780, 400];
-    case "bar": return [470, 60];
+    case "bar": return [400, 44];
     case "alert": return [420, 76];
     case "radial": return [340, 320];
     case "live": {
@@ -1037,6 +1045,7 @@ function updateActivity() {
     actText.replaceChildren();
   }
   islandActivity(t);
+  paintDyBar();
   shape.classList.toggle("has-act", !!activity);
   if (mode === "closed" || (mode === "hover" && ["subs", "lyrics"].includes(shape.dataset.island || ""))) apply(mode);
 }
