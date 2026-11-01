@@ -65,7 +65,7 @@ SERVER_TYPES = [
     "learn", "learn_card", "learn_result",
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
-    "focus", "caption", "live_subs", "agent_activity", "mission_sim", "windows",
+    "focus", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware",
 ]
 
@@ -293,7 +293,8 @@ class Connection:
                         settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
-                        media=rt.media_state, shelf=[rt.public_attachment(a) for a in rt.shelf],
+                        media=rt.media_state, lyrics=getattr(rt, "lyrics_state", {}) if self.local else {},
+                        shelf=[rt.public_attachment(a) for a in rt.shelf],
                         timers=rt.timers.list(), voice=self._voice_status(), volume=getattr(rt, "last_audio", None),
                         pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current, task=rt.tasks.current,
                         local_missing=rt.local.missing,

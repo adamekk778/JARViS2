@@ -10,7 +10,7 @@ import { configureSounds, panFor, play, setAnchorPan, setCustomSounds } from "..
 import { stopButton, type Task } from "../shared/taskcard";
 import { notchOutline, regionSender, roundRect } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
-import { brandEl, brandOf, BRANDS } from "../shared/brands";
+import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
 
 /* Notch modes (spec §4):
@@ -136,8 +136,12 @@ const brandBadge = h("div", { class: "n-brand" });            // which AI answer
 const camDot = h("div", { class: "n-cam", title: "Kamera je zapnutá – ovládání gesty" });
 // 3.12 subtitles of what the PC plays (YouTube, a film, a game): one or two lines right in the notch
 const subsEl = h("div", { class: "n-subs", "aria-live": "polite" });
-let subs: { on: boolean; lines: string[]; lang: string; at: number } = { on: false, lines: [], lang: "", at: 0 };
-const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
+let subs: { on: boolean; lines: string[]; lang: string; at: number; source: string } = { on: false, lines: [], lang: "", at: 0, source: "" };
+// 3.12 song lyrics: the line being sung, filled and underlined as it is sung (karaoke), album art + the app's logo
+const lyrEl = h("div", { class: "n-lyr" });
+let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string }[] } = { title: "", artist: "", synced: false, lines: [] };
+let lyrIdx = -2, lyrW = 0;
+const inner = h("div", { class: "n-inner" }, glow, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
 
@@ -154,6 +158,7 @@ async function resizeWindow(w: number, hh: number) {
 function takeNotchSettings(n: any) {
   if (!n) return;
   cfg = { ...cfg, ...n };
+  cfgLyrics = n.lyrics !== false;
   if (!(cfg.expanded_width >= 760)) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
 }
 function windowSize(): [number, number] {
@@ -191,17 +196,21 @@ function dynSize(m: Mode): [number, number] {
       const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(240, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 6;
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
-    case "hover": return kind === "subs" ? subsSize(true) : kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
-    default: return kind === "subs" ? subsSize(false) : kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
+    case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
+    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
   }
 }
-/** The subtitle pill: wide enough for a line of a film subtitle, one or two lines tall. */
+/** The subtitle pill grows sideways (one wide line) and only takes a second line for a long sentence. */
 function subsSize(hover: boolean): [number, number] {
   const n = subs.lines.length;
   if (!n) return [hover ? 262 : 252, hover ? 38 : 36];
   const longest = Math.max(...subs.lines.map((l) => l.length));
-  const w = Math.min(640, Math.max(300, 92 + longest * 7.6));
-  return [Math.round(w), n > 1 ? 62 : 42];
+  const w = Math.min(760, Math.max(320, 110 + longest * 7.4));
+  return [Math.round(w), n > 1 ? 62 : hover ? 44 : 42];
+}
+/** Lyrics: one wide line; the width follows the longest of this and the next two lines so it does not jump every line. */
+function lyrSize(hover: boolean): [number, number] {
+  return [Math.round(Math.min(760, Math.max(360, lyrW))), hover ? 46 : 44];
 }
 function dynRadius(m: Mode, hh: number): number {
   return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
@@ -218,6 +227,7 @@ function sizeFor(m: Mode): [number, number] {
     case "live": return [560, liveHeight()];
     default: {
       if (shape.dataset.island === "subs") { const [sw, sh] = subsSize(false); return [Math.max(cfg.width, sw), Math.max(cfg.height, sh)]; }
+      if (shape.dataset.island === "lyrics") { const [lw, lh] = lyrSize(false); return [Math.max(cfg.width, lw), Math.max(cfg.height, lh)]; }
       const kind = island() ? shape.dataset.island || "" : "";
       if (kind === "volume") return [Math.max(cfg.width, 420), cfg.height];
       return [activity || kind ? Math.max(cfg.width, island() ? 380 : 300) : cfg.width, cfg.height];
@@ -722,9 +732,14 @@ client.on("agent_activity", (m) => {
 });
 let vol: { level: number; muted: boolean } | null = null, volUntil = 0;
 client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
+client.on("lyrics", (m) => {
+  lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [] };
+  lyrIdx = -2;
+  updateActivity();
+});
 client.on("live_subs", (m) => {
   const lines = Array.isArray(m.lines) ? m.lines.map(String).filter(Boolean) : [];
-  subs = { on: !!m.on, lines, lang: String(m.lang || ""), at: lines.length ? Date.now() : subs.at };
+  subs = { on: !!m.on, lines, lang: String(m.lang || ""), at: lines.length ? Date.now() : subs.at, source: String(m.source || "") };
   shape.classList.toggle("subs-tr", subs.lang.includes("→"));
   updateActivity();
 });
@@ -751,6 +766,48 @@ function renderBrand() {
   brandBadge.replaceChildren(brandEl(b), h("span", {}, b.name));
   shape.style.setProperty("--brand", b.color);
 }
+/** Where we are in the song now (s): the player's position plus the time since it was read while playing. */
+function songPos(): number {
+  if (typeof media.position !== "number") return -1;
+  return media.position + (media.playing ? Math.max(0, Date.now() / 1000 - (media.at || Date.now() / 1000)) : 0);
+}
+function lyricsOn(): boolean {
+  return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && songPos() >= 0
+    && songPos() >= lyr.lines[0].t - 1.5 && songPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
+}
+let cfgLyrics = true;
+/** The current line and how far it is sung: the text fills from the left and a bar runs under it. */
+function paintLyrics(force = false) {
+  const pos = songPos();
+  let i = -1;
+  for (let k = 0; k < lyr.lines.length && lyr.lines[k].t <= pos; k++) i = k;
+  const cur = lyr.lines[Math.max(0, i)];
+  const next = lyr.lines[i + 1];
+  if (i !== lyrIdx || force) {
+    if (i !== lyrIdx) {
+      lyrIdx = i;
+      const text = i < 0 ? `♪ ${lyr.title}` : cur.text || "♪ ♪ ♪";
+      const span = h("span", { class: "lyr-line" }, text);
+      lyrEl.replaceChildren(span);
+      const around = lyr.lines.slice(Math.max(0, i), i + 3).map((x) => x.text.length).concat(text.length);
+      lyrW = 132 + Math.max(...around) * 7.6;
+      if (shape.dataset.island === "lyrics" && (mode === "closed" || mode === "hover")) apply(mode);   // the pill follows the line
+    }
+  }
+  const line = lyrEl.firstElementChild as HTMLElement | null;
+  if (!line) return;
+  let k = 0;
+  if (i >= 0) {
+    const span = Math.min((next ? next.t : cur.t + 4) - cur.t, Math.max(1.4, (cur.text.length || 4) * 0.075 + 0.6));
+    k = Math.min(1, Math.max(0, (pos - cur.t) / span));
+  }
+  line.style.setProperty("--k", `${(k * 100).toFixed(1)}%`);
+}
+function lyricsLoop() {
+  if (shape.dataset.island === "lyrics") paintLyrics();
+  requestAnimationFrame(lyricsLoop);
+}
+requestAnimationFrame(lyricsLoop);
 /** What the closed island shows on its left and right (the same priority as the activity text). */
 function islandActivity(t: any) {
   let kind = "", l: (Node | string)[] = [], r: (Node | string)[] = [];
@@ -766,9 +823,18 @@ function islandActivity(t: any) {
     kind = "volume";
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     (volBar.firstChild as HTMLElement).style.width = `${vol.muted ? 0 : vol.level}%`;
+  } else if (lyricsOn()) {
+    kind = "lyrics";
+    const src = mediaBrand(media.source || "");
+    shape.style.setProperty("--lyr", src && src.id !== "browser" ? src.color : "#ffffff");
+    l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")),
+      src ? brandEl(src, "n-src-badge") : "")];
+    r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+    paintLyrics(true);
   } else if (subs.on) {
     kind = "subs";
-    l = [h("span", { class: "n-cc", title: "Titulky z videa – vypneš Ctrl+Alt+T" }, "CC")];
+    const src = mediaBrand(subs.source);
+    l = [src ? brandEl(src, "n-src") : "", h("span", { class: "n-cc", title: "Titulky z videa – vypneš Ctrl+Alt+T" }, "CC")];
     if (!subs.lines.length) r = [h("span", { class: "n-subs-wait" }, "Poslouchám…")];
     const key = subs.lines.join("\n");
     if (subsEl.dataset.key !== key) {          // only a new line animates in (this runs every second)
@@ -848,7 +914,7 @@ function updateActivity() {
   }
   islandActivity(t);
   shape.classList.toggle("has-act", !!activity);
-  if (mode === "closed" || (mode === "hover" && shape.dataset.island === "subs")) apply(mode);
+  if (mode === "closed" || (mode === "hover" && ["subs", "lyrics"].includes(shape.dataset.island || ""))) apply(mode);
 }
 setInterval(updateActivity, 1000);
 
@@ -867,6 +933,7 @@ client.on("welcome", (m) => {
   upd = m.update;
   paintUpdate();
   media = m.media || {};
+  if (m.lyrics?.lines) lyr = { title: String(m.lyrics.title || ""), artist: String(m.lyrics.artist || ""), synced: !!m.lyrics.synced, lines: m.lyrics.lines };
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
   claudeSessions = m.claude_sessions || [];

@@ -13,6 +13,7 @@ import logging
 import queue
 import re
 import threading
+import time
 
 log = logging.getLogger(__name__)
 
@@ -34,8 +35,9 @@ def clean(text: str) -> str:
     return t[:220]
 
 
-def lines_for(text: str, width: int = 64) -> list[str]:
-    """Split a subtitle into at most two lines for the notch, never cutting a word (the end wins if too long)."""
+def lines_for(text: str, width: int = 84) -> list[str]:
+    """Split a subtitle into at most two lines for the notch (one wide line when it fits – the notch grows sideways
+    rather than down), never cutting a word; the end wins when it is too long."""
     words, out, line = text.split(), [], ""
     for w in words:
         if line and len(line) + 1 + len(w) > width:
@@ -91,11 +93,36 @@ class LiveSubs:
         self._stop = threading.Event()
         self._jobs: queue.Queue = queue.Queue(maxsize=2)
         self._threads: list[threading.Thread] = []
+        self._src, self._src_at = "", -10.0
 
     # ---------------------------------------------------------------- control
     def status(self) -> dict:
-        return {"on": self.on, "text": self.text, "lang": self.lang, "error": self.error,
+        return {"on": self.on, "text": self.text, "lang": self.lang, "error": self.error, "source": self.source(),
                 "translate": bool(getattr(self.rt.cfg.notch, "subs_translate", True))}
+
+    def source(self) -> str:
+        """Where the sound comes from, for its logo at the left of the notch (youtube, netflix, game…), re-checked every 3 s."""
+        now = time.monotonic()
+        if now - self._src_at < 3:
+            return self._src
+        from . import nowplaying
+
+        try:
+            front = self.rt.platform.foreground_info() or {}
+        except Exception:  # noqa: BLE001
+            front = {}
+        src = nowplaying.source("", front.get("title", ""))
+        if src in ("", "browser"):
+            src = (self.rt.media_state or {}).get("source") or src
+        if not src:
+            try:
+                from .desktop.winutil import foreground_is_fullscreen
+
+                src = "game" if foreground_is_fullscreen() else ""
+            except Exception:  # noqa: BLE001
+                src = ""
+        self._src, self._src_at = src, now
+        return src
 
     def _publish(self) -> None:
         try:

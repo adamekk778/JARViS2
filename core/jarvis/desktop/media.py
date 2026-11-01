@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -20,8 +21,9 @@ async def _snapshot() -> dict:
         return {}
     props = await s.try_get_media_properties_async()
     info = s.get_playback_info()
-    out = {"title": props.title or "", "artist": props.artist or "", "app": s.source_app_user_model_id or "",
-           "playing": info.playback_status == Status.PLAYING, "thumb": None}
+    out = {"title": props.title or "", "artist": props.artist or "", "album": getattr(props, "album_title", "") or "",
+           "app": s.source_app_user_model_id or "", "playing": info.playback_status == Status.PLAYING, "thumb": None}
+    out.update(_timeline(s, out["playing"]))
     if props.thumbnail:
         try:
             from winsdk.windows.storage.streams import Buffer, InputStreamOptions
@@ -37,20 +39,61 @@ async def _snapshot() -> dict:
     return out
 
 
+def _timeline(s, playing: bool) -> dict:
+    """Where in the song / video we are: position now (s), length (s) and when it was read (for the lyrics bar).
+    Players update the timeline only on play / pause / seek, so the time since then is added while playing."""
+    try:
+        import datetime as dt
+
+        tl = s.get_timeline_properties()
+        pos = tl.position.total_seconds()
+        dur = (tl.end_time - tl.start_time).total_seconds()
+        upd = tl.last_updated_time
+        if playing and upd and upd.year > 2000:
+            pos += max(0.0, (dt.datetime.now(dt.timezone.utc) - upd).total_seconds())
+        if dur <= 0:
+            return {}
+        return {"position": round(min(max(pos, 0.0), dur), 2), "duration": round(dur, 2), "at": time.time()}
+    except Exception:
+        return {}
+
+
+def changed(prev: dict, snap: dict, tolerance: float = 2.5) -> bool:
+    """A new song, play / pause, or a jump in the song (seek) – worth telling the notch."""
+    if (prev.get("title"), prev.get("artist"), prev.get("playing")) != (snap.get("title"), snap.get("artist"), snap.get("playing")):
+        return True
+    if "position" in snap and "position" in prev:
+        expect = prev["position"] + ((snap.get("at", 0) - prev.get("at", 0)) if prev.get("playing") else 0)
+        return abs(snap["position"] - expect) > tolerance
+    return "position" in snap and "position" not in prev
+
+
 async def watch(rt, interval: float = 2.0) -> None:
     try:
         import winsdk  # noqa: F401
     except ImportError:
         return
-    last_key = None
+    from .. import nowplaying
+
+    prev: dict = {}
     while True:
         try:
             snap = await _snapshot()
-            key = (snap.get("title"), snap.get("artist"), snap.get("playing"))
-            if key != last_key:
-                last_key = key
+            if snap:
+                try:
+                    front = rt.platform.foreground_info() or {}
+                except Exception:
+                    front = {}
+                # a music app names itself; a browser tab is told by the window title ("… - YouTube - Google Chrome")
+                snap["source"] = nowplaying.source(snap.get("app", ""), front.get("title", ""), snap.get("title", ""))
+            new_song = (snap.get("title"), snap.get("artist")) != (prev.get("title"), prev.get("artist"))
+            if changed(prev, snap):
                 rt.media_state = snap
                 rt.bus.publish("media", **snap)
+                if new_song and snap.get("title"):
+                    rt.lyrics_state = {}
+                    asyncio.get_running_loop().create_task(nowplaying.publish_lyrics(rt, snap))
+            prev = snap
         except Exception as e:
             log.debug("media watch: %s", e)
         await asyncio.sleep(interval)

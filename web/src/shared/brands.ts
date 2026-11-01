@@ -1,6 +1,8 @@
 // Which AI is answering right now: its logo (Simple Icons, CC0) and colour, from the provider and the model name.
 // Used by the notch while JARVIS works and by the home cards. A logo only names the service in use.
 import {
+  siApplemusic, siCrunchyroll, siDeezer, siHbomax, siKick, siNetflix, siPlex, siSoundcloud, siSpotify, siSteam, siTidal, siTwitch,
+  siVimeo, siVlcmediaplayer, siYoutube, siYoutubemusic,
   siClaude, siDeepseek, siGooglegemini, siKimi, siLmstudio, siMeta, siMistralai, siNvidia, siOllama, siOpenrouter,
   siPerplexity, siQwen, siX,
 } from "simple-icons";
@@ -75,3 +77,27 @@ export function brandEl(b: Brand, cls = "brand-logo"): HTMLElement {
   el.innerHTML = b.svg;
   return el;
 }
+
+// 3.12: what is playing / being watched – the service's logo at the left of the notch (subtitles, lyrics)
+const GLYPH = (ph: string) => `<i class="ph-fill ph-${ph}" aria-hidden="true"></i>`;
+export const MEDIA: Record<string, Brand> = {
+  youtube: si("youtube", "YouTube", siYoutube),
+  youtubemusic: si("youtubemusic", "YouTube Music", siYoutubemusic),
+  spotify: si("spotify", "Spotify", siSpotify),
+  netflix: si("netflix", "Netflix", siNetflix),
+  twitch: si("twitch", "Twitch", siTwitch, "#a970ff"),
+  applemusic: si("applemusic", "Apple Music", siApplemusic),
+  deezer: si("deezer", "Deezer", siDeezer),
+  tidal: si("tidal", "TIDAL", siTidal, "#ffffff"),
+  soundcloud: si("soundcloud", "SoundCloud", siSoundcloud),
+  vlc: si("vlc", "VLC", siVlcmediaplayer),
+  hbomax: si("hbomax", "Max", siHbomax, "#ffffff"),
+  crunchyroll: si("crunchyroll", "Crunchyroll", siCrunchyroll),
+  vimeo: si("vimeo", "Vimeo", siVimeo),
+  kick: si("kick", "Kick", siKick),
+  plex: si("plex", "Plex", siPlex),
+  steam: si("steam", "Steam", siSteam, "#c7d5e0"),
+  browser: { id: "browser", name: "Prohlížeč", color: "#c7cad0", svg: GLYPH("globe") },
+  game: { id: "game", name: "Hra", color: "#c7cad0", svg: GLYPH("game-controller") },
+};
+export const mediaBrand = (src = ""): Brand | null => MEDIA[src] || null;

@@ -58,6 +58,7 @@ class Runtime:
         self.clients: dict[str, dict] = {}  # ws client id -> info
         self.shelf: list[str] = []    # notch shelf attachment ids
         self.media_state: dict = {}
+        self.lyrics_state: dict = {}     # 3.12: synced lyrics of the song playing (for the notch)
         self.ui_hook = None           # desktop host: show window (second launch)
         self.voice_mode = False       # dashboard voice mode is open → follow-up listening on
         from .mood import MoodEngine

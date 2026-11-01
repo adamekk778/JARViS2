@@ -104,6 +104,7 @@ class Notch(BaseModel):
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
+    lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
     pinned: bool = False   # big panel stays open (also after restart)
     smooth_edges: bool = True   # replaced by `edges` (kept so older config files still load)
     # "hard" = the window is cut to the notch shape (works on every PC); "smooth" = per-pixel alpha with

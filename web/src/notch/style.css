@@ -542,10 +542,32 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
   pointer-events: none; color: #fff; font: 600 14px/1.28 var(--font); letter-spacing: -.1px; text-align: center; text-shadow: 0 1px 2px rgb(0 0 0 / .6); }
 .n-subs span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: subs-in .25s var(--ease); }
 .notch[data-island="subs"]:is([data-mode="closed"], [data-mode="hover"]) .n-subs { display: flex; opacity: 1; }
-.notch[data-island="subs"] .n-inner > .n-lead { height: 100% !important; }
-.notch[data-island="subs"]:is([data-mode="closed"], [data-mode="hover"]) :is(.n-eyes, .n-music, .n-blob, .act) { opacity: 0 !important; }
+.notch:is([data-island="subs"], [data-island="lyrics"]) .n-inner > :is(.n-lead, .n-trail) { height: 100% !important; }
+.notch:is([data-island="subs"], [data-island="lyrics"]):is([data-mode="closed"], [data-mode="hover"]) :is(.n-eyes, .n-music, .n-blob, .act) { opacity: 0 !important; }
 .n-cc { display: inline-grid; place-items: center; height: 18px; padding: 0 5px; border-radius: 5px; background: #fff; color: #000;
   font: 800 10px/1 var(--font); letter-spacing: .02em; }
 .notch.subs-tr .n-cc { background: #ffd60a; }   /* a translated line */
 .n-subs-wait { color: #9aa3ad; font-weight: 500; }
 @keyframes subs-in { from { opacity: 0; transform: translateY(3px); } }
+
+/* the service the sound comes from (YouTube, Netflix, Spotify…) – its logo at the left of the notch */
+.n-src { display: inline-grid; place-items: center; flex: none; }
+.n-src svg { width: 19px; height: 19px; display: block; }
+.n-src i { font-size: 18px; }
+.notch[data-island="subs"] .n-subs { left: 84px; right: 22px; }
+.n-art-wrap { position: relative; display: inline-flex; flex: none; }
+.n-src-badge { position: absolute; right: -5px; bottom: -5px; width: 15px; height: 15px; border-radius: 50%; background: #000;
+  display: grid; place-items: center; box-shadow: 0 0 0 1.5px #000; }
+.n-src-badge svg { width: 11px; height: 11px; display: block; }
+.n-src-badge i { font-size: 10px; }
+
+/* 3.12 song lyrics: the line being sung fills from the left and a bar in the app's colour runs under it */
+.n-lyr { position: absolute; inset: 0 58px 0 60px; display: none; align-items: center; justify-content: center; pointer-events: none; }
+.notch[data-island="lyrics"]:is([data-mode="closed"], [data-mode="hover"]) .n-lyr { display: flex; opacity: 1; }
+.lyr-line { position: relative; max-width: 100%; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font: 700 15px/1.2 var(--font); letter-spacing: -.15px; color: transparent;
+  background: linear-gradient(90deg, #fff var(--k, 0%), rgb(255 255 255 / .36) var(--k, 0%)); -webkit-background-clip: text; background-clip: text;
+  animation: lyr-in .38s var(--ease); }
+.lyr-line::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2.5px; width: var(--k, 0%); border-radius: 2px;
+  background: var(--lyr, #fff); box-shadow: 0 0 10px var(--lyr, #fff); }
+@keyframes lyr-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }

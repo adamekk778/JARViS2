@@ -294,7 +294,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         return h("label", {}, c, label);
       }));
       return [
-        card("Titulky z videa", "Když se díváš na YouTube, film nebo hraješ, notch ukazuje, co se ve videu říká. Rozpozná se to ze zvuku, který PC přehrává (ne z mikrofonu), a nic se neukládá. Při zapnutých titulcích zůstane notch vidět i nad videem na celou obrazovku.",
+        card("Titulky a texty písní", "Když se díváš na YouTube, film nebo hraješ, notch se roztáhne do šířky, vlevo ukáže logo (YouTube, Netflix…) a vedle, co se ve videu říká. Rozpozná se to ze zvuku, který PC přehrává (ne z mikrofonu), a nic se neukládá. Při zapnutých titulcích zůstane notch vidět i nad videem na celou obrazovku.",
           (() => {
             const on = !!extra.subs?.on;
             const btn = h("button", { class: `btn ${on ? "" : "primary"}`, type: "button", onclick: () => client.send("live_subs_set", { on: !on }) },
@@ -302,6 +302,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, on ? "Titulky běží" : "Titulky jsou vypnuté"),
               h("span", {}, `Zkratka ${combo(S.hotkeys.subtitles || "ctrl+alt+t")} nebo řekni „zapni titulky“.` + (extra.subs?.error ? ` ${extra.subs.error}` : ""))), btn);
           })(),
+          sw("notch.lyrics", "Texty písní v notchi", "Když hraje hudba (Spotify, YouTube Music, Apple Music…), notch ukáže právě zpívaný řádek a čára pod ním jede se zpěvem. Texty jsou z LRCLIB – posílá se jen název písně a interpret."),
           sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),
           S.voice?.stt_provider === "groq" ? h("p", { class: "help" }, "Rozpoznávání řeči máš přes Groq, takže zvuk videa se k rozpoznání posílá tam. Pro úplné soukromí přepni v Nastavení → Hlas na místní rozpoznávání.") : null),
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"),
