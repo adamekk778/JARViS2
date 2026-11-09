@@ -212,10 +212,16 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const list = h("div", { style: { display: "grid", gap: "12px" } });
       ordered.forEach((p, i) => {
         const upd = (k: string, v: unknown) => saveProviders(ordered.map((x) => (x.id === p.id ? { ...x, [k]: v } : x)));
+        // 3.12 suggested models (a list under the field; any other name can still be typed)
+        const SUGGEST: Record<string, [string, string][]> = {
+          groq: [["openai/gpt-oss-120b", "nejchytřejší na Groq"], ["openai/gpt-oss-20b", "nejrychlejší"]],
+        };
         const inp = (k: string, label: string, ph = "") => {
-          const el = h("input", { class: "input", value: p[k] ?? "", placeholder: ph }) as HTMLInputElement;
+          const sug = k === "model" || k === "fast_model" ? SUGGEST[p.preset] : undefined;
+          const listId = sug ? `models-${p.id}-${k}` : "";
+          const el = h("input", { class: "input", value: p[k] ?? "", placeholder: ph, ...(listId ? { list: listId } : {}) }) as HTMLInputElement;
           el.onchange = () => upd(k, el.value.trim());
-          return field(label, el);
+          return sug ? field(label, h("div", {}, el, h("datalist", { id: listId }, ...sug.map(([v, l]) => h("option", { value: v }, l))))) : field(label, el);
         };
         const key = h("input", { class: "input", type: "password", placeholder: secretsFlags[p.id] ? "•••••• (uloženo)" : (presets[p.preset]?.needs_key ? "vlož API klíč"
           : p.preset === "omniroute" ? "API klíč z OmniRoute (stačí vložit, model si JARVIS najde)" : "není potřeba"), autocomplete: "off" }) as HTMLInputElement;

@@ -12,6 +12,15 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 from . import paths
 
 
+# Groq models switched off in 2026 → the replacement Groq names (console.groq.com/docs/deprecations)
+GROQ_BEST, GROQ_FAST = "openai/gpt-oss-120b", "openai/gpt-oss-20b"
+GROQ_RETIRED = {"llama-3.3-70b-versatile": GROQ_BEST, "llama3-70b-8192": GROQ_BEST, "qwen/qwen3-32b": GROQ_BEST,
+                "moonshotai/kimi-k2-instruct": GROQ_BEST, "moonshotai/kimi-k2-instruct-0905": GROQ_BEST,
+                "meta-llama/llama-4-scout-17b-16e-instruct": GROQ_BEST, "meta-llama/llama-4-maverick-17b-128e-instruct": GROQ_BEST,
+                "deepseek-r1-distill-llama-70b": GROQ_BEST, "llama-3.1-8b-instant": GROQ_FAST, "llama3-8b-8192": GROQ_FAST,
+                "gemma2-9b-it": GROQ_FAST}
+
+
 class ProviderCfg(BaseModel):
     id: str
     preset: str = "custom"
@@ -523,6 +532,20 @@ class Config(BaseModel):
                 n["edges"] = "smooth"
             n["edges_rev"] = 1
             data = {**data, "notch": n}
+        # 3.12: Groq switched off its Llama, Qwen 3 32B and Kimi K2 models in 2026 – a saved one moves to the model Groq
+        # names as their replacement (GPT-OSS 120B; the small fast one to GPT-OSS 20B). Other providers stay as they are.
+        if isinstance(data, dict) and isinstance(data.get("brain"), dict) and isinstance(data["brain"].get("providers"), list):
+            provs, changed = [], False
+            for p in data["brain"]["providers"]:
+                if isinstance(p, dict) and p.get("preset") == "groq":
+                    p = dict(p)
+                    for key in ("model", "fast_model"):
+                        if p.get(key) in GROQ_RETIRED:
+                            p[key] = GROQ_RETIRED[p[key]]
+                            changed = True
+                provs.append(p)
+            if changed:
+                data = {**data, "brain": {**data["brain"], "providers": provs}}
         return data
 
 
