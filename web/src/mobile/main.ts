@@ -12,6 +12,7 @@ import { stopButton, TaskCard } from "../shared/taskcard";
 import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
 import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
 import { soloProvider, soloScreen } from "./solo";
+import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -105,9 +106,10 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   let waiting = loadOutbox().length;
   const chat = new ChatView(c, { compact: true, placeholder: "Napiš JARVISovi…" });
 
-  const face = new Blob({ size: 34 });
-  face.setMood("offline");
-  const orb = face.el;
+  const eyes = phoneEyes();                          // 3.12 the notch's eyes instead of the old orb
+  const face = { setMood: (m: string, _x?: unknown) => eyes.set(m), setColor: (..._a: unknown[]) => {}, setOutfit: (_o: unknown) => {}, setCharacter: (_c: unknown) => {} };
+  const orb = eyes.el;
+  phoneBackground(c);
   const status = h("span", { class: "m-status" }, "připojuji…");
   const drawer = h("aside", { class: "drawer", "aria-label": "Konverzace" },
     h("div", { class: "drawer-head" }, h("strong", {}, "Konverzace"),
@@ -146,6 +148,9 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     home: homeView(c),
     more: moreView(c, ep, pairing),
   };
+  const clock = phoneClock(c);
+  views.home.prepend(clock.el, phoneMusic(c));
+  views.more.prepend(phoneLookCard());
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());
   app.after(mochiHere(c), handoffLayer(c));          // OMEGA 195 / 083
@@ -153,6 +158,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
       .map(([k, ic, label]) => h("button", { type: "button", "data-tab": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
   const show = (k: string) => {
+    if (k === "home") clock.want();
     Object.entries(views).forEach(([n, el]) => (el.hidden = n !== k));
     tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.tab === k));
     native.haptic();
@@ -557,7 +563,8 @@ function handoffLayer(c: JarvisClient): HTMLElement {
 function oneHandRow(): HTMLElement {
   const sel = h("select", { class: "input", "aria-label": "Ovládání jednou rukou" },
     h("option", { value: "" }, "Obě ruce"), h("option", { value: "right" }, "Jedna ruka – pravá"), h("option", { value: "left" }, "Jedna ruka – levá")) as HTMLSelectElement;
-  const apply = (v: string) => { document.documentElement.dataset.hand = v; try { localStorage.setItem("jarvis.hand", v); } catch { /* private mode */ } };
+  // an empty data-hand="" still matched html[data-hand] and turned "Obě ruce" into the one-handed layout (3.12)
+  const apply = (v: string) => { if (v) document.documentElement.dataset.hand = v; else delete document.documentElement.dataset.hand; try { localStorage.setItem("jarvis.hand", v); } catch { /* private mode */ } };
   try { sel.value = localStorage.getItem("jarvis.hand") || ""; } catch { /* ignore */ }
   apply(sel.value);
   sel.onchange = () => apply(sel.value);
