@@ -1,3 +1,4 @@
+import { openOnboarding } from "./onboarding";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
 import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
@@ -281,6 +282,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         saveProviders([...ordered, { id, preset: pr, base_url: presets[pr]?.base_url || "", model: presets[pr]?.model || "", vision_model: "", fast_model: "", enabled: true }]);
       };
       return [
+        h("div", { class: "card ob-entry" }, h("span", { class: "ob-entry-ico" }, icon("magic-wand", "ph-fill")),
+          h("div", {}, h("strong", {}, "Průvodce nastavením AI"), h("p", {}, "Krok za krokem: vybereš Groq nebo Gemini (zdarma), vložíš klíč a hned uvidíš, jestli funguje.")),
+          h("button", { class: "btn primary", type: "button", onclick: () => openOnboarding() }, icon("play"), "Spustit průvodce")),
         card("Poskytovatelé (záložní řetěz)", "Výchozí: OmniRoute (zdarma, běží na tvém PC na portu 20128) a pak Ollama (offline). Když jeden selže nebo dojde limit, JARVIS automaticky zkusí další.",
           list, h("div", { class: "row" }, h("div", { style: { flex: "1" } }, presetSel), h("button", { class: "btn primary", type: "button", onclick: add }, icon("plus"), "Přidat poskytovatele"))),
         localCard(),

@@ -123,7 +123,7 @@ export function whatsNewOverlay(client: JarvisClient) {
   let shown = false;
   client.on("welcome", (m) => {
     const items = WHATS_NEW[m.whats_new];
-    if (!items || shown) return;
+    if (!items || shown || m.onboarding) return;          // the first-run guide goes first; this waits for the next start
     shown = true;
     const close = () => { root.remove(); window.removeEventListener("keydown", onKey); client.send("whats_new_seen"); };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };

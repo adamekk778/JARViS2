@@ -29,6 +29,7 @@ import { buildPlay } from "./play";
 import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
 import { whatsNewOverlay } from "../shared/whatsnew";
+import { onboarding } from "./onboarding";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
 
@@ -119,6 +120,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
 };
 recapOverlay(client);
 whatsNewOverlay(client);
+onboarding(client);                                  // 3.12 first-run guide
 main.append(chatView, settingsHost, ...Object.values(pages).map((p) => p.el));
 autoControls(document.body);   // JARVIS-styled option lists and filled sliders everywhere in the window
 

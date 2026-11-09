@@ -154,3 +154,23 @@ def test_pet_removed_command_is_harmless(app, rt):
         ws.send_json({"type": "ping"})
         recv_until(ws, "pong")
     assert rt.cfg.character.pet_mode is False and rt.mood.manual == "focus"
+
+
+def test_secret_set_saves_the_key_and_first_run_guide(app, rt, monkeypatch):
+    """3.12: a function-local `from .. import secrets` made every secret_set fail (UnboundLocalError) – no key could be saved."""
+    from jarvis import secrets
+
+    monkeypatch.setattr(secrets, "_keyring", lambda: None)       # the file fallback in the test data folder
+    with TestClient(app, client=LOCAL).websocket_connect("/ws") as ws:
+        w = ws.receive_json()
+        assert w["onboarding"] is True                            # no key yet → the first-run guide shows
+        provs = [*w["settings"]["brain"]["providers"], {"id": "groq", "preset": "groq", "base_url": "https://api.groq.com/openai/v1",
+                                                       "model": "openai/gpt-oss-120b"}]
+        ws.send_json({"type": "settings_set", "patch": {"brain": {"providers": provs, "chain": ["groq"]}}})
+        recv_until(ws, "settings")
+        ws.send_json({"type": "secret_set", "name": "groq", "value": "gsk_abc"})
+        assert recv_until(ws, "settings")["secrets"]["groq"] is True
+    assert secrets.get("groq") == "gsk_abc"
+    rt.update_config({"general": {"onboarded": True}})
+    with TestClient(app, client=LOCAL).websocket_connect("/ws") as ws:
+        assert ws.receive_json()["onboarding"] is False

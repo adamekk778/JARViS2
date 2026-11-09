@@ -302,7 +302,7 @@ class Connection:
                         pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         claude_sessions=rt.claude.list(), claude_pending=rt.claude.pending_public(),
                         jarvis_changes=list(getattr(rt, "recent_changes", []))[-12:],
-                        whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(),
+                        whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(), onboarding=self._onboarding_due(),
                         update=rt.updater.status if rt.updater else None, pins=uiplus.list_pins(rt))
 
     async def _suggestions(self) -> list[dict]:
@@ -542,7 +542,7 @@ class Connection:
 
                 rt.automations.fire(a, dict(TEST_VARS), reason="zkouška", force=True)
         elif t == "home_set":             # Settings → Domov: address + token, tested before saving
-            from .. import home, secrets
+            from .. import home   # `secrets` comes from the top of the file (importing it here broke secret_set)
 
             url, token = str(m.get("url") or "").strip().rstrip("/"), str(m.get("token") or "").strip()
             if url and not url.startswith(("http://", "https://")):
@@ -1339,6 +1339,12 @@ class Connection:
             if rt.voice:
                 rt.voice.set_paused(not rt.voice.paused)
                 rt.bus.publish("voice_status", **self._voice_status())
+
+    def _onboarding_due(self) -> bool:
+        """3.12 the first-run guide: in the window on this PC, until it is finished, while no AI key is saved."""
+        if not self.local or self.rt.cfg.general.onboarded:
+            return False
+        return not any(secrets.has(p.id) for p in self.rt.cfg.brain.providers)
 
     def _secret_flags(self) -> dict:
         return {p.id: secrets.has(p.id) for p in self.rt.cfg.brain.providers}
