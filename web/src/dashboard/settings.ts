@@ -226,11 +226,27 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         };
         const key = h("input", { class: "input", type: "password", placeholder: secretsFlags[p.id] ? "•••••• (uloženo)" : (presets[p.preset]?.needs_key ? "vlož API klíč"
           : p.preset === "omniroute" ? "API klíč z OmniRoute (stačí vložit, model si JARVIS najde)" : "není potřeba"), autocomplete: "off" }) as HTMLInputElement;
-        const out = h("span", { class: "test-out" });
-        key.onchange = () => {
-          client.send("secret_set", { name: p.id, value: key.value.trim() }); key.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok");
-          out.className = "test-out"; out.textContent = "zkouším klíč…"; client.send("provider_test", { id: p.id });   // a key is enough: try it right away
+        // the result of the last save / test stays visible after the page redraws (it used to vanish, so a saved key
+        // looked as if it had not been taken)
+        const st = extra[`kstat_${p.id}`] as { cls: string; text: string } | undefined;
+        const out = h("span", { class: `test-out ${st?.cls || ""}` }, st?.text || (secretsFlags[p.id] ? "Klíč je uložený" : ""));
+        const setStatus = (cls: string, text: string) => { extra[`kstat_${p.id}`] = { cls, text }; out.className = `test-out ${cls}`; out.textContent = text; };
+        let lastSaved = "";
+        const saveKey = () => {
+          // pasted keys often carry spaces, a line break or quotes around them – a key never has any of these
+          const clean = key.value.replace(/[\s"'“”„]/g, "");
+          if (!clean || clean === lastSaved) return;
+          lastSaved = clean;
+          client.send("secret_set", { name: p.id, value: clean });
+          key.value = "";
+          const warn = p.preset === "groq" && !clean.startsWith("gsk_") ? " (pozor: Groq klíč obvykle začíná gsk_)" : "";
+          setStatus("", `Klíč uložen ✓ – zkouším, jestli funguje…${warn}`);
+          toast("Klíč uložen do Správce pověření Windows", "ok");
+          client.send("provider_test", { id: p.id });   // a key is enough: try it right away
         };
+        key.onchange = saveKey;
+        key.onkeydown = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); saveKey(); } };
+        key.onpaste = () => window.setTimeout(saveKey, 30);        // pasting is enough – no need to press anything
         const en = h("input", { type: "checkbox", "aria-label": "Zapnuto" }) as HTMLInputElement;
         en.checked = p.enabled;
         en.onchange = () => upd("enabled", en.checked);
@@ -252,8 +268,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("button", { class: "icon-btn sm", type: "button", title: "Odebrat", "aria-label": "Odebrat poskytovatele", onclick: () => { if (confirm(`Odebrat ${p.id}?`)) saveProviders(ordered.filter((x) => x.id !== p.id)); } }, icon("trash"))),
           h("div", { class: "grid2" }, inp("base_url", "Adresa (base URL)", presets[p.preset]?.base_url), inp("model", "Model", presets[p.preset]?.model)),
           h("div", { class: "grid2" }, inp("vision_model", "Model pro obrázky (volitelné)"), inp("fast_model", "Rychlý model (volitelné)")),
-          field("API klíč", key),
-          h("div", { class: "row" }, out, h("button", { class: "btn", type: "button", onclick: () => { out.className = "test-out"; out.textContent = "testuji…"; client.send("provider_test", { id: p.id }); } }, icon("plugs"), "Otestovat"))));
+          field("API klíč", h("div", { class: "key-row" }, key,
+            h("button", { class: "btn primary", type: "button", onclick: () => { if (key.value.trim()) saveKey(); else if (!secretsFlags[p.id]) key.focus(); } }, icon("floppy-disk"), "Uložit klíč"))),
+          h("div", { class: "row" }, out, h("button", { class: "btn", type: "button", onclick: () => { setStatus("", "testuji…"); client.send("provider_test", { id: p.id }); } }, icon("plugs"), "Otestovat"))));
       });
       const presetSel = h("select", { class: "input" }, ...Object.entries(presets).map(([k, v]: any) => h("option", { value: k }, v.label))) as HTMLSelectElement;
       const add = () => {
@@ -1074,8 +1091,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings_changed", (m) => { S = m.settings; render(); });
   client.on("voice_status", (m) => { voiceStatus = m; if (current === "voice") render(); });
   client.on("provider_test_result", (m) => {
+    const text = m.ok ? `Funguje ✓ (${m.ms} ms): ${m.message}` : m.message;
+    extra[`kstat_${m.id}`] = { cls: m.ok ? "ok" : "fail", text };
     const out = extra[`test_${m.id}`] as HTMLElement | undefined;
-    if (out) { out.className = `test-out ${m.ok ? "ok" : "fail"}`; out.textContent = m.ok ? `OK (${m.ms} ms): ${m.message}` : m.message; }
+    if (out) { out.className = `test-out ${m.ok ? "ok" : "fail"}`; out.textContent = text; }
   });
   client.on("tools", (m) => { extra.tools = m.items; if (current === "tools") render(); });
   client.on("mcp", (m) => { extra.mcp = m.items; if (current === "integrations") render(); });

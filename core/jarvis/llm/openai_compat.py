@@ -96,21 +96,44 @@ class OpenAICompat:
             return []
 
 
+# models a chat can not use (speech, safety filters, embeddings) – never picked as the "best" one
+_NOT_CHAT = ("whisper", "tts", "guard", "embed", "playai", "distil-whisper", "orpheus", "moderation")
+# the strongest known chat models, best first (3.12: Groq's own recommendation after it switched off Llama 3.3)
+_PREFERRED = ("openai/gpt-oss-120b", "openai/gpt-oss-20b")
+
+
 def pick_model(models: list[str]) -> str:
-    """The best general model from a gateway's list: its automatic route if it has one, else the first."""
+    """The best general model from a gateway's list: its automatic route if it has one, a known strong chat model,
+    else the first one that can chat."""
     if not models:
         return ""
     for want in ("auto", "auto/smart", "auto/best", "auto/best-free", "auto/free", "auto/fast"):
         if want in models:
             return want
     autos = [m for m in models if m.lower().startswith("auto")]
-    return (autos or models)[0]
+    if autos:
+        return autos[0]
+    for want in _PREFERRED:
+        if want in models:
+            return want
+    chat = [m for m in models if not any(w in m.lower() for w in _NOT_CHAT)]
+    return (chat or models)[0]
 
 
 def friendly_error(preset: str, base_url: str, e: Exception) -> str:
     """A message a person can act on instead of 'HTTP 401: {...}'."""
     status = getattr(e, "status", None)
     name = "OmniRoute" if preset == "omniroute" else "Poskytovatel"
+    if preset == "groq":
+        low = str(e).lower()
+        if status == 401 or "invalid api key" in low:
+            return ("Groq klíč odmítl – zkopíruj ho znovu celý (začíná gsk_, bez mezer) z console.groq.com/keys "
+                    "a vlož do pole API klíč u Groq.")
+        if status == 403:
+            return ("Groq odmítl přístup (403) – ověř na console.groq.com, že je účet aktivní; pomáhá i vypnout VPN "
+                    "nebo zkusit jinou síť.")
+        if status == 429:
+            return "Groq: vyčerpaný bezplatný limit – chvíli počkej (limit se obnovuje po minutách / za den)."
     if status in (401, 403):
         return (f"{name} odmítl přístup – chybí nebo nesedí API klíč. Vlož ho v Nastavení → AI mozek → API klíč"
                 + (" (klíč vytvoříš v OmniRoute v části API Keys)." if preset == "omniroute" else "."))

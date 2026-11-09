@@ -36,7 +36,7 @@ class ProviderError(Exception):
         m = str(self).lower()
         return self.status in (400, 404, 422) and "model" in m and any(
             w in m for w in ("not found", "unknown", "invalid", "does not exist", "not exist", "unsupported", "no such",
-                             "not available", "not allowed"))
+                             "not available", "not allowed", "decommissioned", "deprecated", "no longer supported", "retired"))
 
     @property
     def is_vision_unsupported(self) -> bool:

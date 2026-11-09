@@ -52,3 +52,8 @@ html[data-winbg] .set-nav { border-right-color: rgb(255 255 255 / .08); }
 .bg-opt.pick .bg-prev { border: 1px dashed var(--border-strong); box-shadow: none; }
 .bg-ranges { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 8px 0 14px; }
 .bg-range { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+
+/* Mozek: the API key field with its own save button */
+.key-row { display: flex; gap: 8px; align-items: center; }
+.key-row .input { flex: 1; min-width: 0; }
+.key-row .btn { flex: none; }
