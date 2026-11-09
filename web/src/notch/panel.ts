@@ -134,32 +134,52 @@ export function buildPanel(ctx: PanelCtx) {
         card("article", "Shrnout text", "Získat přehled", () => { show("chat"); client.send("user_text", { text: "Shrň mi text, který mám ve schránce.", attachments: [] }); }),
         card("image", "Analyzovat obrázek", "Popsat a vysvětlit", () => { show("chat"); chat.prefill("Co je na tomhle obrázku? ", true); }))));
 
-  // ---------- other sections ----------
-  // Akce (3.12): Control Center look – groups of round coloured buttons with a label, a big STOP, then rows of pills
-  const big = (ic: string, label: string, fn: () => void, cls = "") =>
-    h("button", { class: `qbtn ${cls}`, type: "button", onclick: (e: Event) => {
-      (e.currentTarget as HTMLElement).animate([{ transform: "scale(.9)" }, { transform: "scale(1)" }], { duration: 280, easing: "cubic-bezier(.3,1.6,.5,1)" }); fn(); } },
-      h("span", { class: "q-ico" }, icon(ic, "ph-fill")), h("span", { class: "q-lbl" }, label));
-  const group = (title: string, ...kids: HTMLElement[]) => h("div", { class: "qgroup" }, h("span", { class: "qg-title" }, title), h("div", { class: "qg-grid" }, ...kids));
-  const quickView = h("div", { class: "p-sec p-quick" },
-    h("div", { class: "qwrap" },
-      group("Média",
-        big("play-pause", "Přehrát", () => quick("media_control", { action: "play_pause" }), "c-pink"),
-        big("skip-forward", "Další", () => quick("media_control", { action: "next" }), "c-pink"),
-        big("speaker-low", "Tišeji", () => quick("volume", { action: "down", level: 10 }), "c-blue"),
-        big("speaker-high", "Hlasitěji", () => quick("volume", { action: "up", level: 10 }), "c-blue"),
-        big("speaker-slash", "Ztlumit", () => quick("volume", { action: "mute" }), "c-blue")),
-      group("Režimy",
-        big("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }), "c-purple"),
-        big("moon", "Tmavý režim", () => quick("set_dark_mode", { dark: true }), "c-indigo"),
-        (agentBtn = big("robot", "Režim Agent", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }), "c-teal")),
-        big("microphone-stage", "Hlasový režim", () => ctx.openChat("voice-mode"), "c-green")),
-      group("Počítač",
-        big("camera", "Snímek", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] }), "c-gray"),
-        big("lock-simple", "Zamknout", () => quick("system_power", { action: "lock" }), "c-gray"),
-        big("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" }), "c-gray"),
-        big("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" }), "c-gray")),
-      h("button", { class: "qstop", type: "button", onclick: () => client.send("stop_all") }, icon("hand-palm", "ph-fill"), h("strong", {}, "STOP"), h("span", {}, "zastavit vše"))),
+  // Akce (3.12 redesign): a real player strip with volume, STOP, mode switches that show their state, the computer's
+  // one-tap actions as chips, then the clipboard and the timer
+  const pop = (e: Event) => (e.currentTarget as HTMLElement).animate([{ transform: "scale(.94)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(.3,1.6,.5,1)" });
+  const akArt = h("img", { class: "ak-art-img", alt: "" }) as HTMLImageElement;
+  const akArtBox = h("div", { class: "ak-art" }, akArt, icon("music-notes", "ph-fill"));
+  const akTitle = h("strong", { class: "ak-title" }), akArtist = h("span", { class: "ak-artist" });
+  const akPlayIco = h("span", {});
+  const akBtn = (ic: string | null, label: string, fn: () => void, cls = "") => h("button", { class: `ak-btn ${cls}`, type: "button", "aria-label": label, title: label,
+    onclick: (e: Event) => { pop(e); fn(); } }, ic ? icon(ic, "ph-fill") : akPlayIco);
+  const akVolIco = h("button", { class: "ak-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení", onclick: () => quick("volume", { action: volume?.muted ? "unmute" : "mute" }) });
+  const akVol = h("input", { type: "range", min: 0, max: 100, step: 1, class: "dock-range ak-range", "aria-label": "Hlasitost" }) as HTMLInputElement;
+  let akVolAt = -1e9;
+  akVol.oninput = () => { akVol.style.setProperty("--v", `${akVol.value}%`); if (performance.now() - akVolAt > 80) { akVolAt = performance.now(); quick("volume", { action: "set", level: Number(akVol.value) }); } };
+  akVol.onchange = () => quick("volume", { action: "set", level: Number(akVol.value) });
+  const akPlayer = h("div", { class: "ak-card ak-player" },
+    h("div", { class: "ak-now" }, akArtBox, h("div", { class: "ak-meta" }, akTitle, akArtist)),
+    h("div", { class: "ak-ctl" },
+      akBtn("skip-back", "Předchozí", () => quick("media_control", { action: "previous" })),
+      akBtn(null, "Přehrát / pauza", () => quick("media_control", { action: "play_pause" }), "main"),
+      akBtn("skip-forward", "Další", () => quick("media_control", { action: "next" }))),
+    h("div", { class: "ak-vol" }, akVolIco, akVol));
+  const akStop = h("button", { class: "ak-stop", type: "button", onclick: (e: Event) => { pop(e); client.send("stop_all"); } },
+    icon("hand-palm", "ph-fill"), h("strong", {}, "STOP"), h("span", {}, "zastavit vše"));
+  // modes: a tile with a switch that shows whether it is on
+  const mode = (ic: string, label: string, sub: string, color: string, fn: () => void, toggle = true) => {
+    const state = h("span", { class: "ak-mode-sub" }, sub);
+    const el = h("button", { class: `ak-mode ${toggle ? "toggle" : ""}`, type: "button", onclick: (e: Event) => { pop(e); fn(); } },
+      h("span", { class: "ak-mode-ico" }, icon(ic, "ph-fill")), toggle ? h("i", { class: "ak-sw", "aria-hidden": "true" }) : "",
+      h("strong", {}, label), state);
+    el.style.setProperty("--mc", color);
+    return { el, set: (on: boolean, text: string) => { el.classList.toggle("on", on); state.textContent = text; } };
+  };
+  const mFocus = mode("headphones", "Fokus", "Vypnuto", "#bf8cff", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" }));
+  const mAgent = mode("robot", "Režim Agent", "Vypnuto", "#3ee0cc", () => client.send("settings_set", { patch: { agent: { mode: !settings?.agent?.mode } } }));
+  const mDark = mode("moon", "Tmavý režim", "Přepnout Windows", "#8b93ff", () => quick("set_dark_mode", { dark: true }), false);
+  const mVoice = mode("microphone-stage", "Hlasový režim", "Mluv s JARVISem", "#4ade80", () => ctx.openChat("voice-mode"), false);
+  agentBtn = mAgent.el;
+  const chip = (ic: string, label: string, fn: () => void) => h("button", { class: "ak-chip", type: "button", onclick: (e: Event) => { pop(e); fn(); } }, icon(ic, "ph-fill"), h("span", {}, label));
+  const quickView = h("div", { class: "p-sec p-quick ak" },
+    h("div", { class: "ak-top" }, akPlayer, akStop),
+    h("div", { class: "ak-modes" }, mFocus.el, mAgent.el, mDark.el, mVoice.el),
+    h("div", { class: "ak-chips" },
+      chip("camera", "Snímek obrazovky", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
+      chip("lock-simple", "Zamknout PC", () => quick("system_power", { action: "lock" })),
+      chip("moon-stars", "Uspat JARVISe", () => client.send("mood_set", { mood: "sleeping" })),
+      chip("bell-slash", "Přečteno", () => client.send("mood_set", { clear: "notify" }))),
     h("div", { class: "qrows" },
       h("div", { class: "qrow" }, h("span", { class: "qr-title" }, icon("clipboard-text", "ph-fill"), "Schránka"),
         ...([["Shrň", "Shrň stručně text, který mám ve schránce."], ["Přelož", "Přelož text ze schránky (česky ↔ anglicky)."],
@@ -167,32 +187,58 @@ export function buildPanel(ctx: PanelCtx) {
           h("button", { class: "qpill", type: "button", onclick: () => { show("chat"); client.send("user_text", { text, attachments: [] }); } }, label))),
       h("div", { class: "qrow" }, h("span", { class: "qr-title" }, icon("timer", "ph-fill"), "Minutka"),
         ...[1, 5, 10, 25].map((m) => h("button", { class: "qpill", type: "button", onclick: () => quick("set_timer", { seconds: m * 60, label: `${m} min` }) }, `${m} min`)))));
-
+  let akArtSrc = "";
+  function paintQuick() {
+    const has = !!media?.title;
+    akPlayer.classList.toggle("empty", !has);
+    const th = has && media.thumb ? String(media.thumb) : "";
+    if (th !== akArtSrc) { akArtSrc = th; akArtBox.classList.toggle("has", !!th); if (th) akArt.src = th; else akArt.removeAttribute("src"); }
+    if (akTitle.textContent !== (has ? media.title : "Nic nehraje")) akTitle.textContent = has ? media.title : "Nic nehraje";
+    const ar = has ? media.artist || "" : "Pusť si hudbu nebo video";
+    if (akArtist.textContent !== ar) akArtist.textContent = ar;
+    const pi = media?.playing ? "pause" : "play";
+    if (akPlayIco.dataset.i !== pi) { akPlayIco.dataset.i = pi; akPlayIco.replaceChildren(icon(pi, "ph-fill")); }
+    const lv = volume ? (volume.muted ? 0 : volume.level) : 50;
+    const vi = volume?.muted || lv === 0 ? "speaker-slash" : lv < 34 ? "speaker-low" : "speaker-high";
+    if (akVolIco.dataset.i !== vi) { akVolIco.dataset.i = vi; akVolIco.replaceChildren(icon(vi, "ph-fill")); }
+    if (document.activeElement !== akVol) { akVol.value = String(lv); akVol.style.setProperty("--v", `${lv}%`); }
+    mFocus.set(mood === "focus", mood === "focus" ? "Zapnuto" : "Vypnuto");
+    mAgent.set(!!settings?.agent?.mode, settings?.agent?.mode ? "Zapnuto" : "Vypnuto");
+  }
   const syncAgent = () => agentBtn?.classList.toggle("accent", !!settings?.agent?.mode);
-  // Systém (3.12): gauges with a ring each (the ring fills smoothly), the network, a bigger weather card
+  // Systém (3.12 redesign): one "Výkon" card with three rings inside each other (CPU, RAM, disk) and a legend with bars,
+  // beside it the weather, the battery and the network, the version below
   const sysVals: Record<string, HTMLElement> = {};
   const sysRings: Record<string, SVGCircleElement> = {};
-  const GAUGE = 2 * Math.PI * 26;
-  const stat = (k: string, ic: string, label: string) => {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 60 60");
-    svg.setAttribute("class", "g-ring");
-    svg.innerHTML = '<circle cx="30" cy="30" r="26" class="g-bg"/>';
+  const sysBars: Record<string, HTMLElement> = {};
+  const RINGS: Record<string, number> = { cpu: 64, ram: 50, disk: 36 };
+  const circ = (r: number) => 2 * Math.PI * r;
+  const ringsSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  ringsSvg.setAttribute("viewBox", "0 0 160 160");
+  ringsSvg.setAttribute("class", "sy-rings");
+  for (const [k, r] of Object.entries(RINGS)) {
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     const arc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    for (const [a, v] of [["cx", "30"], ["cy", "30"], ["r", "26"], ["class", "g-arc"]]) arc.setAttribute(a, v);
-    arc.style.strokeDasharray = `${GAUGE}`;
-    arc.style.strokeDashoffset = `${GAUGE}`;
-    svg.append(arc);
+    for (const el of [bg, arc]) { el.setAttribute("cx", "80"); el.setAttribute("cy", "80"); el.setAttribute("r", String(r)); }
+    bg.setAttribute("class", `sy-bg sy-${k}`);
+    arc.setAttribute("class", `sy-arc sy-${k}`);
+    arc.style.strokeDasharray = `${circ(r)}`;
+    arc.style.strokeDashoffset = `${circ(r)}`;
+    ringsSvg.append(bg, arc);
     sysRings[k] = arc;
-    return h("div", { class: `stat g-${k}` }, h("div", { class: "g-box" }, svg, h("span", { class: "g-ico" }, icon(ic, "ph-fill"))),
-      h("div", { class: "g-text" }, (sysVals[k] = h("b", {}, "–")), h("span", {}, label)));
-  };
+  }
+  const legend = (k: string, label: string) => h("div", { class: `sy-leg sy-${k}` },
+    h("i", { class: "sy-dot" }), h("span", { class: "sy-lbl" }, label), (sysVals[k] = h("b", {}, "–")),
+    h("div", { class: "sy-bar" }, (sysBars[k] = h("i", {}))));
+  const mini = (k: string, ic: string, label: string) => h("div", { class: `sy-mini sy-${k}` },
+    h("span", { class: "sy-mini-ico" }, icon(ic, "ph-fill")), h("div", {}, (sysVals[k] = h("b", {}, "–")), h("span", {}, label)));
   const setGauge = (k: string, pct: number | null) => {
-    const arc = sysRings[k];
-    if (!arc) return;
     const p = pct == null ? 0 : Math.max(0, Math.min(100, pct));
-    arc.style.strokeDashoffset = `${(GAUGE * (1 - p / 100)).toFixed(2)}`;
-    arc.closest(".stat")?.classList.toggle("hot", ["cpu", "ram", "disk"].includes(k) && p >= 85);   // only load can be "too much"
+    const arc = sysRings[k];
+    if (arc) arc.style.strokeDashoffset = `${(circ(RINGS[k]) * (1 - p / 100)).toFixed(2)}`;
+    if (sysBars[k]) sysBars[k].style.transform = `scaleX(${(p / 100).toFixed(3)})`;
+    const hot = ["cpu", "ram", "disk"].includes(k) && p >= 85;      // only load can be "too much"
+    sysVals[k]?.closest(".sy-leg")?.classList.toggle("hot", hot);
   };
   const weatherBox = h("div", { class: "weather" }, h("span", { class: "muted" }, "Počasí se načítá…"));
   const updateBox = h("div", { class: "update" });
@@ -210,10 +256,14 @@ export function buildPanel(ctx: PanelCtx) {
     const err = u.state === "error" && u.error ? h("span", { class: "p-update-err", title: u.error }, `Nepovedlo se: ${u.error}`) : "";
     updateBox.replaceChildren(ver, btn, err);
   };
-  const systemView = h("div", { class: "p-sec p-system" },
-    h("div", { class: "stats" }, stat("cpu", "cpu", "CPU"), stat("ram", "memory", "RAM"), stat("disk", "hard-drives", "Disk"),
-      stat("bat", "battery-high", "Baterie"), stat("net", "wifi-high", "Síť")),
-    weatherBox, updateBox);
+  const systemView = h("div", { class: "p-sec p-system sy" },
+    h("div", { class: "sy-perf" },
+      h("div", { class: "sy-head" }, h("strong", {}, "Výkon"), h("span", {}, "teď")),
+      h("div", { class: "sy-body" }, h("div", { class: "sy-ring-box" }, ringsSvg),
+        h("div", { class: "sy-legend" }, legend("cpu", "Procesor"), legend("ram", "Paměť"), legend("disk", "Disk")))),
+    h("div", { class: "sy-side" }, weatherBox,
+      h("div", { class: "sy-minis" }, mini("bat", "battery-high", "Baterie"), mini("net", "wifi-high", "Síť"))),
+    updateBox);
 
   const shelfList = h("div", { class: "shelf" });
   const renderShelf = () => {
@@ -444,6 +494,8 @@ export function buildPanel(ctx: PanelCtx) {
 
   let aiKey = "";
   function renderHome() {
+    if (current === "quick") paintQuick();
+    if (current === "more") paintMore();
     const now = new Date();
     if (!homeDate.querySelector(".hd-time")) homeDate.append(h("span", { class: "hd-day" }), h("strong", { class: "hd-time" }));
     const hr = now.getHours(), who = settings?.general?.user_name ? `, ${settings.general.user_name}` : "";
@@ -488,22 +540,36 @@ export function buildPanel(ctx: PanelCtx) {
   const subsTile = h("button", { class: "more-tile", type: "button", onclick: () => ctx.client.send("live_subs_set", {}) });
   const paintSubsTile = (on: boolean) => {
     subsTile.classList.toggle("on", on);
-    subsTile.replaceChildren(icon("closed-captioning", on ? "ph-fill" : ""), h("strong", {}, on ? "Vypnout titulky" : "Titulky z videa"),
-      h("span", {}, on ? "Titulky běží v notchi · Ctrl+Alt+T" : "Co se říká ve videu nebo hře, v notchi"));
+    subsTile.replaceChildren(h("span", { class: "mo-ico" }, icon("closed-captioning", "ph-fill")), h("i", { class: "ak-sw", "aria-hidden": "true" }),
+      h("div", { class: "mo-text" }, h("strong", {}, "Titulky z videa"),
+        h("span", {}, on ? "Běží v notchi – vypneš tady nebo Ctrl+Alt+T" : "Co se říká ve videu nebo hře, rovnou v notchi")));
   };
+  subsTile.className = "more-tile mo-wide mo-subs";
   paintSubsTile(false);
-  const tile = (sec: Section, ic: string, label: string, sub: string) =>
-    h("button", { class: "more-tile", type: "button", onclick: () => show(sec) }, icon(ic), h("strong", {}, label), h("span", {}, sub));
-  const moreView = h("div", { class: "p-sec more" },
-    tile("activity", "pulse", "Průběh", "Co AI právě dělá a co přesně změnila"),
-    tile("files", "folder-simple", "Soubory", "Police – přetáhni, zeptej se, pošli do mobilu"),
-    tile("workspaces", "browsers", "Plochy", "Uložená rozložení oken"),
-    tile("tools", "wrench", "Nástroje", "Co JARVIS umí a co se naučil"),
-    tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled"),
-    h("button", { class: "more-tile", type: "button", onclick: () => ctx.openChat("general") }, icon("arrow-square-out"), h("strong", {}, "Celé okno"), h("span", {}, "Všechny stránky a nastavení JARVISe")),
+  // Více (3.12 redesign): tiles of different sizes – Průběh tall with what is going on right now, subtitles wide with
+  // a switch, the rest compact with the icon beside the text
+  const tile = (sec: Section | null, ic: string, label: string, sub: string, cls = "", fn?: () => void) =>
+    h("button", { class: `more-tile ${cls}`, type: "button", onclick: () => (fn ? fn() : sec && show(sec)) },
+      h("span", { class: "mo-ico" }, icon(ic, "ph-fill")), h("div", { class: "mo-text" }, h("strong", {}, label), h("span", {}, sub)));
+  const moLive = h("span", { class: "mo-live" });
+  const moActivity = tile("activity", "pulse", "Průběh", "Co AI právě dělá a co přesně změnila", "mo-tall mo-activity");
+  moActivity.append(moLive, h("span", { class: "mo-go" }, "Otevřít", icon("caret-right")));
+  const moreView = h("div", { class: "p-sec more mo" },
+    moActivity,
     subsTile,
-    h("button", { class: "more-tile", type: "button", title: "Zpátky ho vrátíš Ctrl+Alt+N nebo v ikoně JARVISe u hodin",
-      onclick: () => { (window as any).pywebview?.api?.hide_notch?.(); } }, icon("eye-slash"), h("strong", {}, "Schovat notch"), h("span", {}, "I nad hrou nebo videem · zpátky Ctrl+Alt+N")));
+    tile(null, "eye-slash", "Schovat notch", "Zpátky Ctrl+Alt+N", "mo-hide", () => { (window as any).pywebview?.api?.hide_notch?.(); }),
+    tile("files", "folder-simple", "Soubory", "Police na soubory"),
+    tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
+    tile("tools", "wrench", "Nástroje", "Co JARVIS umí"),
+    tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled", "mo-wide"),
+    tile(null, "arrow-square-out", "Celé okno", "Všechny stránky a nastavení JARVISe", "mo-wide", () => ctx.openChat("general")));
+  function paintMore() {
+    const cc = sessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
+    const busy = ["thinking", "working", "speaking", "listening"].includes(mood);
+    const text = cc ? `Claude Code · ${cc.project || ""} ${cc.state === "waiting" ? "čeká na tebe" : "pracuje"}` : busy ? "JARVIS pracuje…" : "Teď se nic neděje";
+    moActivity.classList.toggle("live", !!cc || busy);
+    if (moLive.textContent !== text) moLive.textContent = text;
+  }
   ctx.client.on("live_subs", (m) => paintSubsTile(!!m.on));
   // ---------- 3.12 Průběh: what Claude Code / JARVIS is doing and exactly what it changed (added / removed lines) ----------
   let jChanges: any[] = [];
@@ -587,6 +653,7 @@ export function buildPanel(ctx: PanelCtx) {
     }
   };
   paintVol();
+  client.on("volume", () => { if (current === "quick") paintQuick(); });
   const navEl = h("nav", { class: "p-tabs", "aria-label": "Sekce" },
     ...NAV.map(([k, ic, label]) => h("button", { type: "button", "data-sec": k, title: label, class: EXTRA.includes(k) ? "nav-extra" : k === "more" ? "nav-more" : "",
       onclick: () => show(k) }, icon(ic), h("span", {}, label))),

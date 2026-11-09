@@ -49,24 +49,6 @@ html[data-nstyle="dynamic"] .n-panel .p-system .weather { border-radius: 24px; p
 html[data-nstyle="dynamic"] .n-panel .p-system .w-days > div { background: rgb(255 255 255 / .07); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06); }
 html[data-nstyle="dynamic"] .n-panel .p-system .update { border-radius: 99px; }
 
-/* ---------- Více ---------- */
-html[data-nstyle="dynamic"] .n-panel .p-sec.more { gap: 12px; height: 100%; }
-html[data-nstyle="dynamic"] .n-panel .more-tile { --tc: #e8ebf0; border-radius: 22px; padding: 16px; transition: transform .3s cubic-bezier(.2, .9, .25, 1), background-color .2s; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:hover { background-color: var(--card-hi); transform: translateY(-3px); }
-html[data-nstyle="dynamic"] .n-panel .more-tile i { width: 40px; height: 40px; border-radius: 13px; font-size: 20px; color: var(--tc);
-  background: color-mix(in srgb, var(--tc) 17%, transparent) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 22%, transparent); }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(1) { --tc: #4aa3ff; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(2) { --tc: #ffb340; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(3) { --tc: #3ee0cc; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(4) { --tc: #c7cbd3; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(5) { --tc: #bf8cff; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(6) { --tc: #8b93ff; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(7) { --tc: #ffd60a; }
-html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(8) { --tc: #c7cbd3; }
-html[data-nstyle="dynamic"] .n-panel .more-tile.on i { box-shadow: inset 0 0 0 1.5px var(--tc), 0 0 16px -4px var(--tc); }
-html[data-nstyle="dynamic"] .n-panel .more-tile strong { font-size: 15px; }
-html[data-nstyle="dynamic"] .n-panel .more-tile span { color: var(--sub); }
-
 /* ---------- Chat ---------- */
 html[data-nstyle="dynamic"] .n-panel .p-centre .chat-scroll { -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent);
   mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent); }
