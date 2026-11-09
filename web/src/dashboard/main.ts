@@ -1,6 +1,8 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./shell.css";
+import "./window.css";
+import { loadLook, loadPhoto, onLookChange } from "../shared/lookstore";
 import { captionBar, focusBanner } from "../shared/viz";
 import { helpMode } from "../shared/help";
 import { ChatView, conversationList } from "../shared/chat";
@@ -235,3 +237,21 @@ window.addEventListener("hashchange", () => {
 
 const initial = (location.hash.slice(1) || "chat") as View;
 go(NAV.some(([v]) => v === initial) ? initial : "chat");
+
+
+// 3.12 the background you pick (Nastavení → Vzhled or the notch's "Přizpůsobit"): behind the whole window,
+// the panels turn to frosted glass over it
+const winBg = h("div", { class: "win-bg", "aria-hidden": "true" });
+document.body.prepend(winBg);
+let winAlbum = "";
+function applyWinBg() {
+  const look = loadLook();
+  const src = look.bg === "photo" ? loadPhoto() : look.bg === "album" ? winAlbum : "";
+  if (src) document.documentElement.dataset.winbg = "1"; else delete document.documentElement.dataset.winbg;
+  winBg.style.backgroundImage = src ? `url("${src}")` : "";
+  document.documentElement.style.setProperty("--win-dim", String(look.dim / 100));
+  document.documentElement.style.setProperty("--win-blur", `${look.bg === "album" ? Math.max(look.blur, 36) : look.blur}px`);
+}
+onLookChange(applyWinBg);
+client.on("media", (m) => { const t = m?.thumb ? String(m.thumb) : ""; if (t !== winAlbum) { winAlbum = t; applyWinBg(); } });
+applyWinBg();

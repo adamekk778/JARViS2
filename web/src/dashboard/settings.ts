@@ -1,3 +1,4 @@
+import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
 import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
 import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
@@ -369,7 +370,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const colors = ["#4f8dff", "#2ee6ff", "#3ddc97", "#ffb547", "#ff5d63", "#a78bfa", "#f472b6", "#e9eef3"];
       const picker = h("input", { type: "color", value: S.appearance.accent, "aria-label": "Vlastní barva" }) as HTMLInputElement;
       picker.onchange = () => set("appearance.accent", picker.value);
-      return [card("Barvy", null,
+      return [bgCard(), card("Barvy", null,
         select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
@@ -947,6 +948,37 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       ...rows, list.length ? null : h("p", { class: "help" }, "Zatím žádné."), h("div", { class: "row" }, add));
   }
 
+  // 3.12 the background of the window and the notch (shared with the notch's "Přizpůsobit")
+  function bgCard() {
+    const look = loadLook(), photo = loadPhoto();
+    const file = h("input", { type: "file", accept: "image/*", hidden: true }) as HTMLInputElement;
+    file.onchange = async () => {
+      const f = file.files?.[0];
+      file.value = "";
+      if (!f) return;
+      try {
+        if (!savePhoto(await shrinkPhoto(f))) { toast("Fotka je moc velká na uložení – zkus menší", "error"); return; }
+        saveLook({ ...loadLook(), bg: "photo" });
+        render();
+      } catch (e: any) { toast(e.message || "Fotku se nepodařilo načíst", "error"); }
+    };
+    const opt = (k: "none" | "album" | "photo", label: string, prev: Node) => h("button", { type: "button", class: `bg-opt ${look.bg === k ? "on" : ""}`,
+      onclick: () => { if (k === "photo" && !loadPhoto()) { file.click(); return; } saveLook({ ...loadLook(), bg: k }); render(); } }, prev, h("span", {}, label));
+    const range = (key: "dim" | "blur", label: string, max: number) => {
+      const r = h("input", { type: "range", min: 0, max, step: 1, value: String(look[key]), "aria-label": label }) as HTMLInputElement;
+      r.oninput = () => saveLook({ ...loadLook(), [key]: Number(r.value) });
+      return h("label", { class: "bg-range" }, h("span", {}, label), r);
+    };
+    return card("Pozadí okna a notche", "Tvoje fotka nebo barvy právě hrající hudby za celým oknem JARVISe i za otevřeným notchem. Panely se nad ní změní na matné sklo.",
+      h("div", { class: "bg-opts" },
+        opt("none", "Černé", h("i", { class: "bg-prev black" })),
+        opt("album", "Barvy hudby", h("i", { class: "bg-prev album" })),
+        opt("photo", "Moje fotka", photo ? h("i", { class: "bg-prev", style: { backgroundImage: `url("${photo}")` } }) : h("i", { class: "bg-prev add" }, icon("plus"))),
+        h("button", { type: "button", class: "bg-opt pick", onclick: () => file.click() }, h("i", { class: "bg-prev add" }, icon("image")), h("span", {}, photo ? "Jiná fotka" : "Vybrat fotku"))),
+      look.bg === "none" ? null : h("div", { class: "bg-ranges" }, range("dim", "Ztmavení", 85), range("blur", "Rozmazání", 30)),
+      file);
+  }
+
   const searchInput = h("input", { class: "input", type: "search", placeholder: "Hledat v nastavení…", "aria-label": "Hledat v nastavení" }) as HTMLInputElement;
   const searchBox = h("div", { class: "set-search" }, icon("magnifying-glass"), searchInput);
   let searchTimer = 0;
@@ -954,19 +986,26 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
 
   // header (3.12): a big tile in the section's colour, the title and what the section is for, the search on the
   // right, and a strip of all settings sections to jump between them
-  const SEC_ORDER: Section[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup", "dictation", "dictionary"];
   const SHORT: Partial<Record<Section, string>> = { brain: "Mozek", tools: "Nástroje", jobs: "Rutiny", dictation: "Diktování", dictionary: "Slovník" };
+  // 3.12 redesign: the settings have their own side list (grouped, with icons) instead of a strip of tabs that did not fit;
+  // the page on the right uses the full width
+  const NAV_GROUPS: [string, Section[]][] = [
+    ["Ty a JARVIS", ["general", "voice", "appearance"]],
+    ["Inteligence", ["brain", "tools", "memory", "jobs"]],
+    ["Notch a ovládání", ["notch", "hotkeys", "dictation", "dictionary"]],
+    ["Připojení a data", ["integrations", "phone", "permissions", "backup"]],
+  ];
+  const setNav = (sec: Section) => h("nav", { class: "set-nav", "aria-label": "Sekce nastavení" },
+    h("div", { class: "set-nav-top" }, h("strong", {}, "Nastavení"), searchBox),
+    ...NAV_GROUPS.flatMap(([g, list]) => [h("div", { class: "set-nav-group" }, g), ...list.map((k) =>
+      h("button", { type: "button", class: k === sec && !query ? "on" : "", "aria-current": k === sec ? "page" : null,
+        onclick: () => { if (query) { query = ""; searchInput.value = ""; } location.hash = k; } },
+        h("span", { class: "set-nav-ico" }, icon(TITLES[k][0], "ph-fill")), h("span", {}, SHORT[k] || TITLES[k][1])))]));
   const heroFor = (sec: Section) => {
-    const [ic, title, lead] = TITLES[sec];
-    const strip = h("nav", { class: "set-strip", "aria-label": "Sekce nastavení" }, ...SEC_ORDER.map((k) =>
-      h("button", { type: "button", class: k === sec ? "on" : "", style: `--a:${SEC_COLOR[k][0]};--b:${SEC_COLOR[k][1]}`, "aria-current": k === sec ? "page" : null,
-        onclick: () => { location.hash = k; } }, icon(TITLES[k][0], "ph-fill"), h("span", {}, SHORT[k] || TITLES[k][1]))));
+    const [, title, lead] = TITLES[sec];
     return h("header", { class: "set-head" },
       h("div", { class: "set-head-top" },
-        h("span", { class: "set-tile", "aria-hidden": "true" }, icon(ic, "ph-fill")),
-        h("div", { class: "set-title" }, h("h1", {}, title), h("p", {}, lead)),
-        h("div", { class: "hero-copy" })),
-      strip);
+        h("div", { class: "set-title" }, h("h1", {}, query ? "Hledání" : title), h("p", {}, query ? `Výsledky pro „${query}“ ve všech sekcích` : lead))));
   };
 
   function render() {
@@ -991,12 +1030,15 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       if (!body.length) body = [h("p", { class: "help" }, "Nic nenalezeno.")];
     } else body = sections[current]();
     const band = heroFor(current);
-    band.querySelector(".hero-copy")!.append(searchBox);
     const [c1, c2] = SEC_COLOR[current];
-    host.replaceChildren(h("div", { class: "set-page", style: `--sec-a:${c1};--sec-b:${c2}` }, band,
+    const prevPage = host.querySelector(".set-page-scroll") as HTMLElement | null;
+    const pageScroll = prevPage && prevPage.dataset.sec === current ? prevPage.scrollTop : 0;
+    const page = h("div", { class: "set-page-scroll", "data-sec": current }, h("div", { class: "set-page", style: `--sec-a:${c1};--sec-b:${c2}` }, band,
       local ? null : h("div", { class: "readonly-note" }, "Nastavení jde měnit jen přímo na počítači."),
       ...body));
-    host.scrollTop = scroll;
+    host.replaceChildren(h("div", { class: "set-shell" }, setNav(current), page));
+    page.scrollTop = pageScroll;
+    void scroll;
   }
 
   client.on("welcome", (m) => { S = m.settings; local = !!m.local; voiceStatus = m.voice || {}; client.send("settings_get"); if (local) client.send("live_subs_get"); render(); });

@@ -3,34 +3,9 @@
    blurred it is. Remembered on this PC (the photo is shrunk to at most 1600 px first). */
 import { h, icon, toast } from "../shared/dom";
 import { CLOCK_COLORS, CLOCK_STYLES, STYLE_NAMES } from "./clock";
+import { type Look, loadLook as load, loadPhoto, onLookChange, savePhoto, saveLook, shrinkPhoto as shrink } from "../shared/lookstore";
 
 type Clock = { readonly style: string; readonly color: string; setColor: (c: string) => void; setStyle: (s: string) => void };
-type Look = { bg: "none" | "album" | "photo"; dim: number; blur: number };
-
-const KEY = "jarvis.look", PHOTO = "jarvis.look.photo";
-const load = (): Look => {
-  try { return { bg: "none", dim: 45, blur: 0, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return { bg: "none", dim: 45, blur: 0 }; }
-};
-const loadPhoto = () => { try { return localStorage.getItem(PHOTO) || ""; } catch { return ""; } };
-
-/** a picked photo → a JPEG data URL of at most 1600 px (small enough to keep) */
-function shrink(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      resolve(c.toDataURL("image/jpeg", 0.86));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Tohle není obrázek")); };
-    img.src = url;
-  });
-}
-
 export function createLook(host: HTMLElement, clock: Clock) {
   let look = load(), photo = loadPhoto(), album = "";
   const layer = h("div", { class: "p-bgimg", "aria-hidden": "true" });
@@ -44,10 +19,12 @@ export function createLook(host: HTMLElement, clock: Clock) {
     host.style.setProperty("--bg-blur", `${look.bg === "album" ? Math.max(look.blur, 28) : look.blur}px`);
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(look)); } catch { /* private */ }
+    saveLook(look);
     apply();
     paint();
   }
+  // picked in the main window (Nastavení → Vzhled): the notch follows
+  onLookChange(() => { look = load(); photo = loadPhoto(); apply(); if (!sheet.hidden) paint(); });
 
   // ---- the sheet ----
   const file = h("input", { type: "file", accept: "image/*", hidden: true }) as HTMLInputElement;
@@ -57,7 +34,7 @@ export function createLook(host: HTMLElement, clock: Clock) {
     if (!f) return;
     try {
       photo = await shrink(f);
-      try { localStorage.setItem(PHOTO, photo); } catch { toast("Fotka je moc velká na uložení – zkus menší", "error"); }
+      if (!savePhoto(photo)) toast("Fotka je moc velká na uložení – zkus menší", "error");
       look.bg = "photo";
       save();
     } catch (e: any) { toast(e.message || "Fotku se nepodařilo načíst", "error"); }
