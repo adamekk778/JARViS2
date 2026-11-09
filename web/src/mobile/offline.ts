@@ -16,6 +16,13 @@ function saveOutbox(q: Queued[]) {
   try { localStorage.setItem(KEY, JSON.stringify(q.slice(-MAX_OUTBOX))); } catch { /* full or private */ }
 }
 
+/** 3.12 "Poslat PC" from the phone-only chat: the task waits and goes to JARVIS on the PC when it answers again */
+export function queueForPc(text: string) {
+  const q = loadOutbox();
+  q.push({ type: "user_text", data: { text, queued_at: Date.now() / 1000, source: "phone_solo" } });
+  saveOutbox(q);
+}
+
 // ---- voice notes recorded offline: kept in IndexedDB (blobs do not fit localStorage) ----
 const DB = "jarvis-offline", STORE = "voice";
 function idb(): Promise<IDBDatabase> {

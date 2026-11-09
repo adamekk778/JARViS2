@@ -11,6 +11,7 @@ import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
 import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
 import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
+import { soloProvider, soloScreen } from "./solo";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -41,8 +42,28 @@ async function boot() {
   if (!p) return connectScreen();
   app.replaceChildren(h("div", { class: "splash" }, bigFace(96), h("p", {}, "Hledám tvoje PC…")));
   const ep = await resolveEndpoint(p);
-  if (!ep) return connectScreen(p, "PC není dostupné. Běží JARVIS na PC? Jsi na stejné Wi-Fi nebo máš zapnutý Tailscale?");
+  if (!ep) {
+    if (soloProvider()) return solo();                 // 3.12 the PC is off: the phone answers by itself
+    return connectScreen(p, "PC není dostupné. Běží JARVIS na PC? Jsi na stejné Wi-Fi nebo máš zapnutý Tailscale?");
+  }
   mainScreen(ep, p);
+}
+
+/** 3.12 phone-only mode: a free AI straight from the phone until the PC answers again */
+function solo() {
+  client?.close();
+  client = null;
+  soloScreen(app, {
+    retry: async () => {
+      const p = loadPairing();
+      const ep = p && (await resolveEndpoint(p));
+      if (!ep || !p) return false;
+      toast("PC je zpět – přepínám na plného JARVISe", "ok");
+      mainScreen(ep, p);
+      return true;
+    },
+    pair: () => connectScreen(loadPairing()),
+  });
 }
 
 // ---------------- connect ----------------
@@ -70,7 +91,10 @@ function connectScreen(prev?: Pairing | null, error?: string) {
     h("details", { class: "manual", open: !native.isNative || undefined },
       h("summary", {}, "Zadat ručně"),
       h("div", { class: "manual-body" }, manual, h("button", { class: "btn", type: "button", onclick: () => tryPairing(parsePairing(manual.value)) }, "Připojit"))),
-    prev ? h("button", { class: "btn ghost", type: "button", onclick: () => boot() }, icon("arrows-clockwise"), "Zkusit znovu") : null));
+    prev ? h("button", { class: "btn ghost", type: "button", onclick: () => boot() }, icon("arrows-clockwise"), "Zkusit znovu") : null,
+    h("div", { class: "solo-entry" },
+      h("button", { class: "btn big solo-go", type: "button", onclick: () => solo() }, icon("sparkle", "ph-fill"), "Mluvit bez PC"),
+      h("span", {}, "Zdarma přes Groq nebo Gemini, přímo z telefonu"))));
 }
 
 // ---------------- main ----------------
@@ -206,6 +230,11 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     asks = m.claude_pending || [];
     paintAsks();
     applyAppearance(m.settings);
+    try {                                              // 3.12 the phone-only chat knows your name too
+      const nm = m.settings?.general?.user_name || "";
+      const cfg = JSON.parse(localStorage.getItem("jarvis.solo") || "{}");
+      if (nm && cfg.name !== nm) localStorage.setItem("jarvis.solo", JSON.stringify({ ...cfg, name: nm }));
+    } catch { /* private */ }
     face.setMood(m.mood?.mood || "idle", m.mood || {});
     if (m.settings?.character) { face.setColor(m.settings.character.color, m.settings.character.glow || undefined); face.setOutfit(m.settings.character.outfit); face.setCharacter(m.settings.character); }
   });
