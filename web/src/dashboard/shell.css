@@ -45,16 +45,18 @@
 .chat-view .conv.active, .chat-view .conv[aria-current="true"] { background: var(--glass-3); box-shadow: none; }
 .chat-view .msg.user .bubble { max-width: min(70%, 620px); padding: 10px 16px; border: 0; border-radius: 22px 22px 6px 22px;
   background: linear-gradient(180deg, #2b8cff, #0a6cf0); color: #fff; box-shadow: 0 8px 22px -12px rgb(10 132 255 / .9); }
-.chat-view .msg.user .meta { opacity: 0; transition: opacity .2s; }
+.chat-view .msg.user { position: relative; }
+.chat-view .msg.user .meta { position: absolute; right: 6px; bottom: -20px; margin: 0; opacity: 0; transition: opacity .2s; white-space: nowrap; }
 .chat-view .msg:hover .meta { opacity: 1; }
-.chat-view .msg.assistant .a-main { width: fit-content; max-width: min(80%, 760px); padding: 12px 16px; border-radius: 22px 22px 22px 6px;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--edge); }
+/* 3.12 answers read like a page (no bubble), as in the full chat; with a photo behind the window they sit on glass */
+.chat-view .msg.assistant .a-main { width: auto; max-width: 100%; padding: 4px 0 0; border-radius: 0; background: none; box-shadow: none; }
+html[data-winbg] .chat-view .msg.assistant .a-main { padding: 12px 16px; border-radius: 20px; }
 .chat-view .msg.assistant .actions { opacity: 0; transition: opacity .2s; }
 .chat-view .msg.assistant:hover .actions { opacity: 1; }
 .chat-view .composer-row { border-radius: 26px; }
 .chat-view .composer-row:has(.chat-input:placeholder-shown) .send-btn { background: var(--glass-3); color: var(--muted); box-shadow: none; }
 .chat-view .msg.assistant .a-main { position: relative; flex: 0 1 auto; }
-.chat-view .msg.assistant .actions { position: absolute; right: 12px; bottom: -18px; z-index: 2; margin: 0; padding: 2px 4px; display: flex; align-items: center; gap: 2px;
+.chat-view .msg.assistant .actions { position: absolute; left: -6px; bottom: -22px; z-index: 2; margin: 0; padding: 2px 4px; display: flex; align-items: center; gap: 2px;
   border-radius: 99px; background: var(--surface-3); box-shadow: 0 6px 16px -6px rgb(0 0 0 / .6), inset 0 0 0 1px var(--edge);
   transform: translateY(4px); pointer-events: none; transition: opacity .18s, transform .25s cubic-bezier(.2, .9, .25, 1); }
 .chat-view .msg.assistant:hover .actions { transform: none; pointer-events: auto; }

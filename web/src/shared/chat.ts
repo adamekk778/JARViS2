@@ -172,7 +172,17 @@ export class ChatView {
     this.sendBtn.classList.toggle("stop", busy);
     this.sendBtn.replaceChildren(icon(busy ? "stop" : "arrow-up", busy ? "ph-fill" : "ph-bold"));
     this.sendBtn.setAttribute("aria-label", busy ? "Zastavit" : "Odeslat");
-    this.statusLine.replaceChildren(...(busy ? [h("span", { class: "dots" }, h("i"), h("i"), h("i")), STATE_TEXT[s]] : []));
+    // thinking / working shows as JARVIS's own message with a shimmer (3.12); the line below keeps listening / speaking
+    const inline = s === "thinking" || s === "acting";
+    this.statusLine.replaceChildren(...(busy && !inline ? [h("span", { class: "dots" }, h("i"), h("i"), h("i")), STATE_TEXT[s]] : []));
+    if (inline) {
+      const l = this.ensureLive();
+      if (!l.text) l.body.replaceChildren(h("span", { class: "think" }, `${STATE_TEXT[s]}…`));
+    } else if (!busy && this.live && !this.live.text && !this.live.tools.childElementCount) {
+      this.live.el.remove();
+      this.live = null;
+      this.updateEmpty();
+    }
   }
 
   // ---------- rendering ----------
@@ -563,10 +573,22 @@ export function conversationList(client: JarvisClient, onPick?: () => void): HTM
         if (f !== null) client.send("conversation_move", { id: c.id, folder: f.trim() });
       } }, icon("folder-simple")),
       h("button", { class: "icon-btn sm conv-del", type: "button", title: "Smazat", "aria-label": "Smazat konverzaci", onclick: () => { if (confirm("Smazat tuhle konverzaci?")) client.send("delete_conversation", { id: c.id }); } }, icon("trash")));
+  // 3.12 the loose conversations under "Dnes", "Včera", "Posledních 7 dní", "Starší"
+  const when = (ts: number) => {
+    const day = 86400000, d0 = new Date(); d0.setHours(0, 0, 0, 0);
+    const t = (ts || 0) * 1000;
+    return t >= d0.getTime() ? "Dnes" : t >= d0.getTime() - day ? "Včera" : t >= d0.getTime() - 6 * day ? "Posledních 7 dní" : "Starší";
+  };
   const render = (items: any[]) => {
     const groups = new Map<string, any[]>();
     for (const c of items) (groups.get(c.folder || "") ?? groups.set(c.folder || "", []).get(c.folder || "")!).push(c);
-    const out: HTMLElement[] = [...(groups.get("") || []).map(row)];
+    const out: HTMLElement[] = [];
+    let lastWhen = "";
+    for (const c of groups.get("") || []) {
+      const w = when(c.updated);
+      if (w !== lastWhen) { out.push(h("div", { class: "conv-when" }, w)); lastWhen = w; }
+      out.push(row(c));
+    }
     for (const [folder, convs] of [...groups].filter(([f]) => f).sort(([a], [b]) => a.localeCompare(b, "cs"))) {
       const open = !collapsed.has(folder);
       out.push(h("button", { class: "conv-folder", type: "button", "aria-expanded": String(open),

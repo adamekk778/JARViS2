@@ -9,7 +9,8 @@ md.use({
     code({ text, lang }) {
       const language = lang && hljs.getLanguage(lang) ? lang : undefined;
       const html = language ? hljs.highlight(text, { language }).value : hljs.highlightAuto(text).value;
-      return `<div class="code"><div class="code-head"><span>${language || "kód"}</span><button class="code-copy" type="button"><i class="ph ph-copy"></i> Kopírovat</button></div><pre><code class="hljs">${html}</code></pre></div>`;
+      const lines = text.split("\n").length;
+      return `<div class="code"><div class="code-head"><span class="code-lang"><i class="ph ph-code"></i>${language || "kód"}<em>${lines} ${lines === 1 ? "řádek" : lines < 5 ? "řádky" : "řádků"}</em></span><button class="code-copy" type="button"><i class="ph ph-copy"></i> Kopírovat</button></div><pre><code class="hljs">${html}</code></pre></div>`;
     },
     link({ href, text }) {
       return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
@@ -19,7 +20,8 @@ md.use({
 
 export function renderMarkdown(src: string): string {
   const html = md.parse(src || "", { async: false }) as string;
-  return DOMPurify.sanitize(html, { ADD_ATTR: ["target"] });
+  // tables scroll sideways inside a rounded frame instead of stretching the message (3.12)
+  return DOMPurify.sanitize(html, { ADD_ATTR: ["target"] }).replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, "</table></div>");
 }
 
 export function wireCodeCopy(root: HTMLElement) {
