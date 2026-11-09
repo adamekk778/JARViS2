@@ -449,7 +449,8 @@ export function buildPanel(ctx: PanelCtx) {
     const hr = now.getHours(), who = settings?.general?.user_name ? `, ${settings.general.user_name}` : "";
     const hello = hr < 5 ? "Dobrou noc" : hr < 10 ? "Dobré ráno" : hr < 12 ? "Dobré dopoledne" : hr < 18 ? "Dobré odpoledne" : "Dobrý večer";
     homeDate.classList.toggle("greet", current === "home");
-    setText(homeDate.querySelector(".hd-day")!, current === "home" ? `${hello}${who}` : now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
+    setText(homeDate.querySelector(".hd-day")!, current === "home" ? hello : now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
+    homeDate.dataset.who = current === "home" ? who.replace(/^, /, "") : "";
     setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
     if (current !== "home") return;
     wantWeather();
@@ -707,5 +708,5 @@ export function buildPanel(ctx: PanelCtx) {
   window.addEventListener("resize", () => moveInd(true));
   /** The panel opened: the indicator jumps to its tab and the cards of the open section come in. */
   const enter = () => { moveInd(true); requestAnimationFrame(() => moveInd(true)); intro(views[current]); if (current === "chat") toNewest(); };
-  return { el, show, chat, dateEl: homeDate, navEl, enter, get section() { return current; } };
+  return { el, show, chat, clock, dateEl: homeDate, navEl, enter, get section() { return current; } };
 }

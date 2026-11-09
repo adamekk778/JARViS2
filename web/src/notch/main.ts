@@ -7,6 +7,8 @@ import "./chat.css";
 import "./music.css";
 import "./face.css";
 import { createFace } from "./face";
+import { createLook } from "./look";
+import "./look.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
@@ -131,6 +133,9 @@ const panelHead = h("div", { class: "p-head" },
     (pinBtn = h("button", { class: "p-icon pin", type: "button", title: "Připnout (zůstane otevřený i po restartu)", "aria-label": "Připnout", onclick: () => setPinned(!pinned) }, icon("push-pin"))),
     h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { if (pinned) setPinned(false); settle(true); } }, icon("minus"))));
 const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
+// 3.12 "Přizpůsobit": the clock's colour and look, the panel's background (black / music colours / your photo)
+const look = createLook(panelWrap, panel.clock);
+panelHead.querySelector(".p-head-r")!.prepend(look.button);
 /** The look (Nastavení → Notch): "dynamic" (default) puts the panel's section tabs in its head, like iOS. */
 function setStyle(style?: string) {
   const st = style || "dynamic";
@@ -1339,6 +1344,7 @@ client.on("screen_capture", (m) => {
 });
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
 client.on("media", (m) => {
+  look.setAlbum(m?.thumb ? String(m.thumb) : "");
   if (m?.playing && m.title && m.title !== media?.title) face.react("music", 2200);    // a new song: the eyes groove
   media = m; updateActivity();
 });

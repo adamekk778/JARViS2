@@ -1,0 +1,89 @@
+/* 3.12 "Přizpůsobit" (look.ts) + fixes so nothing on the panel overlaps */
+
+/* ---- head: the greeting on two short lines, never under the tabs ---- */
+html[data-nstyle="dynamic"] .p-head .home-date.greet { display: grid; gap: 0; max-width: 150px; line-height: 1.15; }
+html[data-nstyle="dynamic"] .p-head .home-date.greet .hd-day { font-size: 11.5px; font-weight: 600; color: rgb(255 255 255 / .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-nstyle="dynamic"] .p-head .home-date.greet::after { content: attr(data-who); font-size: 15px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-nstyle="dynamic"] .p-head .home-date.greet[data-who=""]::after { display: none; }
+html[data-nstyle="dynamic"] .p-head .home-date.greet[data-who=""] .hd-day { font-size: 14px; color: #fff; }
+html[data-nstyle="dynamic"] .p-head .home-date:not(.greet) { max-width: 150px; white-space: nowrap; overflow: hidden; }
+
+/* ---- toasts ("Hledám aktualizace…") inside the open panel, under its head – not cut off at the window's edge ---- */
+html.notch-doc #toasts { top: 74px; bottom: auto; }
+html.notch-doc .toast { background: rgb(28 29 34 / .96); border: 1px solid rgb(255 255 255 / .08); box-shadow: 0 10px 30px -10px rgb(0 0 0 / .8); }
+
+/* ---- texts that used to be cut: the weather's town on its own line, JARVIS's hint on two lines ---- */
+.ck-extra { flex-wrap: wrap; justify-content: center; row-gap: 1px; max-width: 100%; }
+.ck-extra span { flex-basis: 100%; max-width: 100%; text-align: center; white-space: normal; font-size: 11.5px; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ai-sub { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+.fx-label, .fx-today { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- the panel's background: black, the music's colours or your photo (darkened / blurred as you set) ---- */
+html[data-nstyle="dynamic"] .n-panel { isolation: isolate; }
+.p-bgimg { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; background: center / cover no-repeat;
+  filter: blur(var(--bg-blur, 0px)) saturate(1.15); transform: scale(1.08); transition: opacity .6s ease, filter .4s ease; }
+.p-bgimg::after { content: ""; position: absolute; inset: 0; background: rgb(0 0 0 / var(--bg-dim, .45)); transition: background .3s; }
+.n-panel:not([data-bg="none"]) > .p-bgimg { opacity: 1; }
+.n-panel > :is(.p-head, .panel) { position: relative; z-index: 1; }
+/* cards turn to frosted glass over a picture */
+.n-panel:not([data-bg="none"]) :is(.tile, .dock, .mu, .p-tabs) { background: rgb(16 17 21 / .5); backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .09); }
+.n-panel:not([data-bg="none"]) .np { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); }
+.n-panel:not([data-bg="none"]) .tile.clock { background: rgb(16 17 21 / .45); }
+
+/* ---- the sheet ---- */
+.lk-sheet { position: absolute; z-index: 30; top: 60px; left: 16px; right: 16px; bottom: 16px; display: flex; flex-direction: column;
+  border-radius: 22px; background: rgb(24 25 30 / .94); backdrop-filter: blur(26px) saturate(1.4);
+  box-shadow: 0 24px 60px -18px rgb(0 0 0 / .9), inset 0 0 0 1px rgb(255 255 255 / .09); color: #fff; }
+.lk-sheet[hidden] { display: none; }
+.lk-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 6px 18px; }
+.lk-head strong { font-size: 15px; font-weight: 700; }
+.lk-x { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .08); color: #fff; cursor: pointer; }
+.lk-x:hover { background: rgb(255 255 255 / .16); }
+.lk-body { flex: 1; overflow-y: auto; padding: 4px 20px 16px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr;
+  column-gap: 28px; row-gap: 14px; align-content: start; scrollbar-width: thin; }
+.lk-body > section:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
+.lk-body h4 { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .2px; color: rgb(255 255 255 / .5); }
+.lk-swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+.lk-sw { position: relative; width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); transition: transform .2s cubic-bezier(.3, 1.5, .5, 1); }
+.lk-sw:hover { transform: scale(1.12); }
+.lk-sw.on { box-shadow: 0 0 0 2px #18191e, 0 0 0 4px #fff; }
+.lk-sw.grad { background: conic-gradient(#ff9f0a, #ff375f, #bf5af2, #0a84ff, #30d158, #ffd60a, #ff9f0a); }
+.lk-sw.custom { display: grid; place-items: center; background: rgb(255 255 255 / .1); color: #fff; font-size: 14px; }
+.lk-color { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.lk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lk-chip { height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: rgb(255 255 255 / .08); color: #e6e9ee; font: 600 12.5px var(--font); cursor: pointer;
+  transition: background .2s; }
+.lk-chip:hover { background: rgb(255 255 255 / .15); }
+.lk-chip.on { background: #fff; color: #000; }
+.lk-bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.lk-bg { display: grid; gap: 5px; justify-items: center; padding: 0; border: 0; background: none; color: rgb(255 255 255 / .75); font: 600 11.5px var(--font); cursor: pointer; }
+.lk-prev { display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; background: #000 center / cover; font-style: normal; font-size: 18px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12); transition: box-shadow .2s, transform .2s; }
+.lk-prev.album { background-color: #2a1c2e; background-image: radial-gradient(circle at 30% 30%, #ff375f, #5e2ca5 70%); filter: blur(0); }
+.lk-prev.add { background: rgb(255 255 255 / .06); color: rgb(255 255 255 / .6); }
+.lk-bg:hover .lk-prev { transform: translateY(-2px); }
+.lk-bg.on { color: #fff; }
+.lk-bg.on .lk-prev { box-shadow: 0 0 0 2px #18191e, 0 0 0 4px #fff; }
+.lk-pick { display: grid; place-items: center; align-content: center; gap: 4px; aspect-ratio: 4 / 3; border: 1px dashed rgb(255 255 255 / .25); border-radius: 12px;
+  background: rgb(255 255 255 / .04); color: #fff; font: 600 11px var(--font); cursor: pointer; text-align: center; padding: 4px; }
+.lk-pick i { font-size: 17px; }
+.lk-pick:hover { background: rgb(255 255 255 / .15); }
+.lk-sliders { display: grid; gap: 6px; margin-top: 14px; }
+.lk-sliders[hidden] { display: none; }
+.lk-sliders label { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; font-size: 12px; color: rgb(255 255 255 / .7); }
+.lk-range { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0; background: transparent; cursor: pointer; }
+.lk-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #fff 0 var(--v, 50%), rgb(255 255 255 / .16) var(--v, 50%) 100%); }
+.lk-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .5); }
+
+/* head: greeting · tabs · icons side by side (the two sides share the rest equally, so the tabs stay centred
+   and nothing can slide under them) */
+html[data-nstyle="dynamic"] .p-head { display: flex; align-items: center; gap: 10px; }
+html[data-nstyle="dynamic"] .p-head .p-tabs { position: relative; left: auto; top: auto; transform: none; flex: none; }   /* relative: the sliding pill measures from the tabs */
+html[data-nstyle="dynamic"] .p-head .p-tabs button { padding: 0 12px; }
+html[data-nstyle="dynamic"] .p-head .home-date { flex: 1 1 0; min-width: 0; max-width: none; }
+html[data-nstyle="dynamic"] .p-head .p-head-r { flex: 1 1 0; min-width: 0; justify-content: flex-end; display: flex; gap: 0; }
+html[data-nstyle="dynamic"] .p-head .p-head-r .p-icon { width: 32px; height: 32px; flex: none; }

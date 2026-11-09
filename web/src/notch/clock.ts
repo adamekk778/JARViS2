@@ -4,8 +4,9 @@
 import { h, icon } from "../shared/dom";
 
 export const CLOCK_STYLES = ["digital", "analog", "flip", "ring", "stack", "words"] as const;
-export const CLOCK_COLORS = ["#ffffff", "#0a84ff", "#ff9f0a", "#ff375f", "#30d158", "#bf5af2", "#64d2ff", "grad"] as const;
-const STYLE_NAME: Record<string, string> = { digital: "Digitální", analog: "Ručičky", flip: "Překlápěcí", ring: "Kruh", stack: "Pod sebou", words: "Slovy" };
+export const CLOCK_COLORS = ["#ffffff", "#0a84ff", "#ff9f0a", "#ff375f", "#30d158", "#bf5af2", "#64d2ff", "#ffd60a", "grad"] as const;
+export const STYLE_NAMES: Record<string, string> = { digital: "Digitální", analog: "Ručičky", flip: "Překlápěcí", ring: "Kruh", stack: "Pod sebou", words: "Slovy" };
+const STYLE_NAME = STYLE_NAMES;
 
 const ONES = ["nula", "jedna", "dva", "tři", "čtyři", "pět", "šest", "sedm", "osm", "devět", "deset", "jedenáct", "dvanáct", "třináct", "čtrnáct",
   "patnáct", "šestnáct", "sedmnáct", "osmnáct", "devatenáct"];
@@ -45,7 +46,7 @@ export function createClock() {
       save("jarvis.clock.style", style);
       build();
     } else {
-      color = CLOCK_COLORS[(CLOCK_COLORS.indexOf(color as any) + 1) % CLOCK_COLORS.length];
+      color = CLOCK_COLORS[(Math.max(-1, CLOCK_COLORS.indexOf(color as any)) + 1) % CLOCK_COLORS.length];
       save("jarvis.clock.color", color);
       applyColor();
     }
@@ -158,5 +159,12 @@ export function createClock() {
   }
   applyColor();
   build();
-  return { el, paint: () => paint(), weather };
+  return {
+    el, paint: () => paint(), weather,
+    get style() { return style; },
+    get color() { return color; },
+    /** from the "Přizpůsobit" sheet: any colour (#rrggbb or "grad") and any of the looks */
+    setColor(c: string) { color = c; save("jarvis.clock.color", c); applyColor(); },
+    setStyle(st: string) { if ((CLOCK_STYLES as readonly string[]).includes(st)) { style = st; save("jarvis.clock.style", st); build(); } },
+  };
 }
