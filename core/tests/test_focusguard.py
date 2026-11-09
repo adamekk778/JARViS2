@@ -74,3 +74,24 @@ def test_focus_sessions_add_up_for_today(rt):
 
 def test_focus_mode_is_a_quick_action():
     assert "focus_mode" in ws.QUICK_ACTIONS
+
+
+def test_week_stats_streak_and_distractions(rt):
+    """3.12 the weekly focus stats: minutes per day, a streak of days in a row and what pulled you away."""
+    import datetime as dt
+
+    att = rt.attention
+    now = time.time()
+    db = att._db()
+    for back, secs in ((1, 1800), (2, 600), (3, 120), (4, 900)):       # day 3 has only 2 min → breaks the streak
+        d = dt.date.fromtimestamp(now) - dt.timedelta(days=back)
+        db.exec("INSERT INTO focus_log (day, start, seconds) VALUES (?, ?, ?)", (d.isoformat(), now - back * 86400, secs))
+    att.note_nudge("YouTube", now)
+    att.note_nudge("YouTube", now)
+    att.note_nudge("Instagram", now)
+    w = att.week(now)
+    assert len(w["days"]) == 7 and w["days"][-1]["day"] == dt.date.fromtimestamp(now).isoformat()
+    assert w["total"] == 1800 + 600 + 120 + 900
+    assert w["streak"] == 2                       # yesterday + the day before (today not counted yet)
+    assert w["longest"] == 1800 and w["sessions"] == 4
+    assert w["distractions"][0] == {"app": "YouTube", "count": 2}

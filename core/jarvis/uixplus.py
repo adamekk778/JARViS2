@@ -56,6 +56,46 @@ class Attention:
         self.started, self.focus_until = 0.0, 0.0
         self.rt.bus.publish("focus", active=False, until=0, done=session >= 60, session=round(session), today=self.today_seconds(now))
 
+    def note_nudge(self, app: str, now: float | None = None) -> None:
+        """3.12 a distraction the focus guard caught (only the service name, e.g. "YouTube") – for the weekly stats."""
+        now = time.time() if now is None else now
+        db = self._db()
+        if db is not None and app:
+            db.exec("CREATE TABLE IF NOT EXISTS focus_nudges (day TEXT, at REAL, app TEXT)")
+            db.exec("INSERT INTO focus_nudges (day, at, app) VALUES (?, ?, ?)", (dt.date.fromtimestamp(now).isoformat(), now, app[:40]))
+
+    def week(self, now: float | None = None) -> dict:
+        """3.12 the last 7 days of focus: minutes per day, the total, the streak of days in a row (at least 5 minutes),
+        the longest session and what pulled you away most often."""
+        now = time.time() if now is None else now
+        today = dt.date.fromtimestamp(now)
+        days = [today - dt.timedelta(days=i) for i in range(6, -1, -1)]
+        db = self._db()
+        per: dict[str, float] = {}
+        longest, sessions, top = 0.0, 0, []
+        if db is not None:
+            for r in db.all("SELECT day, SUM(seconds) AS s, COUNT(*) AS n, MAX(seconds) AS m FROM focus_log WHERE day >= ? GROUP BY day",
+                            ((today - dt.timedelta(days=60)).isoformat(),)):
+                per[r["day"]] = float(r["s"] or 0)
+                if r["day"] >= days[0].isoformat():
+                    sessions += int(r["n"] or 0)
+                    longest = max(longest, float(r["m"] or 0))
+            db.exec("CREATE TABLE IF NOT EXISTS focus_nudges (day TEXT, at REAL, app TEXT)")
+            top = [{"app": r["app"], "count": int(r["n"])} for r in db.all(
+                "SELECT app, COUNT(*) AS n FROM focus_nudges WHERE day >= ? GROUP BY app ORDER BY n DESC LIMIT 4", (days[0].isoformat(),))]
+        per[today.isoformat()] = self.today_seconds(now)
+        names = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"]
+        out = [{"day": d.isoformat(), "label": names[d.weekday()], "seconds": round(per.get(d.isoformat(), 0.0))} for d in days]
+        streak, d = 0, today
+        if per.get(d.isoformat(), 0) < 300:          # today is not over yet: the streak may still count from yesterday
+            d -= dt.timedelta(days=1)
+        while per.get(d.isoformat(), 0) >= 300:
+            streak += 1
+            d -= dt.timedelta(days=1)
+        return {"days": out, "total": sum(x["seconds"] for x in out), "streak": streak, "sessions": sessions,
+                "longest": round(longest), "best": max(out, key=lambda x: x["seconds"])["label"] if any(x["seconds"] for x in out) else "",
+                "distractions": top}
+
     def tick(self, now: float | None = None) -> None:
         """Called every few seconds: a session whose time ran out is closed."""
         now = time.time() if now is None else now

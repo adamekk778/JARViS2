@@ -207,3 +207,10 @@
 /* head: a greeting on the main screen */
 .p-head .home-date.greet .hd-time { display: none; }
 .p-head .home-date.greet .hd-day { font-size: 14px; font-weight: 600; color: rgb(255 255 255 / .85); text-transform: none; }
+/* 3.12 what's next today, under the weather */
+.ck-agenda { display: inline-flex; align-items: center; gap: 6px; max-width: calc(100% - 20px); margin-top: 6px; padding: 5px 10px; border-radius: 99px;
+  background: rgb(255 255 255 / .07); font-size: 12px; color: rgb(255 255 255 / .75); min-width: 0; }
+.ck-agenda:empty { display: none; }
+.ck-agenda i { font-size: 13px; color: var(--ck); flex: none; }
+.ck-agenda b { font-weight: 650; color: #fff; flex: none; font-variant-numeric: tabular-nums; }
+.ck-agenda span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

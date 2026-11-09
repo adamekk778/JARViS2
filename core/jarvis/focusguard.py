@@ -65,6 +65,11 @@ class Guard:
         att = getattr(self.rt, "attention", None)
         left = max(0, round((att.focus_until - now) / 60)) if att is not None and att.focus_until > now else 0
         self.rt.bus.publish("focus_nudge", app=d, minutes_left=left)
+        if att is not None and hasattr(att, "note_nudge"):
+            try:
+                att.note_nudge(d, now)
+            except Exception as e:  # noqa: BLE001 – stats must never break the guard
+                log.debug("focus stats: %s", e)
         return d
 
 

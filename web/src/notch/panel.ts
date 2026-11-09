@@ -1,4 +1,5 @@
 // The big notch panel (spec §5): content, right column (chat), tab bar at the bottom. "Domů" = three live cards.
+import { createFocusStats } from "./focusstats";
 import { createClock } from "./clock";
 import { createMusicView } from "./music";
 import { Blob, type CharacterColor } from "../character/blob";
@@ -450,7 +451,10 @@ export function buildPanel(ctx: PanelCtx) {
   const startFocus = (min: number) => quick("focus_mode", { minutes: min });
   const fxChip = (min: number) => h("button", { class: "fx-chip", type: "button", title: `Soustředit se ${min} minut`,
     onclick: (e: Event) => { e.stopPropagation(); startFocus(min); } }, `${min}`);
-  const fxChips = h("div", { class: "fx-chips" }, fxChip(25), fxChip(50));
+  let stats: ReturnType<typeof createFocusStats> | null = null;     // 3.12 the week of focus (made on first open)
+  const fxChips = h("div", { class: "fx-chips" }, fxChip(25), fxChip(50),
+    h("button", { class: "fx-stats", type: "button", title: "Týden soustředění", "aria-label": "Týden soustředění",
+      onclick: (e: Event) => { e.stopPropagation(); (stats ??= createFocusStats(el.parentElement || el, client)).open(); } }, icon("chart-bar", "ph-fill")));
   const cardFocus = h("div", { class: "tile focus", role: "button", tabindex: "0", "aria-label": "Soustředění",
     onclick: () => (focusState.active ? quick("focus_mode", { minutes: 0 }) : startFocus(25)),
     onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
@@ -487,6 +491,18 @@ export function buildPanel(ctx: PanelCtx) {
   // 3.12 a big clock on the left: six looks, a click changes the colour (see clock.ts)
   const clock = createClock();
   window.setInterval(() => { if (current === "home" && !document.hidden) clock.paint(); }, 1000);
+  // 3.12 "what's next" under the clock: the next event in today's calendar, else the soonest pinned task
+  let agendaAt = 0, events: any[] = [];
+  const wantAgenda = () => { if (Date.now() - agendaAt > 10 * 60000) { agendaAt = Date.now(); client.send("calendar_get", { days: 1 }); } paintAgenda(); };
+  const hhmm = (ts: number) => new Date(ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  const paintAgenda = () => {
+    const now = Date.now() / 1000, end = new Date(); end.setHours(23, 59, 59, 999);
+    const ev = events.find((e) => !e.all_day && e.end > now && e.start < end.getTime() / 1000);
+    if (ev) { clock.agenda({ ic: "calendar-dots", time: ev.start <= now ? "teď" : hhmm(ev.start), text: ev.title }); return; }
+    const pin = pins.filter((p) => !p.done).sort((a, b) => (a.due || 9e12) - (b.due || 9e12))[0];
+    clock.agenda(pin ? { ic: "push-pin", time: pin.due ? hhmm(pin.due) : "", text: pin.text } : null);
+  };
+  client.on("calendar", (m) => { events = m.items || []; paintAgenda(); });
   let weatherAt = 0;                        // the clock shows the weather; asked for now and then while home is open
   const wantWeather = () => { if (Date.now() - weatherAt > 30 * 60000) { weatherAt = Date.now(); client.send("weather_get"); } };
   const homeView = h("div", { class: "home home2" },
@@ -506,6 +522,7 @@ export function buildPanel(ctx: PanelCtx) {
     setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
     if (current !== "home") return;
     wantWeather();
+    wantAgenda();
     paintNowPlaying();
     const cc = sessions.find((s) => ["working", "thinking", "waiting"].includes(s.state)) || sessions[0];
     const b = cc ? BRANDS.claude : brain ? brandOf(brain.provider, brain.model) : null;

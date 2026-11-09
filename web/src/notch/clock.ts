@@ -29,11 +29,12 @@ export function createClock() {
   const face = h("div", { class: "ck-face" });
   const date = h("div", { class: "ck-date" });
   const extra = h("div", { class: "ck-extra" });          // weather under the date (when known)
+  const agendaEl = h("div", { class: "ck-agenda" });     // 3.12 what comes next today (calendar / a pinned task)
   const styleBtn = h("button", { class: "ck-style", type: "button", title: "Změnit vzhled hodin", "aria-label": "Změnit vzhled hodin",
     onclick: (e: Event) => { e.stopPropagation(); next("style"); } }, icon("shapes", "ph-fill"));
   const label = h("span", { class: "ck-label" });
   const el = h("button", { class: "tile clock", type: "button", title: "Klikni pro jinou barvu", "aria-label": "Hodiny – klikni pro jinou barvu",
-    onclick: () => next("color") }, styleBtn, face, date, extra, label);
+    onclick: () => next("color") }, styleBtn, face, date, extra, agendaEl, label);
   let last = "", minuteKey = "";
 
   function applyColor() {
@@ -161,6 +162,11 @@ export function createClock() {
   build();
   return {
     el, paint: () => paint(), weather,
+    /** 3.12 the next thing today under the weather ("15:00 Porada"), or nothing */
+    agenda(item: { ic: string; time: string; text: string } | null) {
+      if (!item) { agendaEl.replaceChildren(); return; }
+      agendaEl.replaceChildren(icon(item.ic, "ph-fill"), item.time ? h("b", {}, item.time) : "", h("span", {}, item.text));
+    },
     get style() { return style; },
     get color() { return color; },
     /** from the "Přizpůsobit" sheet: any colour (#rrggbb or "grad") and any of the looks */
