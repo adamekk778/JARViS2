@@ -1,0 +1,81 @@
+/* 3.12 one look for every section of the open notch (Chat, Akce, Systém, Více, …): calm cards that turn to frosted
+   glass when the panel has a picture behind it (Přizpůsobit → Pozadí), so your photo shows everywhere. Tinted
+   squircle icons instead of loud colour discs. Loaded last. */
+html[data-nstyle="dynamic"] .n-panel { --card: #15161a; --card-hi: #1c1d22; --edge: rgb(255 255 255 / .06); --glass: none; --sub: rgb(255 255 255 / .56); }
+html[data-nstyle="dynamic"] .n-panel:not([data-bg="none"]) { --card: rgb(17 18 23 / .5); --card-hi: rgb(30 31 38 / .6); --edge: rgb(255 255 255 / .1);
+  --glass: blur(22px) saturate(1.45); }
+html[data-nstyle="dynamic"] .n-panel :is(.qgroup, .qrow, .stat, .weather, .update, .more-tile, .act-block, .p-card, .tcat, .ws-save, .shelf, .shelf-empty,
+  .msg.assistant .a-main, .composer-row, .chat-empty .suggest, .p-files .drop, .settings-list, .set-row) {
+  background-color: var(--card); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); box-shadow: inset 0 0 0 1px var(--edge); }
+
+/* ---------- Akce ---------- */
+html[data-nstyle="dynamic"] .n-panel .p-quick { height: 100%; }
+html[data-nstyle="dynamic"] .n-panel .qwrap { flex: 1; grid-template-columns: 1.3fr 1fr 1fr 112px; gap: 12px; }
+html[data-nstyle="dynamic"] .n-panel .qgroup { padding: 14px 14px 12px; gap: 10px; border-radius: 24px; }
+html[data-nstyle="dynamic"] .n-panel .qg-title { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--sub); }
+html[data-nstyle="dynamic"] .n-panel .qg-grid { flex: 1; align-content: center; gap: 12px 6px; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+html[data-nstyle="dynamic"] .n-panel .qbtn { --qc: #e8ebf0; gap: 7px; }
+html[data-nstyle="dynamic"] .n-panel .qbtn .q-ico { width: 50px; height: 50px; border-radius: 16px; font-size: 22px; color: var(--qc);
+  background: color-mix(in srgb, var(--qc) 17%, transparent) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--qc) 22%, transparent);
+  transition: transform .25s cubic-bezier(.3, 1.5, .5, 1), background .2s; }
+html[data-nstyle="dynamic"] .n-panel .qbtn:hover .q-ico { transform: translateY(-2px) scale(1.04); filter: none; background: color-mix(in srgb, var(--qc) 28%, transparent) !important; }
+html[data-nstyle="dynamic"] .n-panel .qbtn:active .q-ico { transform: scale(.94); }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-pink { --qc: #ff5e8a; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-blue { --qc: #4aa3ff; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-purple { --qc: #bf8cff; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-indigo { --qc: #8b93ff; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-teal { --qc: #3ee0cc; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-green { --qc: #4ade80; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.c-gray { --qc: #e8ebf0; }
+html[data-nstyle="dynamic"] .n-panel .qbtn.accent .q-ico { box-shadow: inset 0 0 0 1.5px var(--qc), 0 0 16px -4px var(--qc); }
+html[data-nstyle="dynamic"] .n-panel .q-lbl { font-size: 11.5px; font-weight: 600; color: rgb(255 255 255 / .85); }
+html[data-nstyle="dynamic"] .n-panel .qstop { width: auto; border-radius: 24px; background: rgb(255 69 58 / .16); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass);
+  box-shadow: inset 0 0 0 1px rgb(255 69 58 / .35); color: #ff6961; }
+html[data-nstyle="dynamic"] .n-panel .qstop:hover { background: rgb(255 69 58 / .26); }
+html[data-nstyle="dynamic"] .n-panel .qrows { gap: 12px; }
+html[data-nstyle="dynamic"] .n-panel .qrow { padding: 7px 7px 7px 16px; }
+html[data-nstyle="dynamic"] .n-panel .qpill { background: rgb(255 255 255 / .09); font-weight: 600; }
+html[data-nstyle="dynamic"] .n-panel .qpill:hover { background: rgb(255 255 255 / .18); }
+
+/* ---------- Systém ---------- */
+html[data-nstyle="dynamic"] .n-panel .p-system { height: 100%; }
+html[data-nstyle="dynamic"] .n-panel .p-system .stats { gap: 12px; }
+html[data-nstyle="dynamic"] .n-panel .p-system .stat { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; border-radius: 22px; }
+html[data-nstyle="dynamic"] .n-panel .g-box { width: 42px; height: 42px; }
+html[data-nstyle="dynamic"] .n-panel :is(.g-bg, .g-arc) { stroke-width: 5; }
+html[data-nstyle="dynamic"] .n-panel .g-text b { font-size: 18px; letter-spacing: -.3px; }
+html[data-nstyle="dynamic"] .n-panel .p-system .weather { border-radius: 24px; padding: 18px 24px;
+  background-image: radial-gradient(120% 160% at 0% 0%, rgb(10 132 255 / .28), transparent 60%); }
+html[data-nstyle="dynamic"] .n-panel .p-system .w-days > div { background: rgb(255 255 255 / .07); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06); }
+html[data-nstyle="dynamic"] .n-panel .p-system .update { border-radius: 99px; }
+
+/* ---------- Více ---------- */
+html[data-nstyle="dynamic"] .n-panel .p-sec.more { gap: 12px; height: 100%; }
+html[data-nstyle="dynamic"] .n-panel .more-tile { --tc: #e8ebf0; border-radius: 22px; padding: 16px; transition: transform .3s cubic-bezier(.2, .9, .25, 1), background-color .2s; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:hover { background-color: var(--card-hi); transform: translateY(-3px); }
+html[data-nstyle="dynamic"] .n-panel .more-tile i { width: 40px; height: 40px; border-radius: 13px; font-size: 20px; color: var(--tc);
+  background: color-mix(in srgb, var(--tc) 17%, transparent) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 22%, transparent); }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(1) { --tc: #4aa3ff; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(2) { --tc: #ffb340; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(3) { --tc: #3ee0cc; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(4) { --tc: #c7cbd3; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(5) { --tc: #bf8cff; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(6) { --tc: #8b93ff; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(7) { --tc: #ffd60a; }
+html[data-nstyle="dynamic"] .n-panel .more-tile:nth-child(8) { --tc: #c7cbd3; }
+html[data-nstyle="dynamic"] .n-panel .more-tile.on i { box-shadow: inset 0 0 0 1.5px var(--tc), 0 0 16px -4px var(--tc); }
+html[data-nstyle="dynamic"] .n-panel .more-tile strong { font-size: 15px; }
+html[data-nstyle="dynamic"] .n-panel .more-tile span { color: var(--sub); }
+
+/* ---------- Chat ---------- */
+html[data-nstyle="dynamic"] .n-panel .p-centre .chat-scroll { -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent); }
+html[data-nstyle="dynamic"] .n-panel .p-centre .msg.assistant .a-main { border-radius: 20px 20px 20px 6px; }
+html[data-nstyle="dynamic"] .n-panel .p-centre .msg.user .bubble { background: linear-gradient(180deg, #2d8cff, #0a6fe8); box-shadow: 0 8px 22px -12px rgb(10 132 255 / .9); }
+html[data-nstyle="dynamic"] .n-panel .p-centre .composer-row { border-radius: 24px; }
+html[data-nstyle="dynamic"] .n-panel .p-centre .composer-row:focus-within { background-color: var(--card-hi); box-shadow: inset 0 0 0 1px rgb(10 132 255 / .55), 0 0 0 4px rgb(10 132 255 / .14); }
+html[data-nstyle="dynamic"] .n-panel .p-centre .chat-empty .suggest:hover { background-color: var(--card-hi); }
+html[data-nstyle="dynamic"] .n-panel:not([data-bg="none"]) .p-centre .msg .meta { color: rgb(255 255 255 / .6); }
+/* labels never cut: two short lines when needed */
+html[data-nstyle="dynamic"] .n-panel .q-lbl { max-width: 78px; white-space: normal; overflow: hidden; text-overflow: clip; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.4em; }

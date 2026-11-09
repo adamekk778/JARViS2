@@ -9,6 +9,7 @@ import "./face.css";
 import { createFace } from "./face";
 import { createLook } from "./look";
 import "./look.css";
+import "./glass.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { renderMarkdown } from "../shared/markdown";
