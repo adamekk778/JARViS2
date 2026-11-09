@@ -77,7 +77,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
               "folder_fingerprint": "Uložit otisky složky", "folder_check": "Zkontrolovat složku", "recent_files": "Nedávné soubory",
               "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
-                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys",
+                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
@@ -294,6 +294,7 @@ class Connection:
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
                         media=rt.media_state, lyrics=getattr(rt, "lyrics_state", {}) if self.local else {},
+                        focus=self._focus_state(),
                         shelf=[rt.public_attachment(a) for a in rt.shelf],
                         timers=rt.timers.list(), voice=self._voice_status(), volume=getattr(rt, "last_audio", None),
                         pending_confirm=rt.agent.pending_confirm(), mood=rt.mood.current, task=rt.tasks.current,
@@ -395,6 +396,16 @@ class Connection:
         if msg:
             await self.send("workspace_result", ok=ok, message=msg)
         await self.send("workspaces", items=workspace.list_all(rt))
+
+    def _focus_state(self) -> dict:
+        """3.12 the focus session for the notch's focus card: running?, until, started, seconds focused today."""
+        att = getattr(self.rt, "attention", None)
+        if att is None:
+            return {}
+        try:
+            return {"active": att.focus_until > time.time(), "until": att.focus_until, "started": att.started, "today": att.today_seconds()}
+        except Exception:  # noqa: BLE001
+            return {}
 
     def _history(self, conv_id: str | None = None, before: float | None = None, limit: int = 60) -> list[dict]:
         msgs = self.rt.memory.history(conv_id, before, limit)

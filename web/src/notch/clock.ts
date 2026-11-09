@@ -27,11 +27,12 @@ export function createClock() {
   if (!(CLOCK_STYLES as readonly string[]).includes(style)) style = "digital";
   const face = h("div", { class: "ck-face" });
   const date = h("div", { class: "ck-date" });
+  const extra = h("div", { class: "ck-extra" });          // weather under the date (when known)
   const styleBtn = h("button", { class: "ck-style", type: "button", title: "Změnit vzhled hodin", "aria-label": "Změnit vzhled hodin",
     onclick: (e: Event) => { e.stopPropagation(); next("style"); } }, icon("shapes", "ph-fill"));
   const label = h("span", { class: "ck-label" });
   const el = h("button", { class: "tile clock", type: "button", title: "Klikni pro jinou barvu", "aria-label": "Hodiny – klikni pro jinou barvu",
-    onclick: () => next("color") }, styleBtn, face, date, label);
+    onclick: () => next("color") }, styleBtn, face, date, extra, label);
   let last = "", minuteKey = "";
 
   function applyColor() {
@@ -66,7 +67,8 @@ export function createClock() {
     el.dataset.style = style;
     last = ""; minuteKey = "";
     if (style === "digital") {
-      big = h("strong", { class: "ck-big" }); sec = h("span", { class: "ck-sec" });
+      hh = h("span", {}); mm = h("span", { class: "ck-mm" });
+      big = h("strong", { class: "ck-big" }, hh, h("i", { class: "ck-dots" }, ":"), mm); sec = h("span", { class: "ck-sec" });
       face.replaceChildren(h("div", { class: "ck-row" }, big, sec));
     } else if (style === "analog") {
       let ticks = "";
@@ -78,6 +80,8 @@ export function createClock() {
         + `<line x1="50" y1="50" x2="50" y2="15" class="mh"/><line x1="50" y1="58" x2="50" y2="11" class="sh"/><circle cx="50" cy="50" r="3" class="pin"/>`);
       s.setAttribute("class", "ck-analog");
       hourHand = s.querySelector(".hh")!; minHand = s.querySelector(".mh")!; secHand = s.querySelector(".sh")!;
+      const t = new Date();
+      (secHand as unknown as HTMLElement).style.animationDelay = `-${t.getSeconds() + t.getMilliseconds() / 1000}s`;   // it sweeps, like a real watch
       face.replaceChildren(s);
     } else if (style === "flip") {
       hh = h("span", { class: "ck-card" }); mm = h("span", { class: "ck-card" });
@@ -98,6 +102,14 @@ export function createClock() {
     }
     paint(true);
   }
+  /** the new number slides in from above (only when it changed) */
+  function roll(el: HTMLElement, text: string) {
+    if (el.textContent === text) return;
+    const first = !el.textContent;
+    el.textContent = text;
+    if (!first) el.animate([{ transform: "translateY(-.35em)", opacity: 0, filter: "blur(3px)" }, { transform: "none", opacity: 1, filter: "blur(0)" }],
+      { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
   function flip(card: HTMLElement, text: string) {
     if (card.textContent === text) return;
     card.textContent = text;
@@ -117,12 +129,11 @@ export function createClock() {
       date.textContent = d.charAt(0).toUpperCase() + d.slice(1);          // "Pondělí 9. listopadu"
     }
     if (style === "digital") {
-      big.textContent = `${H}:${pad(M)}`;
+      roll(hh, String(H)); roll(mm, pad(M));
       sec.textContent = pad(Sx);
     } else if (style === "analog") {
       hourHand.setAttribute("transform", `rotate(${(H % 12) * 30 + M * 0.5} 50 50)`);
       minHand.setAttribute("transform", `rotate(${M * 6 + Sx * 0.1} 50 50)`);
-      secHand.setAttribute("transform", `rotate(${Sx * 6} 50 50)`);
     } else if (style === "flip") {
       flip(hh, pad(H)); flip(mm, pad(M));
     } else if (style === "ring") {
@@ -130,14 +141,22 @@ export function createClock() {
       arc.style.strokeDashoffset = `${RING * (1 - (Sx || 60) / 60)}`;
       arc.classList.toggle("reset", Sx === 0);
     } else if (style === "stack") {
-      hh.textContent = pad(H); mm.textContent = pad(M);
+      roll(hh, pad(H)); roll(mm, pad(M));
     } else if (`${H}:${M}` !== minuteKey) {
       minuteKey = `${H}:${M}`;
       hh.textContent = czWords(H);
       mm.textContent = M ? czWords(M) : "nula nula";
     }
   }
+  /** the weather under the date: an icon and the temperature */
+  function weather(m: any) {
+    if (!m || m.error || typeof m.temp !== "number") { extra.replaceChildren(); return; }
+    const d = String(m.desc || "");
+    const ic = /bouř/i.test(d) ? "cloud-lightning" : /sníh|sněž/i.test(d) ? "snowflake" : /déšť|přeháň|mrhol/i.test(d) ? "cloud-rain"
+      : /mlh/i.test(d) ? "cloud-fog" : /zataž|oblač/i.test(d) ? "cloud" : new Date().getHours() >= 19 || new Date().getHours() < 6 ? "moon" : "sun";
+    extra.replaceChildren(icon(ic, "ph-fill"), h("b", {}, `${Math.round(m.temp)}°`), h("span", {}, m.city || ""));
+  }
   applyColor();
   build();
-  return { el, paint: () => paint() };
+  return { el, paint: () => paint(), weather };
 }

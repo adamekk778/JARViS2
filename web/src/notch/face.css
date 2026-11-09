@@ -16,7 +16,7 @@ html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top:
 .fe-lid > * { grid-area: 1 / 1; }
 .fe-ball { width: 11px; height: 20px; border-radius: 6px;
   background: radial-gradient(70% 45% at 35% 28%, rgb(255 255 255 / .95), transparent 70%), var(--c);
-  box-shadow: 0 0 6px var(--c), 0 0 16px color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: 0 0 5px var(--c), 0 0 14px color-mix(in srgb, var(--c) 45%, transparent);
   transform: scaleY(var(--open)); transition: transform .35s cubic-bezier(.3, 1.3, .5, 1), background-color .5s, box-shadow .5s, opacity .25s; }
 /* other shapes of the eyes (face.ts GLYPH): the capsule fades, the drawn shape pops in */
 .fe-g { width: 16px; height: 16px; display: grid; place-items: center; color: var(--c); pointer-events: none; }
@@ -31,7 +31,12 @@ html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top:
 .dy-face[data-brow="angry"] .fe.r .fe-brow, .dy-face[data-brow="sad"] .fe.l .fe-brow { transform: translateY(3px) rotate(-22deg); }
 .dy-face:is([data-brow="angry"], [data-brow="sad"]) .fe-ball { box-shadow: 0 0 3px var(--c); }
 .dy-face:is([data-brow="angry"], [data-brow="sad"]) .fe-glow { opacity: .3; }
-.fe-ball { transition: transform .35s cubic-bezier(.3, 1.3, .5, 1), background-color .5s, box-shadow .5s, opacity .25s; }
+.fe-ball { transition: transform .38s cubic-bezier(.2, .8, .2, 1), background-color .6s, box-shadow .6s, opacity .3s, filter .3s; }
+.fe.has-g .fe-ball { filter: blur(3px); }
+/* alive even when still: a slow, barely visible breath */
+html[data-nstyle="dynamic"] .n-inner > .dy-face.on:not([data-anim]) .fe-lid,
+html[data-nstyle="dynamic"] .n-inner > .dy-face.on[data-anim=""] .fe-lid { animation: fe-idle 4.8s ease-in-out infinite; }
+@keyframes fe-idle { 50% { transform: scale(1.035, .985); } }
 /* crying: a drop runs down from each eye */
 .fe-tear { position: absolute; left: 50%; top: 14px; width: 5px; height: 7px; margin-left: -2.5px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   background: #64d2ff; box-shadow: 0 0 5px #64d2ff; opacity: 0; pointer-events: none; }
@@ -39,9 +44,9 @@ html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top:
 .dy-face.tears .fe.r .fe-tear { animation-delay: .55s; }
 @keyframes fe-tear { 0% { opacity: 0; transform: translateY(0) scale(.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px) scale(1); } }
 /* waking up: the eyes open from thin lines with a little stretch */
-.dy-face.wake .fe-lid { animation: fe-wake .7s cubic-bezier(.3, 1.4, .5, 1); }
+html[data-nstyle="dynamic"] .n-inner > .dy-face.on.wake[class] .fe-lid { animation: fe-wake .7s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes fe-wake { 0% { transform: scaleY(.05) scaleX(1.3); } 55% { transform: scaleY(1.15) scaleX(.92); } 100% { transform: none; } }
-.dy-face.blink .fe-lid { animation: fe-blink .17s ease-in-out; }
+html[data-nstyle="dynamic"] .n-inner > .dy-face.on.blink[class] .fe-lid { animation: fe-blink .16s cubic-bezier(.4, 0, .2, 1); }
 @keyframes fe-blink { 45%, 55% { transform: scaleY(.08); } }
 
 /* a soft glow of the eyes' colour on the black, like light from inside */
@@ -113,14 +118,10 @@ html[data-nstyle="dynamic"] .notch.nudge .n-inner::after { animation: n-nudge .5
 /* the eyes in the answer card: top centre, between the AI's name and STOP */
 html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face { top: 27px; transform: scale(.82); }
 html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face.on { transform: scale(.82); }
-/* focus: a flame left, the minutes right, a thin orange line along the bottom that shrinks as the time runs */
-.n-focus-ico { display: inline-grid; place-items: center; width: 22px; height: 22px; color: #ff9f0a; font-size: 17px;
-  filter: drop-shadow(0 0 6px rgb(255 159 10 / .6)); animation: fe-flicker .6s ease-in-out infinite alternate; }
-.n-focus-left { color: #ffb340; font-weight: 700; font-variant-numeric: tabular-nums; }
-html[data-nstyle="dynamic"] .notch[data-island="focusmode"] .n-inner::before { content: ""; position: absolute; z-index: 5; bottom: auto;
-  top: calc(var(--ch) - 3px); left: calc((100% - var(--cw)) / 2 + 18px); width: calc((var(--cw) - 36px) * var(--focus-left, 1)); height: 2px;
-  border-radius: 2px; background: linear-gradient(90deg, #ff9f0a, #ffd60a); box-shadow: 0 0 8px rgb(255 159 10 / .7); transition: width 1s linear; }
+/* focus: a thin orange ring on the left that empties, the countdown on the right, steady eyes in the middle */
+.n-focus-ring { display: inline-grid; place-items: center; color: #ff9f0a; }
+.n-focus-ring .n-ring { width: 20px; height: 20px; }
+.n-focus-left { color: #ffb340; font-weight: 600; letter-spacing: .2px; font-variant-numeric: tabular-nums; }
 /* the dynamic island stays fully visible while you focus (it is calm already); the older looks still fade */
 html[data-nstyle="dynamic"][data-focus="1"] .notch:is([data-mode="closed"], [data-mode="hover"]) { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .n-focus-ico { animation: none; } }
 html[data-nstyle="dynamic"] .notch[data-mode="live"][data-facepos="edge"] .n-inner > .dy-face { left: auto; right: calc((100% - var(--cw)) / 2 + 14px); margin-left: 0; }

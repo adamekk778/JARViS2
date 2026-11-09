@@ -139,9 +139,10 @@
 
 /* digital */
 .ck-row { display: flex; align-items: flex-start; gap: 3px; }
-.ck-big { font-size: 46px; font-weight: 800; letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ck);
-  text-shadow: 0 0 24px color-mix(in srgb, var(--ck) 35%, transparent); }
-.ck-sec { font-size: 15px; font-weight: 700; margin-top: 4px; color: rgb(255 255 255 / .45); font-variant-numeric: tabular-nums; }
+.ck-big { display: inline-flex; align-items: baseline; font-size: 48px; font-weight: 700; letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ck); }
+.ck-big > span { display: inline-block; }
+.ck-dots { font-style: normal; margin: 0 1px; opacity: .55; transform: translateY(-3px); animation: ck-blink 2s ease-in-out infinite; }
+.ck-sec { font-size: 14px; font-weight: 600; margin-top: 5px; color: rgb(255 255 255 / .38); font-variant-numeric: tabular-nums; }
 /* analog */
 .ck-analog { width: 118px; height: 118px; overflow: visible; }
 .ck-analog .dial { fill: rgb(255 255 255 / .03); stroke: rgb(255 255 255 / .08); stroke-width: 1; }
@@ -150,7 +151,8 @@
 .ck-analog :is(.hh, .mh) { stroke: #fff; stroke-linecap: round; transition: transform .4s cubic-bezier(.3, 1.5, .5, 1); }
 .ck-analog .hh { stroke-width: 4.5; }
 .ck-analog .mh { stroke-width: 3; }
-.ck-analog .sh { stroke: var(--ck); stroke-width: 1.4; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--ck)); transition: transform .3s cubic-bezier(.3, 1.8, .5, 1); }
+.ck-analog .sh { stroke: var(--ck); stroke-width: 1.4; stroke-linecap: round; transform-box: view-box; transform-origin: 50px 50px; animation: ck-sweep 60s linear infinite; }
+@keyframes ck-sweep { to { transform: rotate(360deg); } }
 .tile.clock.grad .ck-analog .sh { stroke: #ff375f; }
 .ck-analog .pin { fill: var(--ck); }
 /* flip cards */
@@ -166,17 +168,42 @@
 .ck-ring-box { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
 .ck-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ck-ring .rg-bg { fill: none; stroke: rgb(255 255 255 / .08); stroke-width: 5; }
-.ck-ring .rg-arc { fill: none; stroke: var(--ck); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ck) 60%, transparent)); }
+.ck-ring .rg-arc { fill: none; stroke: var(--ck); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
 .ck-ring .rg-arc.reset { transition: none; }
 .tile.clock.grad .ck-ring .rg-arc { stroke: #ff375f; }
 .ck-ring-time { position: relative; font-size: 30px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; color: var(--ck); }
 /* stacked */
 .ck-stack { display: grid; line-height: .92; }
-.ck-h { font-size: 50px; font-weight: 800; letter-spacing: -2px; color: #fff; font-variant-numeric: tabular-nums; }
-.ck-m { font-size: 50px; font-weight: 800; letter-spacing: -2px; color: var(--ck); font-variant-numeric: tabular-nums; }
+.ck-h, .ck-m { display: block; }
+.ck-h { font-size: 50px; font-weight: 700; letter-spacing: -2px; color: #fff; font-variant-numeric: tabular-nums; }
+.ck-m { font-size: 50px; font-weight: 700; letter-spacing: -2px; color: var(--ck); font-variant-numeric: tabular-nums; }
 /* in words */
 .ck-words { display: grid; gap: 4px; padding: 0 6px; }
 .ck-w1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; color: #fff; line-height: 1.1; }
 .ck-w2 { font-size: 18px; font-weight: 700; color: var(--ck); line-height: 1.15; }
-@media (prefers-reduced-motion: reduce) { .ck-colon { animation: none; } }
+/* weather under the date */
+.ck-extra { display: inline-flex; align-items: center; gap: 5px; min-height: 18px; font-size: 12.5px; color: rgb(255 255 255 / .5); }
+.ck-extra:empty { display: none; }
+.ck-extra i { font-size: 14px; color: var(--ck); }
+.tile.clock.grad .ck-extra i { color: #ff9f0a; }
+.ck-extra b { color: rgb(255 255 255 / .85); font-weight: 600; }
+.ck-extra span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile.clock { background: linear-gradient(180deg, color-mix(in srgb, var(--ck) 9%, #16171b), #121316 75%); }
+@media (prefers-reduced-motion: reduce) { .ck-colon, .ck-dots, .ck-analog .sh { animation: none; } }
+
+/* ---------- 3.12 focus card: the focus mode with 25 / 50 min and today's total ---------- */
+.tile.focus { cursor: pointer; }
+.tile.focus .fx-text { flex: 1; }
+.tile.focus:not(.on) .fx-text { padding-top: 14px; }
+.fx-today { font-size: 11.5px; color: rgb(255 255 255 / .42); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-chips { position: absolute; top: 12px; right: 12px; display: flex; gap: 5px; }
+.fx-chip { width: 32px; height: 22px; border: 0; border-radius: 11px; background: rgb(255 159 10 / .14); color: #ffb340; font: 700 12px var(--font);
+  cursor: pointer; transition: background .2s, transform .2s; }
+.fx-chip::after { content: "′"; }
+.fx-chip:hover { background: rgb(255 159 10 / .28); transform: scale(1.06); }
+.tile.focus.on .fx-chips { display: none; }
+.tile.focus.on { background: linear-gradient(180deg, rgb(255 159 10 / .1), #141519 80%); box-shadow: inset 0 0 0 1px rgb(255 159 10 / .22); }
+.tile.focus.on .fx-ring-arc { filter: drop-shadow(0 0 4px rgb(255 159 10 / .6)); }
+/* head: a greeting on the main screen */
+.p-head .home-date.greet .hd-time { display: none; }
+.p-head .home-date.greet .hd-day { font-size: 14px; font-weight: 600; color: rgb(255 255 255 / .85); text-transform: none; }

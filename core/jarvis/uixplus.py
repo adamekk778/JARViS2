@@ -17,11 +17,50 @@ class Attention:
     def __init__(self, rt):
         self.rt = rt
         self.focus_until = 0.0
+        self.started = 0.0                       # 3.12: when the running focus session began (0 = none)
         self.deferred: list[dict] = []
 
     def focus(self, minutes: float) -> None:
-        self.focus_until = time.time() + max(1, min(minutes, 8 * 60)) * 60 if minutes > 0 else 0.0
-        self.rt.bus.publish("focus", active=self.focus_until > time.time(), until=self.focus_until)
+        now = time.time()
+        if minutes > 0:
+            if not (self.started and self.focus_until > now):
+                self.started = now
+            self.focus_until = now + max(1, min(minutes, 8 * 60)) * 60
+            self.rt.bus.publish("focus", active=True, until=self.focus_until, started=self.started, today=self.today_seconds(now))
+        else:
+            self._close(now)
+
+    # ---- 3.12 how long you focused today (the notch's focus card) ----
+    def _db(self):
+        db = getattr(self.rt, "db", None)
+        if db is not None:
+            db.exec("CREATE TABLE IF NOT EXISTS focus_log (day TEXT, start REAL, seconds REAL)")
+        return db
+
+    def today_seconds(self, now: float | None = None) -> float:
+        now = time.time() if now is None else now
+        day = dt.date.fromtimestamp(now).isoformat()
+        db = self._db()
+        done = float((db.one("SELECT SUM(seconds) AS s FROM focus_log WHERE day = ?", (day,)) or {}).get("s") or 0) if db is not None else 0.0
+        running = max(0.0, min(now, self.focus_until) - self.started) if self.started else 0.0
+        return round(done + running, 1)
+
+    def _close(self, now: float) -> None:
+        """Ends the session (stopped or ran out): its time goes to today's total, the notch says well done."""
+        session = max(0.0, min(now, self.focus_until or now) - self.started) if self.started else 0.0
+        if session >= 30:
+            db = self._db()
+            if db is not None:
+                db.exec("INSERT INTO focus_log (day, start, seconds) VALUES (?, ?, ?)",
+                        (dt.date.fromtimestamp(self.started).isoformat(), self.started, round(session, 1)))
+        self.started, self.focus_until = 0.0, 0.0
+        self.rt.bus.publish("focus", active=False, until=0, done=session >= 60, session=round(session), today=self.today_seconds(now))
+
+    def tick(self, now: float | None = None) -> None:
+        """Called every few seconds: a session whose time ran out is closed."""
+        now = time.time() if now is None else now
+        if self.started and self.focus_until and self.focus_until <= now:
+            self._close(now)
 
     def busy_reason(self, now: float | None = None) -> str:
         now = time.time() if now is None else now

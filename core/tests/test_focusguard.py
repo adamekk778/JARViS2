@@ -50,3 +50,27 @@ def test_focus_mood_counts_too(rt):
 
 def test_nudge_is_a_server_message():
     assert "focus_nudge" in ws.SERVER_TYPES
+
+
+def test_focus_sessions_add_up_for_today(rt):
+    att = rt.attention
+    q = rt.bus.subscribe()
+    att.focus(25)
+    start = [e for e in drain(q) if e["type"] == "focus"][-1]
+    assert start["active"] and start["started"] > 0 and start["today"] < 1
+    att.started -= 600                                  # 10 minutes in
+    assert 590 < att.today_seconds() < 610
+    att.focus(0)                                        # stopped: logged, the notch hears "done"
+    end = [e for e in drain(q) if e["type"] == "focus"][-1]
+    assert not end["active"] and end["done"] and 590 < end["session"] < 610 and 590 < end["today"] < 610
+    assert att.started == 0 and att.today_seconds() == end["today"]
+    att.focus(1)
+    att.started -= 120
+    att.focus_until = time.time() - 1                   # ran out on its own
+    att.tick()
+    end = [e for e in drain(q) if e["type"] == "focus"][-1]
+    assert not end["active"] and end["done"] and 700 < end["today"] < 740
+
+
+def test_focus_mode_is_a_quick_action():
+    assert "focus_mode" in ws.QUICK_ACTIONS

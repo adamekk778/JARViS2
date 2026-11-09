@@ -74,6 +74,9 @@ async def loop(rt, interval: float = 2.0, rounds: int | None = None) -> None:
     while rounds is None or n < rounds:
         n += 1
         try:
+            att = getattr(rt, "attention", None)
+            if att is not None:
+                att.tick()                                   # a focus session that ran out ends here
             if focus_active(rt) and getattr(rt.cfg.notch, "focus_guard", True):
                 info = await asyncio.to_thread(rt.platform.foreground_info)
                 guard.check(info)

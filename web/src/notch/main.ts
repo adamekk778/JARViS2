@@ -1106,11 +1106,11 @@ function islandActivity(t: any) {
   } else if (dyn() && (focusMode.until > Date.now() || coreMood === "focus")) {
     // 3.12 focus: a calm island – a flame on the left, the time left on the right, steady eyes in the middle
     kind = "focusmode";
-    const left = focusMode.until ? Math.max(0, Math.round((focusMode.until - Date.now()) / 60000)) : -1;
-    l = [h("span", { class: "n-focus-ico" }, icon("fire", "ph-fill"))];
-    r = [h("span", { class: "n-focus-left" }, left >= 0 ? `${left} min` : "Fokus")];
+    const leftS = focusMode.until ? Math.max(0, Math.round((focusMode.until - Date.now()) / 1000)) : -1;
     const total = focusMode.until && focusMode.from ? focusMode.until - focusMode.from : 0;
-    shape.style.setProperty("--focus-left", total > 0 ? String(Math.max(0, Math.min(1, (focusMode.until - Date.now()) / total))) : "1");
+    const frac = total > 0 ? Math.max(0, Math.min(1, (focusMode.until - Date.now()) / total)) : 1;
+    l = [h("span", { class: "n-focus-ring" }, ring(Math.round(frac * 120) / 120))];
+    r = [h("span", { class: "n-focus-left" }, leftS >= 0 ? `${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, "0")}` : "Fokus")];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
     if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
@@ -1160,6 +1160,7 @@ setInterval(updateActivity, 1000);
 // ---------- server events ----------
 client.onStatus((s) => { if (s !== "open") { coreMood = "offline"; updateBlob(); } });
 client.on("welcome", (m) => {
+  takeFocus(m.focus);
   client.send("live_subs_get", {});
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
@@ -1255,12 +1256,23 @@ window.setInterval(() => {
 blobBox.addEventListener("pointerdown", () => { if (shape.classList.contains("edge-play")) { shape.classList.remove("edge-play"); flashUi("joy", 900); } });
 client.on("settings_changed", (m) => { edgePlay = m.settings?.notch?.edge_play !== false; });
 
-client.on("focus", (m) => {
+function takeFocus(m: any) {
+  if (!m) return;
   document.documentElement.dataset.focus = m.active ? "1" : "";
-  if (m.active && !focusMode.until) focusMode.from = Date.now();
+  if (m.active) focusMode.from = m.started ? Number(m.started) * 1000 : focusMode.from || Date.now();
   focusMode.until = m.active ? Number(m.until || 0) * 1000 : 0;
   face.focus(!!m.active || coreMood === "focus");
   updateActivity();
+}
+client.on("focus", (m) => {
+  takeFocus(m);
+  // a session ended: well done + how long today, and a nudge to take a break
+  if (m.done && !m.active) {
+    const mins = Math.round((m.session || 0) / 60), today = Math.round((m.today || 0) / 60);
+    const tt = today >= 60 ? `${Math.floor(today / 60)} h ${today % 60} min` : `${today} min`;
+    window.setTimeout(() => showAlert(`Skvělá práce · ${mins} min soustředění`, `Dej si 5 minut pauzu – protáhni se a napij se. Dnes celkem ${tt}.`), 300);
+    face.react("party", 2600);
+  }
 });
 // 3.12 focus guard: YouTube, Netflix, TikTok… in front while you focus → the island blinks red and the eyes frown
 client.on("focus_nudge", (m) => {

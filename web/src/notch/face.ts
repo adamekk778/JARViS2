@@ -121,8 +121,9 @@ export function createFace(reduced: () => boolean) {
     g.dataset.s = key;
     g.innerHTML = key ? GLYPH[key] || "" : "";
     e.classList.toggle("has-g", !!key);
-    if (key && !reduced()) g.animate([{ transform: "scale(.2) rotate(-25deg)", opacity: 0 }, { transform: "scale(1.15)", opacity: 1, offset: 0.6 }, { transform: "none", opacity: 1 }],
-      { duration: 420, easing: "cubic-bezier(.3,1.4,.5,1)" });
+    // a soft morph: the new shape comes out of a blur while the capsule melts away (no pop, no spin)
+    if (key && !reduced()) g.animate([{ transform: "scale(.55)", opacity: 0, filter: "blur(5px)" }, { transform: "none", opacity: 1, filter: "blur(0)" }],
+      { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" });
   }
   function paint() {
     const name = quirk || base();
@@ -182,10 +183,10 @@ export function createFace(reduced: () => boolean) {
           window.setTimeout(() => set(0, 0), 900);
         } else if (q < 0.45 && (hr >= 22 || hr < 5)) flash("moon", 2600);
         else if (q < 0.45 && hr >= 6 && hr < 10) flash("sun", 2400);
-        else flash(pick(["love", "hover", "content", "laugh", "surprised", "curious", "skeptical", "sparkle", "starwink", "kiss", "wow", "annoyed", "diamond"]), 1600);
+        else flash(pick(["hover", "content", "content", "love", "curious", "skeptical", "starwink", "surprised"]), 1500);
       }
       quirks();
-    }, rnd(16000, 36000));
+    }, rnd(22000, 50000));
   }
 
   return {

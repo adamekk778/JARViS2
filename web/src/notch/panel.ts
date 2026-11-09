@@ -41,7 +41,6 @@ export function buildPanel(ctx: PanelCtx) {
   let media: any = {};
   let update: any = null;
   let current: Section = "home";
-  let timers: any[] = [];
   let sessions: any[] = [];
   let moodDetail = "";
   let brain: { provider: string; model: string } | null = null;
@@ -393,12 +392,21 @@ export function buildPanel(ctx: PanelCtx) {
   for (const [k, v] of [["cx", "26"], ["cy", "26"], ["r", "22"], ["class", "fx-ring-arc"]]) ringArc.setAttribute(k, v);
   ringArc.style.strokeDasharray = `${RING}`;
   ringSvg.append(ringArc);
-  const fxTime = h("strong", { class: "fx-time" }), fxLabel = h("span", { class: "fx-label" });
+  // 3.12 the focus mode itself (notifications wait, the notch watches YouTube & co.): 25 or 50 minutes, today's total
+  const fxTime = h("strong", { class: "fx-time" }), fxLabel = h("span", { class: "fx-label" }), fxToday = h("span", { class: "fx-today" });
   const fxBtnIco = h("span", {});
-  const cardFocus = h("button", { class: "tile focus", type: "button",
-    onclick: () => { const t = timers[0]; t ? quick("cancel_timer", { id_or_label: t.id }) : quick("set_timer", { seconds: 25 * 60, label: "Soustředění" }); } },
-    h("div", { class: "fx-ring-box" }, ringSvg, h("span", { class: "fx-ico" }, fxBtnIco)), h("div", { class: "fx-text" }, fxTime, fxLabel));
+  let focusState: any = {};
+  const startFocus = (min: number) => quick("focus_mode", { minutes: min });
+  const fxChip = (min: number) => h("button", { class: "fx-chip", type: "button", title: `Soustředit se ${min} minut`,
+    onclick: (e: Event) => { e.stopPropagation(); startFocus(min); } }, `${min}`);
+  const fxChips = h("div", { class: "fx-chips" }, fxChip(25), fxChip(50));
+  const cardFocus = h("div", { class: "tile focus", role: "button", tabindex: "0", "aria-label": "Soustředění",
+    onclick: () => (focusState.active ? quick("focus_mode", { minutes: 0 }) : startFocus(25)),
+    onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
+    h("div", { class: "fx-ring-box" }, ringSvg, h("span", { class: "fx-ico" }, fxBtnIco)),
+    h("div", { class: "fx-text" }, fxTime, fxLabel, fxToday), fxChips);
   let fxIco = "";
+  const dur = (sec: number) => { const m = Math.round(sec / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
 
   // dock: volume (live while dragging) and round quick buttons
   const homeVolIcon = h("button", { class: "dock-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -428,6 +436,8 @@ export function buildPanel(ctx: PanelCtx) {
   // 3.12 a big clock on the left: six looks, a click changes the colour (see clock.ts)
   const clock = createClock();
   window.setInterval(() => { if (current === "home" && !document.hidden) clock.paint(); }, 1000);
+  let weatherAt = 0;                        // the clock shows the weather; asked for now and then while home is open
+  const wantWeather = () => { if (Date.now() - weatherAt > 30 * 60000) { weatherAt = Date.now(); client.send("weather_get"); } };
   const homeView = h("div", { class: "home home2" },
     h("div", { class: "home-grid three" }, clock.el, npCard, h("div", { class: "home-side" }, cardAi, cardFocus)), homeRow);
 
@@ -435,9 +445,13 @@ export function buildPanel(ctx: PanelCtx) {
   function renderHome() {
     const now = new Date();
     if (!homeDate.querySelector(".hd-time")) homeDate.append(h("span", { class: "hd-day" }), h("strong", { class: "hd-time" }));
-    setText(homeDate.querySelector(".hd-day")!, now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
+    const hr = now.getHours(), who = settings?.general?.user_name ? `, ${settings.general.user_name}` : "";
+    const hello = hr < 5 ? "Dobrou noc" : hr < 10 ? "Dobré ráno" : hr < 12 ? "Dobré dopoledne" : hr < 18 ? "Dobré odpoledne" : "Dobrý večer";
+    homeDate.classList.toggle("greet", current === "home");
+    setText(homeDate.querySelector(".hd-day")!, current === "home" ? `${hello}${who}` : now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
     setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
     if (current !== "home") return;
+    wantWeather();
     paintNowPlaying();
     const cc = sessions.find((s) => ["working", "thinking", "waiting"].includes(s.state)) || sessions[0];
     const b = cc ? BRANDS.claude : brain ? brandOf(brain.provider, brain.model) : null;
@@ -452,14 +466,18 @@ export function buildPanel(ctx: PanelCtx) {
     setText(aiName, cc ? `Claude Code · ${cc.project || ""}`.replace(/ · $/, "") : b ? `JARVIS · ${b.name}` : "JARVIS");
     setText(aiWord, cc ? (CLAUDE_WORD[cc.state] || "Hotovo") : (MOOD_WORD[mood] || "Připraven"));
     setText(aiSub, cc ? (cc.step || cc.prompt || "") : (moodDetail || "Napiš mi nebo řekni, co potřebuješ"));
-    const t = timers[0];
-    const left = t ? Math.max(0, Math.round(t.ends_at - Date.now() / 1000)) : 25 * 60;
-    const frac = t && t.seconds ? left / t.seconds : 1;
+    const nowS = Date.now() / 1000;
+    const on = !!(focusState.active && focusState.until > nowS);
+    const left = on ? Math.max(0, Math.round(focusState.until - nowS)) : 25 * 60;
+    const total = on && focusState.started ? focusState.until - focusState.started : 0;
+    const frac = on && total > 0 ? left / total : 1;
     ringArc.style.strokeDashoffset = `${(RING * (1 - frac)).toFixed(2)}`;
-    cardFocus.classList.toggle("on", !!t);
+    cardFocus.classList.toggle("on", on);
     setText(fxTime, mmss(left));
-    setText(fxLabel, t ? (t.label || "Časovač") : "Soustředění · start");
-    const fi = t ? "stop" : "play";
+    setText(fxLabel, on ? "zbývá · klik ukončí" : "Soustředění");
+    const today = (focusState.today || 0) + (on && focusState.started ? Math.max(0, nowS - Math.max(focusState.started, focusState.at || focusState.started)) : 0);
+    setText(fxToday, today >= 60 ? `Dnes ${dur(today)}` : "Dnes zatím nic");
+    const fi = on ? "stop" : "play";
     if (fi !== fxIco) { fxIco = fi; fxBtnIco.replaceChildren(icon(fi, "ph-fill")); }
   }
   window.setInterval(renderHome, 1000);
@@ -620,6 +638,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // ---------- events ----------
   client.on("welcome", (m) => {
+    focusState = { ...(m.focus || {}), at: Date.now() / 1000 };
     settings = m.settings;
     shelf = m.shelf || [];
     media = m.media || {};
@@ -627,7 +646,6 @@ export function buildPanel(ctx: PanelCtx) {
     const name = settings?.general?.user_name;
     chat.setGreeting(name ? `Ahoj, ${name}! Jak ti dnes můžu pomoct?` : "Ahoj! Jak ti dnes můžu pomoct?");
     pins = m.pins || [];
-    timers = m.timers || [];
     sessions = m.claude_sessions || [];
     jChanges = m.jarvis_changes || [];
     if (m.volume) { volume = { level: Number(m.volume.level) || 0, muted: !!m.volume.muted }; paintVol(); }
@@ -640,7 +658,8 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("settings_changed", (m) => { settings = m.settings; syncAgent(); if (current === "settings") renderSettings(); });
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
   client.on("media", (m) => { media = m; renderMedia(); renderHome(); });
-  client.on("timers", (m) => { timers = m.items || []; renderHome(); });
+  client.on("timers", () => renderHome());
+  client.on("focus", (m) => { if ("today" in m || !m.active) focusState = { ...focusState, ...m, at: Date.now() / 1000 }; else focusState = { ...focusState, ...m }; renderHome(); });
   client.on("claude_sessions", (m) => { sessions = m.items || []; renderHome(); renderActivity(); });
   client.on("jarvis_changes", (m) => { jChanges = m.items || []; renderActivity(); });
   client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderHome(); });
@@ -659,6 +678,7 @@ export function buildPanel(ctx: PanelCtx) {
   });
   client.on("mood", (m) => { mood = m.mood; moodDetail = m.detail || ""; renderHome(); if (sysVals.net) sysVals.net.textContent = m.mood === "offline" ? "offline" : sysVals.net.textContent; });
   client.on("weather", (m) => {
+    clock.weather(m);
     if (m.error) { weatherBox.replaceChildren(h("span", { class: "muted" }, "Počasí nedostupné")); return; }
     const dn = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
     const wIcon = /bouř/i.test(m.desc || "") ? "cloud-lightning" : /sníh|sněž/i.test(m.desc || "") ? "snowflake" : /déšť|přeháň|mrhol/i.test(m.desc || "") ? "cloud-rain"
