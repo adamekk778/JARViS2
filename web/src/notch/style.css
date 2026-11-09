@@ -361,6 +361,7 @@ html[data-motion="reduced"] .n-music { display: none; }
 .n-lens-chip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
 /* OMEGA 234 focus mode: the closed notch fades almost away, no music bars, no peeking */
 html[data-focus="1"] .notch:is([data-mode="closed"], [data-mode="hover"]) { opacity: .25; transition: opacity .6s; }
+html[data-focus="1"] .notch.nudge { opacity: 1; transition: opacity .15s; }   /* 3.12 focus guard: fully visible while it blinks */
 html[data-focus="1"] .n-music { display: none; }
 
 /* OMEGA 083 hand-off */

@@ -153,6 +153,9 @@ class Runtime:
         from . import netwatch
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(netwatch.loop(self)))   # OMEGA 708/709/719
+        from . import focusguard
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
         from . import fsplus
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328

@@ -228,8 +228,8 @@ function dynSize(m: Mode): [number, number] {
       const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(240, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 6;
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
-    case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : 348, 38] : [196, 38];
-    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : 330, 36] : [176, 36];
+    case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : kind === "nudge" ? 400 : 348, 38] : [196, 38];
+    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" ? 390 : 330, 36] : [176, 36];
   }
 }
 /** The subtitle pill grows sideways (one wide line) and only takes a second line for a long sentence. */
@@ -433,7 +433,7 @@ function updateBlob() {
 /** The eyes show in the small pill when nothing else is in it (and with the voice wave while JARVIS talks). */
 function faceSync() {
   const k = shape.dataset.island || "";
-  face.show(dyn() && (mode === "closed" || mode === "hover") && (k === "" || k === "voice"));
+  face.show(dyn() && (mode === "closed" || mode === "hover") && (k === "" || k === "voice" || k === "nudge"));
 }
 /** JARVIS itself is doing something (STOP makes sense). */
 function jarvisBusy() {
@@ -781,6 +781,7 @@ let brain: { provider: string; model: string } | null = null;
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
+let nudge: { app: string; until: number } | null = null;
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
 let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
 client.on("workshop", (m) => { workshop = { on: !!m.on, step: m.step || 0, total: m.total || 0, text: m.text || "" }; updateActivity(); });
@@ -1025,7 +1026,11 @@ function islandActivity(t: any) {
   if (preferKind && !actives.includes(preferKind)) preferKind = "";
   const skip = new Set(preferKind ? PERSIST.slice(0, PERSIST.indexOf(preferKind)) : []);
   const sk = (k: string) => !skip.has(k);
-  if (lastGesture && Date.now() < lastGesture.until) {
+  if (nudge && Date.now() < nudge.until) {
+    kind = "nudge";
+    l = [h("span", { class: "n-nudge" }, icon("target", "ph-fill"), h("span", {}, "Soustředění"))];
+    r = [h("span", { class: "n-nudge-app" }, `${nudge.app} počká`)];
+  } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
     l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
   } else if (workshop.on && workshop.total) {
@@ -1233,7 +1238,16 @@ window.setInterval(() => {
 blobBox.addEventListener("pointerdown", () => { if (shape.classList.contains("edge-play")) { shape.classList.remove("edge-play"); flashUi("joy", 900); } });
 client.on("settings_changed", (m) => { edgePlay = m.settings?.notch?.edge_play !== false; });
 
-client.on("focus", (m) => { document.documentElement.dataset.focus = m.active ? "1" : ""; });   // OMEGA 234: quieter, see-through notch
+client.on("focus", (m) => { document.documentElement.dataset.focus = m.active ? "1" : ""; face.focus(!!m.active); });
+// 3.12 focus guard: YouTube, Netflix, TikTok… in front while you focus → the island blinks red and the eyes frown
+client.on("focus_nudge", (m) => {
+  nudge = { app: String(m.app || ""), until: Date.now() + 4200 };
+  face.react("angry", 3600);
+  shape.classList.remove("nudge"); void shape.offsetWidth; shape.classList.add("nudge");
+  window.setTimeout(() => { shape.classList.remove("nudge"); updateActivity(); }, 4300);
+  updateActivity();
+  if (mode === "closed" || mode === "hover") apply(mode);
+});   // OMEGA 234: quieter, see-through notch
 client.on("music_level", (m) => {
   const b: number[] = Array.isArray(m.bars) ? m.bars : [];
   const on = b.some((v) => v > 0.05);

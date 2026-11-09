@@ -47,7 +47,7 @@ export const SERVER_TYPES = [
   "learn", "learn_card", "learn_result",
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
-  "focus", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
+  "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
   "handoff", "mochi_where", "anchor", "hardware",
 ] as const;
 

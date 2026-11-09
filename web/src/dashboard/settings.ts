@@ -40,7 +40,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/emotion/, "smiley-wink"], [/noise/, "waveform"], [/auto_gain|gain/, "equalizer"], [/duck/, "speaker-low"], [/tts_rate|rate/, "gauge"],
   [/tts|voice\.voice|speak/, "speaker-high"], [/voice\.enabled/, "microphone"], [/hotkeys\.talk/, "microphone"], [/hotkeys\.chat/, "chat-circle"],
   [/hotkeys\.stop/, "hand-palm"], [/hotkeys\.hud/, "circle-notch"], [/hotkeys\.selection/, "selection"], [/notch_toggle/, "eye-slash"],
-  [/hotkeys\.subtitles|subs/, "closed-captioning"], [/lyrics/, "microphone-stage"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
+  [/hotkeys\.subtitles|subs/, "closed-captioning"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
   [/animations/, "sparkle"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
@@ -327,6 +327,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               h("span", {}, `Zkratka ${combo(S.hotkeys.subtitles || "ctrl+alt+t")} nebo řekni „zapni titulky“.` + (extra.subs?.error ? ` ${extra.subs.error}` : ""))), btn);
           })(),
           sw("notch.lyrics", "Texty písní v notchi", "Když hraje hudba (Spotify, YouTube Music, Apple Music…), notch ukáže právě zpívaný řádek a čára pod ním jede se zpěvem. Texty jsou z LRCLIB – posílá se jen název písně a interpret."),
+          sw("notch.focus_guard", "Hlídat soustředění", "Když máš zapnuté soustředění a do popředí se dostane YouTube, Netflix, TikTok, Instagram a podobně, notch zabliká a oči se zamračí. Nic nezavírá ani neblokuje – jen připomene."),
           sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),
           S.voice?.stt_provider === "groq" ? h("p", { class: "help" }, "Rozpoznávání řeči máš přes Groq, takže zvuk videa se k rozpoznání posílá tam. Pro úplné soukromí přepni v Nastavení → Hlas na místní rozpoznávání.") : null),
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"),
