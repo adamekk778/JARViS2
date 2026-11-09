@@ -1,0 +1,80 @@
+/* 3.12 the music screen (music.ts): album colours behind everything, art + controls on the left, lyrics on the right */
+.np.opens { cursor: pointer; }
+.np.opens:hover { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14), 0 14px 34px -18px rgb(0 0 0 / .9); }
+
+.mu { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 300px 1fr; gap: 26px; height: 100%; min-height: 0;
+  padding: 16px 22px 16px 18px; border-radius: 24px; background: #0d0e11; }
+.mu-glow { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.mu-bg { position: absolute; inset: -30%; width: 160%; height: 160%; object-fit: cover; filter: blur(60px) saturate(1.7) brightness(.62); opacity: 0;
+  transform: scale(1.1); transition: opacity 1s ease; }
+.mu-bg[src] { opacity: 1; animation: mu-drift 30s ease-in-out infinite alternate; }
+@keyframes mu-drift { to { transform: scale(1.25) rotate(10deg); } }
+.mu-glow::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgb(8 8 10 / .35), rgb(8 8 10 / .55) 45%, rgb(8 8 10 / .7)); }
+
+/* left: art, song, bar, controls */
+.mu-left { position: relative; display: grid; grid-template-rows: auto auto auto auto; align-content: center; justify-items: center; gap: 6px; min-height: 0; padding: 2px 0 6px; }
+.mu-back { position: absolute; top: 0; left: 0; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%;
+  background: rgb(255 255 255 / .1); color: #fff; font-size: 16px; cursor: pointer; transition: background .2s, transform .2s; }
+.mu-back:hover { background: rgb(255 255 255 / .2); transform: translateX(-2px); }
+.mu-cover { position: relative; width: 118px; height: 118px; margin-bottom: 3px; border-radius: 16px; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(145deg, #2a2d34, #17181c); box-shadow: 0 22px 44px -16px rgb(0 0 0 / .85), inset 0 0 0 1px rgb(255 255 255 / .08);
+  transition: transform .6s cubic-bezier(.2, .9, .25, 1), box-shadow .6s; }
+.mu:not(.playing) .mu-cover { transform: scale(.92); box-shadow: 0 12px 26px -14px rgb(0 0 0 / .8); }
+.mu-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.mu-cover.has .mu-cover-img { opacity: 1; }
+.mu-cover.has .mu-cover-none { display: none; }
+.mu-cover-none { font-size: 46px; color: rgb(255 255 255 / .3); }
+.mu-meta { display: grid; justify-items: center; gap: 2px; width: 100%; min-width: 0; text-align: center; }
+.mu-src { display: inline-flex; align-items: center; gap: 6px; height: 16px; font-size: 11.5px; font-weight: 600; color: rgb(255 255 255 / .65); }
+.mu-src:empty { display: none; }
+.mu-src .brand-logo svg { width: 14px; height: 14px; display: block; }
+.mu-title { max-width: 100%; font-size: 17px; font-weight: 700; letter-spacing: -.3px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-artist { max-width: 100%; font-size: 13.5px; color: rgb(255 255 255 / .62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mu-time { width: 100%; display: grid; gap: 2px; }
+.mu.no-time .mu-time, .mu.empty .mu-time { visibility: hidden; }
+.mu-bar { padding: 7px 0; cursor: pointer; touch-action: none; outline: none; }
+.mu-track { position: relative; height: 5px; border-radius: 3px; background: rgb(255 255 255 / .2); transition: height .2s; }
+.mu-bar:hover .mu-track, .mu.scrub .mu-track, .mu-bar:focus-visible .mu-track { height: 7px; }
+.mu-fill { position: absolute; inset: 0; border-radius: inherit; background: #fff; transform-origin: 0 50%; transform: scaleX(0); will-change: transform; }
+.mu-knob { position: absolute; top: 50%; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / .5); opacity: 0; transform: scale(.4); transition: opacity .2s, transform .25s cubic-bezier(.3, 1.5, .5, 1); }
+.mu-bar:hover .mu-knob, .mu.scrub .mu-knob { opacity: 1; transform: none; }
+.mu-times { display: flex; justify-content: space-between; font-size: 11px; font-variant-numeric: tabular-nums; color: rgb(255 255 255 / .55); }
+
+.mu-ctl { display: flex; align-items: center; gap: 20px; }
+.mu-btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: #fff; font-size: 23px;
+  cursor: pointer; transition: background .2s, transform .2s; }
+.mu-btn:hover { background: rgb(255 255 255 / .12); }
+.mu-btn.main { width: 48px; height: 48px; font-size: 22px; background: #fff; color: #000; box-shadow: 0 10px 26px -10px rgb(0 0 0 / .8); }
+.mu-btn.main:hover { background: #fff; transform: scale(1.06); }
+.mu.empty .mu-btn:not(.main) { opacity: .35; }
+
+/* right: the lyrics – the sung line bright, its words fill one after another, the list glides with the song */
+.mu-lyrics { position: relative; overflow: hidden; min-height: 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 16%, #000 80%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 16%, #000 80%, transparent); }
+.mu-lines { padding: 70px 8px 60% 2px; transition: transform .75s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
+.mu-line { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacing: -.3px; line-height: 1.28; color: rgb(255 255 255 / .42);
+  cursor: pointer; transform-origin: 0 50%; transition: color .45s ease, transform .5s cubic-bezier(.2, .8, .2, 1), opacity .45s, filter .45s; }
+.mu-line:hover { color: rgb(255 255 255 / .75); }
+.mu-line.past { color: rgb(255 255 255 / .3); }
+.mu-line:not(.now):not(.plain) { filter: blur(.3px); }
+.mu-line.now { color: #fff; transform: scale(1.04); filter: none; }
+.mu-line.now .w { color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(90deg, #fff calc(var(--w, 0%) - 12%), rgb(255 255 255 / .5) calc(var(--w, 0%) + 12%));
+  text-shadow: none; }
+.mu-line.now .w { filter: drop-shadow(0 0 10px rgb(255 255 255 / .18)); }
+.mu-dots { letter-spacing: 4px; opacity: .7; }
+.mu-line.plain { cursor: default; font-size: 18px; font-weight: 700; color: rgb(255 255 255 / .82); margin-bottom: 6px; }
+.mu-plain-note { margin-bottom: 14px; font-size: 11.5px; color: rgb(255 255 255 / .45); }
+.mu-empty { display: grid; justify-items: center; align-content: center; gap: 6px; min-height: 200px; text-align: center; color: rgb(255 255 255 / .55); font-size: 13px; }
+.mu-empty i { font-size: 36px; color: rgb(255 255 255 / .35); margin-bottom: 4px; }
+.mu-empty strong { font-size: 17px; color: #fff; }
+.mu.no-lyrics .mu-lines { padding-top: 40px; transform: none !important; }
+/* a plain (untimed) text scrolls by hand */
+.mu-lyrics:has(.plain) { overflow-y: auto; scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) { .mu-bg[src] { animation: none; } .mu-lines { transition: none; } }
+:root[data-motion="reduced"] :is(.mu-bg[src]) { animation: none; }

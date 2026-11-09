@@ -4,6 +4,7 @@ import "./dynamic.css";
 import "./home.css";
 import "./sections.css";
 import "./chat.css";
+import "./music.css";
 import "./face.css";
 import { createFace } from "./face";
 import { Blob, type Mood } from "../character/blob";

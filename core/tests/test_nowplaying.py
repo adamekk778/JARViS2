@@ -102,3 +102,24 @@ def test_media_changes_worth_publishing():
 
 def test_lyrics_is_a_server_message():
     assert "lyrics" in ws.SERVER_TYPES
+
+
+async def test_media_seek_is_a_quick_action_and_safe_off_windows(rt):
+    from jarvis import tools
+
+    tools.load_builtin()
+    assert "media_seek" in ws.QUICK_ACTIONS and "media_seek" in tools.REGISTRY
+    res = await tools.call("media_seek", {"seconds": 42}, rt)
+    assert not res.ok                                   # no Windows media session here: says so, nothing breaks
+
+
+async def test_untimed_lyrics_keep_the_plain_text(rt):
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("/get"):
+            return httpx.Response(200, json={"trackName": "Song", "duration": 180, "syncedLyrics": None, "plainLyrics": "první\ndruhá"})
+        return httpx.Response(200, json=[])
+    rt.lyrics = nowplaying.Lyrics(transport=httpx.MockTransport(handler))
+    snap = {"title": "Song", "artist": "Band", "source": "spotify", "duration": 180, "playing": True}
+    rt.media_state = snap
+    await nowplaying.publish_lyrics(rt, snap)
+    assert rt.lyrics_state["synced"] is False and rt.lyrics_state["plain"] == "první\ndruhá"

@@ -58,6 +58,18 @@ def _timeline(s, playing: bool) -> dict:
         return {}
 
 
+async def seek(seconds: float) -> bool:
+    """Jump to a place in the song (3.12 music screen: the progress bar and a click on a lyric line). Windows asks the
+    player; Spotify, browsers and most players allow it. False when there is no player or it refused."""
+    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as Manager
+
+    mgr = await Manager.request_async()
+    s = mgr.get_current_session()
+    if not s:
+        return False
+    return bool(await s.try_change_playback_position_async(int(max(0.0, seconds) * 10_000_000)))   # 100 ns ticks
+
+
 def changed(prev: dict, snap: dict, tolerance: float = 2.5) -> bool:
     """A new song, play / pause, or a jump in the song (seek) – worth telling the notch."""
     if (prev.get("title"), prev.get("artist"), prev.get("playing")) != (snap.get("title"), snap.get("artist"), snap.get("playing")):

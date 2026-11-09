@@ -1,5 +1,6 @@
 // The big notch panel (spec §5): content, right column (chat), tab bar at the bottom. "Domů" = three live cards.
 import { createClock } from "./clock";
+import { createMusicView } from "./music";
 import { Blob, type CharacterColor } from "../character/blob";
 import { ChatView } from "../shared/chat";
 import { fmtSize, h, icon, KIND_ICON, toast } from "../shared/dom";
@@ -10,7 +11,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
+export type Section = "home" | "music" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -559,7 +560,12 @@ export function buildPanel(ctx: PanelCtx) {
       h("strong", {}, "Teď se nic nemění"), h("span", {}, "Až Claude Code nebo JARVIS začne upravovat soubory, uvidíš tu každou změnu – co přidal zeleně, co ubral červeně."))]));
   }
   const centre = h("section", { class: "p-centre" });
-  const views: Record<Section, HTMLElement> = { home: homeView, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  // 3.12 the music screen (a click on the player): big art, a progress bar to drag, lyrics that follow the song
+  const music = createMusicView({ quick, back: () => show("home"), lyricsOn: () => settings?.notch?.lyrics !== false });
+  npCard.classList.add("opens");
+  npCard.title = "Otevřít přehrávač s textem";
+  npCard.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest("button")) show("music"); });
+  const views: Record<Section, HTMLElement> = { home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -587,7 +593,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "chat", "quick", "system", "more", "activity", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "music", "chat", "quick", "system", "more", "activity", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -616,7 +622,8 @@ export function buildPanel(ctx: PanelCtx) {
   function show(s: Section) {
     const prev = current;
     current = s;
-    navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s || ((b as HTMLElement).dataset.sec === "more" && EXTRA.includes(s))));
+    music.show(s === "music");
+    navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s || ((b as HTMLElement).dataset.sec === "home" && s === "music") || ((b as HTMLElement).dataset.sec === "more" && EXTRA.includes(s))));
     requestAnimationFrame(() => moveInd());
     const changed = centre.firstChild !== views[s];
     centre.replaceChildren(views[s]);
@@ -638,6 +645,8 @@ export function buildPanel(ctx: PanelCtx) {
 
   // ---------- events ----------
   client.on("welcome", (m) => {
+    music.setMedia(m.media || {});
+    if (m.lyrics) music.setLyrics(m.lyrics);
     focusState = { ...(m.focus || {}), at: Date.now() / 1000 };
     settings = m.settings;
     shelf = m.shelf || [];
@@ -657,7 +666,8 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("workspace_result", (m) => toast(m.message, m.ok ? "ok" : "error", 6000));
   client.on("settings_changed", (m) => { settings = m.settings; syncAgent(); if (current === "settings") renderSettings(); });
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
-  client.on("media", (m) => { media = m; renderMedia(); renderHome(); });
+  client.on("media", (m) => { media = m; renderMedia(); renderHome(); music.setMedia(m); });
+  client.on("lyrics", (m) => music.setLyrics(m));
   client.on("timers", () => renderHome());
   client.on("focus", (m) => { if ("today" in m || !m.active) focusState = { ...focusState, ...m, at: Date.now() / 1000 }; else focusState = { ...focusState, ...m }; renderHome(); });
   client.on("claude_sessions", (m) => { sessions = m.items || []; renderHome(); renderActivity(); });

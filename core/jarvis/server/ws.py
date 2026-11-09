@@ -77,7 +77,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
               "folder_fingerprint": "Uložit otisky složky", "folder_check": "Zkontrolovat složku", "recent_files": "Nedávné soubory",
               "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
-                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode",
+                 "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",

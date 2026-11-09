@@ -168,5 +168,5 @@ async def publish_lyrics(rt, snap: dict) -> None:
     if (rt.media_state or {}).get("title") != snap.get("title"):
         return                                   # the song changed meanwhile
     rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": res["synced"],
-                       "lines": res["lines"][:400]}
+                       "lines": res["lines"][:400], "plain": "" if res["synced"] else (res.get("plain") or "")[:6000]}
     rt.bus.publish("lyrics", **rt.lyrics_state)

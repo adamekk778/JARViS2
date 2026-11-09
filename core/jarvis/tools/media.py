@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Literal
+from typing import Annotated, Literal
 
 from .base import ToolResult, tool
 
@@ -33,3 +33,25 @@ async def volume(ctx, action: Literal["set", "up", "down", "mute", "unmute", "ge
     if new > 0:
         await asyncio.to_thread(p.set_mute, False)
     return ToolResult(True, f"Hlasitost {new} %", data=new)
+
+
+@tool("media_seek", "Přetočí právě hrající píseň nebo video na daný čas (v sekundách od začátku).", category="média")
+async def media_seek(ctx, seconds: Annotated[float, "kam přetočit, sekundy od začátku"]) -> ToolResult:
+    import sys
+    import time
+
+    if sys.platform != "win32":
+        return ToolResult(False, "Přetáčení umí jen Windows.")
+    from ..desktop import media as desk_media
+
+    try:
+        ok = await desk_media.seek(float(seconds))
+    except Exception as e:  # noqa: BLE001
+        return ToolResult(False, f"Přetočit nejde: {e}")
+    if not ok:
+        return ToolResult(False, "Přehrávač přetočení nedovolil.")
+    st = getattr(ctx, "media_state", None)
+    if isinstance(st, dict) and st.get("title"):              # the notch moves at once, the player confirms later
+        st.update(position=float(seconds), at=time.time())
+        ctx.bus.publish("media", **st)
+    return ToolResult(True, f"Přetočeno na {int(seconds) // 60}:{int(seconds) % 60:02d}")
