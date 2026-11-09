@@ -115,3 +115,68 @@
 
 @media (prefers-reduced-motion: reduce) { .np-bg[src], .tile.ai.busy::before, .tile.ai.busy .ai-dot { animation: none; } }
 :root[data-motion="reduced"] :is(.np-bg[src], .tile.ai.busy::before, .tile.ai.busy .ai-dot) { animation: none; }
+
+/* ---------- 3.12 three columns: clock · now playing · JARVIS + focus ---------- */
+.home-grid.three { grid-template-columns: .92fr 1.45fr 1fr; }
+.home-grid.three .np-art { width: 78px; height: 78px; border-radius: 14px; }
+.home-grid.three .np-title { font-size: 17px; }
+.home-grid.three .np-ctl { gap: 16px; }
+
+/* ---------- the clock ---------- */
+.tile.clock { --ck: #fff; position: relative; align-items: center; justify-content: center; gap: 8px; padding: 14px 10px; text-align: center;
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--ck) 14%, #141519), #141519 70%); transition: background .5s, transform .35s cubic-bezier(.2, .9, .25, 1); }
+.ck-face { display: grid; place-items: center; min-height: 0; width: 100%; color: var(--ck); transition: color .4s; }
+.tile.clock.grad .ck-face :is(.ck-big, .ck-ring-time, .ck-m, .ck-w2) {
+  background: linear-gradient(120deg, #ff9f0a, #ff375f 45%, #bf5af2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ck-date { font-size: 12.5px; font-weight: 600; color: rgb(255 255 255 / .6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ck-style { position: absolute; top: 8px; right: 8px; z-index: 2; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  background: rgb(255 255 255 / .08); color: rgb(255 255 255 / .7); font-size: 14px; cursor: pointer; opacity: 0; transition: opacity .2s, background .2s; }
+.tile.clock:hover .ck-style, .ck-style:focus-visible { opacity: 1; }
+.ck-style:hover { background: rgb(255 255 255 / .18); color: #fff; }
+.ck-label { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font-size: 11px; font-weight: 700; color: var(--ck); opacity: 0; pointer-events: none; }
+.ck-label.show { animation: ck-label 1.4s ease forwards; }
+@keyframes ck-label { 15%, 70% { opacity: 1; } 100% { opacity: 0; } }
+
+/* digital */
+.ck-row { display: flex; align-items: flex-start; gap: 3px; }
+.ck-big { font-size: 46px; font-weight: 800; letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ck);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--ck) 35%, transparent); }
+.ck-sec { font-size: 15px; font-weight: 700; margin-top: 4px; color: rgb(255 255 255 / .45); font-variant-numeric: tabular-nums; }
+/* analog */
+.ck-analog { width: 118px; height: 118px; overflow: visible; }
+.ck-analog .dial { fill: rgb(255 255 255 / .03); stroke: rgb(255 255 255 / .08); stroke-width: 1; }
+.ck-analog .tk { stroke: rgb(255 255 255 / .25); stroke-width: 1; stroke-linecap: round; }
+.ck-analog .tk.maj { stroke: rgb(255 255 255 / .75); stroke-width: 2.2; }
+.ck-analog :is(.hh, .mh) { stroke: #fff; stroke-linecap: round; transition: transform .4s cubic-bezier(.3, 1.5, .5, 1); }
+.ck-analog .hh { stroke-width: 4.5; }
+.ck-analog .mh { stroke-width: 3; }
+.ck-analog .sh { stroke: var(--ck); stroke-width: 1.4; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--ck)); transition: transform .3s cubic-bezier(.3, 1.8, .5, 1); }
+.tile.clock.grad .ck-analog .sh { stroke: #ff375f; }
+.ck-analog .pin { fill: var(--ck); }
+/* flip cards */
+.ck-flip { display: flex; align-items: center; gap: 5px; perspective: 300px; }
+.ck-card { display: grid; place-items: center; width: 54px; height: 64px; border-radius: 10px; font-size: 40px; font-weight: 800; letter-spacing: -1px;
+  font-variant-numeric: tabular-nums; color: var(--ck); background: linear-gradient(180deg, #24262c 0 49.4%, #1a1b20 50.6% 100%);
+  box-shadow: 0 6px 16px -6px rgb(0 0 0 / .8), inset 0 0 0 1px rgb(255 255 255 / .06); transform-origin: 50% 50%; }
+.tile.clock.grad .ck-card { -webkit-background-clip: border-box; background-clip: border-box; color: #ff9f0a; background: linear-gradient(180deg, #24262c 0 49.4%, #1a1b20 50.6% 100%); }
+.ck-colon { width: 5px; height: 22px; background: radial-gradient(circle at 50% 22%, var(--ck) 2.4px, transparent 2.6px), radial-gradient(circle at 50% 78%, var(--ck) 2.4px, transparent 2.6px);
+  animation: ck-blink 1s steps(1) infinite; }
+@keyframes ck-blink { 50% { opacity: .25; } }
+/* ring of seconds */
+.ck-ring-box { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+.ck-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ck-ring .rg-bg { fill: none; stroke: rgb(255 255 255 / .08); stroke-width: 5; }
+.ck-ring .rg-arc { fill: none; stroke: var(--ck); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ck) 60%, transparent)); }
+.ck-ring .rg-arc.reset { transition: none; }
+.tile.clock.grad .ck-ring .rg-arc { stroke: #ff375f; }
+.ck-ring-time { position: relative; font-size: 30px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; color: var(--ck); }
+/* stacked */
+.ck-stack { display: grid; line-height: .92; }
+.ck-h { font-size: 50px; font-weight: 800; letter-spacing: -2px; color: #fff; font-variant-numeric: tabular-nums; }
+.ck-m { font-size: 50px; font-weight: 800; letter-spacing: -2px; color: var(--ck); font-variant-numeric: tabular-nums; }
+/* in words */
+.ck-words { display: grid; gap: 4px; padding: 0 6px; }
+.ck-w1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; color: #fff; line-height: 1.1; }
+.ck-w2 { font-size: 18px; font-weight: 700; color: var(--ck); line-height: 1.15; }
+@media (prefers-reduced-motion: reduce) { .ck-colon { animation: none; } }

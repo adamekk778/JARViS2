@@ -18,26 +18,26 @@ html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top:
   background: radial-gradient(70% 45% at 35% 28%, rgb(255 255 255 / .95), transparent 70%), var(--c);
   box-shadow: 0 0 6px var(--c), 0 0 16px color-mix(in srgb, var(--c) 55%, transparent);
   transform: scaleY(var(--open)); transition: transform .35s cubic-bezier(.3, 1.3, .5, 1), background-color .5s, box-shadow .5s, opacity .25s; }
-/* other shapes of the eyes, cross-faded: arches ^ ^, hearts, stars, an angry or a sad frown */
-.fe-arc { width: 14px; height: 14px; border: 3.2px solid var(--c); border-color: var(--c) var(--c) transparent transparent; border-radius: 50%;
-  transform: translateY(3px) rotate(-45deg) scale(.4); opacity: 0;
-  filter: drop-shadow(0 0 4px var(--c)); transition: opacity .2s, transform .35s cubic-bezier(.3, 1.5, .5, 1), border-color .5s; }
-.fe-heart, .fe-star { width: 17px; height: 17px; display: grid; place-items: center; opacity: 0; transform: scale(.2) rotate(-20deg);
-  transition: opacity .2s, transform .45s cubic-bezier(.3, 1.6, .5, 1); }
-.fe-heart svg, .fe-star svg { width: 100%; height: 100%; display: block; fill: var(--c); filter: drop-shadow(0 0 4px var(--c)) drop-shadow(0 0 9px color-mix(in srgb, var(--c) 60%, transparent));
-  transition: fill .4s; }
-.dy-face:is([data-shape="arc"], [data-shape="heart"], [data-shape="star"]) .fe-ball { opacity: 0; transform: scaleY(.2); }
-.dy-face[data-shape="arc"] .fe-arc { opacity: 1; transform: translateY(3px) rotate(-45deg); }
-.dy-face[data-shape="heart"] .fe-heart, .dy-face[data-shape="star"] .fe-star { opacity: 1; transform: none; }
+/* other shapes of the eyes (face.ts GLYPH): the capsule fades, the drawn shape pops in */
+.fe-g { width: 16px; height: 16px; display: grid; place-items: center; color: var(--c); pointer-events: none; }
+.fe-g svg { width: 100%; height: 100%; display: block; overflow: visible;
+  filter: drop-shadow(0 0 3px var(--c)) drop-shadow(0 0 8px color-mix(in srgb, var(--c) 55%, transparent)); }
+.fe.has-g .fe-ball { opacity: 0; transform: scaleY(.2); }
 /* angry / sad: a black lid slides over the top of each eye at a slant (black like the island, so it looks cut) */
-.fe-brow { position: absolute; z-index: 2; left: -3px; top: -8px; width: 17px; height: 11px; background: #000; pointer-events: none;
-  filter: blur(.5px); opacity: 0; transform: translateY(-3px) rotate(0deg); transition: transform .3s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
-.dy-face:is([data-shape="angry"], [data-shape="sad"]) .fe-brow { opacity: 1; }
-.dy-face[data-shape="angry"] .fe.l .fe-brow, .dy-face[data-shape="sad"] .fe.r .fe-brow { transform: translateY(3px) rotate(22deg); }
-.dy-face[data-shape="angry"] .fe.r .fe-brow, .dy-face[data-shape="sad"] .fe.l .fe-brow { transform: translateY(3px) rotate(-22deg); }
-/* a wink: the right eye becomes an arch for a moment */
-.dy-face.wink[data-shape="ball"] .fe.r .fe-ball { opacity: 0; transform: scaleY(.2); }
-.dy-face.wink[data-shape="ball"] .fe.r .fe-arc { opacity: 1; transform: translateY(3px) rotate(-45deg); }
+.fe-brow { position: absolute; z-index: 2; left: -2px; top: -7px; width: 15px; height: 10px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, #000 45%); filter: blur(.8px); opacity: 0; transform: translateY(-3px) rotate(0deg); transition: transform .3s cubic-bezier(.3, 1.3, .5, 1), opacity .2s; }
+.dy-face:is([data-brow="angry"], [data-brow="sad"]) .fe-brow { opacity: 1; }
+.dy-face[data-brow="angry"] .fe.l .fe-brow, .dy-face[data-brow="sad"] .fe.r .fe-brow { transform: translateY(3px) rotate(22deg); }
+.dy-face[data-brow="angry"] .fe.r .fe-brow, .dy-face[data-brow="sad"] .fe.l .fe-brow { transform: translateY(3px) rotate(-22deg); }
+.dy-face:is([data-brow="angry"], [data-brow="sad"]) .fe-ball { box-shadow: 0 0 3px var(--c); }
+.dy-face:is([data-brow="angry"], [data-brow="sad"]) .fe-glow { opacity: .3; }
+.fe-ball { transition: transform .35s cubic-bezier(.3, 1.3, .5, 1), background-color .5s, box-shadow .5s, opacity .25s; }
+/* crying: a drop runs down from each eye */
+.fe-tear { position: absolute; left: 50%; top: 14px; width: 5px; height: 7px; margin-left: -2.5px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #64d2ff; box-shadow: 0 0 5px #64d2ff; opacity: 0; pointer-events: none; }
+.dy-face.tears .fe-tear { animation: fe-tear 1.3s ease-in infinite; }
+.dy-face.tears .fe.r .fe-tear { animation-delay: .55s; }
+@keyframes fe-tear { 0% { opacity: 0; transform: translateY(0) scale(.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px) scale(1); } }
 /* waking up: the eyes open from thin lines with a little stretch */
 .dy-face.wake .fe-lid { animation: fe-wake .7s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes fe-wake { 0% { transform: scaleY(.05) scaleX(1.3); } 55% { transform: scaleY(1.15) scaleX(.92); } 100% { transform: none; } }
@@ -58,13 +58,32 @@ html[data-nstyle="dynamic"] .notch[data-mode="hover"] .n-inner > .dy-face { top:
 @keyframes fe-bob { from { transform: translateY(1px) rotate(-4deg); } to { transform: translateY(-1.5px) rotate(4deg); } }
 .dy-face[data-anim="shake"] { animation: fe-shake .45s ease-in-out 2; }
 @keyframes fe-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-.dy-face[data-anim="beat"] :is(.fe-heart) { animation: fe-beat .9s ease-in-out infinite; }
+.dy-face[data-anim="beat"] .fe-g { animation: fe-beat .9s ease-in-out infinite; }
 @keyframes fe-beat { 0%, 60%, 100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(.95); } 45% { transform: scale(1.12); } }
-.dy-face[data-anim="twinkle"] .fe-star { animation: fe-twinkle 1.6s ease-in-out infinite; }
-.dy-face[data-anim="twinkle"] .fe.r .fe-star { animation-delay: -.8s; }
+.dy-face[data-anim="twinkle"] .fe-g { animation: fe-twinkle 1.6s ease-in-out infinite; }
+.dy-face[data-anim="twinkle"] .fe.r .fe-g { animation-delay: -.8s; }
 @keyframes fe-twinkle { 50% { transform: rotate(18deg) scale(1.15); } }
 .dy-face[data-expr="love"] .fe-glow { opacity: 1; }
-.dy-face[data-anim="dizzy"] .fe-lid { animation: fe-spin 1.4s linear infinite; }
+.dy-face[data-anim="spin"] .fe-g { animation: fe-spin 1.4s linear infinite; }
+.dy-face[data-anim="spin-slow"] .fe-g { animation: fe-spin 6s linear infinite; }
+.dy-face[data-anim="breathe"] .fe-g { animation: fe-breathe 2.4s ease-in-out infinite; }
+@keyframes fe-breathe { 50% { transform: scale(.88); opacity: .75; } }
+.dy-face[data-anim="tilt"] { animation: fe-tilt 1.6s ease-in-out infinite alternate; }
+@keyframes fe-tilt { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.dy-face[data-anim="flicker"] .fe-g { animation: fe-flicker .5s ease-in-out infinite alternate; }
+.dy-face[data-anim="flicker"] .fe.r .fe-g { animation-delay: -.25s; }
+@keyframes fe-flicker { from { transform: scale(.92, 1.06); } to { transform: scale(1.06, .94) translateY(.5px); } }
+.dy-face[data-anim="bounce"] .fe-g { animation: fe-bounce .7s cubic-bezier(.3, 1.6, .5, 1) infinite alternate; }
+.dy-face[data-anim="bounce"] .fe.r .fe-g { animation-delay: -.35s; }
+@keyframes fe-bounce { to { transform: translateY(-3px) scale(1.08); } }
+.dy-face[data-anim="groove"] .fe-g { animation: fe-groove .55s ease-in-out infinite alternate; }
+.dy-face[data-anim="groove"] .fe.r .fe-g { animation-direction: alternate-reverse; }
+@keyframes fe-groove { from { transform: rotate(-14deg) translateY(1px); } to { transform: rotate(14deg) translateY(-2px); } }
+.dy-face[data-anim="pop"] .fe-g { animation: fe-beat 1.2s ease-in-out infinite; }
+.dy-face[data-anim="glitch"] .fe-g { animation: fe-glitch 1.8s steps(1) infinite; }
+@keyframes fe-glitch { 0%, 100% { transform: none; } 30% { transform: translateX(1.5px) skewX(8deg); } 34% { transform: translateX(-1px); } 70% { transform: scaleY(.6); } 73% { transform: none; } }
+.dy-face[data-anim="party"] .fe-g { animation: fe-party 1.2s linear infinite; }
+@keyframes fe-party { 0% { filter: hue-rotate(0deg); transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } 100% { filter: hue-rotate(360deg); transform: rotate(360deg) scale(1); } }
 @keyframes fe-spin { to { transform: rotate(360deg); } }
 .dy-face[data-anim="sleep"] .fe-ball { opacity: .55; }
 .dy-face[data-anim="sleep"] .fe-glow { opacity: .25; }
@@ -90,6 +109,18 @@ html[data-nstyle="dynamic"] .notch.nudge .n-inner::after { animation: n-nudge .5
 .n-nudge i { font-size: 15px; }
 .n-nudge-app { color: #ff6961; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { html[data-nstyle="dynamic"] .notch.nudge .n-inner::after { animation: none; opacity: 1; } }
-/* with a frown the glow stays tight, so the lids blend into the black */
-.dy-face:is([data-shape="angry"], [data-shape="sad"]) .fe-ball { box-shadow: 0 0 3px var(--c); }
-.dy-face:is([data-shape="angry"], [data-shape="sad"]) .fe-glow { opacity: .3; }
+
+/* the eyes in the answer card: top centre, between the AI's name and STOP */
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face { top: 27px; transform: scale(.82); }
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face.on { transform: scale(.82); }
+/* focus: a flame left, the minutes right, a thin orange line along the bottom that shrinks as the time runs */
+.n-focus-ico { display: inline-grid; place-items: center; width: 22px; height: 22px; color: #ff9f0a; font-size: 17px;
+  filter: drop-shadow(0 0 6px rgb(255 159 10 / .6)); animation: fe-flicker .6s ease-in-out infinite alternate; }
+.n-focus-left { color: #ffb340; font-weight: 700; font-variant-numeric: tabular-nums; }
+html[data-nstyle="dynamic"] .notch[data-island="focusmode"] .n-inner::before { content: ""; position: absolute; z-index: 5; bottom: auto;
+  top: calc(var(--ch) - 3px); left: calc((100% - var(--cw)) / 2 + 18px); width: calc((var(--cw) - 36px) * var(--focus-left, 1)); height: 2px;
+  border-radius: 2px; background: linear-gradient(90deg, #ff9f0a, #ffd60a); box-shadow: 0 0 8px rgb(255 159 10 / .7); transition: width 1s linear; }
+/* the dynamic island stays fully visible while you focus (it is calm already); the older looks still fade */
+html[data-nstyle="dynamic"][data-focus="1"] .notch:is([data-mode="closed"], [data-mode="hover"]) { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .n-focus-ico { animation: none; } }
+html[data-nstyle="dynamic"] .notch[data-mode="live"][data-facepos="edge"] .n-inner > .dy-face { left: auto; right: calc((100% - var(--cw)) / 2 + 14px); margin-left: 0; }

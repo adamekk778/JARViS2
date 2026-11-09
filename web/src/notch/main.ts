@@ -169,6 +169,7 @@ let lyrIdx = -2, lyrW = 0;
 // 3.12 the island's living eyes (dynamic look): blink, look around, follow the mouse, show the mood
 const face = createFace(() => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches);
 face.init();
+if (demo || demoMood) (window as any).__face = face;      // previews only
 const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 document.getElementById("notch-root")!.append(shape);
@@ -433,7 +434,10 @@ function updateBlob() {
 /** The eyes show in the small pill when nothing else is in it (and with the voice wave while JARVIS talks). */
 function faceSync() {
   const k = shape.dataset.island || "";
-  face.show(dyn() && (mode === "closed" || mode === "hover") && (k === "" || k === "voice" || k === "nudge"));
+  try { face.situation(pendingConfirm ? "alert" : claudeAsks.length ? "ask" : selAsk ? "curious" : ""); } catch { /* still starting up */ }
+  face.show(dyn() && ((mode === "closed" || mode === "hover") && ["", "voice", "nudge", "focusmode"].includes(k) || mode === "live"));
+  // in the answer card the eyes sit top centre; with no STOP there (Claude asks, a question waits) top right
+  try { shape.dataset.facepos = mode === "live" && liveStop.hidden ? "edge" : ""; } catch { /* still starting up */ }
 }
 /** JARVIS itself is doing something (STOP makes sense). */
 function jarvisBusy() {
@@ -503,6 +507,8 @@ shape.addEventListener("click", (e) => {
     openPanel("activity");
     return;
   }
+  // 3.12: a click on the island (not on a button) opens the main screen straight away
+  if (dyn() && (mode === "hover" || mode === "closed" || mode === "bar") && !tgt.closest("button, a, input, textarea, select, .n-panel")) { openPanel("home"); return; }
   if (cfg.open_on === "click" && (mode === "hover" || mode === "closed") && !(e.target as HTMLElement).closest(".n-blob")) setMode("bar");
 });
 shape.addEventListener("mouseleave", async () => {
@@ -609,6 +615,7 @@ function renderLive() {
   bubbleAnswer.innerHTML = text ? renderMarkdown(text) : "";
   bubbleAnswer.scrollTop = bubbleAnswer.scrollHeight;
   renderBrand();
+  faceSync();
   if (mode === "live") apply("live");
 }
 
@@ -616,6 +623,7 @@ function onMood(m: any) {
   const prev = coreMood;
   if (m.mood !== "idle" && m.mood !== "sleeping") stir();
   coreMood = m.mood;
+  face.focus(focusMode.until > Date.now() || coreMood === "focus");
   moodInfo = m;
   if (m.mood !== prev) {
     if (m.mood === "listening") play(prev === "idle" || prev === "sleeping" || prev === "closed" ? "wake" : "listen");
@@ -782,6 +790,7 @@ const team = new Map<string, { icon: string; name: string; since: number }>();  
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
 let nudge: { app: string; until: number } | null = null;
+const focusMode = { from: 0, until: 0 };              // 3.12 the focus mode (until = ms, 0 = off)
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
 let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
 client.on("workshop", (m) => { workshop = { on: !!m.on, step: m.step || 0, total: m.total || 0, text: m.text || "" }; updateActivity(); });
@@ -1094,6 +1103,14 @@ function islandActivity(t: any) {
   } else if (dyn() && ["listening", "speaking", "thinking", "working"].includes(coreMood)) {
     kind = "voice"; l = [];                                       // the eyes are in the middle
     r = [h("span", { class: "n-wave" }, ...Array.from({ length: 5 }, () => h("i")))];
+  } else if (dyn() && (focusMode.until > Date.now() || coreMood === "focus")) {
+    // 3.12 focus: a calm island – a flame on the left, the time left on the right, steady eyes in the middle
+    kind = "focusmode";
+    const left = focusMode.until ? Math.max(0, Math.round((focusMode.until - Date.now()) / 60000)) : -1;
+    l = [h("span", { class: "n-focus-ico" }, icon("fire", "ph-fill"))];
+    r = [h("span", { class: "n-focus-left" }, left >= 0 ? `${left} min` : "Fokus")];
+    const total = focusMode.until && focusMode.from ? focusMode.until - focusMode.from : 0;
+    shape.style.setProperty("--focus-left", total > 0 ? String(Math.max(0, Math.min(1, (focusMode.until - Date.now()) / total))) : "1");
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
     if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
@@ -1238,7 +1255,13 @@ window.setInterval(() => {
 blobBox.addEventListener("pointerdown", () => { if (shape.classList.contains("edge-play")) { shape.classList.remove("edge-play"); flashUi("joy", 900); } });
 client.on("settings_changed", (m) => { edgePlay = m.settings?.notch?.edge_play !== false; });
 
-client.on("focus", (m) => { document.documentElement.dataset.focus = m.active ? "1" : ""; face.focus(!!m.active); });
+client.on("focus", (m) => {
+  document.documentElement.dataset.focus = m.active ? "1" : "";
+  if (m.active && !focusMode.until) focusMode.from = Date.now();
+  focusMode.until = m.active ? Number(m.until || 0) * 1000 : 0;
+  face.focus(!!m.active || coreMood === "focus");
+  updateActivity();
+});
 // 3.12 focus guard: YouTube, Netflix, TikTok… in front while you focus → the island blinks red and the eyes frown
 client.on("focus_nudge", (m) => {
   nudge = { app: String(m.app || ""), until: Date.now() + 4200 };
@@ -1302,7 +1325,10 @@ client.on("screen_capture", (m) => {
   shape.classList.toggle("capturing", capturing);
 });
 client.on("stopped", () => { task = null; pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); showAlert("Zastaveno", "Všechno jsem zastavil."); });
-client.on("media", (m) => { media = m; updateActivity(); });
+client.on("media", (m) => {
+  if (m?.playing && m.title && m.title !== media?.title) face.react("music", 2200);    // a new song: the eyes groove
+  media = m; updateActivity();
+});
 client.on("ambient", (m) => document.documentElement.style.setProperty("--room-glow", String(m.glow ?? 1)));
 let beatOff = 0;
 client.on("beat", (m) => {

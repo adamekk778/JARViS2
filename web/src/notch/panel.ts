@@ -1,4 +1,5 @@
 // The big notch panel (spec §5): content, right column (chat), tab bar at the bottom. "Domů" = three live cards.
+import { createClock } from "./clock";
 import { Blob, type CharacterColor } from "../character/blob";
 import { ChatView } from "../shared/chat";
 import { fmtSize, h, icon, KIND_ICON, toast } from "../shared/dom";
@@ -424,8 +425,11 @@ export function buildPanel(ctx: PanelCtx) {
       dockBtn("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" })),
       dockBtn("lock-simple", "Zamknout PC", () => quick("system_power", { action: "lock" })),
       dockBtn("hand-palm", "STOP – zastavit vše", () => client.send("stop_all"), "stop")));
+  // 3.12 a big clock on the left: six looks, a click changes the colour (see clock.ts)
+  const clock = createClock();
+  window.setInterval(() => { if (current === "home" && !document.hidden) clock.paint(); }, 1000);
   const homeView = h("div", { class: "home home2" },
-    h("div", { class: "home-grid" }, npCard, h("div", { class: "home-side" }, cardAi, cardFocus)), homeRow);
+    h("div", { class: "home-grid three" }, clock.el, npCard, h("div", { class: "home-side" }, cardAi, cardFocus)), homeRow);
 
   let aiKey = "";
   function renderHome() {
