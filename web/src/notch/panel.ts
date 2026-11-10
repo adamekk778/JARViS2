@@ -1,5 +1,6 @@
 // The big notch panel (spec §5): content, right column (chat), tab bar at the bottom. "Domů" = three live cards.
 import { createFocusStats } from "./focusstats";
+import { createAskAi } from "./askai";
 import { createClock } from "./clock";
 import { createMusicView } from "./music";
 import { Blob, type CharacterColor } from "../character/blob";
@@ -431,9 +432,22 @@ export function buildPanel(ctx: PanelCtx) {
   // JARVIS / Claude Code
   const aiLogo = h("span", { class: "ai-logo" });
   const aiName = h("span", { class: "ai-name" }), aiWord = h("strong", { class: "ai-word" }), aiSub = h("span", { class: "ai-sub" });
-  const cardAi = h("button", { class: "tile ai", type: "button",
-    onclick: () => show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat") },
-    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
+  // 3.12 the logos of your AIs on the card: a click asks that one AI (askai.ts); the sheet is made on first use
+  let ask: ReturnType<typeof createAskAi> | null = null;
+  const askAi = () => (ask ??= createAskAi(() => el.parentElement || el, client, () => show("chat")));
+  const aiChipsBox = h("div", { class: "aa-chips-slot" });
+  const cardAi = h("div", { class: "tile ai", role: "button", tabindex: "0",
+    onclick: (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest(".aa-chips-slot")) return;
+      show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat");
+    },
+    onkeydown: (e: KeyboardEvent) => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
+    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub, aiChipsBox);
+  const paintAiChips = () => {
+    const a = askAi();
+    if (!aiChipsBox.firstChild) aiChipsBox.append(a.chips);
+    a.paintChips(settings);
+  };
   // focus timer with a ring
   const RING = 2 * Math.PI * 22;
   const ringArc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -734,6 +748,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (m.lyrics) music.setLyrics(m.lyrics);
     focusState = { ...(m.focus || {}), at: Date.now() / 1000 };
     settings = m.settings;
+    paintAiChips();
     shelf = m.shelf || [];
     media = m.media || {};
     update = m.update;
@@ -749,7 +764,7 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("app_context", (m) => { ctxInfo = { app: m.app, actions: m.actions || [], suggestions: m.suggestions ?? ctxInfo.suggestions }; renderCtx(); });
   client.on("workspaces", (m) => renderWs(m.items || []));
   client.on("workspace_result", (m) => toast(m.message, m.ok ? "ok" : "error", 6000));
-  client.on("settings_changed", (m) => { settings = m.settings; syncAgent(); if (current === "settings") renderSettings(); });
+  client.on("settings_changed", (m) => { settings = m.settings; paintAiChips(); syncAgent(); if (current === "settings") renderSettings(); });
   client.on("shelf", (m) => { shelf = m.items || []; renderShelf(); });
   client.on("media", (m) => { media = m; renderMedia(); renderHome(); music.setMedia(m); });
   client.on("lyrics", (m) => music.setLyrics(m));

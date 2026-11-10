@@ -471,7 +471,7 @@ class Connection:
             if text or atts:
                 from ..lang import detect
 
-                self.spawn(rt.agent.handle(text, atts, self._source(), lang=detect(text)))
+                self.spawn(rt.agent.handle(text, atts, self._source(), lang=detect(text), ai=str(m.get("ai") or "")[:40]))
         elif t == "audio_chunk":
             self.audio += base64.b64decode(m.get("pcm16_b64", ""))
             self.audio_sr = int(m.get("sample_rate", 16000))

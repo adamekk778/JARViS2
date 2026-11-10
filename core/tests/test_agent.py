@@ -156,3 +156,16 @@ async def test_pending_confirmation_is_announced_before_it_shows(rt, monkeypatch
         raise AssertionError("no confirmation")
     rt.agent.confirm(rt.agent.pending_confirm(), False)
     await task
+
+
+async def test_ask_one_ai_goes_only_to_that_provider(rt):
+    """3.12 the notch's "Zeptej se Claude": that request goes only to the chosen AI; an unknown id is ignored."""
+    from conftest import FakeRouter
+    from jarvis.config import ProviderCfg
+
+    rt.cfg.brain.providers.append(ProviderCfg(id="groq", preset="groq", model="openai/gpt-oss-120b"))
+    rt.router = FakeRouter(["Ahoj.", "Zase ahoj."])
+    await rt.agent.handle("ahoj", ai="groq")
+    assert rt.router.calls[-1]["only"] == "groq"
+    await rt.agent.handle("ahoj", ai="neexistuje")
+    assert rt.router.calls[-1]["only"] is None

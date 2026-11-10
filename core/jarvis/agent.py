@@ -128,6 +128,7 @@ class Agent:
         self._confirms: dict[str, asyncio.Future] = {}
         self.confirm_info: dict[str, dict] = {}    # OMEGA 219: every approval waiting right now (the approval queue)
         self._task_hint: str | None = None
+        self._only: str | None = None           # 3.12 a request for one particular AI (the notch's AI chips)
         self._task: asyncio.Task | None = None
         self.busy = False
         self._goal = ""
@@ -137,7 +138,8 @@ class Agent:
 
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
-                     record_user: bool = True, extra_system: str = "", lang: str = "", task_id: str | None = None) -> str:
+                     record_user: bool = True, extra_system: str = "", lang: str = "", task_id: str | None = None,
+                     ai: str = "") -> str:
         rt = self.rt
         self._task_hint = task_id           # a queued / interrupted mission this request carries on
         if self._lock.locked() and rt.tasks.current and rt.tasks.current["status"] == "paused":
@@ -148,6 +150,8 @@ class Agent:
         async with self._lock:
             if gen != self._gen:  # STOP was pressed while this request waited → drop it
                 return ""
+            # 3.12 "Zeptej se Claude" in the notch: this one request goes only to that AI (no fallback to others)
+            self._only = ai if ai and any(p.id == ai and p.enabled for p in rt.cfg.brain.providers) else None
             self._task = asyncio.current_task()
             self.busy = True
             try:
@@ -434,7 +438,7 @@ class Agent:
                 round_text = ""
                 calls: list[ToolCall] | None = None
                 use_tools = schemas if rnd < rounds else None
-                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision):
+                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **({"only": self._only} if self._only else {})):
                     if ch.text:
                         if not round_text and full_text:
                             bus.publish("assistant_delta", text="\n\n")
