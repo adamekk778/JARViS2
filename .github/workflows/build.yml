@@ -228,6 +228,15 @@ jobs:
           Shot "2-hover"; $k2 = Region "hover"; Zoom "hover"
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2
           Shot "3-after"; $k3 = Region "after"
+          if ($k3 -lt 2) {   # no region at all: the notch never sent its shape, so its window thread may be stuck – the heal
+            # test below would then hang in SetWindowRgn for the whole timeout; show why instead and fail now
+            try { Write-Host "health: $((Invoke-RestMethod -TimeoutSec 10 http://127.0.0.1:8765/api/health) | ConvertTo-Json -Compress)" } catch { Write-Host "health failed: $_" }
+            Start-Sleep -Seconds 25
+            Write-Host "== jarvis.log"; Get-Content "$env:JARVIS_HOME\logs\jarvis.log" -ErrorAction SilentlyContinue | Select-Object -Last 80 | Write-Host
+            Write-Host "== hang-dump.txt"; Get-Content "$env:JARVIS_HOME\logs\hang-dump.txt" -ErrorAction SilentlyContinue | Select-Object -Last 200 | Write-Host
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw "the notch window has no region (regionKind=$k3): a box would show around the notch"
+          }
           # Windows drops the region (seen on a user's PC: a grey box around the notch) → JARVIS must put it back
           $tmp = New-Object 'System.Collections.Generic.List[string]'
           [W]::SetWindowRgn([W]::Notch([uint32]$p.Id, $tmp), [IntPtr]::Zero, $true) | Out-Null

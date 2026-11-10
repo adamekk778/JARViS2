@@ -302,7 +302,7 @@ class Connection:
                         pet_mode=rt.cfg.character.pet_mode, recap_due=rt.recap_due(),
                         claude_sessions=rt.claude.list(), claude_pending=rt.claude.pending_public(),
                         jarvis_changes=list(getattr(rt, "recent_changes", []))[-12:],
-                        whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(), onboarding=self._onboarding_due(),
+                        whats_new=rt.whats_new_due(), sounds=rt.custom_sounds(), onboarding=await asyncio.to_thread(self._onboarding_due),
                         update=rt.updater.status if rt.updater else None, pins=uiplus.list_pins(rt))
 
     async def _suggestions(self) -> list[dict]:
@@ -1347,7 +1347,11 @@ class Connection:
         """3.12 the first-run guide: in the window on this PC, until it is finished, while no AI key is saved."""
         if not self.local or self.rt.cfg.general.onboarded:
             return False
-        return not any(secrets.has(p.id) for p in self.rt.cfg.brain.providers)
+        # called in a worker thread: on Windows this asks the Credential Manager, which must never hold up the loop
+        try:
+            return not any(secrets.has(p.id) for p in self.rt.cfg.brain.providers)
+        except Exception:  # noqa: BLE001 – a broken key store must not stop the window from starting
+            return False
 
     def _secret_flags(self) -> dict:
         return {p.id: secrets.has(p.id) for p in self.rt.cfg.brain.providers}
