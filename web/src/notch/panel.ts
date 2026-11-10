@@ -442,7 +442,10 @@ export function buildPanel(ctx: PanelCtx) {
       show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat");
     },
     onkeydown: (e: KeyboardEvent) => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
-    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub, aiChipsBox);
+    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
+  // 3.12 the head of the panel on Domů: the weather, the time and your AIs as round logos (like an island bar)
+  const hbWx = h("span", { class: "hb-wx" }), hbTime = h("strong", { class: "hb-time" });
+  const headBar = h("div", { class: "hb" }, hbWx, hbTime);       // the AI logos sit on the right of the head (main.ts)
   const paintAiChips = () => {
     const a = askAi();
     if (!aiChipsBox.firstChild) aiChipsBox.append(a.chips);
@@ -530,7 +533,12 @@ export function buildPanel(ctx: PanelCtx) {
     if (!homeDate.querySelector(".hd-time")) homeDate.append(h("span", { class: "hd-day" }), h("strong", { class: "hd-time" }));
     const hr = now.getHours(), who = settings?.general?.user_name ? `, ${settings.general.user_name}` : "";
     const hello = hr < 5 ? "Dobrou noc" : hr < 10 ? "Dobré ráno" : hr < 12 ? "Dobré dopoledne" : hr < 18 ? "Dobré odpoledne" : "Dobrý večer";
-    homeDate.classList.toggle("greet", current === "home");
+    homeDate.classList.toggle("greet", false);
+    homeDate.classList.toggle("bar", current === "home");
+    if (current === "home") {
+      if (headBar.parentElement !== homeDate) homeDate.append(headBar);
+      setText(hbTime, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
+    }
     setText(homeDate.querySelector(".hd-day")!, current === "home" ? hello : now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
     homeDate.dataset.who = current === "home" ? who.replace(/^, /, "") : "";
     setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
@@ -789,6 +797,13 @@ export function buildPanel(ctx: PanelCtx) {
   client.on("mood", (m) => { mood = m.mood; moodDetail = m.detail || ""; renderHome(); if (sysVals.net) sysVals.net.textContent = m.mood === "offline" ? "offline" : sysVals.net.textContent; });
   client.on("weather", (m) => {
     clock.weather(m);
+    if (!m || m.error || typeof m.temp !== "number") hbWx.replaceChildren();
+    else {
+      const d = String(m.desc || ""), night = new Date().getHours() >= 19 || new Date().getHours() < 6;
+      const ic = /bouř/i.test(d) ? "cloud-lightning" : /sníh|sněž/i.test(d) ? "snowflake" : /déšť|přeháň|mrhol/i.test(d) ? "cloud-rain"
+        : /mlh/i.test(d) ? "cloud-fog" : /zataž|oblač/i.test(d) ? "cloud" : night ? "moon" : "sun";
+      hbWx.replaceChildren(icon(ic, ic === "sun" ? "" : "ph-fill"), h("span", {}, `${Math.round(m.temp)}°C`));
+    }
     if (m.error) { weatherBox.replaceChildren(h("span", { class: "muted" }, "Počasí nedostupné")); return; }
     const dn = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
     const wIcon = /bouř/i.test(m.desc || "") ? "cloud-lightning" : /sníh|sněž/i.test(m.desc || "") ? "snowflake" : /déšť|přeháň|mrhol/i.test(m.desc || "") ? "cloud-rain"
@@ -807,5 +822,5 @@ export function buildPanel(ctx: PanelCtx) {
   window.addEventListener("resize", () => moveInd(true));
   /** The panel opened: the indicator jumps to its tab and the cards of the open section come in. */
   const enter = () => { moveInd(true); requestAnimationFrame(() => moveInd(true)); intro(views[current]); if (current === "chat") toNewest(); };
-  return { el, show, chat, clock, dateEl: homeDate, navEl, enter, get section() { return current; } };
+  return { el, show, chat, clock, dateEl: homeDate, navEl, enter, askChips: aiChipsBox, get section() { return current; } };
 }

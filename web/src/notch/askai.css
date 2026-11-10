@@ -42,3 +42,66 @@
   background: var(--tint); color: #fff; box-shadow: 0 6px 18px -6px var(--tint); transition: transform .15s; }
 .aa-send:active { transform: scale(.9); }
 .aa-hint { margin: 0; font-size: 11.5px; color: rgb(255 255 255 / .42); }
+
+/* ---- 3.12 look of the island bar: weather · time · AI app icons in the panel head ---- */
+.aa-chips-slot { margin: 0; padding: 0; }
+html[data-nstyle="dynamic"] .p-head .home-date.bar { display: flex; align-items: center; max-width: none; }
+.p-head .home-date.bar > .hd-day, .p-head .home-date.bar > .hd-time { display: none; }
+.p-head .home-date.bar::after { display: none; }
+.hb { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.hb-wx { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; font-weight: 600; color: rgb(255 255 255 / .85); white-space: nowrap; }
+.hb-wx:empty { display: none; }
+.hb-wx i { font-size: 16px; color: #ffd60a; }
+.hb-time { font-size: 17px; font-weight: 700; letter-spacing: -.2px; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hb .aa-chips { gap: 7px; flex-wrap: nowrap; }
+
+/* the logos as round app icons, each in its own colours */
+.aa-chip, .aa-logo { --bg: #26262b; --fg: var(--c, #fff); position: relative; overflow: hidden; }
+.aa-chip { width: 30px; height: 30px; background: var(--bg); color: var(--fg);
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .22), 0 4px 12px -4px rgb(0 0 0 / .8); }
+.aa-chip::after, .aa-logo::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: linear-gradient(160deg, rgb(255 255 255 / .35), transparent 45%); }
+.aa-chip .brand-logo, .aa-chip .brand-logo svg { width: 17px; height: 17px; color: var(--fg); fill: var(--fg); }
+.aa-chip:hover { background: var(--bg); transform: translateY(-2px) scale(1.12);
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .4), 0 8px 20px -6px var(--c); }
+[data-brand="claude"] { --bg: radial-gradient(circle at 35% 30%, #ffd8c9, #f2a68a 70%); --fg: #c4462b; }
+[data-brand="chatgpt"] { --bg: radial-gradient(circle at 35% 30%, #3a3a40, #0b0b0d 75%); --fg: #fff; }
+[data-brand="gemini"] { --bg: radial-gradient(circle at 35% 30%, #ffffff, #e3ecff 80%); --fg: #3b7bff; }
+[data-brand="groq"] { --bg: radial-gradient(circle at 35% 30%, #ff7a5c, #e2401f 75%); --fg: #fff; }
+[data-brand="llama"] { --bg: radial-gradient(circle at 35% 30%, #5aa8ff, #1a5fd6 75%); --fg: #fff; }
+[data-brand="mistral"] { --bg: radial-gradient(circle at 35% 30%, #ffcf5a, #ff7b1c 75%); --fg: #1a1a1a; }
+[data-brand="deepseek"] { --bg: radial-gradient(circle at 35% 30%, #7fa2ff, #3d5ef0 75%); --fg: #fff; }
+[data-brand="qwen"] { --bg: radial-gradient(circle at 35% 30%, #a99bff, #6a4df2 75%); --fg: #fff; }
+
+/* "Zeptej se …" fills the panel like the island's own screen */
+.aa-sheet { background: rgb(0 0 0 / .94); box-shadow: none; border: 0; top: 64px; left: 10px; right: 10px; bottom: 10px; border-radius: 26px; padding: 6px 22px 14px; }
+.aa-head { gap: 12px; padding: 6px 0 4px; }
+.aa-back { background: transparent; color: rgb(255 255 255 / .7); font-size: 18px; width: 28px; }
+.aa-back:hover { background: rgb(255 255 255 / .08); color: #fff; }
+.aa-logo { width: 36px; height: 36px; background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .25), 0 0 26px -6px var(--c, var(--tint)); }
+.aa-logo .brand-logo, .aa-logo svg { width: 19px; height: 19px; color: var(--fg); fill: var(--fg); }
+.aa-titles strong { font-size: 19px; letter-spacing: -.2px; }
+.aa-box { border-radius: 22px; background: rgb(255 255 255 / .03); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .28); padding: 14px 14px 10px 18px; }
+.aa-box:focus-within { box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .55), 0 0 0 4px color-mix(in srgb, var(--tint) 14%, transparent); }
+.aa-input { font-size: 17px; }
+.aa-clip { font-size: 20px; }
+.aa-send { width: 38px; height: 38px; background: #fff; color: #000; box-shadow: 0 6px 18px -6px rgb(255 255 255 / .5); }
+.aa-hint { padding-left: 4px; font-size: 12px; }
+.hb { gap: 10px; }
+.hb .aa-chips { gap: 6px; }
+.hb .aa-chip { width: 28px; height: 28px; }
+.hb .aa-chip .brand-logo, .hb .aa-chip .brand-logo svg { width: 15px; height: 15px; }
+.aa-sheet { background: #000; top: 60px; }
+.p-head-r .aa-chips-slot { display: flex; align-items: center; margin-right: 10px; padding-right: 10px; border-right: 1px solid rgb(255 255 255 / .1); }
+.p-head-r .aa-chips-slot:has(.aa-chips[hidden]), .p-head-r .aa-chips-slot:empty { display: none; }
+.p-head-r .aa-chips { gap: 6px; flex-wrap: nowrap; }
+.p-head-r .aa-chip { width: 28px; height: 28px; }
+.p-head-r .aa-chip .brand-logo, .p-head-r .aa-chip .brand-logo svg { width: 15px; height: 15px; }
+/* on Domů the left side is only weather + time: let it take just that, the tabs follow and the right gets the room */
+html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .home-date { flex: 0 0 auto; margin-right: 6px; }
+html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-head-r { flex: 1 1 auto; }
+/* room for the AI logos on Domů: slimmer tabs, no "new conversation" (it belongs to Chat) */
+html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding: 0 9px; }
+.p-head:has(.home-date.bar) .p-icon.new-chat { display: none; }
+.p-head-r .aa-chip { width: 27px; height: 27px; }
+.p-head-r .aa-chips-slot { margin-right: 8px; padding-right: 8px; }

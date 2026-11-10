@@ -130,7 +130,7 @@ const panel = buildPanel({
 const panelHead = h("div", { class: "p-head" },
   h("span", { class: "p-title" }, "J A R V I S"), panel.dateEl,
   h("div", { class: "p-head-r" },
-    h("button", { class: "p-icon", type: "button", title: "Nová konverzace", "aria-label": "Nová konverzace", onclick: () => client.send("new_chat") }, icon("note-pencil")),
+    h("button", { class: "p-icon new-chat", type: "button", title: "Nová konverzace", "aria-label": "Nová konverzace", onclick: () => client.send("new_chat") }, icon("note-pencil")),
     h("button", { class: "p-icon", type: "button", title: "Otevřít celý chat", "aria-label": "Otevřít celý chat", onclick: () => { openChat("full"); settle(true); } }, icon("arrows-out-simple")),
     (pinBtn = h("button", { class: "p-icon pin", type: "button", title: "Připnout (zůstane otevřený i po restartu)", "aria-label": "Připnout", onclick: () => setPinned(!pinned) }, icon("push-pin"))),
     h("button", { class: "p-icon", type: "button", title: "Zavřít", "aria-label": "Zavřít panel", onclick: () => { if (pinned) setPinned(false); settle(true); } }, icon("minus"))));
@@ -138,6 +138,7 @@ const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
 // 3.12 "Přizpůsobit": the clock's colour and look, the panel's background (black / music colours / your photo)
 const look = createLook(panelWrap, panel.clock);
 panelHead.querySelector(".p-head-r")!.prepend(look.button);
+panelHead.querySelector(".p-head-r")!.prepend(panel.askChips);     // 3.12 "Zeptej se Claude / ChatGPT / Gemini"
 /** The look (Nastavení → Notch): "dynamic" (default) puts the panel's section tabs in its head, like iOS. */
 function setStyle(style?: string) {
   const st = style || "dynamic";

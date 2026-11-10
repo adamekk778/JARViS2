@@ -19,7 +19,10 @@ export function askTargets(settings: any): { p: Prov; brand: ReturnType<typeof b
     if (brand.id === "router" && (p.model || "auto").startsWith("auto")) continue;   // a gateway choosing for you is not one AI
     out.push({ p, brand });
   }
-  return out.slice(0, 5);
+  // the well-known ones first (as on an island bar: Claude, ChatGPT, Gemini), then the rest in your order
+  const rank = (id: string) => { const i = ["claude", "chatgpt", "gemini"].indexOf(id); return i < 0 ? 9 : i; };
+  return out.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t.brand.id) - rank(b.t.brand.id) || a.i - b.i).map((x) => x.t)
+    .filter((t, i, all) => all.findIndex((o) => o.brand.id === t.brand.id) === i).slice(0, 3);   // one per logo, three fit the bar
 }
 
 /** where the AI runs, when that is not obvious from its logo ("Groq" for GPT-OSS, "Ollama" for Llama) */
@@ -86,6 +89,7 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
     sheet.hidden = !t;
     if (!t) return;
     logo.replaceChildren(brandEl(t.brand));
+    logo.dataset.brand = t.brand.id;
     sheet.style.setProperty("--tint", t.brand.color);
     title.textContent = `Zeptej se ${t.brand.name}`;
     model.textContent = `${host(t)} · ${t.p.model || "výchozí model"}`;
@@ -101,7 +105,8 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
     chips.replaceChildren(...ts.map((t) => {
       const b = h("button", { type: "button", class: "aa-chip", title: `Zeptej se ${label(t)}`, "aria-label": `Zeptej se ${label(t)}`,
         onclick: (e: Event) => { e.stopPropagation(); open(t); } }, brandEl(t.brand));
-      b.style.setProperty("--c", t.brand.color);       // custom properties do not go through h()'s style object
+      b.style.setProperty("--c", t.brand.color);
+      b.dataset.brand = t.brand.id;                   // app-icon colours per brand (askai.css)       // custom properties do not go through h()'s style object
       return b;
     }));
   }
