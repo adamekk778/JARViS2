@@ -94,7 +94,8 @@ function show(client: JarvisClient, s: any) {
         h("label", { class: "ob-field" }, h("span", {}, "Jak ti mám říkat?"), inp));
       next.replaceChildren(h("span", {}, "Pojďme na to"), icon("arrow-right"));
       next.onclick = () => go(1);
-      window.setTimeout(() => inp.focus(), 60);
+      // only in a window that already has focus: a focus() from a background WebView2 asks Windows to activate it
+      window.setTimeout(() => { if (document.hasFocus()) inp.focus({ preventScroll: true }); }, 60);
     } else if (step === 1) {
       const pick = (b: Brain) => h("button", { type: "button", class: `ob-brain ${brain.id === b.id ? "on" : ""}`, "data-id": b.id,
         onclick: () => { brain = b; go(1); } },

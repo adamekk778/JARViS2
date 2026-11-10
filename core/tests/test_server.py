@@ -174,3 +174,10 @@ def test_secret_set_saves_the_key_and_first_run_guide(app, rt, monkeypatch):
     rt.update_config({"general": {"onboarded": True}})
     with TestClient(app, client=LOCAL).websocket_connect("/ws") as ws:
         assert ws.receive_json()["onboarding"] is False
+
+
+def test_debug_threads_only_from_this_pc(app):
+    """3.12 the CI asks where every thread is when a window stops answering; never from another device."""
+    assert TestClient(app, client=REMOTE).get("/api/debug/threads").status_code == 403
+    r = TestClient(app, client=LOCAL).get("/api/debug/threads")
+    assert r.status_code == 200 and "Thread" in r.text

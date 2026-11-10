@@ -317,6 +317,22 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             rt.ui_hook(view)
         return {"ok": True}
 
+    @app.get("/api/debug/threads")
+    async def debug_threads(request: Request):
+        """Where every thread of JARVIS is right now (the CI asks when a window stops answering). This PC only."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        import faulthandler
+        import tempfile
+
+        with tempfile.TemporaryFile("w+", encoding="utf-8") as f:
+            faulthandler.dump_traceback(file=f, all_threads=True)
+            f.seek(0)
+            text = f.read()
+        from fastapi.responses import PlainTextResponse
+
+        return PlainTextResponse(text)
+
     @app.exception_handler(404)
     async def not_found(request: Request, exc):
         rel = request.url.path.lstrip("/")
