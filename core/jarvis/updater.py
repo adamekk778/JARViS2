@@ -48,7 +48,7 @@ class Updater:
         await asyncio.sleep(30)
         while True:
             await self.check()
-            await asyncio.sleep(24 * 3600)
+            await asyncio.sleep(3 * 3600)        # 3.12 a new version shows up in the notch the same day
 
     def _publish(self) -> None:
         self.rt.bus.publish("update_status", **self.status)
@@ -77,7 +77,7 @@ class Updater:
             self._publish()
             if self._notified != version:
                 self._notified = version
-                self.rt.notify("Nová verze JARVISe", f"Je k dispozici verze {version}. Aktualizuješ v panelu → Systém.",
+                self.rt.notify("Nová verze JARVISe", f"Je k dispozici verze {version}. Klikni v notchi na Aktualizovat – nainstaluje se a JARVIS se sám znovu spustí.",
                                speak=False)
             return {"version": version, "url": url}
         if force:

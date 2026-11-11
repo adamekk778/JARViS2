@@ -6,6 +6,7 @@ import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing } from "./connect";
+import { startUpdateCheck } from "./update";
 import { native, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
@@ -41,6 +42,7 @@ window.addEventListener("hashchange", () => {
 boot();
 
 async function boot() {
+  startUpdateCheck();                                   // 3.12 a newer app → one tap to update
   const p = loadPairing();
   if (!p) return connectScreen();
   app.replaceChildren(h("div", { class: "splash" }, bigFace(96), h("p", {}, "Hledám tvoje PC…")));

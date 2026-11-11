@@ -1,0 +1,16 @@
+/* 3.12 the "new version" bar on the phone */
+.up-bar { position: fixed; z-index: 90; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); display: flex; align-items: center;
+  gap: 10px; padding: 10px 10px 10px 14px; border-radius: 18px; overflow: hidden; color: #fff; background: rgba(18, 20, 26, .92);
+  backdrop-filter: blur(18px); box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .08);
+  animation: up-in .45s cubic-bezier(.2, .9, .3, 1.15); }
+.up-fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left; background: rgba(10, 132, 255, .22); transition: transform .3s; }
+.up-ico { position: relative; font-size: 24px; color: #0a84ff; display: grid; }
+.up-t { position: relative; flex: 1; display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.up-t strong { font-size: 14px; font-weight: 650; }
+.up-t span { font-size: 12px; color: rgba(255, 255, 255, .55); }
+.up-go { position: relative; height: 34px; padding: 0 14px; border: 0; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 650;
+  color: #fff; background: #0a84ff; }
+.up-go:disabled { opacity: .85; }
+.up-x { position: relative; width: 30px; height: 30px; border: 0; border-radius: 50%; display: grid; place-items: center; color: rgba(255, 255, 255, .6);
+  background: rgba(255, 255, 255, .08); }
+@keyframes up-in { from { opacity: 0; transform: translateY(-14px) scale(.96); } }

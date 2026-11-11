@@ -28,6 +28,7 @@ const perms = [
   "android.permission.ACCESS_FINE_LOCATION",
   // 3.12 "ťuk o monitor": the newest photo goes to the PC (images only; asked when you switch it on)
   "android.permission.READ_MEDIA_IMAGES",
+  "android.permission.REQUEST_INSTALL_PACKAGES",   // 3.12 update the app with one tap (Android still asks)
 ];
 for (const p of perms) {
   if (!m.includes(`"${p}"`)) m = m.replace("</manifest>", `    <uses-permission android:name="${p}" />\n</manifest>`);

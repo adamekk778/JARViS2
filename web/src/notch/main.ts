@@ -1188,8 +1188,10 @@ function islandActivity(t: any) {
     kind = "task"; l = [icon("list-checks"), h("span", {}, `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`)];
     r = [`${Math.round((t.done / t.total) * 100)} %`];
   } else if (upd?.available && upd.state !== "error") {
-    kind = "update"; l = [icon("arrow-circle-up"), h("span", {}, upd.state === "downloading" ? "Stahuji" : `Verze ${upd.latest}`)];
-    r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : [];
+    kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, upd.state === "downloading" ? "Stahuji" : upd.state === "ready" ? "Instaluji" : `Verze ${upd.latest}`)];
+    // 3.12 one click: download, install quietly, JARVIS starts again by itself
+    r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : upd.state === "ready" ? []
+      : [h("button", { type: "button", class: "n-upd-go", onclick: (e: Event) => { e.stopPropagation(); client.send("update_install"); } }, "Aktualizovat")];
   } else if (sk("download") && dls.length && Date.now() - dlsAt < 15000) {
     const d = dls[0];
     const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;

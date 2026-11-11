@@ -80,7 +80,31 @@ public class JarvisPhonePlugin extends Plugin {
         PowerManager pm = getContext().getSystemService(PowerManager.class);
         r.put("overlay", JarvisLink.canOpenScreens(getContext()));
         r.put("battery", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName())));
+        r.put("versionCode", ApkUpdate.versionCode(getContext()));
         call.resolve(r);
+    }
+
+    /** 3.12 download the new JARVIS.apk and open Android's install dialog (progress as "updateProgress" events). */
+    @PluginMethod
+    public void installUpdate(PluginCall call) {
+        String url = call.getString("url", "");
+        if (!ApkUpdate.canInstall(getContext())) {
+            call.reject("povol instalaci z JARVISe a ťukni znovu");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                java.io.File apk = ApkUpdate.download(getContext(), url, p -> {
+                    JSObject d = new JSObject();
+                    d.put("p", p);
+                    notifyListeners("updateProgress", d);
+                });
+                ApkUpdate.openInstaller(getContext(), apk);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject(e.getMessage() == null ? "aktualizace se nepovedla" : e.getMessage());
+            }
+        }, "jarvis-apk-update").start();
     }
 
     @PluginMethod
