@@ -167,7 +167,20 @@ export class Blob {
     this.setColor(opts.color ?? "black", opts.glow);
     if (opts.trackCursor !== false) window.addEventListener("pointermove", this.onPointer, { passive: true });
     this.renderAccessories();
+    // only animate while it can be seen: a hidden page, a closed panel or another tab costs nothing
+    this.io = new IntersectionObserver((es) => { this.seen = es[es.length - 1].isIntersecting; if (this.seen) this.kick(); });
+    this.io.observe(this.el);
+    document.addEventListener("visibilitychange", this.onVis);
     this.raf = requestAnimationFrame(this.frame);
+  }
+  private io: IntersectionObserver;
+  private seen = true;
+  private timer = 0;
+  private onVis = () => { if (!document.hidden) this.kick(); };
+  /** Draw the next frame now (a mood change, the cursor moved, it came into view) instead of after the calm pause. */
+  private kick() {
+    if (this.timer) { clearTimeout(this.timer); this.timer = 0; }
+    if (!this.raf && this.seen && !document.hidden) this.raf = requestAnimationFrame(this.frame);
   }
 
   // ---------- public API ----------
@@ -177,6 +190,7 @@ export class Blob {
     if (extra.secondary !== undefined) this.secondary = extra.secondary && extra.secondary in LOOKS ? extra.secondary : null;
     if (extra.ambient !== undefined) this.ambient = extra.ambient;
     if (extra.reaction && extra.reaction.id !== this.lastReaction) this.play(extra.reaction);
+    if (m !== this.mood || extra.reaction) this.kick();
     if (m !== this.mood) {
       if (this.renderedFrames) this.wobble(m === "success" || m === "joy" ? -1.6 : 0.9);
       this.mood = m;
@@ -192,6 +206,7 @@ export class Blob {
 
   /** Play a one-off reaction over the current mood (OMEGA 72 / 73 / 74 / 81 / 738 / 746 / 747 / 749 / 750). */
   play(r: Reaction) {
+    this.kick();
     this.lastReaction = r.id;
     const phases = reactionPhases(r);
     if (!phases.length) return;
@@ -299,7 +314,7 @@ export class Blob {
     this.el.style.setProperty("--blob-glow", glow || DEFAULT_GLOW);
   }
 
-  private onPointer = (e: PointerEvent) => this.lookAt(e.clientX, e.clientY);
+  private onPointer = (e: PointerEvent) => { this.lookAt(e.clientX, e.clientY); if (this.timer) this.kick(); };
   /** Frames actually drawn (for the performance check in the dev gallery). */
   renderedFrames = 0;
   private lastRender = 0;
@@ -311,11 +326,14 @@ export class Blob {
     const pointerStill = !this.cursor || now - this.cursor.t > 3000;
     return calm && pointerStill && !this.reaction && !this.jelly.v ? 20 : 0;
   }
-  private detachedSince = 0;
 
   destroy() {
     cancelAnimationFrame(this.raf);
     this.raf = 0;
+    clearTimeout(this.timer);
+    this.timer = 0;
+    this.io.disconnect();
+    document.removeEventListener("visibilitychange", this.onVis);
     window.removeEventListener("pointermove", this.onPointer);
     this.el.remove();
   }
@@ -400,18 +418,15 @@ export class Blob {
 
   // ---------- animation ----------
   private frame = (now: number) => {
-    if (!this.el.isConnected) {
-      // thrown away by a re-render → stop for good after a moment (lets it be garbage-collected)
-      this.detachedSince ||= now;
-      if (now - this.detachedSince > 3000) { this.destroy(); return; }
-      this.raf = requestAnimationFrame(this.frame);
-      return;
-    }
-    this.detachedSince = 0;
-    this.raf = requestAnimationFrame(this.frame);
-    if (document.hidden) return;
+    this.raf = 0;
+    // out of sight (another page, a closed panel, a hidden window, thrown away by a re-render): sleep until it shows
+    if (!this.el.isConnected || !this.seen || document.hidden) return;
     const cap = this.fpsCap(now);
-    if (cap && now - this.lastRender < 1000 / cap - 2) return;
+    if (cap) {
+      const wait = 1000 / cap - (now - this.lastRender);
+      if (wait > 2) { this.timer = window.setTimeout(() => { this.timer = 0; this.raf = requestAnimationFrame(this.frame); }, wait); return; }
+      this.timer = window.setTimeout(() => { this.timer = 0; this.raf = requestAnimationFrame(this.frame); }, 1000 / cap);
+    } else this.raf = requestAnimationFrame(this.frame);
     this.lastRender = now;
     this.renderedFrames++;
     const dt = Math.min(0.1, (now - this.last) / 1000);

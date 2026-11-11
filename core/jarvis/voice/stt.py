@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import logging
 import threading
+import time
 import wave
 
 from .. import paths, secrets
@@ -30,6 +31,60 @@ class Transcriber:
         self._lock = threading.Lock()
         self.error: str | None = None
         self.last_language = "cs"
+        self._used = 0.0               # monotonic time the local model was last asked for
+        self._loading = False
+        self._timer: threading.Timer | None = None
+
+    # ---------- saving memory: the local model (~0.5 GB) is in RAM only around the times it is used ----------
+    IDLE_RELEASE_S = 600
+
+    def prefetch(self) -> None:
+        """Somebody started talking to JARVIS (wake word, push-to-talk, the dictation key): load the model in the
+        background now, while they are still speaking, so it is ready when they finish."""
+        if self.cfg.stt_provider != "local" or self._model is not None or self._loading:
+            return
+        self._loading = True
+
+        def go():
+            try:
+                self.warmup()
+            finally:
+                self._loading = False
+
+        threading.Thread(target=go, daemon=True, name="whisper-load").start()
+
+    def _arm(self) -> None:
+        """While the model is in memory, look once a minute whether it is still needed."""
+        if self._timer is None:
+            self._timer = threading.Timer(60, self._tick)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def _tick(self) -> None:
+        self._timer = None
+        try:
+            if not self.release_if_idle() and self._model is not None:
+                self._arm()
+        except Exception as e:  # noqa: BLE001
+            log.debug("stt release: %s", e)
+
+    def release_if_idle(self, idle_s: float | None = None, now: float | None = None) -> bool:
+        """Not used for a while → let the model go (the memory goes back to Windows); it loads again on the next use."""
+        idle_s = self.IDLE_RELEASE_S if idle_s is None else idle_s
+        now = time.monotonic() if now is None else now
+        if self._model is None or now - self._used < idle_s:
+            return False
+        if not self._lock.acquire(blocking=False):
+            return False                   # it is transcribing right now
+        try:
+            self._model, self._model_name = None, None
+        finally:
+            self._lock.release()
+        import gc
+
+        gc.collect()
+        log.info("whisper model released after %d min unused", idle_s // 60)
+        return True
 
     def update(self, cfg_voice) -> None:
         self.cfg = cfg_voice
@@ -48,6 +103,7 @@ class Transcriber:
 
     def _local(self):
         with self._lock:
+            self._used = time.monotonic()
             name = self.cfg.stt_model
             if self._model is None or self._model_name != name:
                 from faster_whisper import WhisperModel
@@ -74,6 +130,7 @@ class Transcriber:
                         model = None
                 self._model = model or WhisperModel(name, device="cpu", compute_type="int8", download_root=root)
                 self._model_name = name
+            self._arm()
             return self._model
 
     def _groq(self, wav: bytes, filename: str = "audio.wav", prompt: str = "", language: str | None = None) -> str:

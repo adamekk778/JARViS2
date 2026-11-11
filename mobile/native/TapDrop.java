@@ -4,8 +4,11 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.ContentResolver;
+import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -62,18 +65,41 @@ final class TapDrop implements SensorEventListener {
 
     static boolean enabled(Context c) { return JarvisLink.prefs(c).getBoolean("tapdrop", false); }
 
+    private Sensor acc;
+    private boolean listening;
+
+    /** Saving the battery: the motion sensor runs only while the screen is on (a knock needs it on anyway). */
+    private final BroadcastReceiver screen = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent i) {
+            if (Intent.ACTION_SCREEN_OFF.equals(i.getAction())) listen(false);
+            else if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) listen(true);
+        }
+    };
+
+    private synchronized void listen(boolean on) {
+        if (on == listening || acc == null) return;
+        if (on) sm.registerListener(this, acc, SensorManager.SENSOR_DELAY_GAME);
+        else { sm.unregisterListener(this); gInit = false; firstKnock = 0; }
+        listening = on;
+    }
+
     static synchronized void start(Context c) {
         if (active != null) return;
         TapDrop t = new TapDrop(c);
-        Sensor acc = t.sm == null ? null : t.sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        if (acc == null) return;
-        t.sm.registerListener(t, acc, SensorManager.SENSOR_DELAY_GAME);
+        t.acc = t.sm == null ? null : t.sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        if (t.acc == null) return;
+        IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        f.addAction(Intent.ACTION_SCREEN_ON);
+        try { t.ctx.registerReceiver(t.screen, f); } catch (Exception ignored) { }
+        t.listen(t.interactive());
         active = t;
     }
 
     static synchronized void stop() {
         if (active == null) return;
-        active.sm.unregisterListener(active);
+        active.listen(false);
+        try { active.ctx.unregisterReceiver(active.screen); } catch (Exception ignored) { }
         active = null;
     }
 

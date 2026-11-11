@@ -122,6 +122,12 @@ class Dictation:
                 return False
             self.state = "listening"
         self._state("listening", hands_free=hands_free)
+        try:                                             # the speech model loads while you are still talking
+            stt = self._stt()
+            if stt is not None and hasattr(stt, "prefetch"):
+                stt.prefetch()
+        except Exception as e:  # noqa: BLE001
+            log.debug("dictation prefetch: %s", e)
         return True
 
     def _open_stream(self):

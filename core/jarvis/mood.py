@@ -362,6 +362,8 @@ class MoodEngine:
         if state is None:
             return
         while True:
+            if getattr(self.rt, "volume_feeds_mood", False):
+                return                       # the volume reader already tells us (sysplus._volume_publish)
             try:
                 v, m = await asyncio.to_thread(state)
                 self.on_audio(v, m)

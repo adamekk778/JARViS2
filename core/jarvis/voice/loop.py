@@ -68,7 +68,8 @@ class VoiceLoop:
 
     # ---------- public ----------
     def start(self) -> None:
-        threading.Thread(target=self.transcriber.warmup, daemon=True, name="whisper-warmup").start()
+        # saving memory: the speech model is not loaded at start-up any more – it loads the moment somebody starts
+        # talking (while they speak) and goes again after 10 minutes unused (stt.Transcriber.prefetch/release_if_idle)
         self._thread = threading.Thread(target=self._run, daemon=True, name="voice")
         self._thread.start()
 
@@ -176,6 +177,42 @@ class VoiceLoop:
         a = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
         return float(np.sqrt(np.mean(a ** 2))) > 700
 
+    # ---------- saving power: the wake-word model only runs while the room is not quiet ----------
+    HOT_TAIL_S = 2.0            # keep listening this long after the last sound (the model then has the whole phrase)
+
+    def _wake_gate(self, frame: bytes, ww, vad, np, now: float | None = None) -> bool:
+        """Should this frame go through the wake-word model? A quiet room = no (the model is the costly part, ~12×
+        a second). A sound (speech by the VAD, or clearly louder than the room's own noise) wakes it, and the frames
+        just before are fed first so the start of "Hey" is not lost; it keeps running a while after the sound ends."""
+        now = time.monotonic() if now is None else now
+        if self._score_sink is not None:
+            return True                                  # calibrating: every frame is measured
+        a = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
+        rms = float(np.sqrt(np.mean(a * a))) if a.size else 0.0
+        floor = getattr(self, "_floor", None)
+        loud = floor is None or rms > floor * 1.8 + 60
+        if not loud and vad is not None:
+            sub = 320 * 2
+            try:
+                loud = any(vad.is_speech(frame[i:i + sub], SR) for i in range(0, len(frame) - sub + 1, sub))
+            except Exception:  # noqa: BLE001
+                loud = True
+        if not loud:                                     # learn the room's noise from the quiet frames only
+            self._floor = rms if floor is None else floor * 0.97 + rms * 0.03
+        else:                                            # a louder room (a fan came on) is learnt slowly too
+            self._floor = rms if floor is None else floor * 0.999 + rms * 0.001
+        hot = now < getattr(self, "_hot_until", 0.0)
+        if loud:
+            if not hot:                                  # waking up: the frames just before go in first
+                for prev in list(self._recent)[-3:-1]:
+                    try:
+                        ww.predict(np.frombuffer(prev, dtype=np.int16))
+                    except Exception:  # noqa: BLE001
+                        break
+            self._hot_until = now + self.HOT_TAIL_S
+            return True
+        return hot
+
     def _listen_forever(self, ww, vad, np) -> None:
         cooldown = 0.0
         while not self._restart.is_set():
@@ -188,7 +225,8 @@ class VoiceLoop:
             if frame is not None:
                 self._recent.append(frame)
             triggered = self._ptt.is_set()
-            if frame is not None and ww is not None and self.rt.cfg.voice.wake_word and time.time() > cooldown:
+            if frame is not None and ww is not None and self.rt.cfg.voice.wake_word and time.time() > cooldown \
+                    and self._wake_gate(frame, ww, vad, np):
                 scores = ww.predict(np.frombuffer(frame, dtype=np.int16))
                 score = max(scores.values(), default=0)
                 if self._score_sink is not None:            # calibrating: measure only, never trigger
@@ -199,6 +237,7 @@ class VoiceLoop:
                     ww.reset() if hasattr(ww, "reset") else None
             if triggered:
                 self._ptt.clear()
+                self.transcriber.prefetch()              # the model loads while the command is being spoken
                 if self.speaker.speaking:
                     self.speaker.stop()  # barge-in
                 cooldown = time.time() + 2.0

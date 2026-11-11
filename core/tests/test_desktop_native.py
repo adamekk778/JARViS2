@@ -202,3 +202,68 @@ def test_volume_is_read_quickly_while_it_moves():
     from jarvis import sysplus
 
     assert sysplus.volume_pause(0.2, 0.25) == 0.04 and sysplus.volume_pause(5, 0.25) == 0.25
+
+
+def test_jarvis_window_made_only_when_opened_and_freed_after_a_while_closed(rt, monkeypatch):
+    """Saving power: the JARVIS window (a whole browser page) is not created hidden at start-up; once closed it stays
+    ready for a while, then it is destroyed so its memory comes back."""
+    import sys
+    import threading
+
+    made = []
+
+    class Win:
+        def __init__(self, title, url, **kw):
+            self.title, self.url, self.kw, self.destroyed, self.hidden = title, url, kw, False, False
+            self.events = SimpleNamespace(closing=_Evt(), shown=_Evt())
+            made.append(self)
+
+        def hide(self):
+            self.hidden = True
+
+        def destroy(self):
+            self.destroyed = True
+            assert all(h() is True for h in self.events.closing.handlers)   # the handler lets it go this time
+
+    class _Evt:
+        def __init__(self):
+            self.handlers = []
+
+        def __iadd__(self, f):
+            self.handlers.append(f)
+            return self
+
+    monkeypatch.setitem(sys.modules, "webview", SimpleNamespace(create_window=lambda *a, **k: Win(*a, **k)))
+    monkeypatch.setattr(threading, "Thread", lambda target, args=(), **k: SimpleNamespace(start=lambda: target(*args)))
+    timers = []
+    monkeypatch.setattr(threading, "Timer", lambda s, f, args=(): SimpleNamespace(start=lambda: timers.append((f, args)), daemon=True))
+    rt.cfg.notch.enabled = True
+    h = host_mod.DesktopHost(rt, "http://127.0.0.1:8765")
+    h.create_windows()
+    assert [w.title for w in made] == [host_mod.NOTCH_TITLE] and h.chat is None      # nothing hidden in the background
+    h.open_chat("settings")
+    assert h.chat is made[1] and made[1].url.endswith("/#settings") and not made[1].kw["hidden"]
+    assert h._on_chat_closing() is False and made[1].hidden                          # closing = hide, still ready
+    f, args = timers[-1]
+    f(*args)                                                                         # … five minutes later
+    assert made[1].destroyed and h.chat is None
+    h.open_chat("chat")                                                              # opening again makes a fresh one
+    assert h.chat is made[2] and made[2].url.endswith("/#chat")
+    assert h._on_chat_closing() is False
+    h._hidden_at.pop("chat")                                                         # reopened meanwhile → kept
+    h.chat.hidden = False
+    f, args = timers[-1]
+    f(*args)
+    assert not made[2].destroyed and h.chat is made[2]
+
+
+def test_without_notch_the_jarvis_window_is_the_first_window(rt, monkeypatch):
+    import sys
+
+    made = []
+    monkeypatch.setitem(sys.modules, "webview", SimpleNamespace(create_window=lambda *a, **k: pytest.fail("no notch window")))
+    rt.cfg.notch.enabled = False
+    h = host_mod.DesktopHost(rt, "http://127.0.0.1:8765")
+    monkeypatch.setattr(h, "_make_chat", lambda view="chat", hidden=False: made.append(("chat", hidden)))
+    h.create_windows()
+    assert made == [("chat", True)]      # pywebview needs a window to start with

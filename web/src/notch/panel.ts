@@ -43,6 +43,8 @@ export interface PanelCtx {
 }
 
 export function buildPanel(ctx: PanelCtx) {
+  /** the panel is really on screen (the notch is open and the window not hidden) – the 1 s / 250 ms refreshes wait otherwise */
+  const panelOpen = () => !document.hidden && !!el?.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel";
   const { client } = ctx;
   const quick = (action: string, args: any = {}) => client.send("quick_action", { action, args });
   let settings: any = null;
@@ -419,8 +421,9 @@ export function buildPanel(ctx: PanelCtx) {
     const pos = media.position + (media.playing ? Math.max(0, Date.now() / 1000 - (media.at || Date.now() / 1000)) : 0);
     return [Math.min(pos, dur), dur];
   }
+  // the song's progress: 4× a second is plenty for a bar that moves a pixel or two a second (was every frame)
   function npLoop() {
-    if (current === "home" && !npCard.classList.contains("empty")) {
+    if (current === "home" && panelOpen() && !npCard.classList.contains("empty")) {
       const [pos, dur] = songNow();
       npCard.classList.toggle("no-time", !dur);
       if (dur) {
@@ -431,9 +434,8 @@ export function buildPanel(ctx: PanelCtx) {
         setText(npT1, `-${mmss(dur - pos)}`);
       }
     }
-    requestAnimationFrame(npLoop);
   }
-  requestAnimationFrame(npLoop);
+  window.setInterval(npLoop, 250);
 
   // JARVIS / Claude Code
   const aiLogo = h("span", { class: "ai-logo" });
@@ -515,7 +517,7 @@ export function buildPanel(ctx: PanelCtx) {
       dockBtn("hand-palm", "STOP – zastavit vše", () => client.send("stop_all"), "stop")));
   // 3.12 a big clock on the left: six looks, a click changes the colour (see clock.ts)
   const clock = createClock();
-  window.setInterval(() => { if (current === "home" && !document.hidden) clock.paint(); }, 1000);
+  window.setInterval(() => { if (current === "home" && panelOpen()) clock.paint(); }, 1000);
   // 3.12 "what's next" under the clock: the next event in today's calendar, else the soonest pinned task
   let agendaAt = 0, events: any[] = [];
   const wantAgenda = () => { if (Date.now() - agendaAt > 10 * 60000) { agendaAt = Date.now(); client.send("calendar_get", { days: 1 }); } paintAgenda(); };
@@ -581,7 +583,8 @@ export function buildPanel(ctx: PanelCtx) {
     const fi = on ? "stop" : "play";
     if (fi !== fxIco) { fxIco = fi; fxBtnIco.replaceChildren(icon(fi, "ph-fill")); }
   }
-  window.setInterval(renderHome, 1000);
+  // the clock and countdowns tick once a second – only while the panel is actually open
+  window.setInterval(() => { if (panelOpen()) renderHome(); }, 1000);
 
   // 3.12 subtitles of what the PC plays, right in the notch (Ctrl+Alt+T)
   const subsTile = h("button", { class: "more-tile", type: "button", onclick: () => ctx.client.send("live_subs_set", {}) });

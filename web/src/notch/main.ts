@@ -181,6 +181,8 @@ face.init();
 if (demo || demoMood) (window as any).__face = face;      // previews only
 const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
+/** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
+function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
 document.getElementById("notch-root")!.append(shape);
 // 3.12 the small circle on the right of the island (a second activity); see paintPip
 const pip = h("button", { class: "n-pip", type: "button", "aria-label": "Prohodit s hlavní aktivitou",
@@ -395,7 +397,7 @@ function apply(m: Mode) {
     window.clearTimeout(swapTimer);
     swapTimer = window.setTimeout(() => shape.classList.remove("swap"), 230);
   }
-  shape.dataset.mode = m;
+  setData(shape, "mode", m);
   animateShape(w, hh, dyn() ? dynRadius(m, hh) : RADIUS[m] ?? 26);
   updateBlob();
 }
@@ -432,12 +434,12 @@ function displayMood(): Mood {
 function updateBlob() {
   blob.setMood(displayMood(), { badge: moodInfo.badge, progress: moodInfo.progress ?? null, reaction: moodInfo.reaction,
     secondary: moodInfo.secondary ?? null, ambient: moodInfo.ambient });
-  shape.dataset.mood = displayMood();
+  setData(shape, "mood", displayMood());
   face.mood(displayMood());
   faceSync();
   // OMEGA 744: a short-lived reaction the eyes can show (e.g. "confused" after a failed build)
   const re = moodInfo.reaction;
-  shape.dataset.react = re && re.name && (!re.until || re.until * 1000 > 0) ? String(re.name) : "";
+  setData(shape, "react", re && re.name && (!re.until || re.until * 1000 > 0) ? String(re.name) : "");
 }
 
 /** The eyes show in the small pill when nothing else is in it (and with the voice wave while JARVIS talks). */
@@ -446,7 +448,7 @@ function faceSync() {
   try { face.situation(pendingConfirm ? "alert" : claudeAsks.length ? "ask" : selAsk ? "curious" : ""); } catch { /* still starting up */ }
   face.show(dyn() && ((mode === "closed" || mode === "hover") && ["", "voice", "nudge", "focusmode"].includes(k) || mode === "live"));
   // in the answer card the eyes sit top centre; with no STOP there (Claude asks, a question waits) top right
-  try { shape.dataset.facepos = mode === "live" && liveStop.hidden ? "edge" : ""; } catch { /* still starting up */ }
+  try { setData(shape, "facepos", mode === "live" && liveStop.hidden ? "edge" : ""); } catch { /* still starting up */ }
 }
 /** JARVIS itself is doing something (STOP makes sense). */
 function jarvisBusy() {
@@ -994,11 +996,18 @@ function paintLyrics(_force = false) {
     L.el.style.transform = `translateX(${-shift.toFixed(1)}px)`;
   }
 }
+// the karaoke line glides every frame – but only while the lyrics are on screen; otherwise nothing runs at all
+let lyrRaf = 0;
 function lyricsLoop() {
-  if (shape.dataset.island === "lyrics") paintLyrics();
-  requestAnimationFrame(lyricsLoop);
+  lyrRaf = 0;
+  if (shape.dataset.island !== "lyrics" || document.hidden) return;
+  paintLyrics();
+  lyrRaf = requestAnimationFrame(lyricsLoop);
 }
-requestAnimationFrame(lyricsLoop);
+const lyricsWake = () => { if (!lyrRaf && shape.dataset.island === "lyrics" && !document.hidden) lyrRaf = requestAnimationFrame(lyricsLoop); };
+new MutationObserver(lyricsWake).observe(shape, { attributes: true, attributeFilter: ["data-island"] });
+document.addEventListener("visibilitychange", lyricsWake);
+lyricsWake();
 // 3.12 two things at once (like iPhone): the main activity in the island, the next one in a small circle on its
 // right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
 const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
@@ -1142,7 +1151,7 @@ function islandActivity(t: any) {
   }
   setKids(lead, l);
   setKids(trail, r);
-  shape.dataset.island = kind;
+  setData(shape, "island", kind);
   faceSync();
   // the next running thing (if any) in the small circle on the right
   paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);

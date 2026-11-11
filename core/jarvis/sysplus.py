@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import math
+import os
 import re
 import time
 from pathlib import Path
@@ -24,13 +25,36 @@ PARTIAL = (".crdownload", ".part", ".partial", ".download", ".opdownload", ".tmp
 
 
 def _snapshot(folder: Path) -> dict[str, int]:
+    """Names and sizes in a folder. os.scandir: on Windows the sizes come with the listing itself (no extra call per
+    file), which matters for a Downloads folder with thousands of files looked at every few seconds."""
     out = {}
     try:
-        for p in folder.iterdir():
-            if p.is_file():
-                out[p.name] = p.stat().st_size
+        with os.scandir(folder) as it:
+            for e in it:
+                try:
+                    if e.is_file():
+                        out[e.name] = e.stat().st_size
+                except OSError:
+                    continue
     except OSError:
         pass
+    return out
+
+
+def installer_procs() -> list[dict]:
+    """[{pid, name, cmdline}] for installer-looking processes only. Reading every process's command line every few
+    seconds was the costly part on Windows; only msiexec needs it (to tell an install from the idle service)."""
+    import psutil
+
+    out = []
+    for p in psutil.process_iter(["pid", "name"]):
+        name = p.info.get("name") or ""
+        if INSTALLER.search(name) or name.lower() == "msiexec.exe":
+            try:
+                cmd = p.cmdline() if name.lower() == "msiexec.exe" else []
+            except (psutil.Error, OSError):
+                cmd = []
+            out.append({"pid": p.info["pid"], "name": name, "cmdline": cmd})
     return out
 
 
@@ -458,6 +482,10 @@ def _volume_publish(rt, state: tuple, last: tuple | None, publish) -> tuple:
     rt.last_audio = {"level": state[0], "muted": bool(state[1])}     # for windows that connect later
     if last is not None and state != last:
         publish("volume", level=state[0], muted=bool(state[1]))
+    if state != last and getattr(rt, "volume_feeds_mood", False):  # Mochi's reaction to the volume, from this one reader
+        mood = getattr(rt, "mood", None)
+        if mood is not None:
+            rt.call_soon(lambda: mood.on_audio(state[0], bool(state[1])))
     return state
 
 
@@ -497,6 +525,7 @@ async def volume_loop(rt, interval: float = 0.25, rounds: int | None = None) -> 
     import threading
 
     if sys.platform == "win32" and hasattr(rt.platform, "_endpoint") and rounds is None:
+        rt.volume_feeds_mood = True          # saving power: the mood's own volume poll (every 1.5 s) steps aside
         threading.Thread(target=_win_volume_thread, args=(rt, interval), daemon=True, name="volume").start()
         return
     last: tuple | None = None
@@ -719,7 +748,7 @@ async def watch_loop(rt, every: float = 5.0) -> None:
                 rt._dl_shown = bool(prog)
             for d in dl.step(snap):
                 rt.notify("Stahování dokončeno", f"{d['file']} ({d['bytes'] / 2**20:.1f} MB)", speak=False)
-            procs = await asyncio.to_thread(lambda: [p.info for p in psutil.process_iter(["pid", "name", "cmdline"])])
+            procs = await asyncio.to_thread(installer_procs)
             for d in inst.step(installers(procs)):
                 rt.notify("Instalace dokončena", f"{d['installer']} doběhl ({d['seconds'] // 60} min {d['seconds'] % 60} s).", speak=False)
         except Exception as e:  # noqa: BLE001

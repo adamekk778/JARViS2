@@ -627,3 +627,7 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 @keyframes n-drop-in { from { transform: scale(.2); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } to { transform: none; } }
 .n-sw-rings { margin-left: 3px; }
 @keyframes n-sw-ring { from { transform: scale(1); opacity: .9; } to { transform: scale(1.55); opacity: 0; } }
+
+/* 3.12 saving power: nothing in the open panel animates while the notch is closed (the clock dots, the drifting album
+   background …) – those frames were drawn for nobody */
+.notch:not([data-mode="panel"]) .panel, .notch:not([data-mode="panel"]) .panel * { animation-play-state: paused !important; }

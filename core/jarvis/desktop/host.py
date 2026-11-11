@@ -84,6 +84,9 @@ class DesktopHost:
         self.full = None   # the full-screen ChatGPT-style chat, created on first use
         self.tray = None
         self._quitting = False
+        self._releasing: set = set()     # windows being freed after a while hidden (their closing handler lets them go)
+        self._hidden_at: dict = {}       # window attribute → when it was closed (hidden)
+        self._making_chat = False
         self._notch_size = notch_window_size(rt.cfg.notch)
         self._hidden_fullscreen = False
         self._hidden_manual = False      # hidden by the user (hotkey / panel / tray) until they bring it back
@@ -214,10 +217,20 @@ class DesktopHost:
                 frameless=True, easy_drag=False, on_top=True, resizable=False, shadow=False,
                 background_color="#000000")  # not transparent: the page clips the window to the notch shape (region)
             self.notch.events.shown += self._on_notch_shown
-        self.chat = webview.create_window(
-            "JARVIS", f"{self.base}/#chat", width=1240, height=820, min_size=(420, 520), hidden=True,
-            background_color="#0a0c0f", text_select=True)
-        self.chat.events.closing += self._on_chat_closing
+        else:   # pywebview needs one window to start with; with the notch on, the JARVIS window waits until it is opened
+            self._make_chat("chat", hidden=True)
+
+    def _make_chat(self, view: str = "chat", hidden: bool = False) -> None:
+        """Saving power: the JARVIS window (a whole browser page) is created only when it is opened, not at start-up."""
+        import webview
+
+        try:
+            self.chat = webview.create_window(
+                "JARVIS", f"{self.base}/#{view}", width=1240, height=820, min_size=(420, 520), hidden=hidden,
+                background_color="#0a0c0f", text_select=True)
+            self.chat.events.closing += self._on_chat_closing
+        finally:
+            self._making_chat = False
 
     def _on_notch_shown(self) -> None:
         time.sleep(0.3)
@@ -337,23 +350,46 @@ class DesktopHost:
             pass
         log.info("hud: shown (alpha %s)", self.hud_alpha)
 
+    RELEASE_AFTER_S = 300   # a closed window stays ready this long (reopens instantly), then its memory is freed
+
     def _on_chat_closing(self):
-        if self._quitting:
-            return True
-        # closing handlers block the GUI thread; hiding from here would deadlock → do it from another thread
-        threading.Thread(target=self.chat.hide, daemon=True).start()
-        return False  # keep the window alive, just hidden
+        return self._closing("chat")
 
     def _on_full_closing(self):
-        if self._quitting:
+        return self._closing("full")
+
+    def _closing(self, attr: str) -> bool:
+        if self._quitting or attr in self._releasing:
             return True
-        threading.Thread(target=self.full.hide, daemon=True).start()
-        return False
+        w = getattr(self, attr)
+        # closing handlers block the GUI thread; hiding from here would deadlock → do it from another thread
+        threading.Thread(target=w.hide, daemon=True).start()
+        at = self._hidden_at[attr] = time.monotonic()
+        t = threading.Timer(self.RELEASE_AFTER_S, self._release, args=(attr, at))
+        t.daemon = True
+        t.start()
+        return False  # keep the window alive, just hidden – for a while
+
+    def _release(self, attr: str, at: float) -> None:
+        """Still closed since then → destroy the window: its browser process gives back the memory (100+ MB)."""
+        w = getattr(self, attr)
+        if self._quitting or w is None or self._hidden_at.get(attr) != at:
+            return
+        self._releasing.add(attr)
+        try:
+            setattr(self, attr, None)
+            w.destroy()
+            log.info("%s window released after %d s closed", attr, self.RELEASE_AFTER_S)
+        except Exception as e:  # noqa: BLE001
+            log.debug("release %s: %s", attr, e)
+        finally:
+            self._releasing.discard(attr)
 
     def open_fullchat(self) -> None:
         import webview
 
         try:
+            self._hidden_at.pop("full", None)
             if self.full is None:   # a new window shows itself; later opens just bring it back
                 self.full = webview.create_window(
                     "JARVIS Chat", f"{self.base}/chat", width=1280, height=860, min_size=(520, 560), maximized=True,
@@ -373,7 +409,11 @@ class DesktopHost:
         if view == "full":   # off the caller's thread: creating a window waits for the GUI thread
             threading.Thread(target=self.open_fullchat, daemon=True, name="fullchat").start()
             return
-        if not self.chat:
+        self._hidden_at.pop("chat", None)
+        if not self.chat:   # first open (or freed after a while closed): create it right on that page
+            if not self._making_chat:
+                self._making_chat = True
+                threading.Thread(target=self._make_chat, args=(view,), daemon=True, name="chatwin").start()
             return
         try:
             self.chat.show()
