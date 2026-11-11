@@ -12,7 +12,7 @@ const FILE_ICON = (name: string, type: string) => (/^video\//.test(type) ? "film
   : /\.(docx?|odt|rtf)$/i.test(name) ? "file-doc" : /\.(xlsx?|csv|ods)$/i.test(name) ? "file-xls" : /\.(zip|rar|7z)$/i.test(name) ? "file-zip" : "file");
 
 export function flingPad(c: JarvisClient) {
-  let items: Item[] = [], busy = false;
+  let items: Item[] = [], busy = false, lastBump = 0, motionOn = false;
   const file = h("input", { type: "file", multiple: true, hidden: true }) as HTMLInputElement;
   const stack = h("div", { class: "fl-stack" });
   const ring = h("span", { class: "fl-ring" });
@@ -20,11 +20,13 @@ export function flingPad(c: JarvisClient) {
   const target = h("div", { class: "fl-target", "aria-hidden": "true" }, ring, pc, h("b", {}, "PC"),
     h("span", { class: "fl-arrows" }, icon("caret-right", "ph-bold"), icon("caret-right", "ph-bold"), icon("caret-right", "ph-bold")));
   const hint = h("p", { class: "fl-hint" });
+  // "přilož k monitoru": a little picture of the phone tapping the screen
+  const guide = h("div", { class: "fl-guide", "aria-hidden": "true" }, h("span", { class: "fl-g-mon" }, icon("monitor", "ph-fill")), h("span", { class: "fl-g-ph" }, icon("device-mobile", "ph-fill")));
   const sendAll = h("button", { type: "button", class: "btn fl-all", onclick: () => sendNext(true) }, icon("paper-plane-tilt", "ph-fill"), "Poslat vše");
   const sheet = h("div", { class: "fl", role: "dialog", "aria-label": "Poslat na PC", hidden: true },
     h("div", { class: "fl-head" }, h("strong", {}, "Poslat na PC"),
       h("button", { type: "button", class: "icon-btn", "aria-label": "Zavřít", onclick: () => close() }, icon("x"))),
-    h("div", { class: "fl-stage" }, stack, target), hint,
+    guide, h("div", { class: "fl-stage" }, stack, target), hint,
     h("div", { class: "fl-actions" }, h("button", { type: "button", class: "btn", onclick: () => file.click() }, icon("plus"), "Přidat soubor"), sendAll), file);
   file.onchange = () => { add([...(file.files || [])].map((f) => ({ blob: f, name: f.name }))); file.value = ""; };
 
@@ -36,6 +38,7 @@ export function flingPad(c: JarvisClient) {
   function open() {
     if (!sheet.isConnected) document.body.append(sheet);
     sheet.hidden = false;
+    if (!motionOn) { motionOn = true; window.addEventListener("devicemotion", onMotion); }
     paint();
   }
   function close() {
@@ -43,9 +46,34 @@ export function flingPad(c: JarvisClient) {
     sheet.hidden = true;
     items.forEach((i) => URL.revokeObjectURL(i.url));
     items = [];
+    if (motionOn) { motionOn = false; window.removeEventListener("devicemotion", onMotion); }
+    ready();
+  }
+  /** the PC's notch waits ("Přilož telefon k monitoru") while files are ready here */
+  let readySent = -1;
+  function ready() {
+    const n = sheet.hidden || document.hidden ? 0 : items.length;
+    if (n === readySent) return;
+    readySent = n;
+    c.send("share_ready", { on: n > 0, count: n });
+  }
+  document.addEventListener("visibilitychange", ready);
+  /** a tap of the phone against the monitor: a short, sharp jolt (the phone stops dead) → the top file goes */
+  function onMotion(e: DeviceMotionEvent) {
+    if (busy || sheet.hidden || !items.length || Date.now() - lastBump < 1500) return;
+    const a = e.acceleration, g = e.accelerationIncludingGravity;
+    const v = a && a.x != null ? Math.hypot(a.x || 0, a.y || 0, a.z || 0) : g && g.x != null ? Math.abs(Math.hypot(g.x || 0, g.y || 0, g.z || 0) - 9.81) : 0;
+    if (v < 17) return;
+    lastBump = Date.now();
+    const top = stack.querySelector(".fl-card.top") as HTMLElement | null;
+    if (top) fling(top, "tap");
   }
   function paint() {
-    hint.textContent = items.length ? (items.length > 1 ? `Švihni kartou doprava · zbývá ${items.length}` : "Švihni kartou doprava →") : "Přidej soubor – fotku, video, dokument…";
+    hint.replaceChildren(...(items.length
+      ? [h("strong", {}, "Přilož telefon k monitoru"), h("span", {}, items.length > 1 ? `nebo švihni kartou doprava · zbývá ${items.length}` : "nebo švihni kartou doprava →")]
+      : [h("span", {}, "Přidej soubor – fotku, video, dokument…")]));
+    guide.hidden = !items.length;
+    ready();
     sendAll.hidden = items.length < 2;
     stack.replaceChildren(...items.slice(0, 3).map((it, i) => {
       const card = h("div", { class: `fl-card ${i === 0 ? "top" : ""}` },
@@ -94,15 +122,21 @@ export function flingPad(c: JarvisClient) {
     card.addEventListener("pointercancel", end);
   }
 
-  async function fling(card: HTMLElement) {
+  async function fling(card: HTMLElement, how: "swipe" | "tap" = "swipe") {
     const it = items[0];
     if (!it || busy) return;
     busy = true;
     native.haptic();
     const tr = target.getBoundingClientRect(), cr = card.getBoundingClientRect();
     const tx = tr.left + tr.width / 2 - (cr.left + cr.width / 2), ty = tr.top + tr.height / 2 - (cr.top + cr.height / 2);
-    card.style.transition = "transform .42s cubic-bezier(.5, 0, .75, 0), opacity .42s ease-in, filter .42s";
-    card.style.transform = `translate(${tx}px, ${ty}px) rotate(24deg) scale(.12)`;
+    if (how === "tap") {                         // into the monitor: a flash, then the card sinks away from you
+      sheet.classList.remove("flash"); void sheet.offsetWidth; sheet.classList.add("flash");
+      card.style.transition = "transform .55s cubic-bezier(.4, 0, .2, 1), opacity .55s ease-in, filter .55s";
+      card.style.transform = "perspective(700px) translateZ(-900px) rotateX(18deg)";
+    } else {
+      card.style.transition = "transform .42s cubic-bezier(.5, 0, .75, 0), opacity .42s ease-in, filter .42s";
+      card.style.transform = `translate(${tx}px, ${ty}px) rotate(24deg) scale(.12)`;
+    }
     card.style.opacity = "0";
     card.style.filter = "blur(2px)";
     window.setTimeout(() => target.classList.add("catch"), 360);

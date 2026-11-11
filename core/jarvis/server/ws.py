@@ -32,7 +32,7 @@ CLIENT_TYPES = [
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
-    "whats_new_seen", "focus_stats_get", "clips_get", "clip_action", "shots_get", "shot_action", "qnotes_get", "qnote_set", "qnote_delete", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
+    "whats_new_seen", "focus_stats_get", "clips_get", "clip_action", "shots_get", "shot_action", "qnotes_get", "qnote_set", "qnote_delete", "share_ready", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
     "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
     "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
     "lists_get", "list_update", "network_get", "network_wake", "network_name",
@@ -51,7 +51,7 @@ CLIENT_TYPES = [
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
-    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "qnotes", "qnote_saved", "memory", "pairing", "tts_audio",
+    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
@@ -1097,6 +1097,9 @@ class Connection:
             res = await tools.call(name, args, rt)
             await self.send("quick_result", action=name, ok=res.ok, summary=res.summary,
                             attachments=[rt.public_attachment(a) for a in res.attachments])
+        elif t == "share_ready":                 # 3.12 the phone holds files ready for "přilož k monitoru": the notch waits for them
+            n = max(0, min(50, int(m.get("count") or 0)))
+            rt.bus.publish("share_ready", on=bool(m.get("on")) and n > 0, count=n, device=str(self.name or "Telefon")[:40])
         elif t == "share":
             await self._share(m)
         elif t == "history_get":

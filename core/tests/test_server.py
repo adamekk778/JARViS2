@@ -181,3 +181,15 @@ def test_debug_threads_only_from_this_pc(app):
     assert TestClient(app, client=REMOTE).get("/api/debug/threads").status_code == 403
     r = TestClient(app, client=LOCAL).get("/api/debug/threads")
     assert r.status_code == 200 and "Thread" in r.text
+
+
+def test_share_ready_tells_the_notch(app):
+    """3.12 "přilož k monitoru": the phone says it holds files; every window (the notch) hears it."""
+    with TestClient(app, client=LOCAL) as c, c.websocket_connect("/ws") as a, c.websocket_connect("/ws") as b:
+        a.receive_json(), b.receive_json()
+        a.send_json({"type": "hello", "client": "mobile", "name": "Pixel"})
+        a.send_json({"type": "share_ready", "on": True, "count": 2})
+        m = recv_until(b, "share_ready")
+        assert m["on"] is True and m["count"] == 2 and m["device"] == "Pixel"
+        a.send_json({"type": "share_ready", "on": True, "count": 0})      # nothing to send = not waiting
+        assert recv_until(b, "share_ready")["on"] is False

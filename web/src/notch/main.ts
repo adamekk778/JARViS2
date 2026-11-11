@@ -802,6 +802,8 @@ let nudge: { app: string; until: number } | null = null;
 // 3.12 headphones / speakers / charger connected: a short iPhone-like island with an icon and the battery
 let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number; thumb?: string; fly?: boolean } | null = null;
 const bootAt = Date.now();
+// 3.12 the phone holds files for "přilož k monitoru": the island waits for the tap, with rings like AirDrop
+let shareWait: { count: number; device: string; until: number } | null = null;
 const focusMode = { from: 0, until: 0 };              // 3.12 the focus mode (until = ms, 0 = off)
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
 let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
@@ -1058,6 +1060,10 @@ function islandActivity(t: any) {
       onerror: (e: Event) => { const ico = (e.target as HTMLElement).parentElement; ico?.classList.remove("thumb"); ico?.replaceChildren(icon("device-mobile", "ph-fill")); } }) : icon(linkEv.icon, "ph-fill")),
       h("span", { class: "n-link-name" }, linkEv.text)];
     r = [linkEv.pct !== null ? h("span", { class: "n-link-bat" }, ring(linkEv.pct / 100), h("b", {}, `${linkEv.pct} %`)) : h("span", { class: "n-link-ok" }, linkEv.right)];
+  } else if (shareWait && Date.now() < shareWait.until) {
+    kind = "sharewait";
+    l = [h("span", { class: "n-sw-rings" }, h("i"), h("i"), h("span", {}, icon("device-mobile", "ph-fill"))), h("span", { class: "n-link-name" }, "Přilož telefon")];
+    r = [h("span", { class: "n-sw-n" }, shareWait.count === 1 ? "1 soubor" : shareWait.count < 5 ? `${shareWait.count} soubory` : `${shareWait.count} souborů`)];
   } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
     l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
@@ -1226,7 +1232,8 @@ client.on("handoff", (m) => {
   if (m.to === "pc" && m.kind === "file") {             // 3.12 a file swiped over from the phone flies in from the right
     const mb = Number(m.size) || 0;
     showLink({ icon: "device-mobile", text: String(m.label || "Soubor"), right: mb ? (mb >= 1 << 20 ? `${(mb / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(mb / 1024))} kB`) : "Přijato",
-      pct: null, tint: "#0a84ff", thumb: m.thumb ? String(m.thumb) : "", fly: true });
+      pct: null, tint: "#0a84ff", thumb: m.thumb ? String(m.thumb) : "", fly: !shareWait });
+    if (shareWait) { shape.classList.remove("drop"); void shape.offsetWidth; shape.classList.add("drop"); window.setTimeout(() => shape.classList.remove("drop"), 1400); }
     play("notify", panFor("phone"));
     return;
   }
@@ -1308,6 +1315,12 @@ function showLink(ev: Omit<NonNullable<typeof linkEv>, "until">) {
   updateActivity();
   if (mode === "closed" || mode === "hover") apply(mode);
 }
+client.on("share_ready", (m) => {
+  shareWait = m.on ? { count: Number(m.count) || 1, device: String(m.device || ""), until: Date.now() + 90_000 } : null;
+  updateActivity();
+  if (mode === "closed" || mode === "hover") apply(mode);
+  if (shareWait) window.setTimeout(() => { if (shareWait && Date.now() >= shareWait.until) { shareWait = null; updateActivity(); if (mode === "closed" || mode === "hover") apply(mode); } }, 90_500);
+});
 client.on("device_link", (m) => {
   const hp = m.kind === "headphones";
   showLink({ icon: hp ? "headphones" : "speaker-hifi", text: String(m.name || (hp ? "Sluchátka" : "Reproduktory")), right: hp ? "Připojeno" : "Zvuk sem", pct: null, tint: hp ? "#ffffff" : "#64d2ff" });
