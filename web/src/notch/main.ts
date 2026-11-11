@@ -119,7 +119,25 @@ const bubbleAnswer = h("div", { class: "b-answer md" });
 const bubbleConfirm = h("div", { class: "b-confirm" });
 const bubbleTask = h("div", { class: "b-task" });
 const liveStop = stopButton(client, "sm");
-const bubble = h("div", { class: "n-bubble" }, bubbleState, bubbleTask, bubbleTranscript, bubbleTool, bubbleAnswer, bubbleConfirm);
+// 3.12 "JARVIS právě ovládá tvůj PC" – on top of the live card while JARVIS moves the mouse / types (+ the frame
+// around the screen, drawn by the PC side): take over (JARVIS waits) or stop everything
+let pcCtl = { on: false, paused: false, label: "" };
+const ctlBar = h("div", { class: "n-ctl", hidden: true, role: "status" });
+function paintCtl() {
+  ctlBar.hidden = !pcCtl.on;
+  ctlBar.classList.toggle("paused", pcCtl.paused);
+  if (!pcCtl.on) { ctlBar.replaceChildren(); return; }
+  const btn = (cls: string, ico: string, text: string, fn: () => void) =>
+    h("button", { type: "button", class: `n-ctl-b ${cls}`, onclick: (e: Event) => { e.stopPropagation(); fn(); } }, icon(ico, "ph-fill"), h("span", {}, text));
+  ctlBar.replaceChildren(
+    h("span", { class: "n-ctl-dot" }),
+    h("span", { class: "n-ctl-t" }, h("strong", {}, pcCtl.paused ? "Ovládáš ty" : "JARVIS ovládá tvůj PC"),
+      h("span", {}, pcCtl.paused ? "JARVIS na tebe počká" : pcCtl.label || "myš a klávesnice")),
+    pcCtl.paused ? btn("give", "play", "Vrátit JARVISovi", () => client.send("pc_control_give"))
+      : btn("take", "hand-grabbing", "Převzít kontrolu", () => client.send("pc_control_take")),
+    btn("stop", "stop", "Zastavit", () => client.send("stop_all")));
+}
+const bubble = h("div", { class: "n-bubble" }, ctlBar, bubbleState, bubbleTask, bubbleTranscript, bubbleTool, bubbleAnswer, bubbleConfirm);
 const capChip = h("span", { class: "n-capture", hidden: true, title: "JARVIS se právě dívá na obrazovku" }, h("i", { class: "dot" }), "Vidím obrazovku");
 
 const panel = buildPanel({
@@ -456,7 +474,7 @@ function jarvisBusy() {
 }
 /** Something needs the live bubble open: JARVIS at work or Claude Code waiting for an answer. */
 function busy() {
-  return jarvisBusy() || claudeAsks.length > 0 || !!selAsk;
+  return jarvisBusy() || claudeAsks.length > 0 || !!selAsk || pcCtl.on;
 }
 
 function settle(force = false) {
@@ -1192,9 +1210,18 @@ function updateActivity() {
 setInterval(updateActivity, 1000);
 
 // ---------- server events ----------
+client.on("pc_control", (m) => {
+  const was = pcCtl.on;
+  pcCtl = { on: !!m.on, paused: !!m.paused, label: String(m.label || "") };
+  paintCtl();
+  if (pcCtl.on && mode !== "panel") setMode("live");
+  else if (was && !pcCtl.on) settle();
+  else if (mode === "live") apply("live");                  // the card grows / shrinks with the bar
+});
 client.onStatus((s) => { if (s !== "open") { coreMood = "offline"; updateBlob(); } });
 client.on("welcome", (m) => {
   takeFocus(m.focus);
+  if (m.pc_control) { pcCtl = { ...pcCtl, ...m.pc_control }; paintCtl(); }
   client.send("live_subs_get", {});
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);

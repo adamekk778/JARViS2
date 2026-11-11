@@ -96,6 +96,9 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
             return ToolResult(True, a.get("summary", "Hotovo"), data={"steps": step})
         if act == "fail":
             return ToolResult(False, a.get("reason", "Nepovedlo se"), data={"steps": step})
+        pc = getattr(ctx, "pc_control", None)
+        if pc is not None:
+            await pc.wait_if_taken()                 # you took over: the next move waits until you give it back
         X = lambda v: int(round(float(v) / scale))  # noqa: E731
         if act == "click":
             await asyncio.to_thread(p.click, X(a["x"]), X(a["y"]), a.get("button", "left"), bool(a.get("double")))

@@ -108,7 +108,7 @@ class WindowsPlatform(Platform):
         n = 0
         for p in psutil.process_iter(["name"]):
             pname = (p.info["name"] or "").lower().removesuffix(".exe")
-            if pname and (target in pname or pname in target) and pname not in ("python", "pythonw", "jarvis"):
+            if pname and (target in pname or (len(pname) >= 4 and pname in target)) and pname not in ("python", "pythonw", "jarvis"):
                 try:
                     p.terminate()
                     n += 1

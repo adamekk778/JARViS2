@@ -614,6 +614,13 @@ class DesktopHost:
             log.warning("autostart: %s", e)
         self.rt.ui_hook = lambda view: self.open_chat(view)
         self.create_windows()
+        try:   # 3.12 the frame around the screen while JARVIS controls the PC
+            from .control_frame import ControlFrame
+
+            self.control_frame = ControlFrame()
+            self.rt.pc_control.listeners.append(lambda st: self.control_frame.set(st["on"], st["paused"]))
+        except Exception as e:  # noqa: BLE001
+            log.warning("control frame: %s", e)
         threading.Thread(target=self._tray, daemon=True, name="tray").start()
         threading.Thread(target=self._hotkeys, daemon=True, name="hotkeys").start()
         threading.Thread(target=self._fullscreen_watch, daemon=True, name="fullscreen").start()

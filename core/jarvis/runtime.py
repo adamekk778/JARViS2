@@ -40,6 +40,9 @@ class Runtime:
         self.router = Router(self.cfg.brain, secrets.get, llm_transport)
         self.agent = Agent(self)
         self.tasks = TaskManager(self)
+        from .pccontrol import PcControl
+
+        self.pc_control = PcControl(self)      # 3.12 "JARVIS právě ovládá tvůj PC": frame + take over / stop
         from .dictation import Dictation
 
         self.dictation = Dictation(self)
@@ -359,6 +362,7 @@ class Runtime:
         """Emergency STOP (spec §4.4): everything JARVIS is doing stops now."""
         self.agent.drop_queued()
         self.agent.stop()
+        self.pc_control.reset()
         if self.speaker:
             self.speaker.stop()
         if self.voice and hasattr(self.voice, "cancel_capture"):

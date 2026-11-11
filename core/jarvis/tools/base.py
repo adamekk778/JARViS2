@@ -1,6 +1,7 @@
 """Tool registry: @tool turns an async function into something the LLM can call."""
 from __future__ import annotations
 
+import contextlib
 import inspect
 import logging
 import types
@@ -181,6 +182,11 @@ def schemas(disabled: list[str] | set[str] = (), cfg: Any = None) -> list[dict]:
     return [s.schema() for s in REGISTRY.values() if s.name not in disabled and (cfg is None or allowed(cfg, s))]
 
 
+@contextlib.asynccontextmanager
+async def _nothing():
+    yield
+
+
 async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
@@ -219,9 +225,11 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     if missing:
         return ToolResult(False, f"Chybí parametry: {', '.join(missing)}")
     try:
-        res = spec.func(ctx, **clean)
-        if inspect.isawaitable(res):
-            res = await res
+        pc = getattr(ctx, "pc_control", None) if perm_of(spec) == "input" else None
+        async with (pc.session(name) if pc is not None else _nothing()):   # 3.12 the "JARVIS ovládá tvůj PC" frame
+            res = spec.func(ctx, **clean)
+            if inspect.isawaitable(res):
+                res = await res
         if not isinstance(res, ToolResult):
             res = ToolResult(True, str(res) if res is not None else "hotovo")
         if name in UNTRUSTED_OUTPUT and res.ok:     # OMEGA 183: orders hidden in e-mails, pages and files
