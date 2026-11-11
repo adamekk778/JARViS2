@@ -569,7 +569,12 @@ class DesktopHost:
 
             self.rt.submit(powers.selection_menu(self.rt))
 
-        for combo, fn in ((hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
+        def screen_ask():  # 3.12: pick a part of the screen, then ask about it in the notch
+            from .. import screenask
+
+            self.rt.submit(screenask.start(self.rt))
+
+        for combo, fn in ((hk.screen_ask, screen_ask), (hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
                           (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud()), (hk.selection, selection),
                           (hk.notch_toggle, lambda: self.toggle_notch()), (hk.subtitles, lambda: self._toggle_subs())):
             if not combo:

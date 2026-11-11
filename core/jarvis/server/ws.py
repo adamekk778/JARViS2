@@ -25,7 +25,7 @@ CLIENT_TYPES = [
     "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
-    "stop_all", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+    "stop_all", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
     "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
@@ -51,7 +51,7 @@ CLIENT_TYPES = [
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
-    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
+    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "screen_ask", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
@@ -79,7 +79,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -826,6 +826,14 @@ class Connection:
                 await self.send("error", message="Tu misi teď nejde navázat (běží, nebo neexistuje).")
         elif t == "automations_get":
             await self.send("automations", **rt.automations.status())
+        elif t == "screen_ask_action":
+            from .. import screenask
+
+            asyncio.get_running_loop().create_task(screenask.act(rt, str(m.get("action", "")), str(m.get("question", ""))[:2000]))
+        elif t == "screen_ask_start":
+            from .. import screenask
+
+            asyncio.get_running_loop().create_task(screenask.start(rt))
         elif t == "selection_action":
             from .. import powers
 

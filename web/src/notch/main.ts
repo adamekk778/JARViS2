@@ -762,6 +762,42 @@ client.on("selection", (m) => {
   window.clearTimeout(selTimer);
   selTimer = window.setTimeout(closeSelection, 25000);
 });
+// ---------- 3.12 Zeptej se na obrazovku (Ctrl+Alt+S): the picked area, small, with what to do about it ----------
+let shotAskTimer = 0;
+function closeShotAsk() {
+  window.clearTimeout(shotAskTimer);
+  bubbleConfirm.replaceChildren();
+  bubbleTranscript.textContent = "";
+  renderLive();
+  if (!busy()) settle();
+}
+client.on("screen_ask", (m) => {
+  if (m.state !== "ready") return;
+  liveText = "";
+  bubbleTool.textContent = "";
+  bubbleTranscript.textContent = "Výřez obrazovky – co s ním?";
+  const ask = h("input", { class: "n-sa-q", type: "text", placeholder: "…nebo se zeptej vlastními slovy", "aria-label": "Otázka k výřezu" }) as HTMLInputElement;
+  const go = (action: string, question = "") => {
+    client.send("screen_ask_action", { action, question });
+    bubbleConfirm.replaceChildren(h("span", { class: "muted" }, "Dívám se…"));
+    bubbleTranscript.textContent = "";
+    window.clearTimeout(shotAskTimer);
+  };
+  ask.addEventListener("keydown", (e) => { if (e.key === "Enter" && ask.value.trim()) go("", ask.value.trim()); if (e.key === "Escape") closeShotAsk(); });
+  bubbleConfirm.replaceChildren(
+    h("div", { class: "n-sa" },
+      h("img", { class: "n-sa-img", src: m.thumb, alt: "Vybraný výřez obrazovky" }),
+      h("div", { class: "n-sa-r" },
+        h("div", { class: "n-sa-acts" }, ...(m.actions || []).map((a: any) => h("button", { class: "n-pill", type: "button", onclick: () => go(a.key) }, a.label)),
+          h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: closeShotAsk }, icon("x"))),
+        ask)));
+  play("listen");
+  renderLive();
+  if (mode !== "panel") setMode("live");
+  window.setTimeout(() => ask.focus(), 120);
+  window.clearTimeout(shotAskTimer);
+  shotAskTimer = window.setTimeout(closeShotAsk, 60000);
+});
 client.on("selection_result", (m) => {
   selAsk = null;
   window.clearTimeout(selTimer);

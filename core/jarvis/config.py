@@ -162,6 +162,7 @@ class Hotkeys(BaseModel):
     stop_all: str = "ctrl+alt+x"
     notch_toggle: str = "ctrl+alt+n"   # 3.12: hide / show the notch (also over a game or a video)
     subtitles: str = "ctrl+alt+t"      # 3.12: subtitles of what the PC plays, in the notch
+    screen_ask: str = "ctrl+alt+s"     # 3.12: pick a part of the screen and ask about it
 
 
 class Tools(BaseModel):

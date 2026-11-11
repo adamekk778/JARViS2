@@ -443,6 +443,7 @@ class Agent:
         if rt.cfg.agent.mode:
             extra = (extra + "\n" if extra else "") + AGENT_MODE_RULE
         msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
+        speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
         schemas = self._tool_schemas(text)
         offered = {sc.get("function", sc).get("name") for sc in schemas}
         used_now: list[str] = []
@@ -463,9 +464,13 @@ class Agent:
                         if not round_text and full_text:
                             bus.publish("assistant_delta", text="\n\n")
                             full_text += "\n\n"
+                            if speech:
+                                speech.feed("\n\n")
                         round_text += ch.text
                         full_text += ch.text
                         bus.publish("assistant_delta", text=ch.text)
+                        if speech:
+                            speech.feed(ch.text)
                     if ch.tool_calls:
                         calls = ch.tool_calls
                 if rt.router.last_used:          # 3.12 with how much of today's free AI is left ("Groq · 70 %")
@@ -538,7 +543,14 @@ class Agent:
                                    meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12]})
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
-        if not cancelled:
+        if speech is not None:                      # spoken as it was written; anything added at the end too
+            if cancelled:
+                speech.cancel()
+            else:
+                if full_text.startswith(speech.fed) and len(full_text) > len(speech.fed):
+                    speech.feed(full_text[len(speech.fed):])
+                asyncio.get_running_loop().create_task(speech.finish())
+        elif not cancelled:
             rt.maybe_speak(full_text, source, self._lang)
         if status == "done" and not cancelled:      # 3.12 a long chat: summarise its older part in the background
             from . import chatsummary

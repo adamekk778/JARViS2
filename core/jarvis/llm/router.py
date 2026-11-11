@@ -116,7 +116,8 @@ class Router:
             cands = [p for p in cands if p.id == only]
         if need_vision:
             # Providers with an explicit vision model go first.
-            cands = sorted(cands, key=lambda p: (p.id in self.no_vision, not p.vision_model))
+            cands = sorted(cands, key=lambda p: (p.id in self.no_vision,
+                                                 not (p.vision_model or PRESETS.get(p.preset, {}).get("vision_model"))))
         for pcfg in cands:
             why = self.gate(pcfg) if self.gate else ""
             if why:
@@ -132,7 +133,8 @@ class Router:
                 if alt:
                     prov.model = alt
             quick = pcfg.fast_model or PRESETS.get(pcfg.preset, {}).get("fast_model", "")   # Groq/Gemini: own allowance
-            model = want_model or (pcfg.vision_model if need_vision and pcfg.vision_model else quick if fast and quick else None)
+            eyes = pcfg.vision_model or PRESETS.get(pcfg.preset, {}).get("vision_model", "")  # Groq: Llama 4 Scout sees
+            model = want_model or (eyes if need_vision and eyes else quick if fast and quick else None)
             resolved = False
             bad_call_retried = False
             fitted_again = False

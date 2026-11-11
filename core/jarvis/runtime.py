@@ -429,10 +429,21 @@ class Runtime:
         if self.speaker:
             asyncio.get_running_loop().create_task(self.speaker.say(text, lang))
 
-    def maybe_speak(self, text: str, source: str, lang: str = "cs") -> None:
+    def wants_speech(self, source: str) -> bool:
         mode = self.cfg.voice.speak_mode
-        if mode == "always" or (mode == "voice" and source in ("voice", "mobile_voice")):
+        return mode == "always" or (mode == "voice" and source in ("voice", "mobile_voice"))
+
+    def maybe_speak(self, text: str, source: str, lang: str = "cs") -> None:
+        if self.wants_speech(source):
             self.speak(text, lang)
+
+    def speech_stream(self, source: str, lang: str = "cs"):
+        """3.12 an answer that will be spoken: speech starts with its first sentence (voice/stream.py)."""
+        if not self.speaker or not self.wants_speech(source) or not getattr(self.cfg.voice, "stream_speech", True):
+            return None
+        from .voice.stream import SpeechStream
+
+        return SpeechStream(self, lang)
 
     def on_confirm_request(self, cid: str, desc: str) -> None:
         if self.speaker and self.cfg.voice.speak_mode != "never":

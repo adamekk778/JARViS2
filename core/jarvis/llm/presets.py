@@ -3,7 +3,7 @@
 PRESETS: dict[str, dict] = {
     "omniroute": {"label": "OmniRoute (zdarma, lokální brána)", "base_url": "http://localhost:20128/v1", "needs_key": False, "local": False, "model": "auto"},
     "openrouter": {"label": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "needs_key": True, "local": False, "model": "meta-llama/llama-3.3-70b-instruct:free"},
-    "groq": {"label": "Groq", "base_url": "https://api.groq.com/openai/v1", "needs_key": True, "local": False, "model": "openai/gpt-oss-120b", "fast_model": "llama-3.1-8b-instant"},   # the strongest on Groq (2026)
+    "groq": {"label": "Groq", "base_url": "https://api.groq.com/openai/v1", "needs_key": True, "local": False, "model": "openai/gpt-oss-120b", "fast_model": "llama-3.1-8b-instant", "vision_model": "meta-llama/llama-4-scout-17b-16e-instruct"},   # the strongest on Groq (2026)
     "gemini": {"label": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "needs_key": True, "local": False, "model": "gemini-2.5-flash", "fast_model": "gemini-2.5-flash-lite"},
     "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1", "needs_key": True, "local": False, "model": "gpt-4o-mini"},
     "anthropic": {"label": "Anthropic Claude", "base_url": "https://api.anthropic.com/v1", "needs_key": True, "local": False, "model": "claude-haiku-4-5"},
