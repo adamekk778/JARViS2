@@ -37,10 +37,11 @@ def anchor_offset(win: dict | None, mon_x: int, mon_w: int, notch_w: int, margin
 
 
 # ---------------------------------------------------------------- 083 hand-off
-def handoff(rt, to: str, label: str, kind: str = "link") -> None:
-    """Something just went from one device to the other – the notch and the phone animate it."""
+def handoff(rt, to: str, label: str, kind: str = "link", thumb: str = "", size: int = 0) -> None:
+    """Something just went from one device to the other – the notch and the phone animate it
+    (3.12: a file from the phone brings its thumbnail and size, so the notch shows what landed)."""
     if to in ("phone", "pc"):
-        rt.bus.publish("handoff", to=to, label=label[:80], kind=kind)
+        rt.bus.publish("handoff", to=to, label=label[:80], kind=kind, thumb=thumb or "", size=int(size or 0))
 
 
 # ---------------------------------------------------------------- 195 Mochi on the phone

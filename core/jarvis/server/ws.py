@@ -1437,7 +1437,11 @@ class Connection:
                 rt.bus.publish("notify", title="Soubor z telefonu", body=f"{att.name} je v polici notche", target="all")
         from ..mochiplus import handoff
 
-        handoff(rt, "pc", str(value or kind or "")[:80], str(kind or "link"))      # OMEGA 083: the notch shows it arriving
+        thumb, size, label = "", 0, str(value or kind or "")[:80]
+        if kind == "file":
+            pub = rt.public_attachment(m.get("attachment_id", ""))
+            thumb, size, label = pub.get("thumb") or "", int(pub.get("size") or 0), str(pub.get("name") or "soubor")[:80]
+        handoff(rt, "pc", label, str(kind or "link"), thumb, size)      # OMEGA 083: the notch shows it arriving
         await self.send("quick_result", action="share", ok=True, summary="Odesláno do PC")
 
     async def _transcribe(self, func, *args) -> str:

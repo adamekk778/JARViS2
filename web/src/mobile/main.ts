@@ -12,12 +12,14 @@ import { stopButton, TaskCard } from "../shared/taskcard";
 import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
 import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
 import { soloProvider, soloScreen } from "./solo";
+import { flingPad } from "./fling";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
 const app = document.getElementById("app")!;
 let client: JarvisClient | null = null;
+let sendToPc: () => void = () => {};           // 3.12 opens the swipe-to-PC sheet (set once the PC is connected)
 
 // A QR opened in a normal phone browser lands on /mobile#token=...
 const fromUrl = parsePairing(location.href);
@@ -148,6 +150,10 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     home: homeView(c),
     more: moreView(c, ep, pairing),
   };
+  // 3.12 the swipe-to-PC sheet from the control tab
+  views.control.prepend(h("button", { type: "button", class: "fl-entry", onclick: () => sendToPc() },
+    h("span", { class: "fl-entry-ico" }, icon("paper-plane-tilt", "ph-fill")),
+    h("div", {}, h("strong", {}, "Poslat na PC"), h("span", {}, "Vyber soubor a švihni ho doprava")), icon("caret-right")));
   const clock = phoneClock(c);
   views.home.prepend(clock.el, phoneMusic(c));
   views.more.prepend(phoneLookCard());
@@ -288,21 +294,20 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     if (again && again.base !== c.ep.base) mainScreen(again, pairing);
   });
 
+  const fling = flingPad(c);                         // 3.12 "Poslat na PC" by swiping
+  sendToPc = () => fling.pick();
   native.onShare(async (ev) => {
     show("chat");
     const urls = ev.texts.filter((t) => /^https?:\/\//.test(t.trim()));
     for (const u of urls) c.send("share", { kind: "url", value: u.trim() });
     const plain = ev.texts.filter((t) => !urls.includes(t));
     if (plain.length) c.send("share", { kind: "text", value: plain.join("\n") });
+    // 3.12 shared files wait as cards – swipe them to the right and they fly to the PC
+    const got: { blob: globalThis.Blob; name: string }[] = [];
     for (const f of ev.files) {
-      try {
-        const blob = await native.readShared(f);
-        const att = await c.upload(blob, f.name);
-        c.send("share", { kind: "file", attachment_id: att.id });
-      } catch (e: any) {
-        toast(`${f.name}: ${e.message}`, "error");
-      }
+      try { got.push({ blob: await native.readShared(f), name: f.name }); } catch (e: any) { toast(`${f.name}: ${e.message}`, "error"); }
     }
+    if (got.length) fling.add(got);
   });
 }
 

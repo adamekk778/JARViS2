@@ -800,7 +800,7 @@ const team = new Map<string, { icon: string; name: string; since: number }>();  
 let lastGesture: { g: Gesture; until: number } | null = null;
 let nudge: { app: string; until: number } | null = null;
 // 3.12 headphones / speakers / charger connected: a short iPhone-like island with an icon and the battery
-let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number } | null = null;
+let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number; thumb?: string; fly?: boolean } | null = null;
 const bootAt = Date.now();
 const focusMode = { from: 0, until: 0 };              // 3.12 the focus mode (until = ms, 0 = off)
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
@@ -1054,7 +1054,9 @@ function islandActivity(t: any) {
   } else if (linkEv && Date.now() < linkEv.until) {
     kind = "link";
     shape.style.setProperty("--link", linkEv.tint);
-    l = [h("span", { class: "n-link-ico" }, icon(linkEv.icon, "ph-fill")), h("span", { class: "n-link-name" }, linkEv.text)];
+    l = [h("span", { class: `n-link-ico ${linkEv.thumb ? "thumb" : ""} ${linkEv.fly ? "fly" : ""}` }, linkEv.thumb ? h("img", { src: client.url(linkEv.thumb), alt: "",
+      onerror: (e: Event) => { const ico = (e.target as HTMLElement).parentElement; ico?.classList.remove("thumb"); ico?.replaceChildren(icon("device-mobile", "ph-fill")); } }) : icon(linkEv.icon, "ph-fill")),
+      h("span", { class: "n-link-name" }, linkEv.text)];
     r = [linkEv.pct !== null ? h("span", { class: "n-link-bat" }, ring(linkEv.pct / 100), h("b", {}, `${linkEv.pct} %`)) : h("span", { class: "n-link-ok" }, linkEv.right)];
   } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
@@ -1221,6 +1223,13 @@ client.on("level", (m) => blob.setLevel(m.rms || 0));
 // OMEGA 083: something goes to the phone (flies off to the right) or comes from it (flies into the notch)
 const HANDOFF_ICON: Record<string, string> = { link: "link", text: "text-aa", file: "file", url: "link", mochi: "smiley", photo: "image" };
 client.on("handoff", (m) => {
+  if (m.to === "pc" && m.kind === "file") {             // 3.12 a file swiped over from the phone flies in from the right
+    const mb = Number(m.size) || 0;
+    showLink({ icon: "device-mobile", text: String(m.label || "Soubor"), right: mb ? (mb >= 1 << 20 ? `${(mb / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(mb / 1024))} kB`) : "Přijato",
+      pct: null, tint: "#0a84ff", thumb: m.thumb ? String(m.thumb) : "", fly: true });
+    play("notify", panFor("phone"));
+    return;
+  }
   const chip = h("div", { class: `n-handoff ${m.to === "phone" ? "out" : "in"}` }, icon(HANDOFF_ICON[m.kind] || "paper-plane-tilt"), h("span", {}, String(m.label || "")));
   inner.append(chip);
   flashUi(m.to === "phone" ? "success" : "notify", 1200);
