@@ -36,6 +36,9 @@ class Platform:
     def list_apps(self) -> list[str]: return []
     def open_url(self, url: str) -> None: raise NotImplementedError
     def open_path(self, path: str) -> None: raise NotImplementedError
+    def default_output(self) -> dict | None:
+        """3.12 the sound output in use ({"id", "name"}), None when unknown – the notch shows when headphones connect."""
+        return None
     def media_key(self, key: MediaKey) -> None: raise NotImplementedError
     def get_volume(self) -> int: raise NotImplementedError
     def set_volume(self, level: int) -> None: raise NotImplementedError

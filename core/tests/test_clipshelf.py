@@ -53,3 +53,29 @@ def test_shots_only_from_screenshot_folders(rt, tmp_path):
     assert clipshelf.shot_action(rt, "hide", one, home=tmp_path)["ok"]
     assert one not in [i["path"] for i in clipshelf.shots_state(rt, home=tmp_path)["items"]]
     assert not clipshelf.shot_action(rt, "pin", str(tmp_path / "secret.png"), home=tmp_path)["ok"]
+
+
+def test_audio_link_announces_headphones_not_startup():
+    """3.12 the notch's "AirPods Pro · Připojeno": only when the sound output really changes."""
+    from jarvis.sysplus import audio_link
+
+    assert audio_link(None, {"id": "a", "name": "Reproduktory (Realtek)"}) is None          # start-up
+    assert audio_link({"id": "a", "name": "x"}, {"id": "a", "name": "x"}) is None
+    hp = audio_link({"id": "a", "name": "Reproduktory (Realtek)"}, {"id": "b", "name": "Sluchátka (AirPods Pro)"})
+    assert hp == {"kind": "headphones", "name": "AirPods Pro", "full": "Sluchátka (AirPods Pro)"}
+    assert audio_link({"id": "b", "name": "x"}, {"id": "a", "name": "Reproduktory (Realtek(R) Audio)"})["kind"] == "speakers"
+
+
+def test_quick_notes_create_edit_pin_delete(rt):
+    from jarvis import quicknotes
+
+    a = quicknotes.save(rt, None, "Koupit mléko")
+    b = quicknotes.save(rt, None, "", color="blue")
+    quicknotes.save(rt, b, "Zavolat Petrovi")
+    quicknotes.save(rt, a, pinned=True)
+    quicknotes.save(rt, a, color="nope")                      # an unknown colour is ignored
+    items = quicknotes.state(rt)["items"]
+    assert [i["text"] for i in items] == ["Koupit mléko", "Zavolat Petrovi"] and items[0]["pinned"] and items[0]["color"] == "yellow"
+    assert items[1]["color"] == "blue"
+    quicknotes.delete(rt, a)
+    assert [i["id"] for i in quicknotes.state(rt)["items"]] == [b]

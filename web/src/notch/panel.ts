@@ -2,6 +2,7 @@
 import { createFocusStats } from "./focusstats";
 import { createAskAi } from "./askai";
 import { createClipsView, createShotsView } from "./shelves";
+import { createMirror, createNotesView } from "./notesmirror";
 import { createClock } from "./clock";
 import { createMusicView } from "./music";
 import { Blob, type CharacterColor } from "../character/blob";
@@ -14,7 +15,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
+export type Section = "home" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -23,6 +24,8 @@ const NAV: [Section, string, string][] = [
   ["system", "gear-six", "Systém"],
   ["clips", "clipboard-text", "Schránka"],
   ["shots", "image", "Snímky"],
+  ["notes", "note", "Poznámky"],
+  ["mirror", "user-focus", "Zrcátko"],
   ["files", "folder-simple", "Soubory"],
   ["workspaces", "browsers", "Plochy"],
   ["tools", "wrench", "Nástroje"],
@@ -31,7 +34,7 @@ const NAV: [Section, string, string][] = [
   ["activity", "pulse", "Průběh"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["files", "workspaces", "tools", "settings", "activity"];
+const EXTRA: Section[] = ["notes", "mirror", "files", "workspaces", "tools", "settings", "activity"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -506,6 +509,8 @@ export function buildPanel(ctx: PanelCtx) {
       dockBtn("microphone", "Mluvit", () => client.send("push_to_talk")),
       dockBtn("camera", "Snímek obrazovky", () => client.send("user_text", { text: "Udělej screenshot", attachments: [] })),
       dockBtn("headphones", "Fokus", () => client.send("mood_set", { mood: mood === "focus" ? null : "focus" })),
+      dockBtn("note", "Poznámky", () => show("notes")),
+      dockBtn("user-focus", "Zrcátko (kamera)", () => show("mirror")),
       dockBtn("lock-simple", "Zamknout PC", () => quick("system_power", { action: "lock" })),
       dockBtn("hand-palm", "STOP – zastavit vše", () => client.send("stop_all"), "stop")));
   // 3.12 a big clock on the left: six looks, a click changes the colour (see clock.ts)
@@ -675,7 +680,8 @@ export function buildPanel(ctx: PanelCtx) {
   npCard.title = "Otevřít přehrávač s textem";
   npCard.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest("button")) show("music"); });
   const clipsView = createClipsView(client), shotsView = createShotsView(client);   // 3.12 Schránka, Snímky
-  const views: Record<Section, HTMLElement> = { clips: clipsView.el, shots: shotsView.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  const notesView = createNotesView(client), mirror = createMirror();               // 3.12 Poznámky, Zrcátko
+  const views: Record<Section, HTMLElement> = { clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -704,7 +710,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "music", "chat", "quick", "system", "clips", "shots", "more", "activity", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "activity", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -743,6 +749,8 @@ export function buildPanel(ctx: PanelCtx) {
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
+    if (s === "notes") notesView.refresh();
+    if (s === "mirror") mirror.start(); else mirror.stop();
     if (s === "clips") clipsView.refresh();
     if (s === "shots") shotsView.refresh();
     if (s === "workspaces") { client.send("workspaces_get"); wmap.refresh(); }

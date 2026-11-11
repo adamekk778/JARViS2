@@ -280,6 +280,19 @@ def parse_bluetooth(rows: list[dict]) -> list[dict]:
     return sorted(out, key=lambda d: (not d["connected"], d["name"]))
 
 
+HEADPHONES = re.compile(r"(?i)headphone|headset|sluch|buds|airpods|wh-|wf-|jabra|bose|beats|earphone|hands-free|sennheiser|hyperx|steelseries|razer|logitech g")
+
+
+def audio_link(before: dict | None, now: dict | None) -> dict | None:
+    """What the notch should announce when the sound output changes (None at start-up or when nothing changed)."""
+    if not before or not now or before.get("id") == now.get("id") or not now.get("name"):
+        return None
+    name = now["name"]
+    short = re.sub(r"^.*?\((.+)\)\s*$", r"\1", name).strip() or name      # "Sluchátka (AirPods Pro)" → "AirPods Pro"
+    kind = "headphones" if HEADPHONES.search(name) else "speakers"
+    return {"kind": kind, "name": short[:40], "full": name[:80]}
+
+
 # ---------------------------------------------------------------- P3.12 mood from the tone of voice
 def _f0(frame: np.ndarray, sr: int) -> float:
     frame = frame - frame.mean()
@@ -677,6 +690,15 @@ async def watch_loop(rt, every: float = 5.0) -> None:
                 rt.on_battery = on_bat
                 rt.bus.publish("power_state", on_battery=on_bat, percent=round(bat.percent) if bat else None)
         except (AttributeError, OSError, RuntimeError):
+            pass
+        try:                                      # 3.12 headphones / speakers switched → the notch shows it (like an iPhone)
+            out = await asyncio.to_thread(rt.platform.default_output)
+            link = audio_link(getattr(rt, "_audio_out", None), out)
+            if out:
+                rt._audio_out = out
+            if link:
+                rt.bus.publish("device_link", **link)
+        except Exception:  # noqa: BLE001
             pass
         att = getattr(rt, "attention", None)
         if att is not None:

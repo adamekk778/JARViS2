@@ -1,0 +1,40 @@
+/* 3.12 Poznámky and Zrcátko */
+.qn { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; padding: 2px 4px 4px; }
+.qn-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; scrollbar-width: thin; }
+.qn-add { display: grid; place-content: center; justify-items: center; gap: 6px; min-height: 130px; border-radius: 18px; border: 1.5px dashed rgb(255 255 255 / .22);
+  background: transparent; color: rgb(255 255 255 / .6); font: inherit; font-size: 12.5px; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.qn-add i { font-size: 22px; }
+.qn-add:hover { border-color: rgb(255 255 255 / .5); color: #fff; background: rgb(255 255 255 / .04); }
+.qn-card { --bg: #3a3420; --fg: #ffe9a6; display: flex; flex-direction: column; min-height: 130px; border-radius: 18px; padding: 12px 12px 6px; background: var(--bg);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08), 0 10px 26px -16px rgb(0 0 0 / .9); animation: qn-in .35s cubic-bezier(.2, .9, .25, 1) both; }
+@keyframes qn-in { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+.qn-card.pinned { box-shadow: inset 0 0 0 1.5px var(--fg), 0 10px 26px -16px rgb(0 0 0 / .9); }
+.qn-card.c-yellow, .qn-dot.c-yellow { --bg: #3a3420; --fg: #ffe9a6; }
+.qn-card.c-blue, .qn-dot.c-blue { --bg: #1d2c42; --fg: #a9d4ff; }
+.qn-card.c-green, .qn-dot.c-green { --bg: #1d3628; --fg: #b4f0c8; }
+.qn-card.c-pink, .qn-dot.c-pink { --bg: #42202d; --fg: #ffb7cf; }
+.qn-card.c-violet, .qn-dot.c-violet { --bg: #2e2342; --fg: #d6c2ff; }
+.qn-text { flex: 1; min-height: 70px; resize: none; border: 0; outline: 0; background: transparent; color: var(--fg); font: inherit; font-size: 13.5px; line-height: 1.45; }
+.qn-text::placeholder { color: color-mix(in srgb, var(--fg) 45%, transparent); }
+.qn-foot { display: flex; align-items: center; gap: 2px; opacity: .55; transition: opacity .15s; }
+.qn-card:hover .qn-foot, .qn-card:focus-within .qn-foot { opacity: 1; }
+.qn-dots { display: inline-flex; gap: 4px; margin-right: auto; }
+.qn-dot { width: 13px; height: 13px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: var(--fg); opacity: .65; }
+.qn-dot.on { opacity: 1; box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--fg); }
+.qn-card .sh-b { color: var(--fg); }
+
+.mr { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; align-items: center; }
+.mr-frame { position: relative; flex: 1; min-height: 0; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 22px; overflow: hidden; background: #0b0b0e;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1), 0 20px 50px -24px rgb(0 0 0 / .9); }
+.mr-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.mr-note { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; padding: 20px; color: rgb(255 255 255 / .6); font-size: 12.5px; }
+.mr-note[hidden] { display: none; }
+.mr-note > i { font-size: 30px; color: rgb(255 255 255 / .4); }
+.mr-note strong { color: #fff; font-size: 16px; }
+.mr-live { position: absolute; top: 10px; left: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; background: rgb(0 0 0 / .55);
+  font-size: 11.5px; font-weight: 600; color: #fff; backdrop-filter: blur(8px); }
+.mr-live[hidden] { display: none; }
+.mr-live i { width: 7px; height: 7px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 8px #ff453a; animation: mr-pulse 1.6s infinite; }
+@keyframes mr-pulse { 50% { opacity: .35; } }
+.mr-bar { display: flex; align-items: center; gap: 12px; width: 100%; justify-content: space-between; font-size: 11.5px; color: rgb(255 255 255 / .45); padding: 0 4px; }
+.mr-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: 99px; border: 0; cursor: pointer; background: #fff; color: #000; font: inherit; font-size: 12.5px; font-weight: 700; }

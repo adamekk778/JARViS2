@@ -152,6 +152,23 @@ class WindowsPlatform(Platform):
         finally:
             comtypes.CoUninitialize()
 
+    def default_output(self) -> dict | None:
+        """3.12 the default sound output (Core Audio): its id and name, e.g. "Sluchátka (AirPods Pro)"."""
+        import comtypes
+
+        comtypes.CoInitialize()
+        try:
+            from pycaw.pycaw import AudioUtilities
+
+            dev = AudioUtilities.GetSpeakers()
+            if not hasattr(dev, "FriendlyName"):
+                dev = AudioUtilities.CreateDevice(dev)
+            return {"id": str(getattr(dev, "id", "") or ""), "name": str(getattr(dev, "FriendlyName", "") or "")}
+        except Exception:  # noqa: BLE001 – no sound device at all, or Core Audio is busy
+            return None
+        finally:
+            comtypes.CoUninitialize()
+
     def get_volume(self) -> int:
         return self._com(lambda ep: round(ep.GetMasterVolumeLevelScalar() * 100))
 

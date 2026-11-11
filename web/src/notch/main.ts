@@ -799,6 +799,9 @@ const team = new Map<string, { icon: string; name: string; since: number }>();  
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
 let nudge: { app: string; until: number } | null = null;
+// 3.12 headphones / speakers / charger connected: a short iPhone-like island with an icon and the battery
+let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number } | null = null;
+const bootAt = Date.now();
 const focusMode = { from: 0, until: 0 };              // 3.12 the focus mode (until = ms, 0 = off)
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
 let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
@@ -1048,6 +1051,11 @@ function islandActivity(t: any) {
     kind = "nudge";
     l = [h("span", { class: "n-nudge" }, icon("target", "ph-fill"), h("span", {}, "Soustředění"))];
     r = [h("span", { class: "n-nudge-app" }, `${nudge.app} počká`)];
+  } else if (linkEv && Date.now() < linkEv.until) {
+    kind = "link";
+    shape.style.setProperty("--link", linkEv.tint);
+    l = [h("span", { class: "n-link-ico" }, icon(linkEv.icon, "ph-fill")), h("span", { class: "n-link-name" }, linkEv.text)];
+    r = [linkEv.pct !== null ? h("span", { class: "n-link-bat" }, ring(linkEv.pct / 100), h("b", {}, `${linkEv.pct} %`)) : h("span", { class: "n-link-ok" }, linkEv.right)];
   } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
     l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
@@ -1284,6 +1292,24 @@ client.on("focus", (m) => {
   }
 });
 // 3.12 focus guard: YouTube, Netflix, TikTok… in front while you focus → the island blinks red and the eyes frown
+function showLink(ev: Omit<NonNullable<typeof linkEv>, "until">) {
+  linkEv = { ...ev, until: Date.now() + 3400 };
+  shape.classList.remove("linking"); void shape.offsetWidth; shape.classList.add("linking");
+  window.setTimeout(() => { shape.classList.remove("linking"); updateActivity(); if (mode === "closed" || mode === "hover") apply(mode); }, 3500);
+  updateActivity();
+  if (mode === "closed" || mode === "hover") apply(mode);
+}
+client.on("device_link", (m) => {
+  const hp = m.kind === "headphones";
+  showLink({ icon: hp ? "headphones" : "speaker-hifi", text: String(m.name || (hp ? "Sluchátka" : "Reproduktory")), right: hp ? "Připojeno" : "Zvuk sem", pct: null, tint: hp ? "#ffffff" : "#64d2ff" });
+});
+client.on("power_state", (m) => {
+  if (Date.now() - bootAt < 8000) return;                  // the first report at start-up is not a "connect"
+  const pct = typeof m.percent === "number" ? Math.round(m.percent) : null;
+  showLink(m.on_battery
+    ? { icon: pct !== null && pct <= 20 ? "battery-low" : "battery-medium", text: "Na baterii", right: "", pct, tint: pct !== null && pct <= 20 ? "#ff453a" : "#ffffff" }
+    : { icon: "lightning", text: "Nabíjí se", right: "", pct, tint: "#30d158" });
+});
 client.on("focus_nudge", (m) => {
   nudge = { app: String(m.app || ""), until: Date.now() + 4200 };
   face.react("angry", 3600);

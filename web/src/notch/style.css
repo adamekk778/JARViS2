@@ -586,3 +586,18 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 @keyframes lyr-out { to { opacity: 0; transform: translateY(-14px) scale(.97); filter: blur(5px); } }
 @keyframes lyr-breathe { 50% { color: rgb(255 255 255 / .9); } }
 @media (prefers-reduced-motion: reduce) { .lyr-line, .lyr-line.out { animation-duration: .01s; } .lyr-line .lw { transition: none; } }
+
+/* 3.12 something connected: headphones, speakers, the charger – the island grows with a little pop, like an iPhone */
+.notch[data-island="link"] .n-eyes { opacity: 0; }
+.notch[data-island="link"] .n-lead { gap: 9px; }
+.n-link-ico { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 15px; color: #000; background: var(--link, #fff);
+  box-shadow: 0 0 16px -2px var(--link, #fff); }
+.notch.linking .n-link-ico { animation: n-link-pop .7s cubic-bezier(.3, 1.7, .5, 1) both; }
+.n-link-name { font-weight: 650; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.notch.linking .n-link-name, .notch.linking .n-link-bat, .notch.linking .n-link-ok { animation: n-link-in .5s .12s cubic-bezier(.2, .9, .25, 1) both; }
+.n-link-ok { color: var(--link, #fff); font-weight: 600; font-size: 12.5px; opacity: .85; }
+.n-link-bat { display: inline-flex; align-items: center; gap: 6px; color: var(--link, #fff); font-variant-numeric: tabular-nums; }
+.n-link-bat svg { width: 20px; height: 20px; }
+.n-link-bat b { font-weight: 700; font-size: 13px; }
+@keyframes n-link-pop { 0% { transform: scale(.2) rotate(-25deg); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: none; } }
+@keyframes n-link-in { from { opacity: 0; transform: translateX(-6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }

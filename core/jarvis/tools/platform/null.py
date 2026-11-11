@@ -23,6 +23,7 @@ class NullPlatform(Platform):
     def list_apps(self): return ["Spotify", "Discord", "Steam", "Google Chrome"]
     def open_url(self, url): self._rec("open_url", url)
     def open_path(self, path): self._rec("open_path", path)
+    def default_output(self): return getattr(self, "audio_out", None)
     def media_key(self, key): self._rec("media_key", key)
     def get_volume(self): return self.volume
     def set_volume(self, level): self._rec("set_volume", level); self.volume = level
