@@ -259,6 +259,10 @@ class Router:
             return self.tpm[(pcfg.id, model)]
         if pcfg.preset == "groq":
             return bud.GROQ_TPM.get(model, 8000)
+        if pcfg.preset == "ollama":                 # a model on this PC: the whole request must fit its context window
+            from .local import MODES
+
+            return MODES.get(self.brain.local_mode, MODES["balanced"])[0]
         return None
 
     async def _alt_model(self, pcfg: ProviderCfg, prov, need: int = 0) -> str | None:

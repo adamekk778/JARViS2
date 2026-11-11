@@ -7,7 +7,7 @@ export const CLIENT_TYPES = [
   "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
   "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
   "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
-  "stop_all", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+  "stop_all", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
   "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
   "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
   "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",

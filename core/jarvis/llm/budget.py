@@ -97,4 +97,9 @@ def fit(messages: list[dict], tools: list[dict] | None, limit: int, max_tokens: 
         if estimate(msgs, tools) <= room:
             break
         msgs = _cut_tool_results(msgs, n)
+    # a small model on this PC: fewer tools (the everyday ones come first; find_tools always stays for the rest)
+    while tools and len(tools) > 6 and estimate(msgs, tools) > room:
+        keep = tools[: len(tools) // 2]
+        finder = [t for t in tools if t.get("function", t).get("name") == "find_tools" and t not in keep]
+        tools = keep + finder
     return msgs, tools, mt

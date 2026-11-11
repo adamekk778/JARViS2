@@ -287,7 +287,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("button", { class: "btn primary", type: "button", onclick: () => openOnboarding() }, icon("play"), "Spustit průvodce")),
         card("Poskytovatelé (záložní řetěz)", "Výchozí: OmniRoute (zdarma, běží na tvém PC na portu 20128) a pak Ollama (offline). Když jeden selže nebo dojde limit, JARVIS automaticky zkusí další.",
           list, h("div", { class: "row" }, h("div", { style: { flex: "1" } }, presetSel), h("button", { class: "btn primary", type: "button", onclick: add }, icon("plus"), "Přidat poskytovatele"))),
-        localCard(),
+        ...(extra.local ? [backupCard() as HTMLElement] : []), localCard(),
         card("Chování", null,
           range("brain.temperature", "Kreativita (temperature)", 0, 1.5, 0.1, (v) => v.toFixed(1)),
           h("div", { class: "grid2" }, text("brain.max_tokens", "Max délka odpovědi (tokeny)", "", "number"), text("brain.first_token_timeout", "Čekat na první odpověď (s)", "Pak zkusí dalšího poskytovatele", "number")),
@@ -676,6 +676,42 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("button", { class: "btn", type: "button", onclick: () => file.click() }, icon("upload-simple"), "Importovat"), file))];
     },
   };
+
+  /** 3.12 Offline záloha mozku: one click; a model on this PC answers only when the internet or the free limits fail */
+  function backupCard() {
+    const st = extra.local;
+    if (!st) return null;
+    const b = st.backup || {};
+    const rec = ((st.recommended || [])[0] as string) || "qwen2.5:3b";
+    const model = b.on ? b.model : rec;
+    const info = (st.catalog || []).find((m: any) => m.name === model) || { size_gb: "?" };
+    const have = (st.installed || []).some((m: any) => m.name === model);
+    const p = (extra.pull || {})[model];
+    const pulling = p && !p.done && !p.error && !p.cancelled;
+    const hw = st.hardware || {};
+    let body: HTMLElement, btn: HTMLElement | null = null;
+    if (b.on && have) {
+      body = h("p", { class: "help" }, h("b", {}, `✓ Zapnutá – ${model}. `), "Když nepůjde internet nebo dojdou limity zdarma, odpoví tenhle model přímo z tvého PC. Jinak se nepoužívá.");
+      btn = h("button", { class: "btn ghost", type: "button", onclick: () => client.send("local_backup_set", { on: false }) }, "Vypnout zálohu");
+    } else if (!st.running) {
+      body = h("p", { class: "help" }, "Nejdřív nainstaluj Ollamu (zdarma, oficiální instalátor) – pak sem dej Obnovit.");
+      btn = h("a", { class: "btn", href: "https://ollama.com/download", target: "_blank", rel: "noopener" }, icon("download-simple"), "Stáhnout Ollamu");
+    } else if (pulling) {
+      body = h("div", { class: "pull" }, h("span", { class: "p-progress" }, h("b", { style: { width: `${p.total ? Math.round((p.completed || 0) / p.total * 100) : 5}%` } })),
+        h("span", { class: "help" }, `Stahuji ${model}…`));
+    } else {
+      body = h("p", { class: "help" }, `Stáhne ${model} (${info.size_gb} GB, volno na disku ${hw.disk_free_gb ?? "?"} GB) a nastaví ho jako poslední zálohu. Nic se nestáhne bez tvého potvrzení.`);
+      btn = h("button", { class: "btn", type: "button", onclick: () => {
+        if (have) { client.send("local_backup_set", { on: true, model }); return; }
+        if (!confirm(`Stáhnout ${model} (${info.size_gb} GB) jako offline zálohu? Volné místo: ${hw.disk_free_gb ?? "?"} GB.`)) return;
+        extra.pull = { ...(extra.pull || {}), [model]: { completed: 0 } };
+        client.send("local_pull", { name: model });
+        client.send("local_backup_set", { on: true, model });
+        render();
+      } }, icon("shield-check"), have ? "Zapnout zálohu" : `Nastavit (${info.size_gb} GB)`);
+    }
+    return card("Offline záloha mozku", "Poslední záchrana: model přímo v PC, když cloud nejde.", body, btn ? h("div", { class: "btn-row" }, btn) : null);
+  }
 
   function localCard() {
     const st = extra.local;

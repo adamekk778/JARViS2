@@ -109,6 +109,7 @@ class LocalManager:
 
         hw = await asyncio.to_thread(detect_hardware)  # PowerShell CIM query can take seconds
         out = {"running": False, "version": "", "installed": [], "loaded": [], "hardware": hw, "catalog": MODELS,
+               "backup": self.backup(),
                "recommended": recommend(hw), "mode": self.rt.cfg.brain.local_mode,
                "enabled": self.rt.cfg.brain.local_enabled, "gpu": self.rt.cfg.brain.local_gpu, "model": self.model,
                "missing": self.missing}
@@ -150,6 +151,34 @@ class LocalManager:
         if self.missing and self.missing.get("name") == name:
             self.missing = None
         return True
+
+    # ---------- 3.12 offline backup: a model on this PC that answers only when the others cannot ----------
+    def backup(self) -> dict:
+        p = self._provider()
+        chain = self.rt.cfg.brain.chain
+        on = bool(p and p.enabled and self.rt.cfg.brain.local_enabled)
+        return {"on": on, "model": (p.model if p else "") or "qwen2.5:3b", "last": bool(p and chain and chain[-1] == p.id)}
+
+    def set_backup(self, on: bool, model: str = "") -> dict:
+        """On: the Ollama provider exists, is enabled and goes LAST in the chain (the cloud answers first). Off: disabled."""
+        from ..config import ProviderCfg
+
+        brain = self.rt.cfg.brain
+        provs = [p.model_dump() for p in brain.providers]
+        p = next((x for x in provs if x.get("preset") == "ollama"), None)
+        if on:
+            if p is None:
+                p = ProviderCfg(id="ollama", preset="ollama", model=model or "qwen2.5:3b").model_dump()
+                provs.append(p)
+            p["enabled"] = True
+            if model:
+                p["model"] = model
+            chain = [c for c in brain.chain if c != p["id"]] + [p["id"]]
+            self.rt.update_config({"brain": {"providers": provs, "chain": chain, "local_enabled": True, "offline_only": False}})
+        elif p is not None:
+            p["enabled"] = False
+            self.rt.update_config({"brain": {"providers": provs}})
+        return self.backup()
 
     def cancel_pull(self) -> None:
         self._cancel = True

@@ -25,7 +25,7 @@ CLIENT_TYPES = [
     "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
-    "stop_all", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+    "stop_all", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
     "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
@@ -79,7 +79,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -1039,6 +1039,9 @@ class Connection:
             name = m.get("name", "")
             if name:
                 self.spawn(self._local_then_status(rt.local.pull(name)))
+        elif t == "local_backup_set":         # 3.12 offline backup on/off (the download itself is local_pull, confirmed in the UI)
+            rt.local.set_backup(bool(m.get("on")), str(m.get("model", ""))[:80])
+            await self.send("local_info", **await rt.local.status())
         elif t == "local_pull_cancel":
             rt.local.cancel_pull()
         elif t == "local_delete":
