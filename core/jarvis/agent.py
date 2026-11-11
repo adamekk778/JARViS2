@@ -283,10 +283,15 @@ class Agent:
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
                 if voice and vm and time.time() - vm["ts"] < 60 and vm["mood"] not in ("klid", "nevím") else "")
         extra = "\n\n".join(x for x in (proj, mood, extra) if x)
-        msgs: list[dict] = [{"role": "system", "content": build_system_prompt(rt.cfg, facts, voice, extra)}]
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:
             history = history[:-1]
+        from . import chatsummary                   # 3.12 the older part of a long chat as a short summary
+
+        summary, history = chatsummary.apply(rt, history)
+        if summary:
+            extra = (extra + "\n\n" if extra else "") + f"Shrnutí dřívější části této konverzace: {summary}"
+        msgs: list[dict] = [{"role": "system", "content": build_system_prompt(rt.cfg, facts, voice, extra)}]
         msgs += [_stored_to_llm(m) for m in history if m["role"] in ("user", "assistant")]
         need_vision = False
         if attachments:
@@ -463,8 +468,10 @@ class Agent:
                         bus.publish("assistant_delta", text=ch.text)
                     if ch.tool_calls:
                         calls = ch.tool_calls
-                if rt.router.last_used:
-                    bus.publish("brain", provider=rt.router.last_used[0], model=rt.router.last_used[1])
+                if rt.router.last_used:          # 3.12 with how much of today's free AI is left ("Groq · 70 %")
+                    from .llm.quota import brain_state
+
+                    bus.publish("brain", **brain_state(rt))
                 if not calls:
                     break
                 if rnd >= rounds:
@@ -533,4 +540,8 @@ class Agent:
                     attachments=[rt.public_attachment(a) for a in out_atts])
         if not cancelled:
             rt.maybe_speak(full_text, source, self._lang)
+        if status == "done" and not cancelled:      # 3.12 a long chat: summarise its older part in the background
+            from . import chatsummary
+
+            asyncio.get_running_loop().create_task(chatsummary.refresh(rt))
         return full_text

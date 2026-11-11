@@ -87,6 +87,10 @@ class Router:
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
         self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
         self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
+        self.on_switch: Callable[[dict, str], None] | None = None  # "Groq ran out → carrying on with Gemini"
+        from .quota import Quota
+
+        self.quota = Quota()
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -119,14 +123,16 @@ class Router:
                 errors[pcfg.id] = why
                 continue
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if hasattr(prov, "on_headers"):
+                prov.on_headers = lambda h, _p=pcfg.id, _prov=prov: self.quota.from_headers(_p, _prov.model, h)
             if pcfg.id in self.resolved_models:
                 prov.model = self.resolved_models[pcfg.id]
             if not want_model and self._is_limited(pcfg.id, prov.model):     # used up a moment ago: straight to another
                 alt = await self._alt_model(pcfg, prov)
                 if alt:
                     prov.model = alt
-            model = (want_model or (pcfg.vision_model if need_vision and pcfg.vision_model else
-                     pcfg.fast_model if fast and pcfg.fast_model else None))
+            quick = pcfg.fast_model or PRESETS.get(pcfg.preset, {}).get("fast_model", "")   # Groq/Gemini: own allowance
+            model = want_model or (pcfg.vision_model if need_vision and pcfg.vision_model else quick if fast and quick else None)
             resolved = False
             bad_call_retried = False
             fitted_again = False
@@ -158,6 +164,11 @@ class Router:
                         self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
                         started = True
                         self.last_used = (pcfg.id, model or prov.model)
+                        if errors and self.on_switch:          # an earlier provider failed: say who carries on
+                            try:
+                                self.on_switch(dict(errors), pcfg.id)
+                            except Exception:  # noqa: BLE001
+                                pass
                         out = len(first.text or "")
                         yield first
                         async for ch in agen:

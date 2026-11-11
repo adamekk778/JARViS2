@@ -21,6 +21,7 @@ class OpenAICompat:
         self.max_tokens = max_tokens
         self._transport = transport
         self._timeout = timeout
+        self.on_headers = None          # 3.12 the router reads the daily allowance left from the answer headers
 
     def _headers(self) -> dict:
         h = {"Content-Type": "application/json"}
@@ -45,6 +46,11 @@ class OpenAICompat:
         try:
             async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
                 async with client.stream("POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body) as r:
+                    if self.on_headers is not None:
+                        try:
+                            self.on_headers(r.headers)
+                        except Exception:  # noqa: BLE001
+                            pass
                     if r.status_code >= 400:
                         text = (await r.aread()).decode("utf-8", "replace")[:500]
                         raise ProviderError(f"HTTP {r.status_code}: {text}", status=r.status_code)

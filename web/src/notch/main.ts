@@ -819,6 +819,7 @@ const CLAUDE_SHORT: Record<string, string> = { working: "Pracuje", thinking: "P�
 const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "Přemýšlí", working: "Pracuje", speaking: "Mluví", waiting: "Čeká na tebe" };
 // the AI that answers now (the core says which provider + model once the first words arrive)
 let brain: { provider: string; model: string } | null = null;
+let brainLeft: number | null = null;      // 3.12 % of today's free AI left (null = unknown / paid)
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
@@ -881,7 +882,7 @@ function setKids(el: HTMLElement, kids: (Node | string)[]) {
   kidsKey.set(el, key);
   el.replaceChildren(...kids);
 }
-client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; renderBrand(); updateActivity(); });
+client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; brainLeft = typeof m.left === "number" ? m.left : null; renderBrand(); updateActivity(); });
 client.on("lyrics", (m) => {
   lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [] };
   lyrIdx = -2;
@@ -1132,7 +1133,10 @@ function islandActivity(t: any) {
     r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
   } else if (sk("ai") && jarvisBusy() && brain && coreMood !== "listening") {
     const b = brandOf(brain.provider, brain.model);
-    kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")]; r = [b.name];
+    kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")];
+    // 3.12 how much of today's free AI is left ("Groq · 70 %"), amber when low, red when nearly out
+    r = brainLeft === null ? [b.name] : [h("span", { class: `n-ai-left ${brainLeft < 5 ? "out" : brainLeft < 20 ? "low" : ""}`,
+      title: "Kolik ti dnes zbývá z limitu zdarma (odhad)" }, b.name, h("b", {}, ` · ${brainLeft} %`))];
     shape.style.setProperty("--brand", b.color);
   } else if (dict.state === "listening" || dict.state === "transcribing") {
     kind = "dict"; l = [icon("microphone", "ph-fill"), h("span", {}, dict.state === "listening" ? "Poslouchám" : "Přepisuji")]; r = [dictBars];

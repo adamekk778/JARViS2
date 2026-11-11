@@ -660,3 +660,8 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
 @keyframes ctl-in { from { opacity: 0; filter: blur(4px); } }
 html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::after { animation: none; }
 .notch.ctl .n-inner { background: #000 !important; box-shadow: 0 10px 28px rgb(0 0 0 / .45) !important; }
+
+/* 3.12 how much of today's free AI is left, next to the AI's name */
+.n-ai-left b { font-weight: 600; color: rgba(255, 255, 255, .55); }
+.n-ai-left.low b { color: #ff9f0a; }
+.n-ai-left.out b { color: #ff453a; }

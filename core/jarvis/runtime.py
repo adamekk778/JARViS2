@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import time
 from typing import Any
 
 import httpx
@@ -24,7 +25,8 @@ from .tools.platform import get as get_platform
 log = logging.getLogger(__name__)
 
 
-PRESET_LABEL = {"groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", "openai": "OpenAI"}
+PRESET_LABEL = {"groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", "openai": "OpenAI", "anthropic": "Claude",
+                "omniroute": "OmniRoute", "ollama": "Ollama"}
 
 
 class Runtime:
@@ -101,6 +103,7 @@ class Runtime:
         self.router.on_usage = self.usage.record
         self.router.gate = self.usage.blocked
         # a provider's minute limit: say so while JARVIS waits instead of going quiet (or giving up)
+        self.router.on_switch = self._brain_switched
         self.router.on_wait = lambda pid, secs: self.notify(
             f"{PRESET_LABEL.get(pid, pid)} – minutový limit", f"Čekám {round(secs)} s a pokračuju v úkolu.", speak=False)
         from . import aiplus
@@ -235,6 +238,22 @@ class Runtime:
     def call_soon(self, fn, *args) -> None:
         if self.loop is not None:
             self.loop.call_soon_threadsafe(fn, *args)
+
+    def _brain_switched(self, errors: dict, now: str) -> None:
+        """3.12 an AI ran out (limit) and another carries on: say so once an hour, not silently and not every message."""
+        import re as _re
+
+        limited = [p for p, why in errors.items() if _re.search(r"429|413|limit|quota|too many", str(why), _re.I)]
+        if not limited:
+            return
+        key = (tuple(sorted(limited)), now)
+        seen = getattr(self, "_switch_said", {})
+        if time.time() - seen.get(key, 0) < 3600:
+            return
+        seen[key] = time.time()
+        self._switch_said = seen
+        names = ", ".join(PRESET_LABEL.get(p, p) for p in limited)
+        self.notify("Přepínám mozek", f"{names} má dnes vyčerpaný limit – pokračuju přes {PRESET_LABEL.get(now, now)}.", speak=False)
 
     # ---------- your own interface sounds (3.0) ----------
     SOUND_FILES = {"wake": ("probuzeni", "wake"), "listen": ("poslech", "listen"), "done": ("hotovo", "done"),
