@@ -11,6 +11,7 @@ from typing import AsyncIterator, Callable
 import httpx
 
 from ..config import Brain, ProviderCfg
+from . import budget as bud
 from .base import AllProvidersFailed, Chunk, ProviderError
 from .ollama import Ollama
 from .openai_compat import OpenAICompat, friendly_error, pick_model
@@ -37,8 +38,8 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
 
 
 # Groq's free models each have their own limits: when one is used up for the day, another one still answers
-GROQ_ALT = ("openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct-0905",
-            "qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.1-8b-instant")
+GROQ_ALT = ("openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile",
+            "moonshotai/kimi-k2-instruct-0905", "openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant")
 SHORT_WAIT_S = 25           # "try again in 7 s" → JARVIS waits that long itself instead of failing
 
 
@@ -84,6 +85,7 @@ class Router:
         self.cache = None                                                           # OMEGA 584: aiplus.AICache
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
+        self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -126,6 +128,8 @@ class Router:
                      pcfg.fast_model if fast and pcfg.fast_model else None))
             resolved = False
             bad_call_retried = False
+            fitted_again = False
+            last_err: Exception | None = None
             msgs = messages
             if need_vision and pcfg.id in self.no_vision:
                 msgs = _strip_images(messages)
@@ -134,8 +138,20 @@ class Router:
             async with self.local_queue.slot() if local else contextlib.nullcontext():   # OMEGA 577: one local inference at a time
                 for attempt in range(6):   # retries: without tools, without images, another model, after a short wait
                     started = False
+                    send_msgs, send_tools = msgs, use_tools
+                    limit = self._limit_of(pcfg, model or prov.model)
+                    if limit:                    # a small per-minute limit (Groq): make the request fit it
+                        send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
+                        need = bud.estimate(send_msgs, send_tools) + prov.max_tokens
+                        if need > limit and not want_model:          # still too big → a model with a bigger limit
+                            big = await self._alt_model(pcfg, prov, need=need)
+                            if big:
+                                log.info("%s: request ~%d tokens > %d of %s, using %s", pcfg.id, need, limit, prov.model, big)
+                                prov.model, model = big, None
+                                limit = self._limit_of(pcfg, big)
+                                send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
                     try:
-                        agen = prov.stream(msgs, use_tools, model=model)
+                        agen = prov.stream(send_msgs, send_tools, model=model)
                         t_req = time.monotonic()
                         first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
                         self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
@@ -161,6 +177,7 @@ class Router:
                         errors[pcfg.id] = "neodpověděl včas"
                         break
                     except ProviderError as e:
+                        last_err = e
                         if started:
                             raise
                         if use_tools and e.is_bad_tool_call and not bad_call_retried:
@@ -177,6 +194,13 @@ class Router:
                             msgs = _strip_images(messages)
                             continue
                         if e.status in (413, 429):
+                            learnt = bud.limit_from_error(str(e))
+                            if learnt:
+                                self.tpm[(pcfg.id, model or prov.model)] = learnt
+                            asked = bud.requested_from_error(str(e))
+                            if learnt and asked and asked > learnt and not fitted_again:
+                                fitted_again = True      # one request bigger than the whole minute: fit it, ask again
+                                continue
                             wait = retry_after(e)
                             if e.status == 429 and wait is not None and wait <= SHORT_WAIT_S:
                                 log.info("%s: rate limited, waiting %.1f s", pcfg.id, wait)   # a minute's limit: wait it out
@@ -200,6 +224,9 @@ class Router:
                                 continue
                         errors[pcfg.id] = friendly_error(pcfg.preset, prov.base_url if hasattr(prov, "base_url") else "", e)
                         break
+                else:   # every retry used up (waits, other models): say why – it used to end as "no AI brain at all"
+                    if last_err is not None and pcfg.id not in errors:
+                        errors[pcfg.id] = friendly_error(pcfg.preset, prov.base_url if hasattr(prov, "base_url") else "", last_err)
         self.last_errors = errors
         raise AllProvidersFailed(errors)
 
@@ -207,8 +234,17 @@ class Router:
         until = self.limited.get((pid, model))
         return bool(until and until > time.monotonic())
 
-    async def _alt_model(self, pcfg: ProviderCfg, prov) -> str | None:
-        """Another model of the same provider whose own limit is not used up (Groq: each model counts separately)."""
+    def _limit_of(self, pcfg: ProviderCfg, model: str) -> int | None:
+        """Tokens a minute this model allows, when known (learnt from an error, or Groq's free tier)."""
+        if (pcfg.id, model) in self.tpm:
+            return self.tpm[(pcfg.id, model)]
+        if pcfg.preset == "groq":
+            return bud.GROQ_TPM.get(model, 8000)
+        return None
+
+    async def _alt_model(self, pcfg: ProviderCfg, prov, need: int = 0) -> str | None:
+        """Another model of the same provider whose own limit is not used up (Groq: each model counts separately);
+        with `need`, one whose per-minute limit is big enough for the request."""
         if pcfg.preset != "groq":
             return None
         have: list[str] = []
@@ -218,7 +254,8 @@ class Router:
             except Exception:  # noqa: BLE001
                 have = []
         for m in GROQ_ALT:
-            if (not have or m in have) and m != prov.model and not self._is_limited(pcfg.id, m):
+            if (not have or m in have) and m != prov.model and not self._is_limited(pcfg.id, m) \
+                    and (not need or (self._limit_of(pcfg, m) or 0) >= need):
                 return m
         return None
 

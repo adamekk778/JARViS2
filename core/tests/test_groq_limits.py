@@ -141,3 +141,103 @@ async def test_a_broken_tool_call_is_asked_again_and_tools_stay_on():
     async for ch in r.stream([{"role": "user", "content": "ahoj"}], [{"type": "function", "function": {"name": "x", "parameters": {}}}]):
         out += ch.text
     assert out == "ok" and calls == [True, True] and "groq" not in r.no_tools
+
+
+# ---------- a fake Groq that counts tokens per minute per model, like the real free tier ----------
+class FakeGroq:
+    """Refuses like Groq: a request over the model's minute → 413; the minute used up → 429 'try again in Ns'."""
+
+    def __init__(self, clock):
+        self.clock = clock
+        self.used: dict[str, list[tuple[float, int]]] = {}
+        self.models_seen: list[str] = []
+        self.step = 0
+
+    def handler(self, req):
+        from jarvis.llm import budget
+
+        if req.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [{"id": m} for m in budget.GROQ_TPM]})
+        body = json.loads(req.content)
+        model = body["model"]
+        limit = budget.GROQ_TPM[model]
+        asked = len(req.content.decode()) // 3 + body.get("max_tokens", 0)
+        now = self.clock[0]
+        window = [(t, n) for t, n in self.used.get(model, []) if now - t < 60]
+        self.used[model] = window
+        if asked > limit:
+            return httpx.Response(413, text=f'{{"error":{{"message":"Request too large for model `{model}` on tokens per minute '
+                                            f'(TPM): Limit {limit}, Requested {asked}, please reduce your message size"}}}}')
+        if sum(n for _, n in window) + asked > limit:
+            wait = 60 - (now - window[0][0])
+            return httpx.Response(429, text=f'{{"error":{{"message":"Rate limit reached for model `{model}` on tokens per minute '
+                                            f'(TPM): Limit {limit}, Used {sum(n for _, n in window)}, Requested {asked}. '
+                                            f'Please try again in {wait:.2f}s."}}}}')
+        window.append((now, asked))
+        self.models_seen.append(model)
+        self.step += 1
+        if body.get("tools") and self.step < 3:      # two tool steps, then the answer
+            ev = {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": f"c{self.step}", "type": "function",
+                  "function": {"name": "web_read", "arguments": json.dumps({"url": "https://example.com"})}}]}}]}
+            return httpx.Response(200, headers={"content-type": "text/event-stream"},
+                                  content=f"data: {json.dumps(ev)}\n\ndata: [DONE]\n\n".encode())
+        return sse("Hotovo,recept_je_na_telefonu")
+
+
+async def test_a_real_task_with_history_fits_groqs_free_limits(rt, monkeypatch):
+    """The user's case: a task with tools and earlier chat on Groq's free tier must finish, not end with 'limit'."""
+    from jarvis.llm import router as rmod
+    from jarvis.tools.base import ToolResult
+
+    clock = [1000.0]
+
+    async def fake_sleep(s):
+        clock[0] += s                                # waiting moves the fake minute on
+
+    monkeypatch.setattr(rmod.asyncio, "sleep", fake_sleep)
+    g = FakeGroq(clock)
+    rt.cfg.brain.providers = [ProviderCfg(id="groq", preset="groq", model="openai/gpt-oss-120b")]
+    rt.cfg.brain.chain = ["groq"]
+    rt.router = Router(rt.cfg.brain, lambda _: "gsk_x", httpx.MockTransport(g.handler))
+    for _ in range(10):                                # a normal chat history before the task
+        rt.memory.add_message("user", "Najdi mi na webu nejlepší levné sluchátka do 1000 Kč a porovnej je " * 2)
+        rt.memory.add_message("assistant", "Tady je přehled: " + "Sluchátka XY mají dobrý zvuk a výdrž 30 hodin. " * 12)
+
+    async def big_page(ctx, url: str = "") -> ToolResult:
+        return ToolResult(True, "Recept na svíčkovou: " + "Maso, kořenová zelenina, smetana. " * 400)   # ~14 000 chars
+
+    monkeypatch.setitem(tools.REGISTRY, "web_read", tools.ToolSpec("web_read", "Přečte stránku.", big_page,
+                                                                   {"type": "object", "properties": {"url": {"type": "string"}}}))
+    answer = await rt.agent.handle("Najdi mi na webu recept na svíčkovou a pošli ho na telefon", [], "chat")
+    assert "Hotovo" in answer and "limit" not in answer.lower()
+    assert g.step >= 3
+
+
+async def test_retries_used_up_say_limit_not_no_brain():
+    from jarvis.llm.base import AllProvidersFailed
+
+    def handler(req):
+        if req.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": []})
+        return httpx.Response(429, text='{"error":{"message":"Rate limit reached ... Please try again in 3m2s."}}')
+
+    r = Router(groq_brain(), lambda _: "gsk_x", httpx.MockTransport(handler))
+    try:
+        await collect(r)
+        raise AssertionError("should fail")
+    except AllProvidersFailed as e:
+        assert e.errors.get("groq") and e.is_limit           # not "žádný poskytovatel není nastaven"
+
+
+def test_fit_shrinks_a_big_request_under_the_limit_and_keeps_the_task():
+    from jarvis.llm import budget
+
+    msgs = [{"role": "system", "content": "S" * 4700}]
+    for i in range(10):
+        msgs += [{"role": "user", "content": f"stará otázka {i} " * 20}, {"role": "assistant", "content": "odpověď " * 120}]
+    msgs += [{"role": "user", "content": "Najdi recept"}, {"role": "assistant", "content": None, "tool_calls": [{"id": "c1"}]},
+             {"role": "tool", "tool_call_id": "c1", "content": "x" * 14000}]
+    tools_ = [tools.REGISTRY[n].schema() for n in list(tools.REGISTRY)[:32]]
+    m2, t2, mt = budget.fit(msgs, tools_, 8000, 2048)
+    assert budget.estimate(m2, t2) + mt <= 8000 and mt == 1024
+    assert m2[0]["role"] == "system" and m2[-3]["content"] == "Najdi recept" and m2[-1]["role"] == "tool"
