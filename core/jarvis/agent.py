@@ -11,6 +11,7 @@ from typing import Any
 from . import tools
 from .llm.base import AllProvidersFailed, ProviderError, ToolCall
 from .prompt import build_system_prompt
+from .tools import select as sel
 
 log = logging.getLogger(__name__)
 
@@ -325,6 +326,18 @@ class Agent:
             self._confirms.pop(cid, None)
             self.confirm_info.pop(cid, None)
 
+    # ---------- which tools go with a message (see tools/select.py: ~650 of them were ~85 000 tokens every time) ----------
+    def _allowed_names(self) -> set[str]:
+        from .permissions import allowed
+
+        cfg = self.rt.cfg
+        off = set(cfg.tools.disabled or ())
+        return {n for n, s in tools.REGISTRY.items() if n not in off and allowed(cfg, s)}
+
+    def _tool_schemas(self, text: str) -> list[dict]:
+        names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []))
+        return [tools.REGISTRY[n].schema() for n in names]
+
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
 
@@ -425,7 +438,9 @@ class Agent:
         if rt.cfg.agent.mode:
             extra = (extra + "\n" if extra else "") + AGENT_MODE_RULE
         msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
-        schemas = tools.schemas(rt.cfg.tools.disabled, rt.cfg)
+        schemas = self._tool_schemas(text)
+        offered = {sc.get("function", sc).get("name") for sc in schemas}
+        used_now: list[str] = []
         full_text = ""
         tool_cards: list[dict] = []
         out_atts: list[str] = []
@@ -468,9 +483,17 @@ class Agent:
                     if c.id not in results:
                         results[c.id] = await self._run_call(c, tool_cards, out_atts)
                 msgs += [results[c.id] for c in calls]
+                used_now += [c.name for c in calls if c.name != sel.FIND]
+                for c in calls:                          # the AI asked for more tools → they go with the next step
+                    if c.name == sel.FIND:
+                        for n in sel.search(tools.REGISTRY, str((c.arguments or {}).get("query", "")), 24):
+                            if n not in offered and n in self._allowed_names() and len(offered) < 60:
+                                schemas.append(tools.REGISTRY[n].schema())
+                                offered.add(n)
                 bus.publish("state", state="thinking")
             else:
                 pass
+            self._recent_tools = list(dict.fromkeys(reversed(used_now)))[:8]   # a follow-up ("a teď ho pošli") has them
             if not full_text.strip():
                 full_text = "Hotovo." if tool_cards else "…"
                 bus.publish("assistant_delta", text=full_text)

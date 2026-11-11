@@ -36,6 +36,23 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
                         max_tokens=brain.max_tokens, transport=transport)
 
 
+# Groq's free models each have their own limits: when one is used up for the day, another one still answers
+GROQ_ALT = ("openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct-0905",
+            "qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.1-8b-instant")
+SHORT_WAIT_S = 25           # "try again in 7 s" → JARVIS waits that long itself instead of failing
+
+
+def retry_after(e: Exception) -> float | None:
+    """Seconds a rate-limited provider asks to wait ("Please try again in 1m12.5s" / "in 7.66s" / "in 450ms")."""
+    import re
+
+    m = re.search(r"try again in\s+(?:(\d+)h)?(?:(\d+)m(?!s))?(?:([\d.]+)s)?(?:([\d.]+)ms)?", str(e), re.I)
+    if not m or not any(m.groups()):
+        return None
+    h, mi, sec, ms = (float(x) if x else 0.0 for x in m.groups())
+    return h * 3600 + mi * 60 + sec + ms / 1000
+
+
 def _strip_images(messages: list[dict]) -> list[dict]:
     out = []
     for m in messages:
@@ -66,6 +83,7 @@ class Router:
         self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
         self.cache = None                                                           # OMEGA 584: aiplus.AICache
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
+        self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -100,16 +118,21 @@ class Router:
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
             if pcfg.id in self.resolved_models:
                 prov.model = self.resolved_models[pcfg.id]
+            if not want_model and self._is_limited(pcfg.id, prov.model):     # used up a moment ago: straight to another
+                alt = await self._alt_model(pcfg, prov)
+                if alt:
+                    prov.model = alt
             model = (want_model or (pcfg.vision_model if need_vision and pcfg.vision_model else
                      pcfg.fast_model if fast and pcfg.fast_model else None))
             resolved = False
+            bad_call_retried = False
             msgs = messages
             if need_vision and pcfg.id in self.no_vision:
                 msgs = _strip_images(messages)
             use_tools = tools if pcfg.id not in self.no_tools else None
             local = self.local_queue is not None and PRESETS.get(pcfg.preset, {}).get("local")
             async with self.local_queue.slot() if local else contextlib.nullcontext():   # OMEGA 577: one local inference at a time
-                for attempt in range(4):   # retries: without tools, without images, another model
+                for attempt in range(6):   # retries: without tools, without images, another model, after a short wait
                     started = False
                     try:
                         agen = prov.stream(msgs, use_tools, model=model)
@@ -140,6 +163,10 @@ class Router:
                     except ProviderError as e:
                         if started:
                             raise
+                        if use_tools and e.is_bad_tool_call and not bad_call_retried:
+                            bad_call_retried = True          # a malformed tool call: once more, tools stay on
+                            log.info("%s: malformed tool call, asking again", pcfg.id)
+                            continue
                         if use_tools and e.is_tools_unsupported:
                             log.info("%s: tools unsupported, retrying without", pcfg.id)
                             self.no_tools.add(pcfg.id)
@@ -149,6 +176,19 @@ class Router:
                             self.no_vision.add(pcfg.id)
                             msgs = _strip_images(messages)
                             continue
+                        if e.status in (413, 429):
+                            wait = retry_after(e)
+                            if e.status == 429 and wait is not None and wait <= SHORT_WAIT_S:
+                                log.info("%s: rate limited, waiting %.1f s", pcfg.id, wait)   # a minute's limit: wait it out
+                                await asyncio.sleep(wait + 0.3)
+                                continue
+                            cur = model or prov.model
+                            self.limited[(pcfg.id, cur)] = time.monotonic() + (wait if wait else 600)
+                            alt = None if want_model else await self._alt_model(pcfg, prov)
+                            if alt:
+                                log.info("%s: %s used up, switching to %s", pcfg.id, cur, alt)
+                                prov.model, model = alt, None
+                                continue
                         if e.is_unknown_model and not resolved and hasattr(prov, "list_models"):
                             # the configured model (e.g. "auto") does not exist there: ask the gateway what it has
                             resolved = True
@@ -162,6 +202,25 @@ class Router:
                         break
         self.last_errors = errors
         raise AllProvidersFailed(errors)
+
+    def _is_limited(self, pid: str, model: str) -> bool:
+        until = self.limited.get((pid, model))
+        return bool(until and until > time.monotonic())
+
+    async def _alt_model(self, pcfg: ProviderCfg, prov) -> str | None:
+        """Another model of the same provider whose own limit is not used up (Groq: each model counts separately)."""
+        if pcfg.preset != "groq":
+            return None
+        have: list[str] = []
+        if hasattr(prov, "list_models"):
+            try:
+                have = await prov.list_models()
+            except Exception:  # noqa: BLE001
+                have = []
+        for m in GROQ_ALT:
+            if (not have or m in have) and m != prov.model and not self._is_limited(pcfg.id, m):
+                return m
+        return None
 
     async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None,
                        cache: bool = False, model: str | None = None) -> str:

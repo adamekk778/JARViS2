@@ -26,9 +26,17 @@ class ProviderError(Exception):
         self.retryable = retryable
 
     @property
+    def is_bad_tool_call(self) -> bool:
+        """The model wrote a broken tool call this time (Groq: "tool_use_failed") – the model CAN use tools, the
+        answer was just malformed: ask again; never switch its tools off for good because of it."""
+        m = str(self).lower()
+        return self.status == 400 and any(w in m for w in ("tool_use_failed", "tool call validation failed",
+                                                           "failed to call a function", "not in request.tools"))
+
+    @property
     def is_tools_unsupported(self) -> bool:
         m = str(self).lower()
-        return self.status == 400 and any(w in m for w in ("tool", "function"))
+        return self.status == 400 and not self.is_bad_tool_call and any(w in m for w in ("tool", "function"))
 
     @property
     def is_unknown_model(self) -> bool:
