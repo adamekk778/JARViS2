@@ -1,6 +1,7 @@
 // The big notch panel (spec §5): content, right column (chat), tab bar at the bottom. "Domů" = three live cards.
 import { createFocusStats } from "./focusstats";
 import { createAskAi } from "./askai";
+import { createClipsView, createShotsView } from "./shelves";
 import { createClock } from "./clock";
 import { createMusicView } from "./music";
 import { Blob, type CharacterColor } from "../character/blob";
@@ -13,13 +14,15 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "music" | "chat" | "quick" | "system" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
+export type Section = "home" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
   ["chat", "chat-circle-dots", "Chat"],
   ["quick", "squares-four", "Akce"],
   ["system", "gear-six", "Systém"],
+  ["clips", "clipboard-text", "Schránka"],
+  ["shots", "image", "Snímky"],
   ["files", "folder-simple", "Soubory"],
   ["workspaces", "browsers", "Plochy"],
   ["tools", "wrench", "Nástroje"],
@@ -671,7 +674,8 @@ export function buildPanel(ctx: PanelCtx) {
   npCard.classList.add("opens");
   npCard.title = "Otevřít přehrávač s textem";
   npCard.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest("button")) show("music"); });
-  const views: Record<Section, HTMLElement> = { home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  const clipsView = createClipsView(client), shotsView = createShotsView(client);   // 3.12 Schránka, Snímky
+  const views: Record<Section, HTMLElement> = { clips: clipsView.el, shots: shotsView.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -700,7 +704,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "music", "chat", "quick", "system", "more", "activity", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "music", "chat", "quick", "system", "clips", "shots", "more", "activity", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -739,6 +743,8 @@ export function buildPanel(ctx: PanelCtx) {
     right.hidden = s !== "chat";
     el.classList.toggle("wide", s !== "chat");
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
+    if (s === "clips") clipsView.refresh();
+    if (s === "shots") shotsView.refresh();
     if (s === "workspaces") { client.send("workspaces_get"); wmap.refresh(); }
     if (s === "chat") client.send("notch_context_get");
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }

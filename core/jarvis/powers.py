@@ -102,6 +102,14 @@ class Activity:
                             (day, dt.datetime.fromtimestamp(now).hour, fg["app"], dt_s))
         if cfg.clipboard_history:
             self._clipboard(now)
+        if now - getattr(self, "_shots_at", 0.0) >= 15:     # 3.12 a new screenshot → the notch's Snímky
+            self._shots_at = now
+            try:
+                from . import clipshelf
+
+                clipshelf.watch_shots(self.rt, now)
+            except Exception:  # noqa: BLE001
+                pass
         self._breaks(now, idle, cfg.break_minutes)
 
     def _clipboard(self, now: float) -> None:
@@ -123,6 +131,9 @@ class Activity:
         if self.clips and self.clips[0]["text"] == text:
             return
         self.clips.appendleft({"text": text, "ts": now, "app": self.last_external.get("app", "")})
+        from . import clipshelf
+
+        clipshelf.changed(self.rt)                 # 3.12 the notch's Schránka shows it at once
 
     def _breaks(self, now: float, idle: float, minutes: int) -> None:
         if idle >= BREAK_RESET_S or minutes <= 0:

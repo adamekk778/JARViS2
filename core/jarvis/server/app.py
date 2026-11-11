@@ -317,6 +317,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             rt.ui_hook(view)
         return {"ok": True}
 
+    @app.get("/api/shot")
+    async def shot(request: Request, path: str = ""):
+        """3.12 a screenshot for the notch's Snímky – only files from the screenshot folders, only on this PC."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        from .. import clipshelf
+
+        p = clipshelf.allowed_shot(rt, path)
+        if p is None:
+            raise HTTPException(404, "Snímek nenalezen")
+        return FileResponse(p, headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"})
+
     @app.get("/api/debug/threads")
     async def debug_threads(request: Request):
         """Where every thread of JARVIS is right now (the CI asks when a window stops answering). This PC only."""

@@ -106,3 +106,5 @@ html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding
 .p-head-r .aa-chip { width: 27px; height: 27px; }
 .p-head-r .aa-chips-slot { margin-right: 8px; padding-right: 8px; }
 [data-brand="groq"] { --bg: radial-gradient(circle at 35% 30%, #ff7558, #f55036 70%); --fg: #fff; }
+/* the AI logos belong to Domů; elsewhere the head needs the room for the tabs */
+.p-head:not(:has(.home-date.bar)) .p-head-r .aa-chips-slot { display: none; }

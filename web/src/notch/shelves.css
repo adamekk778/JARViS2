@@ -1,0 +1,72 @@
+/* 3.12 Schránka and Snímky */
+.sh { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; padding: 2px 4px 4px; }
+.sh-top { display: flex; align-items: center; gap: 10px; }
+.sh-title { display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; }
+.sh-title i { font-size: 18px; color: #64d2ff; align-self: center; }
+.sh-title strong { font-size: 17px; }
+.sh-title span { font-size: 12px; color: rgb(255 255 255 / .45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-search { width: 210px; height: 32px; border-radius: 99px; border: 0; padding: 0 14px; color: #fff; font: inherit; font-size: 13px;
+  background: rgb(255 255 255 / .08); outline: none; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08); }
+.sh-search:focus { box-shadow: inset 0 0 0 1.5px rgb(100 210 255 / .7); }
+.sh-tool { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 99px; border: 0; cursor: pointer;
+  background: rgb(255 255 255 / .08); color: rgb(255 255 255 / .8); font: inherit; font-size: 12.5px; }
+.sh-tool:hover { background: rgb(255 255 255 / .14); color: #fff; }
+
+.sh-filters { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.sh-filters::-webkit-scrollbar { display: none; }
+.sh-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 99px; border: 0; cursor: pointer;
+  background: rgb(255 255 255 / .07); color: rgb(255 255 255 / .75); font: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.sh-chip:hover { background: rgb(255 255 255 / .13); color: #fff; }
+.sh-chip.on { background: #fff; color: #000; }
+.sh-chip.add { background: transparent; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2); }
+.sh-chip i { font-size: 13px; }
+.sh-chip-x { margin-left: 2px; opacity: .6; }
+.sh-chip-x:hover { opacity: 1; }
+.sh-new { flex: none; width: 150px; height: 28px; border-radius: 99px; border: 0; padding: 0 12px; background: rgb(255 255 255 / .1); color: #fff; font: inherit; font-size: 12.5px; outline: none;
+  box-shadow: inset 0 0 0 1.5px rgb(100 210 255 / .6); }
+
+.sh-list { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.sh-list.clips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; }
+.sh-list.shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-content: start; }
+.sh-item { position: relative; border-radius: 16px; background: rgb(255 255 255 / .06); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07); cursor: pointer;
+  transition: background .18s, box-shadow .18s, transform .18s; }
+.sh-item:hover { background: rgb(255 255 255 / .1); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .16); }
+.sh-item:active { transform: scale(.985); }
+.sh-item.pinned { box-shadow: inset 0 0 0 1.5px rgb(255 214 10 / .45); }
+.sh-item.clip { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 8px; min-height: 92px; }
+.sh-text { flex: 1; font-size: 13px; line-height: 1.4; color: #fff; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.sh-text.url { color: #64d2ff; }
+.sh-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgb(255 255 255 / .45); min-height: 26px; }
+.sh-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 99px; background: rgb(100 210 255 / .14); color: #9ee3ff; }
+.sh-acts { margin-left: auto; display: inline-flex; gap: 2px; opacity: 0; transition: opacity .15s; }
+.sh-item:hover .sh-acts, .sh-item:focus-within .sh-acts { opacity: 1; }
+.sh-b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; background: transparent; color: rgb(255 255 255 / .7); font-size: 14px; }
+.sh-b:hover { background: rgb(255 255 255 / .14); color: #fff; }
+.sh-b.on { color: #ffd60a; }
+
+.sh-item.shot { overflow: hidden; aspect-ratio: 16 / 10; }
+.sh-item.shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sh-vid { width: 100%; height: 100%; display: grid; place-content: center; justify-items: center; gap: 4px; color: rgb(255 255 255 / .6); font-size: 11px; padding: 8px; text-align: center; }
+.sh-vid i { font-size: 26px; }
+.sh-pin-badge { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgb(0 0 0 / .6); color: #ffd60a; font-size: 12px; }
+.sh-shot-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 4px; padding: 16px 6px 4px 8px;
+  background: linear-gradient(transparent, rgb(0 0 0 / .8)); font-size: 10.5px; color: rgb(255 255 255 / .8); opacity: 0; transition: opacity .15s; }
+.sh-item.shot:hover .sh-shot-bar, .sh-item.shot:focus-within .sh-shot-bar { opacity: 1; }
+.sh-shot-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-item.shot .sh-acts { opacity: 1; }
+.sh-item.shot .sh-b { width: 24px; height: 24px; font-size: 13px; }
+
+.sh-menu { position: absolute; z-index: 5; right: 8px; bottom: 34px; min-width: 170px; display: grid; gap: 2px; padding: 6px; border-radius: 14px;
+  background: #1c1c20; box-shadow: 0 16px 40px -10px rgb(0 0 0 / .9), inset 0 0 0 1px rgb(255 255 255 / .1); cursor: default; }
+.sh-menu button { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: #fff; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.sh-menu button:hover, .sh-menu button:focus { background: rgb(255 255 255 / .1); outline: none; }
+.sh-menu button.on { color: #64d2ff; }
+.sh-menu .sh-new { width: auto; margin-top: 4px; }
+
+.sh-empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 6px; padding: 34px 20px; text-align: center; color: rgb(255 255 255 / .5); font-size: 12.5px; }
+.sh-empty i { font-size: 30px; color: rgb(255 255 255 / .35); }
+.sh-empty strong { color: #fff; font-size: 15px; }
+
+/* the head: with Schránka and Snímky there are seven tabs – the ones you are not on show just their icon */
+html[data-nstyle="dynamic"] .p-head .p-tabs button:not(.active) > span { display: none; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button:not(.active) { padding: 0 10px; }
