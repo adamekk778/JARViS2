@@ -15,8 +15,8 @@ from typing import Callable
 log = logging.getLogger(__name__)
 
 LINGER_S = 1.5          # the frame stays this long after the last action (no flicker between quick actions)
-LABELS = {"computer_use": "Ovládá myš a klávesnici", "type_text": "Píše za tebe", "press_keys": "Mačká klávesy",
-          "mouse": "Hýbe myší", "ui_click": "Kliká v aplikaci", "ui_type": "Píše do aplikace"}
+LABELS = {"computer_use": "Myš a klávesnice", "type_text": "Píše", "press_keys": "Klávesy",
+          "mouse": "Myš", "ui_click": "Kliká", "ui_type": "Píše"}
 
 
 class PcControl:
@@ -50,7 +50,7 @@ class PcControl:
             self._off_handle.cancel()
             self._off_handle = None
         self.active += 1
-        label = LABELS.get(tool, "Ovládá tvůj PC")
+        label = LABELS.get(tool, "Myš a klávesnice")
         if not self.on or label != self.label:
             self.on, self.label = True, label
             self._emit()

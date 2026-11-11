@@ -127,15 +127,17 @@ function paintCtl() {
   ctlBar.hidden = !pcCtl.on;
   ctlBar.classList.toggle("paused", pcCtl.paused);
   if (!pcCtl.on) { ctlBar.replaceChildren(); return; }
-  const btn = (cls: string, ico: string, text: string, fn: () => void) =>
-    h("button", { type: "button", class: `n-ctl-b ${cls}`, onclick: (e: Event) => { e.stopPropagation(); fn(); } }, icon(ico, "ph-fill"), h("span", {}, text));
+  const act = (e: Event, fn: () => void) => { e.stopPropagation(); fn(); };
   ctlBar.replaceChildren(
-    h("span", { class: "n-ctl-dot" }),
-    h("span", { class: "n-ctl-t" }, h("strong", {}, pcCtl.paused ? "Ovládáš ty" : "JARVIS ovládá tvůj PC"),
-      h("span", {}, pcCtl.paused ? "JARVIS na tebe počká" : pcCtl.label || "myš a klávesnice")),
-    pcCtl.paused ? btn("give", "play", "Vrátit JARVISovi", () => client.send("pc_control_give"))
-      : btn("take", "hand-grabbing", "Převzít kontrolu", () => client.send("pc_control_take")),
-    btn("stop", "stop", "Zastavit", () => client.send("stop_all")));
+    h("span", { class: "n-ctl-dot", "aria-hidden": "true" }),
+    h("span", { class: "n-ctl-t" }, h("strong", {}, pcCtl.paused ? "Ovládáš ty" : "JARVIS ovládá PC"),
+      h("span", {}, pcCtl.paused ? "JARVIS čeká" : pcCtl.label || "Myš a klávesnice")),
+    pcCtl.paused
+      ? h("button", { type: "button", class: "n-ctl-b give", onclick: (e: Event) => act(e, () => client.send("pc_control_give")) }, "Vrátit")
+      : h("button", { type: "button", class: "n-ctl-b take", title: "JARVIS se zastaví, dokud mu to nevrátíš",
+          onclick: (e: Event) => act(e, () => client.send("pc_control_take")) }, "Převzít"),
+    h("button", { type: "button", class: "n-ctl-stop", title: "Zastavit", "aria-label": "Zastavit",
+      onclick: (e: Event) => act(e, () => client.send("stop_all")) }, h("i")));
 }
 const bubble = h("div", { class: "n-bubble" }, ctlBar, bubbleState, bubbleTask, bubbleTranscript, bubbleTool, bubbleAnswer, bubbleConfirm);
 const capChip = h("span", { class: "n-capture", hidden: true, title: "JARVIS se právě dívá na obrazovku" }, h("i", { class: "dot" }), "Vidím obrazovku");
@@ -408,8 +410,10 @@ async function cursorInside(): Promise<boolean> {
 }
 
 let swapTimer = 0;
+const ctlCompact = () => pcCtl.on && !pendingConfirm;
 function apply(m: Mode) {
-  const [w, hh] = sizeFor(m);
+  shape.classList.toggle("ctl", m === "live" && ctlCompact());
+  const [w, hh] = m === "live" && ctlCompact() ? [pcCtl.paused ? 420 : 404, 52] : sizeFor(m);
   if (dyn() && shape.dataset.mode !== m && !reducedMotion()) {   // the content blurs while the shape morphs (iOS feel)
     shape.classList.add("swap");
     window.clearTimeout(swapTimer);
