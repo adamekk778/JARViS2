@@ -15,12 +15,14 @@ export function askTargets(settings: any): { p: Prov; brand: ReturnType<typeof b
   const out: { p: Prov; brand: ReturnType<typeof brandOf> }[] = [];
   for (const p of ordered) {
     if (p.enabled === false) continue;
-    const brand = brandOf(p.preset || p.id, p.model || "");
+    // the service you picked (Groq, Ollama…) shows its own logo, not the maker of the model it runs (GPT-OSS → OpenAI)
+    const own = brandOf(p.preset || p.id, "");
+    const brand = !["router", "openrouter"].includes(own.id) ? own : brandOf(p.preset || p.id, p.model || "");   // gateways: the model decides
     if (brand.id === "router" && (p.model || "auto").startsWith("auto")) continue;   // a gateway choosing for you is not one AI
     out.push({ p, brand });
   }
   // the well-known ones first (as on an island bar: Claude, ChatGPT, Gemini), then the rest in your order
-  const rank = (id: string) => { const i = ["claude", "chatgpt", "gemini"].indexOf(id); return i < 0 ? 9 : i; };
+  const rank = (id: string) => { const i = ["claude", "chatgpt", "gemini", "groq"].indexOf(id); return i < 0 ? 9 : i; };
   return out.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t.brand.id) - rank(b.t.brand.id) || a.i - b.i).map((x) => x.t)
     .filter((t, i, all) => all.findIndex((o) => o.brand.id === t.brand.id) === i).slice(0, 3);   // one per logo, three fit the bar
 }

@@ -20,8 +20,8 @@ const CHATGPT = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="current
 const gemini = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="jv-gem" x1="0" y1="1" x2="1" y2="0">`
   + `<stop offset="0" stop-color="#1c7dff"/><stop offset=".52" stop-color="#9177c7"/><stop offset="1" stop-color="#e86b7c"/></linearGradient></defs>`
   + `<path fill="url(#jv-gem)" d="${d}"/></svg>`;
-const GROQ = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/>`
-  + `<text x="12" y="16.4" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-weight="800" font-size="13" fill="#000">g</text></svg>`;
+// the Groq mark (from @lobehub/icons-static-svg, MIT)
+const GROQ = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M12.036 2c-3.853-.035-7 3-7.036 6.781-.035 3.782 3.055 6.872 6.908 6.907h2.42v-2.566h-2.292c-2.407.028-4.38-1.866-4.408-4.23-.029-2.362 1.901-4.298 4.308-4.326h.1c2.407 0 4.358 1.915 4.365 4.278v6.305c0 2.342-1.944 4.25-4.323 4.279a4.375 4.375 0 01-3.033-1.252l-1.851 1.818A7 7 0 0012.029 22h.092c3.803-.056 6.858-3.083 6.879-6.816v-6.5C18.907 4.963 15.817 2 12.036 2z"/></svg>`;
 const ROUTER = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="5" cy="12" r="2.6"/><circle cx="19" cy="5" r="2.6"/>`
   + `<circle cx="19" cy="19" r="2.6"/></g><path d="M7.4 11 16.8 6M7.4 13l9.4 5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`;
 
