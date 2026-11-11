@@ -106,7 +106,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const c = new JarvisClient(ep, "mobile", native.deviceName());
   client = c;
   let waiting = loadOutbox().length;
-  const chat = new ChatView(c, { compact: true, placeholder: "Napiš JARVISovi…" });
+  const chat = new ChatView(c, { compact: true, enterNewline: true, placeholder: "Napiš JARVISovi…" });
 
   const eyes = phoneEyes();                          // 3.12 the notch's eyes instead of the old orb
   const face = { setMood: (m: string, _x?: unknown) => eyes.set(m), setColor: (..._a: unknown[]) => {}, setOutfit: (_o: unknown) => {}, setCharacter: (_c: unknown) => {} };

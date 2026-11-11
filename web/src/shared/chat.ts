@@ -23,6 +23,7 @@ interface Pending {
 
 export interface ChatOptions {
   compact?: boolean; // mobile
+  enterNewline?: boolean; // phone keyboard: Enter = new line (send with the button); on the PC Enter always sends
   placeholder?: string;
   greeting?: string;        // empty-state headline
   subtitle?: string;
@@ -100,7 +101,7 @@ export class ChatView {
     });
     this.input.addEventListener("input", () => this.autosize());
     this.input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !opts.compact) {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !opts.enterNewline) {
         e.preventDefault();
         this.submit();
       }
