@@ -7,7 +7,7 @@ export const CLIENT_TYPES = [
   "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
   "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
   "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
-  "stop_all", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+  "stop_all", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
   "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
   "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
   "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
@@ -34,7 +34,7 @@ export const CLIENT_TYPES = [
 export const SERVER_TYPES = [
   "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
   "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
-  "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "screen_ask", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
+  "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "screen_ask", "phone_reply_suggestion", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
   "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
   "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
   "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",

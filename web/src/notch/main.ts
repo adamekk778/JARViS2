@@ -261,7 +261,7 @@ function dynSize(m: Mode): [number, number] {
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
     case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : kind === "nudge" ? 400 : 348, 38] : [196, 38];
-    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" ? 390 : 330, 36] : [176, 36];
+    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" ? 390 : 330, 36] : [176, 36];
   }
 }
 /** The subtitle pill grows sideways (one wide line) and only takes a second line for a long sentence. */
@@ -532,6 +532,7 @@ function leave() {
   if (mode === "bar" || mode === "hover" || mode === "panel" || mode === "radial") scheduleClose();
 }
 shape.addEventListener("click", (e) => {
+  if (shape.dataset.island === "msg" && msgEv && !(e.target as HTMLElement).closest("button, input")) { openReply(msgEv.item); return; }
   // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
   const tgt = e.target as HTMLElement;
   const busyKind = ["claude", "ai", "team", "task"].includes(shape.dataset.island || "");
@@ -762,6 +763,70 @@ client.on("selection", (m) => {
   window.clearTimeout(selTimer);
   selTimer = window.setTimeout(closeSelection, 25000);
 });
+// ---------- 3.12 messages from the phone: a short island, a click opens the reply right here ----------
+let msgEv: { item: any; until: number } | null = null;
+let replyKey = "";
+client.on("phone_notification", (m) => {
+  if (!m.messaging || m.call) return;
+  msgEv = { item: m, until: Date.now() + 9000 };
+  updateActivity();
+  if (mode === "closed" || mode === "hover") apply(mode);
+  window.setTimeout(() => { if (msgEv && Date.now() >= msgEv.until) { msgEv = null; updateActivity(); if (mode === "closed") apply(mode); } }, 9200);
+});
+function closeReply() {
+  replyKey = "";
+  bubbleConfirm.replaceChildren();
+  bubbleTranscript.textContent = "";
+  renderLive();
+  if (!busy()) settle();
+}
+function openReply(item: any) {
+  msgEv = null;
+  replyKey = item.key || "";
+  liveText = "";
+  bubbleTool.textContent = "";
+  bubbleTranscript.textContent = `${item.app} · ${item.title || "Zpráva"}`;
+  const body = h("div", { class: "n-rp-msg" }, String(item.text || ""));
+  if (!item.can_reply) {
+    bubbleConfirm.replaceChildren(h("div", { class: "n-rp" }, body, h("div", { class: "n-rp-row" },
+      h("span", { class: "muted" }, "Na tuhle zprávu z PC odpovědět nejde – odpověz v telefonu."),
+      h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: closeReply }, icon("x")))));
+  } else {
+    const input = h("input", { class: "n-sa-q", type: "text", placeholder: "Odpověz…", "aria-label": "Odpověď" }) as HTMLInputElement;
+    const send = h("button", { class: "n-pill yes", type: "button" }, icon("paper-plane-tilt", "ph-fill"), " Odeslat") as HTMLButtonElement;
+    const suggest = h("button", { class: "n-pill", type: "button", title: "JARVIS navrhne odpověď – odešle se, až klikneš Odeslat" },
+      icon("sparkle", "ph-fill"), " Navrhni") as HTMLButtonElement;
+    const doSend = () => {
+      const t = input.value.trim();
+      if (!t) return;
+      client.send("phone_reply", { key: replyKey, text: t });
+      send.disabled = true; input.disabled = true;
+      send.replaceChildren("Odesílám…");
+    };
+    send.onclick = doSend;
+    suggest.onclick = () => { suggest.disabled = true; suggest.replaceChildren("Přemýšlím…"); client.send("phone_reply_suggest", { key: replyKey, title: item.title, text: item.text }); };
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") doSend(); if (e.key === "Escape") closeReply(); });
+    bubbleConfirm.replaceChildren(h("div", { class: "n-rp" }, body, input, h("div", { class: "n-rp-row" }, suggest, h("span", { class: "grow" }), send,
+      h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: closeReply }, icon("x")))));
+    window.setTimeout(() => input.focus(), 120);
+  }
+  renderLive();
+  setMode("live");
+}
+client.on("phone_reply_suggestion", (m) => {
+  if (m.key !== replyKey) return;
+  const input = bubbleConfirm.querySelector(".n-rp input") as HTMLInputElement | null;
+  const btn = [...bubbleConfirm.querySelectorAll(".n-rp .n-pill")].find((b) => b.textContent?.includes("Přemýšlím")) as HTMLButtonElement | undefined;
+  if (btn) { btn.disabled = false; btn.replaceChildren(icon("sparkle", "ph-fill"), " Navrhni"); }
+  if (input && m.text) { input.value = m.text; input.focus(); }
+  else if (m.error) showAlert("Návrh odpovědi", "Teď to nejde – napiš ji sám.");
+});
+client.on("phone_ack", (m) => {
+  if (m.kind !== "notif_reply" || !replyKey) return;
+  if (m.state === "sent") { play("done"); bubbleConfirm.replaceChildren(h("span", { class: "muted" }, "Odesláno ✓")); window.setTimeout(closeReply, 1400); }
+  else { play("error"); bubbleConfirm.replaceChildren(h("span", { class: "muted" }, "Zprávu už v telefonu nevidím – odpověz v telefonu.")); window.setTimeout(closeReply, 3500); }
+});
+
 // ---------- 3.12 Zeptej se na obrazovku (Ctrl+Alt+S): the picked area, small, with what to do about it ----------
 let shotAskTimer = 0;
 function closeShotAsk() {
@@ -1121,6 +1186,10 @@ function islandActivity(t: any) {
     kind = "nudge";
     l = [h("span", { class: "n-nudge" }, icon("target", "ph-fill"), h("span", {}, "Soustředění"))];
     r = [h("span", { class: "n-nudge-app" }, `${nudge.app} počká`)];
+  } else if (msgEv && Date.now() < msgEv.until) {           // 3.12 a message on the phone – click = reply here
+    kind = "msg";
+    l = [h("span", { class: "n-msg-ico" }, icon("chat-circle-text", "ph-fill")), h("span", { class: "n-link-name" }, msgEv.item.title || msgEv.item.app)];
+    r = [h("span", { class: "n-msg-txt" }, String(msgEv.item.text || "").slice(0, 34) + (String(msgEv.item.text || "").length > 34 ? "…" : ""))];
   } else if (linkEv && Date.now() < linkEv.until) {
     kind = "link";
     shape.style.setProperty("--link", linkEv.tint);

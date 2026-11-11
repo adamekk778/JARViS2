@@ -174,6 +174,8 @@ public final class JarvisLink {
                     actionNotification(c, "WhatsApp: " + ct[0], "Zpráva je připravená – klepni a odešli ji", i);
                     return "notified";
                 }
+                case "notif_reply":            // 3.12 a reply written in the PC's notch, sent by the message's own app
+                    return NotifMirror.reply(c, cmd.optString("key"), cmd.optString("text"));
                 default:
                     return "unknown";
             }

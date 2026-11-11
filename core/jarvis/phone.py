@@ -147,7 +147,8 @@ class PhoneLink:
         if not (title or text) or pkg.startswith("cz.adamekk.jarvis"):
             return None
         item = {"app": app, "package": pkg, "title": title[:120], "text": text[:600], "ts": float(n.get("ts") or time.time()),
-                "messaging": pkg in MESSAGING, "call": n.get("category") == "call" or app == "Telefon"}
+                "messaging": pkg in MESSAGING, "call": n.get("category") == "call" or app == "Telefon",
+                "key": str(n.get("key") or "")[:300], "can_reply": bool(n.get("can_reply") and n.get("key"))}
         if self.notifications and self.notifications[0]["title"] == item["title"] and self.notifications[0]["text"] == item["text"]:
             return None         # the same message posted again (Android updates group notifications)
         self.notifications.appendleft(item)
