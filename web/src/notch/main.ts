@@ -1110,8 +1110,7 @@ function islandActivity(t: any) {
   } else if (sk("lyrics") && lyricsOn()) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
-    l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")),
-      src ? brandEl(src, "n-src-badge") : "")];
+    l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")))];
     r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
     paintLyrics(true);
   } else if (sk("subs") && subs.on) {
