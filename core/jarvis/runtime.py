@@ -24,6 +24,9 @@ from .tools.platform import get as get_platform
 log = logging.getLogger(__name__)
 
 
+PRESET_LABEL = {"groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", "openai": "OpenAI"}
+
+
 class Runtime:
     def __init__(self, cfg: config_mod.Config | None = None, *, platform: Platform | None = None,
                  transport: httpx.AsyncBaseTransport | None = None, llm_transport: httpx.AsyncBaseTransport | None = None,
@@ -97,6 +100,9 @@ class Runtime:
         self.usage = Usage(self)               # OMEGA 178: AI usage ledger and the daily limit
         self.router.on_usage = self.usage.record
         self.router.gate = self.usage.blocked
+        # a provider's minute limit: say so while JARVIS waits instead of going quiet (or giving up)
+        self.router.on_wait = lambda pid, secs: self.notify(
+            f"{PRESET_LABEL.get(pid, pid)} – minutový limit", f"Čekám {round(secs)} s a pokračuju v úkolu.", speak=False)
         from . import aiplus
 
         aiplus.install(self)                   # OMEGA 577 / 584 / P15.10: local queue, answer cache, adaptive local models

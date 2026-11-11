@@ -241,3 +241,24 @@ def test_fit_shrinks_a_big_request_under_the_limit_and_keeps_the_task():
     m2, t2, mt = budget.fit(msgs, tools_, 8000, 2048)
     assert budget.estimate(m2, t2) + mt <= 8000 and mt == 1024
     assert m2[0]["role"] == "system" and m2[-3]["content"] == "Najdi recept" and m2[-1]["role"] == "tool"
+
+
+async def test_a_minute_limit_of_40_s_is_waited_out_and_the_user_told(monkeypatch):
+    waits, told, calls = [], [], []
+
+    async def fake_sleep(s):
+        waits.append(s)
+
+    monkeypatch.setattr(router_mod.asyncio, "sleep", fake_sleep)
+
+    def handler(req):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(429, text='{"error":{"message":"Rate limit reached ... tokens per minute (TPM): Limit 8000, '
+                                            'Used 7900, Requested 3000. Please try again in 41.2s."}}')
+        return sse("pokračuju")
+
+    r = Router(groq_brain(), lambda _: "gsk_x", httpx.MockTransport(handler))
+    r.on_wait = lambda pid, s: told.append((pid, round(s)))
+    assert await collect(r) == "pokračuju"
+    assert told == [("groq", 41)] and waits and waits[0] >= 41

@@ -40,7 +40,7 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
 # Groq's free models each have their own limits: when one is used up for the day, another one still answers
 GROQ_ALT = ("openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile",
             "moonshotai/kimi-k2-instruct-0905", "openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant")
-SHORT_WAIT_S = 25           # "try again in 7 s" → JARVIS waits that long itself instead of failing
+SHORT_WAIT_S = 60           # "try again in 40 s" (a minute's limit) → JARVIS waits it out and carries on
 
 
 def retry_after(e: Exception) -> float | None:
@@ -86,6 +86,7 @@ class Router:
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
         self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
+        self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
@@ -204,6 +205,11 @@ class Router:
                             wait = retry_after(e)
                             if e.status == 429 and wait is not None and wait <= SHORT_WAIT_S:
                                 log.info("%s: rate limited, waiting %.1f s", pcfg.id, wait)   # a minute's limit: wait it out
+                                if self.on_wait and wait >= 4:
+                                    try:
+                                        self.on_wait(pcfg.id, wait)
+                                    except Exception:  # noqa: BLE001
+                                        pass
                                 await asyncio.sleep(wait + 0.3)
                                 continue
                             cur = model or prov.model
