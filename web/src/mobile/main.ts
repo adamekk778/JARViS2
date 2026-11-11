@@ -466,6 +466,18 @@ function phoneCard(c: JarvisClient): HTMLElement {
         : "Vyžaduje povolit „Přístup k oznámením“ pro JARVIS.")),
       st.notifAccess ? sw(st.mirror, async (v) => render(await native.phone.configure({ mirror: v })), "Zprávy z telefonu na PC")
         : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openNotificationAccess() }, "Povolit")),
+    // 3.12 AirDrop-like: knock the phone twice against the monitor (anywhere, also in the gallery) → the newest photo goes
+    h("div", { class: "row m-tapdrop" }, h("div", { class: "row-text" }, h("strong", {}, "Ťuk ťuk o monitor → fotka na PC"),
+      h("span", {}, st.tapdrop ? (st.photos ? "Zapnuto. Kdekoli (i v galerii) dvakrát ťukni telefonem o monitor a nejnovější fotka nebo screenshot přeskočí na PC."
+        : "Povol JARVISovi přístup k fotkám, jinak nemá co poslat.")
+        : "Bez otevírání aplikace: dvakrát ťukni telefonem o monitor a poslední fotka přeskočí na PC – jako AirDrop.")),
+      st.tapdrop && !st.photos ? h("button", { class: "btn sm", type: "button", onclick: async () => render(await native.phone.requestPhotos()) }, "Povolit fotky")
+        : sw(!!st.tapdrop, async (v) => {
+          let r = await native.phone.configure({ tapdrop: v, ...(v ? { enabled: true } : {}) });
+          if (v) { localStorage.setItem("jarvis.link", "1"); if (!r.photos) r = await native.phone.requestPhotos(); }
+          render(r);
+        }, "Ťuk o monitor")),
+    st.tapdrop && !st.overlay ? h("p", { class: "help" }, "Tip: povol „Zobrazovat přes jiné aplikace“ (výše) a uvidíš i animaci, jak fotka odlétá.") : "",
     h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => {
       c.send("quick_action", { action: "call_me", args: { message: "Dobrý den, pane. Tady JARVIS. Zkouška spojení proběhla v pořádku, umím vám zavolat." } });
       toast("JARVIS za chvilku zavolá", "ok");

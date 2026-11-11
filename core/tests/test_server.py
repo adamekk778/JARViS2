@@ -193,3 +193,20 @@ def test_share_ready_tells_the_notch(app):
         assert m["on"] is True and m["count"] == 2 and m["device"] == "Pixel"
         a.send_json({"type": "share_ready", "on": True, "count": 0})      # nothing to send = not waiting
         assert recv_until(b, "share_ready")["on"] is False
+
+
+def test_phone_drop_lands_in_the_shelf(app, rt):
+    """3.12 "ťukni o monitor": the phone uploads the newest photo, then hands it over; only for a paired phone."""
+    remote = TestClient(app, client=REMOTE)
+    auth = {"Authorization": f"Bearer {rt.cfg.phone.token}"}
+    aid = remote.post("/api/upload", headers=auth, files={"file": ("foto.png", b"\x89PNG", "image/png")}).json()["id"]
+    assert remote.post("/api/phone/drop", json={"attachment_id": aid}).status_code == 401
+    q = rt.bus.subscribe()
+    assert remote.post("/api/phone/drop", headers=auth, json={"attachment_id": aid}).json()["ok"]
+    assert aid in rt.shelf
+    events = []
+    while not q.empty():
+        events.append(q.get_nowait())
+    hand = [e for e in events if e.get("type") == "handoff"]
+    assert hand and hand[-1]["via"] == "tap" and hand[-1]["label"] == "foto.png" and hand[-1]["kind"] == "file"
+    assert remote.post("/api/phone/drop", headers=auth, json={"attachment_id": "nope"}).status_code == 404

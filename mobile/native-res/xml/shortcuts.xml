@@ -21,4 +21,11 @@
         <intent android:action="android.intent.action.VIEW" android:data="jarvis://open/scan"
             android:targetPackage="cz.adamekk.jarvis" android:targetClass="cz.adamekk.jarvis.MainActivity" />
     </shortcut>
+    <!-- 3.12 "Sdílet" from the gallery: JARVIS sits right at the top of the share sheet (Direct Share) -->
+    <share-target android:targetClass="cz.adamekk.jarvis.MainActivity">
+        <data android:mimeType="image/*" />
+        <data android:mimeType="video/*" />
+        <data android:mimeType="*/*" />
+        <category android:name="cz.adamekk.jarvis.SHARE_TO_PC" />
+    </share-target>
 </shortcuts>

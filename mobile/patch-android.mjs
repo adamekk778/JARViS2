@@ -26,10 +26,13 @@ const perms = [
   // 3.10 places for "Když přijdu domů…" – only while the app is open; the position never leaves the phone
   "android.permission.ACCESS_COARSE_LOCATION",
   "android.permission.ACCESS_FINE_LOCATION",
+  // 3.12 "ťuk o monitor": the newest photo goes to the PC (images only; asked when you switch it on)
+  "android.permission.READ_MEDIA_IMAGES",
 ];
 for (const p of perms) {
   if (!m.includes(`"${p}"`)) m = m.replace("</manifest>", `    <uses-permission android:name="${p}" />\n</manifest>`);
 }
+if (!m.includes("READ_EXTERNAL_STORAGE")) m = m.replace("</manifest>", '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>');
 if (!m.includes("usesCleartextTraffic")) m = m.replace("<application", '<application android:usesCleartextTraffic="true"');
 
 const share = `
@@ -121,7 +124,7 @@ copyTree("native-res", resDir);
 const stringsPath = `${resDir}/values/strings.xml`;
 let st = readFileSync(stringsPath, "utf8");
 const texts = { widget_desc: "Co JARVIS dělá, připnuté úkoly, Mluvit a Napsat", sc_talk: "Mluvit", sc_chat: "Napsat",
-  sc_photo: "Fotka na PC", sc_scan: "Skenovat příkaz" };
+  sc_photo: "Fotka na PC", sc_scan: "Skenovat příkaz", sc_share: "Na PC", sc_share_long: "Poslat na PC" };
 for (const [k, v] of Object.entries(texts)) {
   if (!st.includes(`name="${k}"`)) st = st.replace("</resources>", `    <string name="${k}">${v}</string>\n</resources>`);
 }

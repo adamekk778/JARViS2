@@ -46,6 +46,11 @@ public class JarvisPhonePlugin extends Plugin {
         if (call.hasOption("token")) e.putString("token", call.getString("token", ""));
         if (call.hasOption("enabled")) e.putBoolean("enabled", Boolean.TRUE.equals(call.getBoolean("enabled", false)));
         if (call.hasOption("mirror")) e.putBoolean("mirror", Boolean.TRUE.equals(call.getBoolean("mirror", true)));
+        if (call.hasOption("tapdrop")) {                  // 3.12 knock to send the newest photo: needs the background link
+            boolean on = Boolean.TRUE.equals(call.getBoolean("tapdrop", false));
+            e.putBoolean("tapdrop", on);
+            if (on) e.putBoolean("enabled", true);
+        }
         e.apply();
         try {
             if (JarvisLink.enabled(getContext()) && !JarvisLink.base(getContext()).isEmpty()) LinkService.start(getContext());
@@ -63,6 +68,8 @@ public class JarvisPhonePlugin extends Plugin {
         r.put("running", LinkService.running);
         r.put("enabled", JarvisLink.enabled(getContext()));
         r.put("mirror", JarvisLink.mirror(getContext()));
+        r.put("tapdrop", TapDrop.enabled(getContext()));
+        r.put("photos", TapDrop.canReadPhotos(getContext()));
         r.put("phone", JarvisLink.has(getContext(), Manifest.permission.CALL_PHONE)
                 && JarvisLink.has(getContext(), Manifest.permission.READ_CONTACTS)
                 && JarvisLink.has(getContext(), Manifest.permission.SEND_SMS));
@@ -94,6 +101,14 @@ public class JarvisPhonePlugin extends Plugin {
         } catch (Exception e) {
             call.reject(e.getMessage());
         }
+    }
+
+    /** 3.12 the photos permission for "ťuk o monitor" (Android 13+: images only) */
+    @PluginMethod
+    public void requestPhotos(PluginCall call) {
+        String p = Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (!JarvisLink.has(getContext(), p) && getActivity() != null) getActivity().requestPermissions(new String[] { p }, 4712);
+        status(call);
     }
 
     @PluginMethod

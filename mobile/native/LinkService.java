@@ -39,6 +39,8 @@ public class LinkService extends Service {
                 .setContentIntent(open).setOngoing(true).build();
         if (Build.VERSION.SDK_INT >= 34) startForeground(JarvisLink.NOTIF_LINK, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
         else startForeground(JarvisLink.NOTIF_LINK, n);
+        if (TapDrop.enabled(this)) TapDrop.start(this);      // 3.12 "ťuk ťuk o monitor" → the newest photo to the PC
+        else TapDrop.stop();
         if (!running) {
             running = true;
             worker = new Thread(this::loop, "jarvis-link");
@@ -70,6 +72,7 @@ public class LinkService extends Service {
     @Override
     public void onDestroy() {
         running = false;
+        TapDrop.stop();
         if (worker != null) worker.interrupt();
         super.onDestroy();
     }

@@ -1431,20 +1431,13 @@ class Connection:
             rt.platform.clipboard_set(value)
             rt.bus.publish("notify", title="Text z telefonu (ve schránce)", body=value[:200], target="all")
         elif kind == "file":
-            aid = m.get("attachment_id", "")
-            if rt.store.get(aid):
-                if aid not in rt.shelf:
-                    rt.shelf.append(aid)
-                rt.bus.publish("shelf", items=[rt.public_attachment(a) for a in rt.shelf])
-                att = rt.store.get(aid)
-                rt.bus.publish("notify", title="Soubor z telefonu", body=f"{att.name} je v polici notche", target="all")
-        from ..mochiplus import handoff
+            from ..mochiplus import receive_file
 
-        thumb, size, label = "", 0, str(value or kind or "")[:80]
-        if kind == "file":
-            pub = rt.public_attachment(m.get("attachment_id", ""))
-            thumb, size, label = pub.get("thumb") or "", int(pub.get("size") or 0), str(pub.get("name") or "soubor")[:80]
-        handoff(rt, "pc", label, str(kind or "link"), thumb, size)      # OMEGA 083: the notch shows it arriving
+            receive_file(rt, str(m.get("attachment_id", "")), "share")       # the shelf, a notice and the arrival in the notch
+        if kind != "file":
+            from ..mochiplus import handoff
+
+            handoff(rt, "pc", str(value or kind or "")[:80], str(kind or "link"))      # OMEGA 083: the notch shows it arriving
         await self.send("quick_result", action="share", ok=True, summary="Odesláno do PC")
 
     async def _transcribe(self, func, *args) -> str:

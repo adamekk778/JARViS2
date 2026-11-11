@@ -37,11 +37,26 @@ def anchor_offset(win: dict | None, mon_x: int, mon_w: int, notch_w: int, margin
 
 
 # ---------------------------------------------------------------- 083 hand-off
-def handoff(rt, to: str, label: str, kind: str = "link", thumb: str = "", size: int = 0) -> None:
+def receive_file(rt, aid: str, via: str = "share") -> bool:
+    """3.12 a file from the phone (shared, swiped, or tapped against the monitor): it lands in the notch's shelf and the
+    notch shows it arriving (via="tap" = the AirDrop-like wave)."""
+    att = rt.store.get(aid)
+    if not att:
+        return False
+    if aid not in rt.shelf:
+        rt.shelf.append(aid)
+    rt.bus.publish("shelf", items=[rt.public_attachment(a) for a in rt.shelf])
+    rt.bus.publish("notify", title="Soubor z telefonu", body=f"{att.name} je v polici notche", target="all")
+    pub = rt.public_attachment(aid)
+    handoff(rt, "pc", str(pub.get("name") or "soubor")[:80], "file", pub.get("thumb") or "", int(pub.get("size") or 0), via)
+    return True
+
+
+def handoff(rt, to: str, label: str, kind: str = "link", thumb: str = "", size: int = 0, via: str = "") -> None:
     """Something just went from one device to the other – the notch and the phone animate it
     (3.12: a file from the phone brings its thumbnail and size, so the notch shows what landed)."""
     if to in ("phone", "pc"):
-        rt.bus.publish("handoff", to=to, label=label[:80], kind=kind, thumb=thumb or "", size=int(size or 0))
+        rt.bus.publish("handoff", to=to, label=label[:80], kind=kind, thumb=thumb or "", size=int(size or 0), via=via)
 
 
 # ---------------------------------------------------------------- 195 Mochi on the phone

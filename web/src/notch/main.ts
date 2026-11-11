@@ -1232,8 +1232,9 @@ client.on("handoff", (m) => {
   if (m.to === "pc" && m.kind === "file") {             // 3.12 a file swiped over from the phone flies in from the right
     const mb = Number(m.size) || 0;
     showLink({ icon: "device-mobile", text: String(m.label || "Soubor"), right: mb ? (mb >= 1 << 20 ? `${(mb / (1 << 20)).toFixed(1)} MB` : `${Math.max(1, Math.round(mb / 1024))} kB`) : "Přijato",
-      pct: null, tint: "#0a84ff", thumb: m.thumb ? String(m.thumb) : "", fly: !shareWait });
-    if (shareWait) { shape.classList.remove("drop"); void shape.offsetWidth; shape.classList.add("drop"); window.setTimeout(() => shape.classList.remove("drop"), 1400); }
+      pct: null, tint: "#0a84ff", thumb: m.thumb ? String(m.thumb) : "", fly: !shareWait && m.via !== "tap" });
+    if (shareWait || m.via === "tap") {                    // knocked against the monitor: the AirDrop-like wave
+      shape.classList.remove("drop"); void shape.offsetWidth; shape.classList.add("drop"); window.setTimeout(() => shape.classList.remove("drop"), 1400); }
     play("notify", panFor("phone"));
     return;
   }

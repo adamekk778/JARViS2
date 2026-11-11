@@ -6,7 +6,7 @@ export interface ShareEvent { title: string; texts: string[]; files: { uri: stri
 const isNative = Capacitor.isNativePlatform();
 // 3.4 the app's own native part (mobile/native/*.java): background link, "JARVIS volá", dialing, SMS, notification mirror
 const JarvisPhone: any = isNative ? registerPlugin("JarvisPhone") : null;
-export interface PhoneStatus { running: boolean; enabled: boolean; mirror: boolean; phone: boolean; notifAccess: boolean; fullScreen: boolean; battery: boolean; overlay: boolean }
+export interface PhoneStatus { running: boolean; enabled: boolean; mirror: boolean; phone: boolean; notifAccess: boolean; fullScreen: boolean; battery: boolean; overlay: boolean; tapdrop?: boolean; photos?: boolean }
 let notifyId = 1;
 let actionsRegistered = false;
 
@@ -15,7 +15,8 @@ export const native = {
 
   phone: {
     available: isNative,
-    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean }): Promise<PhoneStatus> => JarvisPhone.configure(o),
+    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean }): Promise<PhoneStatus> => JarvisPhone.configure(o),
+    requestPhotos: (): Promise<PhoneStatus> => JarvisPhone.requestPhotos(),
     status: (): Promise<PhoneStatus> => JarvisPhone.status(),
     requestPhone: (): Promise<PhoneStatus> => JarvisPhone.requestPhone(),
     openNotificationAccess: () => JarvisPhone.openNotificationAccess(),

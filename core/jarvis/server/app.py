@@ -302,6 +302,17 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         rt.phone.ack(str(body.get("id", "")), str(body.get("state", "done")), str(body.get("detail", ""))[:2000])
         return {"ok": True}
 
+    @app.post("/api/phone/drop")
+    async def phone_drop(request: Request):
+        """3.12 "ťukni o monitor": the phone's background link uploaded the newest photo and hands it over."""
+        require_auth(request)
+        body = await request.json()
+        from ..mochiplus import receive_file
+
+        if not receive_file(rt, str(body.get("attachment_id", "")), "tap"):
+            raise HTTPException(404, "Soubor nenalezen")
+        return {"ok": True}
+
     @app.post("/api/phone/notification")
     async def phone_notification(request: Request):
         require_auth(request)
