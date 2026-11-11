@@ -64,7 +64,7 @@ html[data-nstyle="dynamic"] .p-head .home-date.bar { display: flex; align-items:
 .aa-chip .brand-logo, .aa-chip .brand-logo svg { width: 17px; height: 17px; color: var(--fg); fill: var(--fg); }
 .aa-chip:hover { background: var(--bg); transform: translateY(-2px) scale(1.12);
   box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .4), 0 8px 20px -6px var(--c); }
-[data-brand="claude"] { --bg: radial-gradient(circle at 35% 30%, #ffd8c9, #f2a68a 70%); --fg: #c4462b; }
+[data-brand="claude"] { --bg: radial-gradient(circle at 35% 30%, #fffaf3, #f3e3d6 80%); --fg: #d97757; }
 [data-brand="chatgpt"] { --bg: radial-gradient(circle at 35% 30%, #3a3a40, #0b0b0d 75%); --fg: #fff; }
 [data-brand="gemini"] { --bg: radial-gradient(circle at 35% 30%, #ffffff, #e3ecff 80%); --fg: #3b7bff; }
 [data-brand="groq"] { --bg: radial-gradient(circle at 35% 30%, #ff7a5c, #e2401f 75%); --fg: #fff; }
