@@ -4,9 +4,11 @@
    Runs its frame loop only while it is on screen. */
 import { brandEl, mediaBrand } from "../shared/brands";
 import { h, icon } from "../shared/dom";
+import type { JarvisClient } from "../shared/ws";
+import { createMusicHub } from "./musichub";
 
 type Line = { t: number; text: string };
-type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean };
+type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean; client: JarvisClient };
 
 const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s)) % 60).padStart(2, "0")}`;
 
@@ -31,6 +33,9 @@ export function createMusicView(ctx: Ctx) {
     ic ? icon(ic, "ph-fill") : playIco);
   const lyrList = h("div", { class: "mu-lines" });
   const lyrBox = h("div", { class: "mu-lyrics" }, lyrList);
+  // 3.12 search music across services above the lyrics; results take the lyrics' place while you search
+  const hub = createMusicHub(ctx.client, (on) => { lyrBox.hidden = on; });
+  const right = h("div", { class: "mu-right" }, hub.bar, lyrBox, hub.results);
   const back = h("button", { class: "mu-back", type: "button", title: "Zpět", "aria-label": "Zpět na hlavní obrazovku", onclick: () => ctx.back() }, icon("caret-left"));
   const el = h("div", { class: "mu" },
     h("div", { class: "mu-glow", "aria-hidden": "true" }, bg),
@@ -41,7 +46,7 @@ export function createMusicView(ctx: Ctx) {
         btn("skip-back", "Předchozí", () => ctx.quick("media_control", { action: "previous" })),
         btn(null, "Přehrát / pauza", () => ctx.quick("media_control", { action: "play_pause" }), "main"),
         btn("skip-forward", "Další", () => ctx.quick("media_control", { action: "next" })))),
-    lyrBox);
+    right);
 
   // ---- where we are in the song ----
   const dur = () => Number(media?.duration) || 0;

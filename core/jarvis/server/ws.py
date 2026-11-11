@@ -32,7 +32,7 @@ CLIENT_TYPES = [
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
     "notes_get", "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
     "claude_sessions_get", "claude_decision", "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply",
-    "whats_new_seen", "focus_stats_get", "clips_get", "clip_action", "shots_get", "shot_action", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
+    "whats_new_seen", "focus_stats_get", "clips_get", "clip_action", "shots_get", "shot_action", "music_search", "music_artist", "music_play", "sounds_folder", "open_window", "site_open", "sites_get", "protocol_run", "briefing_get", "selection_action",
     "mail_status_get", "mail_account_add", "mail_account_remove", "calendar_get",
     "phone_status_get", "phone_ack", "twilio_set", "automation_run", "automations_get", "home_set", "home_get", "home_action",
     "lists_get", "list_update", "network_get", "network_wake", "network_name",
@@ -51,7 +51,7 @@ CLIENT_TYPES = [
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
-    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "memory", "pairing", "tts_audio",
+    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "music_results", "music_artist_info", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
@@ -79,7 +79,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"music_play", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -92,7 +92,7 @@ LOCAL_ONLY = {"clips_get", "clip_action", "shots_get", "shot_action", "device_re
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"music_search", "music_artist", "music_play", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1135,6 +1135,22 @@ class Connection:
         elif t == "secret_set":
             secrets.set(m["name"], m.get("value", ""))
             await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+        elif t in ("music_search", "music_artist", "music_play"):   # 3.12 search music across services (notch → Hudba)
+            from .. import musicsearch
+
+            try:
+                if t == "music_search":
+                    await self.send("music_results", **(await musicsearch.search(rt, str(m.get("q") or ""))))
+                elif t == "music_artist":
+                    await self.send("music_artist_info", **(await musicsearch.artist(rt, int(m.get("id") or 0))))
+                else:
+                    r = await musicsearch.play(rt, str(m.get("service") or "auto"), m.get("track") or {})
+                    await self.send("quick_result", action="music_play", ok=r["ok"], summary=r["message"])
+            except Exception as e:  # noqa: BLE001 – no internet / the catalogue is down: say so in the notch
+                if t == "music_search":
+                    await self.send("music_results", q=str(m.get("q") or ""), error=str(e)[:200], top=None, artists=[], tracks=[], albums=[])
+                else:
+                    await self.send("error", message=f"Hudba: {str(e)[:200]}")
         elif t in ("clips_get", "clip_action"):   # 3.12 the notch's Schránka (this PC only)
             from .. import clipshelf
 
