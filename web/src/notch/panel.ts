@@ -453,7 +453,8 @@ export function buildPanel(ctx: PanelCtx) {
     h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
   // 3.12 the head of the panel on Domů: the weather, the time and your AIs as round logos (like an island bar)
   const hbWx = h("span", { class: "hb-wx" }), hbTime = h("strong", { class: "hb-time" });
-  const headBar = h("div", { class: "hb" }, hbWx, hbTime);       // the AI logos sit on the right of the head (main.ts)
+  const hbDay = h("span", { class: "hb-day" });                 // 3.12 the same head everywhere: date · weather · time
+  const headBar = h("div", { class: "hb" }, hbDay, hbWx, hbTime);       // the AI logos sit on the right of the head (main.ts)
   const paintAiChips = () => {
     const a = askAi();
     if (!aiChipsBox.firstChild) aiChipsBox.append(a.chips);
@@ -543,15 +544,15 @@ export function buildPanel(ctx: PanelCtx) {
     if (!homeDate.querySelector(".hd-time")) homeDate.append(h("span", { class: "hd-day" }), h("strong", { class: "hd-time" }));
     const hr = now.getHours(), who = settings?.general?.user_name ? `, ${settings.general.user_name}` : "";
     const hello = hr < 5 ? "Dobrou noc" : hr < 10 ? "Dobré ráno" : hr < 12 ? "Dobré dopoledne" : hr < 18 ? "Dobré odpoledne" : "Dobrý večer";
+    // 3.12 one head for every tab (it used to change on Domů and leave a second time behind on the other tabs)
     homeDate.classList.toggle("greet", false);
-    homeDate.classList.toggle("bar", current === "home");
-    if (current === "home") {
-      if (headBar.parentElement !== homeDate) homeDate.append(headBar);
-      setText(hbTime, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
-    }
-    setText(homeDate.querySelector(".hd-day")!, current === "home" ? hello : now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
-    homeDate.dataset.who = current === "home" ? who.replace(/^, /, "") : "";
-    setText(homeDate.querySelector(".hd-time")!, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
+    homeDate.classList.toggle("bar", true);
+    if (headBar.parentElement !== homeDate) homeDate.append(headBar);
+    setText(hbDay, now.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }));
+    setText(hbTime, now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }));
+    homeDate.title = hello + who;
+    homeDate.dataset.who = "";
+    homeDate.closest(".p-head")?.setAttribute("data-sec", current);
     if (current !== "home") return;
     wantWeather();
     wantAgenda();
@@ -759,7 +760,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "workspaces") { client.send("workspaces_get"); wmap.refresh(); }
     if (s === "chat") client.send("notch_context_get");
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }
-    if (s === "home") renderHome();
+    renderHome();                                   // the head (date · weather · time) is the same on every tab: paint it now
     if (s === "activity") renderActivity();
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }

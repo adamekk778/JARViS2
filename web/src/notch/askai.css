@@ -102,9 +102,12 @@ html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .home-date { flex: 0 0 a
 html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-head-r { flex: 1 1 auto; }
 /* room for the AI logos on Domů: slimmer tabs, no "new conversation" (it belongs to Chat) */
 html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding: 0 9px; }
-.p-head:has(.home-date.bar) .p-icon.new-chat { display: none; }
+.p-head:not([data-sec="chat"]) .p-icon.new-chat { display: none; }   /* "new conversation" belongs to Chat */
 .p-head-r .aa-chip { width: 27px; height: 27px; }
 .p-head-r .aa-chips-slot { margin-right: 8px; padding-right: 8px; }
 [data-brand="groq"] { --bg: radial-gradient(circle at 35% 30%, #ff7558, #f55036 70%); --fg: #fff; }
 /* the AI logos belong to Domů; elsewhere the head needs the room for the tabs */
 .p-head:not(:has(.home-date.bar)) .p-head-r .aa-chips-slot { display: none; }
+
+/* 3.12 the same head on every tab: date · weather · time */
+.hb-day { font-size: 13px; font-weight: 600; color: rgb(255 255 255 / .6); text-transform: capitalize; white-space: nowrap; }

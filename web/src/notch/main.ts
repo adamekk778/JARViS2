@@ -324,7 +324,9 @@ function paintShape() {
   shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
   document.documentElement.style.setProperty("--ncw", `${S.w.toFixed(2)}px`);   // the circle on the right follows the island
   document.documentElement.style.setProperty("--nch", `${S.h.toFixed(2)}px`);
-  if (!(hostAnim && S.raf)) syncRegion();      // while JARVIS animates the outline itself, no per-frame sends
+  // while JARVIS animates the outline itself – or the window is per-pixel transparent (the page draws the shape, the
+  // outline only catches the mouse) – no per-frame sends: a Windows region change per frame is what made it stutter
+  if (!(S.raf && (hostAnim || regionPad))) syncRegion();
 }
 // 3.12: with the window cut to the shape, the outline IS what you see – so JARVIS animates it on the PC, once per
 // screen refresh, from one plan per movement (the same spring as below). The page only sends the plan.
@@ -336,30 +338,30 @@ function sendRegionPlan(): boolean {
   if (!cfg.native_region_anim) return false;
   if (!api?.region_anim || regionPad) return false;          // smooth edges (per-pixel alpha): frames as before
   const box = shape.getBoundingClientRect();
-  const k = dyn() ? (S.grow ? 300 : 420) : (S.grow ? 340 : 520), c = dyn() ? (S.grow ? 24 : 36) : (S.grow ? 27 : 46);
+  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
   const plan = { geom: dyn() ? "round" : "notch", cx: box.left + box.width / 2, top: box.top + (dyn() ? GAP : 0), dpr: window.devicePixelRatio || 1,
     pad: regionPad, ear: 14, k, c, from: { w: S.w, h: S.h, r: Math.max(0, S.r), vw: S.vw, vh: S.vh, vr: S.vr }, to: { w: S.tw, h: S.th, r: S.tr } };
   Promise.resolve(api.region_anim(plan)).then((ok) => { if (ok === false) { hostAnim = false; } }, () => { hostAnim = false; });
   return true;
 }
-function syncRegion(force = false) {
+function syncRegion(force = false, W = S.w, H = S.h, R = S.r) {
   if (!window.pywebview) return;
   const box = shape.getBoundingClientRect();
   const cx = box.left + box.width / 2;
   if (dyn()) {
     const top = box.top + GAP;
-    const polys = [roundRect({ left: cx - S.w / 2, right: cx + S.w / 2, top, bottom: top + S.h } as DOMRect, Math.max(0, S.r), window.devicePixelRatio || 1, regionPad)];
+    const polys = [roundRect({ left: cx - W / 2, right: cx + W / 2, top, bottom: top + H } as DOMRect, Math.max(0, R), window.devicePixelRatio || 1, regionPad)];
     if (pip.classList.contains("on")) {             // the second circle is part of the window too
-      const pl = cx + S.w / 2 + 8, pt = top + (S.h - 36) / 2;
+      const pl = cx + W / 2 + 8, pt = top + (H - 36) / 2;
       // while it drips out, the window also covers the gap between the island and the circle
-      const from = pip.classList.contains("pop") ? cx + S.w / 2 - 18 : pl;
+      const from = pip.classList.contains("pop") ? cx + W / 2 - 18 : pl;
       polys.push(roundRect({ left: from, right: pl + 36, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
     }
     sendRegion(polys, force);
     return;
   }
-  const r = { left: cx - S.w / 2, right: cx + S.w / 2, top: box.top, bottom: box.top + S.h } as DOMRect;
-  sendRegion([notchOutline(r, Math.max(0, S.r), 14, window.devicePixelRatio || 1, regionPad)], force);
+  const r = { left: cx - W / 2, right: cx + W / 2, top: box.top, bottom: box.top + H } as DOMRect;
+  sendRegion([notchOutline(r, Math.max(0, R), 14, window.devicePixelRatio || 1, regionPad)], force);
 }
 function setBox(w: number, hh: number) {
   if (w === boxW && hh === boxH) return;
@@ -370,8 +372,8 @@ function setBox(w: number, hh: number) {
 function springStep(now: number) {
   const dt = Math.min(0.034, (now - S.last) / 1000 || 0.016);
   S.last = now;
-  // growing: lively with a little overshoot; shrinking: quicker and without bounce
-  const k = dyn() ? (S.grow ? 300 : 420) : (S.grow ? 340 : 520), c = dyn() ? (S.grow ? 24 : 36) : (S.grow ? 27 : 46);
+  // 3.12 clean: critically damped – it glides into place without overshooting or bouncing
+  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
   let moving = false;
   for (const [x, v, t] of [["w", "vw", "tw"], ["h", "vh", "th"], ["r", "vr", "tr"]] as const) {
     const a = k * (S[t] - S[x]) - c * S[v];
@@ -400,6 +402,7 @@ function animateShape(w: number, hh: number, r: number) {
   setBox(Math.max(bw, boxW), Math.max(bh, boxH));
   if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
   if (retarget) hostAnim = sendRegionPlan();
+  if (regionPad && retarget) syncRegion(true, Math.max(w, S.w), Math.max(hh, S.h), Math.max(r, S.r));   // the mouse area covers the whole move, once
   if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(springStep); }
 }
 window.addEventListener("pywebviewready", () => { ensureWindow(); syncRegion(); window.setTimeout(() => syncRegion(true), 500); });
@@ -413,11 +416,30 @@ async function cursorInside(): Promise<boolean> {
   try { return !!(await window.pywebview?.api.cursor_inside?.()); } catch { return false; }
 }
 
-let swapTimer = 0;
+let swapTimer = 0, shrinkTimer = 0;
+let lastApplyKey = "";
 const ctlCompact = () => pcCtl.on && !pendingConfirm;
 function apply(m: Mode) {
   shape.classList.toggle("ctl", m === "live" && ctlCompact());
-  const [w, hh] = m === "live" && ctlCompact() ? [pcCtl.paused ? 420 : 404, 52] : sizeFor(m);
+  let [w, hh] = m === "live" && ctlCompact() ? [pcCtl.paused ? 420 : 404, 52] : sizeFor(m);
+  // 3.12 calm: the same thing with a longer or shorter text must not make the island breathe
+  const kindNow = shape.dataset.island || "";
+  const key = `${m}|${kindNow}`;
+  const same = key === lastApplyKey;
+  lastApplyKey = key;
+  if (m === "closed" || m === "hover") {
+    w = Math.ceil(w / 24) * 24;                                   // small width changes snap to the same step
+    if (same && (kindNow === "lyrics" || kindNow === "subs")) w = Math.max(w, Math.round(S.tw));   // lines change: width stays
+  }
+  window.clearTimeout(shrinkTimer);
+  if (same && (w < S.tw - 1 || hh < S.th - 1) && !reducedMotion()) {
+    // shorter text of the same thing: shrink only if it stays shorter for a moment
+    const rr = dyn() ? dynRadius(m, hh) : RADIUS[m] ?? 26, tw = w, th = hh;
+    shrinkTimer = window.setTimeout(() => { if (lastApplyKey === key) animateShape(tw, th, rr); }, 1200);
+    setData(shape, "mode", m);
+    updateBlob();
+    return;
+  }
   if (dyn() && shape.dataset.mode !== m && !reducedMotion()) {   // the content blurs while the shape morphs (iOS feel)
     shape.classList.add("swap");
     window.clearTimeout(swapTimer);
@@ -1206,6 +1228,7 @@ lyricsWake();
 // 3.12 two things at once (like iPhone): the main activity in the island, the next one in a small circle on its
 // right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
 const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
+let lastKind = "", lastKindAt = 0;
 let preferKind = "";
 let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
@@ -1366,6 +1389,11 @@ function islandActivity(t: any) {
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
     if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+  }
+  const nowMs = Date.now();
+  if (kind) { lastKind = kind; lastKindAt = nowMs; }
+  else if (lastKind && PERSIST.includes(lastKind) && shape.dataset.island === lastKind && nowMs - lastKindAt < 2000) {
+    return;                       // a 1–2 s gap (next song, a pause blip, a subtitle pause): keep it, no flicker
   }
   setKids(lead, l);
   setKids(trail, r);
