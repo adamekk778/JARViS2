@@ -102,6 +102,7 @@ const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, h("span", { class: 
   dyIcon("chat-circle", "Chat", () => openPanel("chat")),
   dyIcon("microphone", "Mluvit (Ctrl+Alt+Mezerník)", () => client.send("push_to_talk"), "mic"),
   dyIcon("squares-four", "Akce", () => openPanel("quick"))));
+const dyCtx = h("div", { class: "dy-ctx" });
 const DY_WORD: Record<string, string> = { idle: "Připraven", listening: "Poslouchám", thinking: "Přemýšlím", working: "Pracuji", speaking: "Mluvím",
   waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", focus: "Soustředění" };
 function paintDyBar() {
@@ -199,7 +200,7 @@ let lyrIdx = -2, lyrW = 0;
 const face = createFace(() => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches);
 face.init();
 if (demo || demoMood) (window as any).__face = face;      // previews only
-const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, bubble, alertBox, capChip, liveStop, progress, musicBars);
+const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 /** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
 function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
@@ -252,7 +253,7 @@ function dynSize(m: Mode): [number, number] {
   const kind = shape.dataset.island || "";
   switch (m) {
     case "panel": return [780, 400];
-    case "bar": return [400, 44];
+    case "bar": return shape.classList.contains("has-ctx") ? [500, 86] : [400, 44];
     case "alert": return [420, 76];
     case "radial": return [340, 320];
     case "live": {
@@ -591,7 +592,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 // ---------- 3.10: the ring of actions (OMEGA 751) for the app in front (089) and the moment (094) ----------
-let appCtx: { app: string; actions: UiAction[]; suggestions?: UiAction[] } = { app: "", actions: [] };
+let appCtx: { app: string; kind?: string; actions: UiAction[]; suggestions?: UiAction[] } = { app: "", actions: [] };
 function paintRadial() {
   renderRadial(radialBox, radialActions(appCtx.actions || [], appCtx.suggestions || []), appCtx.app, runAction);
 }
@@ -611,9 +612,19 @@ function runAction(a: UiAction) {
 }
 blobBox.addEventListener("contextmenu", (e) => { e.preventDefault(); if (mode === "radial") settle(true); else openRadial(); });
 client.on("app_context", (m) => {
-  appCtx = { app: m.app || "", actions: m.actions || [], suggestions: m.suggestions ?? appCtx.suggestions };
+  appCtx = { app: m.app || "", kind: m.kind || "", actions: m.actions || [], suggestions: m.suggestions ?? appCtx.suggestions };
   if (mode === "radial") paintRadial();
+  paintDyCtx();
 });
+// 3.12 Návrhy podle aplikace: hovering the notch shows 2–3 actions for the app in front (Chrome → Shrnout stránku…)
+function paintDyCtx() {
+  const acts = appCtx.kind && appCtx.kind !== "any" ? appCtx.actions.slice(0, 3) : [];
+  shape.classList.toggle("has-ctx", acts.length > 0);
+  dyCtx.replaceChildren(...(acts.length ? [
+    ...acts.map((a) => h("button", { class: "dyc-chip", type: "button", title: a.label, onclick: (e: Event) => { e.stopPropagation(); runAction(a); } },
+      icon(a.icon, "ph-fill"), h("span", {}, a.label)))] : []));
+  if (mode === "bar") apply("bar");
+}
 
 // ---------- 3.10: after a long quiet spell he hides behind the edge and now and then peeks out (OMEGA 078) ----------
 let lastStir = Date.now();

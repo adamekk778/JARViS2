@@ -101,3 +101,14 @@ html[data-nstyle="dynamic"] .notch[data-mode="bar"] .dy-bar { opacity: 1; pointe
 @media (prefers-reduced-motion: reduce) { .dyb-dot { animation: none !important; } }
 html[data-nstyle="dynamic"] .p-centre .msg.assistant .a-main { flex: 0 1 auto; width: fit-content; max-width: min(84%, 620px); }
 html[data-nstyle="dynamic"] .p-centre .msg.user .bubble { max-width: min(78%, 560px); }
+
+/* 3.12 Návrhy podle aplikace: the second row of the hover bar */
+html:not([data-nstyle="dynamic"]) .dy-ctx { display: none; }
+html[data-nstyle="dynamic"] .n-inner > .dy-ctx { left: 12px; right: 12px; top: 44px; height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+html[data-nstyle="dynamic"] .notch[data-mode="bar"].has-ctx .dy-ctx { opacity: 1; pointer-events: auto; transition: opacity .22s ease .1s; }
+.dyc-app { font-size: 11.5px; color: rgba(255, 255, 255, .45); margin: 0 4px 0 6px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dyc-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border: 0; border-radius: 999px; font: inherit; font-size: 12px;
+  font-weight: 600; color: #fff; background: rgba(255, 255, 255, .09); cursor: pointer; white-space: nowrap; transition: background .15s, transform .12s; }
+.dyc-chip:hover { background: rgba(255, 255, 255, .16); }
+.dyc-chip:active { transform: scale(.95); }
+.dyc-chip i { font-size: 14px; color: #8ab4ff; }
