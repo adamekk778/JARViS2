@@ -163,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     if argv[:1] == ["--selfcheck"]:  # CI / support: Kontrola funkcí without the window, printed as JSON lines
         import asyncio as _aio
         import json
+        import os
 
         from . import selfcheck
         from .runtime import Runtime
@@ -172,8 +173,12 @@ def main(argv: list[str] | None = None) -> int:
         async def _t(pid: str) -> dict:
             return {"ok": False, "message": "v CI se mozek nezkouší"}
 
-        for item in _aio.run(selfcheck.run(rt, _t)):
-            print(json.dumps(item, ensure_ascii=False), flush=True)
+        async def _main() -> None:
+            for item in await selfcheck.run(rt, _t):
+                print(json.dumps(item, ensure_ascii=False), flush=True)
+            os._exit(0)                   # a check thread may still wait on a device: asyncio.run would wait for it
+
+        _aio.run(_main())
         return 0
     if argv[:1] == ["--selftest-uia"]:  # CI: is UI Automation packaged and working?
         import json

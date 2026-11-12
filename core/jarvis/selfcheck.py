@@ -208,15 +208,28 @@ def allow_firewall() -> bool:
     return True
 
 
+async def _limited(coro, secs: float, key: str, name: str, quiet: str) -> dict:
+    """No check may hang the whole check (on real Windows the speaker loopback waits forever while nothing plays)."""
+    try:
+        return await asyncio.wait_for(coro, secs)
+    except asyncio.TimeoutError:
+        return _r(key, name, None, quiet)
+
+
 async def run(rt: Any, tester) -> list[dict]:
     results: list[dict] = []
-    results.append(await media())
-    results.append(await asyncio.to_thread(loopback))
-    results.append(await asyncio.to_thread(microphone, rt))
+    results.append(await _limited(media(), 12, "media", "Hudba v notchi", "Windows neodpověděl včas, zkus to znovu."))
+    results.append(await _limited(asyncio.to_thread(loopback), 6, "loopback", "Zvuk z PC (titulky, poslech)",
+                                  "Teď nic nehraje, takže není co zachytit – pusť video nebo hudbu a zkontroluj znovu."))
+    results.append(await _limited(asyncio.to_thread(microphone, rt), 8, "mic", "Mikrofon (hlas)",
+                                  "Mikrofon se neozval včas – je připojený a vybraný ve Windows?"))
     results.append(speech(rt))
-    results.append(await voice_out(rt))
-    results.append(await brain(rt, tester))
-    results += await asyncio.to_thread(phone_net, rt)
+    results.append(await _limited(voice_out(rt), 30, "tts", "Hlas JARVISe", "Hlas se nestihl vytvořit (internet?)."))
+    results.append(await _limited(brain(rt, tester), 70, "brain", "Mozek (AI)", "Mozek neodpověděl do minuty."))
+    try:
+        results += await asyncio.wait_for(asyncio.to_thread(phone_net, rt), 45)
+    except asyncio.TimeoutError:
+        results.append(_r("lan", "Domácí síť", None, "Kontrola sítě nestihla doběhnout."))
     for r in results:                                  # into the log, so a diagnostics export carries them
         (log.warning if r["ok"] is False else log.info)("kontrola %s: %s – %s", r["key"], "OK" if r["ok"] else "CHYBA", r["detail"])
     return results

@@ -96,6 +96,7 @@ jobs:
           if ($r.version -ne $env:JARVIS_VERSION) { throw "JARVIS reports version $($r.version), the build is $env:JARVIS_VERSION" }
       - name: Kontrola funkcí in the packaged app (are the Windows parts for music, sound and microphone there?)
         shell: pwsh
+        timeout-minutes: 4
         continue-on-error: true
         run: |
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome-sc"
