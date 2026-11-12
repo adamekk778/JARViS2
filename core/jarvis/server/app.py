@@ -302,6 +302,24 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         rt.phone.ack(str(body.get("id", "")), str(body.get("state", "done")), str(body.get("detail", ""))[:2000])
         return {"ok": True}
 
+    @app.post("/api/phone/confirm")
+    async def phone_confirm(request: Request):
+        """3.12 "Povolit" / "Zamítnout" from the phone's notification while you are away from the PC."""
+        require_auth(request)
+        import ipaddress
+
+        body = await request.json()
+        approved = bool(body.get("approved"))
+        if approved and rt.cfg.phone.approve_nearby_only:
+            try:
+                ip = ipaddress.ip_address(request.client.host if request.client else "")
+                near = ip.is_private and ip not in ipaddress.ip_network("100.64.0.0/10")
+            except ValueError:
+                near = False
+            if not near:
+                raise HTTPException(403, "Schvalovat jde jen z domácí sítě")
+        return {"ok": rt.agent.confirm(str(body.get("id", "")), approved)}
+
     @app.get("/api/phone/island")
     async def phone_island(request: Request):
         """3.12 the phone's notch asks what to show (every few seconds, only while its screen is on)."""

@@ -174,6 +174,22 @@ public final class JarvisLink {
                     actionNotification(c, "WhatsApp: " + ct[0], "Zpráva je připravená – klepni a odešli ji", i);
                     return "notified";
                 }
+                case "notify": {                // 3.12 you are away from the PC: what matters comes here
+                    Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
+                    return "shown";
+                }
+                case "confirm":                  // 3.12 a confirmation while you are away: Povolit / Zamítnout right here
+                    confirmNotification(c, cmd.optString("cid"), cmd.optString("text"));
+                    return "shown";
+                case "clip": {                   // 3.12 shared clipboard: what you copied on the PC
+                    android.content.ClipboardManager cm = c.getSystemService(android.content.ClipboardManager.class);
+                    if (cm == null) return "error";
+                    String t = cmd.optString("text");
+                    prefs(c).edit().putString("clip_from_pc", t.length() > 2000 ? t.substring(0, 2000) : t).apply();
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("JARVIS", t));
+                    return "done";
+                }
                 case "notif_reply":            // 3.12 a reply written in the PC's notch, sent by the message's own app
                     return NotifMirror.reply(c, cmd.optString("key"), cmd.optString("text"));
                 default:
@@ -224,6 +240,22 @@ public final class JarvisLink {
                 .setContentText(text).setContentIntent(pi).setAutoCancel(true).setCategory(Notification.CATEGORY_MESSAGE).build();
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify((int) (System.currentTimeMillis() & 0xfffff), n);
+    }
+
+    static void confirmNotification(Context c, String cid, String text) {
+        channels(c);
+        int nid = 7100 + (cid.hashCode() & 0xff);
+        PendingIntent yes = PendingIntent.getBroadcast(c, nid * 2, new Intent(c, ConfirmReceiver.class).putExtra("id", cid)
+                .putExtra("approved", true).putExtra("nid", nid), piFlags());
+        PendingIntent no = PendingIntent.getBroadcast(c, nid * 2 + 1, new Intent(c, ConfirmReceiver.class).putExtra("id", cid)
+                .putExtra("approved", false).putExtra("nid", nid), piFlags());
+        PendingIntent open = PendingIntent.getActivity(c, nid, new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags());
+        Notification n = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_alert).setContentTitle("JARVIS potřebuje potvrzení")
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
+                .addAction(new Notification.Action.Builder(null, "Povolit", yes).build())
+                .addAction(new Notification.Action.Builder(null, "Zamítnout", no).build()).build();
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm != null) nm.notify(nid, n);
     }
 
     /** "JARVIS volá": full-screen call over the lock screen (or a ringing heads-up notification when the phone is in use). */

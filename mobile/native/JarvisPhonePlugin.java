@@ -91,6 +91,22 @@ public class JarvisPhonePlugin extends Plugin {
         call.resolve(r);
     }
 
+    /** 3.12 shared clipboard: the phone's clipboard (only while the app is open – Android allows nothing else). */
+    @PluginMethod
+    public void readClipboard(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            android.content.ClipboardManager cm = getContext().getSystemService(android.content.ClipboardManager.class);
+            android.content.ClipData d = cm == null ? null : cm.getPrimaryClip();
+            CharSequence t = d != null && d.getItemCount() > 0 ? d.getItemAt(0).coerceToText(getContext()) : null;
+            r.put("text", t == null ? "" : t.toString());
+            r.put("fromPc", JarvisLink.prefs(getContext()).getString("clip_from_pc", ""));
+        } catch (Exception e) {
+            r.put("text", "");
+        }
+        call.resolve(r);
+    }
+
     /** 3.12 download the new JARVIS.apk and open Android's install dialog (progress as "updateProgress" events). */
     @PluginMethod
     public void installUpdate(PluginCall call) {

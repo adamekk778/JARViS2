@@ -374,6 +374,8 @@ class Runtime:
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
         self.bus.publish("notify", title=title, body=body, url=url, target=target)
+        if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
+            self.phone_push("notify", title=title[:80], body=body[:400])
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
 
@@ -451,7 +453,28 @@ class Runtime:
 
         return SpeechStream(self, lang)
 
+    # ---------- 3.12 away from the PC: notices and confirmations come to the phone ----------
+    AWAY_S = 120
+
+    def user_away(self) -> bool:
+        try:
+            return float(self.platform.idle_seconds()) >= self.AWAY_S
+        except Exception:  # noqa: BLE001
+            return False
+
+    def phone_push(self, kind: str, **data) -> bool:
+        """A command for the paired phone – only when its link is alive (no pile of commands for a phone that is off)."""
+        phone = getattr(self, "phone", None)
+        if phone is None or (kind in ("notify", "confirm") and not getattr(self.cfg.phone_link, "away_push", True)):
+            return False
+        if not (phone.link_alive() or self.mobile_clients()):
+            return False
+        phone.send(kind, **data)
+        return True
+
     def on_confirm_request(self, cid: str, desc: str) -> None:
+        if self.user_away():
+            self.phone_push("confirm", cid=cid, text=desc[:300])
         if self.speaker and self.cfg.voice.speak_mode != "never":
             self.speak(f"Potřebuji potvrzení: {desc}. Ano, nebo ne?")
         if self.voice and hasattr(self.voice, "expect_confirmation"):

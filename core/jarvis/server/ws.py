@@ -25,7 +25,7 @@ CLIENT_TYPES = [
     "fact_delete", "memory_wipe", "pairing_get", "device_revoke", "lockdown", "speak", "tts_request", "shelf_add", "shelf_remove", "system_get",
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
-    "stop_all", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
+    "stop_all", "clip_from_phone", "clip_sync_set", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
     "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
     "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
@@ -51,7 +51,7 @@ CLIENT_TYPES = [
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
     "tool_end", "confirm_request", "confirm_timeout", "notify", "brain", "error", "settings_changed", "task_progress",
-    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "screen_ask", "phone_reply_suggestion", "device_listen", "device_listen_result", "meeting", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
+    "media", "history", "conversations", "settings", "provider_test_result", "focus_stats", "clips", "shots", "device_link", "pc_control", "screen_ask", "phone_reply_suggestion", "device_listen", "device_listen_result", "meeting", "clip_sync", "qnotes", "qnote_saved", "share_ready", "memory", "pairing", "tts_audio",
     "shelf", "system", "weather", "timers", "tools", "jobs", "skills", "mcp", "quick_result", "pong", "voice_status",
     "mood", "pet_state", "update_status", "confirm_resolved", "task_update",
     "tasks", "task", "stopped", "screen_capture", "local_info", "local_pull_progress", "local_model_missing",
@@ -293,7 +293,7 @@ class Connection:
                         settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
-                        pc_control=rt.pc_control.state(),
+                        pc_control=rt.pc_control.state(), clip_sync=rt.cfg.phone_link.clip_sync,
                         media=rt.media_state, lyrics=getattr(rt, "lyrics_state", {}) if self.local else {},
                         focus=self._focus_state(),
                         shelf=[rt.public_attachment(a) for a in rt.shelf],
@@ -832,6 +832,18 @@ class Connection:
                 rt.phone.send("notif_reply", key=key, text=txt)
         elif t == "phone_reply_suggest":       # 3.12 "Navrhni": a draft only – it goes nowhere until you send it
             self.spawn(self._reply_suggest(m))
+        elif t == "clip_from_phone":           # 3.12 shared clipboard: copied on the phone → paste on the PC
+            txt = str(m.get("text", ""))[:20000]
+            if txt.strip() and rt.cfg.phone_link.clip_sync:
+                rt._clip_from_phone = txt
+                try:
+                    rt.platform.clipboard_set(txt)
+                    rt.bus.publish("notify", title="Schránka z telefonu", body=txt[:90], url="", target="all")
+                except Exception as e:  # noqa: BLE001
+                    log.debug("clip from phone: %s", e)
+        elif t == "clip_sync_set":
+            rt.update_config({"phone_link": {"clip_sync": bool(m.get("on"))}})
+            await self.send("clip_sync", on=rt.cfg.phone_link.clip_sync)
         elif t == "meeting_record":            # 3.12 your click on "Zapsat schůzku" / "Přestat"
             r = rt.meetings.record(bool(m.get("on")))
             if not r.get("ok", True):

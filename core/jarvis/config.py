@@ -398,6 +398,8 @@ class MailCfg(BaseModel):
 class PhoneLinkCfg(BaseModel):
     """3.4 the JARVIS app on your phone: it rings, dials, sends SMS and mirrors your phone's notifications."""
     announce: bool = True        # someone writes to you on WhatsApp / SMS / Messenger or calls → JARVIS tells you on the PC
+    away_push: bool = True       # 3.12 away from the PC: what matters (and confirmations) comes to the phone
+    clip_sync: bool = False      # 3.12 shared clipboard PC ↔ phone (text, never passwords) – switched on in the phone app
     speak: bool = False          # …aloud
     # optional real phone calls when the phone app cannot be reached (Twilio; the token is in the keyring)
     twilio_sid: str = ""

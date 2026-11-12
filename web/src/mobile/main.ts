@@ -71,6 +71,24 @@ function solo() {
   });
 }
 
+// ---------------- 3.12 shared clipboard: what you copied on the phone goes to the PC when you open JARVIS ----------------
+let clipSync = false;
+let clipSent = "";
+function shareClipboard(c: JarvisClient) {
+  c.on("welcome", (m) => { clipSync = !!m.clip_sync; sendClip(); });
+  c.on("clip_sync", (m) => { clipSync = !!m.on; });
+  const sendClip = async () => {
+    if (!clipSync || document.hidden || !native.isNative) return;
+    const r = await native.phone.readClipboard().catch(() => null);
+    const t = (r?.text || "").trim();
+    if (!t || t === clipSent || t === (r?.fromPc || "").trim()) return;      // nothing new, or it came from the PC
+    clipSent = t;
+    c.send("clip_from_phone", { text: t });
+    toast("Schránka je i na PC", "ok", 1800);
+  };
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) window.setTimeout(sendClip, 400); });
+}
+
 // ---------------- connect ----------------
 function connectScreen(prev?: Pairing | null, error?: string) {
   const manual = h("input", { class: "input", placeholder: "192.168.1.20:8765 TOKEN nebo odkaz z PC", autocomplete: "off" }) as HTMLInputElement;
@@ -107,6 +125,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   client?.close();
   const c = new JarvisClient(ep, "mobile", native.deviceName());
   client = c;
+  shareClipboard(c);                                 // 3.12 sdílená schránka PC ↔ telefon
   let waiting = loadOutbox().length;
   const chat = new ChatView(c, { compact: true, enterNewline: true, placeholder: "Napiš JARVISovi…" });
 
@@ -480,6 +499,10 @@ function phoneCard(c: JarvisClient): HTMLElement {
           render(r);
         }, "Ťuk o monitor")),
     st.tapdrop && !st.overlay ? h("p", { class: "help" }, "Tip: povol „Zobrazovat přes jiné aplikace“ (výše) a uvidíš i animaci, jak fotka odlétá.") : "",
+    // 3.12 shared clipboard: copy on the PC → paste on the phone (by itself); copy on the phone → on the PC when you open JARVIS
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Sdílená schránka PC ↔ telefon"),
+      h("span", {}, "Zkopíruješ na PC, vložíš v telefonu – a naopak (z telefonu se pošle, když otevřeš JARVIS). Jen text, nikdy hesla.")),
+      sw(clipSync, (v) => { clipSync = v; c.send("clip_sync_set", { on: v }); if (v) { localStorage.setItem("jarvis.link", "1"); native.phone.configure({ enabled: true }).catch(() => {}); } }, "Sdílená schránka")),
     // 3.12 the notch on the phone: a small island at the top over other apps – what JARVIS does on the PC, a song, a timer
     h("div", { class: "row m-island" }, h("div", { class: "row-text" }, h("strong", {}, "Notch na telefonu"),
       h("span", {}, !st.island ? "Malý ostrůvek nahoře přes ostatní aplikace – jako na PC: co JARVIS dělá, hudba, časovač. Ťuk = otevřít, podržet = mluvit."

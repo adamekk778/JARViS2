@@ -82,6 +82,7 @@ const components = `
             android:excludeFromRecents="true" android:launchMode="singleTop" android:taskAffinity=".call"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
         <receiver android:name=".CallActionReceiver" android:exported="false" />
+        <receiver android:name=".ConfirmReceiver" android:exported="false" />
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
         </receiver>

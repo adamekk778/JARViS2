@@ -134,6 +134,8 @@ class Activity:
         from . import clipshelf
 
         clipshelf.changed(self.rt)                 # 3.12 the notch's Schránka shows it at once
+        if getattr(self.rt.cfg.phone_link, "clip_sync", False) and text != getattr(self.rt, "_clip_from_phone", None):
+            self.rt.phone_push("clip", text=text)   # 3.12 shared clipboard: on the phone too (never passwords – see above)
 
     def _breaks(self, now: float, idle: float, minutes: int) -> None:
         if idle >= BREAK_RESET_S or minutes <= 0:

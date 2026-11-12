@@ -17,6 +17,8 @@ export const native = {
     available: isNative,
     configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean; island?: boolean }): Promise<PhoneStatus> => JarvisPhone.configure(o),
     requestPhotos: (): Promise<PhoneStatus> => JarvisPhone.requestPhotos(),
+    /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
+    readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */
     installUpdate: async (url: string, onProgress: (p: number) => void): Promise<void> => {
       const sub = await JarvisPhone.addListener("updateProgress", (d: any) => onProgress(Number(d?.p) || 0));
