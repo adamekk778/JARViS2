@@ -262,7 +262,7 @@ function dynSize(m: Mode): [number, number] {
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
     case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : kind === "nudge" ? 400 : 348, 38] : [196, 38];
-    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" || kind === "rec" ? 390 : 330, 36] : [176, 36];
+    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" || kind === "rec" || kind === "meet" ? 390 : 330, 36] : [176, 36];
   }
 }
 /** The subtitle pill grows sideways (one wide line) and only takes a second line for a long sentence. */
@@ -775,6 +775,18 @@ client.on("selection", (m) => {
   window.clearTimeout(selTimer);
   selTimer = window.setTimeout(closeSelection, 25000);
 });
+// ---------- 3.12 Chytrý režim schůzky ----------
+let meetEv: { app: string; recording: boolean; dismissed: boolean } | null = null;
+client.on("meeting", (m) => {
+  if (m.state === "started") meetEv = { app: m.app || "Hovor", recording: !!m.recording, dismissed: meetEv?.dismissed && !m.recording ? true : false };
+  else {
+    meetEv = null;
+    if (m.recording) showAlert("Schůzka skončila", "Připravuji přepis, shrnutí a úkoly – dám vědět, až budou hotové.");
+  }
+  updateActivity();
+  if (mode === "closed" || mode === "hover") apply(mode);
+});
+
 // ---------- 3.12 Poslech zařízení: the transcript of what the PC played → prompt / summary / notes / copy ----------
 let devListen = { on: false, since: 0, words: 0 };
 client.on("device_listen", (m) => {
@@ -1242,6 +1254,16 @@ function islandActivity(t: any) {
     kind = "nudge";
     l = [h("span", { class: "n-nudge" }, icon("target", "ph-fill"), h("span", {}, "Soustředění"))];
     r = [h("span", { class: "n-nudge-app" }, `${nudge.app} počká`)];
+  } else if (meetEv && (meetEv.recording || !meetEv.dismissed)) {   // 3.12 a call: offer the notes (nothing records by itself)
+    kind = "meet";
+    l = [h("span", { class: "n-meet-ico" }, icon("video-camera", "ph-fill")), h("span", { class: "n-link-name" }, meetEv.app)];
+    const act = (e: Event, fn: () => void) => { e.stopPropagation(); fn(); };
+    r = meetEv.recording
+      ? [h("span", { class: "n-rec-dot" }), h("span", { class: "n-rec-meta" }, "Zapisuji"),
+         h("button", { class: "n-mt-b", type: "button", title: "Přestat zapisovat", onclick: (e: Event) => act(e, () => client.send("meeting_record", { on: false })) }, "Stop")]
+      : [h("button", { class: "n-mt-b go", type: "button", title: "Zapíše hovor (tvůj mikrofon + zvuk z PC), potom přepis, shrnutí a úkoly",
+           onclick: (e: Event) => act(e, () => client.send("meeting_record", { on: true })) }, "Zapsat"),
+         h("button", { class: "n-mt-b x", type: "button", "aria-label": "Ne, díky", onclick: (e: Event) => act(e, () => { if (meetEv) meetEv.dismissed = true; updateActivity(); if (mode === "closed") apply(mode); }) }, icon("x"))];
   } else if (devListen.on) {                               // 3.12 writing down what the PC plays – click = stop
     kind = "rec";
     const secs = Math.max(0, Math.round((Date.now() - devListen.since) / 1000));

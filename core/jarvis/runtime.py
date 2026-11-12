@@ -48,6 +48,9 @@ class Runtime:
         from .pccontrol import PcControl
 
         self.pc_control = PcControl(self)      # 3.12 "JARVIS právě ovládá tvůj PC": frame + take over / stop
+        from .meetings import Meetings
+
+        self.meetings = Meetings(self)         # 3.12 chytrý režim schůzky
         from .dictation import Dictation
 
         self.dictation = Dictation(self)
@@ -168,6 +171,9 @@ class Runtime:
         from . import focusguard
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
+        from . import meetings
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
         from . import fsplus
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328

@@ -695,3 +695,11 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
 .n-rec-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 10px rgba(255, 69, 58, .8); animation: rec-pulse 1.4s ease-in-out infinite; flex: none; }
 .n-rec-meta { color: rgba(255, 255, 255, .6); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 @keyframes rec-pulse { 50% { opacity: .35; } }
+
+/* 3.12 Chytrý režim schůzky island */
+.notch[data-island="meet"] .n-eyes { opacity: 0; }
+.n-meet-ico { color: #30d158; display: grid; font-size: 17px; }
+.n-mt-b { height: 24px; padding: 0 11px; border: 0; border-radius: 999px; font: inherit; font-size: 11.5px; font-weight: 650; color: #fff;
+  background: rgba(255, 255, 255, .12); cursor: pointer; pointer-events: auto; display: inline-flex; align-items: center; }
+.n-mt-b.go { background: #0a84ff; }
+.n-mt-b.x { width: 24px; padding: 0; justify-content: center; background: rgba(255, 255, 255, .08); }

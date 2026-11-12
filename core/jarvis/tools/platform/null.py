@@ -32,6 +32,7 @@ class NullPlatform(Platform):
     def audio_state(self): return getattr(self, "volume", None), getattr(self, "muted", None)
     def window_action(self, action, title=""): self._rec("window_action", action, title); return title or action
     def list_windows(self): return ["Spotify", "YouTube - Edge"]
+    def mic_users(self): return list(getattr(self, "mic", []))
     def power(self, action): self._rec("power", action)
     def clipboard_get(self): return self.clipboard
     def clipboard_set(self, text): self._rec("clipboard_set", text); self.clipboard = text

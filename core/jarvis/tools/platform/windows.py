@@ -237,6 +237,43 @@ class WindowsPlatform(Platform):
         u.EnumWindows(proto(cb), 0)
         return out
 
+    def mic_users(self) -> list[str]:
+        """3.12 Which programs are using the microphone right now – what Windows itself shows in its privacy settings
+        (CapabilityAccessManager: LastUsedTimeStop is 0 while the microphone is in use). Read-only, no audio."""
+        import winreg
+
+        out: list[str] = []
+        base = r"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone"
+
+        def scan(path: str, packaged: bool) -> None:
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path)
+            except OSError:
+                return
+            with key:
+                i = 0
+                while True:
+                    try:
+                        name = winreg.EnumKey(key, i)
+                    except OSError:
+                        break
+                    i += 1
+                    if name == "NonPackaged":
+                        continue
+                    try:
+                        with winreg.OpenKey(key, name) as sub:
+                            stop, _ = winreg.QueryValueEx(sub, "LastUsedTimeStop")
+                            start, _ = winreg.QueryValueEx(sub, "LastUsedTimeStart")
+                    except OSError:
+                        continue
+                    if stop == 0 and start:
+                        exe = name.replace("#", "\\").rsplit("\\", 1)[-1].lower() if not packaged else name.split("_")[0].lower()
+                        out.append(exe)
+
+        scan(base, True)
+        scan(base + r"\NonPackaged", False)
+        return out
+
     def list_windows(self) -> list[str]:
         return [t for _, t in self._windows()]
 

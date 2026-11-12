@@ -106,6 +106,8 @@ class Attention:
         now = time.time() if now is None else now
         if self.focus_until > now:
             return "soustředění"
+        if getattr(getattr(self.rt, "meetings", None), "active", False):
+            return "hovor"                                   # 3.12 a call is going on: notices wait
         if not getattr(getattr(self.rt.cfg, "stark", None), "attention_aware", True):
             return ""
         try:

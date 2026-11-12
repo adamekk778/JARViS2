@@ -47,6 +47,7 @@ class Platform:
     def audio_state(self) -> tuple[int | None, bool | None]: return None, None   # (system volume 0–100, muted)
     def window_action(self, action: WindowAction, title: str = "") -> str: raise NotImplementedError
     def list_windows(self) -> list[str]: return []
+    def mic_users(self) -> list[str]: return []   # 3.12 programs using the microphone right now (lower-case exe names)
     def foreground_app(self) -> str: return ""  # friendly name of the app in front (dictation stats)
     def power(self, action: PowerAction) -> None: raise NotImplementedError
     def clipboard_get(self) -> str: raise NotImplementedError
