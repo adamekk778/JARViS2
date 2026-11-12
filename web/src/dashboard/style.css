@@ -616,3 +616,16 @@ html[data-density="large"] body { zoom: 1.15; }
 .help-box { border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; font-size: 13px; color: var(--text-2); }
 .help-box summary { cursor: pointer; color: var(--text); font-weight: 600; }
 .help-box ol { margin: 8px 0 2px; padding-left: 20px; display: grid; gap: 6px; }
+
+/* 3.12 Kontrola funkcí */
+.sc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sc-list { display: grid; gap: 10px; }
+.sc-sum { margin: 0; font-weight: 600; }
+.sc-sum.ok { color: var(--ok, #34d399); } .sc-sum.bad { color: var(--danger, #f87171); }
+.sc-item { display: flex; gap: 10px; align-items: flex-start; }
+.sc-item > i { font-size: 20px; flex: none; margin-top: 1px; }
+.sc-item.ok > i { color: var(--ok, #34d399); } .sc-item.bad > i { color: var(--danger, #f87171); } .sc-item.na > i { color: var(--muted); }
+.sc-text { display: grid; gap: 3px; font-size: 13px; }
+.sc-text span { color: var(--muted); }
+.sc-text em { font-style: normal; color: var(--text); background: color-mix(in oklab, var(--accent, #34d399) 9%, transparent); padding: 6px 9px; border-radius: 8px; }
+.sc-text .btn { justify-self: start; margin-top: 4px; }

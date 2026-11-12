@@ -40,10 +40,23 @@ def test_windows_search_off_windows():
 
 def test_download_progress(tmp_path):
     dw = sysplus.DownloadWatch(tmp_path)
-    assert dw.progress({"film.mkv.crdownload": 10 << 20}, 100.0)[0]["speed"] == 0
+    assert dw.progress({"film.mkv.crdownload": 10 << 20}, 100.0) == []     # first look: not known to be growing yet
     p = dw.progress({"film.mkv.crdownload": 30 << 20, "hotovo.zip": 5}, 110.0)
     assert p == [{"file": "film.mkv", "bytes": 30 << 20, "speed": 2 << 20}]
     assert dw.progress({}, 120.0) == [] and dw.sizes == {}
+
+
+def test_leftovers_of_cancelled_downloads_are_not_downloading(tmp_path):
+    """The user saw "stahují se 2 soubory" forever: old .crdownload / .tmp files that never change."""
+    dw = sysplus.DownloadWatch(tmp_path)
+    old = {"stary.zip.crdownload": 5 << 20, "x.tmp": 1234}
+    for t in range(0, 300, 5):
+        assert dw.progress(dict(old), float(t)) == []
+    growing = dict(old, **{"novy.iso.crdownload": 1 << 20})
+    dw.progress(growing, 300.0)
+    growing["novy.iso.crdownload"] = 9 << 20
+    assert [x["file"] for x in dw.progress(growing, 305.0)] == ["novy.iso"]
+    assert dw.progress(growing, 340.0) == []                                   # stuck for 35 s: no longer shown
 
 
 def test_explorer_copy_titles():

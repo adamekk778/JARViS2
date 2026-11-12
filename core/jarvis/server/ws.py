@@ -49,7 +49,7 @@ CLIENT_TYPES = [
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
     "photo_backup_get", "photo_backup_open", "wake_get", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
-    "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run",
+    "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -69,7 +69,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -82,7 +82,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -95,7 +95,7 @@ LOCAL_ONLY = {"nightcare_get", "nightcare_run", "mirror_get", "mirror_request", 
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1372,6 +1372,27 @@ class Connection:
         elif t == "focus_stats_get":           # 3.12 the notch's weekly focus stats
             att = getattr(rt, "attention", None)
             await self.send("focus_stats", **(att.week() if att is not None else {}))
+        elif t == "selfcheck_run":            # 3.12 Kontrola funkcí: every part tried on this PC, in plain words
+            from .. import selfcheck
+
+            await self.send("selfcheck", running=True, items=[])
+            await self.send("selfcheck", running=False, items=await selfcheck.run(rt, self._provider_test))
+        elif t == "phone_net_get":            # 3.12 Settings → Telefon: will the phone get through (network, firewall)?
+            from .. import selfcheck
+
+            await self.send("phone_net", items=await asyncio.to_thread(selfcheck.phone_net, rt))
+        elif t == "firewall_allow":
+            from .. import selfcheck
+
+            ok = await asyncio.to_thread(selfcheck.allow_firewall)
+            await self.send("notify", title="Firewall", body="Potvrď v okně Windows (Ano). Pak dej Zkontrolovat znovu." if ok else "Jen na Windows.",
+                            url="", target="dashboard")
+        elif t == "brain_key":                # 3.12 Mozek jen z API klíče: paste → recognised, set up, tested
+            from .. import brainkey
+
+            r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test)
+            await self.send("brain_key_result", **r)
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
         elif t == "provider_test":
             await self.send("provider_test_result", **(await self._provider_test(m.get("id", ""))))
         elif t == "memory_get":

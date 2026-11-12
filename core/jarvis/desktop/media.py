@@ -83,11 +83,13 @@ def changed(prev: dict, snap: dict, tolerance: float = 2.5) -> bool:
 async def watch(rt, interval: float = 2.0) -> None:
     try:
         import winsdk  # noqa: F401
-    except ImportError:
+    except ImportError as e:
+        log.warning("hudba v notchi nejde: chybí winsdk (%s)", e)    # the reason in the log, not silence
         return
     from .. import nowplaying
 
     prev: dict = {}
+    last_err = ""
     while True:
         try:
             snap = await _snapshot()
@@ -107,5 +109,9 @@ async def watch(rt, interval: float = 2.0) -> None:
                     asyncio.get_running_loop().create_task(nowplaying.publish_lyrics(rt, snap))
             prev = snap
         except Exception as e:
-            log.debug("media watch: %s", e)
+            if f"{type(e).__name__}: {e}" != last_err:              # each new reason once at warning level
+                last_err = f"{type(e).__name__}: {e}"
+                log.warning("hudba v notchi: %s", last_err)
+            else:
+                log.debug("media watch: %s", e)
         await asyncio.sleep(interval)

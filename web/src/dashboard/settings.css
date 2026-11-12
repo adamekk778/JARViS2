@@ -56,3 +56,26 @@
 .row.link-alert { background: color-mix(in srgb, var(--accent, #0a84ff) 10%, transparent); border-radius: 10px; }
 .row.link-alert.warn { background: color-mix(in srgb, #ff9f0a 14%, transparent); }
 .row.link-alert .ph-warning { color: #ff9f0a; }
+
+/* 3.12 Mozek – stačí API klíč */
+.qk-card { display: grid; gap: 10px; border-color: var(--accent-line, rgb(52 211 153 / .35)); }
+.qk-card h2 { margin: 0; font-size: 16px; }
+.qk-card .key-row { display: flex; gap: 8px; }
+.qk-input { flex: 1; font-size: 15px; }
+.qk-out { margin: 0; font-size: 13.5px; min-height: 1.2em; color: var(--muted); }
+.qk-out.ok { color: var(--ok, #34d399); }
+.qk-out.bad { color: var(--danger, #f87171); }
+.qk-advanced > summary { cursor: pointer; font-weight: 600; padding: 4px 0; color: var(--muted); }
+.qk-advanced[open] > summary { margin-bottom: 10px; }
+
+/* 3.12 phone network warning + Kontrola funkcí items (also used in Diagnostika) */
+.sc-list { display: grid; gap: 10px; }
+.sc-warn { border-color: color-mix(in oklab, var(--danger, #f87171) 40%, transparent); }
+.sc-sum { margin: 0; font-weight: 600; }
+.sc-sum.bad { color: var(--danger, #f87171); }
+.sc-item { display: flex; gap: 10px; align-items: flex-start; }
+.sc-item > i { font-size: 20px; flex: none; margin-top: 1px; color: var(--danger, #f87171); }
+.sc-text { display: grid; gap: 3px; font-size: 13px; }
+.sc-text span { color: var(--muted); }
+.sc-text em { font-style: normal; background: color-mix(in oklab, var(--accent, #34d399) 9%, transparent); padding: 6px 9px; border-radius: 8px; }
+.sc-text .btn { justify-self: start; margin-top: 4px; }

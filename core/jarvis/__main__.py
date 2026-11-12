@@ -160,6 +160,21 @@ def main(argv: list[str] | None = None) -> int:
         if "--bench-gate" in argv and not diagnostics.gate(res):
             return 1
         return 0
+    if argv[:1] == ["--selfcheck"]:  # CI / support: Kontrola funkcí without the window, printed as JSON lines
+        import asyncio as _aio
+        import json
+
+        from . import selfcheck
+        from .runtime import Runtime
+
+        rt = Runtime(persist_config=False)
+
+        async def _t(pid: str) -> dict:
+            return {"ok": False, "message": "v CI se mozek nezkouší"}
+
+        for item in _aio.run(selfcheck.run(rt, _t)):
+            print(json.dumps(item, ensure_ascii=False), flush=True)
+        return 0
     if argv[:1] == ["--selftest-uia"]:  # CI: is UI Automation packaged and working?
         import json
 

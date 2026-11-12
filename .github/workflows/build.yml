@@ -94,6 +94,13 @@ jobs:
           if (-not $ok) { throw "JARVIS-debug.exe did not start" }
           # the version the app reports decides whether it offers an update: it must be this build's, not 3.10.0
           if ($r.version -ne $env:JARVIS_VERSION) { throw "JARVIS reports version $($r.version), the build is $env:JARVIS_VERSION" }
+      - name: Kontrola funkcí in the packaged app (are the Windows parts for music, sound and microphone there?)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome-sc"
+          $env:JARVIS_NO_NET = "1"
+          & dist\JARVIS\JARVIS-debug.exe --selfcheck 2>&1 | ForEach-Object { Write-Host "SELFCHECK $_" }
       - name: Smoke test windowed JARVIS.exe
         shell: pwsh
         run: |

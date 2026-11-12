@@ -67,9 +67,13 @@ class DownloadWatch:
         self.partial: dict[str, float] = {}           # final name → since
         self.pending: dict[str, int] = {}             # final name → last size (waiting for it to settle)
         self.sizes: dict[str, tuple[float, int]] = {}  # partial file → (when, bytes) for the speed (OMEGA 075)
+        self.grew: dict[str, float] = {}              # partial file → when it last grew
+
+    STALL_S = 30.0                                     # a partial file that has not grown this long is not downloading
 
     def progress(self, snap: dict[str, int], now: float) -> list[dict]:
-        """Files being downloaded right now: real size so far and speed since the last look."""
+        """Files being downloaded right now: real size so far and speed since the last look. Only files that are
+        actually growing count – a leftover .crdownload / .part / .tmp of a cancelled download is not "downloading"."""
         out = []
         for name, size in snap.items():
             f = self.final_name(name)
@@ -78,8 +82,13 @@ class DownloadWatch:
             prev = self.sizes.get(name)
             speed = (size - prev[1]) / (now - prev[0]) if prev and now > prev[0] and size >= prev[1] else 0.0
             self.sizes[name] = (now, size)
+            if prev is not None and size != prev[1]:
+                self.grew[name] = now
+            if now - self.grew.get(name, -1e18) > self.STALL_S:
+                continue                                # never seen growing, or stuck: a leftover, not a download
             out.append({"file": f, "bytes": size, "speed": round(speed)})
         self.sizes = {k: v for k, v in self.sizes.items() if k in snap}
+        self.grew = {k: v for k, v in self.grew.items() if k in snap}
         return sorted(out, key=lambda x: -x["speed"])
 
     @staticmethod

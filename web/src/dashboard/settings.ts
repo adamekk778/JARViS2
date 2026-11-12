@@ -285,12 +285,36 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         while (providers.some((p) => p.id === id)) id = `${pr}${n++}`;
         saveProviders([...ordered, { id, preset: pr, base_url: presets[pr]?.base_url || "", model: presets[pr]?.model || "", vision_model: "", fast_model: "", enabled: true }]);
       };
+      // 3.12 the simple way: one field – paste the key, JARVIS recognises the service and sets everything up itself
+      const qk = h("input", { class: "input qk-input", type: "password", placeholder: "Sem vlož API klíč (Groq, Gemini, OpenAI, Claude, OpenRouter)", autocomplete: "off",
+        "aria-label": "API klíč" }) as HTMLInputElement;
+      const qst = extra.brainKey as { ok: boolean; message: string } | undefined;
+      const qout = h("p", { class: `qk-out ${qst ? (qst.ok ? "ok" : "bad") : ""}` }, qst?.message || "");
+      const sendKey = () => {
+        const v = qk.value.trim();
+        if (!v) return;
+        qk.value = "";
+        extra.brainKey = { ok: true, message: "Zkouším klíč…" };
+        qout.className = "qk-out";
+        qout.textContent = "Zkouším klíč…";
+        client.send("brain_key", { key: v });
+      };
+      qk.onpaste = () => window.setTimeout(sendKey, 30);
+      qk.onkeydown = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); sendKey(); } };
+      const first = ordered.find((p) => p.enabled);
       return [
-        h("div", { class: "card ob-entry" }, h("span", { class: "ob-entry-ico" }, icon("magic-wand", "ph-fill")),
-          h("div", {}, h("strong", {}, "Průvodce nastavením AI"), h("p", {}, "Krok za krokem: vybereš Groq nebo Gemini (zdarma), vložíš klíč a hned uvidíš, jestli funguje.")),
-          h("button", { class: "btn primary", type: "button", onclick: () => openOnboarding() }, icon("play"), "Spustit průvodce")),
-        card("Poskytovatelé (záložní řetěz)", "Výchozí: OmniRoute (zdarma, běží na tvém PC na portu 20128) a pak Ollama (offline). Když jeden selže nebo dojde limit, JARVIS automaticky zkusí další.",
-          list, h("div", { class: "row" }, h("div", { style: { flex: "1" } }, presetSel), h("button", { class: "btn primary", type: "button", onclick: add }, icon("plus"), "Přidat poskytovatele"))),
+        h("div", { class: "card qk-card" },
+          h("h2", {}, "Mozek – stačí API klíč"),
+          h("p", { class: "help" }, "Vlož klíč a je hotovo: JARVIS pozná, od koho je, sám nastaví vše ostatní a hned ho vyzkouší. Zdarma klíč dostaneš na console.groq.com (Groq) nebo aistudio.google.com (Gemini)."),
+          h("div", { class: "key-row" }, qk, h("button", { class: "btn primary", type: "button", onclick: sendKey }, icon("check"), "Použít")),
+          qout,
+          first ? h("p", { class: "help" }, `Teď odpovídá: ${presets[first.preset]?.label || first.id}${secretsFlags[first.id] || !presets[first.preset]?.needs_key ? "" : " (bez klíče)"}`) : null),
+        h("details", { class: "card qk-advanced" }, h("summary", {}, "Pokročilé – víc poskytovatelů, vlastní server, offline modely"),
+          h("div", { class: "card ob-entry" }, h("span", { class: "ob-entry-ico" }, icon("magic-wand", "ph-fill")),
+            h("div", {}, h("strong", {}, "Průvodce nastavením AI"), h("p", {}, "Krok za krokem: vybereš Groq nebo Gemini (zdarma), vložíš klíč a hned uvidíš, jestli funguje.")),
+            h("button", { class: "btn primary", type: "button", onclick: () => openOnboarding() }, icon("play"), "Spustit průvodce")),
+          card("Poskytovatelé (záložní řetěz)", "Když jeden selže nebo dojde limit, JARVIS automaticky zkusí další v pořadí. OmniRoute a Ollama běží na tvém PC – potřebují vlastní instalaci.",
+            list, h("div", { class: "row" }, h("div", { style: { flex: "1" } }, presetSel), h("button", { class: "btn primary", type: "button", onclick: add }, icon("plus"), "Přidat poskytovatele")))),
         ...(extra.local ? [backupCard() as HTMLElement] : []), localCard(),
         card("Chování", null,
           range("brain.temperature", "Kreativita (temperature)", 0, 1.5, 0.1, (v) => v.toFixed(1)),
@@ -584,6 +608,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const p = extra.pairing;
       if (!p) client.send("pairing_get");
       return [
+        phoneNetCard(),
         card("Spárovat telefon", "1) Nainstaluj JARVIS.apk do telefonu. 2) V aplikaci klepni na Naskenovat QR. 3) Hotovo.",
           p ? h("div", { class: "qr" }, h("div", { class: "qr-img", html: p.qr_svg }),
             h("div", { style: { display: "grid", gap: "10px" } },
@@ -812,6 +837,21 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  // 3.12 Will the phone get through? (network profile, firewall) – shown at the top of Telefon, with the fix
+  function phoneNetCard() {
+    const n = extra.phoneNet as any[] | undefined;
+    if (!n) client.send("phone_net_get");
+    const bad = (n || []).filter((i) => i.ok === false);
+    if (!n || !bad.length) return h("span");
+    return h("section", { class: "group" }, h("div", { class: "card list sc-list sc-warn" },
+      h("p", { class: "sc-sum bad" }, "Telefon se teď k PC nepřipojí:"),
+      ...bad.map((i) => h("div", { class: "sc-item bad" }, icon("x-circle", "ph-fill"),
+        h("div", { class: "sc-text" }, h("strong", {}, i.name), h("span", {}, i.detail), i.fix ? h("em", {}, i.fix) : null,
+          i.key === "firewall" ? h("button", { class: "btn primary sm", type: "button", onclick: () => { client.send("firewall_allow"); window.setTimeout(() => { extra.phoneNet = undefined; render(); }, 8000); } },
+            icon("shield-check"), "Povolit telefon ve firewallu") : null))),
+      h("button", { class: "btn", type: "button", onclick: () => { extra.phoneNet = undefined; render(); } }, icon("arrows-clockwise"), "Zkontrolovat znovu")));
+  }
+
   // 3.12 Noční údržba PC: the last night's result + "Spustit teď"
   function nightCareRow() {
     const n = extra.nightcare;
@@ -1248,6 +1288,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
+  client.on("phone_net", (m) => { extra.phoneNet = m.items || []; if (current === "phone") render(); });
+  client.on("brain_key_result", (m) => { extra.brainKey = m; if (current === "brain") render(); });
   client.on("nightcare", (m) => { extra.nightcare = m; if (current === "general") render(); });
   client.on("wake_info", (m) => { extra.wake = m; if (current === "phone") render(); });
   client.on("photo_backup", (m) => { extra.photoBackup = m; if (current === "phone") render(); });
