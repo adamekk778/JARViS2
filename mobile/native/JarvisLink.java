@@ -128,6 +128,28 @@ public final class JarvisLink {
         return out.toString("UTF-8");
     }
 
+    /** 3.12 a file from the PC (home or JARVIS Link) into `dest`, at most `max` bytes. */
+    static void download(Context c, String path, java.io.File dest, long max) throws Exception {
+        HttpURLConnection con = (HttpURLConnection) new URL(liveBase(c) + path).openConnection();
+        con.setConnectTimeout(8000);
+        con.setReadTimeout(30000);
+        con.setRequestProperty("Authorization", "Bearer " + token(c));
+        int code = con.getResponseCode();
+        if (code >= 400) { con.disconnect(); throw new IllegalStateException("HTTP " + code); }
+        long got = 0;
+        try (InputStream in = con.getInputStream(); OutputStream os = new java.io.FileOutputStream(dest)) {
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                got += n;
+                if (got > max) throw new IllegalStateException("soubor je moc velký");
+                os.write(buf, 0, n);
+            }
+        } finally {
+            con.disconnect();
+        }
+    }
+
     static void ack(final Context c, final String id, final String state, final String detail) {
         new Thread(() -> {
             try {
@@ -253,6 +275,20 @@ public final class JarvisLink {
                     String t = cmd.optString("text");
                     prefs(c).edit().putString("clip_from_pc", t.length() > 2000 ? t.substring(0, 2000) : t).apply();
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("JARVIS", t));
+                    return "done";
+                }
+                case "clip_image": {             // 3.12 a picture copied on the PC (a screenshot) → this phone's clipboard
+                    java.io.File dir = new java.io.File(c.getCacheDir(), "clip");
+                    if (!dir.isDirectory() && !dir.mkdirs()) return "error";
+                    java.io.File[] old = dir.listFiles();
+                    if (old != null) for (java.io.File f : old) f.delete();
+                    java.io.File f = new java.io.File(dir, "schranka-" + System.currentTimeMillis() + ".png");
+                    download(c, "/api/files/" + cmd.optString("aid"), f, 15 * 1024 * 1024);
+                    Uri uri = androidx.core.content.FileProvider.getUriForFile(c, c.getPackageName() + ".fileprovider", f);
+                    android.content.ClipboardManager cm = c.getSystemService(android.content.ClipboardManager.class);
+                    if (cm == null) return "error";
+                    cm.setPrimaryClip(android.content.ClipData.newUri(c.getContentResolver(), "JARVIS", uri));
+                    prefs(c).edit().putString("clip_from_pc_img", uri.toString()).apply();
                     return "done";
                 }
                 case "notif_reply":            // 3.12 a reply written in the PC's notch, sent by the message's own app

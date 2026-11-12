@@ -104,12 +104,25 @@ function solo() {
 // ---------------- 3.12 shared clipboard: what you copied on the phone goes to the PC when you open JARVIS ----------------
 let clipSync = false;
 let clipSent = "";
+let clipImgSent = "";
 function shareClipboard(c: JarvisClient) {
   c.on("welcome", (m) => { clipSync = !!m.clip_sync; sendClip(); });
   c.on("clip_sync", (m) => { clipSync = !!m.on; });
   const sendClip = async () => {
     if (!clipSync || document.hidden || !native.isNative) return;
     const r = await native.phone.readClipboard().catch(() => null);
+    // 3.12 a copied picture → the PC's clipboard (once per picture)
+    if (r?.image && r.imageId && r.imageId !== clipImgSent) {
+      clipImgSent = r.imageId;
+      try {
+        const bin = Uint8Array.from(atob(r.image), (ch) => ch.charCodeAt(0));
+        const type = r.imageType || "image/png";
+        const att = await c.upload(new globalThis.Blob([bin], { type }), `schranka.${type.split("/")[1] || "png"}`);
+        c.send("clip_from_phone", { attachment_id: att.id });
+        toast("Obrázek je i ve schránce PC", "ok", 1800);
+      } catch { /* the PC is not reachable now: next time */ clipImgSent = ""; }
+      return;
+    }
     const t = (r?.text || "").trim();
     if (!t || t === clipSent || t === (r?.fromPc || "").trim()) return;      // nothing new, or it came from the PC
     clipSent = t;
@@ -442,7 +455,8 @@ function controlView(c: JarvisClient): HTMLElement {
       h("div", { class: "vol" }, icon("speaker-low"), vol, icon("speaker-high")),
       h("div", { class: "media-row" },
         tile("speaker-slash", "Ztlumit", () => quick("volume", { action: "mute" })),
-        tile("speaker-simple-high", "Zvuk", () => quick("volume", { action: "unmute" })))),
+        tile("speaker-simple-high", "Zvuk", () => quick("volume", { action: "unmute" }))),
+      pcAudioRow()),
     h("div", { class: "card" }, h("h2", {}, "Pustit a otevřít"),
       h("div", { class: "inline" }, yt, h("button", { class: "btn primary", type: "button", onclick: playYt }, icon("youtube-logo"))),
       app_),
@@ -457,6 +471,27 @@ function controlView(c: JarvisClient): HTMLElement {
         tile("moon-stars", "Uspat", () => danger("system_power", { action: "sleep" }), "warn"),
         tile("power", "Vypnout", () => danger("system_power", { action: "shutdown" }), "warn"))),
     guardCard(c));
+}
+
+// ---------------- 3.12 Zvuk z PC do telefonu ----------------
+function pcAudioRow(): HTMLElement | string {
+  if (!native.phone.available) return "";
+  const btn = h("button", { class: "btn m-pcaudio", type: "button" }) as HTMLButtonElement;
+  let on = false;
+  const paint = () => btn.replaceChildren(icon(on ? "stop-circle" : "headphones", on ? "ph-fill" : ""),
+    on ? "Zastavit zvuk z PC" : "Poslouchat PC v telefonu");
+  btn.onclick = async () => {
+    native.haptic();
+    on = (await native.phone.pcAudio({ on: !on }).catch(() => ({ on: false }))).on;
+    paint();
+    if (on) toast("Zvuk z PC hraje v telefonu (za pár sekund)", "ok");
+  };
+  const refresh = () => native.phone.pcAudio({}).then((r) => { on = r.on; paint(); }).catch(() => {});
+  paint();
+  refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  return h("div", { class: "m-pcaudio-row" }, btn,
+    h("p", { class: "help" }, "Hudba, film nebo hra z PC v telefonu a sluchátkách – i v jiné místnosti a mimo domov. Bere se jen zvuk, který PC samo hraje."));
 }
 
 // ---------------- 3.12 Hlídání PC: someone uses the PC while you are away → a notice here at once ----------------
@@ -591,7 +626,7 @@ function phoneCard(c: JarvisClient): HTMLElement {
       } }, icon("plus-square"), "Přidat")),
     // 3.12 shared clipboard: copy on the PC → paste on the phone (by itself); copy on the phone → on the PC when you open JARVIS
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Sdílená schránka PC ↔ telefon"),
-      h("span", {}, "Zkopíruješ na PC, vložíš v telefonu – a naopak (z telefonu se pošle, když otevřeš JARVIS). Jen text, nikdy hesla.")),
+      h("span", {}, "Zkopíruješ na PC, vložíš v telefonu – a naopak (z telefonu se pošle, když otevřeš JARVIS). Text i obrázky a snímky obrazovky, nikdy hesla.")),
       sw(clipSync, (v) => { clipSync = v; c.send("clip_sync_set", { on: v }); if (v) { localStorage.setItem("jarvis.link", "1"); native.phone.configure({ enabled: true }).catch(() => {}); } }, "Sdílená schránka")),
     // 3.12 the notch on the phone: a small island at the top over other apps – what JARVIS does on the PC, a song, a timer
     h("div", { class: "row m-island" }, h("div", { class: "row-text" }, h("strong", {}, "Notch na telefonu"),

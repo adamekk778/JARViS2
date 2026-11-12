@@ -346,6 +346,15 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Soubor nenalezen")
         return {"ok": True}
 
+    @app.get("/api/phone/audio")
+    async def phone_audio(request: Request):
+        """3.12 Zvuk z PC do telefonu: what the PC plays, as an endless AAC stream (only the paired phone)."""
+        require_auth(request)
+        from fastapi.responses import StreamingResponse
+
+        return StreamingResponse(rt.pc_audio.listen(), media_type="audio/aac",
+                                 headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+
     # ---------- 3.12 Telefon na monitoru PC ----------
     @app.post("/api/phone/mirror/frame")
     async def phone_mirror_frame(request: Request):

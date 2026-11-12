@@ -52,6 +52,8 @@ class Platform:
     def power(self, action: PowerAction) -> None: raise NotImplementedError
     def clipboard_get(self) -> str: raise NotImplementedError
     def clipboard_set(self, text: str) -> None: raise NotImplementedError
+    def clipboard_image_get(self) -> bytes | None: return None          # 3.12 a picture in the clipboard (PNG)
+    def clipboard_image_set(self, data: bytes) -> None: raise NotImplementedError
     def screenshot(self) -> bytes: raise NotImplementedError
     def screen_size(self) -> tuple[int, int]: return (1920, 1080)
     def run_shell(self, command: str, timeout: int = 60) -> tuple[int, str]: raise NotImplementedError

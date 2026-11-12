@@ -866,6 +866,21 @@ class Connection:
                 rt.phone.send("notif_reply", key=key, text=txt)
         elif t == "phone_reply_suggest":       # 3.12 "Navrhni": a draft only – it goes nowhere until you send it
             self.spawn(self._reply_suggest(m))
+        elif t == "clip_from_phone" and m.get("attachment_id"):   # 3.12 a picture copied on the phone → the PC's clipboard
+            if self.guest or not rt.cfg.phone_link.clip_sync:
+                return
+            att = rt.store.get(str(m["attachment_id"]))      # the file is on disk as soon as it is uploaded
+            if att is None or att.kind != "image" or att.size > 15 * 2**20:
+                return
+            try:
+                from pathlib import Path as _P
+
+                data = await asyncio.to_thread(_P(att.path).read_bytes)
+                rt._clip_from_phone_at = time.time()
+                await asyncio.to_thread(rt.platform.clipboard_image_set, data)
+                rt.bus.publish("notify", title="Obrázek z telefonu", body="Je ve schránce – vlož ho Ctrl+V.", url="", target="all")
+            except Exception as e:  # noqa: BLE001
+                log.debug("clip image from phone: %s", e)
         elif t == "clip_from_phone":           # 3.12 shared clipboard: copied on the phone → paste on the PC
             txt = str(m.get("text", ""))[:20000]
             if txt.strip() and rt.cfg.phone_link.clip_sync:

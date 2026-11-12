@@ -35,8 +35,10 @@ export const native = {
     mirrorStop: (): Promise<{ running: boolean; control: boolean }> => JarvisPhone.mirrorStop(),
     mirrorStatus: (): Promise<{ running: boolean; control: boolean }> => JarvisPhone.mirrorStatus(),
     openAccessibility: (): Promise<void> => JarvisPhone.openAccessibility(),
+    /** 3.12 Zvuk z PC do telefonu: on / off / ask ({} = just the state) */
+    pcAudio: (o: { on?: boolean }): Promise<{ on: boolean }> => JarvisPhone.pcAudio(o),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
-    readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
+    readClipboard: (): Promise<{ text: string; fromPc: string; image?: string; imageType?: string; imageId?: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */
     installUpdate: async (url: string, onProgress: (p: number) => void): Promise<void> => {
       const sub = await JarvisPhone.addListener("updateProgress", (d: any) => onProgress(Number(d?.p) || 0));

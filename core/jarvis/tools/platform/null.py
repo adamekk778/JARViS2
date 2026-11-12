@@ -36,6 +36,8 @@ class NullPlatform(Platform):
     def power(self, action): self._rec("power", action)
     def clipboard_get(self): return self.clipboard
     def clipboard_set(self, text): self._rec("clipboard_set", text); self.clipboard = text
+    def clipboard_image_get(self): return getattr(self, "clipboard_image", None)
+    def clipboard_image_set(self, data): self._rec("clipboard_image_set", len(data)); self.clipboard_image = data
     def run_shell(self, command, timeout=60): self._rec("run_shell", command); return 0, f"ran: {command}"
     def click(self, x, y, button="left", double=False): self._rec("click", x, y, button, double)
     def move(self, x, y): self._rec("move", x, y)

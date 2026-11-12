@@ -106,6 +106,18 @@ public class JarvisPhonePlugin extends Plugin {
         open(new Intent(getContext(), VoiceActivity.class), call);
     }
 
+    /** 3.12 Zvuk z PC do telefonu: on/off; answers whether it plays. */
+    @PluginMethod
+    public void pcAudio(PluginCall call) {
+        if (call.hasOption("on")) {
+            if (Boolean.TRUE.equals(call.getBoolean("on", false))) PcAudioService.start(getContext());
+            else if (PcAudioService.running) PcAudioService.stop(getContext());
+        }
+        JSObject r = new JSObject();
+        r.put("on", PcAudioService.running || Boolean.TRUE.equals(call.getBoolean("on", false)) && call.hasOption("on"));
+        call.resolve(r);
+    }
+
     /** 3.12 Telefon na monitoru PC: start (Android asks), stop, and whether the PC's mouse may drive the phone. */
     @PluginMethod
     public void mirrorStart(PluginCall call) {
@@ -225,6 +237,23 @@ public class JarvisPhonePlugin extends Plugin {
             CharSequence t = d != null && d.getItemCount() > 0 ? d.getItemAt(0).coerceToText(getContext()) : null;
             r.put("text", t == null ? "" : t.toString());
             r.put("fromPc", JarvisLink.prefs(getContext()).getString("clip_from_pc", ""));
+            // 3.12 a copied picture (not the one that came from the PC) → base64 for the app to send to the PC
+            android.net.Uri u = d != null && d.getItemCount() > 0 ? d.getItemAt(0).getUri() : null;
+            String type = u == null ? null : getContext().getContentResolver().getType(u);
+            if (u != null && type != null && type.startsWith("image/")
+                    && !u.toString().equals(JarvisLink.prefs(getContext()).getString("clip_from_pc_img", ""))) {
+                try (java.io.InputStream in = getContext().getContentResolver().openInputStream(u)) {
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[64 * 1024];
+                    int n;
+                    while (in != null && (n = in.read(buf)) > 0 && out.size() <= 8 * 1024 * 1024) out.write(buf, 0, n);
+                    if (out.size() > 0 && out.size() <= 8 * 1024 * 1024) {
+                        r.put("image", android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP));
+                        r.put("imageType", type);
+                        r.put("imageId", u.toString());
+                    }
+                }
+            }
         } catch (Exception e) {
             r.put("text", "");
         }

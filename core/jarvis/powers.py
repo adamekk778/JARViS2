@@ -126,7 +126,10 @@ class Activity:
         except Exception:
             return
         text = text.strip()
-        if not text or len(text) > 20000 or looks_secret(text):
+        if not text:
+            self._clip_image(now)                # 3.12 no text: maybe a picture (a screenshot) for the phone
+            return
+        if len(text) > 20000 or looks_secret(text):
             return
         if self.clips and self.clips[0]["text"] == text:
             return
@@ -136,6 +139,32 @@ class Activity:
         clipshelf.changed(self.rt)                 # 3.12 the notch's Schránka shows it at once
         if getattr(self.rt.cfg.phone_link, "clip_sync", False) and text != getattr(self.rt, "_clip_from_phone", None):
             self.rt.phone_push("clip", text=text)   # 3.12 shared clipboard: on the phone too (never passwords – see above)
+
+    def _clip_image(self, now: float) -> None:
+        """3.12 shared clipboard with pictures: a screenshot / copied image on the PC → the phone's clipboard."""
+        rt = self.rt
+        if not getattr(rt.cfg.phone_link, "clip_sync", False) or now - getattr(rt, "_clip_from_phone_at", 0.0) < 10:
+            return                                   # off, or the picture just came from the phone itself
+        try:
+            png = rt.platform.clipboard_image_get()
+        except Exception:  # noqa: BLE001
+            return
+        if not png or len(png) > 8 * 2**20:
+            return
+        import hashlib
+
+        digest = hashlib.sha1(png).hexdigest()
+        if digest == getattr(self, "_clip_img_last", None):
+            return
+        self._clip_img_last = digest
+
+        async def send() -> None:
+            att = await rt.store.save("schranka.png", png, "image/png")
+            rt.phone_push("clip_image", aid=att.id)
+
+        import asyncio as _aio
+
+        rt.call_soon(lambda: _aio.ensure_future(send()))
 
     def _breaks(self, now: float, idle: float, minutes: int) -> None:
         if idle >= BREAK_RESET_S or minutes <= 0:

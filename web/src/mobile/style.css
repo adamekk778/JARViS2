@@ -215,3 +215,5 @@ html[data-hand] .m-view { padding-top: 22vh; }
 .m-morning { display: grid; gap: 6px; margin-top: 4px; }
 .m-time { max-width: 120px; }
 .m-mirror { display: grid; gap: 4px; margin-top: 4px; }
+.m-pcaudio-row { display: grid; gap: 4px; margin-top: 10px; }
+.m-pcaudio { width: 100%; justify-content: center; }

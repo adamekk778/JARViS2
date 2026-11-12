@@ -159,6 +159,9 @@ class Runtime:
         from .nightcare import NightCare
 
         self.nightcare = NightCare(self)       # 3.12 Noční údržba PC
+        from .pcaudio import PcAudio
+
+        self.pc_audio = PcAudio(self)          # 3.12 Zvuk z PC do telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 

@@ -30,6 +30,7 @@ const perms = [
   "android.permission.READ_MEDIA_IMAGES",
   "android.permission.READ_MEDIA_VIDEO",           // 3.12 Záloha fotek: videos too (asked when you switch the backup on)
   "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",   // 3.12 Telefon na monitoru PC (Android asks every time)
+  "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",     // 3.12 Zvuk z PC do telefonu
   "android.permission.REQUEST_INSTALL_PACKAGES",   // 3.12 update the app with one tap (Android still asks)
 ];
 for (const p of perms) {
@@ -120,6 +121,9 @@ const mirror = `
         </service>
 `;
 if (!m.includes(".MirrorService")) m = m.replace("</application>", mirror + "    </application>");
+// 3.12 Zvuk z PC do telefonu: a player in the background with its notification
+if (!m.includes(".PcAudioService")) m = m.replace("</application>",
+  '        <service android:name=".PcAudioService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n    </application>');
 // 3.10 home-screen widget
 const widget = `
         <receiver android:name=".JarvisWidget" android:exported="false" android:label="JARVIS">

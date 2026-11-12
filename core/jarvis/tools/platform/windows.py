@@ -385,6 +385,61 @@ class WindowsPlatform(Platform):
         except Exception:
             subprocess.run(["clip"], input=text.encode("utf-16-le"), creationflags=CREATE_NO_WINDOW)
 
+    # 3.12 obrázky ve sdílené schránce PC ↔ telefon
+    def clipboard_image_get(self) -> bytes | None:
+        """The picture in the clipboard (a screenshot, a copied image) as PNG – None when it holds no picture."""
+        try:
+            from PIL import ImageGrab
+
+            im = ImageGrab.grabclipboard()
+        except Exception:
+            return None
+        if im is None or isinstance(im, list):          # nothing, or copied files (not a picture)
+            return None
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        return buf.getvalue()
+
+    def clipboard_image_set(self, data: bytes) -> None:
+        """Put a picture (any format PIL reads) into the Windows clipboard as a bitmap (CF_DIB)."""
+        import time as _time
+
+        from PIL import Image
+
+        im = Image.open(io.BytesIO(data)).convert("RGB")
+        out = io.BytesIO()
+        im.save(out, "BMP")
+        dib = out.getvalue()[14:]                         # without the BITMAPFILEHEADER
+        k, u = ctypes.windll.kernel32, ctypes.windll.user32
+        k.GlobalAlloc.restype = ctypes.c_void_p
+        k.GlobalAlloc.argtypes = [ctypes.c_uint, ctypes.c_size_t]
+        k.GlobalLock.restype = ctypes.c_void_p
+        k.GlobalLock.argtypes = [ctypes.c_void_p]
+        k.GlobalUnlock.argtypes = [ctypes.c_void_p]
+        k.GlobalFree.argtypes = [ctypes.c_void_p]
+        u.SetClipboardData.restype = ctypes.c_void_p
+        u.SetClipboardData.argtypes = [ctypes.c_uint, ctypes.c_void_p]
+        h = k.GlobalAlloc(0x0002, len(dib))              # GMEM_MOVEABLE
+        if not h:
+            raise OSError("málo paměti pro schránku")
+        p = k.GlobalLock(h)
+        ctypes.memmove(p, dib, len(dib))
+        k.GlobalUnlock(h)
+        for _ in range(20):                                # another app may hold the clipboard for a moment
+            if u.OpenClipboard(None):
+                break
+            _time.sleep(0.05)
+        else:
+            k.GlobalFree(h)
+            raise OSError("schránka je obsazená")
+        try:
+            u.EmptyClipboard()
+            if not u.SetClipboardData(8, h):               # CF_DIB; on success Windows owns the memory
+                k.GlobalFree(h)
+                raise OSError("obrázek se do schránky nevložil")
+        finally:
+            u.CloseClipboard()
+
     def screenshot(self) -> bytes:
         import mss
         import mss.tools
