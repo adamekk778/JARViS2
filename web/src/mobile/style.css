@@ -133,6 +133,12 @@ body.mobile { background-attachment: fixed; }
 .m-step > i { font-size: 20px; color: var(--muted); flex: none; }
 .m-step.ok > i { color: var(--ok); }
 .btn.sm { min-height: 32px; padding: 0 12px; font-size: 13px; }
+/* 3.12 Záloha fotek */
+.m-backup { display: grid; gap: 6px; margin-top: 4px; }
+.m-choice { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: color-mix(in oklab, var(--accent, #34d399) 8%, transparent); }
+.m-subrows { display: grid; gap: 2px; padding-left: 12px; border-left: 2px solid rgb(255 255 255 / .08); }
+.m-subrows .btn-row { padding: 6px 0 2px; }
+.m-live { color: var(--accent, #34d399) !important; }
 
 /* ---------- 3.5 Domov ---------- */
 .m-list { display: grid; gap: 10px; }

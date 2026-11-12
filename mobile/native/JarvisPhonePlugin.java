@@ -95,6 +95,46 @@ public class JarvisPhonePlugin extends Plugin {
         call.resolve(r);
     }
 
+    /** 3.12 Záloha fotek: switch on/off and the choices (Wi-Fi only, while charging, videos); now = start a round at once. */
+    @PluginMethod
+    public void backup(PluginCall call) {
+        android.content.Context c = getContext();
+        android.content.SharedPreferences.Editor e = JarvisLink.prefs(c).edit();
+        if (call.hasOption("wifi")) e.putBoolean("backup_wifi", Boolean.TRUE.equals(call.getBoolean("wifi", true)));
+        if (call.hasOption("charging")) e.putBoolean("backup_charging", Boolean.TRUE.equals(call.getBoolean("charging", false)));
+        if (call.hasOption("videos")) e.putBoolean("backup_videos", Boolean.TRUE.equals(call.getBoolean("videos", true)));
+        e.apply();
+        if (call.hasOption("on")) {
+            boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+            PhotoBackup.setEnabled(c, on, Boolean.TRUE.equals(call.getBoolean("all", false)));
+            if (on) JarvisLink.prefs(c).edit().putBoolean("enabled", true).apply();     // needs the background link
+        }
+        if (PhotoBackup.enabled(c) && !PhotoBackup.canRead(c) && getActivity() != null) getActivity().requestPermissions(PhotoBackup.permissions(c), 4713);
+        try {
+            if (JarvisLink.enabled(c) && !JarvisLink.base(c).isEmpty()) LinkService.start(c);
+        } catch (Exception ignored) { }
+        if (Boolean.TRUE.equals(call.getBoolean("now", false))) PhotoBackup.runNow(c, true);
+        backupStatus(call);
+    }
+
+    @PluginMethod
+    public void backupStatus(PluginCall call) {
+        android.content.Context c = getContext();
+        android.content.SharedPreferences p = JarvisLink.prefs(c);
+        JSObject r = new JSObject();
+        r.put("on", PhotoBackup.enabled(c));
+        r.put("wifi", PhotoBackup.wifiOnly(c));
+        r.put("charging", PhotoBackup.chargingOnly(c));
+        r.put("videos", PhotoBackup.videos(c));
+        r.put("running", PhotoBackup.isRunning());
+        r.put("perm", PhotoBackup.canRead(c));
+        r.put("pending", PhotoBackup.enabled(c) ? PhotoBackup.pending(c) : 0);
+        r.put("total", p.getInt("backup_total", 0));
+        r.put("lastRun", p.getLong("backup_last_run", 0));
+        r.put("state", PhotoBackup.isRunning() ? "" : p.getString("backup_state", ""));
+        call.resolve(r);
+    }
+
     /** 3.12 JARVIS Link: start the encrypted tunnel to the PC; the app then talks to the PC through {base}. */
     @PluginMethod
     public void linkStart(PluginCall call) {

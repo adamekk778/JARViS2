@@ -345,6 +345,39 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Soubor nenalezen")
         return {"ok": True}
 
+    # ---------- 3.12 Záloha fotek z telefonu ----------
+    @app.post("/api/phone/backup/have")
+    async def phone_backup_have(request: Request):
+        """Which of these photos the PC already has (so the phone sends only the new ones)."""
+        require_auth(request)
+        body = await request.json()
+        items = body.get("items") if isinstance(body, dict) else None
+        return {"have": rt.photo_backup.have(items if isinstance(items, list) else [])}
+
+    @app.post("/api/phone/backup")
+    async def phone_backup(request: Request):
+        """One photo or video, streamed (the body is the file; name / size / date in X-Name, X-Size, X-Taken)."""
+        require_auth(request)
+        from urllib.parse import unquote
+
+        from ..photobackup import BackupError
+
+        try:
+            size = int(request.headers.get("x-size", "-1"))
+            taken = int(request.headers.get("x-taken", "0") or 0)
+        except ValueError:
+            raise HTTPException(400, "Špatná hlavička") from None
+        try:
+            return await rt.photo_backup.receive(request.stream(), unquote(request.headers.get("x-name", "")), size, taken)
+        except BackupError as e:
+            raise HTTPException(e.code, e.msg) from None
+
+    @app.post("/api/phone/backup/done")
+    async def phone_backup_done(request: Request):
+        require_auth(request)
+        body = await request.json()
+        return rt.photo_backup.done(int(body.get("sent", 0) or 0) if isinstance(body, dict) else 0)
+
     @app.post("/api/phone/notification")
     async def phone_notification(request: Request):
         require_auth(request)

@@ -7,7 +7,7 @@ import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
-import { native, type PhoneStatus } from "./native";
+import { native, type BackupStatus, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
 import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandLink, pcFilesCard, pcStatusCard, photoCard, photoRequests, placesCard, scanCommand, sendPhoto } from "./devices";
@@ -535,6 +535,63 @@ function phoneCard(c: JarvisClient): HTMLElement {
   return box;
 }
 
+// ---------------- 3.12 Záloha fotek z telefonu na PC ----------------
+function backupCard(): HTMLElement {
+  if (!native.phone.available) return h("span");
+  const box = h("div", { class: "m-backup" });
+  let choosing = false;
+  let timer = 0;
+  const sw = (on: boolean, fn: (v: boolean) => void, label: string) => {
+    const inp = h("input", { type: "checkbox", role: "switch", "aria-label": label }) as HTMLInputElement;
+    inp.checked = on;
+    inp.onchange = () => fn(inp.checked);
+    return h("label", { class: "switch" }, inp, h("span"));
+  };
+  const ago = (ms: number) => {
+    const m = Math.round((Date.now() - ms) / 60000);
+    return m < 1 ? "právě teď" : m < 60 ? `před ${m} min` : m < 1440 ? `před ${Math.round(m / 60)} h` : `před ${Math.round(m / 1440)} dny`;
+  };
+  const files = (n: number) => `${n} ${n === 1 ? "soubor" : n >= 2 && n <= 4 ? "soubory" : "souborů"}`;
+  const say = (b: BackupStatus) => !b.on ? "Nové fotky a videa se samy uloží do PC (Obrázky → JARVIS Telefon), roztříděné po měsících. V telefonu se nic nemaže."
+    : !b.perm ? "Povol JARVISovi přístup k fotkám a videím, jinak nemá co zálohovat."
+    : b.running ? `Zálohuji na PC… zbývá ${files(Math.max(b.pending, 0))}.`
+    : b.state ? `Pozastaveno – ${b.state}.${b.pending > 0 ? ` Čeká ${files(b.pending)}.` : ""}`
+    : b.pending > 0 ? `Čeká ${files(b.pending)} – pošlou se ${b.wifi ? "na Wi-Fi" : "samy"}${b.charging ? " při nabíjení" : ""}.`
+    : `Vše je na PC${b.lastRun ? ` · kontrola ${ago(b.lastRun)}` : ""}${b.total ? ` · celkem ${files(b.total)}` : ""}.`;
+  const set = async (o: Parameters<typeof native.phone.backup>[0]) => {
+    try { render(await native.phone.backup(o)); } catch (e: any) { toast(e?.message || "Nepovedlo se", "error"); }
+  };
+  const render = (b: BackupStatus) => {
+    clearTimeout(timer);
+    if (b.running && !document.hidden) timer = window.setTimeout(refresh, 2500);
+    box.replaceChildren(
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Záloha fotek na PC"), h("span", { class: b.running ? "m-live" : "" }, say(b))),
+        sw(b.on || choosing, (v) => {
+          if (v) { choosing = true; render(b); } else { choosing = false; set({ on: false }); }
+        }, "Záloha fotek na PC")),
+      choosing ? h("div", { class: "m-choice" },
+        h("p", { class: "help" }, "Co poslat na PC? Pak už se budou posílat jen nové."),
+        h("div", { class: "btn-row" },
+          h("button", { class: "btn primary sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: true }); } }, icon("images"), "Všechny fotky"),
+          h("button", { class: "btn sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: false }); } }, icon("sparkle"), "Jen nové od teď"),
+          h("button", { class: "btn ghost sm", type: "button", onclick: () => { choosing = false; render(b); } }, "Zrušit"))) : "",
+      b.on && !choosing ? h("div", { class: "m-subrows" },
+        h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Jen přes Wi-Fi"), h("span", {}, "Nešetří data – na mobilních datech čeká.")),
+          sw(b.wifi, (v) => set({ wifi: v }), "Jen přes Wi-Fi")),
+        h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Jen při nabíjení"), h("span", {}, "Šetří baterii – třeba v noci u nabíječky.")),
+          sw(b.charging, (v) => set({ charging: v }), "Jen při nabíjení")),
+        h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "I videa"), h("span", {}, "Videa jsou velká – na Wi-Fi to nevadí.")),
+          sw(b.videos, (v) => set({ videos: v }), "I videa")),
+        h("div", { class: "btn-row" }, !b.perm
+          ? h("button", { class: "btn sm", type: "button", onclick: () => set({}) }, icon("lock-open"), "Povolit fotky")
+          : h("button", { class: "btn sm", type: "button", disabled: b.running, onclick: () => set({ now: true }) }, icon("cloud-arrow-up"), b.running ? "Zálohuji…" : "Zálohovat teď"))) : "");
+  };
+  const refresh = () => native.phone.backupStatus().then(render).catch(() => {});
+  refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  return box;
+}
+
 // ---------------- more tab ----------------
 function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElement {
   const notif = h("input", { type: "checkbox", role: "switch", "aria-label": "Notifikace" }) as HTMLInputElement;
@@ -547,7 +604,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     h("div", { class: "card" }, h("h2", {}, "Připojení"),
       h("div", { class: "kv" }, h("span", {}, "PC"), h("b", { class: "mono" }, ep.base.replace("http://", ""))),
       h("div", { class: "kv" }, h("span", {}, "Známé adresy"), h("b", { class: "mono" }, p.hosts.join(", "))),
-      h("p", { class: "help" }, "Mimo domov se připojíš přes Tailscale (zdarma). Nainstaluj ho na PC i telefon a přihlas se stejným účtem."),
+      h("p", { class: "help" }, "Mimo domov (i na mobilních datech) se telefon připojí sám přes JARVIS Link – zapneš ho na PC v Nastavení → Telefon."),
       h("div", { class: "btn-row" },
         h("button", { class: "btn", type: "button", onclick: () => location.reload() }, icon("arrows-clockwise"), "Znovu připojit"),
         h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Odpojit a zapomenout tohle PC?")) { savePairing(null); c.close(); connectScreen(); } } }, icon("link-break"), "Odpárovat"))),
@@ -555,6 +612,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Notifikace z PC"), h("span", {}, "Časovače, připomínky, odpovědi na pozadí")),
         h("label", { class: "switch" }, notif, h("span"))),
       phoneCard(c),
+      backupCard(),
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
         + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
     pcStatusCard(c),

@@ -602,6 +602,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         linkCard(),
         card("Vzdálená plocha", "Spárovaný telefon může vidět obrazovku a ovládat PC prstem – i mimo domov přes JARVIS Link. Na PC je přitom vždy vidět rámeček a v notchi „Telefon ovládá PC“ s tlačítkem Ukončit. Soukromá okna (hesla, banka) jsou v obraze zakrytá. Po 10 minutách bez dotyku se sama ukončí.",
           sw("phone_link.remote_desktop", "Povolit vzdálenou plochu z telefonu", "Zapni jen pokud ji chceš používat.")),
+        photoBackupCard(),
         phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
@@ -805,6 +806,19 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  // 3.12 Záloha fotek z telefonu: where the phone's photos land on this PC
+  function photoBackupCard() {
+    const pb = extra.photoBackup;
+    if (!pb) client.send("photo_backup_get");
+    const size = (b: number) => b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 2 ** 20))} MB`;
+    return card("Záloha fotek z telefonu", "Telefon sem sám posílá nové fotky a videa – roztříděné po měsících. Zapneš to v aplikaci v telefonu: Více → Telefon → Záloha fotek na PC. Přijímá jen spárovaný telefon, nikdy host; v telefonu se nic nemaže.",
+      text("phone_link.photo_folder", "Složka pro fotky", `Prázdné = ${pb?.folder || "Obrázky\\JARVIS Telefon"}`),
+      pb ? h("p", { class: "help" }, pb.count
+        ? `Uloženo ${pb.count} souborů (${size(pb.bytes)})${pb.last ? `, naposledy ${new Date(pb.last * 1000).toLocaleString("cs-CZ")}` : ""}.`
+        : "Zatím nic nepřišlo.") : null,
+      h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("photo_backup_open") }, icon("folder-open"), "Otevřít složku")));
+  }
+
   /** 3.12 JARVIS Link – our own Tailscale: the phone reaches this PC from anywhere (Wi-Fi or mobile data). */
   function linkCard() {
     const L = extra.link;
@@ -1198,6 +1212,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
+  client.on("photo_backup", (m) => { extra.photoBackup = m; if (current === "phone") render(); });
   client.on("link_status", (m) => { extra.link = m; extra.linkBusy = false; if (current === "phone") render(); });
   client.on("link_relay_script", (m) => { extra.linkScript = m.script; if (current === "phone") render(); });
   client.on("local_info", (m) => { extra.local = m; if (m.gpu_message) extra.gpuMsg = m.gpu_message; if (current === "brain") render(); });

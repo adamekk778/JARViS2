@@ -144,6 +144,9 @@ class Runtime:
         from .remotedesk import RemoteDesk
 
         self.remote_desk = RemoteDesk(self)    # 3.12 Vzdálená plocha v telefonu
+        from .photobackup import PhotoBackup
+
+        self.photo_backup = PhotoBackup(self)  # 3.12 Záloha fotek z telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 

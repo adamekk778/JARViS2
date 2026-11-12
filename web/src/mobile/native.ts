@@ -6,6 +6,8 @@ export interface ShareEvent { title: string; texts: string[]; files: { uri: stri
 const isNative = Capacitor.isNativePlatform();
 // 3.4 the app's own native part (mobile/native/*.java): background link, "JARVIS volá", dialing, SMS, notification mirror
 const JarvisPhone: any = isNative ? registerPlugin("JarvisPhone") : null;
+/** 3.12 Záloha fotek z telefonu na PC */
+export interface BackupStatus { on: boolean; wifi: boolean; charging: boolean; videos: boolean; running: boolean; perm: boolean; pending: number; total: number; lastRun: number; state: string }
 export interface PhoneStatus { running: boolean; enabled: boolean; mirror: boolean; phone: boolean; notifAccess: boolean; fullScreen: boolean; battery: boolean; overlay: boolean; tapdrop?: boolean; photos?: boolean; island?: boolean; versionCode?: number }
 let notifyId = 1;
 let actionsRegistered = false;
@@ -19,6 +21,9 @@ export const native = {
     /** 3.12 JARVIS Link: the encrypted tunnel to the PC (direct or through your relay) – the app then uses {base} */
     linkStart: (): Promise<{ ok: boolean; base: string; route: string }> => JarvisPhone.linkStart(),
     requestPhotos: (): Promise<PhoneStatus> => JarvisPhone.requestPhotos(),
+    /** 3.12 Záloha fotek: on/off (all = also the photos already in the phone), Wi-Fi only, while charging, videos; now = start */
+    backup: (o: { on?: boolean; all?: boolean; wifi?: boolean; charging?: boolean; videos?: boolean; now?: boolean }): Promise<BackupStatus> => JarvisPhone.backup(o),
+    backupStatus: (): Promise<BackupStatus> => JarvisPhone.backupStatus(),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
     readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */

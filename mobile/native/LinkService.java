@@ -43,6 +43,8 @@ public class LinkService extends Service {
         else TapDrop.stop();
         if (PhoneIsland.enabled(this)) PhoneIsland.start(this);   // 3.12 the notch on the phone
         else PhoneIsland.stop();
+        if (PhotoBackup.enabled(this)) PhotoBackup.start(this);   // 3.12 new photos → the PC by themselves
+        else PhotoBackup.stop();
         if (!running) {
             running = true;
             worker = new Thread(this::loop, "jarvis-link");
@@ -76,6 +78,7 @@ public class LinkService extends Service {
         running = false;
         TapDrop.stop();
         PhoneIsland.stop();
+        PhotoBackup.stop();
         if (worker != null) worker.interrupt();
         super.onDestroy();
     }
