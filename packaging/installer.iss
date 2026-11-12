@@ -25,6 +25,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=force
 ; only one JARVIS installer at a time: a second one fails on files the first still holds ("CreateFile … kód 5")
 SetupMutex=JarvisSetupMutex,Global\JarvisSetupMutex
+; the uninstall data in its own folder: an old unins000.dat in {app} that Windows will not let us rewrite (locked,
+; hidden/system, foreign permissions) no longer stops the installation at "Ukládají se informace pro odinstalaci"
+UninstallFilesDir={app}\uninstall
+; a log in %TEMP% ("Setup Log …txt") so a failed installation can be explained
+SetupLogging=yes
 RestartApplications=no
 
 [Languages]
@@ -73,8 +78,18 @@ begin
   Result := '';
   Exe := ExpandConstant('{app}\JARVIS.exe');
   Exec(ExpandConstant('{cmd}'), '/c taskkill /im JARVIS.exe /t /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  // the uninstall data of the previous version must be writable (an antivirus or a broken install can leave it read-only)
-  Exec(ExpandConstant('{cmd}'), '/c attrib -r "' + ExpandConstant('{app}') + '\unins*.*"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{cmd}'), '/c taskkill /im unins000.exe /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Windows refuses to rewrite a file that is read-only, hidden or system ("CreateFile selhala; kód 5"):
+  // clear those on the uninstall data, then drop the old copies next to JARVIS.exe (they now live in {app}\uninstall)
+  Exec(ExpandConstant('{cmd}'), '/c attrib -r -h -s "' + ExpandConstant('{app}') + '\unins*.*"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{cmd}'), '/c attrib -r -h -s "' + ExpandConstant('{app}') + '\uninstall\*.*"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  for i := 0 to 9 do
+  begin
+    DeleteFile(ExpandConstant('{app}\unins00') + IntToStr(i) + '.dat');
+    DeleteFile(ExpandConstant('{app}\unins00') + IntToStr(i) + '.exe');
+    DeleteFile(ExpandConstant('{app}\unins00') + IntToStr(i) + '.msg');
+  end;
+  Log('JARVIS: previous uninstall data cleared; JARVIS.exe present: ' + IntToStr(Ord(FileExists(Exe))));
   for i := 1 to 40 do
   begin
     if not FileExists(Exe) then

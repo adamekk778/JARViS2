@@ -364,6 +364,24 @@ jobs:
             Get-Process JARVIS -ErrorAction SilentlyContinue | Stop-Process -Force
             if ($p.ExitCode -ne 0) { Get-Content $log -Tail 60; throw "setup #$i failed with exit code $($p.ExitCode)" }
           }
+          # the user's PC: "CreateFile selhala; kód 5" while saving the uninstall data. Recreate the worst case – an old
+          # unins000.dat next to JARVIS.exe that is locked by another process and read-only + hidden + system, and the
+          # current uninstall data hidden + system – and the upgrade must still finish
+          $old = "$d\unins000.dat"
+          Set-Content -Path $old -Value "old uninstall data"
+          attrib +r +h +s $old
+          attrib +h +s "$d\uninstall\unins000.dat"
+          $holder = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList "-NoProfile", "-Command", "`$f = [IO.File]::Open('$old', 'Open', 'Read', 'None'); Start-Sleep 600"
+          Start-Sleep -Seconds 3
+          $log = "$env:RUNNER_TEMP\setup3.log"
+          $p = Start-Process dist\JARVIS-Setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=", "/DIR=`"$d`"", "/LOG=`"$log`"" -PassThru
+          if (-not $p.WaitForExit(300000)) { Get-Content $log -Tail 60; throw "setup #3 did not finish in 5 minutes" }
+          Start-Sleep -Seconds 3
+          Get-Process JARVIS -ErrorAction SilentlyContinue | Stop-Process -Force
+          Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { Get-Content $log -Tail 80; throw "setup #3 (locked + hidden uninstall data) failed with exit code $($p.ExitCode)" }
+          if (-not (Test-Path "$d\uninstall\unins000.exe")) { throw "uninstaller missing in $d\uninstall" }
+          Get-Content $log | Select-String "JARVIS:|unins" | Select-Object -Last 8
           if (-not (Test-Path "$d\JARVIS.exe")) { throw "JARVIS.exe missing after install" }
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\JARVIS.lnk")) { Write-Host "warning: Start menu shortcut missing" }
           $out = & "$d\JARVIS-debug.exe" --bench 5 2>&1 | Select-Object -Last 20
