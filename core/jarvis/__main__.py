@@ -81,6 +81,7 @@ def start_server(rt, port: int) -> threading.Thread:
     from .server.app import create_app
 
     app = create_app(rt)
+    rt.asgi_app = app            # 3.12 JARVIS Link serves the same app on its encrypted port
 
     def run():
         cfg = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="warning", ws_max_size=32 * 2**20,

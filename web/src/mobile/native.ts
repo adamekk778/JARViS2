@@ -15,7 +15,9 @@ export const native = {
 
   phone: {
     available: isNative,
-    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean; island?: boolean }): Promise<PhoneStatus> => JarvisPhone.configure(o),
+    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean; island?: boolean; link?: string }): Promise<PhoneStatus> => JarvisPhone.configure(o),
+    /** 3.12 JARVIS Link: the encrypted tunnel to the PC (direct or through your relay) – the app then uses {base} */
+    linkStart: (): Promise<{ ok: boolean; base: string; route: string }> => JarvisPhone.linkStart(),
     requestPhotos: (): Promise<PhoneStatus> => JarvisPhone.requestPhotos(),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
     readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),

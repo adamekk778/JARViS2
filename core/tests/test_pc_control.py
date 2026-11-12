@@ -1,6 +1,5 @@
 """3.12 Asking before closing apps/games, and "JARVIS právě ovládá tvůj PC" with take over / stop."""
 import asyncio
-from types import SimpleNamespace
 
 from jarvis import tools
 from jarvis.pccontrol import LINGER_S

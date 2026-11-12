@@ -5,7 +5,7 @@ import { ChatView, conversationList } from "../shared/chat";
 import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
-import { loadPairing, parsePairing, resolveEndpoint, savePairing, type Pairing } from "./connect";
+import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
 import { native, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
@@ -49,7 +49,9 @@ async function boot() {
   const ep = await resolveEndpoint(p);
   if (!ep) {
     if (soloProvider()) return solo();                 // 3.12 the PC is off: the phone answers by itself
-    return connectScreen(p, "PC není dostupné. Běží JARVIS na PC? Jsi na stejné Wi-Fi nebo máš zapnutý Tailscale?");
+    return connectScreen(p, p.link?.enabled
+      ? "PC není dostupné ani přes JARVIS Link. Běží JARVIS na PC a je zapnutý?"
+      : "PC není dostupné. Jsi na stejné Wi-Fi? Mimo domov zapni na PC JARVIS Link (Nastavení → Telefon).");
   }
   mainScreen(ep, p);
 }
@@ -196,6 +198,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   // 3.4 phone link: keep the phone reachable for JARVIS (ring, dial, SMS) and answer his calls
   if (native.phone.available) {
     native.phone.configure({ base: ep.base, token: ep.token, enabled: localStorage.getItem("jarvis.link") !== "0" }).catch(() => {});
+    refreshLink(ep, pairing).then((p) => { pairing = p; });   // 3.12 JARVIS Link: how to reach the PC from outside
     native.phone.onReply(() => { show("chat"); chat.focus(); toast("Řekni nebo napiš JARVISovi odpověď", "ok", 3500); });
     c.on("phone_cmd", async (cmd) => {
       try {
@@ -210,9 +213,17 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     status.textContent = (s === "open" ? "připojeno k PC" : s === "connecting" ? "připojuji…" : "odpojeno, zkouším znovu…")
       + (waiting ? ` · ${waiting} čeká na odeslání` : "");
   }
+  let switchTimer = 0;
   c.onStatus((s) => {
     paintStatus();
     if (s !== "open") face.setMood("offline");
+    // 3.12 left home (Wi-Fi → mobile data) or came back: after a few seconds offline look for the way that works now
+    clearTimeout(switchTimer);
+    if (s !== "open") switchTimer = window.setTimeout(async () => {
+      if (c.status === "open") return;
+      const again = await resolveEndpoint(pairing);
+      if (again && again.base !== c.ep.base && (c.status as string) !== "open") mainScreen(again, pairing);
+    }, 6000);
   });
   // OMEGA 725: what is written or said offline waits on the phone (status line shows how much)
   persistentOutbox(c, (n) => {

@@ -4,6 +4,7 @@ import { applyPower } from "./base";
 export interface Endpoint {
   base: string; // http://host:port (no trailing slash)
   token: string;
+  via?: "link"; // 3.12 reached through JARVIS Link (away from home)
 }
 
 type Handler = (m: ServerMsg) => void;

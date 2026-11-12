@@ -47,6 +47,7 @@ CLIENT_TYPES = [
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
+    "link_get", "link_set", "link_check", "link_relay_script",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -66,7 +67,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -79,7 +80,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -92,7 +93,7 @@ LOCAL_ONLY = {"meeting_record", "device_listen_set", "device_listen_action", "lo
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -413,6 +414,37 @@ class Connection:
         for m in msgs:
             m["attachments"] = [self.rt.public_attachment(a) for a in m["attachments"]]
         return msgs
+
+    async def _link_set(self, m: dict) -> dict:
+        """Settings → JARVIS Link: switch on/off, router, relay address; the relay key only ever goes to the keyring."""
+        rt = self.rt
+        patch: dict = {}
+        if "enabled" in m:
+            patch["enabled"] = bool(m["enabled"])
+        if "upnp" in m:
+            patch["upnp"] = bool(m["upnp"])
+        if "public_host" in m:
+            patch["public_host"] = str(m["public_host"] or "").strip()[:200]
+        if "relay_host" in m:
+            host = str(m["relay_host"] or "").strip()
+            for pre in ("https://", "http://"):
+                host = host.removeprefix(pre)
+            patch["relay_host"] = host.strip("/ ")[:200]
+        for k in ("relay_port", "port", "public_port"):
+            if k in m:
+                try:
+                    v = int(m[k])
+                except (TypeError, ValueError):
+                    continue
+                if 0 <= v <= 65535 and (v or k == "public_port"):
+                    patch[k] = v
+        if m.get("relay_key"):
+            from ..link.manager import RELAY_KEY
+
+            secrets.set(RELAY_KEY, str(m["relay_key"]).strip()[:200])
+        if patch:
+            rt.update_config({"link": patch})
+        return await rt.link.apply()
 
     def _voice_status(self) -> dict:
         v = self.rt.voice
@@ -1061,6 +1093,16 @@ class Connection:
         elif t == "tasks_clear":
             rt.tasks.clear()
             await self.send("tasks", items=rt.tasks.list(), current=rt.tasks.current)
+        elif t == "link_get":                 # 3.12 JARVIS Link (Settings → Telefon)
+            await self.send("link_status", **rt.link.status())
+        elif t == "link_set":
+            await self.send("link_status", **await self._link_set(m))
+        elif t == "link_check":
+            if rt.link.listening and rt.cfg.link.upnp:
+                await rt.link.map_router()
+            await self.send("link_status", **rt.link.status())
+        elif t == "link_relay_script":
+            await self.send("link_relay_script", script=rt.link.install_script(), port=rt.cfg.link.relay_port)
         elif t == "local_status":
             await self.send("local_info", **await rt.local.status())
         elif t == "local_pull":

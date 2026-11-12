@@ -138,6 +138,9 @@ class Runtime:
         from .netwatch import NetWatch
 
         self.netwatch = NetWatch(self)         # OMEGA 708/709/719: watched webs, certificates, line loss history
+        from .link.manager import Link
+
+        self.link = Link(self)                 # 3.12 JARVIS Link: the phone reaches the PC from anywhere (own Tailscale)
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -177,6 +180,7 @@ class Runtime:
         from . import fsplus
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
         try:
             from .updater import Updater
 
@@ -231,6 +235,10 @@ class Runtime:
             self.scheduler.stop()
         if self.mcp:
             await self.mcp.stop()
+        try:
+            await self.link.stop()            # also gives the router its port back
+        except Exception as e:  # noqa: BLE001
+            log.debug("link stop: %s", e)
 
     # ---------- thread bridges (tray, hotkeys, voice run in other threads) ----------
     loop: asyncio.AbstractEventLoop | None = None

@@ -56,6 +56,10 @@ public class JarvisPhonePlugin extends Plugin {
             e.putBoolean("tapdrop", on);
             if (on) e.putBoolean("enabled", true);
         }
+        if (call.hasOption("link")) {                     // 3.12 JARVIS Link: how to reach the PC from outside (+ its fingerprint)
+            String info = call.getString("link", "");
+            e.putString("link_info", info == null ? "" : info);
+        }
         e.apply();
         try {
             if (JarvisLink.enabled(getContext()) && !JarvisLink.base(getContext()).isEmpty()) LinkService.start(getContext());
@@ -89,6 +93,19 @@ public class JarvisPhonePlugin extends Plugin {
         r.put("battery", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName())));
         r.put("versionCode", ApkUpdate.versionCode(getContext()));
         call.resolve(r);
+    }
+
+    /** 3.12 JARVIS Link: start the encrypted tunnel to the PC; the app then talks to the PC through {base}. */
+    @PluginMethod
+    public void linkStart(PluginCall call) {
+        new Thread(() -> {
+            JSObject r = new JSObject();
+            boolean ok = LinkProxy.start(getContext());
+            r.put("ok", ok);
+            r.put("base", ok ? LinkProxy.base() : "");
+            r.put("route", LinkProxy.lastRoute);
+            call.resolve(r);
+        }, "jarvis-link-start").start();
     }
 
     /** 3.12 shared clipboard: the phone's clipboard (only while the app is open – Android allows nothing else). */

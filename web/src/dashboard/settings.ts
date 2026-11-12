@@ -599,7 +599,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => {
             if (confirm("Nouzové uzamčení: odpojí VŠECHNA zařízení i hosty, vytvoří nový párovací kód, zapne režim jen pro čtení a zastaví běžící úkol. Pokračovat?")) client.send("lockdown");
           } }, icon("lock"), "Nouzové uzamčení"))),
-        phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
+        linkCard(), phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
 
@@ -802,6 +802,63 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  /** 3.12 JARVIS Link – our own Tailscale: the phone reaches this PC from anywhere (Wi-Fi or mobile data). */
+  function linkCard() {
+    const L = extra.link;
+    if (!extra.linkAsked) { extra.linkAsked = true; client.send("link_get"); }
+    if (!L) return card("JARVIS Link – telefon odkudkoli", null, h("p", { class: "help" }, "Načítám…"));
+    const send = (o: Record<string, unknown>) => { extra.linkBusy = true; client.send("link_set", o); render(); };
+    const toggle = (on: boolean, title: string, desc: string, onChange: (v: boolean) => void) => {
+      const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
+      inp.checked = on;
+      inp.disabled = !local;
+      inp.onchange = () => onChange(inp.checked);
+      return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", {}, desc)), h("label", { class: "switch" }, inp, h("span")));
+    };
+    const r = L.router || {};
+    const routerText: Record<string, string> = {
+      ok: `✓ Router otevřel port ${r.public_port} – telefon se připojí přímo přes ${r.public_ip}.`,
+      cgnat: "Poskytovatel internetu sdílí jednu adresu mezi víc zákazníků (CGNAT) – přímo zvenku to nepůjde. Použij vlastní relay níž.",
+      private: `Před routerem je ještě další router (adresa ${r.public_ip || "?"}) – přímo to nepůjde. Použij vlastní relay níž.`,
+      none: "Router neodpověděl (UPnP je vypnuté nebo ho neumí). Zapni UPnP v routeru, nebo použij vlastní relay níž.",
+      failed: `Router port neotevřel (${r.error || "chyba"}). Použij vlastní relay níž.`,
+      off: "Otevírání portu na routeru je vypnuté.",
+    };
+    const ag = L.relay;
+    const relayHost = h("input", { class: "input", placeholder: "IP adresa nebo jméno tvého serveru", value: L.relay_host || "", "aria-label": "Relay server" }) as HTMLInputElement;
+    const relayPort = h("input", { class: "input", type: "number", min: 1, max: 65535, value: L.relay_port || 8443, style: { maxWidth: "110px" }, "aria-label": "Port" }) as HTMLInputElement;
+    const script = extra.linkScript as string | undefined;
+    const statusLine = !L.enabled ? "Vypnuto – telefon se k PC připojí jen doma na stejné Wi-Fi."
+      : L.error ? `⚠ ${L.error}`
+        : L.reachable ? "✓ Telefon se k PC dostane odkudkoli – i přes mobilní data."
+          : "Šifrovaný port běží, ale zvenku zatím cesta není – podívej se na router nebo nastav relay.";
+    return card("JARVIS Link – telefon odkudkoli", "Tvoje vlastní náhrada Tailscale. Všechno jde šifrovaně jen mezi tímhle PC a tvým telefonem – nikdo cestou (operátor, router, relay) nic nepřečte. Telefon se jednou připojí doma na Wi-Fi, stáhne si otisk PC a pak funguje i na datech.",
+      toggle(!!L.enabled, "Zapnout JARVIS Link", `Šifrovaný port ${L.port} na tomhle PC (jen pro spárované telefony).`, (v) => send({ enabled: v })),
+      h("p", { class: "help", style: { margin: "6px 0" } }, h("b", {}, statusLine)),
+      L.enabled ? toggle(!!L.upnp, "Otevřít port na routeru sám (UPnP)", routerText[r.state || "off"] || "", (v) => send({ upnp: v })) : null,
+      L.enabled && L.ipv6?.length ? h("p", { class: "help" }, `IPv6 (přímo, když ho má i operátor telefonu): ${L.ipv6.join(", ")}`) : null,
+      L.enabled ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní relay (funguje vždy)"),
+        h("span", {}, ag ? (ag.connected ? `✓ Připojeno k ${L.relay_host} – PC čeká na telefon.` : `Nepřipojeno${ag.error ? `: ${ag.error}` : ""}.`)
+          : "Malý server na internetu, který jen přeposílá šifrovaná data. Stačí zdarma (Oracle Cloud Always Free, Google Cloud e2-micro).")))
+        : null,
+      L.enabled ? h("div", { class: "fact" }, relayHost, relayPort,
+        h("button", { class: "btn", type: "button", disabled: !local, onclick: () => send({ relay_host: relayHost.value.trim(), relay_port: Number(relayPort.value) || 8443 }) }, icon("floppy-disk"), "Uložit")) : null,
+      L.enabled ? h("details", { class: "help" }, h("summary", {}, "Jak si relay založit (10 minut, jednou)"),
+        h("ol", {},
+          h("li", {}, "Založ si zdarma malý server s Ubuntu (např. Oracle Cloud „Always Free“)."),
+          h("li", {}, "Klikni níž na „Instalační skript“, připoj se k serveru přes SSH (jako root) a celý skript tam vlož."),
+          h("li", {}, `U poskytovatele serveru povol příchozí TCP port ${L.relay_port || 8443} (Security List / Firewall).`),
+          h("li", {}, "Sem napiš IP adresu serveru a dej Uložit. Pak otevři JARVIS v telefonu doma na Wi-Fi – hotovo.")),
+        h("div", { class: "btn-row" },
+          h("button", { class: "btn", type: "button", disabled: !local, onclick: () => client.send("link_relay_script") }, icon("terminal-window"), "Instalační skript"),
+          script ? h("button", { class: "btn ghost", type: "button", onclick: () => copyText(script, "Skript zkopírován – vlož ho do terminálu serveru") }, icon("copy"), "Kopírovat") : null),
+        script ? h("textarea", { class: "input mono", rows: 6, readonly: true, style: { width: "100%", fontSize: "11px" } }, script) : null,
+        h("p", {}, "Skript obsahuje tajný přístupový klíč k relay – nikomu ho neposílej.")) : null,
+      L.enabled ? h("div", { class: "btn-row" },
+        h("button", { class: "btn ghost", type: "button", onclick: () => { extra.linkBusy = true; client.send("link_check"); render(); } }, icon("arrows-clockwise"), extra.linkBusy ? "Kontroluji…" : "Zkontrolovat"),
+        L.fp ? h("span", { class: "help mono", title: "Otisk certifikátu PC – telefon ho ověřuje při každém spojení" }, `otisk ${String(L.fp).slice(0, 16)}…`) : null) : null);
+  }
+
   function phoneAllowedCard() {
     const allowed: string[] = S.phone?.allowed || [];
     const areas = ["apps", "input", "screen", "files_read", "files_write", "shell", "network", "system", "home"];
@@ -1104,6 +1161,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
+  client.on("link_status", (m) => { extra.link = m; extra.linkBusy = false; if (current === "phone") render(); });
+  client.on("link_relay_script", (m) => { extra.linkScript = m.script; if (current === "phone") render(); });
   client.on("local_info", (m) => { extra.local = m; if (m.gpu_message) extra.gpuMsg = m.gpu_message; if (current === "brain") render(); });
   client.on("local_pull_progress", (m) => {
     extra.pull = { ...(extra.pull || {}), [m.name]: m };

@@ -1,11 +1,15 @@
 import type { Endpoint } from "../shared/ws";
+import { native } from "./native";
 
 export interface Pairing {
   hosts: string[];
   port: number;
   token: string;
   last?: string; // last host that worked
+  link?: LinkInfo; // 3.12 JARVIS Link: how to reach the PC from outside (learnt at home over the paired connection)
 }
+
+export interface LinkInfo { enabled: boolean; fp?: string; direct?: { host: string; port: number; kind: string }[]; relay?: { host: string; port: number } | null; at?: number }
 
 const KEY = "jarvis.pairing";
 
@@ -57,12 +61,35 @@ async function healthy(base: string, ms = 2500): Promise<boolean> {
   }
 }
 
-/** Try last working host first, then LAN, then Tailscale. */
+/** Try last working host first, then LAN (and Tailscale if you use it); away from home: our own JARVIS Link. */
 export async function resolveEndpoint(p: Pairing): Promise<Endpoint | null> {
   const order = [...new Set([p.last, ...p.hosts].filter(Boolean) as string[])];
   const results = await Promise.all(order.map(async (host) => ((await healthy(`http://${host}:${p.port}`)) ? host : null)));
   const host = results.find(Boolean);
-  if (!host) return null;
-  if (host !== p.last) savePairing({ ...p, last: host });
-  return { base: `http://${host}:${p.port}`, token: p.token };
+  if (host) {
+    if (host !== p.last) savePairing({ ...p, last: host });
+    return { base: `http://${host}:${p.port}`, token: p.token };
+  }
+  if (p.link?.enabled && native.phone.available) {
+    try {
+      const r = await native.phone.linkStart();
+      if (r.ok && (await healthy(r.base, 16000))) return { base: r.base, token: p.token, via: "link" } as Endpoint;
+    } catch { /* an older app without the tunnel */ }
+  }
+  return null;
+}
+
+/** 3.12 at home (or anywhere connected): learn / refresh how to reach this PC from outside. */
+export async function refreshLink(ep: Endpoint, p: Pairing): Promise<Pairing> {
+  try {
+    const r = await fetch(`${ep.base}/api/link/info`, { headers: { Authorization: `Bearer ${ep.token}` }, cache: "no-store" });
+    if (!r.ok) return p;
+    const info: LinkInfo = await r.json();
+    const next = { ...p, link: info.enabled ? info : undefined };
+    savePairing(next);
+    if (native.phone.available) await native.phone.configure({ link: info.enabled ? JSON.stringify(info) : "" }).catch(() => {});
+    return next;
+  } catch {
+    return p;
+  }
 }

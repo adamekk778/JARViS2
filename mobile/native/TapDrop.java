@@ -183,7 +183,7 @@ final class TapDrop implements SensorEventListener {
     }
 
     private String upload(ContentResolver cr, Uri uri, String name, String mime) throws Exception {
-        String base = JarvisLink.base(ctx);
+        String base = JarvisLink.liveBase(ctx);
         if (base.isEmpty()) throw new IllegalStateException("telefon není spárovaný");
         String boundary = "jarvis" + System.currentTimeMillis();
         HttpURLConnection con = (HttpURLConnection) new URL(base + "/api/upload").openConnection();

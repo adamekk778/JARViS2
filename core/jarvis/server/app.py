@@ -320,6 +320,12 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
                 raise HTTPException(403, "Schvalovat jde jen z domácí sítě")
         return {"ok": rt.agent.confirm(str(body.get("id", "")), approved)}
 
+    @app.get("/api/link/info")
+    async def link_info(request: Request):
+        """3.12 JARVIS Link: how the paired phone reaches this PC from outside + the certificate fingerprint to pin."""
+        require_auth(request)
+        return rt.link.info()
+
     @app.get("/api/phone/island")
     async def phone_island(request: Request):
         """3.12 the phone's notch asks what to show (every few seconds, only while its screen is on)."""

@@ -407,6 +407,23 @@ class PhoneLinkCfg(BaseModel):
     my_number: str = ""          # your mobile, +420…
 
 
+class LinkCfg(BaseModel):
+    """3.12 JARVIS Link – our own way to reach the PC from anywhere (mobile data too), no Tailscale needed.
+
+    Direct: an encrypted port on this PC that the home router opens by itself (UPnP) – fastest, needs a public IP.
+    Relay: your own small server on the internet (a free VPS) that only passes encrypted bytes along – works behind
+    any router. Either way the phone checks the PC's certificate fingerprint, so nobody in between can read anything.
+    """
+    enabled: bool = False
+    port: int = 8766             # the encrypted (TLS) port on this PC
+    upnp: bool = True            # ask the router to open the port (UPnP)
+    public_port: int = 0         # the port on the router (0 = the same as `port`)
+    public_host: str = ""        # a name or address for the home (DDNS / a port forwarded by hand) – optional
+    relay_host: str = ""         # your relay server (IP or name); its access key is in the keyring
+    relay_port: int = 8443
+    room: str = Field(default_factory=lambda: _secrets.token_hex(16))   # this PC's place on the relay
+
+
 class CalendarCfg(BaseModel):
     ics_urls: list[str] = Field(default_factory=list)   # read-only calendars ("tajná adresa ve formátu iCal")
     remind_minutes: int = 15
@@ -510,6 +527,7 @@ class Config(BaseModel):
     mail: MailCfg = Field(default_factory=MailCfg)
     calendar: CalendarCfg = Field(default_factory=CalendarCfg)
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
+    link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
@@ -574,7 +592,7 @@ SETTABLE_BY_VOICE: set[str] = {
 }
 
 # Never sent to remote clients.
-SECRET_KEYS = {("phone", "token")}
+SECRET_KEYS = {("phone", "token"), ("link", "room")}
 
 
 def config_path():

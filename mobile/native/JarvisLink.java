@@ -54,12 +54,35 @@ public final class JarvisLink {
     static boolean mirror(Context c) { return prefs(c).getBoolean("mirror", true); }
 
     // ---------- the PC ----------
+    private static volatile long homeDownUntil;   // 3.12 the home address did not answer: use JARVIS Link for a while
+
+    /** The address to use right now: home, or the JARVIS Link tunnel while home does not answer. */
+    static String liveBase(Context c) {
+        String base = base(c);
+        boolean viaLink = base.startsWith(LinkProxy.base())
+                || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil);
+        return viaLink && LinkProxy.start(c) ? LinkProxy.base() : base;
+    }
+
     static String http(Context c, String method, String path, String body, int timeoutMs) throws Exception {
         String base = base(c);
         if (base.isEmpty()) throw new IllegalStateException("not paired");
+        boolean viaLink = base.startsWith(LinkProxy.base());
+        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), method, path, body, timeoutMs, 15000);
+        try {
+            return http(c, base, method, path, body, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);
+        } catch (java.io.IOException e) {          // away from home (mobile data): the same request over JARVIS Link
+            if (!LinkProxy.configured(c) || !LinkProxy.start(c)) throw e;
+            homeDownUntil = System.currentTimeMillis() + 60000;
+            return http(c, LinkProxy.base(), method, path, body, timeoutMs, 15000);
+        }
+    }
+
+    private static String http(Context c, String base, String method, String path, String body, int timeoutMs, int connectMs) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(base + path).openConnection();
         con.setRequestMethod(method);
-        con.setConnectTimeout(8000);
+        con.setConnectTimeout(connectMs);
         con.setReadTimeout(timeoutMs);
         con.setRequestProperty("Authorization", "Bearer " + token(c));
         if (body != null) {

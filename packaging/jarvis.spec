@@ -13,7 +13,7 @@ PKGS = [
     "trafilatura", "justext", "lxml", "htmldate", "courlan", "dateparser", "ddgs", "primp", "yt_dlp",
     "pypdf", "docx", "openpyxl", "pptx", "PIL", "qrcode", "psutil",
     "matplotlib", "numpy", "send2trash", "soundcard", "cffi", "_cffi_backend",
-    "icalendar", "recurring_ical_events", "x_wr_timezone", "tzdata",
+    "icalendar", "recurring_ical_events", "x_wr_timezone", "tzdata", "cryptography",
 ]
 for pkg in PKGS:
     try:
@@ -32,6 +32,8 @@ hiddenimports += collect_submodules("jarvis") + collect_submodules("uvicorn")
 web_dist = os.path.abspath(os.path.join(SPECPATH, "..", "web", "dist"))
 assert os.path.exists(os.path.join(web_dist, "index.html")), "build the web UI first (cd web && npm run build)"
 datas += [(web_dist, "web/dist"), (os.path.join(SPECPATH, "jarvis.ico"), ".")]
+# 3.12 JARVIS Link: the relay server's source goes into the one-paste installer for your own relay
+datas += [(os.path.abspath(os.path.join(SPECPATH, "..", "core", "jarvis", "link", "relay_server.py")), "jarvis/link")]
 
 a = Analysis(
     [os.path.join(SPECPATH, "jarvis_entry.py")],
