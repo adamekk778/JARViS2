@@ -57,24 +57,14 @@ function show(client: JarvisClient, s: any) {
     window.setTimeout(() => root.remove(), 260);
   }
 
-  /** make sure the chosen AI is in the list and first in line, then save the key and try it */
+  /** the key tells the service itself (gsk_ → Groq, AIza → Gemini…): JARVIS sets that service up, puts it first and tries it */
   function useKey(raw: string, status: HTMLElement, paint: (st: "idle" | "busy" | "ok" | "fail", text: string) => void) {
     const key = raw.replace(/[\s"'“”„]/g, "");
     if (!key) return;
-    const cur = settings?.brain || {};
-    const provs: any[] = Array.isArray(cur.providers) ? cur.providers.map((p: any) => ({ ...p })) : [];
-    let p = provs.find((x) => x.id === brain.id) || provs.find((x) => x.preset === brain.id);
-    if (!p) { p = { id: brain.id, preset: brain.id, base_url: brain.base, model: brain.model, enabled: true }; provs.push(p); }
-    p.enabled = true;
-    if (!p.model) p.model = brain.model;
-    const chain = [p.id, ...((cur.chain as string[]) || []).filter((c) => c !== p.id)];
-    client.send("settings_set", { patch: { brain: { providers: provs, chain } } });
-    client.send("secret_set", { name: p.id, value: key });
-    const warn = !key.startsWith(brain.prefix) ? ` Pozor: klíč ${brain.name} obvykle začíná ${brain.prefix}.` : "";
-    paint("busy", `Klíč uložen – zkouším, jestli ${brain.name} odpovídá…${warn}`);
+    paint("busy", "Klíč uložen – zkouším, jestli AI odpovídá…");
     working = false;
-    client.send("provider_test", { id: p.id });
-    status.dataset.id = p.id;
+    status.dataset.id = "key";
+    client.send("brain_key", { key });
   }
 
   function go(n: number) {
@@ -107,7 +97,7 @@ function show(client: JarvisClient, s: any) {
         h("h2", {}, "Vyber mi mozek"),
         h("p", { class: "ob-lead" }, "Obě možnosti jsou zdarma a běží, i když je počítač slabý. Později můžeš přidat další v Nastavení → AI mozek."),
         h("div", { class: "ob-brains" }, ...BRAINS.map(pick)),
-        h("button", { type: "button", class: "ob-link", onclick: () => go(3) }, "Už mám AI nastavenou (OmniRoute, Ollama…) – přeskočit"));
+        h("button", { type: "button", class: "ob-link", onclick: () => go(3) }, "Už mám AI nastavenou – přeskočit"));
       next.replaceChildren(h("span", {}, `Pokračovat s ${brain.name}`), icon("arrow-right"));
       next.onclick = () => go(2);
     } else if (step === 2) {
@@ -140,17 +130,14 @@ function show(client: JarvisClient, s: any) {
       paint("idle", "Až klíč vložíš, hned ho vyzkouším.");
       next.onclick = () => go(3);
       const onResult = (m: any) => {
-        if (!root.isConnected || step !== 2 || m.id !== status.dataset.id) return;
+        if (!root.isConnected || step !== 2 || status.dataset.id !== "key") return;
         if (m.ok) {
-          paint("ok", `Funguje ✓ ${brain.name} odpověděl za ${m.ms} ms${m.model ? ` (model ${m.model})` : ""}.`);
+          paint("ok", String(m.message || "Funguje ✓"));
           card.animate([{ transform: "scale(1)" }, { transform: "scale(1.012)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(.3,1.6,.5,1)" });
-        } else {
-          const msg = String(m.message || "Nepovedlo se.").replace(/^[\w-]+:\s*/, "");
-          paint("fail", /zkopíruj|klíč/i.test(msg) ? msg : `${msg} Zkus klíč zkopírovat znovu a vložit.`);
-        }
+        } else paint("fail", String(m.message || "Nepovedlo se. Zkus klíč zkopírovat znovu a vložit."));
       };
       off?.();
-      off = client.on("provider_test_result", onResult);
+      off = client.on("brain_key_result", onResult);
     } else {
       const who = name.value.trim();
       const tip = (ic: string, t: string, d: string) => h("div", { class: "ob-tip" }, h("span", {}, icon(ic, "ph-fill")), h("div", {}, h("strong", {}, t), h("p", {}, d)));

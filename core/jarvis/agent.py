@@ -18,10 +18,10 @@ log = logging.getLogger(__name__)
 MAX_ROUNDS = 8
 MAX_ROUNDS_AGENT = 25
 CONFIRM_TIMEOUT = 30.0
-NO_LIMIT = ("Narazil jsem na limit u všech AI poskytovatelů. Chvíli počkej, nebo v Nastavení → Mozek přidej "
-            "dalšího poskytovatele (třeba Groq nebo Gemini mají limity zdarma), případně zapni Ollamu pro offline režim.")
-NO_BRAIN = ("Omlouvám se, teď nemám spojení s žádným AI mozkem. Zkontroluj prosím, jestli běží OmniRoute nebo "
-            "Ollama, případně přidej jiného poskytovatele v Nastavení → Mozek.")
+NO_LIMIT = ("Narazil jsem na limit u všech AI mozků. Chvíli počkej – nebo v Nastavení → Mozek vlož nahoře klíč "
+            "od další služby (Groq i Gemini jsou zdarma) a pojedu přes ni.")
+NO_BRAIN = ("Omlouvám se, teď se nemůžu spojit s žádným AI mozkem. V Nastavení → Mozek vlož nahoře API klíč "
+            "(Groq nebo Gemini, oba zdarma) – nic dalšího není potřeba. Pokud klíč už máš, je PC připojené k internetu?")
 
 TOOL_LABELS = {
     "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",

@@ -52,6 +52,11 @@ def test_errors_in_plain_words(rt):
 
     r = asyncio.run(brainkey.apply(rt, "gsk_" + "z" * 48, bad))
     assert not r["ok"] and "odmítla" in r["message"]
+    gem = 'gemini: HTTP 400: [{ "error": { "code": 400, "message": "Please pass a valid API key", "status": "INVALID_ARGUMENT" } }]'
+    assert brainkey.explain(gem) == (False, brainkey.explain("HTTP 401")[1])               # Google says 400 for a bad key
+    assert not brainkey.explain("groq: Groq klíč odmítl – zkopíruj ho znovu")[0]
+    assert "odmítla" in brainkey.explain("openai: Poskytovatel odmítl přístup – chybí nebo nesedí API klíč.")[1]
+    assert brainkey.explain("gemini: gemini: model overloaded")[1] == "Nepovedlo se: model overloaded"
     assert brainkey.explain("Error 429 rate limit reached")[0] is True                 # the key is fine, only a limit
     assert "internetu" in brainkey.explain("ConnectError: [Errno 11001] getaddrinfo failed")[1]
     assert not asyncio.run(brainkey.apply(rt, "nevim", bad))["ok"]

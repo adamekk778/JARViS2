@@ -34,13 +34,15 @@ def explain(err: str) -> tuple[bool, str]:
     e = err.lower()
     if re.search(r"\b429\b|rate.?limit|quota|too many|resource.?exhausted", e):
         return True, "Klíč funguje – služba teď jen hlásí limit. Za chvíli to půjde, JARVIS mezitím zkusí jiný mozek."
-    if re.search(r"\b40[13]\b|unauthori|invalid.{0,20}(key|api)|incorrect api key|permission|api key not valid|authentication", e):
+    if re.search(r"\b40[13]\b|unauthori|invalid.{0,20}(key|api)|incorrect api key|permission|api.?key not valid|"
+                  r"valid api.?key|api_key_invalid|authentication|missing.{0,20}(api.?key|authorization)|odmítl|nesedí.{0,30}klíč", e):
         return False, "Služba klíč odmítla. Je zkopírovaný celý? Zkus ho na stránce služby zkopírovat znovu (nebo vytvořit nový)."
     if re.search(r"timed? ?out|timeout", e):
         return False, "Služba neodpověděla včas. Je PC připojené k internetu?"
     if re.search(r"connect|name or service|getaddrinfo|network|unreachable|ssl", e):
         return False, "Nejde se spojit se službou. Je PC připojené k internetu (a nic ho neblokuje – antivir, VPN)?"
-    return False, f"Nepovedlo se: {err[:160]}"
+    msg = re.sub(r"^(\w[\w-]*:\s*)+", "", err.strip())          # "groq: groq: …" → the message itself
+    return False, f"Nepovedlo se: {msg[:160]}"
 
 
 async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]]) -> dict:

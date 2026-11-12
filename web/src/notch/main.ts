@@ -1365,7 +1365,7 @@ function islandActivity(t: any) {
   } else if (sk("task") && t && t.total) {
     kind = "task"; l = [icon("list-checks"), h("span", {}, `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`)];
     r = [`${Math.round((t.done / t.total) * 100)} %`];
-  } else if (upd?.available && upd.state !== "error") {
+  } else if (upd?.available && (upd.state === "downloading" || upd.state === "ready")) {
     kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, upd.state === "downloading" ? "Stahuji" : upd.state === "ready" ? "Instaluji" : `Verze ${upd.latest}`)];
     // 3.12 one click: download, install quietly, JARVIS starts again by itself
     r = upd.state === "downloading" ? [`${Math.round((upd.progress || 0) * 100)} %`] : upd.state === "ready" ? []
@@ -1389,6 +1389,10 @@ function islandActivity(t: any) {
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
     if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+  } else if (upd?.available && upd.state !== "error") {
+    // a new version waiting is the quietest news: it never covers a song, a subtitle or anything else going on
+    kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, `Verze ${upd.latest}`)];
+    r = [h("button", { type: "button", class: "n-upd-go", onclick: (e: Event) => { e.stopPropagation(); client.send("update_install"); } }, "Aktualizovat")];
   }
   const nowMs = Date.now();
   if (kind) { lastKind = kind; lastKindAt = nowMs; }
@@ -1420,12 +1424,15 @@ function updateActivity() {
   } else if (t && t.total) {
     activity = `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`;
     actText.replaceChildren(icon("list-checks"), " ", activity);
-  } else if (upd?.available && upd.state !== "error") {
-    activity = upd.state === "downloading" ? `Stahuji ${Math.round((upd.progress || 0) * 100)} %` : `Nová verze ${upd.latest}`;
+  } else if (upd?.available && upd.state === "downloading") {
+    activity = `Stahuji ${Math.round((upd.progress || 0) * 100)} %`;
     actText.replaceChildren(icon("arrow-circle-up"), " ", activity);
   } else if (media?.playing && media.title) {
     activity = media.title;
     actText.replaceChildren(icon("music-notes"), " ", activity);
+  } else if (upd?.available && upd.state !== "error") {
+    activity = `Nová verze ${upd.latest}`;
+    actText.replaceChildren(icon("arrow-circle-up"), " ", activity);
   } else {
     activity = "";
     actText.replaceChildren();
