@@ -42,7 +42,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/emotion/, "smiley-wink"], [/noise/, "waveform"], [/auto_gain|gain/, "equalizer"], [/duck/, "speaker-low"], [/tts_rate|rate/, "gauge"],
   [/tts|voice\.voice|speak/, "speaker-high"], [/voice\.enabled/, "microphone"], [/hotkeys\.talk/, "microphone"], [/hotkeys\.chat/, "chat-circle"],
   [/hotkeys\.stop/, "hand-palm"], [/hotkeys\.hud/, "circle-notch"], [/hotkeys\.selection/, "selection"], [/notch_toggle/, "eye-slash"],
-  [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
+  [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
   [/animations/, "sparkle"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
@@ -471,7 +471,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       hotkey("hotkeys.stop_all", "STOP – nouzově zastavit úplně vše", "Zruší úkol, potvrzení, řeč i nahrávání a pustí myš a klávesnici."),
       hotkey("hotkeys.notch_toggle", "Schovat / ukázat notch", "Funguje i nad hrou nebo videem na celou obrazovku."),
       hotkey("hotkeys.subtitles", "Titulky z videa v notchi", "Zapne nebo vypne titulky toho, co PC přehrává."),
-      hotkey("hotkeys.screen_ask", "Zeptej se na obrazovku", "Vybereš kus obrazovky a JARVIS ho vysvětlí, přeloží nebo poradí."))],
+      hotkey("hotkeys.screen_ask", "Zeptej se na obrazovku", "Vybereš kus obrazovky a JARVIS ho vysvětlí, přeloží nebo poradí."),
+      hotkey("hotkeys.device_listen", "Poslech zařízení", "Píše všechno, co hraje z PC; podruhé zastaví a nabídne prompt, shrnutí nebo poznámky."))],
 
     permissions: () => [
       card("Oblasti oprávnění", "Platí okamžitě. Nebezpečné akce (mazání, odesílání, instalace, PowerShell…) JARVIS vždy nejdřív potvrdí s tebou.",

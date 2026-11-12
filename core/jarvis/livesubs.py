@@ -91,7 +91,7 @@ class LiveSubs:
         self.text = ""
         self.lang = ""
         self._stop = threading.Event()
-        self._jobs: queue.Queue = queue.Queue(maxsize=2)
+        self._jobs: queue.Queue = queue.Queue(maxsize=self.QUEUE)
         self._threads: list[threading.Thread] = []
         self._src, self._src_at = "", -10.0
 
@@ -177,8 +177,11 @@ class LiveSubs:
         spk = sc.default_speaker()
         return sc.get_microphone(str(spk.name), include_loopback=True).recorder(samplerate=SR, channels=1)
 
+    CHUNK: dict = {}          # Chunker settings (the device listening takes longer pieces: fewer, better transcripts)
+    QUEUE = 2                 # subtitles stay live (skip when behind); a full transcript keeps every piece
+
     def _capture(self, rec) -> None:
-        chunker = Chunker()
+        chunker = Chunker(**self.CHUNK)
         try:
             with rec as r:
                 while not self._stop.is_set():
@@ -186,7 +189,7 @@ class LiveSubs:
                     block = data[:, 0] if getattr(data, "ndim", 1) > 1 else data
                     speaker = getattr(self.rt, "speaker", None)
                     if speaker is not None and getattr(speaker, "speaking", False):
-                        chunker = Chunker()             # JARVIS's own voice is not a subtitle
+                        chunker = Chunker(**self.CHUNK)  # JARVIS's own voice is not a subtitle
                         continue
                     piece = chunker.feed(block.astype("float32"))
                     if piece is not None:

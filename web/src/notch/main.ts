@@ -261,7 +261,7 @@ function dynSize(m: Mode): [number, number] {
       return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
     }
     case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : kind === "nudge" ? 400 : 348, 38] : [196, 38];
-    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" ? 390 : 330, 36] : [176, 36];
+    default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" || kind === "rec" ? 390 : 330, 36] : [176, 36];
   }
 }
 /** The subtitle pill grows sideways (one wide line) and only takes a second line for a long sentence. */
@@ -533,6 +533,7 @@ function leave() {
 }
 shape.addEventListener("click", (e) => {
   if (shape.dataset.island === "msg" && msgEv && !(e.target as HTMLElement).closest("button, input")) { openReply(msgEv.item); return; }
+  if (shape.dataset.island === "rec" && !(e.target as HTMLElement).closest("button, input")) { client.send("device_listen_set", { on: false }); return; }
   // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
   const tgt = e.target as HTMLElement;
   const busyKind = ["claude", "ai", "team", "task"].includes(shape.dataset.island || "");
@@ -763,6 +764,50 @@ client.on("selection", (m) => {
   window.clearTimeout(selTimer);
   selTimer = window.setTimeout(closeSelection, 25000);
 });
+// ---------- 3.12 Poslech zařízení: the transcript of what the PC played → prompt / summary / notes / copy ----------
+let devListen = { on: false, since: 0, words: 0 };
+client.on("device_listen", (m) => {
+  if (m.on) {
+    if (!devListen.on) devListen.since = Date.now() - (Number(m.seconds) || 0) * 1000;
+    devListen = { ...devListen, on: true, words: Number(m.words) || 0 };
+    updateActivity();
+    if (mode === "closed" || mode === "hover") apply(mode);
+    return;
+  }
+  const was = devListen.on;
+  devListen = { on: false, since: 0, words: 0 };
+  updateActivity();
+  if (!m.done) { if (was && mode === "closed") apply(mode); return; }
+  liveText = "";
+  bubbleTool.textContent = "";
+  const secs = Number(m.seconds) || 0;
+  bubbleTranscript.textContent = `Přepis · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")} · ${m.words || 0} slov – co s ním?`;
+  if (!m.words) {
+    bubbleConfirm.replaceChildren(h("span", { class: "muted" }, m.error || "Nic jsem nezachytil – hrálo z počítače něco nahlas?"),
+      h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: () => { bubbleConfirm.replaceChildren(); bubbleTranscript.textContent = ""; settle(); } }, icon("x")));
+  } else {
+    bubbleConfirm.replaceChildren(h("div", { class: "n-rp" },
+      h("div", { class: "n-rp-msg" }, `…${String(m.preview || "").slice(-220)}`),
+      h("div", { class: "n-sa-acts" }, ...(m.actions || []).map((a: any) => h("button", { class: `n-pill ${a.key === "prompt" ? "yes" : ""}`, type: "button",
+        onclick: () => { client.send("device_listen_action", { action: a.key }); bubbleConfirm.replaceChildren(h("span", { class: "muted" }, `${a.label}…`)); } }, a.label)),
+        h("button", { class: "n-pill no", type: "button", "aria-label": "Zavřít", onclick: () => { bubbleConfirm.replaceChildren(); bubbleTranscript.textContent = ""; settle(); } }, icon("x")))));
+  }
+  play("done");
+  renderLive();
+  setMode("live");
+});
+client.on("device_listen_result", (m) => {
+  bubbleConfirm.replaceChildren();
+  bubbleTranscript.textContent = m.ok ? (m.copied ? "Hotovo – zkopírováno do schránky ✓" : "Hotovo") : "";
+  if (!m.ok) { renderLive(); showAlert("Poslech zařízení", m.text); play("error"); return; }
+  liveText = m.text;
+  play("done");
+  renderLive();
+  if (mode !== "panel") setMode("live");
+  window.clearTimeout(lingerTimer);
+  lingerTimer = window.setTimeout(() => { if (!busy()) settle(); }, 20000);
+});
+
 // ---------- 3.12 messages from the phone: a short island, a click opens the reply right here ----------
 let msgEv: { item: any; until: number } | null = null;
 let replyKey = "";
@@ -1186,6 +1231,11 @@ function islandActivity(t: any) {
     kind = "nudge";
     l = [h("span", { class: "n-nudge" }, icon("target", "ph-fill"), h("span", {}, "Soustředění"))];
     r = [h("span", { class: "n-nudge-app" }, `${nudge.app} počká`)];
+  } else if (devListen.on) {                               // 3.12 writing down what the PC plays – click = stop
+    kind = "rec";
+    const secs = Math.max(0, Math.round((Date.now() - devListen.since) / 1000));
+    l = [h("span", { class: "n-rec-dot" }), h("span", { class: "n-link-name" }, "Poslouchám PC")];
+    r = [h("span", { class: "n-rec-meta" }, `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")} · ${devListen.words} slov`)];
   } else if (msgEv && Date.now() < msgEv.until) {           // 3.12 a message on the phone – click = reply here
     kind = "msg";
     l = [h("span", { class: "n-msg-ico" }, icon("chat-circle-text", "ph-fill")), h("span", { class: "n-link-name" }, msgEv.item.title || msgEv.item.app)];

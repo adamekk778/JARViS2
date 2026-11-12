@@ -689,3 +689,9 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
   max-height: 64px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .n-rp-row { display: flex; gap: 6px; align-items: center; }
 .n-rp-row .grow { flex: 1; }
+
+/* 3.12 Poslech zařízení island */
+.notch[data-island="rec"] .n-eyes { opacity: 0; }
+.n-rec-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 10px rgba(255, 69, 58, .8); animation: rec-pulse 1.4s ease-in-out infinite; flex: none; }
+.n-rec-meta { color: rgba(255, 255, 255, .6); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+@keyframes rec-pulse { 50% { opacity: .35; } }

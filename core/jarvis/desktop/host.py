@@ -574,7 +574,16 @@ class DesktopHost:
 
             self.rt.submit(screenask.start(self.rt))
 
-        for combo, fn in ((hk.screen_ask, screen_ask), (hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
+        def device_listen():   # 3.12 write down what the PC plays; again = stop and choose what to do with it
+            from .. import devicelisten
+
+            def go():
+                r = devicelisten.get(self.rt).toggle()
+                if not r.get("ok"):
+                    self.rt.notify("Poslech zařízení", r.get("message", ""), speak=False)
+            self.rt.call_soon(go)
+
+        for combo, fn in ((hk.device_listen, device_listen), (hk.screen_ask, screen_ask), (hk.talk, talk), (hk.chat, lambda: self.open_chat("chat")), (hk.stop, stop),
                           (hk.stop_all, stop_all), (hk.hud, lambda: self.toggle_hud()), (hk.selection, selection),
                           (hk.notch_toggle, lambda: self.toggle_notch()), (hk.subtitles, lambda: self._toggle_subs())):
             if not combo:
