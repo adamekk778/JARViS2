@@ -174,9 +174,14 @@ def main(argv: list[str] | None = None) -> int:
             return {"ok": False, "message": "v CI se mozek nezkouší"}
 
         async def _main() -> None:
-            for item in await selfcheck.run(rt, _t):
-                print(json.dumps(item, ensure_ascii=False), flush=True)
-            os._exit(0)                   # a check thread may still wait on a device: asyncio.run would wait for it
+            code = 0
+            try:
+                for item in await selfcheck.run(rt, _t):
+                    print(json.dumps(item), flush=True)       # plain ASCII: a Windows console cannot print every Czech letter
+            except BaseException as e:  # noqa: BLE001
+                print(f"selfcheck failed: {type(e).__name__}: {e}", flush=True)
+                code = 1
+            os._exit(code)                # a check thread may still wait on a device: asyncio.run would wait for it
 
         _aio.run(_main())
         return 0
