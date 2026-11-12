@@ -17,13 +17,13 @@
 .palette-btn kbd { height: 22px; font-size: 11px; padding: 0 6px; background: var(--glass-2); color: var(--muted); }
 .palette-btn:hover { color: var(--text-2); background: var(--glass-3); }
 .rail { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; scrollbar-width: none; min-height: 0; flex: 1; }
-.rail-group { font: 700 10.5px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 12px 10px 6px; flex: none; }
+.rail-group { font: 700 10px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 10px 11px 4px; flex: none; }
 .rail-group:first-child { padding-top: 4px; }
 .rail button {
-  display: flex; align-items: center; gap: 11px; flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 9px;
-  background: transparent; color: var(--text-2); cursor: pointer; text-align: left; font: 500 13.5px var(--font); transition: background .15s, color .15s;
+  display: flex; align-items: center; gap: 10px; flex: none; height: 29px; padding: 0 11px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-2); cursor: pointer; text-align: left; font: 500 13px var(--font); transition: background .15s, color .15s;
 }
-.rail button i { font-size: 17px; opacity: .9; }
+.rail button i { font-size: 16px; opacity: .85; }
 .rail button:hover { background: var(--glass-2); }
 .rail button.active { background: color-mix(in oklab, var(--text) 10%, transparent); color: var(--text); font-weight: 600; }
 .rail button.active i { color: var(--accent); opacity: 1; }

@@ -281,3 +281,18 @@ kbd { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; b
 [data-input="touch"] .btn, [data-input="touch"] button.chip, [data-input="touch"] .input, [data-input="touch"] select.input { min-height: 44px; }
 [data-input="touch"] input[type="checkbox"][role="switch"] { transform: scale(1.2); }
 [data-input="voice"] .mic-btn { width: 52px; height: 52px; font-size: 26px; color: var(--accent); }
+
+/* 3.12 the calm page header (shared/hero.ts): the page's icon in its colour, the title, one line, the buttons */
+.phead { position: relative; flex: none; display: flex; align-items: center; gap: 16px; padding: 6px 4px 18px;
+  border-bottom: 1px solid var(--edge, rgb(255 255 255 / .08)); }
+.phead-ico { width: 44px; height: 44px; flex: none; border-radius: 13px; display: grid; place-items: center; font-size: 22px;
+  color: var(--hero-color, #fff); background: color-mix(in oklab, var(--hero-color, #fff) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--hero-color, #fff) 22%, transparent); }
+.phead-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.phead h1 { margin: 0; font: 650 24px/1.15 var(--font); letter-spacing: -0.02em; color: var(--text, #fff); }
+.phead p { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--muted, #9aa0a8); max-width: 640px; }
+.phead-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex: none; }
+.phead.compact { padding-bottom: 12px; }
+.phead.compact .phead-ico { width: 36px; height: 36px; font-size: 18px; border-radius: 11px; }
+.phead.compact h1 { font-size: 20px; }
+@media (max-width: 760px) { .phead { flex-wrap: wrap; } .phead-actions { width: 100%; } }

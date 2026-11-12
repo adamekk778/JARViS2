@@ -35,8 +35,8 @@ export function buildDictation(client: JarvisClient, go: (v: string) => void) {
     h("button", { class: "btn primary", type: "button", onclick: () => go("notetaker") }, icon("record", "ph-fill"), "Nahrát hovor"),
     h("button", { class: "btn", type: "button", onclick: () => go("dictation") }, icon("sliders"), "Nastavení"),
   ]);
-  band.querySelector(".hero-copy h1")!.after(sub);
-  const title = band.querySelector(".hero-copy h1")!;
+  band.querySelector(".phead-copy h1")!.after(sub);
+  const title = band.querySelector(".phead-copy h1")!;
 
   const q = h("input", { class: "input", type: "search", placeholder: "Hledat v diktátech…", "aria-label": "Hledat v diktátech" }) as HTMLInputElement;
   let qt = 0;
