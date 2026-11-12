@@ -208,6 +208,9 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.nightcare.loop()))      # 3.12 Noční údržba
+        from . import selfcheck
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
         try:
             from .updater import Updater
 

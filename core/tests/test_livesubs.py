@@ -73,6 +73,9 @@ class FakeSTT:
     def local_ready(self):
         return self.ready
 
+    def provider(self):
+        return "local"
+
     def caption(self, audio, language=None):
         self.calls += 1
         return "Hello there, welcome back to the channel", "en"

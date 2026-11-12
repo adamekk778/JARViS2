@@ -220,3 +220,26 @@ async def run(rt: Any, tester) -> list[dict]:
     for r in results:                                  # into the log, so a diagnostics export carries them
         (log.warning if r["ok"] is False else log.info)("kontrola %s: %s – %s", r["key"], "OK" if r["ok"] else "CHYBA", r["detail"])
     return results
+
+
+async def warn_phone_blocked(rt: Any, delay: float = 40.0) -> None:
+    """3.12 after start-up (Windows): if the phone cannot get through (a Public network, the firewall), say so once a
+    day with what to do – nobody has to open Diagnostika to find out why the phone does not connect."""
+    import datetime as dt
+
+    await asyncio.sleep(delay)
+    if not WIN:
+        return
+    try:
+        row = rt.db.one("SELECT v FROM kv WHERE k='phone_net_warned'")
+        today = dt.date.today().isoformat()
+        if row and row["v"] == today:
+            return
+        bad = [i for i in await asyncio.to_thread(phone_net, rt) if i["ok"] is False and i["key"] in ("profile", "firewall", "lan")]
+        if not bad:
+            return
+        rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('phone_net_warned', ?)", (today,))
+        b = bad[0]
+        rt.notify("Telefon se k PC nepřipojí", f"{b['detail']} {b['fix']} (Nastavení → Telefon)", speak=False)
+    except Exception as e:  # noqa: BLE001
+        log.info("phone net warning: %s", e)

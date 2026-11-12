@@ -140,9 +140,9 @@ class LiveSubs:
         stt = self._stt()
         if stt is None:
             return {"ok": False, "message": "Rozpoznávání řeči není k dispozici."}
-        if stt.cfg.stt_provider == "local" and not stt.local_ready():
-            return {"ok": False, "message": "Titulky potřebují rozpoznávání řeči. Zapni nejdřív hlas v Nastavení → Hlas "
-                                            "(stáhne se jednou), pak titulky půjdou."}
+        if stt.provider() == "local" and not stt.local_ready():
+            return {"ok": False, "message": "Titulky potřebují rozpoznávání řeči: vlož v Nastavení → Mozek klíč od Groq "
+                                            "(zdarma, nic se nestahuje), nebo si v Nastavení → Hlas stáhni místní model."}
         try:
             rec = self._recorder()
         except Exception as e:

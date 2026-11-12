@@ -344,8 +344,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         range("voice.duck_level", "Ztišit na", 0, 0.8, 0.05, (v) => `${Math.round(v * 100)} % hlasitosti`)),
       card("Rozpoznávání řeči", null,
         h("div", { class: "grid2" },
-          select("voice.stt_provider", "Kde rozpoznávat", [["local", "Lokálně (offline, faster-whisper)"], ["groq", "Groq API (rychlé, zdarma, potřebuje klíč u poskytovatele groq)"]]),
-          select("voice.stt_model", "Model", [["tiny", "tiny (nejrychlejší)"], ["base", "base (slabé PC)"], ["small", "small (doporučeno)"], ["medium", "medium (přesnější)"], ["large-v3-turbo", "large-v3-turbo (GPU)"]])),
+          select("voice.stt_provider", "Kde rozpoznávat", [["auto", "Automaticky (Groq, když máš klíč – jinak tady)"], ["groq", "Groq (rychlé, zdarma, nic se nestahuje)"], ["local", "Jen tady na PC (offline, stáhne 0,5 GB)"]]),
+          select("voice.stt_model", "Model", [["tiny", "tiny (nejrychlejší)"], ["base", "base (slabé PC)"], ["small", "small (doporučeno)"], ["medium", "medium (přesnější)"], ["large-v3-turbo", "large-v3-turbo (GPU)"]]),
+          sw("voice.stt_download_ok", "Povolit stažení místního modelu řeči", "Jen bez klíče od Groq: model (asi 0,5 GB) se jednou stáhne při prvním mluvení a pak funguje offline.")),
         select("voice.stt_language", "Jazyk řeči", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "Angličtina"], ["auto", "Automaticky"]])),
       voiceStudio(),
       card("Hlas JARVISe", null,
@@ -385,7 +386,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("notch.lyrics", "Texty písní v notchi", "Když hraje hudba (Spotify, YouTube Music, Apple Music…), notch ukáže právě zpívaný řádek a čára pod ním jede se zpěvem. Texty jsou z LRCLIB – posílá se jen název písně a interpret."),
           sw("notch.focus_guard", "Hlídat soustředění", "Když máš zapnuté soustředění a do popředí se dostane YouTube, Netflix, TikTok, Instagram a podobně, notch zabliká a oči se zamračí. Nic nezavírá ani neblokuje – jen připomene."),
           sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),
-          S.voice?.stt_provider === "groq" ? h("p", { class: "help" }, "Rozpoznávání řeči máš přes Groq, takže zvuk videa se k rozpoznání posílá tam. Pro úplné soukromí přepni v Nastavení → Hlas na místní rozpoznávání.") : null),
+          S.voice?.stt_provider !== "local" ? h("p", { class: "help" }, "Rozpoznávání řeči jde (s klíčem od Groq) přes Groq, takže zvuk videa se k rozpoznání posílá tam. Pro úplné soukromí přepni v Nastavení → Hlas na místní rozpoznávání.") : null),
         card("Notch", null, sw("notch.enabled", "Zobrazovat notch"),
           sw("notch.hide_in_fullscreen", "Schovat při hře nebo videu přes celou obrazovku",
             "Vypni, když ho chceš mít i nad YouTube nebo hrou. Kdykoli ho schováš a vrátíš zkratkou " + combo(S.hotkeys.notch_toggle || "ctrl+alt+n") +
@@ -459,7 +460,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           select("dictation.keep_days", "Historie diktátů", [["0", "Neukládat"], ["7", "7 dní"], ["30", "30 dní"], ["365", "1 rok"]],
             "Statistiky se počítají i bez historie. Všechno zůstává jen na tvém PC."),
           h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Rozpoznávání řeči"),
-            h("span", {}, S.voice?.stt_provider === "groq" ? "Groq (cloud) – nastavíš v sekci Hlas" : "Lokálně, offline (Whisper) – nastavíš v sekci Hlas")))),
+            h("span", {}, S.voice?.stt_provider === "local" ? "Lokálně, offline (Whisper) – nastavíš v sekci Hlas" : "Groq (cloud), když máš klíč – nastavíš v sekci Hlas")))),
       ];
     },
 

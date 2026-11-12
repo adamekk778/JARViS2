@@ -16,7 +16,7 @@ async def _snapshot() -> dict:
     )
 
     mgr = await Manager.request_async()
-    s = mgr.get_current_session()
+    s = pick_session(mgr, Status.PLAYING)
     if not s:
         return {}
     props = await s.try_get_media_properties_async()
@@ -37,6 +37,29 @@ async def _snapshot() -> dict:
         except Exception:
             pass
     return out
+
+
+def pick_session(mgr, playing_status):
+    """The player that really plays. Windows' "current" session is often a paused browser tab or a game while
+    Spotify plays – then the notch showed nothing. Playing first (the current one if it plays), else the current."""
+    cur = mgr.get_current_session()
+    try:
+        sessions = list(mgr.get_sessions())
+    except Exception:  # noqa: BLE001
+        sessions = []
+
+    def plays(x) -> bool:
+        try:
+            return x.get_playback_info().playback_status == playing_status
+        except Exception:  # noqa: BLE001
+            return False
+
+    if cur is not None and plays(cur):
+        return cur
+    for x in sessions:
+        if plays(x):
+            return x
+    return cur or (sessions[0] if sessions else None)
 
 
 def _timeline(s, playing: bool) -> dict:

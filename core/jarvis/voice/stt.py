@@ -41,7 +41,7 @@ class Transcriber:
     def prefetch(self) -> None:
         """Somebody started talking to JARVIS (wake word, push-to-talk, the dictation key): load the model in the
         background now, while they are still speaking, so it is ready when they finish."""
-        if self.cfg.stt_provider != "local" or self._model is not None or self._loading:
+        if self.provider() != "local" or self._model is not None or self._loading:
             return
         self._loading = True
 
@@ -89,12 +89,34 @@ class Transcriber:
     def update(self, cfg_voice) -> None:
         self.cfg = cfg_voice
 
+    # ---------- 3.12 where speech is recognised: Groq when there is a Groq key, else on this PC ----------
+    _groq_seen = (0.0, False)
+
+    def provider(self) -> str:
+        """"groq" or "local". With a Groq key, Groq is used – unless the user chose local AND the model is already
+        on this PC. Without that, the local model would first need a ~0.5 GB download (voice and live subtitles
+        then simply did not work until it happened)."""
+        p = getattr(self.cfg, "stt_provider", "auto")
+        if p == "groq":
+            return "groq"
+        has = self._has_groq()
+        if p == "auto":
+            return "groq" if has else "local"
+        return "groq" if has and not self.local_ready() else "local"
+
+    def _has_groq(self) -> bool:
+        at, has = self._groq_seen
+        if time.monotonic() - at > 30:                 # the keyring is asked at most twice a minute
+            has = bool(secrets.get("groq"))
+            Transcriber._groq_seen = (time.monotonic(), has)
+        return has
+
     def _language(self):
         lang = self.cfg.stt_language
         return None if lang in ("", "auto") else lang
 
     def warmup(self) -> None:
-        if self.cfg.stt_provider == "local":
+        if self.provider() == "local" and (self.local_ready() or getattr(self.cfg, "stt_download_ok", False)):
             try:
                 self._local()
             except Exception as e:
@@ -157,7 +179,7 @@ class Transcriber:
 
     def transcribe(self, pcm16: bytes, sr: int = 16000, prompt: str = "") -> str:
         """prompt: words the recognizer should expect (names from the dictation dictionary)."""
-        if self.cfg.stt_provider == "groq":
+        if self.provider() == "groq":
             try:
                 return self._groq(pcm_to_wav(pcm16, sr), prompt=prompt)
             except Exception as e:
@@ -171,7 +193,7 @@ class Transcriber:
         return self._run(audio, prompt)
 
     def transcribe_file(self, path: str) -> str:
-        if self.cfg.stt_provider == "groq":
+        if self.provider() == "groq":
             try:
                 with open(path, "rb") as f:
                     return self._groq(f.read(), filename=path.rsplit("/", 1)[-1].rsplit("\\", 1)[-1])
@@ -181,7 +203,7 @@ class Transcriber:
 
     def segments(self, path: str, progress=None) -> list[tuple[float, float, str]]:
         """(start, end, text) for a whole recording (Notetaker). progress(fraction) is called as it goes."""
-        if self.cfg.stt_provider == "groq":
+        if self.provider() == "groq":
             try:
                 return self._groq_segments(path)
             except Exception as e:
@@ -216,7 +238,7 @@ class Transcriber:
     def words(self, audio, language: str | None = None) -> list[dict]:
         """Recognised words with their timing and how sure the recogniser is (0–1; None from Groq) – for
         pronunciation practice. `audio` is float32 16 kHz or a file path."""
-        if self.cfg.stt_provider == "groq" and isinstance(audio, str):
+        if self.provider() == "groq" and isinstance(audio, str):
             try:
                 return self._groq_words(audio, language)
             except Exception as e:
@@ -258,7 +280,7 @@ class Transcriber:
         language None = whatever is spoken (a video can be in any language)."""
         from ..lang import detect
 
-        if self.cfg.stt_provider == "groq":
+        if self.provider() == "groq":
             import numpy as np
 
             pcm = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16).tobytes()
@@ -269,7 +291,12 @@ class Transcriber:
         text = " ".join(s.text.strip() for s in segments).strip()
         return text, (getattr(info, "language", "") or detect(text))
 
+    NO_MODEL = ("Na rozpoznávání řeči potřebuju klíč od Groq (zdarma, vlož ho v Nastavení → Mozek), "
+                "nebo v Nastavení → Hlas povol stažení místního modelu (0,5 GB).")
+
     def _run(self, audio, prompt: str = "") -> str:
+        if not self.local_ready() and not getattr(self.cfg, "stt_download_ok", False):
+            raise RuntimeError(self.NO_MODEL)          # never a silent 0.5 GB download in the middle of a sentence
         model = self._local()
         segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
                                           condition_on_previous_text=False, initial_prompt=prompt or None)

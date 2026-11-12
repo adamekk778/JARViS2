@@ -75,7 +75,8 @@ class Voice(BaseModel):
     input_device: str = ""
     stt_model: str = "small"
     stt_language: str = "cs"
-    stt_provider: Literal["local", "groq"] = "local"
+    stt_provider: Literal["auto", "local", "groq"] = "auto"   # 3.12 auto: Groq with a Groq key, else on this PC
+    stt_download_ok: bool = False   # 3.12 the local speech model (~0.5 GB) downloads only after the user allows it
     tts_voice: str = "cs-CZ-AntoninNeural"
     piper_voice: str = "cs_CZ-jirka-medium"
     # voice studio: which engine speaks, an imported own Piper voice, an ElevenLabs voice, an effect on top

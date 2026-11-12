@@ -66,6 +66,12 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]]) -> di
         found["model"] = found.get("model") or pr.get("model", "")
     pid = found["id"]
     secrets.set(pid, key)
+    if preset == "groq":
+        if pid != "groq":
+            secrets.set("groq", key)               # speech recognition (voice, subtitles) looks for it here
+        from .voice.stt import Transcriber
+
+        Transcriber._groq_seen = (0.0, False)      # the voice uses Groq from now on, no waiting
     chain = [pid] + [c for c in rt.cfg.brain.chain if c != pid]
     rt.update_config({"brain": {"providers": provs, "chain": chain}})
     r = await test(pid)

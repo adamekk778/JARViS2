@@ -334,6 +334,11 @@ class VoiceLoop:
         except Exception as e:
             log.warning("stt failed: %s", e)
             bus.publish_threadsafe("error", message=f"Rozpoznávání řeči selhalo: {e}")
+            if str(e) == self.transcriber.NO_MODEL:           # say it, so a voice-only user knows what to do
+                try:
+                    self.rt.speak("Rozpoznávání řeči ještě není nastavené. Vlož v Nastavení, Mozek, klíč od Groq – je zdarma.")
+                except Exception:  # noqa: BLE001
+                    pass
             bus.publish_threadsafe("state", state="idle")
             return
         bus.publish_threadsafe("transcript", text=text, final=True)

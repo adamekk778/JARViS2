@@ -61,6 +61,30 @@ async function healthy(base: string, ms = 2500): Promise<boolean> {
   }
 }
 
+/** 3.12 every address of the home network(s) the PC used to have (…1–…254), a few dozen at a time; the one that
+ * answers as JARVIS AND accepts our pairing token is our PC (never some other device or another JARVIS). */
+export async function findOnLan(p: Pairing, ms = 1200): Promise<string | null> {
+  const nets = [...new Set(p.hosts.filter((h) => /^(192\.168|10\.|172\.(1[6-9]|2\d|3[01]))\./.test(h))
+    .map((h) => h.split(".").slice(0, 3).join(".")))].slice(0, 3);
+  for (const net of nets) {
+    const all = Array.from({ length: 254 }, (_, i) => `${net}.${i + 1}`).filter((ip) => !p.hosts.includes(ip));
+    for (let i = 0; i < all.length; i += 64) {
+      const hit = (await Promise.all(all.slice(i, i + 64).map(async (ip) => ((await healthy(`http://${ip}:${p.port}`, ms)) ? ip : null)))).find(Boolean);
+      if (hit && (await ours(`http://${hit}:${p.port}`, p.token))) return hit;
+    }
+  }
+  return null;
+}
+
+async function ours(base: string, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${base}/api/link/info`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Try last working host first, then LAN (and Tailscale if you use it); away from home: our own JARVIS Link. */
 export async function resolveEndpoint(p: Pairing): Promise<Endpoint | null> {
   const order = [...new Set([p.last, ...p.hosts].filter(Boolean) as string[])];
@@ -69,6 +93,12 @@ export async function resolveEndpoint(p: Pairing): Promise<Endpoint | null> {
   if (host) {
     if (host !== p.last) savePairing({ ...p, last: host });
     return { base: `http://${host}:${p.port}`, token: p.token };
+  }
+  // 3.12 the router gave the PC a new address (after a router restart / a few days): look for it on the home network
+  const found = await findOnLan(p);
+  if (found) {
+    savePairing({ ...p, hosts: [found, ...p.hosts.filter((x) => x !== found)], last: found });
+    return { base: `http://${found}:${p.port}`, token: p.token };
   }
   if (p.link?.enabled && native.phone.available) {
     try {

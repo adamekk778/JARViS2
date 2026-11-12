@@ -119,7 +119,7 @@ def test_speech_model_not_loaded_at_start_loads_on_talk_and_goes_when_unused(rt,
     from jarvis.voice import stt as stt_mod
 
     loads = []
-    t = stt_mod.Transcriber(SimpleNamespace(stt_provider="local", stt_model="small", stt_language="cs"))
+    t = stt_mod.Transcriber(SimpleNamespace(stt_provider="local", stt_model="small", stt_language="cs", stt_download_ok=True))
     monkeypatch.setattr(threading, "Timer", lambda s, f: SimpleNamespace(start=lambda: None, daemon=True))
 
     def fake_local():
