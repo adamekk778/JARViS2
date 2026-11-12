@@ -61,6 +61,29 @@ Filename: "{app}\JARVIS.exe"; Parameters: "--background"; Flags: nowait; Check: 
 Filename: "{cmd}"; Parameters: "/c taskkill /im JARVIS.exe /f"; Flags: runhidden; RunOnceId: "StopJarvis"
 
 [Code]
+// JARVIS must be fully closed before its files are replaced: Windows refuses to rename a running JARVIS.exe
+// ("MoveFile selhala; kód 5. Přístup byl odepřen"). Close it (tray, notch, windows) and wait until the file is free.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode, i: Integer;
+  Exe: String;
+begin
+  Result := '';
+  Exe := ExpandConstant('{app}\JARVIS.exe');
+  Exec(ExpandConstant('{cmd}'), '/c taskkill /im JARVIS.exe /t /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  for i := 1 to 40 do
+  begin
+    if not FileExists(Exe) then
+      Break;
+    if RenameFile(Exe, Exe + '.inst') then
+    begin
+      RenameFile(Exe + '.inst', Exe);
+      Break;
+    end;
+    Sleep(500);
+  end;
+end;
+
 // Shortcuts are made here instead of [Icons]: when Windows or an antivirus refuses to write a .lnk
 // ("IPersistFile::Save ... 0x80070005"), the installation must still finish, just without that shortcut.
 procedure MakeShortcut(const Path: String);

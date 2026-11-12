@@ -5,7 +5,9 @@ import hashlib
 import json
 import socket
 import ssl
+import shutil
 import subprocess
+import sys
 
 
 from jarvis import secrets
@@ -234,8 +236,9 @@ def test_relay_install_script(rt, tmp_path):
     assert len(key) >= 24 and f"'{key}'" in script and "--port 8443" in script
     assert "class Relay" in script and "systemctl enable --now jarvis-relay" in script
     f = tmp_path / "install.sh"
-    f.write_text(script)
-    assert subprocess.run(["bash", "-n", str(f)]).returncode == 0
+    f.write_bytes(script.encode("utf-8"))
+    if sys.platform != "win32" and shutil.which("bash"):          # syntax check of the installer (Linux like the VPS)
+        assert subprocess.run(["bash", "-n", str(f)]).returncode == 0
     assert rt.link.install_script().count(key) == 1                # the same key the next time
     st = rt.link.status()
     assert st["relay_key_set"] and key not in json.dumps(st)        # Settings never see the key itself
