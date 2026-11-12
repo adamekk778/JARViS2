@@ -302,6 +302,14 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         rt.phone.ack(str(body.get("id", "")), str(body.get("state", "done")), str(body.get("detail", ""))[:2000])
         return {"ok": True}
 
+    @app.get("/api/phone/island")
+    async def phone_island(request: Request):
+        """3.12 the phone's notch asks what to show (every few seconds, only while its screen is on)."""
+        require_auth(request)
+        from ..phoneisland import state
+
+        return state(rt)
+
     @app.post("/api/phone/drop")
     async def phone_drop(request: Request):
         """3.12 "ťukni o monitor": the phone's background link uploaded the newest photo and hands it over."""

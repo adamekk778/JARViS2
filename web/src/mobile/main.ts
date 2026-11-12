@@ -480,6 +480,16 @@ function phoneCard(c: JarvisClient): HTMLElement {
           render(r);
         }, "Ťuk o monitor")),
     st.tapdrop && !st.overlay ? h("p", { class: "help" }, "Tip: povol „Zobrazovat přes jiné aplikace“ (výše) a uvidíš i animaci, jak fotka odlétá.") : "",
+    // 3.12 the notch on the phone: a small island at the top over other apps – what JARVIS does on the PC, a song, a timer
+    h("div", { class: "row m-island" }, h("div", { class: "row-text" }, h("strong", {}, "Notch na telefonu"),
+      h("span", {}, !st.island ? "Malý ostrůvek nahoře přes ostatní aplikace – jako na PC: co JARVIS dělá, hudba, časovač. Ťuk = otevřít, podržet = mluvit."
+        : st.overlay ? "Zapnuto. Když je otevřená aplikace JARVIS, ostrůvek se schová." : "Povol „Zobrazovat přes jiné aplikace“, jinak se nemůže ukázat.")),
+      st.island && !st.overlay ? h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openOverlay() }, "Povolit")
+        : sw(!!st.island, async (v) => {
+          const r = await native.phone.configure({ island: v, ...(v ? { enabled: true } : {}) });
+          if (v) { localStorage.setItem("jarvis.link", "1"); if (!r.overlay) native.phone.openOverlay(); }
+          render(r);
+        }, "Notch na telefonu")),
     h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => {
       c.send("quick_action", { action: "call_me", args: { message: "Dobrý den, pane. Tady JARVIS. Zkouška spojení proběhla v pořádku, umím vám zavolat." } });
       toast("JARVIS za chvilku zavolá", "ok");

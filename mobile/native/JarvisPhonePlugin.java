@@ -46,6 +46,11 @@ public class JarvisPhonePlugin extends Plugin {
         if (call.hasOption("token")) e.putString("token", call.getString("token", ""));
         if (call.hasOption("enabled")) e.putBoolean("enabled", Boolean.TRUE.equals(call.getBoolean("enabled", false)));
         if (call.hasOption("mirror")) e.putBoolean("mirror", Boolean.TRUE.equals(call.getBoolean("mirror", true)));
+        if (call.hasOption("island")) {                   // 3.12 the notch on the phone: needs the background link
+            boolean on = Boolean.TRUE.equals(call.getBoolean("island", false));
+            e.putBoolean("island", on);
+            if (on) e.putBoolean("enabled", true);
+        }
         if (call.hasOption("tapdrop")) {                  // 3.12 knock to send the newest photo: needs the background link
             boolean on = Boolean.TRUE.equals(call.getBoolean("tapdrop", false));
             e.putBoolean("tapdrop", on);
@@ -69,6 +74,8 @@ public class JarvisPhonePlugin extends Plugin {
         r.put("enabled", JarvisLink.enabled(getContext()));
         r.put("mirror", JarvisLink.mirror(getContext()));
         r.put("tapdrop", TapDrop.enabled(getContext()));
+        r.put("island", PhoneIsland.enabled(getContext()));
+        if (PhoneIsland.enabled(getContext())) PhoneIsland.start(getContext());   // allowed the overlay just now → show it
         r.put("photos", TapDrop.canReadPhotos(getContext()));
         r.put("phone", JarvisLink.has(getContext(), Manifest.permission.CALL_PHONE)
                 && JarvisLink.has(getContext(), Manifest.permission.READ_CONTACTS)
