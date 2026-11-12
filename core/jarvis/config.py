@@ -400,6 +400,8 @@ class PhoneLinkCfg(BaseModel):
     announce: bool = True        # someone writes to you on WhatsApp / SMS / Messenger or calls → JARVIS tells you on the PC
     away_push: bool = True       # 3.12 away from the PC: what matters (and confirmations) comes to the phone
     clip_sync: bool = False      # 3.12 shared clipboard PC ↔ phone (text, never passwords) – switched on in the phone app
+    remote_desktop: bool = False  # 3.12 Vzdálená plocha: a paired phone may see AND drive this PC (switched on here, once)
+    photo_folder: str = ""        # 3.12 Záloha fotek: where the phone's photos go ("" = Obrázky\JARVIS Telefon)
     speak: bool = False          # …aloud
     # optional real phone calls when the phone app cannot be reached (Twilio; the token is in the keyring)
     twilio_sid: str = ""

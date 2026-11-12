@@ -54,8 +54,8 @@ class Gate:
     """Wraps the app for the link port: everything that comes here is from outside (never "this PC", even when it
     arrives through the relay agent on 127.0.0.1), and nothing but /api/health answers without a paired token."""
 
-    def __init__(self, rt: Any, app: Any):
-        self.rt, self.app = rt, app
+    def __init__(self, rt: Any, app: Any, watch: Any = None):
+        self.rt, self.app, self.watch = rt, app, watch
         self.fails: dict[str, list[float]] = {}
 
     def _blocked(self, peer: str) -> bool:
@@ -79,6 +79,14 @@ class Gate:
             if self._blocked(peer):
                 await send({"type": "websocket.close", "code": 4429})
                 return
+            if self.watch is not None:
+                from ..server.app import _token_ok
+
+                tok = _query_token(scope)
+                if _token_ok(self.rt, tok):
+                    self.watch.seen(peer, tok)
+                else:
+                    self.watch.failed(peer)
             return await self.app(scope, receive, send)
         if path == "/api/health":
             return await self.app(scope, receive, send)
@@ -89,15 +97,134 @@ class Gate:
             if k == b"authorization" and v[:7].lower() == b"bearer ":
                 token = v[7:].decode("latin-1")
         if token is None:
-            from urllib.parse import parse_qs
-
-            token = (parse_qs((scope.get("query_string") or b"").decode("latin-1")).get("token") or [None])[0]
+            token = _query_token(scope)
         if self._blocked(peer):
             return await _plain(send, 429, "Příliš mnoho pokusů – zkus to za pár minut.")
         if not _token_ok(self.rt, token):
             self.fails.setdefault(peer, []).append(time.monotonic())
+            if self.watch is not None:
+                self.watch.failed(peer)
             return await _plain(send, 401, "Chybí nebo je špatný token – spáruj telefon znovu.")
+        if self.watch is not None:
+            self.watch.seen(peer, token)
         return await self.app(scope, receive, send)
+
+
+def _query_token(scope) -> str | None:
+    from urllib.parse import parse_qs
+
+    return (parse_qs((scope.get("query_string") or b"").decode("latin-1")).get("token") or [None])[0]
+
+
+def route_of(peer: str) -> str:
+    """How a connection came: through the relay agent (127.0.0.1), from the home network, or straight from outside."""
+    try:
+        ip = ipaddress.ip_address(peer)
+    except ValueError:
+        return "internet"
+    if ip.is_loopback:
+        return "relay"
+    if ip.is_private or ip.is_link_local:
+        return "home"
+    return "internet"
+
+
+ROUTE_LABEL = {"relay": "přes tvůj relay", "home": "z domácí sítě", "internet": "přímo z internetu"}
+
+
+class Watch:
+    """3.12 who connects over JARVIS Link: every paired device and the way it came, kept for Settings; a new device or
+    a new way – and anyone trying wrong keys – is told to you at once."""
+
+    KEEP = 40
+    FAIL_ALERT = 5               # wrong keys from one address before you are told
+    ALERT_EVERY_S = 3600
+
+    def __init__(self, rt: Any):
+        self.rt = rt
+        self.recent: dict[tuple[str, str, str], dict] = {}
+        self.fail_counts: dict[str, list[float]] = {}
+        self.alerted: dict[str, float] = {}
+        self.alerts: list[dict] = []
+        self._known = self._load()
+
+    def _file(self):
+        from .cert import folder
+
+        return folder() / "seen.json"
+
+    def _load(self) -> set[str]:
+        import json
+
+        try:
+            return set(json.loads(self._file().read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            return set()
+
+    def _save(self) -> None:
+        import json
+
+        try:
+            self._file().write_text(json.dumps(sorted(self._known)), encoding="utf-8")
+        except OSError as e:
+            log.debug("link seen: %s", e)
+
+    def _who(self, token: str | None) -> tuple[str, str]:
+        from .. import mobileplus
+
+        d = mobileplus.device_for(self.rt, token)
+        if d:
+            return d["id"], d.get("name") or "Telefon"
+        g = mobileplus.guest_for(self.rt, token)
+        if g:
+            return f"guest:{g.get('id', '')}", f"Host – {g.get('name') or 'host'}"
+        return "pairing", "Telefon (párovací kód)"
+
+    def seen(self, peer: str, token: str | None) -> None:
+        dev_id, name = self._who(token)
+        route = route_of(peer)
+        ip = "" if route == "relay" else peer
+        now = time.time()
+        key = (dev_id, route, ip)
+        e = self.recent.get(key)
+        if e:
+            e["last"], e["count"] = now, e["count"] + 1
+            return
+        self.recent[key] = {"device": dev_id, "name": name, "route": route, "label": ROUTE_LABEL[route], "ip": ip,
+                            "first": now, "last": now, "count": 1}
+        if len(self.recent) > self.KEEP:
+            oldest = min(self.recent, key=lambda k: self.recent[k]["last"])
+            self.recent.pop(oldest, None)
+        known = f"{dev_id}|{route}"
+        if known not in self._known:
+            self._known.add(known)
+            self._save()
+            self._alert("new", f"{name} se poprvé připojil {ROUTE_LABEL[route]}" + (f" ({ip})" if ip else "") + ".",
+                        "Nebyl jsi to ty? V Nastavení → Telefon → JARVIS Link ho jedním klikem odpojíš.")
+
+    def failed(self, peer: str) -> None:
+        now = time.time()
+        hits = [t for t in self.fail_counts.get(peer, []) if now - t < 600] + [now]
+        self.fail_counts[peer] = hits
+        if len(hits) >= self.FAIL_ALERT and now - self.alerted.get(peer, 0) > self.ALERT_EVERY_S:
+            self.alerted[peer] = now
+            where = "přes tvůj relay" if route_of(peer) == "relay" else f"z adresy {peer}"
+            self._alert("bad_key", f"Někdo zkouší neplatný klíč {where} ({len(hits)}× za 10 min).",
+                        f"Po {FAIL_LIMIT} pokusech se ta adresa na 10 minut zablokuje. Bez spárovaného klíče se nic nedostane dovnitř.")
+
+    def _alert(self, kind: str, text: str, hint: str) -> None:
+        self.alerts = ([{"kind": kind, "text": text, "hint": hint, "at": time.time()}] + self.alerts)[:10]
+        try:
+            self.rt.notify("JARVIS Link", f"{text} {hint}", speak=False)
+        except Exception as e:  # noqa: BLE001
+            log.debug("link alert: %s", e)
+        try:
+            self.rt.bus.publish("link_status", **self.rt.link.status())
+        except Exception:  # noqa: BLE001
+            pass
+
+    def list(self) -> list[dict]:
+        return sorted(self.recent.values(), key=lambda e: -e["last"])
 
 
 async def _plain(send, code: int, text: str) -> None:
@@ -151,6 +278,7 @@ class Link:
         self._tasks: list[asyncio.Task] = []
         self._gw: upnp.Gateway | None = None
         self._mapped = 0
+        self.watch = Watch(rt)
 
     @property
     def cfg(self):
@@ -184,7 +312,7 @@ class Link:
 
         c = await asyncio.to_thread(ensure)
         self.fp = c["fp"]
-        conf = uvicorn.Config(Gate(self.rt, app), lifespan="off", ssl_certfile=c["cert"], ssl_keyfile=c["key"],
+        conf = uvicorn.Config(Gate(self.rt, app, self.watch), lifespan="off", ssl_certfile=c["cert"], ssl_keyfile=c["key"],
                               ssl_keyfile_password=c["password"], proxy_headers=False, server_header=False,
                               log_level="warning", log_config=None, ws_max_size=32 * 2**20, timeout_keep_alive=30)
         socks = _sockets(self.cfg.port)
@@ -312,6 +440,7 @@ class Link:
                 "fp": self.fp, "upnp": self.cfg.upnp, "router": self.router, "ipv6": global_v6() if self.cfg.enabled else [],
                 "public_host": self.cfg.public_host, "relay_host": self.cfg.relay_host, "relay_port": self.cfg.relay_port,
                 "relay_key_set": bool(relay_key()), "relay": ag,
+                "connections": self.watch.list()[:15], "alerts": self.watch.alerts[:5],
                 "reachable": bool(self.listening and (self.router.get("state") == "ok" or (ag and ag["connected"])
                                                       or self.cfg.public_host.strip()))}
 

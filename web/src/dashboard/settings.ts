@@ -599,7 +599,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => {
             if (confirm("Nouzové uzamčení: odpojí VŠECHNA zařízení i hosty, vytvoří nový párovací kód, zapne režim jen pro čtení a zastaví běžící úkol. Pokračovat?")) client.send("lockdown");
           } }, icon("lock"), "Nouzové uzamčení"))),
-        linkCard(), phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
+        linkCard(),
+        card("Vzdálená plocha", "Spárovaný telefon může vidět obrazovku a ovládat PC prstem – i mimo domov přes JARVIS Link. Na PC je přitom vždy vidět rámeček a v notchi „Telefon ovládá PC“ s tlačítkem Ukončit. Soukromá okna (hesla, banka) jsou v obraze zakrytá. Po 10 minutách bez dotyku se sama ukončí.",
+          sw("phone_link.remote_desktop", "Povolit vzdálenou plochu z telefonu", "Zapni jen pokud ji chceš používat.")),
+        phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
 
@@ -854,9 +857,43 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           script ? h("button", { class: "btn ghost", type: "button", onclick: () => copyText(script, "Skript zkopírován – vlož ho do terminálu serveru") }, icon("copy"), "Kopírovat") : null),
         script ? h("textarea", { class: "input mono", rows: 6, readonly: true, style: { width: "100%", fontSize: "11px" } }, script) : null,
         h("p", {}, "Skript obsahuje tajný přístupový klíč k relay – nikomu ho neposílej.")) : null,
+      ...(L.enabled ? linkConnections(L) : []),
       L.enabled ? h("div", { class: "btn-row" },
         h("button", { class: "btn ghost", type: "button", onclick: () => { extra.linkBusy = true; client.send("link_check"); render(); } }, icon("arrows-clockwise"), extra.linkBusy ? "Kontroluji…" : "Zkontrolovat"),
         L.fp ? h("span", { class: "help mono", title: "Otisk certifikátu PC – telefon ho ověřuje při každém spojení" }, `otisk ${String(L.fp).slice(0, 16)}…`) : null) : null);
+  }
+
+  /** 3.12 who connected over JARVIS Link (device, way, address, when) + warnings; one click to disconnect a device. */
+  function linkConnections(L: any): HTMLElement[] {
+    const ROUTE_ICON: Record<string, string> = { relay: "cloud", home: "house-line", internet: "globe-simple" };
+    const ago = (t: number) => {
+      const s = Math.max(0, Date.now() / 1000 - t);
+      return s < 90 ? "teď" : s < 3600 ? `před ${Math.round(s / 60)} min` : s < 86400 ? `před ${Math.round(s / 3600)} h` : new Date(t * 1000).toLocaleDateString("cs-CZ");
+    };
+    const out: HTMLElement[] = [];
+    for (const a of (L.alerts || []).slice(0, 3)) {
+      out.push(h("div", { class: `row link-alert ${a.kind === "bad_key" ? "warn" : ""}` },
+        h("div", { class: "row-text" }, h("strong", {}, icon(a.kind === "bad_key" ? "warning" : "bell-ringing"), " ", a.text), h("span", {}, `${ago(a.at)} · ${a.hint}`))));
+    }
+    const conns: any[] = L.connections || [];
+    out.push(h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Kdo se připojil"),
+      h("span", {}, conns.length ? "Zařízení a cesta, kterou přišla. Když něco nepoznáváš, odpoj to." : "Zatím nikdo přes JARVIS Link (od spuštění JARVISe)."))));
+    for (const e of conns.slice(0, 8)) {
+      const revoke = !local ? null
+        : e.device === "pairing"
+          ? h("button", { class: "btn ghost", type: "button", onclick: () => { if (confirm("Vygenerovat nový párovací kód? Telefony bez vlastního klíče se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový kód")
+          : h("button", { class: "btn ghost", type: "button", onclick: () => {
+            if (!confirm(`Odpojit ${e.name}? Bude se muset spárovat znovu.`)) return;
+            if (String(e.device).startsWith("guest:")) client.send("guest_revoke", { id: String(e.device).slice(6) });
+            else client.send("device_revoke", { id: e.device });
+            setTimeout(() => client.send("link_get"), 600);
+          } }, icon("link-break"), "Odpojit");
+      out.push(h("div", { class: "row" },
+        h("div", { class: "row-text" }, h("strong", {}, icon(ROUTE_ICON[e.route] || "globe-simple"), " ", e.name),
+          h("span", {}, `${e.label}${e.ip ? ` · ${e.ip}` : ""} · ${ago(e.last)}${e.count > 1 ? ` · ${e.count}×` : ""}`)),
+        revoke));
+    }
+    return out;
   }
 
   function phoneAllowedCard() {

@@ -122,7 +122,7 @@ const bubbleTask = h("div", { class: "b-task" });
 const liveStop = stopButton(client, "sm");
 // 3.12 "JARVIS právě ovládá tvůj PC" – on top of the live card while JARVIS moves the mouse / types (+ the frame
 // around the screen, drawn by the PC side): take over (JARVIS waits) or stop everything
-let pcCtl = { on: false, paused: false, label: "" };
+let pcCtl = { on: false, paused: false, label: "", remote: false };
 const ctlBar = h("div", { class: "n-ctl", hidden: true, role: "status" });
 function paintCtl() {
   ctlBar.hidden = !pcCtl.on;
@@ -131,9 +131,12 @@ function paintCtl() {
   const act = (e: Event, fn: () => void) => { e.stopPropagation(); fn(); };
   ctlBar.replaceChildren(
     h("span", { class: "n-ctl-dot", "aria-hidden": "true" }),
-    h("span", { class: "n-ctl-t" }, h("strong", {}, pcCtl.paused ? "Ovládáš ty" : "JARVIS ovládá PC"),
+    h("span", { class: "n-ctl-t" }, h("strong", {}, pcCtl.remote ? "Telefon ovládá PC" : pcCtl.paused ? "Ovládáš ty" : "JARVIS ovládá PC"),
       h("span", {}, pcCtl.paused ? "JARVIS čeká" : pcCtl.label || "Myš a klávesnice")),
-    pcCtl.paused
+    pcCtl.remote
+      ? h("button", { type: "button", class: "n-ctl-b take", title: "Ukončit vzdálenou plochu",
+          onclick: (e: Event) => act(e, () => client.send("pc_control_take")) }, "Ukončit")
+      : pcCtl.paused
       ? h("button", { type: "button", class: "n-ctl-b give", onclick: (e: Event) => act(e, () => client.send("pc_control_give")) }, "Vrátit")
       : h("button", { type: "button", class: "n-ctl-b take", title: "JARVIS se zastaví, dokud mu to nevrátíš",
           onclick: (e: Event) => act(e, () => client.send("pc_control_take")) }, "Převzít"),
@@ -1409,7 +1412,7 @@ setInterval(updateActivity, 1000);
 // ---------- server events ----------
 client.on("pc_control", (m) => {
   const was = pcCtl.on;
-  pcCtl = { on: !!m.on, paused: !!m.paused, label: String(m.label || "") };
+  pcCtl = { on: !!m.on, paused: !!m.paused, label: String(m.label || ""), remote: !!m.remote };
   paintCtl();
   if (pcCtl.on && mode !== "panel") setMode("live");
   else if (was && !pcCtl.on) settle();

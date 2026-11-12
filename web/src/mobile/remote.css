@@ -1,0 +1,12 @@
+/* 3.12 Vzdálená plocha v telefonu */
+.rd { position: fixed; inset: 0; z-index: 9000; background: #000; display: flex; flex-direction: column; touch-action: none; }
+.rd-bar { display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 6px) 10px 6px; background: #0b0b0d; }
+.rd-title { flex: 1; display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 600; font-size: 15px; }
+.rd-dot { width: 8px; height: 8px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; }
+.rd-dot.off { background: #ff9f0a; box-shadow: none; }
+.rd-b { width: 38px; height: 38px; border-radius: 12px; border: 0; background: #1c1c1f; color: #fff; font-size: 19px; display: grid; place-items: center; }
+.rd-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.rd-img { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-select: none; pointer-events: none; }
+.rd-keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px); background: #0b0b0d; }
+.rd-keys button { border: 0; border-radius: 10px; background: #1c1c1f; color: #fff; padding: 9px 12px; font-size: 13px; }
+.rd-typer { position: absolute; left: -9999px; top: 0; opacity: 0; width: 1px; height: 1px; }

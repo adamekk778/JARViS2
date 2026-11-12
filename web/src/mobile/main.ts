@@ -14,6 +14,7 @@ import { clipHistoryCard, confirmCommand, guestView, lanSpeedCard, parseCommandL
 import { keepVoice, loadOutbox, persistentOutbox } from "./offline";
 import { soloProvider, soloScreen } from "./solo";
 import { flingPad } from "./fling";
+import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
@@ -579,7 +580,16 @@ function screenCard(c: JarvisClient, ep: { base: string; token: string }): HTMLE
   btn.onclick = () => c.send("user_text", { text: on ? "přestaň sdílet obrazovku" : "sdílej obrazovku na telefon na 15 minut", attachments: [] });
   c.on("screen_share", (m) => { on = !!m.active; note.textContent = on ? "Vidíš obrazovku PC. Soukromá okna jsou zakrytá." : "Sdílení musíš potvrdit a po čase se samo vypne."; paint(); });
   paint();
-  return h("div", { class: "card" }, h("h2", {}, "Obrazovka PC"), img, note, h("div", { class: "btn-row" }, btn));
+  // 3.12 Vzdálená plocha: see AND drive the PC with a finger (allowed once on the PC)
+  let closeRemote: (() => void) | null = null;
+  const drive = h("button", { class: "btn", type: "button", onclick: () => c.send("remote_start") }, icon("hand-pointing"), "Ovládat prstem") as HTMLButtonElement;
+  c.on("remote_desk", (m) => {
+    if (m.error) { toast(m.error, "error", 6000); return; }
+    if (m.on && !closeRemote) { closeRemote = openRemote(c, ep); }
+    if (!m.on && closeRemote) { closeRemote(); closeRemote = null; }
+  });
+  return h("div", { class: "card" }, h("h2", {}, "Obrazovka PC"), img, note, h("div", { class: "btn-row" }, btn, drive),
+    h("p", { class: "help" }, "Ovládat prstem: ťuk = klik, dva ťuky = dvojklik, podržet = pravé tlačítko, táhnout = přetáhnout, dva prsty = posun. Funguje i mimo domov přes JARVIS Link."));
 }
 
 

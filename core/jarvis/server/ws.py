@@ -47,7 +47,7 @@ CLIENT_TYPES = [
     "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
-    "link_get", "link_set", "link_check", "link_relay_script",
+    "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -67,7 +67,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -269,7 +269,7 @@ class Connection:
                     continue
                 if msg["type"] == "level" and (self.client == "mobile" or self.low_power):
                     continue
-                if msg["type"] == "live_subs" and not self.local:     # what the PC plays stays on the PC
+                if msg["type"] in ("live_subs", "link_status") and not self.local:   # stays on the PC
                     continue
                 if self.guest and msg["type"] not in ("media", "quick_result", "settings_changed"):
                     continue
@@ -294,7 +294,7 @@ class Connection:
                         settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
-                        pc_control=rt.pc_control.state(), clip_sync=rt.cfg.phone_link.clip_sync,
+                        pc_control=rt.pc_control.state(), clip_sync=rt.cfg.phone_link.clip_sync, remote_desk=rt.remote_desk.status(),
                         media=rt.media_state, lyrics=getattr(rt, "lyrics_state", {}) if self.local else {},
                         focus=self._focus_state(),
                         shelf=[rt.public_attachment(a) for a in rt.shelf],
@@ -1093,6 +1093,24 @@ class Connection:
         elif t == "tasks_clear":
             rt.tasks.clear()
             await self.send("tasks", items=rt.tasks.list(), current=rt.tasks.current)
+        elif t == "remote_start":             # 3.12 Vzdálená plocha: a paired phone drives the PC (allowed on the PC)
+            if self.guest:
+                return
+            why = rt.remote_desk.why_not(None if self.local else set(rt.cfg.phone.allowed))
+            if why:
+                await self.send("remote_desk", **rt.remote_desk.status(), error=why)
+            else:
+                await self.send("remote_desk", **rt.remote_desk.start(self.name or "Telefon"))
+        elif t == "remote_stop":
+            if not self.guest:
+                rt.remote_desk.stop()
+        elif t == "remote_input":
+            if self.guest or not rt.remote_desk.on:
+                return
+            try:
+                await rt.remote_desk.input(m)
+            except Exception as e:  # noqa: BLE001
+                log.debug("remote input: %s", e)
         elif t == "link_get":                 # 3.12 JARVIS Link (Settings → Telefon)
             await self.send("link_status", **rt.link.status())
         elif t == "link_set":

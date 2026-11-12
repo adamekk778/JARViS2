@@ -272,3 +272,28 @@ def test_link_off_by_default(rt):
     from jarvis import config
 
     assert "room" not in config.public_dump(rt.cfg)["link"]
+
+
+def test_connections_are_listed_and_strangers_reported(rt, tmp_path):
+    from jarvis import mobileplus
+    from jarvis.link.manager import Watch
+
+    notes = []
+    rt.notify = lambda title, body, **k: notes.append(body) or 0
+    tok, dev = mobileplus.issue_device(rt, "Pixel 8")
+    w = Watch(rt)
+    w.seen("127.0.0.1", tok)                     # through the relay
+    w.seen("127.0.0.1", tok)
+    w.seen("88.100.1.2", tok)                    # straight from outside
+    lst = w.list()
+    assert {e["route"] for e in lst} == {"relay", "internet"} and all(e["name"] == "Pixel 8" for e in lst)
+    assert next(e for e in lst if e["route"] == "relay")["count"] == 2
+    assert len([n for n in notes if "poprvé" in n]) == 2           # a new way is told once …
+    Watch(rt).seen("127.0.0.1", tok)
+    assert len([n for n in notes if "poprvé" in n]) == 2           # … and not again after a restart
+    for _ in range(5):
+        w.failed("45.1.2.3")
+    assert any("neplatný klíč" in n and "45.1.2.3" in n for n in notes)
+    assert w.alerts[0]["kind"] == "bad_key"
+    st = rt.link.status()
+    assert "connections" in st and tok not in str(st)

@@ -141,6 +141,9 @@ class Runtime:
         from .link.manager import Link
 
         self.link = Link(self)                 # 3.12 JARVIS Link: the phone reaches the PC from anywhere (own Tailscale)
+        from .remotedesk import RemoteDesk
+
+        self.remote_desk = RemoteDesk(self)    # 3.12 Vzdálená plocha v telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -403,6 +406,8 @@ class Runtime:
         """Emergency STOP (spec §4.4): everything JARVIS is doing stops now."""
         self.agent.drop_queued()
         self.agent.stop()
+        if getattr(self, "remote_desk", None) is not None and self.remote_desk.on:
+            self.remote_desk.stop()           # STOP also ends a phone driving the PC
         self.pc_control.reset()
         if self.speaker:
             self.speaker.stop()

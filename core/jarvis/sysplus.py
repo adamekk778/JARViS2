@@ -387,15 +387,18 @@ class ScreenShare:
         self.rt = rt
         self.until = 0.0
         self.viewers = 0
+        self.size: tuple[int, int] | None = None      # the real screen size of the last frame (for remote clicks)
+        self.fps = 2.0
 
     @property
     def active(self) -> bool:
         return time.time() < self.until
 
-    def start(self, minutes: float = 15) -> None:
+    def start(self, minutes: float = 15, quiet: bool = False) -> None:
         self.until = time.time() + max(1, min(minutes, 120)) * 60
         self.rt.bus.publish("screen_share", active=True, until=self.until)
-        self.rt.notify("Sdílím obrazovku", f"Telefon vidí obrazovku PC ({round(minutes)} min). Zastavíš „přestaň sdílet“.", speak=False)
+        if not quiet:
+            self.rt.notify("Sdílím obrazovku", f"Telefon vidí obrazovku PC ({round(minutes)} min). Zastavíš „přestaň sdílet“.", speak=False)
 
     def stop(self) -> None:
         if self.until:
@@ -409,19 +412,22 @@ class ScreenShare:
 
         png, _ = private_screenshot(self.rt)
         im = Image.open(io.BytesIO(png)).convert("RGB")
+        self.size = (im.width, im.height)
         if im.width > width:
             im = im.resize((width, round(im.height * width / im.width)))
         buf = io.BytesIO()
         im.save(buf, "JPEG", quality=quality)
         return buf.getvalue()
 
-    async def stream(self, fps: float = 2.0):
+    async def stream(self, fps: float | None = None):
         self.viewers += 1
         try:
             while self.active:
-                jpg = await asyncio.to_thread(self.frame)
+                remote = bool(getattr(getattr(self.rt, "remote_desk", None), "on", False))
+                # driving with a finger: more frames, a little sharper; same picture otherwise
+                jpg = await asyncio.to_thread(self.frame, 1280 if remote else 960, 55 if remote else 60)
                 yield b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(jpg)).encode() + b"\r\n\r\n" + jpg + b"\r\n"
-                await asyncio.sleep(1 / fps)
+                await asyncio.sleep(1 / (fps or (5.0 if remote else self.fps)))
         finally:
             self.viewers -= 1
 

@@ -29,7 +29,7 @@ export const CLIENT_TYPES = [
   "guest_info", "guests_get", "guest_add", "guest_revoke", "pc_files", "clean_text", "command_qr", "phone_photo",
   "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
   "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
-  "link_get", "link_set", "link_check", "link_relay_script",
+  "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -49,7 +49,7 @@ export const SERVER_TYPES = [
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
   "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script",
+  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

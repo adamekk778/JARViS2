@@ -26,13 +26,14 @@ class PcControl:
         self.on = False
         self.paused = False             # you took over: JARVIS waits
         self.label = ""
+        self.remote = ""                # 3.12 a phone drives the PC (Vzdálená plocha)
         self._off_handle: asyncio.TimerHandle | None = None
         self._resume = asyncio.Event()
         self._resume.set()
         self.listeners: list[Callable[[dict], None]] = []    # the desktop frame (desktop/control_frame.py)
 
     def state(self) -> dict:
-        return {"on": self.on, "paused": self.paused, "label": self.label}
+        return {"on": self.on, "paused": self.paused, "label": self.label, "remote": bool(self.remote)}
 
     def _emit(self) -> None:
         st = self.state()
@@ -65,8 +66,8 @@ class PcControl:
 
     def _off(self) -> None:
         self._off_handle = None
-        if self.active or self.paused:
-            return                       # taken over: the frame stays until you give control back or stop
+        if self.active or self.paused or self.remote:
+            return                       # taken over / a phone drives: the frame stays until that ends
         if self.on:
             self.on, self.label = False, ""
             self._emit()
@@ -75,7 +76,30 @@ class PcControl:
         """computer_use calls this before every move: while you hold control, JARVIS waits here."""
         await self._resume.wait()
 
+    def remote_on(self, label: str) -> None:
+        """3.12 the frame + "Telefon ovládá PC" for as long as a phone drives the PC."""
+        if self._off_handle:
+            self._off_handle.cancel()
+            self._off_handle = None
+        self.remote, self.on, self.label = label, True, label
+        self._emit()
+
+    def remote_off(self) -> None:
+        if not self.remote:
+            return
+        self.remote = ""
+        if not self.active and not self.paused:
+            self.on, self.label = False, ""
+        self._emit()
+
     def take_over(self) -> None:
+        if self.remote:                  # "Ukončit" while a phone drives: the remote session ends
+            rd = getattr(self.rt, "remote_desk", None)
+            if rd is not None:
+                rd.stop()
+            else:
+                self.remote_off()
+            return
         if not self.on or self.paused:
             return
         self.paused = True
@@ -102,7 +126,7 @@ class PcControl:
             self._off_handle.cancel()
             self._off_handle = None
         was = self.on or self.paused
-        self.paused, self.on, self.label, self.active = False, False, "", 0
+        self.paused, self.on, self.label, self.active, self.remote = False, False, "", 0, ""
         self._resume.set()
         if was:
             self._emit()
