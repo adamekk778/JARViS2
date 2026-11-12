@@ -38,6 +38,9 @@ def overnight(rt: Any, now: float | None = None) -> list[str]:
         if evs:
             out.append(f"Pozor: hlídané PC někdo {'odemkl' if evs[0]['kind'] == 'unlock' else 'použil'} v "
                        f"{time.strftime('%H:%M', time.localtime(evs[0]['t']))}.")
+    care = getattr(rt, "nightcare", None)
+    if care is not None and care.summary():
+        out.append(care.summary())
     pb = getattr(rt, "photo_backup", None)
     if pb is not None and float(pb.stats.get("last", 0) or 0) >= since:
         out.append(f"Záloha fotek z telefonu proběhla, na PC je celkem {pb.stats.get('count', 0)} fotek a videí.")

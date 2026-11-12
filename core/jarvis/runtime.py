@@ -156,6 +156,9 @@ class Runtime:
         from .phonemirror import PhoneMirror
 
         self.phone_mirror = PhoneMirror(self)  # 3.12 Telefon na monitoru PC
+        from .nightcare import NightCare
+
+        self.nightcare = NightCare(self)       # 3.12 Noční údržba PC
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -201,6 +204,7 @@ class Runtime:
         from . import morning
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.nightcare.loop()))      # 3.12 Noční údržba
         try:
             from .updater import Updater
 

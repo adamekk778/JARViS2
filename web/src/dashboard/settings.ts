@@ -203,7 +203,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           return field("Vlastní systémový prompt", ta, "", true);
         })() : null),
       card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi"),
-        sw("general.auto_update", "Aktualizovat sám v noci", "Nová verze se nainstaluje mezi 2. a 6. hodinou, když PC nikdo nepoužívá – ráno už běží nová. Jinak čeká na tlačítko Aktualizovat.")),
+        sw("general.auto_update", "Aktualizovat sám v noci", "Nová verze se nainstaluje mezi 2. a 6. hodinou, když PC nikdo nepoužívá – ráno už běží nová. Jinak čeká na tlačítko Aktualizovat."),
+        sw("general.night_care", "Noční údržba PC", "Jednou za noc smaže dočasné soubory starší než týden, zkontroluje disky a aktualizace Windows. Osobní soubory ani koš nemaže."),
+        nightCareRow()),
     ],
 
     brain: () => {
@@ -810,6 +812,20 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  // 3.12 Noční údržba PC: the last night's result + "Spustit teď"
+  function nightCareRow() {
+    const n = extra.nightcare;
+    if (!n) client.send("nightcare_get");
+    const L = n?.last || {};
+    const mb = (b: number) => b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} GB` : `${Math.round((b || 0) / 2 ** 20)} MB`;
+    const text = n?.running ? "Probíhá údržba…" : L.at
+      ? `Naposledy ${new Date(L.at * 1000).toLocaleString("cs-CZ")}: uvolněno ${mb(L.freed)}${L.disks_bad?.length ? `, disk ${L.disks_bad.join(", ")} hlásí problém` : ""}${L.updates ? `, Windows čeká ${L.updates} aktualizací` : ""}.`
+      : "Zatím neproběhla.";
+    return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Poslední údržba"), h("span", {}, text)),
+      h("button", { class: "btn", type: "button", disabled: !!n?.running, onclick: () => { extra.nightcare = { ...(n || {}), running: true }; render(); client.send("nightcare_run"); } },
+        icon("broom"), "Spustit teď"));
+  }
+
   // 3.12 Zapnout PC z telefonu: is this PC ready to be woken (network card, Windows, BIOS)?
   function wakeCard() {
     const w = extra.wake;
@@ -1232,6 +1248,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
+  client.on("nightcare", (m) => { extra.nightcare = m; if (current === "general") render(); });
   client.on("wake_info", (m) => { extra.wake = m; if (current === "phone") render(); });
   client.on("photo_backup", (m) => { extra.photoBackup = m; if (current === "phone") render(); });
   client.on("link_status", (m) => { extra.link = m; extra.linkBusy = false; if (current === "phone") render(); });
