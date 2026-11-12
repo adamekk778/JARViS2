@@ -90,3 +90,68 @@ def test_built_app_knows_its_version():
 
     wf = (pathlib.Path(__file__).parents[2] / ".github" / "workflows" / "build.yml").read_text(encoding="utf-8")
     assert "core/jarvis/_version.py" in wf and "$r.version -ne $env:JARVIS_VERSION" in wf
+
+
+# ---------- 3.12 Aktualizace sama v noci ----------
+def _at(hour: int) -> float:
+    import time
+    t = time.localtime()
+    return time.mktime((t.tm_year, t.tm_mon, t.tm_mday, hour, 30, 0, 0, 0, -1))
+
+
+async def test_night_update_only_when_quiet(rt, monkeypatch):
+    payload = b"MZ" + b"x" * 200_000
+
+    def handler(r):
+        if r.url.path.endswith("latest"):
+            return httpx.Response(200, json=release("v9.9.9"))
+        return httpx.Response(200, content=payload, headers={"content-length": str(len(payload))})
+
+    u = Updater(rt, httpx.MockTransport(handler), current="2.0.8")
+    u.min_size = 1000
+    idle = {"s": 3600.0}
+    monkeypatch.setattr(rt.platform, "idle_seconds", lambda: idle["s"], raising=False)
+    import psutil
+    monkeypatch.setattr(psutil, "sensors_battery", lambda: None)
+    assert not u.night_ready(_at(3))                       # nothing new yet
+    await u.check()
+    assert u.night_ready(_at(3)) and not u.night_ready(_at(14))       # 3:30 yes, afternoon no
+    idle["s"] = 60
+    assert not u.night_ready(_at(3))                       # someone is at the PC
+    idle["s"] = 3600
+    rt.agent.busy = True
+    assert not u.night_ready(_at(3))                       # JARVIS is working on something
+    rt.agent.busy = False
+    rt.cfg.general.auto_update = False
+    assert not u.night_ready(_at(3))                       # switched off in Settings
+    rt.cfg.general.auto_update = True
+    installed = []
+    monkeypatch.setattr(u, "_quiet", lambda now=None: True)
+    monkeypatch.setattr(u, "install", lambda p, silent=False: installed.append((p.name, silent)))
+    await u.download_and_install(silent=True)
+    assert installed == [("JARVIS-Setup-9.9.9.exe", True)]
+
+
+async def test_night_install_is_silent_and_reported_next_start(rt, monkeypatch):
+    import sys
+
+    from jarvis import paths, updater
+
+    u = Updater(rt, current="2.0.8")
+    u.status["latest"] = "9.9.9"
+    calls = []
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(updater.subprocess, "Popen", lambda args, **k: calls.append(args))
+    monkeypatch.setattr(rt, "loop", type("L", (), {"call_later": lambda self, *a: None})(), raising=False)
+    u.install(paths.data_dir() / "x.exe", silent=True)
+    assert "/VERYSILENT" in calls[0] and "/SUPPRESSMSGBOXES" in calls[0]
+    notes = []
+    monkeypatch.setattr(rt, "notify", lambda title, body, **k: notes.append(title))
+    Updater(rt, current="9.9.9")._after_update()           # the new version started: say so, once
+    assert notes == ["JARVIS je aktualizovaný"]
+    Updater(rt, current="9.9.9")._after_update()
+    assert notes == ["JARVIS je aktualizovaný"]
+    u.install(paths.data_dir() / "x.exe", silent=True)
+    failed = Updater(rt, current="2.0.8")                  # still the old one: it did not install
+    failed._after_update()
+    assert notes[-1] == "Noční aktualizace se nepovedla" and failed._skip() == "9.9.9"

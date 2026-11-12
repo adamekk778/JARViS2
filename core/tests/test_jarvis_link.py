@@ -220,7 +220,9 @@ def test_upnp_maps_the_port_and_spots_cgnat(rt, monkeypatch):
     st = asyncio.run(rt.link.map_router())
     assert st["state"] == "ok" and st["public_ip"] == "85.160.10.7" and st["public_port"] == 8766
     adds = [b for a, b in calls if a == "AddPortMapping"]
-    assert len(adds) == 2 and b"<NewInternalClient>192.168.1.50<" in adds[1] and b"<NewLeaseDuration>0<" in adds[1]
+    assert len(adds) == 3 and b"<NewInternalClient>192.168.1.50<" in adds[1] and b"<NewLeaseDuration>0<" in adds[1]
+    # 3.12 Zapnout PC z telefonu: UDP 9 → this PC, so the relay's wake packet reaches it while it sleeps
+    assert b"<NewProtocol>UDP<" in adds[2] and b"<NewExternalPort>9<" in adds[2] and st["wake"] is True
 
     calls.clear()
     ext["ip"] = "100.72.4.1"                                          # the provider's shared address

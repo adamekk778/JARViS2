@@ -201,7 +201,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ta.onchange = () => set("general.custom_prompt", ta.value);
           return field("Vlastní systémový prompt", ta, "", true);
         })() : null),
-      card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi")),
+      card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi"),
+        sw("general.auto_update", "Aktualizovat sám v noci", "Nová verze se nainstaluje mezi 2. a 6. hodinou, když PC nikdo nepoužívá – ráno už běží nová. Jinak čeká na tlačítko Aktualizovat.")),
     ],
 
     brain: () => {
@@ -602,7 +603,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         linkCard(),
         card("Vzdálená plocha", "Spárovaný telefon může vidět obrazovku a ovládat PC prstem – i mimo domov přes JARVIS Link. Na PC je přitom vždy vidět rámeček a v notchi „Telefon ovládá PC“ s tlačítkem Ukončit. Soukromá okna (hesla, banka) jsou v obraze zakrytá. Po 10 minutách bez dotyku se sama ukončí.",
           sw("phone_link.remote_desktop", "Povolit vzdálenou plochu z telefonu", "Zapni jen pokud ji chceš používat.")),
-        photoBackupCard(),
+        photoBackupCard(), wakeCard(),
         phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },
@@ -806,6 +807,22 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** OMEGA 419: what a paired phone may do on the PC – a switched-off area is refused for requests from the phone only. */
+  // 3.12 Zapnout PC z telefonu: is this PC ready to be woken (network card, Windows, BIOS)?
+  function wakeCard() {
+    const w = extra.wake;
+    if (!w) client.send("wake_get");
+    const mac = (w?.mac || "").match(/../g)?.join(":").toUpperCase() || "";
+    const state = !w ? "Zjišťuji…" : !w.mac ? "Síťová karta nenalezena"
+      : w.armed === false ? "Windows zatím buzení nedovolí" : w.wifi ? "Připraveno jen napůl (Wi-Fi)" : "Připraveno";
+    return card("Zapnout PC z telefonu", "Vypnuté nebo uspané PC zapneš v aplikaci v telefonu tlačítkem Zapnout PC (Wake-on-LAN). Doma vždy, mimo domov přes JARVIS Link s relay serverem. Telefon si adresu PC zapamatuje sám, když se k PC připojí.",
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, state),
+        h("span", {}, w?.mac ? `${w.card || "Síťová karta"} · ${mac} · ${w.ip}` : "")),
+        h("button", { class: "btn", type: "button", onclick: () => { extra.wake = undefined; render(); } }, icon("arrows-clockwise"), "Zkontrolovat")),
+      w ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Mimo domov"),
+        h("span", {}, w.away ? "Router přeposílá budicí signál na tohle PC (UPnP) – relay ho může poslat." : "Zatím ne – zapni JARVIS Link s relay serverem a UPnP v routeru."))) : null,
+      ...((w?.tips || []) as string[]).map((t) => h("p", { class: "help" }, t)));
+  }
+
   // 3.12 Záloha fotek z telefonu: where the phone's photos land on this PC
   function photoBackupCard() {
     const pb = extra.photoBackup;
@@ -1212,6 +1229,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings", (m) => { S = m.settings; if (m.secrets) secretsFlags = m.secrets; if (m.presets) presets = m.presets; if (m.perm_labels) permLabels = m.perm_labels; if (m.voice) voiceStatus = m.voice; render(); });
   client.on("guests", (m) => { extra.guests = m.items || []; if (m.pairing) extra.guestPairing = m.pairing; if (current === "phone") render(); });
   client.on("command_qr", (m) => { extra.cmdQr = m; if (current === "phone") render(); });
+  client.on("wake_info", (m) => { extra.wake = m; if (current === "phone") render(); });
   client.on("photo_backup", (m) => { extra.photoBackup = m; if (current === "phone") render(); });
   client.on("link_status", (m) => { extra.link = m; extra.linkBusy = false; if (current === "phone") render(); });
   client.on("link_relay_script", (m) => { extra.linkScript = m.script; if (current === "phone") render(); });

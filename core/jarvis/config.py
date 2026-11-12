@@ -47,6 +47,7 @@ class General(BaseModel):
     autostart: bool = True
     city: str = "Praha"
     update_url: str = "https://api.github.com/repos/adamekk778/JARViS2/releases/latest"
+    auto_update: bool = True       # 3.12 a new version installs itself at night (2–6 h) while nobody uses the PC
     onboarded: bool = False        # 3.12 the first-run guide was finished or skipped
 
 

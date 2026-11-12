@@ -146,8 +146,8 @@ class Gateway:
     def external_ip(self) -> str:
         return soap(self.ctl, self.stype, "GetExternalIPAddress").get("NewExternalIPAddress", "")
 
-    def add(self, external_port: int, internal_port: int, lease: int = 3600) -> None:
-        args = {"NewRemoteHost": "", "NewExternalPort": external_port, "NewProtocol": "TCP",
+    def add(self, external_port: int, internal_port: int, lease: int = 3600, protocol: str = "TCP") -> None:
+        args = {"NewRemoteHost": "", "NewExternalPort": external_port, "NewProtocol": protocol,
                 "NewInternalPort": internal_port, "NewInternalClient": self.lan_ip, "NewEnabled": 1,
                 "NewPortMappingDescription": DESCRIPTION, "NewLeaseDuration": lease}
         try:
@@ -157,6 +157,6 @@ class Gateway:
                 raise
             soap(self.ctl, self.stype, "AddPortMapping", {**args, "NewLeaseDuration": 0})
 
-    def remove(self, external_port: int) -> None:
+    def remove(self, external_port: int, protocol: str = "TCP") -> None:
         soap(self.ctl, self.stype, "DeletePortMapping",
-             {"NewRemoteHost": "", "NewExternalPort": external_port, "NewProtocol": "TCP"})
+             {"NewRemoteHost": "", "NewExternalPort": external_port, "NewProtocol": protocol})

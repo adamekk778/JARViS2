@@ -1,17 +1,22 @@
-"""Checks GitHub Releases for a newer JARVIS-Setup.exe; installs only when the user asks (spec §3)."""
+"""Checks GitHub Releases for a newer JARVIS-Setup.exe; installs when the user asks (spec §3) – or, if the user
+switched on "Aktualizovat sám v noci" (Settings → Obecné), by itself at night while nobody uses the PC."""
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import __version__, paths
 
 log = logging.getLogger(__name__)
 ASSET = "JARVIS-Setup.exe"
+NIGHT = range(2, 6)            # 2:00–5:59
+IDLE_S = 20 * 60               # nobody touched the PC for 20 minutes
 
 
 def parse(v: str) -> tuple[int, ...]:
@@ -42,13 +47,86 @@ class Updater:
         self.min_size = 5_000_000  # a real JARVIS-Setup.exe is far bigger
 
     def start(self) -> None:
+        self._after_update()
         self._task = asyncio.get_running_loop().create_task(self._loop())
 
     async def _loop(self) -> None:
         await asyncio.sleep(30)
+        last = 0.0
         while True:
-            await self.check()
-            await asyncio.sleep(3 * 3600)        # 3.12 a new version shows up in the notch the same day
+            if time.time() - last >= 3 * 3600:     # 3.12 a new version shows up in the notch the same day
+                last = time.time()
+                await self.check()
+            try:
+                if self.night_ready():
+                    await self.download_and_install(silent=True)
+            except Exception as e:  # noqa: BLE001 – the nightly try must never stop the checks
+                log.info("night update: %s", e)
+            await asyncio.sleep(10 * 60)
+
+    # ---------- 3.12 Aktualizace sama v noci ----------
+    def _marker(self) -> Path:
+        return paths.data_dir() / "update_pending.json"
+
+    def night_ready(self, now: float | None = None) -> bool:
+        """A new version, switched on, and a quiet night (see _quiet)."""
+        if not getattr(self.rt.cfg.general, "auto_update", False) or self.status["state"] != "available" or not self._url:
+            return False
+        if self.status["latest"] == self._skip():
+            return False                                   # this version already failed once at night: wait for the button
+        return self._quiet(now)
+
+    def _quiet(self, now: float | None = None) -> bool:
+        """At night, nobody at the PC, nothing running that an update would cut off, not on battery."""
+        rt = self.rt
+        if time.localtime(now if now is not None else time.time()).tm_hour not in NIGHT:
+            return False
+        try:
+            if float(rt.platform.idle_seconds()) < IDLE_S:
+                return False
+        except Exception:  # noqa: BLE001
+            return False
+        if getattr(rt.agent, "busy", False) or getattr(getattr(rt, "remote_desk", None), "on", False):
+            return False
+        notes = getattr(rt, "notetaker", None)
+        if notes is not None and getattr(notes, "state", "idle") != "idle":    # a meeting being recorded / processed
+            return False
+        try:
+            import psutil
+
+            bat = psutil.sensors_battery()
+            if bat is not None and not bat.power_plugged:
+                return False
+        except Exception:  # noqa: BLE001
+            pass
+        return True
+
+    def _skip(self) -> str:
+        try:
+            return (paths.data_dir() / "update_skip.txt").read_text("utf-8").strip()
+        except OSError:
+            return ""
+
+    def _after_update(self) -> None:
+        """The first start after a night update: say what happened (or that it did not work)."""
+        try:
+            m = json.loads(self._marker().read_text("utf-8"))
+        except (OSError, ValueError):
+            return
+        self._marker().unlink(missing_ok=True)
+        to = str(m.get("to", ""))
+        if not to:
+            return
+        if not newer(to, self.status["current"]):
+            self.rt.notify("JARVIS je aktualizovaný", f"V noci se nainstalovala verze {to}. Co je nového najdeš v notchi.",
+                           speak=False)
+        else:
+            try:
+                (paths.data_dir() / "update_skip.txt").write_text(to, "utf-8")
+            except OSError:
+                pass
+            self.rt.notify("Noční aktualizace se nepovedla",
+                           f"Verze {to} se v noci nenainstalovala. Klikni v notchi na Aktualizovat, až budeš u PC.", speak=False)
 
     def _publish(self) -> None:
         self.rt.bus.publish("update_status", **self.status)
@@ -119,19 +197,29 @@ class Updater:
         self._publish()
         return dest
 
-    def install(self, path: Path) -> None:
+    def install(self, path: Path, silent: bool = False) -> None:
         if sys.platform != "win32":
             raise RuntimeError("instalace aktualizace funguje jen na Windows")
-        subprocess.Popen([str(path), "/SILENT", "/NORESTART", "/CLOSEAPPLICATIONS"], close_fds=True)
+        try:                                    # the next start tells whether it worked
+            self._marker().write_text(json.dumps({"from": self.status["current"], "to": self.status["latest"],
+                                                  "night": silent, "at": time.time()}), "utf-8")
+        except OSError:
+            pass
+        args = ["/VERYSILENT", "/SUPPRESSMSGBOXES"] if silent else ["/SILENT"]
+        subprocess.Popen([str(path), *args, "/NORESTART", "/CLOSEAPPLICATIONS"], close_fds=True)
         self.rt.loop.call_later(1.5, lambda: os._exit(0))
 
-    async def download_and_install(self) -> None:
-        """Called only from an explicit user action (panel button / confirmed voice request)."""
+    async def download_and_install(self, silent: bool = False) -> None:
+        """An explicit user action (panel button / confirmed voice request) – or the night update the user switched on."""
         if self.status["state"] in ("downloading", "ready"):
             return  # already in progress
         try:
             path = await self.download()
-            self.install(path)
+            if silent and not self._quiet():
+                self.status.update(state="available", progress=None)   # someone sat down at the PC meanwhile: next night
+                self._publish()
+                return
+            self.install(path, silent)
         except Exception as e:
             log.warning("update failed: %s", e)
             self.status.update(state="error", progress=None, error=str(e)[:300] or e.__class__.__name__)

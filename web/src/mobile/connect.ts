@@ -80,7 +80,19 @@ export async function resolveEndpoint(p: Pairing): Promise<Endpoint | null> {
 }
 
 /** 3.12 at home (or anywhere connected): learn / refresh how to reach this PC from outside. */
+/** 3.12 Zapnout PC z telefonu: keep the PC's network card address for when the PC is off. */
+async function refreshWake(ep: Endpoint): Promise<void> {
+  if (!native.phone.available) return;
+  try {
+    const r = await fetch(`${ep.base}/api/phone/wake`, { headers: { Authorization: `Bearer ${ep.token}` }, cache: "no-store" });
+    if (!r.ok) return;
+    const w = await r.json();
+    if (w?.mac) await native.phone.configure({ wake: JSON.stringify(w) });
+  } catch { /* an older PC: no waking from the phone */ }
+}
+
 export async function refreshLink(ep: Endpoint, p: Pairing): Promise<Pairing> {
+  refreshWake(ep);
   try {
     const r = await fetch(`${ep.base}/api/link/info`, { headers: { Authorization: `Bearer ${ep.token}` }, cache: "no-store" });
     if (!r.ok) return p;

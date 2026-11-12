@@ -99,6 +99,14 @@ const voice = `
         </activity>
 `;
 if (!m.includes(".VoiceActivity")) m = m.replace("</application>", voice + "    </application>");
+// 3.12 the JARVIS tile in the quick settings: one tap → the same visible voice window
+const tile = `
+        <service android:name=".JarvisTile" android:exported="true" android:label="JARVIS" android:icon="@drawable/ic_tile_jarvis"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+`;
+if (!m.includes(".JarvisTile")) m = m.replace("</application>", tile + "    </application>");
 // 3.10 home-screen widget
 const widget = `
         <receiver android:name=".JarvisWidget" android:exported="false" android:label="JARVIS">

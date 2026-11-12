@@ -236,18 +236,49 @@ export function lanSpeedCard(c: JarvisClient): HTMLElement {
 }
 
 // ---------------------------------------------------------------- 140 the PC at a glance
+// 3.12 Zdraví PC: the numbers now, the last 24 hours, what loads the PC most and the recent warnings
 export function pcStatusCard(c: JarvisClient): HTMLElement {
-  const out = h("div", { class: "m-stats" }, h("p", { class: "help" }, "Načítám…"));
-  c.on("system", (s) => {
-    const items: [string, string][] = [["Procesor", `${Math.round(s.cpu_percent ?? 0)} %`], ["Paměť", `${Math.round(s.ram_percent ?? 0)} %`],
-      ["Disk volno", `${s.disk_free_gb ?? "—"} GB`], ["Zapnuto", `${s.uptime_h ?? "—"} h`]];
-    if (s.battery_percent != null) items.push(["Baterie", `${s.battery_percent} %${s.charging ? " ⚡" : ""}`]);
-    out.replaceChildren(...items.map(([k, v]) => h("div", {}, h("strong", {}, v), h("span", { class: "muted" }, k))));
+  const tiles = h("div", { class: "m-stats" }, h("p", { class: "help" }, "Načítám…"));
+  const chart = h("div", { class: "m-health-chart" });
+  const top = h("p", { class: "help" });
+  const alerts = h("div", { class: "m-health-alerts" });
+  const tile = (value: string, label: string, bad = false) =>
+    h("div", { class: bad ? "warn" : "" }, h("strong", {}, value), h("span", { class: "muted" }, label));
+  const line = (pts: { t: number; v: number }[], t0: number, t1: number) =>
+    pts.map((p) => `${(((p.t - t0) / Math.max(1, t1 - t0)) * 300).toFixed(1)},${(66 - (Math.min(100, p.v) / 100) * 62).toFixed(1)}`).join(" ");
+  const ago = (t: number) => {
+    const m = Math.round((Date.now() / 1000 - t) / 60);
+    return m < 60 ? `před ${Math.max(1, m)} min` : m < 1440 ? `před ${Math.round(m / 60)} h` : new Date(t * 1000).toLocaleDateString("cs-CZ");
+  };
+  c.on("health", (m) => {
+    const n = m.now || {};
+    const disk = (n.disks || []).reduce((a: any, d: any) => (!a || d.free_gb < a.free_gb ? d : a), null);
+    tiles.replaceChildren(
+      tile(`${Math.round(n.cpu ?? 0)} %`, "Procesor", (n.cpu ?? 0) >= 90),
+      tile(`${Math.round(n.ram ?? 0)} %`, "Paměť", (n.ram ?? 0) >= 92),
+      tile(disk ? `${disk.free_gb} GB` : "—", disk ? `Volno ${String(disk.mount).replace(/\\$/, "")}` : "Disk", !!disk && disk.free_gb < 5),
+      ...(n.gpu_temp != null ? [tile(`${n.gpu_temp} °C`, "Grafika", n.gpu_temp >= 87)] : []),
+      tile(`${n.uptime_h ?? "—"} h`, "Zapnuto"),
+      ...(n.battery != null ? [tile(`${n.battery} %${n.charging ? " ⚡" : ""}`, "Baterie", !n.charging && n.battery < 15)] : []));
+    const hist: any[] = m.history || [];
+    if (hist.length >= 2) {
+      const t0 = hist[0].t, t1 = hist[hist.length - 1].t;
+      chart.innerHTML = `<svg viewBox="0 0 300 70" preserveAspectRatio="none" role="img" aria-label="Procesor a paměť za posledních 24 hodin">
+        <line x1="0" x2="300" y1="35" y2="35" class="grid"/><polyline class="ram" points="${line(hist.map((p) => ({ t: p.t, v: p.ram })), t0, t1)}"/>
+        <polyline class="cpu" points="${line(hist.map((p) => ({ t: p.t, v: p.cpu })), t0, t1)}"/></svg>
+        <div class="m-health-legend"><span class="cpu">Procesor</span><span class="ram">Paměť</span><span>${Math.max(1, Math.round((t1 - t0) / 3600))} h</span></div>`;
+    } else chart.replaceChildren();
+    const procs: any[] = n.top || [];
+    top.textContent = procs.length ? `Nejvíc zatěžuje: ${procs.map((p) => `${p.name.replace(/\.exe$/i, "")} ${p.cpu} %`).join(", ")}` : "";
+    const al: any[] = m.alerts || [];
+    alerts.replaceChildren(...(al.length ? al.slice(0, 5).map((a) => h("div", { class: "row" }, icon("warning-circle", "ph-fill"),
+      h("div", { class: "row-text" }, h("strong", {}, a.title), h("span", {}, `${a.body} · ${ago(a.t)}`))))
+      : [h("p", { class: "help ok" }, icon("check-circle", "ph-fill"), " Žádné potíže – když se na PC něco stane (plný disk, přehřátí, spadlá aplikace), přijde ti upozornění.")]));
   });
-  const load = () => c.send("system_get", {});
-  c.on("welcome", load);
-  return h("div", { class: "card" }, h("h2", {}, "Stav PC"), out,
-    h("button", { class: "btn", type: "button", onclick: load }, icon("arrows-clockwise"), "Obnovit"));
+  const load = (fresh: boolean) => c.send("health_get", { fresh });
+  c.on("welcome", () => load(false));
+  return h("div", { class: "card" }, h("h2", {}, "Zdraví PC"), tiles, chart, top, alerts,
+    h("button", { class: "btn", type: "button", onclick: () => load(true) }, icon("arrows-clockwise"), "Obnovit"));
 }
 
 // ---------------------------------------------------------------- 138 / 408 the PC's clipboard history on the phone

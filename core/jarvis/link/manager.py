@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 RELAY_KEY = "link_relay_key"
 UPNP_RENEW_S = 30 * 60
+WAKE_PORT = 9                     # 3.12 Wake-on-LAN from outside: the router forwards UDP 9 to this PC
 FAIL_LIMIT = 20               # wrong tokens from one address in FAIL_WINDOW_S → that address waits FAIL_WINDOW_S
 FAIL_WINDOW_S = 600
 
@@ -402,8 +403,14 @@ class Link:
                 return self.router
             await asyncio.to_thread(gw.add, self.public_port, self.cfg.port)
             self._mapped = self.public_port
+            wake = False
+            try:                                        # 3.12 Zapnout PC z telefonu: the relay's wake packet → this PC
+                await asyncio.to_thread(gw.add, WAKE_PORT, WAKE_PORT, 0, "UDP")
+                wake = True
+            except Exception as e:  # noqa: BLE001 – waking from outside is a bonus, never a reason to fail
+                log.debug("upnp wake mapping: %s", e)
             self.router = {"state": "ok", "public_ip": ext, "public_port": self.public_port, "lan_ip": gw.lan_ip,
-                           "at": time.time()}
+                           "wake": wake, "at": time.time()}
         except Exception as e:  # noqa: BLE001
             self.router = {"state": "failed", "error": str(e)[:160]}
         return self.router

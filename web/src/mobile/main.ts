@@ -57,6 +57,32 @@ async function boot() {
   mainScreen(ep, p);
 }
 
+/** 3.12 Zapnout PC z telefonu: the wake packet, then look for the PC for ~2 minutes and connect when it answers. */
+let waking = false;
+async function wakePc(connect = true) {
+  if (waking) return;
+  const r = await native.phone.wakePc().catch((e: any) => ({ ok: false, error: String(e?.message || e) } as { ok: boolean; via?: string; relay?: string; error?: string }));
+  if (!r.ok) {
+    toast(r.error || (r.relay === "ERR nohome" ? "Relay ještě nezná tvůj domov – PC se k němu musí jednou připojit." : "Budicí signál se nepovedlo poslat."), "error", 6000);
+    return;
+  }
+  toast(`Budím PC${r.via?.includes("relay") ? " (i přes relay)" : ""}… za chvilku se připojím`, "ok", 4000);
+  native.haptic();
+  if (!connect) return;
+  waking = true;
+  try {
+    for (let i = 0; i < 8; i++) {
+      await new Promise((ok) => setTimeout(ok, 12000));
+      const p = loadPairing();
+      const ep = p && (await resolveEndpoint(p));
+      if (ep && p) { toast("PC je vzhůru", "ok"); mainScreen(ep, p); return; }
+    }
+    toast("PC se zatím neozvalo. Na PC v Nastavení → Telefon → Zapnout PC z telefonu zjistíš, co mu chybí.", "info", 7000);
+  } finally {
+    waking = false;
+  }
+}
+
 /** 3.12 phone-only mode: a free AI straight from the phone until the PC answers again */
 function solo() {
   client?.close();
@@ -71,6 +97,7 @@ function solo() {
       return true;
     },
     pair: () => connectScreen(loadPairing()),
+    wake: native.phone.available ? () => wakePc(true) : undefined,
   });
 }
 
@@ -117,6 +144,7 @@ function connectScreen(prev?: Pairing | null, error?: string) {
     h("details", { class: "manual", open: !native.isNative || undefined },
       h("summary", {}, "Zadat ručně"),
       h("div", { class: "manual-body" }, manual, h("button", { class: "btn", type: "button", onclick: () => tryPairing(parsePairing(manual.value)) }, "Připojit"))),
+    prev && error && native.phone.available ? h("button", { class: "btn primary big", type: "button", onclick: () => wakePc(true) }, icon("power"), "Zapnout PC") : null,
     prev ? h("button", { class: "btn ghost", type: "button", onclick: () => boot() }, icon("arrows-clockwise"), "Zkusit znovu") : null,
     h("div", { class: "solo-entry" },
       h("button", { class: "btn big solo-go", type: "button", onclick: () => solo() }, icon("sparkle", "ph-fill"), "Mluvit bez PC"),
@@ -515,6 +543,19 @@ function phoneCard(c: JarvisClient): HTMLElement {
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Hlas se sluchátky"),
       h("span", {}, "Podrž tlačítko na sluchátkách (nebo ťukni na „Mluvit“ v oznámení JARVISe), po pípnutí mluv a odpověď uslyšíš ve sluchátkách – i se zamčeným telefonem a mimo domov. Když se Android zeptá, kterou aplikací, vyber JARVIS → Vždy.")),
       h("button", { class: "btn sm", type: "button", onclick: () => native.phone.voiceOpen().catch(() => toast("Nepovedlo se otevřít", "error")) }, icon("headphones"), "Vyzkoušet")),
+    // 3.12 Zapnout PC z telefonu
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Zapnout PC z telefonu"),
+      h("span", {}, st.wake ? "Když je PC vypnuté nebo uspané, ťukni na Zapnout PC – doma vždy, mimo domov přes JARVIS Link s relay serverem. Na PC to musí být povolené (Nastavení → Telefon)."
+        : "Otevři aplikaci jednou doma, když PC běží – zapamatuje si, jak ho probudit.")),
+      st.wake ? h("button", { class: "btn sm", type: "button", onclick: () => wakePc(false) }, icon("power"), "Zapnout PC") : null),
+    // 3.12 the JARVIS tile next to Wi-Fi and the torch: one tap → talk
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Dlaždice JARVIS"),
+      h("span", {}, "Tlačítko JARVIS ve vysouvací liště (vedle Wi-Fi a baterky): ťukneš a mluvíš – i bez sluchátek a se zamčeným telefonem.")),
+      h("button", { class: "btn sm", type: "button", onclick: async () => {
+        const r = await native.phone.addTile().catch(() => ({ result: "manual" }));
+        if (r.result === "added") toast("Dlaždice JARVIS je ve vysouvací liště", "ok");
+        else if (r.result === "manual") toast("Stáhni lištu dolů → ikona tužky → přetáhni dlaždici JARVIS nahoru", "info");
+      } }, icon("plus-square"), "Přidat")),
     // 3.12 shared clipboard: copy on the PC → paste on the phone (by itself); copy on the phone → on the PC when you open JARVIS
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Sdílená schránka PC ↔ telefon"),
       h("span", {}, "Zkopíruješ na PC, vložíš v telefonu – a naopak (z telefonu se pošle, když otevřeš JARVIS). Jen text, nikdy hesla.")),

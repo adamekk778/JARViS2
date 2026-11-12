@@ -8,7 +8,7 @@ const isNative = Capacitor.isNativePlatform();
 const JarvisPhone: any = isNative ? registerPlugin("JarvisPhone") : null;
 /** 3.12 Záloha fotek z telefonu na PC */
 export interface BackupStatus { on: boolean; wifi: boolean; charging: boolean; videos: boolean; running: boolean; perm: boolean; pending: number; total: number; lastRun: number; state: string }
-export interface PhoneStatus { running: boolean; enabled: boolean; mirror: boolean; phone: boolean; notifAccess: boolean; fullScreen: boolean; battery: boolean; overlay: boolean; tapdrop?: boolean; photos?: boolean; island?: boolean; versionCode?: number }
+export interface PhoneStatus { running: boolean; enabled: boolean; mirror: boolean; phone: boolean; notifAccess: boolean; fullScreen: boolean; battery: boolean; overlay: boolean; tapdrop?: boolean; photos?: boolean; island?: boolean; versionCode?: number; wake?: boolean }
 let notifyId = 1;
 let actionsRegistered = false;
 
@@ -17,7 +17,7 @@ export const native = {
 
   phone: {
     available: isNative,
-    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean; island?: boolean; link?: string }): Promise<PhoneStatus> => JarvisPhone.configure(o),
+    configure: (o: { base?: string; token?: string; enabled?: boolean; mirror?: boolean; tapdrop?: boolean; island?: boolean; link?: string; wake?: string }): Promise<PhoneStatus> => JarvisPhone.configure(o),
     /** 3.12 JARVIS Link: the encrypted tunnel to the PC (direct or through your relay) – the app then uses {base} */
     linkStart: (): Promise<{ ok: boolean; base: string; route: string }> => JarvisPhone.linkStart(),
     requestPhotos: (): Promise<PhoneStatus> => JarvisPhone.requestPhotos(),
@@ -26,6 +26,10 @@ export const native = {
     backupStatus: (): Promise<BackupStatus> => JarvisPhone.backupStatus(),
     /** 3.12 Hlas se sluchátky: the visible voice window (the headphones' button opens the same one) */
     voiceOpen: (): Promise<void> => JarvisPhone.voiceOpen(),
+    /** 3.12 the JARVIS tile in the quick settings: "added" / "no" / "manual" (older Android: add it by hand) */
+    addTile: (): Promise<{ result: string }> => JarvisPhone.addTile(),
+    /** 3.12 Zapnout PC z telefonu: the Wake-on-LAN packet (home network, router, relay) */
+    wakePc: (): Promise<{ ok: boolean; via?: string; relay?: string; error?: string }> => JarvisPhone.wakePc(),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
     readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */

@@ -75,7 +75,7 @@ Teď je ${now}.`;
 }
 
 /** the screen; `retry` looks for the PC (true = found, the app switches back) */
-export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>; pair: () => void; reason?: string }) {
+export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>; pair: () => void; reason?: string; wake?: () => void }) {
   let hist = load<Msg[]>(HIST, []);
   let provider: Pid = soloProvider() || "groq";
   let busy = false, timer = 0;
@@ -88,6 +88,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   const pill = h("button", { class: "solo-pill", type: "button", onclick: () => setup() });
   const banner = h("div", { class: "solo-banner" },
     h("span", { class: "solo-dot" }), h("div", {}, h("strong", {}, "PC je vypnuté"), h("span", {}, o.reason || "Odpovídám přímo z telefonu. Až se PC zapne, přepnu se sám.")),
+    o.wake ? h("button", { class: "btn sm primary", type: "button", onclick: () => o.wake?.() }, icon("power"), "Zapnout PC") : null,
     h("button", { class: "btn sm", type: "button", onclick: () => lookForPc(true) }, icon("arrows-clockwise"), "Zkusit PC"));
   const body = h("div", { class: "solo-body" }, scroll,
     h("div", { class: "composer" }, h("div", { class: "composer-row" }, input, send)));

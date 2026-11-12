@@ -147,6 +147,9 @@ class Runtime:
         from .photobackup import PhotoBackup
 
         self.photo_backup = PhotoBackup(self)  # 3.12 Záloha fotek z telefonu
+        from .healthwatch import HealthWatch
+
+        self.health = HealthWatch(self)        # 3.12 Zdraví PC v telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -187,6 +190,7 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.health.run()))          # 3.12 Zdraví PC
         try:
             from .updater import Updater
 

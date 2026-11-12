@@ -1,6 +1,7 @@
 """FastAPI app: WebSocket, files API, pairing, static web UI."""
 from __future__ import annotations
 
+import asyncio
 import hmac
 import logging
 import mimetypes
@@ -344,6 +345,14 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         if not receive_file(rt, str(body.get("attachment_id", "")), "tap"):
             raise HTTPException(404, "Soubor nenalezen")
         return {"ok": True}
+
+    @app.get("/api/phone/wake")
+    async def phone_wake_info(request: Request):
+        """3.12 Zapnout PC z telefonu: this PC's network card (MAC, broadcast) – the phone keeps it for when the PC is off."""
+        require_auth(request)
+        from .. import wol
+
+        return await asyncio.to_thread(wol.info, rt)
 
     @app.post("/api/phone/voice")
     async def phone_voice(request: Request):

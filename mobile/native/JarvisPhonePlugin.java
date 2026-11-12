@@ -56,6 +56,10 @@ public class JarvisPhonePlugin extends Plugin {
             e.putBoolean("tapdrop", on);
             if (on) e.putBoolean("enabled", true);
         }
+        if (call.hasOption("wake")) {                     // 3.12 Zapnout PC z telefonu: the PC's network card (MAC, broadcast)
+            String w = call.getString("wake", "");
+            if (w != null && !w.isEmpty()) e.putString("wake_info", w);
+        }
         if (call.hasOption("link")) {                     // 3.12 JARVIS Link: how to reach the PC from outside (+ its fingerprint)
             String info = call.getString("link", "");
             e.putString("link_info", info == null ? "" : info);
@@ -92,6 +96,7 @@ public class JarvisPhonePlugin extends Plugin {
         r.put("overlay", JarvisLink.canOpenScreens(getContext()));
         r.put("battery", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName())));
         r.put("versionCode", ApkUpdate.versionCode(getContext()));
+        r.put("wake", WakePc.known(getContext()));
         call.resolve(r);
     }
 
@@ -99,6 +104,37 @@ public class JarvisPhonePlugin extends Plugin {
     @PluginMethod
     public void voiceOpen(PluginCall call) {
         open(new Intent(getContext(), VoiceActivity.class), call);
+    }
+
+    /** 3.12 Zapnout PC z telefonu: the Wake-on-LAN packet at home, to the router and through the relay. */
+    @PluginMethod
+    public void wakePc(PluginCall call) {
+        new Thread(() -> {
+            try {
+                call.resolve(JSObject.fromJSONObject(WakePc.send(getContext())));
+            } catch (Exception e) {
+                call.reject(e.getMessage());
+            }
+        }, "jarvis-wake").start();
+    }
+
+    /** 3.12 add the JARVIS tile to the quick settings with one tap (Android 13+ asks); older Android: the user adds it by hand. */
+    @PluginMethod
+    public void addTile(PluginCall call) {
+        JSObject r = new JSObject();
+        if (Build.VERSION.SDK_INT < 33) { r.put("result", "manual"); call.resolve(r); return; }
+        try {
+            android.app.StatusBarManager sb = getContext().getSystemService(android.app.StatusBarManager.class);
+            sb.requestAddTileService(new ComponentName(getContext(), JarvisTile.class), "JARVIS",
+                    android.graphics.drawable.Icon.createWithResource(getContext(), getContext().getResources().getIdentifier("ic_tile_jarvis", "drawable", getContext().getPackageName())),
+                    getContext().getMainExecutor(), code -> {
+                        r.put("result", code == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED || code == android.app.StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ? "added" : "no");
+                        call.resolve(r);
+                    });
+        } catch (Exception e) {
+            r.put("result", "manual");
+            call.resolve(r);
+        }
     }
 
     /** 3.12 Záloha fotek: switch on/off and the choices (Wi-Fi only, while charging, videos); now = start a round at once. */
