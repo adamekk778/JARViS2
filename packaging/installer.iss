@@ -23,6 +23,8 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=force
+; only one JARVIS installer at a time: a second one fails on files the first still holds ("CreateFile … kód 5")
+SetupMutex=JarvisSetupMutex,Global\JarvisSetupMutex
 RestartApplications=no
 
 [Languages]
@@ -71,6 +73,8 @@ begin
   Result := '';
   Exe := ExpandConstant('{app}\JARVIS.exe');
   Exec(ExpandConstant('{cmd}'), '/c taskkill /im JARVIS.exe /t /f', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // the uninstall data of the previous version must be writable (an antivirus or a broken install can leave it read-only)
+  Exec(ExpandConstant('{cmd}'), '/c attrib -r "' + ExpandConstant('{app}') + '\unins*.*"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   for i := 1 to 40 do
   begin
     if not FileExists(Exe) then
