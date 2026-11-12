@@ -48,7 +48,8 @@ CLIENT_TYPES = [
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-    "photo_backup_get", "photo_backup_open", "wake_get", "health_get",
+    "photo_backup_get", "photo_backup_open", "wake_get", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
+    "mirror_get", "mirror_request", "mirror_stop", "mirror_input",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -68,7 +69,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -81,7 +82,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -94,7 +95,7 @@ LOCAL_ONLY = {"wake_get", "photo_backup_get", "photo_backup_open", "link_get", "
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -270,7 +271,7 @@ class Connection:
                     continue
                 if msg["type"] == "level" and (self.client == "mobile" or self.low_power):
                     continue
-                if msg["type"] in ("live_subs", "link_status") and not self.local:   # stays on the PC
+                if msg["type"] in ("live_subs", "link_status", "phone_mirror") and not self.local:   # stays on the PC
                     continue
                 if self.guest and msg["type"] not in ("media", "quick_result", "settings_changed"):
                     continue
@@ -1112,6 +1113,55 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
+        elif t == "mirror_input":             # 3.12 Telefon na monitoru PC: a click / typing for the phone
+            rt.phone_mirror.input(m)
+        elif t in ("mirror_get", "mirror_request", "mirror_stop"):
+            asked = None
+            if t == "mirror_request" and not rt.phone_mirror.active:
+                asked = rt.phone_mirror.request()
+            elif t == "mirror_stop":
+                rt.phone_mirror.stop()
+            await self.send("phone_mirror", **rt.phone_mirror.status(), asked=asked)
+        elif t in ("morning_get", "morning_set", "morning_test"):   # 3.12 Ranní souhrn do telefonu
+            if self.guest:
+                return
+            pl = rt.cfg.phone_link
+            if t == "morning_set":
+                from ..morning import _hhmm
+
+                patch = {}
+                if "on" in m:
+                    patch["morning"] = bool(m["on"])
+                if "time" in m:
+                    hh, mm = _hhmm(str(m["time"]))
+                    patch["morning_time"] = f"{hh:02d}:{mm:02d}"
+                if "autoplay" in m:
+                    patch["morning_autoplay"] = bool(m["autoplay"])
+                if patch:
+                    rt.update_config({"phone_link": patch})
+                    pl = rt.cfg.phone_link
+            sent = None
+            if t == "morning_test":
+                from .. import morning
+
+                sent = await morning.send(rt, test=True)
+            await self.send("morning", on=pl.morning, time=pl.morning_time, autoplay=pl.morning_autoplay, sent=sent)
+        elif t == "guard_get":                # 3.12 Hlídání PC
+            await self.send("guard", **rt.guard.status())
+        elif t == "guard_set":
+            if self.guest:                     # a guest never switches the watch on or off
+                return
+            on = bool(m.get("on"))
+            if not on and self.local:          # whoever sits at the PC must not switch the watch off: only the phone
+                await self.send("guard", **rt.guard.status(), error="Hlídání vypneš v telefonu.")
+                return
+            st = rt.guard.arm(on, m.get("auto_lock") if "auto_lock" in m else None)
+            if on and m.get("lock"):
+                try:
+                    await asyncio.to_thread(rt.platform.power, "lock")
+                except Exception as e:  # noqa: BLE001
+                    log.debug("lock: %s", e)
+            await self.send("guard", **st)
         elif t == "health_get":               # 3.12 Zdraví PC (the phone's card): fresh numbers + the last 24 hours
             if not rt.health.status()["now"] or m.get("fresh"):
                 rt.health.step(await asyncio.to_thread(rt.health.sample))

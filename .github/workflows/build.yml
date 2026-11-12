@@ -66,6 +66,16 @@ jobs:
       - name: PyInstaller
         timeout-minutes: 25      # normally 4–5 min; a hang must end with a log, not after 6 hours
         run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
+      - name: Bundle size by package (what makes the installer big)
+        shell: pwsh
+        run: |
+          $root = "dist\JARVIS\_internal"
+          $total = (Get-ChildItem dist\JARVIS -Recurse -File | Measure-Object Length -Sum).Sum
+          Write-Host ("BUNDLE total {0:N0} MB, {1} files" -f ($total / 1MB), (Get-ChildItem dist\JARVIS -Recurse -File).Count)
+          Get-ChildItem $root | ForEach-Object {
+            $size = if ($_.PSIsContainer) { (Get-ChildItem $_.FullName -Recurse -File | Measure-Object Length -Sum).Sum } else { $_.Length }
+            [pscustomobject]@{ Name = $_.Name; MB = [math]::Round($size / 1MB, 1) }
+          } | Sort-Object MB -Descending | Select-Object -First 30 | ForEach-Object { Write-Host ("BUNDLE {0,8} MB  {1}" -f $_.MB, $_.Name) }
       - name: Smoke test JARVIS.exe
         shell: pwsh
         run: |

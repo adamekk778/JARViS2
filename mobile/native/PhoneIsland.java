@@ -32,7 +32,9 @@ import org.json.JSONObject;
  */
 final class PhoneIsland {
     private static PhoneIsland active;
-    private static final int POLL_MS = 3000;
+    private static final int POLL_MS = 3000;           // something is happening (music, timer, JARVIS working)
+    private static final int IDLE_POLL_MS = 10000;     // 3.12 nothing going on: ask the PC less often (battery)
+    private volatile boolean quiet;
 
     private final Context ctx;
     private final WindowManager wm;
@@ -209,7 +211,7 @@ final class PhoneIsland {
                     ui.post(() -> { busy = false; show(s); });
                 }, "jarvis-island").start();
             }
-            ui.postDelayed(this, POLL_MS);
+            ui.postDelayed(this, quiet ? IDLE_POLL_MS : POLL_MS);
         }
     };
 
@@ -223,6 +225,7 @@ final class PhoneIsland {
     private void show(JSONObject s) {
         if (!attached) return;
         String kind = s == null ? "offline" : s.optString("kind", "idle");
+        quiet = "idle".equals(kind) || "offline".equals(kind);
         String t = s == null ? "" : s.optString("text", "");
         String st = s == null ? "" : s.optString("sub", "");
         int color;

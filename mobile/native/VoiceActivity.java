@@ -68,14 +68,43 @@ public class VoiceActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setContentView(buildUi());
-        begin();
+        if (!sayFrom(getIntent())) begin();
     }
 
     @Override
     protected void onNewIntent(Intent intent) {        // the button again: done talking / talk again
         super.onNewIntent(intent);
+        if (sayFrom(intent)) return;
         if (recording) recording = false;
         else begin();
+    }
+
+    /** 3.12 Ranní souhrn "Přehrát": only plays a text in JARVIS's voice – the microphone stays off. */
+    private boolean sayFrom(Intent i) {
+        final String text = i == null ? null : i.getStringExtra("say");
+        if (text == null || text.isEmpty()) return false;
+        i.removeExtra("say");
+        final int my = ++session;
+        recording = false;
+        stopPlayback();
+        show("Ranní souhrn", "", text);
+        again.setEnabled(true);
+        new Thread(() -> {
+            grabFocus();
+            try {
+                org.json.JSONObject body = new org.json.JSONObject();
+                body.put("text", text);
+                JSONObject o = new JSONObject(JarvisLink.httpBytes(this, "/api/phone/tts", body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        "application/json; charset=utf-8", 60000));
+                String audio = o.optString("audio", "");
+                if (my != session) return;
+                if (!audio.isEmpty()) play(Base64.decode(audio, Base64.DEFAULT), o.optString("mime", "audio/mpeg"), text, my);
+                else speak(text, my);
+            } catch (Exception e) {
+                speak(text, my);                       // the PC is not reachable: the phone's own Czech voice
+            }
+        }, "jarvis-say").start();
+        return true;
     }
 
     // ---------- the window: a dark card at the bottom, over whatever was on the screen ----------

@@ -30,6 +30,11 @@ export const native = {
     addTile: (): Promise<{ result: string }> => JarvisPhone.addTile(),
     /** 3.12 Zapnout PC z telefonu: the Wake-on-LAN packet (home network, router, relay) */
     wakePc: (): Promise<{ ok: boolean; via?: string; relay?: string; error?: string }> => JarvisPhone.wakePc(),
+    /** 3.12 Telefon na monitoru PC: start (Android asks), stop, status, the accessibility settings for the PC's mouse */
+    mirrorStart: (): Promise<void> => JarvisPhone.mirrorStart(),
+    mirrorStop: (): Promise<{ running: boolean; control: boolean }> => JarvisPhone.mirrorStop(),
+    mirrorStatus: (): Promise<{ running: boolean; control: boolean }> => JarvisPhone.mirrorStatus(),
+    openAccessibility: (): Promise<void> => JarvisPhone.openAccessibility(),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
     readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */

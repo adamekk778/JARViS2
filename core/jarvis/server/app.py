@@ -346,6 +346,45 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Soubor nenalezen")
         return {"ok": True}
 
+    # ---------- 3.12 Telefon na monitoru PC ----------
+    @app.post("/api/phone/mirror/frame")
+    async def phone_mirror_frame(request: Request):
+        """The phone's screen (JPEG; empty = only asking for clicks); the answer carries the PC's clicks and typing."""
+        require_auth(request)
+        body = b""
+        async for chunk in request.stream():
+            body += chunk
+            if len(body) > 3 * 2**20:
+                raise HTTPException(413, "Obrázek je moc velký")
+        try:
+            w, h = int(request.headers.get("x-w", "0")), int(request.headers.get("x-h", "0"))
+            return rt.phone_mirror.receive(body, w, h, request.headers.get("x-control") == "1")
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+
+    @app.get("/api/phone/mirror/latest")
+    async def phone_mirror_latest(request: Request, after: float = 0.0):
+        """The newest picture of the phone for the window on this PC (only this PC: the phone's screen stays home)."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        got = await rt.phone_mirror.latest(after)
+        if not got:
+            return Response(status_code=204)
+        data, ts = got
+        return Response(content=data, media_type="image/jpeg", headers={"X-Ts": repr(ts), "Cache-Control": "no-store"})
+
+    @app.post("/api/phone/tts")
+    async def phone_tts(request: Request):
+        """3.12 a text in JARVIS's own voice for the phone (the morning summary's "Přehrát")."""
+        require_auth(request)
+        from .. import headset
+
+        body = await request.json()
+        text = str(body.get("text", "") if isinstance(body, dict) else "")[:1500].strip()
+        if not text:
+            raise HTTPException(400, "Prázdný text")
+        return await headset._voice(rt, text)
+
     @app.get("/api/phone/wake")
     async def phone_wake_info(request: Request):
         """3.12 Zapnout PC z telefonu: this PC's network card (MAC, broadcast) – the phone keeps it for when the PC is off."""

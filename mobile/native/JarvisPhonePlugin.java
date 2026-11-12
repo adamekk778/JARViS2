@@ -106,6 +106,31 @@ public class JarvisPhonePlugin extends Plugin {
         open(new Intent(getContext(), VoiceActivity.class), call);
     }
 
+    /** 3.12 Telefon na monitoru PC: start (Android asks), stop, and whether the PC's mouse may drive the phone. */
+    @PluginMethod
+    public void mirrorStart(PluginCall call) {
+        open(new Intent(getContext(), MirrorConsentActivity.class), call);
+    }
+
+    @PluginMethod
+    public void mirrorStop(PluginCall call) {
+        if (MirrorService.running) MirrorService.stop(getContext());
+        mirrorStatus(call);
+    }
+
+    @PluginMethod
+    public void mirrorStatus(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("running", MirrorService.running);
+        r.put("control", MirrorControl.ready());
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void openAccessibility(PluginCall call) {
+        open(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), call);
+    }
+
     /** 3.12 Zapnout PC z telefonu: the Wake-on-LAN packet at home, to the router and through the relay. */
     @PluginMethod
     public void wakePc(PluginCall call) {

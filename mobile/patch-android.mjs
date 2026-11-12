@@ -29,6 +29,7 @@ const perms = [
   // 3.12 "ťuk o monitor": the newest photo goes to the PC (images only; asked when you switch it on)
   "android.permission.READ_MEDIA_IMAGES",
   "android.permission.READ_MEDIA_VIDEO",           // 3.12 Záloha fotek: videos too (asked when you switch the backup on)
+  "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",   // 3.12 Telefon na monitoru PC (Android asks every time)
   "android.permission.REQUEST_INSTALL_PACKAGES",   // 3.12 update the app with one tap (Android still asks)
 ];
 for (const p of perms) {
@@ -107,6 +108,18 @@ const tile = `
         </service>
 `;
 if (!m.includes(".JarvisTile")) m = m.replace("</application>", tile + "    </application>");
+// 3.12 Telefon na monitoru PC: the screen (after Android's own question) + clicks from the PC (accessibility, switched on by you)
+const mirror = `
+        <service android:name=".MirrorService" android:exported="false" android:foregroundServiceType="mediaProjection" />
+        <activity android:name=".MirrorConsentActivity" android:exported="false" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <service android:name=".MirrorControl" android:exported="true" android:label="JARVIS – ovládání z PC"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/mirror_control" />
+        </service>
+`;
+if (!m.includes(".MirrorService")) m = m.replace("</application>", mirror + "    </application>");
 // 3.10 home-screen widget
 const widget = `
         <receiver android:name=".JarvisWidget" android:exported="false" android:label="JARVIS">
@@ -145,7 +158,8 @@ copyTree("native-res", resDir);
 const stringsPath = `${resDir}/values/strings.xml`;
 let st = readFileSync(stringsPath, "utf8");
 const texts = { widget_desc: "Co JARVIS dělá, připnuté úkoly, Mluvit a Napsat", sc_talk: "Mluvit", sc_chat: "Napsat",
-  sc_photo: "Fotka na PC", sc_scan: "Skenovat příkaz", sc_share: "Na PC", sc_share_long: "Poslat na PC" };
+  sc_photo: "Fotka na PC", sc_scan: "Skenovat příkaz", sc_share: "Na PC", sc_share_long: "Poslat na PC",
+  mirror_desc: "Když na PC zobrazíš telefon (Telefon na monitoru PC), JARVIS tu provede kliknutí a psaní z myši a klávesnice tvého PC. Jindy nedělá nic a nečte obsah jiných aplikací." };
 for (const [k, v] of Object.entries(texts)) {
   if (!st.includes(`name="${k}"`)) st = st.replace("</resources>", `    <string name="${k}">${v}</string>\n</resources>`);
 }

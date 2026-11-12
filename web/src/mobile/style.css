@@ -205,3 +205,13 @@ html[data-hand] .m-view { padding-top: 22vh; }
 .m-health-alerts { display: grid; gap: 4px; margin: 6px 0 10px; }
 .m-health-alerts .row > i { color: var(--warn, #f59e0b); font-size: 20px; flex: none; }
 .m-health-alerts .help.ok i { color: var(--ok, #34d399); }
+
+/* 3.12 Hlídání PC */
+.m-guard { display: grid; gap: 6px; }
+.m-guard-state > i { font-size: 26px; color: var(--muted); flex: none; }
+.m-guard-state.on > i { color: var(--ok, #34d399); }
+.m-guard .btn.primary { justify-self: start; margin-top: 4px; }
+.m-guard-ev > i { color: var(--warn, #f59e0b); font-size: 20px; flex: none; }
+.m-morning { display: grid; gap: 6px; margin-top: 4px; }
+.m-time { max-width: 120px; }
+.m-mirror { display: grid; gap: 4px; margin-top: 4px; }

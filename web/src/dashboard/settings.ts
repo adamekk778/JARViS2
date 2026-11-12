@@ -1,4 +1,5 @@
 import { openOnboarding } from "./onboarding";
+import { openPhoneMirror } from "./phonemirror";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
 import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
@@ -604,6 +605,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         card("Vzdálená plocha", "Spárovaný telefon může vidět obrazovku a ovládat PC prstem – i mimo domov přes JARVIS Link. Na PC je přitom vždy vidět rámeček a v notchi „Telefon ovládá PC“ s tlačítkem Ukončit. Soukromá okna (hesla, banka) jsou v obraze zakrytá. Po 10 minutách bez dotyku se sama ukončí.",
           sw("phone_link.remote_desktop", "Povolit vzdálenou plochu z telefonu", "Zapni jen pokud ji chceš používat.")),
         photoBackupCard(), wakeCard(),
+        card("Telefon na monitoru", "Obrazovka telefonu v okně na tomhle PC: klikáš myší, píšeš klávesnicí, pravé tlačítko = Zpět. Telefon se pokaždé zeptá, jestli smí obrazovku sdílet, a po celou dobu ukazuje oznámení se Zastavit. Ovládání myší se jednou povolí v telefonu (Přístupnost).",
+          h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: () => openPhoneMirror(client) }, icon("device-mobile-camera"), "Zobrazit telefon"))),
         phoneAllowedCard(), sharedFoldersCard(), guestsCard(), commandQrCard(),
       ];
     },

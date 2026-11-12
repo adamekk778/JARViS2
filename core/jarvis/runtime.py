@@ -150,6 +150,12 @@ class Runtime:
         from .healthwatch import HealthWatch
 
         self.health = HealthWatch(self)        # 3.12 Zdraví PC v telefonu
+        from .guard import Guard
+
+        self.guard = Guard(self)               # 3.12 Hlídání PC (switched on from the phone)
+        from .phonemirror import PhoneMirror
+
+        self.phone_mirror = PhoneMirror(self)  # 3.12 Telefon na monitoru PC
         self.memory.set_private(self.cfg.privacy.private_mode)
         tools.load_builtin()
 
@@ -191,6 +197,10 @@ class Runtime:
         self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.health.run()))          # 3.12 Zdraví PC
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
+        from . import morning
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
         try:
             from .updater import Updater
 

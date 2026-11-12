@@ -226,6 +226,24 @@ public final class JarvisLink {
                     actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
                     return "shown";
                 }
+                case "mirror_ask": {             // 3.12 the PC wants to show this phone's screen: you allow it here
+                    Intent ask = new Intent(c, MirrorConsentActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    if (foreground || canOpenScreens(c)) { c.startActivity(ask); return "asked"; }
+                    actionNotification(c, "PC chce zobrazit obrazovku telefonu", "Klepni a povol sdílení obrazovky", ask);
+                    return "notified";
+                }
+                case "mirror_stop":
+                    if (MirrorService.running) MirrorService.stop(c);
+                    return "done";
+                case "morning": {                // 3.12 Ranní souhrn: the morning briefing with "Přehrát"
+                    morningNotification(c, cmd.optString("title", "Ranní souhrn"), cmd.optString("text", ""));
+                    if (cmd.optBoolean("autoplay") && headphonesOn(c) && canOpenScreens(c)) {
+                        c.startActivity(new Intent(c, VoiceActivity.class).putExtra("say", cmd.optString("text", ""))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        return "playing";
+                    }
+                    return "shown";
+                }
                 case "confirm":                  // 3.12 a confirmation while you are away: Povolit / Zamítnout right here
                     confirmNotification(c, cmd.optString("cid"), cmd.optString("text"));
                     return "shown";
@@ -289,6 +307,34 @@ public final class JarvisLink {
         if (nm != null) nm.notify((int) (System.currentTimeMillis() & 0xfffff), n);
     }
 
+    /** 3.12 Ranní souhrn: the whole text in the notice and "Přehrát" (JARVIS's voice in the visible JARVIS window). */
+    static void morningNotification(Context c, String title, String text) {
+        channels(c);
+        PendingIntent play = PendingIntent.getActivity(c, 7301, new Intent(c, VoiceActivity.class).putExtra("say", text)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags());
+        PendingIntent open = PendingIntent.getActivity(c, 7302, new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags());
+        Notification n = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_menu_today).setContentTitle(title)
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
+                .addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_media_play),
+                        "Přehrát", play).build()).build();
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm != null) nm.notify(7300, n);
+    }
+
+    /** Headphones (Bluetooth or cable) are connected right now. */
+    static boolean headphonesOn(Context c) {
+        android.media.AudioManager am = c.getSystemService(android.media.AudioManager.class);
+        if (am == null) return false;
+        for (android.media.AudioDeviceInfo d : am.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)) {
+            int t = d.getType();
+            if (t == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+                    || t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET || t == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                    || (android.os.Build.VERSION.SDK_INT >= 26 && t == android.media.AudioDeviceInfo.TYPE_USB_HEADSET)
+                    || (android.os.Build.VERSION.SDK_INT >= 31 && t == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET)) return true;
+        }
+        return false;
+    }
+
     static void confirmNotification(Context c, String cid, String text) {
         channels(c);
         int nid = 7100 + (cid.hashCode() & 0xff);
@@ -342,7 +388,8 @@ public final class JarvisLink {
     }
 
     static JSONArray poll(Context c) throws Exception {
-        String body = http(c, "GET", "/api/phone/poll?wait=25" + batteryQuery(c), null, 40000);
+        // 3.12 battery: one request every 50 s while nothing happens (a command still arrives at once)
+        String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c), null, 65000);
         return new JSONObject(body).optJSONArray("commands");
     }
 }

@@ -403,6 +403,9 @@ class PhoneLinkCfg(BaseModel):
     clip_sync: bool = False      # 3.12 shared clipboard PC ↔ phone (text, never passwords) – switched on in the phone app
     remote_desktop: bool = False  # 3.12 Vzdálená plocha: a paired phone may see AND drive this PC (switched on here, once)
     photo_folder: str = ""        # 3.12 Záloha fotek: where the phone's photos go ("" = Obrázky\JARVIS Telefon)
+    morning: bool = False         # 3.12 Ranní souhrn do telefonu (switched on in the phone app)
+    morning_time: str = "07:00"
+    morning_autoplay: bool = False   # …plays by itself when headphones are on
     speak: bool = False          # …aloud
     # optional real phone calls when the phone app cannot be reached (Twilio; the token is in the keyring)
     twilio_sid: str = ""

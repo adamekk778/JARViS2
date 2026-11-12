@@ -455,7 +455,40 @@ function controlView(c: JarvisClient): HTMLElement {
         tile("browsers", "Plocha", () => quick("window_control", { action: "minimize_all" })),
         tile("timer", "Minutka 10 min", () => quick("set_timer", { seconds: 600, label: "10 min" })),
         tile("moon-stars", "Uspat", () => danger("system_power", { action: "sleep" }), "warn"),
-        tile("power", "Vypnout", () => danger("system_power", { action: "shutdown" }), "warn"))));
+        tile("power", "Vypnout", () => danger("system_power", { action: "shutdown" }), "warn"))),
+    guardCard(c));
+}
+
+// ---------------- 3.12 Hlídání PC: someone uses the PC while you are away → a notice here at once ----------------
+function guardCard(c: JarvisClient): HTMLElement {
+  const box = h("div", { class: "m-guard" });
+  const sw = (on: boolean, fn: (v: boolean) => void, label: string) => {
+    const inp = h("input", { type: "checkbox", role: "switch", "aria-label": label }) as HTMLInputElement;
+    inp.checked = on;
+    inp.onchange = () => fn(inp.checked);
+    return h("label", { class: "switch" }, inp, h("span"));
+  };
+  const time = (t: number) => new Date(t * 1000).toLocaleString("cs-CZ", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  c.on("guard", (g) => {
+    if (g.error) toast(g.error, "info");
+    const evs: any[] = g.events || [];
+    box.replaceChildren(
+      h("div", { class: `row m-guard-state ${g.armed ? "on" : ""}` }, icon(g.armed ? "shield-check" : "shield", "ph-fill"),
+        h("div", { class: "row-text" }, h("strong", {}, g.armed ? "PC je hlídané" : "Hlídání je vypnuté"),
+          h("span", {}, g.armed ? `Od ${time(g.since)}${g.locked ? " · zamčené" : ""}. Když ho někdo odemkne nebo na něj sáhne, hned ti to napíšu.`
+            : "Zapni, když od PC odcházíš. Kamera ani mikrofon se nepoužívají.")),
+        sw(!!g.armed, (v) => c.send("guard_set", { on: v }), "Hlídat PC")),
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Hned znovu zamknout"),
+        h("span", {}, "Když někdo hlídané PC odemkne, JARVIS ho okamžitě zase zamkne.")),
+        sw(!!g.auto_lock, (v) => c.send("guard_set", { on: !!g.armed, auto_lock: v }), "Hned znovu zamknout")),
+      g.armed ? "" : h("button", { class: "btn primary", type: "button", onclick: () => { native.haptic(); c.send("guard_set", { on: true, lock: true }); toast("PC je zamčené a hlídané", "ok"); } },
+        icon("lock-key"), "Zamknout a hlídat"),
+      ...evs.slice(0, 4).map((e) => h("div", { class: "row m-guard-ev" }, icon("warning-circle", "ph-fill"),
+        h("div", { class: "row-text" }, h("strong", {}, e.kind === "unlock" ? "Někdo PC odemkl" : "Někdo PC použil"),
+          h("span", {}, `${time(e.t)}${e.locked_again ? " · znovu zamčeno" : ""}`)))));
+  });
+  c.on("welcome", () => c.send("guard_get", {}));
+  return h("div", { class: "card" }, h("h2", {}, "Hlídání PC"), box);
 }
 
 // ---------------- 3.5 Domov: shared lists (shopping in the shop) and the smart home ----------------
@@ -580,6 +613,61 @@ function phoneCard(c: JarvisClient): HTMLElement {
   return box;
 }
 
+// ---------------- 3.12 Telefon na monitoru PC ----------------
+function mirrorCard(): HTMLElement {
+  const box = h("div", { class: "m-mirror" });
+  let timer = 0;
+  const render = (st: { running: boolean; control: boolean }) => {
+    clearTimeout(timer);
+    if (!document.hidden) timer = window.setTimeout(refresh, st.running ? 3000 : 8000);
+    box.replaceChildren(
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Telefon na monitoru PC"),
+        h("span", {}, st.running ? "Obrazovka se teď zobrazuje na PC. Zastavíš tady nebo v oznámení."
+          : "Obrazovka telefonu v okně na PC – klikáš myší, píšeš klávesnicí. Android se pokaždé zeptá.")),
+        st.running ? h("button", { class: "btn sm danger", type: "button", onclick: async () => render(await native.phone.mirrorStop()) }, icon("stop"), "Zastavit")
+          : h("button", { class: "btn sm primary", type: "button", onclick: () => native.phone.mirrorStart().catch(() => toast("Nepovedlo se spustit", "error")) }, icon("monitor-play"), "Spustit")),
+      h("div", { class: `row m-step ${st.control ? "ok" : ""}` }, icon(st.control ? "check-circle" : "circle", st.control ? "ph-fill" : ""),
+        h("div", { class: "row-text" }, h("strong", {}, "Ovládání myší z PC"),
+          h("span", {}, st.control ? "Povoleno – klikání a psaní z PC funguje, jen když běží Telefon na monitoru."
+            : "Jednou povol: Přístupnost → Stažené aplikace → JARVIS – ovládání z PC → Zapnout. Bez toho jde jen sledovat.")),
+        st.control ? null : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openAccessibility() }, "Povolit")));
+  };
+  const refresh = () => native.phone.mirrorStatus().then(render).catch(() => {});
+  refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  return box;
+}
+
+// ---------------- 3.12 Ranní souhrn do telefonu ----------------
+function morningCard(c: JarvisClient): HTMLElement {
+  const box = h("div", { class: "m-morning" });
+  const sw = (on: boolean, fn: (v: boolean) => void, label: string) => {
+    const inp = h("input", { type: "checkbox", role: "switch", "aria-label": label }) as HTMLInputElement;
+    inp.checked = on;
+    inp.onchange = () => fn(inp.checked);
+    return h("label", { class: "switch" }, inp, h("span"));
+  };
+  c.on("morning", (m) => {
+    if (m.sent === true) toast("Souhrn je v oznámeních telefonu", "ok");
+    else if (m.sent === false) toast("Telefon teď není připojený na pozadí – zapni Spojení na pozadí", "info");
+    const time = h("input", { class: "input m-time", type: "time", value: m.time || "07:00", "aria-label": "Čas ranního souhrnu" }) as HTMLInputElement;
+    time.onchange = () => c.send("morning_set", { time: time.value });
+    box.replaceChildren(
+      h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Ranní souhrn"),
+        h("span", {}, "Každé ráno přijde do telefonu počasí, kalendář, e-maily, plán dne a co se dělo na PC přes noc – s tlačítkem Přehrát.")),
+        sw(!!m.on, (v) => { c.send("morning_set", { on: v }); if (v) native.phone.configure({ enabled: true }).catch(() => {}); }, "Ranní souhrn")),
+      m.on ? h("div", { class: "m-subrows" },
+        h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "V kolik")), time),
+        h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Přehrát sám ve sluchátkách"),
+          h("span", {}, "Když máš ráno nasazená sluchátka, JARVIS ti souhrn rovnou přečte.")),
+          sw(!!m.autoplay, (v) => c.send("morning_set", { autoplay: v }), "Přehrát sám ve sluchátkách")),
+        h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: () => { toast("Připravuji souhrn…", "info"); c.send("morning_test", {}); } },
+          icon("sun-horizon"), "Vyzkoušet teď"))) : "");
+  });
+  c.on("welcome", () => c.send("morning_get", {}));
+  return box;
+}
+
 // ---------------- 3.12 Záloha fotek z telefonu na PC ----------------
 function backupCard(): HTMLElement {
   if (!native.phone.available) return h("span");
@@ -658,6 +746,8 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
         h("label", { class: "switch" }, notif, h("span"))),
       phoneCard(c),
       backupCard(),
+      native.phone.available ? morningCard(c) : "",
+      native.phone.available ? mirrorCard() : "",
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
         + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
     pcStatusCard(c),
