@@ -511,6 +511,10 @@ function phoneCard(c: JarvisClient): HTMLElement {
           render(r);
         }, "Ťuk o monitor")),
     st.tapdrop && !st.overlay ? h("p", { class: "help" }, "Tip: povol „Zobrazovat přes jiné aplikace“ (výše) a uvidíš i animaci, jak fotka odlétá.") : "",
+    // 3.12 Hlas se sluchátky: hold the headphones' button (or "Mluvit" in the notification) → talk → the answer in the headphones
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Hlas se sluchátky"),
+      h("span", {}, "Podrž tlačítko na sluchátkách (nebo ťukni na „Mluvit“ v oznámení JARVISe), po pípnutí mluv a odpověď uslyšíš ve sluchátkách – i se zamčeným telefonem a mimo domov. Když se Android zeptá, kterou aplikací, vyber JARVIS → Vždy.")),
+      h("button", { class: "btn sm", type: "button", onclick: () => native.phone.voiceOpen().catch(() => toast("Nepovedlo se otevřít", "error")) }, icon("headphones"), "Vyzkoušet")),
     // 3.12 shared clipboard: copy on the PC → paste on the phone (by itself); copy on the phone → on the PC when you open JARVIS
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Sdílená schránka PC ↔ telefon"),
       h("span", {}, "Zkopíruješ na PC, vložíš v telefonu – a naopak (z telefonu se pošle, když otevřeš JARVIS). Jen text, nikdy hesla.")),

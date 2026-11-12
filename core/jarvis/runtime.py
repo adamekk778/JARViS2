@@ -454,6 +454,8 @@ class Runtime:
             asyncio.get_running_loop().create_task(self.speaker.say(text, lang))
 
     def wants_speech(self, source: str) -> bool:
+        if source == "headset":           # 3.12 talking through the phone: the answer plays there, the PC stays quiet
+            return False
         mode = self.cfg.voice.speak_mode
         return mode == "always" or (mode == "voice" and source in ("voice", "mobile_voice"))
 

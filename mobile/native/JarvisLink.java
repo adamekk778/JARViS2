@@ -80,6 +80,29 @@ public final class JarvisLink {
     }
 
     private static String http(Context c, String base, String method, String path, String body, int timeoutMs, int connectMs) throws Exception {
+        return http(c, base, method, path, body == null ? null : body.getBytes(StandardCharsets.UTF_8), "application/json; charset=utf-8", timeoutMs, connectMs);
+    }
+
+    /** 3.12 raw bytes (a voice recording) to the PC – at home, or over JARVIS Link when home does not answer. */
+    static String httpBytes(Context c, String path, byte[] body, String type, int timeoutMs) throws Exception {
+        String base = base(c);
+        if (base.isEmpty()) throw new IllegalStateException("not paired");
+        boolean viaLink = base.startsWith(LinkProxy.base());
+        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), "POST", path, body, type, timeoutMs, 15000);
+        try {
+            return http(c, base, "POST", path, body, type, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);
+        } catch (java.io.IOException e) {
+            boolean unreachable = e instanceof java.net.ConnectException || e instanceof java.net.UnknownHostException
+                    || e instanceof java.net.NoRouteToHostException
+                    || (e instanceof java.net.SocketTimeoutException && String.valueOf(e.getMessage()).contains("connect"));
+            if (!unreachable || !LinkProxy.configured(c) || !LinkProxy.start(c)) throw e;   // a slow answer is never asked twice
+            homeDownUntil = System.currentTimeMillis() + 60000;
+            return http(c, LinkProxy.base(), "POST", path, body, type, timeoutMs, 15000);
+        }
+    }
+
+    private static String http(Context c, String base, String method, String path, byte[] body, String type, int timeoutMs, int connectMs) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(base + path).openConnection();
         con.setRequestMethod(method);
         con.setConnectTimeout(connectMs);
@@ -87,8 +110,9 @@ public final class JarvisLink {
         con.setRequestProperty("Authorization", "Bearer " + token(c));
         if (body != null) {
             con.setDoOutput(true);
-            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            try (OutputStream os = con.getOutputStream()) { os.write(body.getBytes(StandardCharsets.UTF_8)); }
+            con.setFixedLengthStreamingMode(body.length);
+            con.setRequestProperty("Content-Type", type);
+            try (OutputStream os = con.getOutputStream()) { os.write(body); }
         }
         int code = con.getResponseCode();
         InputStream in = code < 400 ? con.getInputStream() : con.getErrorStream();

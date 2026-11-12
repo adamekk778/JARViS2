@@ -36,7 +36,11 @@ public class LinkService extends Service {
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), JarvisLink.piFlags());
         Notification n = JarvisLink.builder(this, JarvisLink.CH_LINK).setSmallIcon(android.R.drawable.stat_notify_sync_noanim)
                 .setContentTitle("JARVIS je připojený k PC").setContentText("Může ti zavolat a poslat zprávu. Vypneš v aplikaci → Více.")
-                .setContentIntent(open).setOngoing(true).build();
+                .setContentIntent(open).setOngoing(true)
+                .addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_btn_speak_now),
+                        "Mluvit", PendingIntent.getActivity(this, 1, new Intent(this, VoiceActivity.class)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), JarvisLink.piFlags())).build())   // 3.12 talk through the headphones
+                .build();
         if (Build.VERSION.SDK_INT >= 34) startForeground(JarvisLink.NOTIF_LINK, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
         else startForeground(JarvisLink.NOTIF_LINK, n);
         if (TapDrop.enabled(this)) TapDrop.start(this);      // 3.12 "ťuk ťuk o monitor" → the newest photo to the PC

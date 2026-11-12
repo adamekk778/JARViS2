@@ -89,6 +89,16 @@ const components = `
         </receiver>
 `;
 if (!m.includes(".LinkService")) m = m.replace("</application>", components + "    </application>");
+// 3.12 Hlas se sluchátky: the headphones' button (long press) and hands-free voice open a visible JARVIS window
+const voice = `
+        <activity android:name=".VoiceActivity" android:exported="true" android:showWhenLocked="true" android:turnScreenOn="true"
+            android:excludeFromRecents="true" android:launchMode="singleTask" android:taskAffinity=".voice"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" android:label="JARVIS – mluvit">
+            <intent-filter><action android:name="android.intent.action.VOICE_COMMAND" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>
+            <intent-filter><action android:name="android.speech.action.VOICE_SEARCH_HANDS_FREE" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>
+        </activity>
+`;
+if (!m.includes(".VoiceActivity")) m = m.replace("</application>", voice + "    </application>");
 // 3.10 home-screen widget
 const widget = `
         <receiver android:name=".JarvisWidget" android:exported="false" android:label="JARVIS">

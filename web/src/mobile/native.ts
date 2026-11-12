@@ -24,6 +24,8 @@ export const native = {
     /** 3.12 Záloha fotek: on/off (all = also the photos already in the phone), Wi-Fi only, while charging, videos; now = start */
     backup: (o: { on?: boolean; all?: boolean; wifi?: boolean; charging?: boolean; videos?: boolean; now?: boolean }): Promise<BackupStatus> => JarvisPhone.backup(o),
     backupStatus: (): Promise<BackupStatus> => JarvisPhone.backupStatus(),
+    /** 3.12 Hlas se sluchátky: the visible voice window (the headphones' button opens the same one) */
+    voiceOpen: (): Promise<void> => JarvisPhone.voiceOpen(),
     /** 3.12 the phone's clipboard (only while the app is open) and what the PC last put there */
     readClipboard: (): Promise<{ text: string; fromPc: string }> => JarvisPhone.readClipboard(),
     /** 3.12 download the new app and open Android's install dialog; progress 0–1 */

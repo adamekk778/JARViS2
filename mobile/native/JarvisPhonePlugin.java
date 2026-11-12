@@ -95,6 +95,12 @@ public class JarvisPhonePlugin extends Plugin {
         call.resolve(r);
     }
 
+    /** 3.12 Hlas se sluchátky: open the visible voice window (the same one the headphones' button opens). */
+    @PluginMethod
+    public void voiceOpen(PluginCall call) {
+        open(new Intent(getContext(), VoiceActivity.class), call);
+    }
+
     /** 3.12 Záloha fotek: switch on/off and the choices (Wi-Fi only, while charging, videos); now = start a round at once. */
     @PluginMethod
     public void backup(PluginCall call) {

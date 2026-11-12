@@ -431,7 +431,7 @@ class Agent:
     async def _handle(self, text: str, attachments: list[str], source: str, record_user: bool, extra: str) -> str:
         rt = self.rt
         bus = rt.bus
-        voice = source in ("voice", "mobile_voice")
+        voice = source in ("voice", "mobile_voice", "headset")      # spoken: short answers without tables or code
         self._goal = text or "(příloha)"
         self._sources = []
         status = "done"

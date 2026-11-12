@@ -345,6 +345,22 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Soubor nenalezen")
         return {"ok": True}
 
+    @app.post("/api/phone/voice")
+    async def phone_voice(request: Request):
+        """3.12 Hlas se sluchátky: the phone's visible voice window sends what you said; the answer comes back as audio."""
+        require_auth(request)
+        from .. import headset
+
+        body = b""
+        async for chunk in request.stream():
+            body += chunk
+            if len(body) > headset.MAX_AUDIO:
+                raise HTTPException(413, "Nahrávka je moc dlouhá")
+        try:
+            return await headset.ask(rt, body, request.headers.get("content-type", "audio/wav").split(";")[0])
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from None
+
     # ---------- 3.12 Záloha fotek z telefonu ----------
     @app.post("/api/phone/backup/have")
     async def phone_backup_have(request: Request):
