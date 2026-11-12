@@ -84,7 +84,7 @@ async def test_no_brain(rt):
     rt.router = FakeRouter([AllProvidersFailed({"omniroute": "down", "ollama": "down"})])
     q = rt.bus.subscribe()
     out = await rt.agent.handle("ahoj")
-    assert "nemám spojení" in out
+    assert "nemůžu spojit" in out and "API klíč" in out and "OmniRoute" not in out
     assert any(e["type"] == "error" for e in drain(q))
 
 
