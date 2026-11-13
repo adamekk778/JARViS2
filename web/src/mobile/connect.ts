@@ -126,8 +126,10 @@ export async function refreshLink(ep: Endpoint, p: Pairing): Promise<Pairing> {
   try {
     const r = await fetch(`${ep.base}/api/link/info`, { headers: { Authorization: `Bearer ${ep.token}` }, cache: "no-store" });
     if (!r.ok) return p;
-    const info: LinkInfo = await r.json();
-    const next = { ...p, link: info.enabled ? info : undefined };
+    const info: LinkInfo & { hosts?: string[] } = await r.json();
+    const fresh = Array.isArray(info.hosts) ? info.hosts.filter((x) => typeof x === "string" && x) : [];
+    const hosts = [...new Set([...fresh, ...p.hosts])].slice(0, 8);      // the PC's current addresses first (incl. Tailscale)
+    const next = { ...p, hosts, link: info.enabled ? info : undefined };
     savePairing(next);
     if (native.phone.available) await native.phone.configure({ link: info.enabled ? JSON.stringify(info) : "" }).catch(() => {});
     return next;

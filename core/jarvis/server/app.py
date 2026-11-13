@@ -325,7 +325,12 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     async def link_info(request: Request):
         """3.12 JARVIS Link: how the paired phone reaches this PC from outside + the certificate fingerprint to pin."""
         require_auth(request)
-        return rt.link.info()
+        from .pairing import local_ips
+
+        lan, ts = local_ips()
+        # 3.12 every address the PC has right now (home network + Tailscale): the phone keeps them up to date by itself,
+        # so a phone paired before Tailscale was set up (or before the router changed addresses) still finds the PC
+        return {**rt.link.info(), "hosts": lan + ts}
 
     @app.get("/api/phone/island")
     async def phone_island(request: Request):

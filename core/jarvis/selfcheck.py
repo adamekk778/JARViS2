@@ -149,17 +149,32 @@ async def brain(rt: Any, tester) -> dict:
               if local else "Nastavení → Mozek → vlož klíč znovu (nahoře).")
 
 
+def _tailscale_installed() -> bool:
+    import os
+    import shutil
+
+    return bool(shutil.which("tailscale") or os.path.exists(os.path.expandvars(r"%ProgramFiles%\Tailscale\tailscale.exe")))
+
+
 def phone_net(rt: Any) -> list[dict]:
     """The phone reaches the PC at home: an address on the home network, a Private network profile, the firewall."""
     from .server.pairing import local_ips
 
     out = []
-    lan, _ = local_ips()
+    lan, ts = local_ips()
     port = rt.cfg.phone.port
     if not lan:
         out.append(_r("lan", "Domácí síť", False, "PC nemá adresu v domácí síti (Wi-Fi / kabel).", "Připoj PC k Wi-Fi nebo kabelem k routeru."))
     else:
         out.append(_r("lan", "Domácí síť", True, f"Adresa PC: {', '.join(lan[:3])} (port {port}). Telefon musí být na stejné Wi-Fi."))
+    if ts:
+        out.append(_r("tailscale", "Tailscale (telefon mimo domov)", True,
+                      f"PC je v Tailscale: {', '.join(ts[:2])}. Telefon musí mít zapnutý Tailscale se stejným účtem.",
+                      "Pokud se telefon přes Tailscale nepřipojí: v JARVISu v telefonu spáruj PC znovu (QR v Nastavení → Telefon), "
+                      "aby znal tuhle adresu."))
+    elif WIN and _tailscale_installed():
+        out.append(_r("tailscale", "Tailscale (telefon mimo domov)", False, "Tailscale je nainstalovaný, ale na PC teď není připojený.",
+                      "Klikni na ikonu Tailscale vedle hodin a dej Connect / přihlas se stejným účtem jako v telefonu."))
     if not WIN:
         return out
     try:
@@ -264,6 +279,11 @@ def fix_network_script(exe: str) -> str:
         "Remove-NetFirewallRule -DisplayName 'JARVIS (telefon)','JARVIS (internet)' -ErrorAction SilentlyContinue",
         "New-NetFirewallRule -DisplayName 'JARVIS (telefon)' -Direction Inbound -Program $exe -Action Allow -Profile Private | Out-Null",
         "New-NetFirewallRule -DisplayName 'JARVIS (internet)' -Direction Outbound -Program $exe -Action Allow | Out-Null",
+        # Tailscale: the phone away from home comes through the Tailscale adapter – allowed there whatever its profile
+        "Remove-NetFirewallRule -DisplayName 'JARVIS (Tailscale)' -ErrorAction SilentlyContinue",
+        "$ts = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.InterfaceDescription -like '*Tailscale*' -or $_.Name -like '*Tailscale*' }",
+        "if ($ts) { New-NetFirewallRule -DisplayName 'JARVIS (Tailscale)' -Direction Inbound -Program $exe -Action Allow "
+        "-InterfaceAlias @($ts | ForEach-Object Name) | Out-Null }",
     ])
 
 
