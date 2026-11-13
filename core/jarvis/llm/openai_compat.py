@@ -144,6 +144,10 @@ def friendly_error(preset: str, base_url: str, e: Exception) -> str:
         return (f"{name} odmítl přístup – chybí nebo nesedí API klíč. Vlož ho v Nastavení → AI mozek → API klíč"
                 + (" (klíč vytvoříš v OmniRoute v části API Keys)." if preset == "omniroute" else "."))
     text = str(e)
+    if "10013" in text or "access permissions" in text or "zakázan" in text:
+        from ..brainkey import BLOCKED
+
+        return BLOCKED                          # the key is fine: Windows / an antivirus keeps JARVIS off the internet
     if status is None and any(w in text for w in ("ConnectError", "ConnectTimeout", "refused")):
         return (f"{name} na adrese {base_url} neodpovídá"
                 + (" – běží OmniRoute? (spusť ho, nebo v Nastavení oprav adresu)." if preset == "omniroute" else "."))

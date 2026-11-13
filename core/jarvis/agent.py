@@ -513,7 +513,9 @@ class Agent:
             status = "failed"
             log.warning("all providers failed: %s", e)
             bus.publish("error", message=f"Žádný AI poskytovatel neodpověděl: {e}", kind="limit" if e.is_limit else "brain")
-            msg = NO_LIMIT if e.is_limit else NO_BRAIN
+            from .brainkey import BLOCKED
+
+            msg = NO_LIMIT if e.is_limit else BLOCKED if "10013" in str(e) or "zakázan" in str(e) else NO_BRAIN
             full_text = (full_text + "\n\n" if full_text else "") + msg
             bus.publish("assistant_delta", text=msg)
         except ProviderError as e:

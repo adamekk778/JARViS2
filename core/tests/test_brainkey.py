@@ -61,3 +61,11 @@ def test_errors_in_plain_words(rt):
     assert "internetu" in brainkey.explain("ConnectError: [Errno 11001] getaddrinfo failed")[1]
     assert not asyncio.run(brainkey.apply(rt, "nevim", bad))["ok"]
     assert "Nepoznám" in asyncio.run(brainkey.apply(rt, "xyz" * 10, bad))["message"]
+
+
+def test_blocked_internet_is_named_not_the_key():
+    """A real PC: WinError 10013 – the key was fine, Windows / an antivirus kept JARVIS off the internet."""
+    ok, msg = brainkey.explain("gemini: ConnectError: [WinError 10013] Došlo k pokusu o přístup k soketu způsobem zakázaným")
+    assert not ok and "Klíč je v pořádku" in msg and "Opravit síť pro JARVIS" in msg
+    from jarvis.llm.openai_compat import friendly_error
+    assert friendly_error("gemini", "https://x", OSError("[WinError 10013] forbidden by its access permissions")) == brainkey.BLOCKED

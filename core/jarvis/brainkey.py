@@ -17,6 +17,10 @@ HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (začíná gsk_), 
         "Anthropic (sk-ant-…) nebo OpenRouter (sk-or-…). Zdarma ho dostaneš na console.groq.com nebo aistudio.google.com.")
 
 
+BLOCKED = ("Klíč je v pořádku, ale Windows nebo antivir zakazuje JARVISu připojit se na internet (chyba 10013). "
+           "Otevři Diagnostika → Zkontrolovat → Opravit síť pro JARVIS (a pokud máš antivir, povol v něm JARVIS).")
+
+
 def clean(key: str) -> str:
     """Pasted keys often carry spaces, line breaks or quotes – a key never has any."""
     return re.sub(r"[\s\"'“”„‚‘’`]", "", key or "")
@@ -32,6 +36,8 @@ def detect(key: str) -> str | None:
 def explain(err: str) -> tuple[bool, str]:
     """The error of a test in plain words; (True, …) when the key itself is fine (only a limit / a busy service)."""
     e = err.lower()
+    if re.search(r"10013|zakázan|forbidden by its access permissions|access permissions", e):
+        return False, BLOCKED
     if re.search(r"\b429\b|rate.?limit|quota|too many|resource.?exhausted", e):
         return True, "Klíč funguje – služba teď jen hlásí limit. Za chvíli to půjde, JARVIS mezitím zkusí jiný mozek."
     if re.search(r"\b40[13]\b|unauthori|invalid.{0,20}(key|api)|incorrect api key|permission|api.?key not valid|"

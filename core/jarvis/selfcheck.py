@@ -215,7 +215,8 @@ def phone_net(rt: Any) -> list[dict]:
     return out
 
 
-INTERNET_HOSTS = [("api.groq.com", "Groq"), ("generativelanguage.googleapis.com", "Gemini"), ("speech.platform.bing.com", "hlas")]
+INTERNET_HOSTS = [("api.groq.com", "Groq"), ("generativelanguage.googleapis.com", "Gemini"), ("speech.platform.bing.com", "hlas"),
+                  ("lrclib.net", "texty písní")]
 
 
 def security_products() -> list[str]:
@@ -253,7 +254,7 @@ def internet() -> dict:
         return _r("internet", name, True, "JARVIS se dostane na internet (mozek i hlas).")
     if any(_blocked(e) for e in errs.values()):
         who = security_products()
-        detail = "Windows nebo antivir zakazuje JARVISu připojit se na internet (chyba 10013) – proto nejde mozek ani hlas."
+        detail = "Windows nebo antivir zakazuje JARVISu připojit se na internet (chyba 10013) – proto nejde mozek, hlas ani texty písní."
         if who:
             fix = (f"Na tomhle PC je {', '.join(who)} – ten nejspíš JARVIS blokuje. Otevři ho a v nastavení firewallu / "
                    "ochrany povol program JARVIS. Pak klikni na Opravit síť pro JARVIS (srovná i firewall Windows).")

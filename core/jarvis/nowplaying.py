@@ -7,6 +7,8 @@ album and length are sent, never any sound. It can be turned off (Nastavení →
 """
 from __future__ import annotations
 
+import asyncio
+
 import logging
 import os
 import re
@@ -121,8 +123,8 @@ class Lyrics:
             try:
                 res = await self._fetch(song, singer, album, duration)
             except Exception as e:  # noqa: BLE001
-                log.debug("lyrics %s – %s: %s", singer, song, e)
-                return res                       # not cached: a network error may pass
+                log.info("lyrics %s – %s: %s", singer, song, e)
+                return {**res, "error": f"{type(e).__name__}: {e}"}    # not cached: a network error may pass
         self.cache[key] = res
         while len(self.cache) > self.size:
             self.cache.popitem(last=False)
@@ -165,6 +167,13 @@ async def publish_lyrics(rt, snap: dict) -> None:
     if lib is None:
         lib = rt.lyrics = Lyrics()
     res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0))
+    for wait in (10, 30, 90):                    # no internet for a moment (or blocked): try again while the song plays
+        if not res.get("error"):
+            break
+        await asyncio.sleep(wait)
+        if (rt.media_state or {}).get("title") != snap.get("title"):
+            return
+        res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0))
     if (rt.media_state or {}).get("title") != snap.get("title"):
         return                                   # the song changed meanwhile
     rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": res["synced"],

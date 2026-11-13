@@ -95,8 +95,20 @@ def ordered_sessions(mgr, playing_status) -> list:
         except Exception:  # noqa: BLE001
             return False
 
+    def touched(x) -> float:
+        """When this player last moved (play, pause, a new song, a seek) – the one you just started is the newest."""
+        try:
+            t = x.get_timeline_properties().last_updated_time
+            return t.timestamp() if t and t.year > 2000 else 0.0
+        except Exception:  # noqa: BLE001
+            return 0.0
+
+    # several "playing" at once (a video tab that still says so, a game, Spotify): the one you touched last wins
+    playing = sorted([x for x in sessions if plays(x)], key=touched, reverse=True)
+    if cur is not None and plays(cur) and not any(touched(x) > touched(cur) + 1 for x in playing):
+        playing.insert(0, cur)
     out: list = []
-    for x in ([cur] if cur is not None and plays(cur) else []) + [x for x in sessions if plays(x)] + ([cur] if cur is not None else []) + sessions:
+    for x in playing + ([cur] if cur is not None else []) + sessions:
         if x is not None and all(x is not y for y in out):
             out.append(x)
     return out
@@ -158,6 +170,7 @@ async def watch(rt, interval: float = 2.0) -> None:
 
     prev: dict = {}
     last_err = ""
+    fails = 0
     while True:
         try:
             try:
@@ -180,7 +193,13 @@ async def watch(rt, interval: float = 2.0) -> None:
                     rt.lyrics_state = {}
                     asyncio.get_running_loop().create_task(nowplaying.publish_lyrics(rt, snap))
             prev = snap
+            fails = 0
         except Exception as e:
+            fails += 1
+            if fails >= 3 and prev:                # ~half a minute without an answer: never keep showing an old song
+                prev = {}
+                rt.media_state = {}
+                rt.bus.publish("media")
             if f"{type(e).__name__}: {e}" != last_err:              # each new reason once at warning level
                 last_err = f"{type(e).__name__}: {e}"
                 log.warning("hudba v notchi: %s", last_err)

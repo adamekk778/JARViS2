@@ -63,3 +63,47 @@ def test_a_player_that_never_answers_is_skipped(monkeypatch):
         raise AssertionError("expected a timeout")
     except asyncio.TimeoutError as e:
         assert "G HUB" in str(e)
+
+
+def test_the_player_you_touched_last_wins():
+    """Video, then music: the video tab still said "playing" and the notch kept showing the video."""
+    import datetime as dt
+
+    def at(name, secs):
+        t = dt.datetime(2026, 11, 13, 12, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=secs)
+        return NS(name=name, get_playback_info=lambda: NS(playback_status=PLAYING),
+                  get_timeline_properties=lambda: NS(last_updated_time=t))
+
+    video, music = at("youtube", 0), at("spotify", 60)
+    assert pick_session(mgr(video, music), PLAYING).name == "spotify"     # Windows still calls the video "current"
+    assert pick_session(mgr(music, video), PLAYING).name == "spotify"
+    newer_video = at("youtube", 120)
+    assert pick_session(mgr(music, newer_video), PLAYING).name == "youtube"
+
+
+def test_an_old_song_is_not_kept_when_windows_stops_answering(monkeypatch, rt):
+    import asyncio
+
+    from jarvis.desktop import media
+
+    calls = {"n": 0}
+
+    async def snap():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {"title": "Old Song", "artist": "A", "playing": True}
+        raise asyncio.TimeoutError("neodpovídá: X")
+
+    published = []
+    monkeypatch.setattr(media, "_snapshot", snap)
+    monkeypatch.setitem(__import__("sys").modules, "winsdk", __import__("types").ModuleType("winsdk"))
+    rt.bus.publish = lambda t, **kw: published.append((t, kw))
+
+    async def run():
+        task = asyncio.ensure_future(media.watch(rt, interval=0.01))
+        await asyncio.sleep(0.5)
+        task.cancel()
+
+    asyncio.run(run())
+    medias = [kw for t, kw in published if t == "media"]
+    assert medias[0].get("title") == "Old Song" and medias[-1] == {}            # cleared, not stuck on the old song
