@@ -1026,7 +1026,7 @@ let shareWait: { count: number; device: string; until: number } | null = null;
 const focusMode = { from: 0, until: 0 };              // 3.12 the focus mode (until = ms, 0 = off)
 // OMEGA 492 workshop mode: the step on screen; gestures move between steps instead of music
 let workshop: { on: boolean; step: number; total: number; text: string } = { on: false, step: 0, total: 0, text: "" };
-client.on("workshop", (m) => { workshop = { on: !!m.on, step: m.step || 0, total: m.total || 0, text: m.text || "" }; updateActivity(); });
+client.on("workshop", (m) => { workshop = { on: !!m.on, step: Number(m.step) || 0, total: Number(m.total) || 0, text: String(m.text || "") }; updateActivity(); });
 const GESTURE_ACTION: Record<Gesture, [string, any]> = {
   left: ["media_control", { action: "previous" }], right: ["media_control", { action: "next" }],
   up: ["volume", { action: "up" }], down: ["volume", { action: "down" }], wave: ["media_control", { action: "play_pause" }],
@@ -1680,7 +1680,7 @@ client.on("beat", (m) => {
   window.clearTimeout(beatOff);
   beatOff = window.setTimeout(() => { delete document.documentElement.dataset.beat; }, 12000);
 });
-client.on("download_progress", (m) => { dls = m.items || []; dlsAt = Date.now(); updateActivity(); });
+client.on("download_progress", (m) => { dls = Array.isArray(m.items) ? m.items.filter((d: any) => d && typeof d.file === "string") : []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;
   if (m.state === "listening") dict = { state: "listening", level: m.level ?? 0, text: m.hands_free ? "Diktuji · ťukni pro vložení" : "Poslouchám", until: 0 };

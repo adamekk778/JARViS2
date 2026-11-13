@@ -116,6 +116,20 @@ async def close_devices(which) -> int:
     return n
 
 
+
+def friendly_error(e: BaseException) -> str:
+    """What the person sees when a request breaks: a sentence, never a Python exception (the details go to the log)."""
+    if isinstance(e, (KeyError, TypeError, AttributeError)) or (isinstance(e, ValueError) and "invalid literal" in str(e)):
+        return "Tenhle požadavek JARVIS nepochopil (chybí nebo nesedí údaj). Zkus to znovu – pokud se to opakuje, je v aplikaci chyba."
+    if isinstance(e, FileNotFoundError):
+        return "Ten soubor nebo složka neexistuje."
+    if isinstance(e, IsADirectoryError):
+        return "Tohle je složka, ne soubor."
+    if isinstance(e, PermissionError):
+        return "Windows k tomu JARVIS nepustil (chybí oprávnění)."
+    text = str(e).strip()
+    return text if text and not text.startswith(("[Errno", "<")) else "Něco se pokazilo – podrobnosti jsou v Diagnostice."
+
 class Connection:
     def __init__(self, ws: WebSocket, rt: Any, local: bool, guest: dict | None = None):
         self.ws = ws
@@ -182,13 +196,30 @@ class Connection:
         return out[:120]
 
     async def _local_then_status(self, coro) -> None:
-        await coro
-        await self.send("local_info", **await self.rt.local.status())
+        try:
+            await coro
+        except Exception as e:  # noqa: BLE001 – Ollama not running is normal: say so, never a lost task error
+            log.info("local model action: %s", e)
+            try:
+                await self.send("error", message="Místní AI (Ollama) teď neběží nebo neodpověděla." if "connect" in str(e).lower() else friendly_error(e))
+            except (WebSocketDisconnect, RuntimeError):
+                return
+        try:
+            await self.send("local_info", **await self.rt.local.status())
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+        except Exception as e:  # noqa: BLE001
+            log.info("local status: %s", e)
 
     def spawn(self, coro) -> None:
         t = asyncio.get_running_loop().create_task(coro)
         self.tasks.add(t)
-        t.add_done_callback(self.tasks.discard)
+        t.add_done_callback(self._task_done)
+
+    def _task_done(self, t: asyncio.Task) -> None:
+        self.tasks.discard(t)
+        if not t.cancelled() and t.exception() is not None:       # a background job failed: log it, never "never retrieved"
+            log.warning("background job failed: %s: %s", type(t.exception()).__name__, t.exception())
 
     # ---------- main loop ----------
     async def run(self) -> None:
@@ -258,7 +289,7 @@ class Connection:
         except Exception as e:
             log.exception("ws handler %s failed", msg.get("type"))
             try:
-                await self.send("error", message=f"{type(e).__name__}: {e}")
+                await self.send("error", message=friendly_error(e))
             except (WebSocketDisconnect, RuntimeError):
                 pass
 
@@ -664,7 +695,7 @@ class Connection:
                 network.wake(str(m.get("mac") or ""))
                 await self.send("notify", title="Wake-on-LAN", body="Budicí signál odeslán.", url="", target="dashboard")
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "mission_start":        # Mission Control: a ready-made mission, no AI needed
             from ..config import ProtocolStep
 
@@ -687,7 +718,7 @@ class Connection:
                 p = skillforge.from_task(rt, str(m.get("id") or ""), str(m.get("name") or ""))
                 await self.send("skill_draft", protocol=p, manifest=skillforge.manifest(rt, p))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "skill_versions_get":
             from .. import skillforge
 
@@ -701,7 +732,7 @@ class Connection:
                 skillforge.rollback(rt, pid, int(m.get("version") or 0))
                 await self.send("skill_versions", id=pid, items=skillforge.history(rt, pid))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "usage_get":
             await self.send("usage", today=rt.usage.today(), history=rt.usage.history(30), estimate=rt.usage.estimate(3))
         elif t == "privacy_get":
@@ -727,7 +758,7 @@ class Connection:
                 p = await asyncio.to_thread(privacy.backup_encrypted, str(m.get("password") or ""))
                 await self.send("export_done", kind="backup", path=str(p), detail="šifrováno AES-256")
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "backup_restore":
             from pathlib import Path
 
@@ -738,7 +769,7 @@ class Connection:
                 await self.send("export_done", kind="restore", path=str(Path(str(m.get("path"))).with_suffix("")),
                                 detail=f"{len(names)} souborů rozbaleno vedle zálohy (živá data se nepřepsala)")
             except (ValueError, OSError) as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "reset_all":             # OMEGA 794: typed confirmation, not a single click
             from .. import privacy
 
@@ -964,7 +995,7 @@ class Connection:
                     text, due = uiplus.split_due(text) if not m.get("when") else (text, uiplus.parse_due(str(m["when"])))
                 uiplus.add_pin(rt, text, due)
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
             uiplus.publish_pins(rt)
         elif t == "pin_done":
             uiplus.set_done(rt, int(m.get("id") or 0), bool(m.get("done", True)))
@@ -1008,7 +1039,7 @@ class Connection:
                 link = command_link(str(m.get("text") or ""))
                 await self.send("command_qr", link=link, svg=qr_svg(link), text=str(m.get("text") or "").strip())
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "phone_photo":
             att = str(m.get("attachment_id") or "")
             if not rt.store.get(att):
@@ -1058,7 +1089,7 @@ class Connection:
             try:
                 mochiplus.mochi_move(rt, str(m.get("to") or ""))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "hardware_get":          # OMEGA 193: the parts of the PC for the 3D explorer
             from .. import mochiplus
 
@@ -1250,7 +1281,7 @@ class Connection:
             try:
                 res = rt.memory.import_data(m.get("data") or {}, bool(m.get("merge", True)))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
                 return
             await self.send("memory_import_result", **res)
             rt.bus.publish("memory", facts=rt.memory.facts())
@@ -1451,7 +1482,7 @@ class Connection:
                     await self.send("project_resume", **k.resume(name))
                 await self.send("knowledge", **self._knowledge())
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "learn_get":
             lr = rt.learning
             await self.send("learn", decks=lr.decks(), stats=lr.stats(14), weak=lr.weak_spots(), exams=lr.exams())
@@ -1462,7 +1493,7 @@ class Connection:
             try:
                 rt.learning.review(str(m.get("id") or ""), int(m.get("grade") or 0))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
             due = rt.learning.due(str(m.get("deck") or ""), 1)
             await self.send("learn_card", card=({k: due[0][k] for k in ("id", "deck", "front", "back", "reps")} if due else None))
         elif t == "learn_add":
@@ -1470,7 +1501,7 @@ class Connection:
                 rt.learning.add_card(str(m.get("deck") or "Obecné"), str(m.get("front") or ""), str(m.get("back") or ""))
                 await self.send("learn", decks=rt.learning.decks(), stats=rt.learning.stats(14), weak=rt.learning.weak_spots(), exams=rt.learning.exams())
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
         elif t == "learn_tool":           # the page's buttons: the same tools as by voice
             name, args = str(m.get("tool") or ""), m.get("args") or {}
             if name not in ("flashcards_from", "check_math_steps", "exam_plan", "mind_map", "quiz_from") or not isinstance(args, dict):
@@ -1483,7 +1514,7 @@ class Connection:
             try:
                 rt.knowledge.resolve_conflict(int(m.get("id") or 0), str(m.get("keep") or ""))
             except ValueError as e:
-                await self.send("error", message=str(e))
+                await self.send("error", message=friendly_error(e))
             await self.send("knowledge", **self._knowledge())
         elif t == "memory_wipe":
             rt.memory.wipe()

@@ -26,6 +26,8 @@ const TRIGGERS: Record<string, { label: string; ico: string; value?: { label: st
   home_state: { label: "Když čidlo v domácnosti…", ico: "thermometer", value: { label: "Čidlo / zařízení (název z Home Assistantu)", ph: "Teplota obývák" }, text: "Stav nebo hodnota: on, off, open… nebo > 25, < 10 (prázdné = při každé změně)", hint: "JARVIS se dívá do Home Assistantu každých 30 s a spustí to, když podmínka začne platit." },
   webhook: { label: "Když přijde webhook", ico: "webhooks-logo", value: { label: "Název webhooku (prázdné = jakýkoli)", ph: "E-shop" },
     text: "Obsah obsahuje", hint: "Webhook vytvoříš větou „vytvoř webhook E-shop“. {text} = obsah (jen data)." },
+  zone_enter: { label: "Když přijdu na místo", ico: "map-pin", value: { label: "Místo (z telefonu)", ph: "Domov" }, hint: "Telefon pozná, že jsi přišel – třeba domů → zapni světla." },
+  zone_leave: { label: "Když odejdu z místa", ico: "sign-out", value: { label: "Místo (z telefonu)", ph: "Domov" }, hint: "Telefon pozná, že jsi odešel – třeba z domova → zamkni PC." },
   back: { label: "Když se vrátím k PC", ico: "hand-waving", value: { label: "Po aspoň kolika minutách pryč", ph: "30", type: "number" }, hint: "Třeba „Vítejte zpět“ a co jsem zmeškal." },
 };
 const DAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -47,6 +49,8 @@ export function whenText(t: Trigger): string {
     case "power": return v === "out" ? "Když odpojím nabíječku" : "Když připojím nabíječku";
     case "away": return `Když odejdu od PC na ${v || 10} min`;
     case "back": return `Když se vrátím k PC (po ${v || 10}+ min)`;
+    case "zone_enter": return `Když přijdu na místo ${v ? `„${v}“` : ""}`.trim();
+    case "zone_leave": return `Když odejdu z místa ${v ? `„${v}“` : ""}`.trim();
     case "webhook": return `Když přijde webhook${v ? ` „${v}“` : ""}${x ? ` s „${x}“` : ""}`;
     default: return TRIGGERS[t.type]?.label || t.type;
   }
@@ -139,7 +143,7 @@ export function buildAutomations(client: JarvisClient) {
     kind.value = draft.trigger.type;
     const whenBox = h("div", { class: "auto-when-edit" });
     const renderWhen = () => {
-      const t = TRIGGERS[draft.trigger.type];
+      const t = TRIGGERS[draft.trigger.type] || { label: draft.trigger.type, ico: "lightning", hint: "Tenhle spouštěč vytvořil JARVIS sám – můžeš změnit akce níže." };
       const parts: HTMLElement[] = [h("p", { class: "help" }, t.hint)];
       if (t.value) {
         const v = h("input", { class: "input", type: t.value.type || "text", value: draft.trigger.value, placeholder: t.value.ph, "aria-label": t.value.label }) as HTMLInputElement;
