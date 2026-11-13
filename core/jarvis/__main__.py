@@ -160,6 +160,16 @@ def main(argv: list[str] | None = None) -> int:
         if "--bench-gate" in argv and not diagnostics.gate(res):
             return 1
         return 0
+    if argv[:1] == ["--fix-network"]:  # the installer runs this elevated (Windows asked): firewall + network for JARVIS
+        import base64
+        import subprocess
+
+        from . import selfcheck
+
+        enc = base64.b64encode(selfcheck.fix_network_script(sys.executable).encode("utf-16-le")).decode()
+        r = subprocess.run(["powershell", "-NoProfile", "-EncodedCommand", enc], capture_output=True, timeout=120,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        return r.returncode
     if argv[:1] == ["--selfcheck"]:  # CI / support: Kontrola funkcí without the window, printed as JSON lines
         import asyncio as _aio
         import json

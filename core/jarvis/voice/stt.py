@@ -140,6 +140,9 @@ class Transcriber:
                     pass
                 log.info("loading whisper %s on %s", name, device)
                 root = str(paths.sub("models") / "whisper")
+                plain = paths.sub("models") / "whisper" / f"faster-whisper-{name}"
+                if (plain / "model.bin").is_file():
+                    name = str(plain)                       # 3.12 the voice pack from the installer: no download at all
                 model = None
                 if device == "cuda":
                     try:  # needs cuBLAS/cuDNN DLLs, which most PCs don't have → test, else CPU
@@ -151,7 +154,7 @@ class Transcriber:
                         log.info("CUDA whisper unavailable (%s), using CPU", e)
                         model = None
                 self._model = model or WhisperModel(name, device="cpu", compute_type="int8", download_root=root)
-                self._model_name = name
+                self._model_name = self.cfg.stt_model
             self._arm()
             return self._model
 

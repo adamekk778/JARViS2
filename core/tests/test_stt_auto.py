@@ -74,3 +74,29 @@ def test_no_silent_download_of_the_speech_model(monkeypatch):
     with pytest.raises(RuntimeError, match="Groq"):
         t._run(np.zeros(1600, dtype=np.float32))
     t.prefetch()                                     # the warm-up while you speak does not download either
+
+
+def test_the_installer_voice_pack_is_used_without_download(rt, monkeypatch, tmp_path):
+    """3.12 the installer downloads Whisper into models/whisper/faster-whisper-small – JARVIS loads it from there."""
+    from jarvis import paths
+    from jarvis.voice.stt import Transcriber
+
+    d = paths.sub("models") / "whisper" / "faster-whisper-small"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "model.bin").write_bytes(b"x")
+    loaded = []
+
+    class FakeWhisper:
+        def __init__(self, name, **kw):
+            loaded.append((name, kw.get("download_root")))
+
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "faster_whisper", types.SimpleNamespace(WhisperModel=FakeWhisper))
+    monkeypatch.setitem(sys.modules, "ctranslate2", types.SimpleNamespace(get_cuda_device_count=lambda: 0))
+    t = Transcriber(rt.cfg.voice)
+    assert t.local_ready()
+    t._arm = lambda: None
+    t._local()
+    assert loaded and loaded[0][0] == str(d)
