@@ -46,7 +46,13 @@ async def media() -> dict:
     try:
         from .desktop.media import _snapshot
 
-        snap = await asyncio.wait_for(_snapshot(), 8)
+        snap = await asyncio.wait_for(_snapshot(), 10)
+    except asyncio.TimeoutError as e:
+        who = str(e).replace("neodpovídá: ", "") if "neodpovídá" in str(e) else ""
+        return _r("media", name, False,
+                  f"Přehrávač {who} Windows neodpovídá na dotaz „co hraje“." if who else "Windows neodpověděl na dotaz „co hraje“.",
+                  "JARVIS takový přehrávač teď přeskakuje a ptá se dalšího. Pusť písničku (Spotify, YouTube v Chrome/Edge) "
+                  "a zkontroluj znovu. Když to trvá, zavři a znovu otevři ten přehrávač.")
     except Exception as e:  # noqa: BLE001
         return _r("media", name, False, f"Windows nepustil JARVIS k přehrávání: {type(e).__name__}: {e}",
                   "Pusť písničku ve Spotify nebo v prohlížeči a zkus to znovu. Pokud chyba trvá, pošli tenhle text.")
@@ -162,7 +168,7 @@ def phone_net(rt: Any) -> list[dict]:
         public = [p for p in profs if str(p.get("NetworkCategory")) in ("0", "Public")]
         if public:
             out.append(_r("profile", "Typ sítě", False, f"Síť „{public[0].get('Name')}“ je nastavená jako Veřejná – Windows v ní blokuje telefon.",
-                          "Windows → Nastavení → Síť a internet → Wi-Fi (nebo Ethernet) → tvoje síť → Typ profilu sítě: Soukromá."))
+                          "Klikni na Opravit síť pro JARVIS (Windows se zeptá) – nastaví tuhle síť jako domácí. Nebo ručně: Windows → Nastavení → Síť a internet → tvoje síť → Typ profilu sítě: Soukromá."))
         elif profs:
             out.append(_r("profile", "Typ sítě", True, "Síť je Soukromá (domácí) – správně."))
     except Exception as e:  # noqa: BLE001
@@ -176,10 +182,10 @@ def phone_net(rt: Any) -> list[dict]:
         block = [x for x in rl if str(x.get("Action")) in ("4", "Block") and str(x.get("Enabled")) in ("1", "True")]
         if block:
             out.append(_r("firewall", "Firewall Windows", False, "Firewall má pro JARVIS pravidlo Blokovat – telefon se nepřipojí.",
-                          "Klikni na Povolit telefon ve firewallu (Windows se zeptá)."))
+                          "Klikni na Opravit síť pro JARVIS (Windows se zeptá)."))
         elif not allow:
             out.append(_r("firewall", "Firewall Windows", False, "Firewall zatím JARVISu nepovolil příchozí spojení z telefonu.",
-                          "Klikni na Povolit telefon ve firewallu (Windows se zeptá)."))
+                          "Klikni na Opravit síť pro JARVIS (Windows se zeptá)."))
         else:
             out.append(_r("firewall", "Firewall Windows", True, "JARVIS má ve firewallu povolení."))
     except Exception as e:  # noqa: BLE001
@@ -194,16 +200,83 @@ def phone_net(rt: Any) -> list[dict]:
     return out
 
 
+INTERNET_HOSTS = [("api.groq.com", "Groq"), ("generativelanguage.googleapis.com", "Gemini"), ("speech.platform.bing.com", "hlas")]
+
+
+def security_products() -> list[str]:
+    """Antivirus / firewall programs Windows knows about, other than its own Defender (they can block JARVIS)."""
+    if not WIN:
+        return []
+    try:
+        data = _ps_json("@(Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue) + "
+                        "@(Get-CimInstance -Namespace root/SecurityCenter2 -ClassName FirewallProduct -ErrorAction SilentlyContinue) | "
+                        "Select-Object -ExpandProperty displayName | ConvertTo-Json -Compress", 15)
+    except Exception as e:  # noqa: BLE001
+        log.info("security products: %s", e)
+        return []
+    names = data if isinstance(data, list) else ([data] if data else [])
+    return list(dict.fromkeys(str(n) for n in names if n and "defender" not in str(n).lower()))
+
+
+def _blocked(e: BaseException) -> bool:
+    return getattr(e, "winerror", None) == 10013 or isinstance(e, PermissionError)
+
+
+def internet() -> dict:
+    """Can JARVIS itself reach the internet? On a real PC Windows refused JARVIS's connections (WinError 10013) –
+    the brain and the voice then failed with messages that did not say why."""
+    import socket
+
+    name = "Internet pro JARVIS"
+    errs: dict[str, BaseException] = {}
+    for host, label in INTERNET_HOSTS:
+        try:
+            socket.create_connection((host, 443), timeout=5).close()
+        except OSError as e:
+            errs[label] = e
+    if not errs:
+        return _r("internet", name, True, "JARVIS se dostane na internet (mozek i hlas).")
+    if any(_blocked(e) for e in errs.values()):
+        who = security_products()
+        detail = "Windows nebo antivir zakazuje JARVISu připojit se na internet (chyba 10013) – proto nejde mozek ani hlas."
+        if who:
+            fix = (f"Na tomhle PC je {', '.join(who)} – ten nejspíš JARVIS blokuje. Otevři ho a v nastavení firewallu / "
+                   "ochrany povol program JARVIS. Pak klikni na Opravit síť pro JARVIS (srovná i firewall Windows).")
+        else:
+            fix = "Klikni na Opravit síť pro JARVIS (Windows se zeptá) – povolí JARVISu internet ve firewallu Windows."
+        return _r("internet", name, False, detail, fix)
+    if len(errs) == len(INTERNET_HOSTS) and all(isinstance(e, socket.gaierror) for e in errs.values()):
+        return _r("internet", name, False, "PC nenajde adresy služeb – vypadá to, že není připojené k internetu.",
+                  "Zkontroluj Wi-Fi / kabel. Když internet v prohlížeči jde, restartuj PC.")
+    first = next(iter(errs.items()))
+    return _r("internet", name, False, f"Nejde se spojit se službou {first[0]}: {type(first[1]).__name__}: {first[1]}",
+              "Zkontroluj internet. Pokud používáš VPN nebo proxy, zkus ji vypnout.")
+
+
+def fix_network_script(exe: str) -> str:
+    """The one elevated fix (Windows asks first – UAC): this network as home (Private), the blocks Windows made for
+    JARVIS removed (Cancel in its firewall question), JARVIS allowed in (phone, home networks only) and out (internet)."""
+    q = exe.replace("'", "''")
+    return "\n".join([
+        f"$exe = '{q}'",
+        "Get-NetConnectionProfile | Where-Object NetworkCategory -eq 'Public' | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue",
+        "Get-NetFirewallApplicationFilter -Program $exe -ErrorAction SilentlyContinue | Get-NetFirewallRule | Where-Object Action -eq 'Block' | Remove-NetFirewallRule -ErrorAction SilentlyContinue",
+        "Remove-NetFirewallRule -DisplayName 'JARVIS (telefon)','JARVIS (internet)' -ErrorAction SilentlyContinue",
+        "New-NetFirewallRule -DisplayName 'JARVIS (telefon)' -Direction Inbound -Program $exe -Action Allow -Profile Private | Out-Null",
+        "New-NetFirewallRule -DisplayName 'JARVIS (internet)' -Direction Outbound -Program $exe -Action Allow | Out-Null",
+    ])
+
+
 def allow_firewall() -> bool:
-    """Ask Windows (UAC) to allow JARVIS's incoming connections on home (private) networks – the user confirms it."""
+    """Opravit síť pro JARVIS: run fix_network_script elevated – Windows shows its own question, nothing happens without it."""
     if not WIN:
         return False
-    exe = sys.executable
-    args = (f'advfirewall firewall add rule name="JARVIS (telefon)" dir=in action=allow program="{exe}" '
-            f'enable=yes profile=private')
+    import base64
     import subprocess
 
-    ps = f"Start-Process netsh -Verb RunAs -WindowStyle Hidden -ArgumentList '{args.replace(chr(39), chr(39) * 2)}'"
+    enc = base64.b64encode(fix_network_script(sys.executable).encode("utf-16-le")).decode()
+    ps = (f"Start-Process powershell -Verb RunAs -WindowStyle Hidden "
+          f"-ArgumentList '-NoProfile','-WindowStyle','Hidden','-EncodedCommand','{enc}'")
     subprocess.Popen(["powershell", "-NoProfile", "-Command", ps], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return True
 
@@ -224,8 +297,15 @@ async def run(rt: Any, tester) -> list[dict]:
     results.append(await _limited(asyncio.to_thread(microphone, rt), 8, "mic", "Mikrofon (hlas)",
                                   "Mikrofon se neozval včas – je připojený a vybraný ve Windows?"))
     results.append(speech(rt))
-    results.append(await _limited(voice_out(rt), 30, "tts", "Hlas JARVISe", "Hlas se nestihl vytvořit (internet?)."))
-    results.append(await _limited(brain(rt, tester), 70, "brain", "Mozek (AI)", "Mozek neodpověděl do minuty."))
+    net = await _limited(asyncio.to_thread(internet), 25, "internet", "Internet pro JARVIS", "Kontrola internetu nestihla doběhnout.")
+    results.append(net)
+    tts = await _limited(voice_out(rt), 30, "tts", "Hlas JARVISe", "Hlas se nestihl vytvořit (internet?).")
+    mind = await _limited(brain(rt, tester), 70, "brain", "Mozek (AI)", "Mozek neodpověděl do minuty.")
+    if net["ok"] is False:                     # the real reason is one line up: say so instead of a second guess
+        for r in (tts, mind):
+            if r["ok"] is False:
+                r["fix"] = "Příčina je u položky Internet pro JARVIS – oprav nejdřív tu."
+    results += [tts, mind]
     try:
         results += await asyncio.wait_for(asyncio.to_thread(phone_net, rt), 45)
     except asyncio.TimeoutError:
@@ -248,11 +328,16 @@ async def warn_phone_blocked(rt: Any, delay: float = 40.0) -> None:
         today = dt.date.today().isoformat()
         if row and row["v"] == today:
             return
-        bad = [i for i in await asyncio.to_thread(phone_net, rt) if i["ok"] is False and i["key"] in ("profile", "firewall", "lan")]
+        net = await asyncio.to_thread(internet)
+        bad = ([net] if net["ok"] is False else []) + \
+            [i for i in await asyncio.to_thread(phone_net, rt) if i["ok"] is False and i["key"] in ("profile", "firewall", "lan")]
         if not bad:
             return
         rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('phone_net_warned', ?)", (today,))
         b = bad[0]
-        rt.notify("Telefon se k PC nepřipojí", f"{b['detail']} {b['fix']} (Nastavení → Telefon)", speak=False)
+        if b["key"] == "internet":
+            rt.notify("JARVIS nesmí na internet", f"{b['detail']} {b['fix']} (Diagnostika → Kontrola funkcí)", speak=False)
+        else:
+            rt.notify("Telefon se k PC nepřipojí", f"{b['detail']} {b['fix']} (Nastavení → Telefon)", speak=False)
     except Exception as e:  # noqa: BLE001
         log.info("phone net warning: %s", e)

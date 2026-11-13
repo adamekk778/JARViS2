@@ -5,44 +5,85 @@ import asyncio
 import base64
 import logging
 import time
+from typing import Any
 
 log = logging.getLogger(__name__)
 
 
+_MGR: Any = None
+
+
+async def _within(aw, secs: float):
+    """Await a Windows media call, but never forever: some players (and headset apps) never answer Windows' "what is
+    playing?" – the whole music watcher then hung and the notch never showed a song (seen on a real PC, 3.10.186)."""
+    fut = asyncio.ensure_future(aw)
+    done, _ = await asyncio.wait({fut}, timeout=secs)
+    if not done:
+        fut.cancel()
+        raise asyncio.TimeoutError(f"Windows media call did not answer in {secs:g} s")
+    return fut.result()
+
+
+async def _manager():
+    global _MGR
+    if _MGR is None:
+        from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as Manager
+
+        _MGR = await _within(Manager.request_async(), 5)
+    return _MGR
+
+
+def forget_manager() -> None:
+    """After a hang: ask Windows for a fresh manager next time."""
+    global _MGR
+    _MGR = None
+
+
 async def _snapshot() -> dict:
-    from winsdk.windows.media.control import (
-        GlobalSystemMediaTransportControlsSessionManager as Manager,
-        GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status,
-    )
+    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status
 
-    mgr = await Manager.request_async()
-    s = pick_session(mgr, Status.PLAYING)
-    if not s:
-        return {}
-    props = await s.try_get_media_properties_async()
-    info = s.get_playback_info()
-    out = {"title": props.title or "", "artist": props.artist or "", "album": getattr(props, "album_title", "") or "",
-           "app": s.source_app_user_model_id or "", "playing": info.playback_status == Status.PLAYING, "thumb": None}
-    out.update(_timeline(s, out["playing"]))
-    if props.thumbnail:
+    mgr = await _manager()
+    stuck: list[str] = []
+    for s in ordered_sessions(mgr, Status.PLAYING)[:5]:
         try:
-            from winsdk.windows.storage.streams import Buffer, InputStreamOptions
+            props = await _within(s.try_get_media_properties_async(), 2.5)
+        except asyncio.TimeoutError:
+            app = str(getattr(s, "source_app_user_model_id", "") or "?")   # this player does not answer: try the next one
+            stuck.append(app.split("!")[0].split("\\")[-1])
+            log.debug("media: %s did not answer", app)
+            continue
+        if props is None:
+            continue
+        info = s.get_playback_info()
+        out = {"title": props.title or "", "artist": props.artist or "", "album": getattr(props, "album_title", "") or "",
+               "app": s.source_app_user_model_id or "", "playing": info.playback_status == Status.PLAYING, "thumb": None}
+        if not out["title"]:
+            continue
+        out.update(_timeline(s, out["playing"]))
+        if props.thumbnail:
+            try:
+                from winsdk.windows.storage.streams import Buffer, InputStreamOptions
 
-            stream = await props.thumbnail.open_read_async()
-            buf = Buffer(stream.size)
-            await stream.read_async(buf, buf.capacity, InputStreamOptions.READ_AHEAD)
-            data = bytes(memoryview(buf))
-            if data:
-                out["thumb"] = "data:image/png;base64," + base64.b64encode(data).decode()
-        except Exception:
-            pass
-    return out
+                stream = await _within(props.thumbnail.open_read_async(), 2)
+                buf = Buffer(stream.size)
+                await _within(stream.read_async(buf, buf.capacity, InputStreamOptions.READ_AHEAD), 2)
+                data = bytes(memoryview(buf))
+                if data:
+                    out["thumb"] = "data:image/png;base64," + base64.b64encode(data).decode()
+            except Exception:  # noqa: BLE001 – a song without its cover is fine
+                pass
+        return out
+    if stuck:
+        raise asyncio.TimeoutError("neodpovídá: " + ", ".join(dict.fromkeys(stuck)))
+    return {}
 
 
-def pick_session(mgr, playing_status):
-    """The player that really plays. Windows' "current" session is often a paused browser tab or a game while
-    Spotify plays – then the notch showed nothing. Playing first (the current one if it plays), else the current."""
-    cur = mgr.get_current_session()
+def ordered_sessions(mgr, playing_status) -> list:
+    """Players in the order worth asking: the current one if it plays, other playing ones, then the current, the rest."""
+    try:
+        cur = mgr.get_current_session()
+    except Exception:  # noqa: BLE001
+        cur = None
     try:
         sessions = list(mgr.get_sessions())
     except Exception:  # noqa: BLE001
@@ -54,12 +95,18 @@ def pick_session(mgr, playing_status):
         except Exception:  # noqa: BLE001
             return False
 
-    if cur is not None and plays(cur):
-        return cur
-    for x in sessions:
-        if plays(x):
-            return x
-    return cur or (sessions[0] if sessions else None)
+    out: list = []
+    for x in ([cur] if cur is not None and plays(cur) else []) + [x for x in sessions if plays(x)] + ([cur] if cur is not None else []) + sessions:
+        if x is not None and all(x is not y for y in out):
+            out.append(x)
+    return out
+
+
+def pick_session(mgr, playing_status):
+    """The player that really plays. Windows' "current" session is often a paused browser tab or a game while
+    Spotify plays – then the notch showed nothing. Playing first (the current one if it plays), else the current."""
+    o = ordered_sessions(mgr, playing_status)
+    return o[0] if o else None
 
 
 def _timeline(s, playing: bool) -> dict:
@@ -84,13 +131,11 @@ def _timeline(s, playing: bool) -> dict:
 async def seek(seconds: float) -> bool:
     """Jump to a place in the song (3.12 music screen: the progress bar and a click on a lyric line). Windows asks the
     player; Spotify, browsers and most players allow it. False when there is no player or it refused."""
-    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as Manager
-
-    mgr = await Manager.request_async()
+    mgr = await _manager()
     s = mgr.get_current_session()
     if not s:
         return False
-    return bool(await s.try_change_playback_position_async(int(max(0.0, seconds) * 10_000_000)))   # 100 ns ticks
+    return bool(await _within(s.try_change_playback_position_async(int(max(0.0, seconds) * 10_000_000)), 3))   # 100 ns ticks
 
 
 def changed(prev: dict, snap: dict, tolerance: float = 2.5) -> bool:
@@ -115,7 +160,11 @@ async def watch(rt, interval: float = 2.0) -> None:
     last_err = ""
     while True:
         try:
-            snap = await _snapshot()
+            try:
+                snap = await _within(_snapshot(), 8)
+            except asyncio.TimeoutError:
+                forget_manager()                   # a fresh start next round; the song stays as it was meanwhile
+                raise
             if snap:
                 try:
                     front = rt.platform.foreground_info() or {}

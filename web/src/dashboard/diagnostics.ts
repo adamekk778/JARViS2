@@ -42,12 +42,18 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     if (m.running) { checks.replaceChildren(h("p", { class: "help" }, "Kontroluji… (asi 10–20 s; mikrofon se na půl sekundy otevře)")); return; }
     const items: any[] = m.items || [];
     const bad = items.filter((i) => i.ok === false).length;
+    // one button fixes the network for JARVIS (home network, firewall in and out) – shown once, at the first such item
+    const netFixKey = items.find((i) => i.ok === false && ["internet", "profile", "firewall"].includes(i.key))?.key;
     checks.replaceChildren(
       h("p", { class: `sc-sum ${bad ? "bad" : "ok"}` }, bad ? `${bad} ${bad === 1 ? "věc nefunguje" : bad < 5 ? "věci nefungují" : "věcí nefunguje"} – postup je u každé níže.` : "Všechno funguje."),
       ...items.map((i) => h("div", { class: `sc-item ${i.ok === false ? "bad" : i.ok ? "ok" : "na"}` },
         icon(i.ok === false ? "x-circle" : i.ok ? "check-circle" : "minus-circle", "ph-fill"),
         h("div", { class: "sc-text" }, h("strong", {}, i.name), h("span", {}, i.detail), i.fix ? h("em", {}, i.fix) : null,
-          i.key === "firewall" && i.ok === false ? h("button", { class: "btn primary sm", type: "button", onclick: () => client.send("firewall_allow") }, icon("shield-check"), "Povolit telefon ve firewallu") : null))));
+          i.key === netFixKey ? h("button", { class: "btn primary sm", type: "button", onclick: () => {
+            client.send("firewall_allow");
+            toast("Windows se teď zeptá, jestli JARVIS smí změnit nastavení sítě – potvrď Ano. Za chvíli zkontroluju znovu.", "info");
+            window.setTimeout(runCheck, 20000);
+          } }, icon("shield-check"), "Opravit síť pro JARVIS") : null))));
   });
   const runCheck = () => client.send("selfcheck_run");
 

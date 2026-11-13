@@ -5,6 +5,7 @@ import asyncio
 import io
 import logging
 import re
+import sys
 import threading
 import time
 import wave
@@ -26,6 +27,36 @@ async def edge_synth(text: str, voice: str, rate: str, pitch: str, volume: str) 
     if not out:
         raise RuntimeError("edge-tts vrátil prázdné audio")
     return bytes(out)
+
+
+def windows_synth(text: str, lang: str = "cs") -> bytes:
+    """The last resort, offline: the voice built into Windows (System.Speech) – no download, no internet. On a real PC
+    the firewall refused JARVIS's internet, Edge and Piper both failed, and JARVIS said nothing at all."""
+    import os
+    import subprocess
+    import tempfile
+
+    fd, out = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    script = ("[Console]::InputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Speech; "
+              "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+              "$v = $s.GetInstalledVoices() | Where-Object { $_.Enabled -and $_.VoiceInfo.Culture.Name -like $env:JV_LANG } | Select-Object -First 1; "
+              "if ($v) { $s.SelectVoice($v.VoiceInfo.Name) }; $s.SetOutputToWaveFile($env:JV_OUT); "
+              "$s.Speak([Console]::In.ReadToEnd()); $s.Dispose()")
+    env = {**os.environ, "JV_OUT": out, "JV_LANG": "en*" if lang == "en" else "cs*"}
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", script], input=text.encode("utf-8"), env=env, timeout=60,
+                       capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        with open(out, "rb") as f:
+            data = f.read()
+    finally:
+        try:
+            os.unlink(out)
+        except OSError:
+            pass
+    if len(data) < 1000:
+        raise RuntimeError("hlas Windows nic nevytvořil")
+    return data
 
 
 def piper_synth(text: str, voice_name: str, custom: bool = False) -> bytes:
@@ -91,7 +122,7 @@ class Speaker:
         v = self.rt.cfg.voice.model_copy(update=override) if override else self.rt.cfg.voice
         edge_voice, piper_voice = (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
         spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")
-        order = [v.tts_engine] + [e for e in ("edge", "piper") if e != v.tts_engine]
+        order = [v.tts_engine] + [e for e in ("edge", "piper") if e != v.tts_engine] + (["windows"] if sys.platform == "win32" else [])
         audio, mime, err = b"", "", None
         for eng in order:
             try:
@@ -100,6 +131,8 @@ class Speaker:
                     from .studio import eleven_synth
 
                     audio, mime = await eleven_synth(spoken, secrets.get("elevenlabs"), v.eleven_voice_id, v.eleven_model), "audio/mpeg"
+                elif eng == "windows":
+                    audio, mime = await asyncio.to_thread(windows_synth, spoken, lang), "audio/wav"
                 elif eng == "piper":
                     own = bool(v.piper_custom) and lang != "en"
                     args = (spoken, v.piper_custom, True) if own else (spoken, piper_voice)

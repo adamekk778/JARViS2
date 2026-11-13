@@ -848,8 +848,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       h("p", { class: "sc-sum bad" }, "Telefon se teď k PC nepřipojí:"),
       ...bad.map((i) => h("div", { class: "sc-item bad" }, icon("x-circle", "ph-fill"),
         h("div", { class: "sc-text" }, h("strong", {}, i.name), h("span", {}, i.detail), i.fix ? h("em", {}, i.fix) : null,
-          i.key === "firewall" ? h("button", { class: "btn primary sm", type: "button", onclick: () => { client.send("firewall_allow"); window.setTimeout(() => { extra.phoneNet = undefined; render(); }, 8000); } },
-            icon("shield-check"), "Povolit telefon ve firewallu") : null))),
+          i === bad.find((x) => ["profile", "firewall"].includes(x.key)) ? h("button", { class: "btn primary sm", type: "button", onclick: () => { client.send("firewall_allow"); window.setTimeout(() => { extra.phoneNet = undefined; render(); }, 20000); } },
+            icon("shield-check"), "Opravit síť pro JARVIS") : null))),
       h("button", { class: "btn", type: "button", onclick: () => { extra.phoneNet = undefined; render(); } }, icon("arrows-clockwise"), "Zkontrolovat znovu")));
   }
 
