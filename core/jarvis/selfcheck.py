@@ -59,7 +59,13 @@ async def media() -> dict:
     if not snap or not snap.get("title"):
         return _r("media", name, True, "Funguje, jen teď nic nehraje (nebo přehrávač Windows nic neohlásil).",
                   "Pusť písničku (Spotify, YouTube v Chrome/Edge) a zkontroluj znovu – měla by se ukázat tady.")
-    return _r("media", name, True, f"Vidím: {snap.get('title')} – {snap.get('artist', '')} ({snap.get('app', '')})")
+    seen = f"Vidím: {snap.get('title')} – {snap.get('artist', '')} ({snap.get('app', '')})"
+    if not snap.get("thumb"):
+        from .desktop.media import COVER
+
+        return _r("media", name, True, f"{seen}. Obal alba ale nepřišel: {COVER.get('error') or 'bez udání důvodu'}.",
+                  "Pošli mi tenhle řádek – podle důvodu obal opravím.")
+    return _r("media", name, True, f"{seen}, i s obalem alba.")
 
 
 def loopback() -> dict:

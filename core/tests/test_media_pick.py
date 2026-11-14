@@ -107,3 +107,32 @@ def test_an_old_song_is_not_kept_when_windows_stops_answering(monkeypatch, rt):
     asyncio.run(run())
     medias = [kw for t, kw in published if t == "media"]
     assert medias[0].get("title") == "Old Song" and medias[-1] == {}            # cleared, not stuck on the old song
+
+
+def test_lyrics_clock_survives_pause_and_resume(monkeypatch):
+    """A real PC: after a pause Spotify kept its old timeline and the lyrics ran well behind the singing."""
+    import datetime as dt
+
+    from jarvis.desktop import media
+
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(media.time, "time", lambda: clock["now"])
+    media._CLOCK.clear()
+    td = dt.timedelta
+    stale = dt.datetime(1601, 1, 1, tzinfo=dt.timezone.utc)            # Spotify: "never updated"
+
+    def sess(raw):
+        return NS(get_timeline_properties=lambda: NS(position=td(seconds=raw), start_time=td(0), end_time=td(seconds=200),
+                                                     last_updated_time=stale))
+
+    key = ("spotify", "Song", "A")
+    assert media._timeline(sess(30.0), True, key)["position"] == 30.0
+    clock["now"] += 10                                                   # 10 s of singing, the player said nothing new
+    assert media._timeline(sess(30.0), True, key)["position"] == 40.0
+    assert media._timeline(sess(30.0), False, key)["position"] == 40.0  # paused at 40 s
+    clock["now"] += 60                                                   # a minute of pause
+    assert media._timeline(sess(30.0), False, key)["position"] == 40.0
+    assert media._timeline(sess(30.0), True, key)["position"] == 40.0   # resumed: from 40 s, not from 30 s or 100 s
+    clock["now"] += 5
+    assert media._timeline(sess(30.0), True, key)["position"] == 45.0
+    assert media._timeline(sess(120.0), True, key)["position"] == 120.0  # a seek the player reported

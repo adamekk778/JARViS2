@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 
 _MGR: Any = None
 _THUMB: dict = {}
+COVER: dict = {"error": ""}          # why the last cover did not come (Kontrola funkcí says it)
 
 
 async def _thumb(ref) -> str | None:
@@ -21,8 +22,10 @@ async def _thumb(ref) -> str | None:
 
     stream = await _within(ref.open_read_async(), 2)
     size = int(getattr(stream, "size", 0) or 0)
-    if not size or size > 6_000_000:
+    if size > 6_000_000:
         return None
+    if not size:
+        size = 2_000_000                           # some players do not say how big it is: read up to 2 MB
     ctype = str(getattr(stream, "content_type", "") or "") or "image/jpeg"
     data = b""
     try:
@@ -38,7 +41,7 @@ async def _thumb(ref) -> str | None:
         reader.read_bytes(arr)
         data = bytes(arr)
     if not data:
-        return None
+        raise RuntimeError(f"obrázek ({size} B) se nepodařilo přečíst")
     if not ctype.startswith("image/"):
         ctype = "image/png" if data[:4] == b"\x89PNG" else "image/jpeg"
     return f"data:{ctype};base64," + base64.b64encode(data).decode()
@@ -90,24 +93,26 @@ async def _snapshot() -> dict:
                "app": s.source_app_user_model_id or "", "playing": info.playback_status == Status.PLAYING, "thumb": None}
         if not out["title"]:
             continue
-        out.update(_timeline(s, out["playing"]))
+        out.update(_timeline(s, out["playing"], (out["app"], out["title"], out["artist"])))
         if props.thumbnail:
             key = (out["app"], out["title"], out["artist"])
-            # the same song: the cover is read again only a few times (players send the new cover a moment after
-            # the new title – the first read can still be the previous song's)
-            if _THUMB.get("key") == key and _THUMB.get("reads", 0) >= 3:
-                out["thumb"] = _THUMB.get("url")
+            # the same song: a cover that came is read a few more times (players send the new cover a moment after the
+            # new title – the first one can still be the previous song's); no cover yet: asked again every time
+            if _THUMB.get("key") == key and _THUMB.get("url") and _THUMB.get("reads", 0) >= 3:
+                out["thumb"] = _THUMB["url"]
             else:
-                _THUMB["reads"] = (_THUMB.get("reads", 0) + 1) if _THUMB.get("key") == key else 1
                 try:
                     out["thumb"] = await _thumb(props.thumbnail)
+                    COVER["error"] = "" if out["thumb"] else "přehrávač poslal prázdný obrázek"
                 except Exception as e:  # noqa: BLE001 – a song without its cover is fine
-                    log.info("media cover: %s: %s", type(e).__name__, e)
+                    COVER["error"] = f"{type(e).__name__}: {e}"
+                    log.info("media cover: %s", COVER["error"])
                     out["thumb"] = None
                 if out["thumb"]:
-                    _THUMB.update(key=key, url=out["thumb"])
-                else:
-                    _THUMB.update(key=key, url=None)
+                    reads = _THUMB.get("reads", 0) + 1 if _THUMB.get("key") == key else 1
+                    _THUMB.update(key=key, url=out["thumb"], reads=reads)
+        else:
+            COVER["error"] = "přehrávač k písničce žádný obrázek neposlal"
         return out
     if stuck:
         raise asyncio.TimeoutError("neodpovídá: " + ", ".join(dict.fromkeys(stuck)))
@@ -157,21 +162,37 @@ def pick_session(mgr, playing_status):
     return o[0] if o else None
 
 
-def _timeline(s, playing: bool) -> dict:
+_CLOCK: dict = {}
+
+
+def _timeline(s, playing: bool, key: tuple = ()) -> dict:
     """Where in the song / video we are: position now (s), length (s) and when it was read (for the lyrics bar).
-    Players update the timeline only on play / pause / seek, so the time since then is added while playing."""
+    Players update the timeline only on play / pause / seek. 3.12: JARVIS keeps its own clock from the last thing the
+    player really said – after a pause Spotify kept the old "last updated" time (or none), and the lyrics ran behind."""
     try:
         import datetime as dt
 
         tl = s.get_timeline_properties()
-        pos = tl.position.total_seconds()
+        raw = tl.position.total_seconds()
         dur = (tl.end_time - tl.start_time).total_seconds()
         upd = tl.last_updated_time
-        if playing and upd and upd.year > 2000:
-            pos += max(0.0, (dt.datetime.now(dt.timezone.utc) - upd).total_seconds())
         if dur <= 0:
             return {}
-        return {"position": round(min(max(pos, 0.0), dur), 2), "duration": round(dur, 2), "at": time.time()}
+        upd_ok = bool(upd) and upd.year > 2000
+        now = time.time()
+        c = _CLOCK.get(key)
+        fresh = c is None or abs(c["raw"] - raw) > 0.05 or (upd_ok and c["upd"] != upd)
+        if fresh:                                   # the player said something new: start the clock from it
+            behind = max(0.0, (dt.datetime.now(dt.timezone.utc) - upd).total_seconds()) if (playing and upd_ok) else 0.0
+            c = {"raw": raw, "upd": upd if upd_ok else None, "playing": playing, "anchor": raw + min(behind, dur), "t": now}
+        elif playing and not c["playing"]:          # resumed, the player told nothing new: it continues from the pause
+            c = {**c, "playing": True, "anchor": c["anchor"], "t": now}
+        elif not playing and c["playing"]:          # paused: freeze where it is now
+            c = {**c, "playing": False, "anchor": c["anchor"] + (now - c["t"]), "t": now}
+        _CLOCK.clear()
+        _CLOCK[key] = c
+        pos = c["anchor"] + (now - c["t"] if c["playing"] else 0.0)
+        return {"position": round(min(max(pos, 0.0), dur), 2), "duration": round(dur, 2), "at": now}
     except Exception:
         return {}
 
