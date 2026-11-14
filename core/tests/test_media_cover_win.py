@@ -19,7 +19,7 @@ def test_the_cover_is_read_from_a_windows_stream():
     async def go():
         ms = InMemoryRandomAccessStream()
         w = DataWriter(ms)
-        w.write_bytes(list(PNG))
+        w.write_bytes(PNG)
         await w.store_async()
         await w.flush_async()
         w.detach_stream()
