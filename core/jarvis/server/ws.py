@@ -50,6 +50,7 @@ CLIENT_TYPES = [
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
     "photo_backup_get", "photo_backup_open", "wake_get", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
+    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -69,7 +70,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -119,7 +120,8 @@ async def close_devices(which) -> int:
 
 def friendly_error(e: BaseException) -> str:
     """What the person sees when a request breaks: a sentence, never a Python exception (the details go to the log)."""
-    if isinstance(e, (KeyError, TypeError, AttributeError)) or (isinstance(e, ValueError) and "invalid literal" in str(e)):
+    python_words = ("invalid literal", "isoformat", "could not convert", "update sequence", "not enough values", "too many values")
+    if isinstance(e, (KeyError, TypeError, AttributeError)) or (isinstance(e, ValueError) and any(w in str(e) for w in python_words)):
         return "Tenhle požadavek JARVIS nepochopil (chybí nebo nesedí údaj). Zkus to znovu – pokud se to opakuje, je v aplikaci chyba."
     if isinstance(e, FileNotFoundError):
         return "Ten soubor nebo složka neexistuje."
@@ -1159,6 +1161,24 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
+        elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder"):
+            from .. import habits as hb               # 3.12 Návyky a zdraví (notch tab + full screen)
+
+            if t == "habit_save":
+                hb.save(rt, dict(m.get("habit") or {}))
+            elif t == "habit_delete":
+                hb.remove(rt, int(m.get("id") or 0))
+            elif t == "habit_log":
+                hb.log(rt, int(m.get("id") or 0), None if m.get("value") is None else float(m.get("value")), m.get("day") or None,
+                       None if m.get("note") is None else str(m.get("note")))
+            elif t == "habit_meal":
+                hb.set_meal(rt, str(m.get("slot") or ""), str(m.get("text") or ""), m.get("day") or None)
+            elif t == "habit_reorder":
+                hb.reorder(rt, [int(x) for x in (m.get("ids") or [])][:100])
+            if t == "habits_get":
+                await self.send("habits", **hb.snapshot(rt, m.get("month") or None))
+            else:
+                hb.publish(rt)                         # every open window and the notch follow at once
         elif t == "nightcare_get":            # 3.12 Noční údržba PC (Settings → Obecné)
             await self.send("nightcare", **rt.nightcare.status())
         elif t == "nightcare_run":

@@ -1,0 +1,21 @@
+/* 3.12 Návyky in the open notch */
+.nhb { display: grid; grid-template-columns: 186px 1fr; gap: 14px; height: 100%; min-height: 0; padding: 2px 4px 4px; }
+.nhb-left { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 6px; border-radius: 20px;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(46, 230, 166, .12), transparent 70%), rgba(255, 255, 255, .03);
+  border: 1px solid rgba(255, 255, 255, .06); }
+.nhb-left .hb-ring { font-size: 13px; }
+.nhb-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.nhb-mini div { display: grid; justify-items: center; padding: 6px 4px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.nhb-mini span { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .5); }
+.nhb-mini strong { font-size: 15px; color: #fff; }
+.nhb-delta { font-style: normal; font-size: 11px; display: flex; align-items: center; gap: 3px; }
+.nhb-delta.up { color: #5ef2c0; }
+.nhb-delta.down { color: #ff8a8a; }
+.nhb-full { margin-top: auto; display: inline-flex; gap: 6px; align-items: center; border: 0; border-radius: 12px; padding: 7px 12px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 650;
+  background: rgba(46, 230, 166, .14); color: #5ef2c0; }
+.nhb-full:hover { background: rgba(46, 230, 166, .24); }
+.nhb-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; overflow-y: auto; min-height: 0; padding-right: 2px; scrollbar-width: thin; }
+.nhb-tiles .hb-tile { grid-template-columns: auto 1fr auto; }
+.nhb-tiles .hb-dots { grid-column: 2; grid-row: 2; margin-top: -2px; }
+.nhb-tiles .hb-amt, .nhb-tiles .hb-check { grid-column: 3; grid-row: 1 / span 2; }
+.nhb-tiles .hb-ico { grid-row: 1 / span 2; }

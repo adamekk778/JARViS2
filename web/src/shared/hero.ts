@@ -11,7 +11,7 @@ export interface HeroSpec { color: string; cast: CastMember[] }
 export function wakeBands() { /* nothing to wake */ }
 
 const ICONS: Record<string, string> = {
-  learn: "graduation-cap", knowledge: "brain", files: "folders", rescue: "first-aid-kit", security: "shield-check", home: "house-line",
+  habits: "heartbeat", learn: "graduation-cap", knowledge: "brain", files: "folders", rescue: "first-aid-kit", security: "shield-check", home: "house-line",
   auto: "flow-arrow", comms: "envelope-simple", stark: "circle-notch", claude: "terminal-window", dictate: "microphone", stats: "chart-bar",
   notetaker: "record", dictation: "sliders", dictionary: "book-open", chat: "chat-circle-dots", tasks: "list-checks", diagnostics: "pulse",
   general: "user-circle", brain: "brain", voice: "waveform", notch: "rectangle", appearance: "palette", hotkeys: "keyboard",
@@ -31,6 +31,7 @@ export function hero(spec: HeroSpec, title: string, subtitle: string | null, act
 
 /** Every page's colour and cast (the JARVIS window's palette). */
 export const HEROES: Record<string, HeroSpec> = {
+  habits: { color: "#2ee6a6", cast: [{ color: "green", size: 56, start: 0.2 }, { color: "cyan", size: 46, start: 0.6 }, { color: "white", size: 40, start: 0.95 }] },
   learn: { color: "#34d399", cast: [{ color: "green", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 0.95 }] },
   knowledge: { color: "#c084fc", cast: [{ color: "violet", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "rose", size: 40, start: 0.95 }] },
   files: { color: "#fbbf24", cast: [{ color: "amber", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 0.95 }] },

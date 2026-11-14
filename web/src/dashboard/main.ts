@@ -25,6 +25,7 @@ import { buildHome } from "./home";
 import { buildBrain } from "./brain";
 import { buildFiles } from "./files";
 import { buildLearn } from "./learn";
+import { buildHabits } from "./habits";
 import { buildPlay } from "./play";
 import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
@@ -47,15 +48,16 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
+type Page = "habits" | "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
+  ["Hlavní", ["chat", "habits", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Systém", ["diagnostics"]],          // "Nastavení" is pinned at the bottom of the sidebar (its sections are tabs inside)
 ];
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
+  ["habits", "heartbeat", "Návyky a zdraví"],
   ["stark", "circle-notch", "Stark"],
   ["auto", "flow-arrow", "Automatizace"],
   ["home", "house-line", "Domov"],
@@ -101,6 +103,7 @@ const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
   tasks,
+  habits: buildHabits(client),
   "voice-mode": buildVoiceMode(client),
   diagnostics: buildDiagnostics(client, (text) => { go("chat"); client.send("user_text", { text, attachments: [] }); }),
   dictate: buildDictation(client, (v) => go(v as View)),

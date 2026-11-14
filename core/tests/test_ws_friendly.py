@@ -4,7 +4,8 @@ from jarvis.server.ws import friendly_error
 
 def test_python_errors_become_sentences():
     for e in (KeyError("id"), TypeError("x"), AttributeError("'int' object has no attribute 'strip'"),
-              ValueError("invalid literal for int() with base 10: 'zz'")):
+              ValueError("invalid literal for int() with base 10: 'zz'"), ValueError("Invalid isoformat string: 'včera'"),
+              ValueError("could not convert string to float: 'x'")):
         msg = friendly_error(e)
         assert "Error" not in msg and "literal" not in msg and msg.endswith(".")
     assert friendly_error(FileNotFoundError(2, "No such file", "x")) == "Ten soubor nebo složka neexistuje."
