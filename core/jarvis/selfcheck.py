@@ -115,6 +115,10 @@ def speech(rt: Any) -> dict:
     if not rt.cfg.voice.enabled:
         return _r("stt", name, False, "Hlasové ovládání je vypnuté.", "Zapni ho v Nastavení → Hlas → Hlasové ovládání.")
     if not st.get("available"):
+        th = getattr(v, "_thread", None)
+        if not st.get("error") and th is not None and th.is_alive():
+            return _r("stt", name, None, "Hlasový modul se ještě spouští (po startu JARVISe to chvíli trvá).",
+                      "Zkontroluj znovu za minutu.")
         return _r("stt", name, False, f"Hlasový modul neběží: {st.get('error') or 'bez udání důvodu'}",
                   "Pošli tenhle text – podle něj to opravím.")
     return _r("stt", name, True, "Hlasový modul běží" + (" a poslouchá." if st.get("listening") else "."))

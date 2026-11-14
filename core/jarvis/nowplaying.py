@@ -57,6 +57,30 @@ def is_music(src: str) -> bool:
 _TS = re.compile(r"\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]")
 
 
+_WTS = re.compile(r"<(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)>")
+
+
+def _word_stamps(body: str, offset: float) -> list[dict]:
+    """"<00:12.30> Hello <00:12.80> world" → [{"t": 12.3, "c": 0, "text": "Hello"}, {"t": 12.8, "c": 6, "text": "world"}]
+    – the time and the character where each part starts in the line's text (parts can be syllables)."""
+    parts = _WTS.split(body)
+    if len(parts) < 4:
+        return []
+    line = re.sub(r"\s+", " ", _WTS.sub("", body)).strip()
+    out, at = [], 0
+    for k in range(1, len(parts) - 2, 3):
+        chunk = re.sub(r"\s+", " ", parts[k + 2]).strip()
+        if not chunk:
+            continue
+        c = line.find(chunk, at)
+        if c < 0:
+            return []                                  # does not line up: better no word times than wrong ones
+        out.append({"t": round(max(0.0, int(parts[k]) * 60 + float(parts[k + 1].replace(":", ".")) - offset), 2),
+                    "c": c, "text": chunk})
+        at = c + len(chunk)
+    return out
+
+
 def parse_lrc(text: str) -> list[dict]:
     """LRC ("[01:02.50] line") → [{"t": seconds, "text": line}] sorted by time; a line with two stamps appears twice."""
     out, offset = [], 0.0
@@ -68,10 +92,14 @@ def parse_lrc(text: str) -> list[dict]:
         stamps = _TS.findall(raw)
         if not stamps:
             continue
-        line = _TS.sub("", raw).strip()
-        line = re.sub(r"<\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?>", "", line).strip()      # word stamps of "enhanced" LRC
+        body = _TS.sub("", raw)
+        words = _word_stamps(body, offset)                  # "enhanced" LRC: a time for every word – exact karaoke
+        line = re.sub(r"\s+", " ", _WTS.sub("", body)).strip()
         for mm, ss in stamps:
-            out.append({"t": round(max(0.0, int(mm) * 60 + float(ss.replace(":", ".")) - offset), 2), "text": line})
+            item = {"t": round(max(0.0, int(mm) * 60 + float(ss.replace(":", ".")) - offset), 2), "text": line}
+            if words and len(stamps) == 1:
+                item["words"] = words
+            out.append(item)
     out.sort(key=lambda x: x["t"])
     return out
 

@@ -11,6 +11,37 @@ log = logging.getLogger(__name__)
 
 
 _MGR: Any = None
+_THUMB: dict = {}
+
+
+async def _thumb(ref) -> str | None:
+    """The album cover as a data: URL. Read with the buffer Windows hands back (the old code read into its own buffer
+    and then looked at that one – empty on real PCs, so the notch showed the app's icon instead of the cover)."""
+    from winsdk.windows.storage.streams import Buffer, DataReader, InputStreamOptions
+
+    stream = await _within(ref.open_read_async(), 2)
+    size = int(getattr(stream, "size", 0) or 0)
+    if not size or size > 6_000_000:
+        return None
+    ctype = str(getattr(stream, "content_type", "") or "") or "image/jpeg"
+    data = b""
+    try:
+        buf = Buffer(size)
+        got = await _within(stream.read_async(buf, size, InputStreamOptions.READ_AHEAD), 3)
+        data = bytes(memoryview(got if got is not None else buf))
+    except Exception as e:  # noqa: BLE001
+        log.debug("cover via read_async: %s", e)
+    if not data:
+        reader = DataReader(stream.get_input_stream_at(0))
+        n = int(await _within(reader.load_async(size), 3))
+        arr = bytearray(n)
+        reader.read_bytes(arr)
+        data = bytes(arr)
+    if not data:
+        return None
+    if not ctype.startswith("image/"):
+        ctype = "image/png" if data[:4] == b"\x89PNG" else "image/jpeg"
+    return f"data:{ctype};base64," + base64.b64encode(data).decode()
 
 
 async def _within(aw, secs: float):
@@ -61,17 +92,22 @@ async def _snapshot() -> dict:
             continue
         out.update(_timeline(s, out["playing"]))
         if props.thumbnail:
-            try:
-                from winsdk.windows.storage.streams import Buffer, InputStreamOptions
-
-                stream = await _within(props.thumbnail.open_read_async(), 2)
-                buf = Buffer(stream.size)
-                await _within(stream.read_async(buf, buf.capacity, InputStreamOptions.READ_AHEAD), 2)
-                data = bytes(memoryview(buf))
-                if data:
-                    out["thumb"] = "data:image/png;base64," + base64.b64encode(data).decode()
-            except Exception:  # noqa: BLE001 – a song without its cover is fine
-                pass
+            key = (out["app"], out["title"], out["artist"])
+            # the same song: the cover is read again only a few times (players send the new cover a moment after
+            # the new title – the first read can still be the previous song's)
+            if _THUMB.get("key") == key and _THUMB.get("reads", 0) >= 3:
+                out["thumb"] = _THUMB.get("url")
+            else:
+                _THUMB["reads"] = (_THUMB.get("reads", 0) + 1) if _THUMB.get("key") == key else 1
+                try:
+                    out["thumb"] = await _thumb(props.thumbnail)
+                except Exception as e:  # noqa: BLE001 – a song without its cover is fine
+                    log.info("media cover: %s: %s", type(e).__name__, e)
+                    out["thumb"] = None
+                if out["thumb"]:
+                    _THUMB.update(key=key, url=out["thumb"])
+                else:
+                    _THUMB.update(key=key, url=None)
         return out
     if stuck:
         raise asyncio.TimeoutError("neodpovídá: " + ", ".join(dict.fromkeys(stuck)))
@@ -150,10 +186,12 @@ async def seek(seconds: float) -> bool:
     return bool(await _within(s.try_change_playback_position_async(int(max(0.0, seconds) * 10_000_000)), 3))   # 100 ns ticks
 
 
-def changed(prev: dict, snap: dict, tolerance: float = 2.5) -> bool:
+def changed(prev: dict, snap: dict, tolerance: float = 0.35) -> bool:
     """A new song, play / pause, or a jump in the song (seek) – worth telling the notch."""
     if (prev.get("title"), prev.get("artist"), prev.get("playing")) != (snap.get("title"), snap.get("artist"), snap.get("playing")):
         return True
+    if prev.get("thumb") != snap.get("thumb"):
+        return True                                # the cover came a moment after the title
     if "position" in snap and "position" in prev:
         expect = prev["position"] + ((snap.get("at", 0) - prev.get("at", 0)) if prev.get("playing") else 0)
         return abs(snap["position"] - expect) > tolerance
@@ -172,6 +210,7 @@ async def watch(rt, interval: float = 2.0) -> None:
     last_err = ""
     fails = 0
     while True:
+        nap = interval
         try:
             try:
                 snap = await _within(_snapshot(), 8)
@@ -194,6 +233,7 @@ async def watch(rt, interval: float = 2.0) -> None:
                     asyncio.get_running_loop().create_task(nowplaying.publish_lyrics(rt, snap))
             prev = snap
             fails = 0
+            nap = min(1.0, interval) if snap.get("playing") else interval     # a new song shows within a second
         except Exception as e:
             fails += 1
             if fails >= 3 and prev:                # ~half a minute without an answer: never keep showing an old song
@@ -205,4 +245,4 @@ async def watch(rt, interval: float = 2.0) -> None:
                 log.warning("hudba v notchi: %s", last_err)
             else:
                 log.debug("media watch: %s", e)
-        await asyncio.sleep(interval)
+        await asyncio.sleep(nap)

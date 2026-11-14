@@ -197,7 +197,7 @@ const subsEl = h("div", { class: "n-subs", "aria-live": "polite" });
 let subs: { on: boolean; lines: string[]; lang: string; at: number; source: string } = { on: false, lines: [], lang: "", at: 0, source: "" };
 // 3.12 song lyrics: the line being sung, filled and underlined as it is sung (karaoke), album art + the app's logo
 const lyrEl = h("div", { class: "n-lyr" });
-let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string }[] } = { title: "", artist: "", synced: false, lines: [] };
+let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string; words?: { t: number; c: number; text: string }[] }[] } = { title: "", artist: "", synced: false, lines: [] };
 let lyrIdx = -2, lyrW = 0;
 // 3.12 the island's living eyes (dynamic look): blink, look around, follow the mouse, show the mood
 const face = createFace(() => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -1131,7 +1131,7 @@ function lyricsOn(): boolean {
 let cfgLyrics = true;
 /** The current line, lit word by word as it is sung: each word glows up in turn with a soft, feathered edge (no hard
  *  cut), the word being sung lifts a little, and lines cross-fade (the old one floats up, the new one rises in). */
-type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number };
+type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number; starts: number[] };
 let lyrCur: LyrLine | null = null;
 let lyrFill = 0;            // eased fill in px (follows the target smoothly, never jumps)
 let lyrLast = 0;
@@ -1142,8 +1142,11 @@ function buildLyrLine(text: string): LyrLine {
   const base = h("span", { class: "lyr-base" }, ...baseKids);
   const lit = h("span", { class: "lyr-lit", "aria-hidden": "true" }, ...litKids);
   const el = h("span", { class: "lyr-line" }, base, lit);
+  const starts: number[] = [];                 // where each word starts in the line's text (for word times)
+  let at = 0;
+  for (const p of parts) { if (!/^\s+$/.test(p)) starts.push(at); at += p.length; }
   return { el, lit, words: baseKids.filter((n): n is HTMLElement => n instanceof HTMLElement),
-    litWords: litKids.filter((n): n is HTMLElement => n instanceof HTMLElement), edges: [], w: 0 };
+    litWords: litKids.filter((n): n is HTMLElement => n instanceof HTMLElement), edges: [], w: 0, starts };
 }
 function measureLyr(l: LyrLine) {
   l.edges = l.words.map((wd) => [wd.offsetLeft, wd.offsetLeft + wd.offsetWidth] as [number, number]);
@@ -1154,6 +1157,9 @@ function paintLyrics(_force = false) {
   const pos = songPos();
   let i = -1;
   for (let k = 0; k < lyr.lines.length && lyr.lines[k].t <= pos; k++) i = k;
+  // the player's clock is re-read every second: a correction of a few tenths back must not flip to the previous
+  // line and back (only a real jump back – a seek – does)
+  if (lyrIdx >= 0 && i === lyrIdx - 1 && lyr.lines[lyrIdx] && pos > lyr.lines[lyrIdx].t - 0.6) i = lyrIdx;
   const cur = lyr.lines[Math.max(0, i)];
   const next = lyr.lines[i + 1];
   if (i !== lyrIdx) {
@@ -1179,7 +1185,25 @@ function paintLyrics(_force = false) {
   // how far the line is sung, word by word: the line's time is shared by the words by their length, each word
   // eases in and out (smoothstep) so the light glides over it instead of ticking letter by letter
   let target = 0, active = -1;
-  if (i >= 0 && cur.text && L.edges.length) {
+  const stamps = i >= 0 && cur.text && L.edges.length ? cur.words || [] : [];
+  if (stamps.length && L.starts.length === L.edges.length) {
+    // 3.12 the lyrics carry a time for every word (or syllable): light exactly what is being sung, letter by letter
+    let j = -1;
+    for (let k = 0; k < stamps.length && stamps[k].t <= pos; k++) j = k;
+    let charPos = stamps[0].c;
+    if (j >= 0) {
+      const sw = stamps[j];
+      const end = stamps[j + 1] ? stamps[j + 1].t : Math.min(next ? next.t : sw.t + 1.2, sw.t + Math.max(0.35, sw.text.length * 0.12));
+      const f = Math.min(1, Math.max(0, (pos - sw.t) / Math.max(0.05, end - sw.t)));
+      charPos = sw.c + f * sw.text.length;
+    }
+    let k = 0;
+    while (k + 1 < L.starts.length && L.starts[k + 1] <= charPos) k++;
+    const len = Math.max(1, (L.words[k].textContent || "").length);
+    const within = Math.min(1, Math.max(0, (charPos - L.starts[k]) / len));
+    target = j < 0 ? L.edges[0][0] : L.edges[k][0] + (L.edges[k][1] - L.edges[k][0]) * within;
+    active = j < 0 ? -1 : k;
+  } else if (i >= 0 && cur.text && L.edges.length) {
     const span = Math.min((next ? next.t : cur.t + 4) - cur.t, Math.max(1.6, cur.text.length * 0.078 + 0.7));
     const p = Math.min(1, Math.max(0, (pos - cur.t) / span));
     const total = L.words.reduce((sum, wd) => sum + (wd.textContent || "").length + 1, 0);
@@ -1201,7 +1225,7 @@ function paintLyrics(_force = false) {
   const now = performance.now();
   const dt = Math.min(0.1, (now - (lyrLast || now)) / 1000);
   lyrLast = now;
-  lyrFill += (target - lyrFill) * (1 - Math.exp(-dt * 14));
+  lyrFill += (target - lyrFill) * (1 - Math.exp(-dt * (stamps.length ? 30 : 14)));   // word times: follow closely
   if (target < lyrFill - 40) lyrFill = target;   // jumped back (a seek): no slow rewind
   L.lit.style.setProperty("--fill", `${lyrFill.toFixed(1)}px`);
   L.litWords.forEach((wd, k) => wd.classList.toggle("now", k === active));

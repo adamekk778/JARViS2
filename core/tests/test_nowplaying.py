@@ -123,3 +123,14 @@ async def test_untimed_lyrics_keep_the_plain_text(rt):
     rt.media_state = snap
     await nowplaying.publish_lyrics(rt, snap)
     assert rt.lyrics_state["synced"] is False and rt.lyrics_state["plain"] == "první\ndruhá"
+
+
+def test_word_times_from_enhanced_lrc():
+    """3.12 "přesně 1:1 slovo od slova": when the lyrics carry a time for every word, the notch gets them."""
+    from jarvis.nowplaying import parse_lrc
+
+    r = parse_lrc("[00:12.00] <00:12.30> Hello <00:12.80> wor<00:13.10>ld <00:13.50> again\n[00:15.00]Plain line")
+    t = r[0]["text"]
+    assert t == "Hello world again" and "words" not in r[1]
+    assert [(w["t"], t[w["c"]:w["c"] + len(w["text"])]) for w in r[0]["words"]] == [
+        (12.3, "Hello"), (12.8, "wor"), (13.1, "ld"), (13.5, "again")]

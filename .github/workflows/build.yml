@@ -61,6 +61,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install "./core[desktop,voice,dev]" pyinstaller
+          # the "Jarvis" wake word models go INTO the installer – before, JARVIS downloaded them after every update
+          # and the voice was not ready (or not there at all when the internet was blocked)
+          python -c "import openwakeword.utils as u; u.download_models(['hey_jarvis'])"
       - name: Tests on Windows
         run: cd core; pytest -q -x
       - name: PyInstaller
