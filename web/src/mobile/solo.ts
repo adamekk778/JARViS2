@@ -10,13 +10,25 @@ import { native } from "./native";
 import { queueForPc } from "./offline";
 import "./solo.css";
 
-type Pid = "groq" | "gemini";
-const AI: Record<Pid, { name: string; base: string; model: string; url: string; prefix: string; hint: string }> = {
+type Pid = "groq" | "gemini" | "cerebras" | "openrouter" | "nvidia" | "mistral" | "github";
+// 3.12 every free AI the phone can talk to by itself; with more keys saved, a used-up limit simply moves on to the next
+const AI: Record<Pid, { name: string; base: string; model: string; url: string; prefix: string; hint: string; ico: string }> = {
   groq: { name: "Groq", base: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b", url: "https://console.groq.com/keys",
-    prefix: "gsk_", hint: "Nejrychlejší. Klíč začíná gsk_." },
+    prefix: "gsk_", hint: "Velmi rychlá. Klíč gsk_…", ico: "lightning" },
+  cerebras: { name: "Cerebras", base: "https://api.cerebras.ai/v1", model: "gpt-oss-120b", url: "https://cloud.cerebras.ai",
+    prefix: "csk-", hint: "Nejrychlejší. Klíč csk-…", ico: "rocket-launch" },
   gemini: { name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", url: "https://aistudio.google.com/apikey",
-    prefix: "AIza", hint: "Od Googlu. Klíč začíná AIza." },
+    prefix: "AIza", hint: "Od Googlu. Klíč AIza…", ico: "sparkle" },
+  openrouter: { name: "OpenRouter", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", url: "https://openrouter.ai/keys",
+    prefix: "sk-or-", hint: "Modely zdarma. Klíč sk-or-…", ico: "shuffle" },
+  nvidia: { name: "NVIDIA", base: "https://integrate.api.nvidia.com/v1", model: "meta/llama-3.3-70b-instruct", url: "https://build.nvidia.com",
+    prefix: "nvapi-", hint: "Velké modely. Klíč nvapi-…", ico: "cpu" },
+  mistral: { name: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-medium-latest", url: "https://console.mistral.ai/api-keys",
+    prefix: "", hint: "Hodně zdarma za měsíc.", ico: "wind" },
+  github: { name: "GitHub", base: "https://models.github.ai/inference", model: "openai/gpt-4.1-mini", url: "https://github.com/settings/tokens",
+    prefix: "github_pat_", hint: "S účtem GitHub. Klíč github_pat_…", ico: "github-logo" },
 };
+const ORDER: Pid[] = ["cerebras", "groq", "gemini", "openrouter", "nvidia", "mistral", "github"];
 const CFG = "jarvis.solo", HIST = "jarvis.solo.history", MAX_HIST = 60;
 type Msg = { role: "user" | "assistant"; text: string; at: number; queued?: boolean };
 
@@ -24,7 +36,10 @@ const memKeys: Partial<Record<Pid, string>> = {};      // a normal browser: only
 const load = <T>(k: string, d: T): T => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch { return d; } };
 const save = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* full */ } };
 
-export const soloProvider = (): Pid | null => load<{ provider?: Pid }>(CFG, {}).provider || null;
+export const soloProvider = (): Pid | null => {
+  const p = load<{ provider?: Pid }>(CFG, {}).provider;
+  return p && p in AI ? p : null;
+};
 
 async function getKey(p: Pid): Promise<string> {
   if (!native.isNative) return memKeys[p] || "";
@@ -56,10 +71,10 @@ async function ask(p: Pid, key: string, messages: { role: string; content: strin
       status = r.status; data = await r.json().catch(() => ({}));
     }
   } catch {
-    throw new Error("Nejde se spojit s internetem. Zkontroluj data nebo Wi-Fi.");
+    throw Object.assign(new Error("Nejde se spojit s internetem. Zkontroluj data nebo Wi-Fi."), { net: true });
   }
-  if (status === 401 || status === 403) throw new Error(`${a.name} klíč odmítl – zkopíruj ho znovu celý (začíná ${a.prefix}).`);
-  if (status === 429) throw new Error(`${a.name}: vyčerpaný bezplatný limit – zkus to za chvíli.`);
+  if (status === 401 || status === 403) throw new Error(`${a.name} klíč odmítl – zkopíruj ho znovu celý${a.prefix ? ` (začíná ${a.prefix})` : ""}.`);
+  if (status === 429) throw Object.assign(new Error(`${a.name}: vyčerpaný bezplatný limit – zkus to za chvíli.`), { limit: true });
   if (status >= 400) throw new Error(`${a.name} odpověděl chybou ${status}${data?.error?.message ? `: ${String(data.error.message).slice(0, 140)}` : ""}`);
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || !text.trim()) throw new Error(`${a.name} poslal prázdnou odpověď – zkus to znovu.`);
@@ -101,7 +116,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   const shell = h("div", { class: "solo" }, head, banner, body);
   app.replaceChildren(shell);
 
-  function paintPill() { pill.replaceChildren(icon(provider === "groq" ? "lightning" : "sparkle", "ph-fill"), h("span", {}, AI[provider].name), icon("caret-down")); }
+  function paintPill() { pill.replaceChildren(icon(AI[provider]?.ico || "sparkle", "ph-fill"), h("span", {}, AI[provider]?.name || "AI"), icon("caret-down")); }
   function msgEl(m: Msg, i: number) {
     if (m.role === "user") return h("div", { class: "msg user" }, h("div", { class: "bubble" }, h("div", { class: "user-text" }, m.text)),
       m.queued ? h("div", { class: "meta solo-queued" }, icon("clock"), " Čeká na PC") : null);
@@ -138,7 +153,22 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     try {
       const name = load<{ name?: string }>(CFG, {}).name || "";
       const ctx = hist.slice(-16).map((m) => ({ role: m.role, content: m.text }));
-      const answer = await ask(provider, key, [{ role: "system", content: system(name) }, ...ctx]);
+      const msgs = [{ role: "system", content: system(name) }, ...ctx];
+      let answer = "";
+      try {
+        answer = await ask(provider, key, msgs);
+      } catch (e: any) {
+        if (!e?.limit && e?.net) throw e;                 // no internet at all: another AI will not help
+        // this AI's limit is used up (or it failed): the next one with a saved key answers instead
+        let done = false;
+        for (const p of ORDER.filter((x) => x !== provider)) {
+          const k2 = await getKey(p);
+          if (!k2) continue;
+          try { answer = await ask(p, k2, msgs); toast(`${AI[provider].name} nejde – odpověděl ${AI[p].name}`, "info", 3000); done = true; break; }
+          catch { /* the next one */ }
+        }
+        if (!done) throw e;
+      }
       hist.push({ role: "assistant", text: answer, at: Date.now() / 1000 });
       hist = hist.slice(-MAX_HIST);
       save(HIST, hist);
@@ -162,12 +192,13 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     const choose = h("div", { class: "solo-choose" });
     const link = h("a", { class: "btn", target: "_blank", rel: "noopener noreferrer" }, icon("arrow-square-out"), h("span"));
     const paintChoose = async () => {
-      choose.replaceChildren(...(Object.keys(AI) as Pid[]).map((p) => h("button", { type: "button", class: `solo-opt ${pick === p ? "on" : ""}`,
-        onclick: () => { pick = p; paintChoose(); } }, icon(p === "groq" ? "lightning" : "sparkle", "ph-fill"), h("strong", {}, AI[p].name), h("span", {}, AI[p].hint))));
+      const saved = await Promise.all(ORDER.map(async (p) => !!(await getKey(p))));
+      choose.replaceChildren(...ORDER.map((p, i) => h("button", { type: "button", class: `solo-opt ${pick === p ? "on" : ""}`,
+        onclick: () => { pick = p; paintChoose(); } }, icon(AI[p].ico, "ph-fill"), h("strong", {}, AI[p].name, saved[i] ? " ✓" : ""), h("span", {}, AI[p].hint))));
       link.href = AI[pick].url;
       (link.lastChild as HTMLElement).textContent = `Získat klíč (${new URL(AI[pick].url).host})`;
       const has = !!(await getKey(pick));
-      key.placeholder = has ? "Klíč je uložený ✓ – nový vložíš sem" : `Vlož klíč (${AI[pick].prefix}…)`;
+      key.placeholder = has ? "Klíč je uložený ✓ – nový vložíš sem" : AI[pick].prefix ? `Vlož klíč (${AI[pick].prefix}…)` : "Vlož klíč";
     };
     const go = async () => {
       const raw = key.value.replace(/[\s"'“”„]/g, "");
@@ -186,7 +217,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     };
     sheet.append(h("div", { class: "solo-card" },
       h("div", { class: "row" }, h("strong", { class: "solo-h" }, "AI v telefonu"), h("button", { class: "icon-btn", type: "button", "aria-label": "Zavřít", onclick: close }, icon("x"))),
-      h("p", { class: "solo-p" }, "Když je PC vypnuté, odpovídá tahle AI. Je zdarma – stačí klíč. Uloží se jen v telefonu (v zabezpečeném úložišti Androidu)."),
+      h("p", { class: "solo-p" }, "Když je PC vypnuté, odpovídá tahle AI. Je zdarma – stačí klíč. Ulož klidně víc klíčů: když jedné AI dojde limit, odpoví další. Klíče zůstanou jen v telefonu (v zabezpečeném úložišti Androidu)."),
       choose, link, key,
       h("button", { class: "btn primary", type: "button", onclick: go }, icon("check"), "Uložit a vyzkoušet"), status,
       h("button", { class: "btn ghost", type: "button", onclick: () => { close(); o.pair(); } }, icon("qr-code"), "Spárovat s PC znovu")));
