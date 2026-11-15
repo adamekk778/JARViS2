@@ -19,7 +19,8 @@ export interface HabitSnap {
   month: { id: string; days: number; first_weekday: number; grid: { id: number; cells: string[] }[] };
   leaders: { id: number; name: string; color: string; rate: number }[];
   streaks: { id: number; name: string; color: string; streak: number }[];
-  meals: { slot: string; label: string; text: string }[];
+  meals: { slot: string; label: string; text: string; kcal?: number | null; protein?: number | null }[];
+  nutrition?: { kcal: number; protein: number; known: boolean };
   areas: Record<string, string>;
   remind?: string;
   plan?: { week: number; start: string; end: string; days: PlanDay[]; done: number; total: number; pct: number | null };
@@ -219,14 +220,56 @@ export function streaks(s: HabitSnap): HTMLElement {
 }
 
 /** today's meals – typed in, saved when you leave the field */
+/** a photo shrunk to at most 1024 px (JPEG) – enough for the AI, small enough to send from the phone */
+function shrink(file: File): Promise<string> {
+  return new Promise((ok, bad) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1024 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("Tohle není obrázek.")); };
+    img.src = url;
+  });
+}
+
+let mealStatus = "";
 export function meals(client: JarvisClient, s: HabitSnap): HTMLElement {
-  return h("div", { class: "hb-card hb-meals" }, h("h3", {}, icon("bowl-food", "ph-fill"), " Jídelníček · dnes"),
+  const status = h("p", { class: "hb-meal-status" }, mealStatus);
+  const file = h("input", { type: "file", accept: "image/*", capture: "environment", hidden: true }) as HTMLInputElement;
+  file.addEventListener("change", async () => {
+    const f = file.files?.[0];
+    if (!f) return;
+    mealStatus = "Prohlížím fotku…";
+    status.textContent = mealStatus;
+    try {
+      client.send("habit_meal_photo", { image: await shrink(f) });
+    } catch (e: any) { mealStatus = e.message; status.textContent = mealStatus; }
+    file.value = "";
+  });
+  const off = client.on("habit_meal_result", (m: any) => {
+    mealStatus = m.ok ? `${m.label}: ${m.food}${m.kcal ? ` · ~${m.kcal} kcal` : ""}${m.protein ? ` · ${m.protein} g bílkovin` : ""}` : m.message || "Nepovedlo se.";
+    if (status.isConnected) status.textContent = mealStatus; else off?.();
+  });
+  const n = s.nutrition;
+  return h("div", { class: "hb-card hb-meals" },
+    h("div", { class: "hb-meals-h" }, h("h3", {}, icon("bowl-food", "ph-fill"), " Jídelníček · dnes"),
+      h("button", { type: "button", class: "hb-photo", onclick: () => file.click(), title: "Vyfoť jídlo – AI odhadne kalorie a bílkoviny" },
+        icon("camera", "ph-fill"), "Z fotky"), file),
     ...s.meals.map((m) => {
       const inp = h("input", { class: "hb-meal-in", value: m.text, placeholder: "Co jsi jedl?", maxlength: "200", "aria-label": m.label }) as HTMLInputElement;
       inp.addEventListener("change", () => client.send("habit_meal", { slot: m.slot, text: inp.value }));
       inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
-      return h("label", { class: `hb-meal${m.text ? " has" : ""}` }, h("span", {}, m.label), inp);
-    }));
+      return h("label", { class: `hb-meal${m.text ? " has" : ""}` }, h("span", {}, m.label), inp,
+        m.kcal ? h("em", { class: "hb-kcal" }, `~${m.kcal} kcal`) : "");
+    }),
+    n?.known ? h("div", { class: "hb-nutri" }, h("span", {}, "Dnes celkem"), h("strong", {}, `~${n.kcal} kcal`), h("strong", {}, `${n.protein} g bílkovin`)) : "",
+    status);
 }
 
 const ICONS = ["barbell", "person-simple-run", "moon-stars", "drop", "bowl-food", "cookie", "flower-lotus", "book-open", "heartbeat",

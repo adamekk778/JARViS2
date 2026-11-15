@@ -56,7 +56,7 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
       paint();
     } else toast("Tohle jde změnit, jen když je PC připojené.", "info");
   };
-  const proxy = { send } as unknown as JarvisClient;
+  const proxy = { send, on: c.on.bind(c) } as unknown as JarvisClient;      // on: the meal photo answer
   const ask = () => { if (c.status === "open") c.send("habits_get", { month: month || undefined, week }); };
   /** tasks and goals change on the PC only (no waiting queue for them): say so when it is away */
   const online = () => ({ send: (t: string, m: any) => { native.haptic(); if (c.status === "open") c.send(t as any, m); else toast("Úkoly a cíle jdou změnit, když je PC připojené.", "info"); } }) as unknown as JarvisClient;

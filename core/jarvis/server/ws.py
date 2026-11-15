@@ -48,7 +48,7 @@ CLIENT_TYPES = [
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
+    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
@@ -70,7 +70,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "habit_meal_result",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -1199,6 +1199,17 @@ class Connection:
                 await self.send("habits", **hb.snapshot(rt, m.get("month") or None, int(m.get("week") or 0)))
             else:
                 hb.publish(rt)                         # every open window and the notch follow at once
+        elif t == "habit_meal_photo":         # 3.12 jídlo z fotky: the AI says what it is and about how much
+            from .. import habits as hb
+
+            async def photo() -> None:
+                try:
+                    r = await hb.meal_from_photo(rt, str(m.get("image") or ""), str(m.get("slot") or ""), m.get("day") or None)
+                    await self.send("habit_meal_result", ok=True, **r)
+                    hb.publish(rt)
+                except Exception as e:  # noqa: BLE001
+                    await self.send("habit_meal_result", ok=False, message=friendly_error(e) if not isinstance(e, ValueError) else str(e))
+            self.spawn(photo())
         elif t in ("gym_get", "gym_set", "gym_delete"):  # 3.12 Gym deník
             from .. import gym
 

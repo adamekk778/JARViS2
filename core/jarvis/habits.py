@@ -42,6 +42,10 @@ def _db(rt: Any):
     for c in ("energy", "focus", "motivation"):          # the mindset tracker (1–5 a day), added after the first version
         if c not in cols:
             rt.db.conn.execute(f"ALTER TABLE habit_days ADD COLUMN {c} INTEGER")
+    mcols = {r[1] for r in rt.db.conn.execute("PRAGMA table_info(habit_meals)")}
+    for c in ("kcal", "protein"):                        # 3.12 jídlo z fotky: the AI's estimate
+        if c not in mcols:
+            rt.db.conn.execute(f"ALTER TABLE habit_meals ADD COLUMN {c} REAL")
     return rt.db
 
 
@@ -125,14 +129,16 @@ def log(rt: Any, hid: int, value: float | None, day: str | None = None, note: st
     db.exec("INSERT OR REPLACE INTO habit_log (habit_id, day, value, note, ts) VALUES (?,?,?,?,?)", (int(hid), d, v or 0, n or "", time.time()))
 
 
-def set_meal(rt: Any, slot: str, text: str, day: str | None = None) -> None:
+def set_meal(rt: Any, slot: str, text: str, day: str | None = None, kcal: float | None = None,
+             protein: float | None = None) -> None:
     d = day or _iso(today())
     dt.date.fromisoformat(d)
     if slot not in dict(MEAL_SLOTS):
         raise ValueError("Neznámé jídlo dne.")
     t = " ".join(str(text or "").split())[:200]
     if t:
-        _db(rt).exec("INSERT OR REPLACE INTO habit_meals (day, slot, text, ts) VALUES (?,?,?,?)", (d, slot, t, time.time()))
+        _db(rt).exec("INSERT OR REPLACE INTO habit_meals (day, slot, text, ts, kcal, protein) VALUES (?,?,?,?,?,?)",
+                     (d, slot, t, time.time(), kcal, protein))
     else:
         _db(rt).exec("DELETE FROM habit_meals WHERE day=? AND slot=?", (d, slot))
 
@@ -375,7 +381,8 @@ def snapshot(rt: Any, month: str | None = None, week_offset: int = 0) -> dict:
                 cells.append("done" if _done(h, (logs.get((h["id"], _iso(d))) or {}).get("value")) else ("today" if d == t else "miss"))
             d += dt.timedelta(days=1)
         grid.append({"id": h["id"], "cells": cells})
-    meals = {r["slot"]: r["text"] for r in _db(rt).all("SELECT slot, text FROM habit_meals WHERE day=?", (ti,))}
+    meal_rows = {r["slot"]: r for r in _db(rt).all("SELECT slot, text, kcal, protein FROM habit_meals WHERE day=?", (ti,))}
+    meals = {k: r["text"] for k, r in meal_rows.items()}
     consistency = _range_pct(hs, logs, t - dt.timedelta(days=29), t)
     board = sorted([i for i in items if i["rate30"] is not None], key=lambda i: -i["rate30"])
     return {
@@ -387,7 +394,11 @@ def snapshot(rt: Any, month: str | None = None, week_offset: int = 0) -> dict:
         "leaders": [{"id": i["id"], "name": i["name"], "color": i["color"], "rate": i["rate30"]} for i in board[:5]],
         "streaks": sorted([{"id": i["id"], "name": i["name"], "color": i["color"], "streak": i["streak"]} for i in items if i["streak"]],
                           key=lambda x: -x["streak"])[:5],
-        "meals": [{"slot": s, "label": label, "text": meals.get(s, "")} for s, label in MEAL_SLOTS],
+        "meals": [{"slot": s, "label": label, "text": meals.get(s, ""), "kcal": (meal_rows.get(s) or {}).get("kcal"),
+                   "protein": (meal_rows.get(s) or {}).get("protein")} for s, label in MEAL_SLOTS],
+        "nutrition": {"kcal": round(sum(r["kcal"] or 0 for r in meal_rows.values())),
+                      "protein": round(sum(r["protein"] or 0 for r in meal_rows.values())),
+                      "known": any(r["kcal"] for r in meal_rows.values())},
         "remind": remind_time(rt),
         "areas": AREAS,
         "plan": plan(rt, hs, logs, week_offset),
@@ -524,3 +535,47 @@ async def remind_loop(rt: Any) -> None:
                     rt.phone_push("notify", title="Týden v návycích", body=week)
         except Exception as e:  # noqa: BLE001 – try again next minute
             logging.getLogger("jarvis.habits").debug("remind: %s", e)
+
+
+# ---------- 3.12 jídlo z fotky ----------
+MEAL_PROMPT = ("Na fotce je jídlo. Odhadni, co to je a kolik to má. Odpověz POUZE JSON bez dalšího textu: "
+               '{"food": "krátký český popis jídla", "kcal": číslo, "protein": gramy bílkovin, '
+               '"slot": "snidane|obed|vecere|svacina podle typu jídla"}. Když na fotce jídlo není, vrať {"food": ""}.')
+
+
+def _slot_by_time(now: dt.datetime | None = None) -> str:
+    h = (now or dt.datetime.now()).hour
+    return "snidane" if h < 10 else "obed" if h < 15 else "vecere" if h >= 17 else "svacina"
+
+
+async def meal_from_photo(rt: Any, image: str, slot: str = "", day: str | None = None) -> dict:
+    """The photo of a plate → what it is, ~kcal and protein (the AI's estimate) → into today's meals."""
+    import json
+    import re
+
+    if not (isinstance(image, str) and image.startswith("data:image/") and len(image) < 8_000_000):
+        raise ValueError("Pošli fotku jídla (JPG nebo PNG, do 6 MB).")
+    msgs = [{"role": "user", "content": [{"type": "text", "text": MEAL_PROMPT}, {"type": "image_url", "image_url": {"url": image}}]}]
+    raw = await rt.router.complete(msgs, need_vision=True)
+    m = re.search(r"\{.*\}", raw or "", re.S)
+    try:
+        data = json.loads(m.group(0)) if m else {}
+    except ValueError:
+        data = {}
+    food = " ".join(str(data.get("food") or "").split())[:120]
+    if not food:
+        raise ValueError("Na fotce jsem jídlo nepoznal – zkus ji vyfotit zblízka a shora.")
+
+    def num(v) -> float | None:
+        try:
+            x = float(str(v).replace(",", ".").split()[0])
+        except (ValueError, IndexError):
+            return None
+        return round(x) if 0 < x < 5000 else None
+
+    kcal, protein = num(data.get("kcal")), num(data.get("protein"))
+    s = slot if slot in dict(MEAL_SLOTS) else str(data.get("slot") or "")
+    if s not in dict(MEAL_SLOTS):
+        s = _slot_by_time()
+    set_meal(rt, s, food, day, kcal, protein)
+    return {"slot": s, "label": dict(MEAL_SLOTS)[s], "food": food, "kcal": kcal, "protein": protein}
