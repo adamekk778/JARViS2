@@ -11,6 +11,35 @@ export interface GymSnap {
     points: { day: string; rm: number }[]; rm: number; gain: number | null; pr_today: boolean }[];
   names: string[];
   week: { sets: number; volume: number; days: number; prev_volume: number };
+  plan?: { plan: string; name: string; split: string; items: { exercise: string; last: { weight: number; reps: number; day: string } | null;
+    suggest: { weight: number; reps: number } | null; done_sets: number }[] } | null;
+  plans?: Record<string, string>;
+  rest?: number;
+}
+
+/** 3.12 plán tréninku: today's part of your plan, last time and a small step up – one tap logs that set */
+function planCard(client: JarvisClient, s: GymSnap): HTMLElement {
+  const sel = h("select", { class: "gy-in gy-plan-sel", "aria-label": "Plán tréninku" },
+    h("option", { value: "" }, "Bez plánu"), ...Object.entries(s.plans || {}).map(([k, v]) => h("option", { value: k }, v))) as HTMLSelectElement;
+  sel.value = s.plan?.plan || "";
+  sel.onchange = () => client.send("gym_plan_set", { plan: sel.value });
+  const rest = h("select", { class: "gy-in gy-plan-sel", "aria-label": "Odpočinek mezi sériemi" },
+    ...[[0, "Bez odpočtu"], [60, "Pauza 1 min"], [90, "Pauza 1,5 min"], [120, "Pauza 2 min"], [180, "Pauza 3 min"]].map(([v, l]) => h("option", { value: String(v) }, String(l)))) as HTMLSelectElement;
+  rest.value = String(s.rest ?? 120);
+  rest.onchange = () => client.send("gym_plan_set", { rest: Number(rest.value) });
+  const p = s.plan;
+  return h("div", { class: "hb-card gy-plan" },
+    h("div", { class: "gy-form-h" }, h("strong", {}, p ? `Dnes: ${p.split}` : "Plán tréninku"), h("div", { class: "gy-plan-ctl" }, sel, rest)),
+    p ? h("div", { class: "gy-plan-list" }, ...p.items.map((it) => {
+      const sug = it.suggest || (it.last ? { weight: it.last.weight, reps: it.last.reps } : null);
+      return h("div", { class: `gy-plan-row${it.done_sets ? " done" : ""}` },
+        h("b", {}, it.exercise),
+        h("span", {}, it.last ? `minule ${wt(it.last.weight)} × ${it.last.reps}` : "poprvé"),
+        h("em", {}, sug ? `zkus ${wt(sug.weight)} × ${sug.reps}` : ""),
+        h("span", { class: "gy-plan-n" }, it.done_sets ? `${it.done_sets}×` : ""),
+        sug ? h("button", { type: "button", class: "gy-plan-go", title: "Zapsat tuhle sérii",
+          onclick: () => client.send("gym_set", { exercise: it.exercise, weight: sug.weight, reps: sug.reps, sets: 1 }) }, icon("check", "ph-bold")) : "");
+    })) : h("p", { class: "gy-plan-empty" }, "Vyber si plán a JARVIS ti každý den řekne, co cvičit a s jakou váhou."));
 }
 
 const kg = (v: number) => `${String(Math.round(v * 10) / 10).replace(".", ",")} kg`;
@@ -72,6 +101,6 @@ export function gymView(client: JarvisClient, s: GymSnap | null): HTMLElement {
     line(e.points),
     h("div", { class: "gy-foot" }, h("span", {}, e.rm > 0 ? `1RM odhad ${kg(e.rm)}` : `${e.sets} sérií`),
       e.gain != null ? h("em", { class: e.gain >= 0 ? "up" : "down" }, `${e.gain >= 0 ? "▲" : "▼"} ${kg(Math.abs(e.gain))}`) : ""))));
-  return h("div", { class: "gy" }, h("div", { class: "gy-top" }, form, today), stats,
+  return h("div", { class: "gy" }, planCard(client, s), h("div", { class: "gy-top" }, form, today), stats,
     s.exercises.length ? cards : h("p", { class: "hb-empty" }, "Zapiš první sérii a tady uvidíš, jak sílíš."));
 }

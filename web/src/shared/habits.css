@@ -319,3 +319,4 @@
 .hb-nutri strong { font-size: 15px; font-weight: 900; color: #fff; }
 .hb-meal-status { margin: 0; font-size: 12.5px; color: rgba(255, 255, 255, .7); }
 .hb-meal-status:empty { display: none; }
+.hb-weekcard { justify-self: start; margin-top: 4px; padding: 10px 16px; }

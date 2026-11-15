@@ -109,8 +109,85 @@ def snapshot(rt: Any, days: int = 120) -> dict:
     vol = lambda rs: round(sum((r["weight"] or 0) * (r["reps"] or 0) for r in rs))   # noqa: E731
     names = [r["exercise"] for r in db.all("SELECT exercise, MAX(day) AS d FROM gym_sets GROUP BY exercise ORDER BY d DESC LIMIT 40")]
     return {"date": t.isoformat(), "today": today_rows, "exercises": exercises, "names": names,
+            "plan": today_plan(rt), "plans": {k: v[0] for k, v in PLANS.items()}, "rest": rest_seconds(rt),
             "week": {"sets": len(week), "volume": vol(week), "days": len({r["day"] for r in week}),
                      "prev_volume": vol(prev)}}
+
+
+# ---------- 3.12 plán tréninku: what to do today, and with how much (last time + a small step) ----------
+PLANS: dict[str, tuple[str, list[tuple[str, list[str]]]]] = {
+    "ppl": ("Push / Pull / Nohy", [("Push", ["Bench press", "Tlaky nad hlavu", "Kliky na bradlech", "Triceps"]),
+                                   ("Pull", ["Mrtvý tah", "Shyby", "Přítahy", "Biceps"]),
+                                   ("Nohy", ["Dřep", "Leg press", "Výpady", "Lýtka"])]),
+    "upperlower": ("Horní / spodní", [("Horní", ["Bench press", "Přítahy", "Tlaky nad hlavu", "Shyby"]),
+                                      ("Spodní", ["Dřep", "Mrtvý tah", "Výpady", "Lýtka"])]),
+    "fullbody": ("Celé tělo", [("Celé tělo A", ["Dřep", "Bench press", "Přítahy"]),
+                               ("Celé tělo B", ["Mrtvý tah", "Tlaky nad hlavu", "Shyby"])]),
+}
+REST_DEFAULT = 120
+
+
+def plan_id(rt: Any) -> str:
+    row = _db(rt).one("SELECT v FROM kv WHERE k='gym_plan'")
+    return str(row["v"]) if row and row["v"] in PLANS else ""
+
+
+def set_plan(rt: Any, pid: str) -> None:
+    if pid and pid not in PLANS:
+        raise ValueError("Takový plán neznám.")
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('gym_plan', ?)", (pid,))
+
+
+def rest_seconds(rt: Any) -> int:
+    row = _db(rt).one("SELECT v FROM kv WHERE k='gym_rest'")
+    try:
+        return max(0, min(600, int(row["v"]))) if row else REST_DEFAULT
+    except (TypeError, ValueError):
+        return REST_DEFAULT
+
+
+def set_rest(rt: Any, secs: int) -> None:
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('gym_rest', ?)", (str(max(0, min(600, int(secs)))),))
+
+
+def _split_of(splits: list[tuple[str, list[str]]], exercises: set[str]) -> int:
+    """Which part of the plan a day's exercises were (the most of its exercises); -1 when none fits."""
+    best, idx = 0, -1
+    for k, (_, ex) in enumerate(splits):
+        n = len(exercises & set(ex))
+        if n > best:
+            best, idx = n, k
+    return idx
+
+
+def today_plan(rt: Any) -> dict | None:
+    pid = plan_id(rt)
+    if not pid:
+        return None
+    name, splits = PLANS[pid]
+    db = _db(rt)
+    t = today().isoformat()
+    by_day: dict[str, set[str]] = {}
+    for r in db.all("SELECT day, exercise FROM gym_sets WHERE day >= ? ORDER BY day", ((today() - dt.timedelta(days=60)).isoformat(),)):
+        by_day.setdefault(r["day"], set()).add(r["exercise"])
+    if t in by_day and _split_of(splits, by_day[t]) >= 0:
+        idx = _split_of(splits, by_day[t])                      # already training: today's part stays
+    else:
+        last = next((_split_of(splits, ex) for d, ex in sorted(by_day.items(), reverse=True) if d < t and _split_of(splits, ex) >= 0), -1)
+        idx = (last + 1) % len(splits)
+    split, exercises = splits[idx]
+    items = []
+    for ex in exercises:
+        last = db.one("SELECT day, weight, reps FROM gym_sets WHERE exercise=? AND day < ? ORDER BY day DESC, weight DESC, reps DESC LIMIT 1",
+                      (ex, t))
+        sug = None
+        if last:
+            w, r = float(last["weight"] or 0), int(last["reps"] or 0)
+            sug = ({"weight": w, "reps": r + 1} if w <= 0 else
+                   {"weight": round(w + 2.5, 1), "reps": r} if r >= 8 else {"weight": w, "reps": r + 1})
+        done = db.one("SELECT COUNT(*) AS n FROM gym_sets WHERE exercise=? AND day=?", (ex, t))["n"]
+        items.append({"exercise": ex, "last": dict(last) if last else None, "suggest": sug, "done_sets": done})
+    return {"plan": pid, "name": name, "split": split, "items": items}
 
 
 def publish(rt: Any) -> None:

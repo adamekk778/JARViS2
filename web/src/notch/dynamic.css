@@ -243,3 +243,5 @@ html:not([data-nstyle="dynamic"]) .n-pip { display: none; }
 .n-pip .n-cc { font-size: 9px; height: 16px; }
 .n-pip[data-kind="claude"], .n-pip[data-kind="ai"] { box-shadow: inset 0 0 12px -4px var(--brand, #d97757); }
 @media (prefers-reduced-motion: reduce) { .n-pip .pip-art, .n-pip.pop, .n-pip.pop::before { animation: none !important; } }
+.dyb-hab { width: auto !important; padding: 0 8px !important; gap: 4px; display: inline-flex; align-items: center; }
+.dyb-hab b { font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; }

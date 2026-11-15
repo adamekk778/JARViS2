@@ -87,6 +87,13 @@ const barTop = h("div", { class: "bar-top" }, clock, weatherText);
 // 3.12 today's habits for the closed island (the lowest priority: only when nothing else is shown)
 let habitDay: { done: number; due: number } | null = null;
 let cfgHabitRing = true;
+// 3.12 voda během dne: every 2 hours (9–21) the island asks for a glass for 40 s – a click adds one
+let water: { id: number; value: number; target: number } | null = null;
+let waterUntil = 0;
+const WATER_KEY = "jarvis.water.asked";
+// 3.12 odpočinek mezi sériemi: a set was logged → the island counts the rest down, then says "Další série"
+let rest: { until: number; total: number; ex: string } | null = null;
+let restTick = 0;
 
 const barLeft = h("div", { class: "bar-side l" },
   h("button", { class: "n-btn", type: "button", title: "Chat", "aria-label": "Chat", onclick: () => openPanel("chat") }, icon("chat-circle-dots")));
@@ -102,7 +109,10 @@ const dyTime = h("strong", { class: "dyb-time" });
 const dyState = h("span", { class: "dyb-state" }, h("i", { class: "dyb-dot" }), h("span", {}, "Připraven"));
 const dyIcon = (ic: string, label: string, fn: () => void, cls = "") => h("button", { class: `dyb-ic ${cls}`, type: "button", title: label, "aria-label": label,
   onclick: (e: Event) => { e.stopPropagation(); fn(); } }, icon(ic));
-const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, h("span", { class: "dyb-icons" },
+// 3.12 today's habits one click away in the quick bar ("3/5" → the Návyky tab, where a tap ticks a habit)
+const dyHab = h("button", { class: "dyb-ic dyb-hab", type: "button", title: "Návyky na dnes", "aria-label": "Návyky na dnes",
+  onclick: (e: Event) => { e.stopPropagation(); openPanel("habits"); } }, icon("heartbeat"), h("b"));
+const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, h("span", { class: "dyb-icons" }, dyHab,
   dyIcon("chat-circle", "Chat", () => openPanel("chat")),
   dyIcon("microphone", "Mluvit (Ctrl+Alt+Mezerník)", () => client.send("push_to_talk"), "mic"),
   dyIcon("squares-four", "Akce", () => openPanel("quick"))));
@@ -116,6 +126,10 @@ function paintDyBar() {
   const lbl = dyState.lastElementChild as HTMLElement;
   if (lbl.textContent !== word) lbl.textContent = word;
   if (dyState.dataset.m !== coreMood) dyState.dataset.m = coreMood;
+  const hb = habitDay && habitDay.due ? `${habitDay.done}/${habitDay.due}` : "";
+  const b = dyHab.lastElementChild as HTMLElement;
+  if (b.textContent !== hb) b.textContent = hb;
+  dyHab.hidden = !hb;
 }
 const bubbleState = h("div", { class: "b-state" });
 const bubbleTranscript = h("div", { class: "b-transcript" });
@@ -1273,14 +1287,42 @@ document.addEventListener("visibilitychange", lyricsWake);
 lyricsWake();
 // 3.12 two things at once (like iPhone): the main activity in the island, the next one in a small circle on its
 // right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
+client.on("gym_rest", (m: any) => {
+  const secs = Number(m?.seconds) || 0;
+  if (secs <= 0) return;
+  rest = { until: Date.now() + secs * 1000, total: secs * 1000, ex: String(m?.exercise || "") };
+  window.clearInterval(restTick);
+  restTick = window.setInterval(() => {
+    if (!rest || Date.now() > rest.until + 6000) { rest = null; window.clearInterval(restTick); }
+    updateActivity();
+    if (mode === "closed") apply(mode);
+  }, 1000);
+  updateActivity();
+  if (mode === "closed") apply(mode);
+});
 client.on("habits", (m: any) => {
   const t = m?.today;
   habitDay = t && typeof t.due === "number" ? { done: Number(t.done) || 0, due: t.due } : null;
+  const w = Array.isArray(m?.items) ? m.items.find((i: any) => i.kind === "amount" && i.due && /sklen|voda|vody/i.test(`${i.unit} ${i.name}`)) : null;
+  water = w ? { id: w.id, value: Number(w.value) || 0, target: Number(w.target) || 8 } : null;
+  if (water && water.value >= water.target) waterUntil = 0;
   updateActivity();
   if (mode === "closed") apply(mode);
 });
 client.onStatus((st) => { if (st === "open") client.send("habits_get"); });
 window.setInterval(() => client.send("habits_get"), 15 * 60 * 1000);        // a new day starts at midnight
+window.setInterval(() => {                                                   // time for a glass of water?
+  const h = new Date().getHours();
+  if (!water || water.value >= water.target || h < 9 || h >= 21 || !cfgHabitRing) return;
+  let last = 0;
+  try { last = Number(localStorage.getItem(WATER_KEY)) || 0; } catch { /* no storage */ }
+  if (Date.now() - last < 2 * 3600 * 1000) return;
+  try { localStorage.setItem(WATER_KEY, String(Date.now())); } catch { /* no storage */ }
+  waterUntil = Date.now() + 40_000;
+  updateActivity();
+  if (mode === "closed") apply(mode);
+  window.setTimeout(() => { updateActivity(); if (mode === "closed") apply(mode); }, 40_500);
+}, 60_000);
 const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
 let lastKind = "", lastKindAt = 0;
 let preferKind = "";
@@ -1376,6 +1418,16 @@ function islandActivity(t: any) {
     l = [icon(vol.muted || vol.level === 0 ? "speaker-slash" : vol.level < 34 ? "speaker-low" : "speaker-high", "ph-fill")];
     r = [volNum];
     if (!volRaf) volRaf = requestAnimationFrame(volTick);
+  } else if (rest) {
+    const left = Math.max(0, Math.ceil((rest.until - Date.now()) / 1000));
+    kind = "rest";
+    if (left > 0) {
+      l = [h("span", { class: "n-hab-ring" }, ring(left * 1000 / rest.total)), h("span", {}, "Pauza")];
+      r = [h("span", { class: "n-hab" }, `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`)];
+    } else {
+      l = [icon("barbell", "ph-fill"), h("span", {}, "Další série")];
+      r = [h("span", { class: "n-hab all" }, rest.ex || "Jdeme 💪")];
+    }
   } else if (sk("lyrics") && lyricsOn()) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
@@ -1447,6 +1499,15 @@ function islandActivity(t: any) {
     // a new version waiting is the quietest news: it never covers a song, a subtitle or anything else going on
     kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, `Verze ${upd.latest}`)];
     r = [h("button", { type: "button", class: "n-upd-go", onclick: (e: Event) => { e.stopPropagation(); client.send("update_install"); } }, "Aktualizovat")];
+  } else if (water && Date.now() < waterUntil && water.value < water.target) {
+    kind = "water";
+    l = [h("span", { class: "n-water" }, icon("drop", "ph-fill")), h("span", {}, "Napij se")];
+    r = [h("button", { type: "button", class: "n-upd-go", onclick: (e: Event) => {
+      e.stopPropagation();
+      if (!water) return;
+      client.send("habit_log", { id: water.id, value: water.value + 1 });
+      water.value += 1; waterUntil = 0; updateActivity(); if (mode === "closed") apply(mode);
+    } }, `+1 · ${Math.round(water.value)}/${water.target}`)];
   } else if (habitDay && habitDay.due > 0 && cfgHabitRing) {
     // 3.12 nothing else going on: today's habits as a small ring ("3/5"), a tick when the day is done; a click opens them
     kind = "habits";

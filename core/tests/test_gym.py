@@ -44,3 +44,29 @@ def test_by_voice(rt):
     r = asyncio.run(gym_log(rt, "dřep", 80, 5, sets=3))
     assert r.ok and "Dřep 3× 5" in r.summary
     assert len(gym.snapshot(rt)["today"]) == 3
+
+
+def test_plan_rotates_and_suggests_a_step_up(rt, monkeypatch):
+    t = dt.date.today()
+    assert gym.today_plan(rt) is None
+    gym.set_plan(rt, "ppl")
+    p = gym.today_plan(rt)
+    assert p["split"] == "Push" and p["items"][0]["exercise"] == "Bench press" and p["items"][0]["suggest"] is None
+    gym.add_set(rt, "bench", 60, 8, day=(t - dt.timedelta(days=2)).isoformat())       # last time: Push
+    p = gym.today_plan(rt)
+    assert p["split"] == "Pull"                                                         # next in turn
+    gym.add_set(rt, "shyby", 0, 6, day=(t - dt.timedelta(days=1)).isoformat())
+    gym.add_set(rt, "dřep", 80, 5)                                                     # today: legs
+    p = gym.today_plan(rt)
+    assert p["split"] == "Nohy" and p["items"][0]["done_sets"] == 1
+    gym.set_plan(rt, "ppl")
+    gym.add_set(rt, "bench", 60, 8, day=(t - dt.timedelta(days=5)).isoformat())
+    with pytest.raises(ValueError):
+        gym.set_plan(rt, "nesmysl")
+    gym.set_plan(rt, "fullbody")
+    fb = gym.today_plan(rt)
+    bench = next(i for i in fb["items"] if i["exercise"] == "Bench press")
+    assert bench["suggest"] == {"weight": 62.5, "reps": 8}                              # 8 reps last time → +2.5 kg
+    assert gym.snapshot(rt)["rest"] == 120
+    gym.set_rest(rt, 90)
+    assert gym.rest_seconds(rt) == 90

@@ -709,3 +709,4 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
 .n-hab-ring { display: inline-grid; place-items: center; color: #fff; }
 .n-hab { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .85); }
 .n-hab.all { color: #fff; }
+.n-water { display: inline-grid; place-items: center; color: #4cc9f0; }

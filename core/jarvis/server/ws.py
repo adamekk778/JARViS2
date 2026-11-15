@@ -49,7 +49,7 @@ CLIENT_TYPES = [
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
+    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "gym_plan_set", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
@@ -71,7 +71,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "habit_meal_result",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -1227,12 +1227,20 @@ class Connection:
                 except Exception as e:  # noqa: BLE001
                     await self.send("habit_meal_result", ok=False, message=friendly_error(e) if not isinstance(e, ValueError) else str(e))
             self.spawn(photo())
-        elif t in ("gym_get", "gym_set", "gym_delete"):  # 3.12 Gym deník
+        elif t in ("gym_get", "gym_set", "gym_delete", "gym_plan_set"):  # 3.12 Gym deník
             from .. import gym
 
             if t == "gym_set":
                 gym.add_set(rt, str(m.get("exercise") or ""), float(m.get("weight") or 0), int(m.get("reps") or 0),
                             m.get("day") or None, int(m.get("sets") or 1))
+                rest = gym.rest_seconds(rt)
+                if rest and not m.get("day"):         # 3.12 odpočinek mezi sériemi: the notch counts it down
+                    rt.bus.publish("gym_rest", seconds=rest, until=time.time() + rest, exercise=gym.name(str(m.get("exercise") or "")))
+            elif t == "gym_plan_set":
+                if "plan" in m:
+                    gym.set_plan(rt, str(m.get("plan") or ""))
+                if "rest" in m:
+                    gym.set_rest(rt, int(m.get("rest") or 0))
             elif t == "gym_delete":
                 gym.delete_set(rt, int(m.get("id") or 0))
             if t == "gym_get":

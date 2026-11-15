@@ -459,6 +459,40 @@ export function goalsView(client: JarvisClient, s: HabitSnap): HTMLElement {
 /** Přehled: the consistency (all habits or one), this week, the leaderboard for a day / week / month, the streaks */
 let pick: number | "all" = "all";                 // kept while the snapshot refreshes (every tick)
 let period: "7" | "30" | "90" = "30";
+/** 3.12 the week as a picture (1080×1350, black and white) – saved or shared from the phone */
+export async function weekCard(s: HabitSnap): Promise<void> {
+  const W = 1080, H = 1350, c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d")!;
+  const font = (w: number, px: number) => `${w} ${px}px "Geist Variable", system-ui, sans-serif`;
+  g.fillStyle = "#0a0a0b"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#fff"; g.font = font(900, 96); g.fillText("TÝDEN", 80, 190);
+  const [y, m, d] = s.date.split("-").map(Number);
+  g.font = font(700, 34); g.fillStyle = "rgba(255,255,255,.55)"; g.fillText(`${d}. ${MONTHS[m - 1]} ${y} · JARVIS`, 84, 245);
+  g.fillStyle = "#fff"; g.font = font(900, 240); g.fillText(`${s.week ?? 0}%`, 70, 520);
+  g.font = font(700, 40); g.fillStyle = "rgba(255,255,255,.7)";
+  g.fillText(s.delta == null ? "splněných návyků" : `${s.delta >= 0 ? "▲ +" : "▼ "}${s.delta} % proti minulému týdnu`, 84, 590);
+  const best = [...s.items].sort((a, b) => b.streak - a.streak)[0];
+  if (best && best.streak >= 2) { g.fillStyle = "#fff"; g.font = font(800, 44); g.fillText(`🔥 ${best.name} – ${best.streak} dní v řadě`, 84, 680); }
+  let yy = 780;
+  for (const it of s.items.slice(0, 7)) {
+    const r = Math.max(0, Math.min(100, it.rate7 ?? 0));
+    g.fillStyle = "#fff"; g.font = font(800, 36); g.fillText(it.name.toUpperCase(), 84, yy);
+    g.textAlign = "right"; g.fillText(`${Math.round(r)} %`, W - 84, yy); g.textAlign = "left";
+    g.fillStyle = "rgba(255,255,255,.1)"; g.beginPath(); g.roundRect(84, yy + 18, W - 168, 16, 8); g.fill();
+    g.fillStyle = "#fff"; g.beginPath(); g.roundRect(84, yy + 18, Math.max(16, (W - 168) * r / 100), 16, 8); g.fill();
+    yy += 78;
+  }
+  const blob: Blob = await new Promise((ok) => c.toBlob((b) => ok(b!), "image/png"));
+  const file = new File([blob], `jarvis-tyden-${s.date}.png`, { type: "image/png" });
+  const nav = navigator as any;
+  if (nav.canShare?.({ files: [file] })) { try { await nav.share({ files: [file], title: "Můj týden" }); return; } catch { /* cancelled: save instead */ } }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = file.name;
+  document.body.append(a); a.click(); a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 export function insights(s: HabitSnap): HTMLElement {
   if (pick !== "all" && !s.items.some((x) => x.id === pick)) pick = "all";
   const root = h("div", { class: "hbp-insights" });
@@ -499,7 +533,9 @@ export function insights(s: HabitSnap): HTMLElement {
         h("div", { class: "hb-card hb-streaks" }, h("h3", {}, "Nejdelší série"),
           ...(s.streaks.length ? s.streaks.map((x) => h("div", { class: "hb-srow", style: { "--c": safeColor(x.color) } as any },
             h("span", {}, x.name), h("span", { class: "hb-sbar" }, h("i", { style: { width: `${(100 * x.streak) / maxStreak}%` } })),
-            h("strong", {}, icon("fire", "ph-fill"), ` ${x.streak}`))) : [h("p", { class: "hb-empty" }, "Odškrtni návyk dva dny po sobě a začne série.")]))));
+            h("strong", {}, icon("fire", "ph-fill"), ` ${x.streak}`))) : [h("p", { class: "hb-empty" }, "Odškrtni návyk dva dny po sobě a začne série.")]))),
+      h("button", { type: "button", class: "hb-photo hb-weekcard", onclick: () => { weekCard(s).catch(() => {}); } },
+        icon("image", "ph-fill"), "Uložit kartu týdne"));
   };
   paint();
   return root;
