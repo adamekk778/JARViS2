@@ -1158,6 +1158,10 @@ function lyricsOn(): boolean {
     && lyrPos() >= lyr.lines[0].t - 1.5 && lyrPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
 }
 let cfgLyrics = true;
+// 3.12 a song from a music app is never shown as "subtitles" heard from the sound (they come out as nonsense):
+// its lyrics from the internet, or the song itself
+const MUSIC_APPS = new Set(["spotify", "applemusic", "deezer", "tidal", "soundcloud", "youtubemusic"]);
+const songApp = () => !!(media?.playing && MUSIC_APPS.has(String(media.source || "")));
 /** The current line, lit word by word as it is sung: each word glows up in turn with a soft, feathered edge (no hard
  *  cut), the word being sung lifts a little, and lines cross-fade (the old one floats up, the new one rises in). */
 type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number; starts: number[];
@@ -1333,7 +1337,7 @@ let preferKind = "";
 let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
   const on: Record<string, boolean> = {
-    lyrics: lyricsOn(), subs: subs.on, team: team.size > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
+    lyrics: lyricsOn(), subs: subs.on && !songApp(), team: team.size > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
     focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000),
     music: !lyricsOn() && !!(media?.playing && media.title),
   };
@@ -1439,7 +1443,7 @@ function islandActivity(t: any) {
     l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")))];
     r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
     paintLyrics(true);
-  } else if (sk("subs") && subs.on) {
+  } else if (sk("subs") && subs.on && !songApp()) {
     kind = "subs";
     const src = mediaBrand(subs.source);
     l = [src ? brandEl(src, "n-src") : "", h("span", { class: "n-cc", title: "Titulky z videa – vypneš Ctrl+Alt+T" }, "CC")];

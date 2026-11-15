@@ -29,6 +29,7 @@ MAX_CHARS = 60_000
 
 class DeviceListen(LiveSubs):
     CHUNK = {"min_s": 2.0, "max_s": 12.0, "pause_s": 0.5}
+    SKIP_MUSIC = False        # you asked for a transcript of everything that plays
     QUEUE = 64
 
     def __init__(self, rt):

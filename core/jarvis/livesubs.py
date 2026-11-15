@@ -177,6 +177,7 @@ class LiveSubs:
         spk = sc.default_speaker()
         return sc.get_microphone(str(spk.name), include_loopback=True).recorder(samplerate=SR, channels=1)
 
+    SKIP_MUSIC = True         # a song from Spotify & co. is not turned into "subtitles" (the notch shows its real lyrics)
     CHUNK: dict = {}          # Chunker settings (the device listening takes longer pieces: fewer, better transcripts)
     QUEUE = 2                 # subtitles stay live (skip when behind); a full transcript keeps every piece
 
@@ -209,6 +210,11 @@ class LiveSubs:
                 piece = self._jobs.get(timeout=0.5)
             except queue.Empty:
                 continue
+            if self.SKIP_MUSIC and self._music_playing():
+                if self.text:
+                    self.text = ""
+                    self._publish()
+                continue
             try:
                 text, lang = stt.caption(piece)
             except Exception as e:
@@ -222,6 +228,14 @@ class LiveSubs:
             self._publish()
             if lang and lang != "cs" and getattr(self.rt.cfg.notch, "subs_translate", True):
                 self._translate(text, lang)
+
+    def _music_playing(self) -> bool:
+        """A music app (Spotify, Apple Music, Deezer…) is playing: what is heard is a song, and a song heard by the
+        recogniser comes out as nonsense – its real lyrics come from the internet instead."""
+        from . import nowplaying
+
+        m = getattr(self.rt, "media_state", None) or {}
+        return bool(m.get("playing")) and nowplaying.is_music(str(m.get("source") or ""))
 
     def _translate(self, text: str, lang: str) -> None:
         router = getattr(self.rt, "router", None)
