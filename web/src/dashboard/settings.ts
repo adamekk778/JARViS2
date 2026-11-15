@@ -387,6 +387,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, on ? "Titulky běží" : "Titulky jsou vypnuté"),
               h("span", {}, `Zkratka ${combo(S.hotkeys.subtitles || "ctrl+alt+t")} nebo řekni „zapni titulky“.` + (extra.subs?.error ? ` ${extra.subs.error}` : ""))), btn);
           })(),
+          sw("notch.habit_ring", "Návyky v zavřeném notchi", "Když se nic jiného neděje, notch ukáže malý kroužek dnešních návyků (např. 3/5). Kliknutím je otevřeš."),
           sw("notch.lyrics", "Texty písní v notchi", "Když hraje hudba (Spotify, YouTube Music, Apple Music…), notch ukáže právě zpívaný řádek a čára pod ním jede se zpěvem. Texty jsou z LRCLIB – posílá se jen název písně a interpret."),
           sw("notch.focus_guard", "Hlídat soustředění", "Když máš zapnuté soustředění a do popředí se dostane YouTube, Netflix, TikTok, Instagram a podobně, notch zabliká a oči se zamračí. Nic nezavírá ani neblokuje – jen připomene."),
           sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),

@@ -84,6 +84,9 @@ const progress = h("div", { class: "n-progress", "aria-hidden": "true" }, progre
 const clock = h("b");
 const weatherText = h("span");
 const barTop = h("div", { class: "bar-top" }, clock, weatherText);
+// 3.12 today's habits for the closed island (the lowest priority: only when nothing else is shown)
+let habitDay: { done: number; due: number } | null = null;
+let cfgHabitRing = true;
 
 const barLeft = h("div", { class: "bar-side l" },
   h("button", { class: "n-btn", type: "button", title: "Chat", "aria-label": "Chat", onclick: () => openPanel("chat") }, icon("chat-circle-dots")));
@@ -228,6 +231,7 @@ function takeNotchSettings(n: any) {
   if (!n) return;
   cfg = { ...cfg, ...n };
   cfgLyrics = n.lyrics !== false;
+  cfgHabitRing = n.habit_ring !== false;
   if (!(cfg.expanded_width >= 760)) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
 }
 function windowSize(): [number, number] {
@@ -560,6 +564,7 @@ function leave() {
 }
 shape.addEventListener("click", (e) => {
   if (shape.dataset.island === "msg" && msgEv && !(e.target as HTMLElement).closest("button, input")) { openReply(msgEv.item); return; }
+  if (shape.dataset.island === "habits") { openPanel("habits"); return; }
   if (shape.dataset.island === "rec" && !(e.target as HTMLElement).closest("button, input")) { client.send("device_listen_set", { on: false }); return; }
   // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
   const tgt = e.target as HTMLElement;
@@ -1257,6 +1262,14 @@ document.addEventListener("visibilitychange", lyricsWake);
 lyricsWake();
 // 3.12 two things at once (like iPhone): the main activity in the island, the next one in a small circle on its
 // right – a timer ring, the album art, a logo. Clicking the circle swaps the two.
+client.on("habits", (m: any) => {
+  const t = m?.today;
+  habitDay = t && typeof t.due === "number" ? { done: Number(t.done) || 0, due: t.due } : null;
+  updateActivity();
+  if (mode === "closed") apply(mode);
+});
+client.onStatus((st) => { if (st === "open") client.send("habits_get"); });
+window.setInterval(() => client.send("habits_get"), 15 * 60 * 1000);        // a new day starts at midnight
 const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
 let lastKind = "", lastKindAt = 0;
 let preferKind = "";
@@ -1423,6 +1436,12 @@ function islandActivity(t: any) {
     // a new version waiting is the quietest news: it never covers a song, a subtitle or anything else going on
     kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, `Verze ${upd.latest}`)];
     r = [h("button", { type: "button", class: "n-upd-go", onclick: (e: Event) => { e.stopPropagation(); client.send("update_install"); } }, "Aktualizovat")];
+  } else if (habitDay && habitDay.due > 0 && cfgHabitRing) {
+    // 3.12 nothing else going on: today's habits as a small ring ("3/5"), a tick when the day is done; a click opens them
+    kind = "habits";
+    const all = habitDay.done >= habitDay.due;
+    l = [h("span", { class: "n-hab-ring" }, ring(habitDay.done / habitDay.due))];
+    r = [h("span", { class: `n-hab ${all ? "all" : ""}` }, all ? icon("check", "ph-bold") : "", `${habitDay.done}/${habitDay.due}`)];
   }
   const nowMs = Date.now();
   if (kind) { lastKind = kind; lastKindAt = nowMs; }

@@ -283,7 +283,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const MOOD_TEXT: Record<string, string> = { idle: "Připraven", listening: "Poslouchá…", thinking: "Přemýšlí…", working: "Pracuje…",
     speaking: "Mluví…", waiting: "Čeká na potvrzení", error: "Něco se nepovedlo", offline: "PC je nedostupné", sleeping: "Odpočívá",
     success: "Hotovo", joy: "Připraven", notify: "Má pro tebe zprávu", focus: "Režim soustředění", dancing: "Hraje hudba", limit: "Limit AI" };
-  const widget = { status: "", task: "", pins: "" };
+  const widget = { status: "", task: "", pins: "", habits: "", online: false };
   let widgetTimer = 0;
   const pushWidget = (o: Partial<typeof widget>) => {
     Object.assign(widget, o);
@@ -293,6 +293,13 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const pinsText = (items: any[]) => (items || []).slice(0, 3).map((p: any) => `• ${p.text}`).join("\n");
   const taskText = (t: any) => (t && ["running", "paused", "waiting"].includes(t.status) ? `Úkol: ${t.goal || t.title || ""}` : "");
   c.on("pins", (m) => pushWidget({ pins: pinsText(m.items) }));
+  // 3.12 the widget also shows today's habits ("Návyky 3 z 5 · zbývá Voda, Meditace")
+  c.on("habits", (m: any) => {
+    const t = m?.today;
+    if (!t || !Array.isArray(m.items)) return;
+    const left = m.items.filter((i: any) => i.due && !i.done).map((i: any) => i.name);
+    pushWidget({ habits: !t.due ? "Návyky: dnes volno" : left.length ? `Návyky ${t.done} z ${t.due} · zbývá ${left.slice(0, 3).join(", ")}` : `Návyky ${t.done} z ${t.due} – všechno hotovo 🔥`, online: true });
+  });
   c.on("task_update", (m) => pushWidget({ task: taskText(m.task) }));
   c.onStatus((s) => { if (s !== "open") pushWidget({ status: MOOD_TEXT.offline }); });
 
@@ -313,6 +320,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     else if (what === "chat") { show("chat"); chat.focus(); }
     else if (what === "photo") { show("control"); sendPhoto(c, "shelf"); }
     else if (what === "scan") scanCommand(c);
+    else if (what === "habits") show("habits" as any);
   });
   c.on("welcome", (m) => {
     if (m.guest) { app.replaceChildren(guestView(c, m.guest)); return; }     // OMEGA 727: a temporary guest pairing

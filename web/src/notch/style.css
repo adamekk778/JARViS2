@@ -703,3 +703,7 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
   background: rgba(255, 255, 255, .12); cursor: pointer; pointer-events: auto; display: inline-flex; align-items: center; }
 .n-mt-b.go { background: #0a84ff; }
 .n-mt-b.x { width: 24px; padding: 0; justify-content: center; background: rgba(255, 255, 255, .08); }
+/* 3.12 today's habits in the closed island */
+.n-hab-ring { display: inline-grid; place-items: center; color: #fff; }
+.n-hab { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .85); }
+.n-hab.all { color: #fff; }

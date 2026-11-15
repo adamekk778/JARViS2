@@ -353,6 +353,8 @@ public class JarvisPhonePlugin extends Plugin {
         e.putString("status", call.getString("status", ""));
         e.putString("task", call.getString("task", ""));
         e.putString("pins", call.getString("pins", ""));
+        if (call.hasOption("habits")) e.putString("habits", call.getString("habits", ""));
+        if (call.getBoolean("online", false)) e.putString("wake_state", "");      // the PC answers: the button is fresh again
         e.apply();
         JarvisWidget.refresh(getContext());
         call.resolve();

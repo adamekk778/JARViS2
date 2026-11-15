@@ -47,11 +47,31 @@ def overnight(rt: Any, now: float | None = None) -> list[str]:
     return out
 
 
+def habits_line(rt: Any) -> str:
+    """3.12 the morning also says what today's habits are and the streak worth keeping."""
+    try:
+        from . import habits
+
+        s = habits.snapshot(rt)
+    except Exception:  # noqa: BLE001 – no habits table yet: nothing to say
+        return ""
+    due = [i["name"] for i in s.get("items", []) if i.get("due")]
+    if not due:
+        return ""
+    line = f"Dnešní návyky: {', '.join(due[:6])}."
+    best = max(s["items"], key=lambda i: i.get("streak", 0))
+    if best.get("streak", 0) >= 2:
+        line += f" Nepřeruš sérii – {best['name']} už {best['streak']} dní v řadě."
+    if s.get("week") is not None:
+        line += f" Tenhle týden zatím {s['week']} %."
+    return line
+
+
 async def build(rt: Any) -> dict:
     from .stark import briefing
 
     b = await briefing(rt)
-    text = " ".join([b["text"], *overnight(rt)])
+    text = " ".join([b["text"], *overnight(rt), habits_line(rt)]).strip()
     return {"title": "Ranní souhrn", "text": text}
 
 

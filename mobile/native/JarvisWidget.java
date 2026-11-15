@@ -24,6 +24,37 @@ public class JarvisWidget extends AppWidgetProvider {
         return PendingIntent.getActivity(c, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** 3.12 the widget's "Zapnout PC": the magic packet straight from the widget, no app opened. */
+    static final String WAKE = "cz.adamekk.jarvis.WIDGET_WAKE";
+
+    @Override
+    public void onReceive(Context c, Intent intent) {
+        if (WAKE.equals(intent.getAction())) {
+            final PendingResult done = goAsync();
+            final Context app = c.getApplicationContext();
+            prefs(app).edit().putString("wake_state", "Posílám signál…").apply();
+            refresh(app);
+            new Thread(() -> {
+                try {
+                    org.json.JSONObject r = WakePc.send(app);
+                    String msg = r.optBoolean("ok") ? "Signál odeslán – PC se zapíná" : r.optString("error", "Nepovedlo se");
+                    prefs(app).edit().putString("wake_state", msg).apply();
+                } catch (Exception e) {
+                    prefs(app).edit().putString("wake_state", "Nepovedlo se").apply();
+                }
+                refresh(app);
+                done.finish();
+            }, "jarvis-widget-wake").start();
+            return;
+        }
+        super.onReceive(c, intent);
+    }
+
+    private static PendingIntent wake(Context c) {
+        Intent i = new Intent(c, JarvisWidget.class).setAction(WAKE);
+        return PendingIntent.getBroadcast(c, 9, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     static RemoteViews views(Context c) {
         SharedPreferences p = prefs(c);
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_jarvis);
@@ -33,6 +64,14 @@ public class JarvisWidget extends AppWidgetProvider {
         v.setViewVisibility(R.id.w_task, task.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
         String pins = p.getString("pins", "");
         v.setTextViewText(R.id.w_pins, pins.isEmpty() ? "Nic připnutého" : pins);
+        String habits = p.getString("habits", "");
+        v.setTextViewText(R.id.w_habits, habits);
+        v.setViewVisibility(R.id.w_habits, habits.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        v.setOnClickPendingIntent(R.id.w_habits, open(c, "habits", 4));
+        String ws = p.getString("wake_state", "");
+        v.setTextViewText(R.id.w_wake, ws.isEmpty() ? "⏻  Zapnout PC" : "⏻  " + ws);
+        v.setViewVisibility(R.id.w_wake, WakePc.known(c) ? android.view.View.VISIBLE : android.view.View.GONE);
+        v.setOnClickPendingIntent(R.id.w_wake, wake(c));
         v.setOnClickPendingIntent(R.id.w_talk, open(c, "talk", 1));
         v.setOnClickPendingIntent(R.id.w_chat, open(c, "chat", 2));
         v.setOnClickPendingIntent(R.id.w_root, open(c, "home", 3));

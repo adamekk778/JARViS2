@@ -33,6 +33,16 @@
         android:textColor="#B6C2D4"
         android:textSize="13sp" />
     <TextView
+        android:id="@+id/w_habits"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+    <TextView
         android:id="@+id/w_pins"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -42,6 +52,19 @@
         android:ellipsize="end"
         android:textColor="#8E9BB0"
         android:textSize="13sp" />
+    <TextView
+        android:id="@+id/w_wake"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/widget_btn"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="⏻  Zapnout PC"
+        android:textColor="#F2F5FA"
+        android:textSize="14sp"
+        android:textStyle="bold" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

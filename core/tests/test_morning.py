@@ -67,3 +67,12 @@ def test_tts_for_the_phone(rt):
     assert c.post("/api/phone/tts", json={"text": "Ahoj"}).status_code == 401
     assert c.post("/api/phone/tts", json={"text": ""}, headers=h).status_code == 400
     assert c.post("/api/phone/tts", json={"text": "Ahoj"}, headers=h).json()["mime"] == "audio/mpeg"
+
+
+def test_morning_names_todays_habits(rt):
+    from jarvis import habits, morning
+
+    assert morning.habits_line(rt) == "" or "Dnešní návyky" in morning.habits_line(rt)
+    habits.seed(rt)
+    line = morning.habits_line(rt)
+    assert line.startswith("Dnešní návyky:") and "Spánek" in line

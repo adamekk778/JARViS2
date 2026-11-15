@@ -119,6 +119,7 @@ class Notch(BaseModel):
     hide_in_fullscreen: bool = True
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
+    habit_ring: bool = True        # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
     focus_guard: bool = True       # 3.12: while you focus, the notch blinks when YouTube, Netflix, TikTok… come to the front
     native_region_anim: bool = False   # 3.12: JARVIS animates the window outline itself (experimental, off: hung in CI)
     pinned: bool = False   # big panel stays open (also after restart)
