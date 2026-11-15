@@ -299,7 +299,7 @@ class Runtime:
         try:
             import httpx
 
-            async with httpx.AsyncClient(timeout=2) as c:
+            async with httpx.AsyncClient(timeout=2, trust_env=False) as c:
                 ok = (await c.get(self.local.base + "/api/version")).status_code == 200
         except Exception:  # noqa: BLE001
             ok = False

@@ -119,3 +119,23 @@ def test_the_network_fix_is_valid_powershell():
     out = subprocess.run([ps, "-NoProfile", "-Command", check], capture_output=True, text=True, timeout=60,
                          env={**os.environ, "JV_SCRIPT": script})
     assert out.stdout.strip() == "0", out.stdout + out.stderr
+
+
+def test_offline_ai_says_what_is_missing(rt, monkeypatch):
+    import asyncio
+
+    async def status(**kw):
+        return dict(kw)
+
+    cases = [
+        ({"running": False, "backup": {"on": True}}, False, "neodpovídá"),
+        ({"running": True, "installed": [], "backup": {"on": True}}, False, "žádný model"),
+        ({"running": True, "installed": [{"name": "qwen2.5:3b"}], "backup": {"on": False}}, False, "vypnutá"),
+        ({"running": True, "installed": [{"name": "llama3.2:3b"}], "backup": {"on": True, "model": "qwen2.5:3b"}}, False, "jen llama"),
+        ({"running": True, "installed": [{"name": "qwen2.5:3b"}], "backup": {"on": True, "model": "qwen2.5:3b"}}, True, "připravená"),
+    ]
+    for st, ok, words in cases:
+        monkeypatch.setattr(rt.local, "status", lambda st=st: status(**st))
+        r = asyncio.run(selfcheck.offline_ai(rt))
+        assert r["ok"] is ok and words in r["detail"], r
+    assert rt.local.base.startswith("http://127.0.0.1")

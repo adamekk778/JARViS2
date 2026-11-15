@@ -142,6 +142,31 @@ async def voice_out(rt: Any) -> dict:
     return _r("tts", name, bool(audio), f"Funguje ({len(audio) // 1024} kB {mime}).")
 
 
+async def offline_ai(rt: Any) -> dict:
+    """3.12 Offline AI (Ollama): is it running where JARVIS asks, is a model there, is the backup on and does it answer."""
+    name = "Offline AI (Ollama)"
+    st = await rt.local.status()
+    b = st.get("backup") or {}
+    if not st.get("running"):
+        return _r("ollama", name, None if not b.get("on") else False,
+                  f"Ollama na {rt.local.base} neodpovídá." + (" Offline záloha je přitom zapnutá." if b.get("on") else ""),
+                  "Spusť Ollamu (ikonka lamy u hodin, nebo v terminálu „ollama serve“) a dej Zkontrolovat znovu. "
+                  "Pokud ji máš spuštěnou a pořád nic, povol JARVIS v antiviru (Bitdefender → Firewall).")
+    names = [m["name"] for m in st.get("installed", [])]
+    if not names:
+        return _r("ollama", name, False, f"Ollama běží (verze {st.get('version') or '?'}), ale nemá stažený žádný model.",
+                  "Nastavení → AI mozek → Offline záloha mozku → Nastavit (stáhne asi 2 GB).")
+    want = b.get("model") or "qwen2.5:3b"
+    have = want in names or any(n.split(":")[0] == want.split(":")[0] for n in names)
+    if not b.get("on"):
+        return _r("ollama", name, False, f"Ollama běží a má {', '.join(names[:3])}, ale offline záloha v JARVISovi je vypnutá.",
+                  "Nastavení → AI mozek → Offline záloha mozku → Zapnout zálohu.")
+    if not have:
+        return _r("ollama", name, False, f"Záloha chce model {want}, v Ollamě je ale jen {', '.join(names[:3])}.",
+                  "Nastavení → AI mozek → Offline záloha mozku → Nastavit (stáhne ho).")
+    return _r("ollama", name, True, f"Běží a je připravená ({want}). Odpoví, když AI na internetu nepůjdou.")
+
+
 async def brain(rt: Any, tester) -> dict:
     name = "Mozek (AI)"
     chain = [c for c in rt.cfg.brain.chain if any(p.id == c and p.enabled for p in rt.cfg.brain.providers)]
@@ -337,6 +362,7 @@ async def run(rt: Any, tester) -> list[dict]:
             if r["ok"] is False:
                 r["fix"] = "Příčina je u položky Internet pro JARVIS – oprav nejdřív tu."
     results += [tts, mind]
+    results.append(await _limited(offline_ai(rt), 15, "ollama", "Offline AI (Ollama)", "Ollama neodpověděla včas."))
     try:
         results += await asyncio.wait_for(asyncio.to_thread(phone_net, rt), 45)
     except asyncio.TimeoutError:

@@ -43,7 +43,9 @@ class Ollama:
                  transport: httpx.AsyncBaseTransport | None = None, timeout: float = 300.0,
                  options: dict | None = None, keep_alive: str | None = None, **_):
         self.id = id
-        self.base_url = base_url.rstrip("/").removesuffix("/v1")
+        # 3.12 "localhost" can mean the IPv6 ::1 (Ollama listens on 127.0.0.1) or go through a system proxy on Windows –
+        # the PC's own Ollama is asked straight at 127.0.0.1, never through a proxy
+        self.base_url = base_url.rstrip("/").removesuffix("/v1").replace("://localhost", "://127.0.0.1")
         self.model = model
         self.temperature = temperature
         self._transport = transport
@@ -60,7 +62,7 @@ class Ollama:
             body["tools"] = tools
         calls: list[ToolCall] = []
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
+            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout, trust_env=False) as client:
                 async with client.stream("POST", f"{self.base_url}/api/chat", json=body) as r:
                     if r.status_code >= 400:
                         text = (await r.aread()).decode("utf-8", "replace")[:500]

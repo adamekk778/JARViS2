@@ -93,7 +93,8 @@ class LocalManager:
     @property
     def base(self) -> str:
         p = self._provider()
-        return ((p.base_url if p else "") or "http://localhost:11434").rstrip("/").removesuffix("/v1")
+        return (((p.base_url if p else "") or "http://127.0.0.1:11434").rstrip("/").removesuffix("/v1")
+                .replace("://localhost", "://127.0.0.1"))            # 3.12 not ::1, not through a proxy
 
     @property
     def model(self) -> str:
@@ -101,7 +102,7 @@ class LocalManager:
         return (p.model if p else "") or "qwen2.5:3b"
 
     def _client(self, timeout: float = 10.0) -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=self.transport, timeout=timeout)
+        return httpx.AsyncClient(transport=self.transport, timeout=timeout, trust_env=False)
 
     # ---------- queries ----------
     async def status(self) -> dict:
