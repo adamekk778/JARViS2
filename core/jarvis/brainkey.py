@@ -10,10 +10,10 @@ from . import secrets
 from .llm.presets import PRESETS
 
 # the start of the key → the service (the order matters: sk-ant- / sk-or- before plain sk-)
-RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("AQ.", "gemini"), ("csk-", "cerebras"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
+RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("AQ.", "gemini"), ("csk-", "cerebras"), ("nvapi-", "nvidia"), ("github_pat_", "github"), ("ghp_", "github"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
                                 ("sk-", "openai")]
-LABEL = {"cerebras": "Cerebras", "groq": "Groq", "gemini": "Google Gemini", "anthropic": "Anthropic Claude", "openrouter": "OpenRouter", "openai": "OpenAI"}
-HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (začíná gsk_), Cerebras (csk-…), Google Gemini (AIza…), OpenAI (sk-…), "
+LABEL = {"cerebras": "Cerebras", "mistral": "Mistral", "nvidia": "NVIDIA", "github": "GitHub Models", "groq": "Groq", "gemini": "Google Gemini", "anthropic": "Anthropic Claude", "openrouter": "OpenRouter", "openai": "OpenAI"}
+HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (gsk_…), Cerebras (csk-…), Google Gemini (AIza…), NVIDIA (nvapi-…), GitHub (github_pat_…), OpenAI (sk-…), "
         "Anthropic (sk-ant-…) nebo OpenRouter (sk-or-…). Zdarma ho dostaneš na console.groq.com nebo aistudio.google.com.")
 
 

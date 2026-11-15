@@ -286,7 +286,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         saveProviders([...ordered, { id, preset: pr, base_url: presets[pr]?.base_url || "", model: presets[pr]?.model || "", vision_model: "", fast_model: "", enabled: true }]);
       };
       // 3.12 the simple way: one field – paste the key, JARVIS recognises the service and sets everything up itself
-      const qk = h("input", { class: "input qk-input", type: "password", placeholder: "Sem vlož API klíč (Groq, Cerebras, Gemini, OpenAI, Claude, OpenRouter)", autocomplete: "off",
+      const qk = h("input", { class: "input qk-input", type: "password", placeholder: "Sem vlož API klíč (Groq, Cerebras, Gemini, NVIDIA, GitHub, OpenRouter…)", autocomplete: "off",
         "aria-label": "API klíč" }) as HTMLInputElement;
       const qst = extra.brainKey as { ok: boolean; message: string } | undefined;
       const qout = h("p", { class: `qk-out ${qst ? (qst.ok ? "ok" : "bad") : ""}` }, qst?.message || "");

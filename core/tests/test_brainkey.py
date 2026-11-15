@@ -100,3 +100,12 @@ def test_cerebras_key_and_your_keys_before_omniroute(rt):
     asyncio.run(brainkey.apply(rt, "gsk_" + "q" * 48, test))
     chain = rt.cfg.brain.chain
     assert chain[:2] == ["groq", "cerebras"] and chain[-1] == "omniroute"      # the gateway only when nothing else answers
+
+
+def test_more_free_services_are_known():
+    from jarvis.llm.presets import PRESETS
+
+    assert brainkey.detect("nvapi-" + "n" * 40) == "nvidia"
+    assert brainkey.detect("github_pat_" + "g" * 40) == "github" and brainkey.detect("ghp_" + "g" * 36) == "github"
+    for p in ("mistral", "nvidia", "github", "cerebras"):
+        assert PRESETS[p]["base_url"].startswith("https://") and PRESETS[p]["needs_key"] and p in brainkey.LABEL

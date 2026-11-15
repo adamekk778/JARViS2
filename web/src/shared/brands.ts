@@ -63,7 +63,7 @@ const BY_MODEL: [RegExp, string][] = [
 ];
 const BY_PROVIDER: [RegExp, string][] = [
   [/anthropic|claude/, "claude"], [/openai/, "chatgpt"], [/gemini|google/, "gemini"], [/ollama/, "ollama"],
-  [/lmstudio|lm-studio/, "lmstudio"], [/openrouter/, "openrouter"], [/groq/, "groq"], [/cerebras/, "cerebras"], [/mistral/, "mistral"],
+  [/lmstudio|lm-studio/, "lmstudio"], [/openrouter/, "openrouter"], [/groq/, "groq"], [/cerebras/, "cerebras"], [/nvidia/, "nvidia"], [/mistral/, "mistral"],
   [/deepseek/, "deepseek"], [/perplexity/, "perplexity"],
 ];
 
