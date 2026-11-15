@@ -99,3 +99,27 @@ def test_a_failing_windows_cover_is_not_read_every_second(monkeypatch):
     for _ in range(4):
         asyncio.run(media._snapshot())
     assert len(calls) == 1 and "empty" in media.COVER["error"]
+
+
+def test_lyrics_found_by_the_main_artist_when_spotify_names_them_all():
+    import asyncio
+
+    import httpx
+
+    from jarvis import nowplaying
+
+    asked = []
+
+    def handler(req: httpx.Request):
+        asked.append(dict(req.url.params))
+        if req.url.path.endswith("/get"):
+            return httpx.Response(404, json={})
+        if req.url.params.get("artist_name") == "The Kid LAROI":
+            return httpx.Response(200, json=[{"syncedLyrics": "[00:12.00] I can't sleep\n[00:15.50] nights like this", "plainLyrics": "x"}])
+        return httpx.Response(200, json=[])
+
+    lib = nowplaying.Lyrics(transport=httpx.MockTransport(handler))
+    r = asyncio.run(lib.get("NIGHTS LIKE THIS", "The Kid LAROI, Ty Dolla $ign"))
+    assert r["synced"] and len(r["lines"]) == 2
+    assert asked[1]["artist_name"] == "The Kid LAROI, Ty Dolla $ign" and asked[2]["artist_name"] == "The Kid LAROI"
+    assert nowplaying.main_artist("Calvin Harris feat. Rihanna") == "Calvin Harris"

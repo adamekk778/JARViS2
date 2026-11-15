@@ -142,6 +142,24 @@ def split_artist(title: str, artist: str) -> tuple[str, str]:
     return clean_title(title), re.sub(r"\s*(VEVO| - Topic)$", "", artist or "").strip()
 
 
+def main_artist(artist: str) -> str:
+    """"The Kid LAROI, Ty Dolla $ign" / "A & B" / "A feat. B" / "A x B" → "The Kid LAROI" / "A"."""
+    return re.split(r"\s*(?:,|;|&| feat\.? | ft\.? | featuring | x | X | with | a )\s*", artist or "", maxsplit=1)[0].strip()
+
+
+def _queries(song: str, artist: str) -> list[dict]:
+    """The searches to try, most exact first (no repeats)."""
+    out: list[dict] = []
+    main = main_artist(artist)
+    for q in ({"track_name": song, "artist_name": artist} if artist else None,
+              {"track_name": song, "artist_name": main} if main and main != artist else None,
+              {"q": f"{song} {main}".strip()},
+              {"q": song} if main else None):
+        if q and q not in out:
+            out.append(q)
+    return out
+
+
 class Lyrics:
     def __init__(self, transport=None, cache_size: int = 64):
         self.transport = transport
@@ -183,13 +201,18 @@ class Lyrics:
             r = await c.get(f"{LRCLIB}/get", params=params)
             if r.status_code == 200:
                 item = r.json()
-            if not item or not item.get("syncedLyrics"):
-                r = await c.get(f"{LRCLIB}/search", params={"track_name": song, "artist_name": artist} if artist else {"q": song})
-                if r.status_code == 200:
-                    found = [x for x in r.json() or [] if isinstance(x, dict)]
-                    if duration:
-                        found.sort(key=lambda x: abs(float(x.get("duration") or 0) - duration))
-                    item = next((x for x in found if x.get("syncedLyrics")), item or (found[0] if found else None))
+            # 3.12 Spotify names every artist of a song ("The Kid LAROI, Ty Dolla $ign"): the lyrics database knows it
+            # by the main one – so after the full name, the main artist alone, then a plain search of song + artist
+            for q in _queries(song, artist):
+                if item and item.get("syncedLyrics"):
+                    break
+                r = await c.get(f"{LRCLIB}/search", params=q)
+                if r.status_code != 200:
+                    continue
+                found = [x for x in r.json() or [] if isinstance(x, dict)]
+                if duration:
+                    found.sort(key=lambda x: abs(float(x.get("duration") or 0) - duration))
+                item = next((x for x in found if x.get("syncedLyrics")), item or (found[0] if found else None))
         if not item:
             return {"lines": [], "synced": False, "plain": ""}
         lines = parse_lrc(item.get("syncedLyrics") or "")
