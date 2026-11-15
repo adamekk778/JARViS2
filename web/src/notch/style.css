@@ -1,3 +1,10 @@
+/* 3.12 smooth open / close: the size of the shape changes every animation frame. Not inherited, so only the few
+   elements that draw the outline are restyled – before, the whole open panel (thousands of elements) was restyled
+   on every frame of the animation, and that is what made the notch stutter. */
+@property --cw { syntax: "<length>"; inherits: false; initial-value: 200px; }
+@property --ch { syntax: "<length>"; inherits: false; initial-value: 34px; }
+@property --r { syntax: "<length>"; inherits: false; initial-value: 18px; }
+.n-inner, .n-inner::after, .n-inner > .dy-face, .notch::before, .notch::after { --cw: inherit; --ch: inherit; --r: inherit; }
 /* The notch is pure black on purpose: it melts into the top screen bezel like a hardware notch. */
 html.notch-doc, html.notch-doc body { background: transparent !important; overflow: hidden; user-select: none; }
 html.notch-doc.demo body { background: linear-gradient(180deg, #1d2836 0%, #3b4a5e 55%, #7d6a6a 80%, #2a2f3a 100%) !important; min-height: 100vh; }

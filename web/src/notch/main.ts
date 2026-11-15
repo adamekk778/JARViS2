@@ -341,8 +341,12 @@ function paintShape() {
   shape.style.setProperty("--cw", `${S.w.toFixed(2)}px`);
   shape.style.setProperty("--ch", `${S.h.toFixed(2)}px`);
   shape.style.setProperty("--r", `${Math.max(0, S.r).toFixed(2)}px`);
-  document.documentElement.style.setProperty("--ncw", `${S.w.toFixed(2)}px`);   // the circle on the right follows the island
-  document.documentElement.style.setProperty("--nch", `${S.h.toFixed(2)}px`);
+  // the circle on the right follows the island – set on the circle itself: on <html> every element of the notch
+  // was restyled every animation frame (a custom property on the root is inherited by all of them)
+  if (pip.classList.contains("on")) {
+    pip.style.setProperty("--ncw", `${S.w.toFixed(2)}px`);
+    pip.style.setProperty("--nch", `${S.h.toFixed(2)}px`);
+  }
   // while JARVIS animates the outline itself – or the window is per-pixel transparent (the page draws the shape, the
   // outline only catches the mouse) – no per-frame sends: a Windows region change per frame is what made it stutter
   if (!(S.raf && (hostAnim || regionPad))) syncRegion();
@@ -1343,6 +1347,7 @@ function paintPip(kind: string | undefined, t: any, cc: any) {
     pipPopT = window.setTimeout(() => { pip.classList.remove("pop"); syncRegion(true); }, 750);
   }
   pip.classList.toggle("on", show);
+  if (show) { pip.style.setProperty("--ncw", `${S.w.toFixed(2)}px`); pip.style.setProperty("--nch", `${S.h.toFixed(2)}px`); }
   if (!show || !kind) { delete pip.dataset.kind; return; }
   pip.dataset.kind = kind;
   let kids: (Node | string)[] = [];
