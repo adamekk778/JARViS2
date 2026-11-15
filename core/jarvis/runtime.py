@@ -21,6 +21,7 @@ from .memory import DB, Memory
 from .timers import Timers
 from .tools.platform import Platform
 from .tools.platform import get as get_platform
+from .background import bg
 
 log = logging.getLogger(__name__)
 
@@ -188,8 +189,8 @@ class Runtime:
         from . import sysplus
 
         self._sys_tasks = [asyncio.get_running_loop().create_task(sysplus.watch_loop(self)),    # OMEGA P10.03
-                           asyncio.get_running_loop().create_task(sysplus.music_loop(self)),    # OMEGA P12.02
-                           asyncio.get_running_loop().create_task(sysplus.volume_loop(self))]   # 3.11 volume bar
+                           bg(sysplus.music_loop(self)),    # OMEGA P12.02
+                           bg(sysplus.volume_loop(self))]   # 3.11 volume bar
         from . import netwatch
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(netwatch.loop(self)))   # OMEGA 708/709/719
@@ -240,7 +241,7 @@ class Runtime:
             from .integrations.mcp_client import McpManager
 
             self.mcp = McpManager(self)
-            asyncio.get_running_loop().create_task(self.mcp.start())
+            bg(self.mcp.start())
         except Exception as e:  # pragma: no cover
             log.warning("mcp unavailable: %s", e)
 
@@ -406,7 +407,7 @@ class Runtime:
             skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill / automation = a new version
         if was_local and not self.cfg.brain.local_enabled:
             try:
-                asyncio.get_running_loop().create_task(self.local.unload())
+                bg(self.local.unload())
             except RuntimeError:
                 pass
         if self.persist_config:
@@ -498,7 +499,7 @@ class Runtime:
 
             self.bus.publish("caption", who="jarvis", lines=caption_timing(caption_chunks(text)))
         if self.speaker:
-            asyncio.get_running_loop().create_task(self.speaker.say(text, lang))
+            bg(self.speaker.say(text, lang))
 
     def wants_speech(self, source: str) -> bool:
         if source == "headset":           # 3.12 talking through the phone: the answer plays there, the PC stays quiet

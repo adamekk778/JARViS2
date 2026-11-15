@@ -151,3 +151,27 @@ def test_sunday_evening_week_summary_once(rt, monkeypatch):
     text = hb.weekly_due(rt, dt.datetime.combine(sunday, dt.time(19, 30)))
     assert "Tenhle týden" in text and "Zdravé jídlo" in text
     assert hb.weekly_due(rt, dt.datetime.combine(sunday, dt.time(21, 0))) == ""        # once a week
+
+
+def test_phone_tick_bedtime_and_evening_question(rt):
+    hb.seed(rt)
+    items = {i["name"]: i for i in hb.snapshot(rt)["items"]}
+    assert hb.tick(rt, items["Voda"]["id"]) == "Voda"
+    assert {i["name"]: i for i in hb.snapshot(rt)["items"]}["Voda"]["done"]          # amount → its whole target
+    assert hb.bedtime(rt) == "00:00"                                               # 07:00 − 7 h
+    hb.set_wake(rt, "6:30")
+    assert hb.bedtime(rt) == "23:30" and hb.snapshot(rt)["bedtime"] == "23:30"
+    d = dt.date.today()
+    assert hb.bedtime_due(rt, dt.datetime.combine(d, dt.time(22, 0))) is None
+    t, body = hb.bedtime_due(rt, dt.datetime.combine(d, dt.time(23, 5)))
+    assert "postele" in t and "23:30" in body
+    assert hb.bedtime_due(rt, dt.datetime.combine(d, dt.time(23, 10))) is None      # once a night
+    assert hb.evening_question_due(rt, dt.datetime.combine(d, dt.time(20, 0))) is None
+    assert hb.evening_question_due(rt, dt.datetime.combine(d, dt.time(21, 15)))[0] == "Jak se dnes máš?"
+    assert hb.evening_question_due(rt, dt.datetime.combine(d, dt.time(21, 30))) is None
+    import asyncio
+
+    from jarvis.tools.habit_tools import mindset_log
+
+    r = asyncio.run(mindset_log(rt, energy=2, focus=4, note="Unavený, ale soustředěný"))
+    assert r.ok and "energie 2/5" in r.summary

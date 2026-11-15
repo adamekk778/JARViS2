@@ -303,6 +303,20 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         rt.phone.ack(str(body.get("id", "")), str(body.get("state", "done")), str(body.get("detail", ""))[:2000])
         return {"ok": True}
 
+    @app.post("/api/phone/habit")
+    async def phone_habit(request: Request):
+        """3.12 "✓" on the phone's habits notification: tick that habit for today."""
+        require_auth(request)
+        from .. import habits as hb
+
+        body = await request.json()
+        try:
+            name = hb.tick(rt, int(body.get("id") or 0))
+        except (ValueError, TypeError) as e:
+            raise HTTPException(400, str(e)) from e
+        hb.publish(rt)
+        return {"ok": True, "name": name}
+
     @app.post("/api/phone/confirm")
     async def phone_confirm(request: Request):
         """3.12 "Povolit" / "Zamítnout" from the phone's notification while you are away from the PC."""

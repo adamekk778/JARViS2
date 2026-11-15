@@ -92,8 +92,10 @@ export function createMusicView(ctx: Ctx) {
   function paintBar(p: number) {
     const d = dur();
     const f = d > 0 ? Math.max(0, Math.min(1, p / d)) : 0;
-    fill.style.transform = `scaleX(${f.toFixed(4)})`;
-    knob.style.left = `${(f * 100).toFixed(2)}%`;
+    // 3.12 only what changed: "left" re-lays the notch out, so it moves in 0.1 % steps (the fill is a cheap transform)
+    const sx = f.toFixed(4), kl = `${(f * 100).toFixed(1)}%`;
+    if (fill.dataset.f !== sx) { fill.dataset.f = sx; fill.style.transform = `scaleX(${sx})`; }
+    if (knob.style.left !== kl) knob.style.left = kl;
     if (t0.textContent !== mmss(p)) t0.textContent = mmss(p);
     const rest = `-${mmss(d - p)}`;
     if (t1.textContent !== rest) t1.textContent = rest;
@@ -140,7 +142,7 @@ export function createMusicView(ctx: Ctx) {
         ln.classList.toggle("past", k < i);
         ln.classList.toggle("now", k === i);
         if (k !== i) ln.style.removeProperty("--fill");
-        if (k === prev && k !== i) ln.querySelectorAll(".w").forEach((w) => (w as HTMLElement).style.removeProperty("--w"));
+        if (k === prev && k !== i) ln.querySelectorAll(".w").forEach((w) => { (w as HTMLElement).style.removeProperty("--w"); (w as any)._w = ""; });
       }
       // keep the sung line a little above the middle; the list glides there
       const target = lines[Math.max(0, i)] as HTMLElement | undefined;
@@ -154,21 +156,26 @@ export function createMusicView(ctx: Ctx) {
       const ln = lines[i] as HTMLElement;
       const start = lyr.lines[i].t, end = lyr.lines[i + 1]?.t ?? start + 4;
       const f = Math.max(0, Math.min(1, (p - start) / Math.max(0.5, Math.min(end - start, 8))));
-      const ws = ln.querySelectorAll(".w") as NodeListOf<HTMLElement>;
-      const total = [...ws].reduce((a, w) => a + w.textContent!.length, 0) || 1;
+      const ws = ((ln as any)._ws ??= [...ln.querySelectorAll(".w")]) as HTMLElement[];
+      const lens = ((ln as any)._lens ??= ws.map((w) => (w.textContent || "").length)) as number[];
+      const total = lens.reduce((a, n) => a + n, 0) || 1;
       let acc = 0;
-      ws.forEach((w) => {
-        const len = w.textContent!.length;
+      ws.forEach((w, k) => {
+        const len = lens[k] || 1;
         const wf = Math.max(0, Math.min(1, (f * total - acc) / len));
         acc += len;
-        w.style.setProperty("--w", `${Math.round(wf * 100)}%`);
+        const v = `${Math.round(wf * 100)}%`;
+        if ((w as any)._w !== v) { (w as any)._w = v; w.style.setProperty("--w", v); }
       });
     }
   }
 
-  function frame() {
+  let painted = 0;
+  function frame(ts = performance.now()) {
     raf = 0;
     if (!visible) return;
+    if (ts - painted < 21) { raf = requestAnimationFrame(frame); return; }   // ~45 frames a second is plenty
+    painted = ts;
     const p = pos();
     if (!dragging && p >= 0) paintBar(p);
     if (p >= 0) paintLyrics(p + lyricShift(media?.title, media?.artist));

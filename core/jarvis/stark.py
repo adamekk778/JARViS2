@@ -14,6 +14,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 from xml.etree import ElementTree
+from .background import bg
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = ""
 def start_protocol(rt, proto) -> None:
     """From a button, the HUD or a voice tool: runs after whatever JARVIS is doing now (it waits for the agent)."""
     rt.bus.publish("protocol", id=proto.id, name=proto.name, icon=proto.icon)
-    asyncio.get_running_loop().create_task(run_protocol(rt, proto))
+    bg(run_protocol(rt, proto))
 
 
 # ---------------------------------------------------------------------------------------------- briefing

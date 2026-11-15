@@ -23,6 +23,7 @@ export interface HabitSnap {
   nutrition?: { kcal: number; protein: number; known: boolean };
   areas: Record<string, string>;
   remind?: string;
+  wake?: string; bedtime?: string;
   plan?: { week: number; start: string; end: string; days: PlanDay[]; done: number; total: number; pct: number | null };
   goals?: Goal[];
 }
@@ -334,6 +335,16 @@ export function editor(client: JarvisClient, s: HabitSnap): HTMLElement {
     onclick: () => client.send("habit_remind_set", { time: on ? "" : time.value || "20:30" }) }, h("i"));
   box.append(h("div", { class: "hb-card hb-remind" }, icon("bell-ringing", "ph-fill"),
     h("div", {}, h("strong", {}, "Večerní připomínka"), h("span", {}, on ? `V ${s.remind} ti připomenu, co ještě zbývá (PC i telefon).` : "Vypnutá.")), time, sw));
+  // 3.12 bedtime: from when you get up and your sleep goal, a nudge 30 minutes before
+  const wakeOn = !!s.wake;
+  const wake = h("input", { class: "input hb-time", type: "time", value: s.wake || "07:00", disabled: !wakeOn, "aria-label": "Kdy vstávám" }) as HTMLInputElement;
+  wake.onchange = () => client.send("habit_remind_set", { wake: wake.value });
+  const wsw = h("button", { type: "button", class: `hb-switch${wakeOn ? " on" : ""}`, role: "switch", "aria-checked": wakeOn ? "true" : "false", "aria-label": "Připomínka spánku",
+    onclick: () => client.send("habit_remind_set", { wake: wakeOn ? "" : wake.value || "07:00" }) }, h("i"));
+  box.append(h("div", { class: "hb-card hb-remind" }, icon("moon-stars", "ph-fill"),
+    h("div", {}, h("strong", {}, "Připomínka spánku"), h("span", {}, wakeOn
+      ? (s.bedtime ? `Vstáváš v ${s.wake} → do postele v ${s.bedtime}. Půl hodiny předtím ti dám vědět.` : "Přidej si návyk Spánek s počtem hodin.")
+      : "Vypnutá.")), wake, wsw));
   box.append(list, h("button", { type: "button", class: "btn primary hb-add", onclick: () => { box.querySelector(".hb-form")?.remove(); list.after(form()); } }, icon("plus"), "Přidat návyk"));
   return box;
 }

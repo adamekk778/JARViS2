@@ -574,6 +574,8 @@ html[data-nstyle="mochi"] .p-head .home-date { display: none; }
   will-change: transform, opacity, filter; animation: lyr-in .55s cubic-bezier(.2, .9, .25, 1) both; transition: transform .25s linear; }
 .lyr-line > span { grid-area: 1 / 1; padding: 10px 14px; margin: -10px -14px; }   /* room for the glow (no clipped box) */
 .lyr-base { color: rgb(255 255 255 / .34); }
+/* 3.12 --fill changes every frame: not inherited, so only this one layer is restyled (not every word in it) */
+@property --fill { syntax: "<length>"; inherits: false; initial-value: 0px; }
 .lyr-lit { color: #fff; text-shadow: 0 0 8px rgb(255 255 255 / .42), 0 0 18px rgb(255 255 255 / .16);
   -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--fill, 0px) - 18px), transparent calc(var(--fill, 0px) + 10px));
           mask-image: linear-gradient(90deg, #000 calc(var(--fill, 0px) - 18px), transparent calc(var(--fill, 0px) + 10px)); }

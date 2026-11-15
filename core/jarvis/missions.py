@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from . import paths
+from .background import bg
 
 log = logging.getLogger(__name__)
 TICK_S = 3
@@ -75,7 +76,7 @@ class Missions:
         t = self.rt.tasks.get(task_id)
         if not t or t["status"] in ("running", "paused", "waiting", "verifying"):
             return False
-        asyncio.get_running_loop().create_task(self.run(t))
+        bg(self.run(t))
         return True
 
     # ---------- the loop: start queued missions, watch deadlines ----------
@@ -91,7 +92,7 @@ class Missions:
             nxt = rt.tasks.next_queued(now)
             if nxt:
                 rt.db.exec("UPDATE tasks SET status='starting' WHERE id=? AND status='queued'", (nxt["id"],))
-                asyncio.get_running_loop().create_task(self.run(nxt))
+                bg(self.run(nxt))
         for t in rt.db.all("SELECT id, goal, deadline, status FROM tasks WHERE deadline IS NOT NULL AND status IN "
                            "('queued','starting','running','paused','waiting','verifying','interrupted','failed')"):
             left = t["deadline"] - now

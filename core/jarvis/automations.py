@@ -15,6 +15,7 @@ from collections import deque
 from types import SimpleNamespace
 
 from .stark import _fold
+from .background import bg
 
 log = logging.getLogger(__name__)
 
@@ -168,8 +169,8 @@ class Automations:
     def start(self) -> None:
         loop = asyncio.get_running_loop()
         self._q = self.rt.bus.subscribe()
-        self._tasks = [loop.create_task(self._loop()), loop.create_task(self._events())]
-        loop.create_task(self._boot())
+        self._tasks = [loop.create_task(self._loop()), loop.create_task(self._events()),
+                       loop.create_task(self._boot())]     # kept: a task nobody holds can be dropped before it runs
 
     def stop(self) -> None:
         for t in self._tasks:
@@ -207,7 +208,7 @@ class Automations:
         proto = SimpleNamespace(name=a.name, steps=steps)
         from .stark import run_protocol
 
-        asyncio.get_running_loop().create_task(
+        bg(
             run_protocol(self.rt, proto, "Automatizace", THIRD_PARTY.format(name=a.name)))
         return True
 

@@ -400,6 +400,7 @@ def snapshot(rt: Any, month: str | None = None, week_offset: int = 0) -> dict:
                       "protein": round(sum(r["protein"] or 0 for r in meal_rows.values())),
                       "known": any(r["kcal"] for r in meal_rows.values())},
         "remind": remind_time(rt),
+        "wake": wake_time(rt), "bedtime": bedtime(rt),
         "areas": AREAS,
         "plan": plan(rt, hs, logs, week_offset),
         "goals": goals(rt),
@@ -516,6 +517,85 @@ def weekly_due(rt: Any, now: dt.datetime | None = None) -> str:
     return " ".join(parts)
 
 
+# ---------- 3.12 tick from the phone's notification ----------
+def tick(rt: Any, hid: int) -> str:
+    """"✓" on the phone: a check habit is done, an amount habit gets its whole target. Returns the habit's name."""
+    h = next((x for x in habits(rt) if x["id"] == int(hid)), None)
+    if h is None:
+        raise ValueError("Takový návyk není.")
+    log(rt, h["id"], float(h.get("target") or 1) if h.get("kind") == "amount" else 1)
+    return h["name"]
+
+
+# ---------- 3.12 připomínka spánku: in bed in time for your sleep goal ----------
+WAKE_DEFAULT = "07:00"
+
+
+def wake_time(rt: Any) -> str:
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_wake'")
+    return WAKE_DEFAULT if row is None else str(row["v"] or "")
+
+
+def set_wake(rt: Any, value: str) -> None:
+    v = (value or "").strip()
+    if v:
+        hh, mm = v.split(":")
+        if not (0 <= int(hh) < 24 and 0 <= int(mm) < 60):
+            raise ValueError("Neplatný čas.")
+        v = f"{int(hh):02d}:{int(mm):02d}"
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_wake', ?)", (v,))
+
+
+def bedtime(rt: Any) -> str:
+    """When to be in bed: the wake-up time minus your sleep goal (the Spánek habit), "" when there is none."""
+    w = wake_time(rt)
+    h = next((x for x in habits(rt) if x.get("area") == "spanek" and x.get("kind") == "amount"), None)
+    if not w or h is None:
+        return ""
+    hh, mm = map(int, w.split(":"))
+    t = dt.datetime(2000, 1, 2, hh, mm) - dt.timedelta(hours=float(h.get("target") or 8))
+    return t.strftime("%H:%M")
+
+
+def bedtime_due(rt: Any, now: dt.datetime | None = None) -> tuple[str, str] | None:
+    """30 minutes before bedtime, once a night."""
+    b = bedtime(rt)
+    if not b:
+        return None
+    now = now or dt.datetime.now()
+    hh, mm = map(int, b.split(":"))
+    bed = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    if bed < now - dt.timedelta(hours=12):
+        bed += dt.timedelta(days=1)
+    if not (bed - dt.timedelta(minutes=30) <= now < bed):
+        return None
+    key = bed.date().isoformat()
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_bed_said'")
+    if row and row["v"] == key:
+        return None
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_bed_said', ?)", (key,))
+    return "Za 30 minut do postele", f"Ve {b} zhasni – ráno v {wake_time(rt)} budeš mít svůj spánek. Odlož telefon 😴"
+
+
+# ---------- 3.12 večerní otázka: how was the day → the mindset ratings ----------
+QUESTION_AT = "21:00"
+
+
+def evening_question_due(rt: Any, now: dt.datetime | None = None) -> tuple[str, str] | None:
+    now = now or dt.datetime.now()
+    if now.strftime("%H:%M") < QUESTION_AT or now.hour >= 23 or not remind_time(rt):
+        return None
+    d = now.date().isoformat()
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_asked'")
+    if row and row["v"] == d:
+        return None
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_asked', ?)", (d,))
+    rated = _db(rt).one("SELECT energy FROM habit_days WHERE day=?", (d,))
+    if rated and rated.get("energy"):
+        return None                                   # you already rated today
+    return "Jak se dnes máš?", "Napiš nebo řekni JARVISovi pár slov o dnešku – sám vyplní energii, soustředění a motivaci."
+
+
 async def remind_loop(rt: Any) -> None:
     import asyncio
     import logging
@@ -525,9 +605,19 @@ async def remind_loop(rt: Any) -> None:
         try:
             text = remind_due(rt)
             if text:
-                rt.notify("Návyky na dnes", text, speak=False)
-                if not rt.user_away():                 # away: notify already sent it to the phone
-                    rt.phone_push("notify", title="Návyky na dnes", body=text)
+                # 3.12 on the phone with a "✓" button per habit left (ticked right in the notification)
+                left = [{"id": i["id"], "name": i["name"]} for i in snapshot(rt)["items"] if i["due"] and not i["done"]][:3]
+                if rt.phone_push("habits_left", title="Návyky na dnes", body=text, items=left):
+                    rt.notify("Návyky na dnes", text, speak=False, target="dashboard")
+                else:
+                    rt.notify("Návyky na dnes", text, speak=False)
+            for due in (bedtime_due, evening_question_due):
+                say = due(rt)
+                if say:
+                    title, body = say
+                    rt.notify(title, body, speak=False)
+                    if not rt.user_away():
+                        rt.phone_push("notify", title=title, body=body)
             week = weekly_due(rt)
             if week:                                   # 3.12 the week in one message, on the PC and the phone
                 rt.notify("Týden v návycích", week, speak=False)

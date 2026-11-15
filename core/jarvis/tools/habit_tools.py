@@ -97,3 +97,13 @@ async def gym_log(ctx, exercise: str, weight: float, reps: int, sets: int = 1, d
     best = next((e for e in gym.snapshot(ctx)["exercises"] if e["name"] == ex), None)
     pr = " Nový osobní rekord! 🔥" if best and best.get("pr_today") and best.get("gain") else ""
     return ToolResult(True, f"Zapsáno: {ex} {sets}× {reps} opakování po {weight:g} kg.{pr}")
+
+
+@tool("mindset_log", "Zapíše, jak se dnes mám (večerní otázka „Jak se dnes máš?“): energy, focus, motivation 1–5 "
+      "odhadni z toho, co uživatel řekl („dneska jsem unavený, ale soustředěný“ → energy 2, focus 4), a krátkou větu dne.",
+      category="info", perm="apps")
+async def mindset_log(ctx, energy: int = 0, focus: int = 0, motivation: int = 0, note: str = "") -> ToolResult:
+    hb.set_mindset(ctx, note or None, energy=energy or None, focus=focus or None, motivation=motivation or None)
+    hb.publish(ctx)
+    parts = [f"{n} {v}/5" for n, v in (("energie", energy), ("soustředění", focus), ("motivace", motivation)) if v]
+    return ToolResult(True, "Zapsáno do dnešního mindsetu" + (f": {', '.join(parts)}." if parts else "."))

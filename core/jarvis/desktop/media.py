@@ -6,6 +6,7 @@ import base64
 import logging
 import time
 from typing import Any
+from ..background import bg
 
 log = logging.getLogger(__name__)
 
@@ -256,7 +257,7 @@ def _want_cover(rt, snap: dict) -> None:
         except Exception as e:  # noqa: BLE001
             log.info("hudba: obal z internetu nejde: %s", e)
 
-    asyncio.get_running_loop().create_task(go())
+    bg(go())
 
 
 async def watch(rt, interval: float = 2.0) -> None:
@@ -293,7 +294,7 @@ async def watch(rt, interval: float = 2.0) -> None:
                 rt.bus.publish("media", **snap)
                 if new_song and snap.get("title"):
                     rt.lyrics_state = {}
-                    asyncio.get_running_loop().create_task(nowplaying.publish_lyrics(rt, snap))
+                    bg(nowplaying.publish_lyrics(rt, snap))
             prev = snap
             fails = 0
             nap = min(1.0, interval) if snap.get("playing") else interval     # a new song shows within a second

@@ -266,6 +266,9 @@ public final class JarvisLink {
                     }
                     return "shown";
                 }
+                case "habits_left":              // 3.12 the evening habits: a "✓" per habit left, ticked right here
+                    habitsNotification(c, cmd.optString("title", "Návyky na dnes"), cmd.optString("body", ""), cmd.optJSONArray("items"));
+                    return "shown";
                 case "confirm":                  // 3.12 a confirmation while you are away: Povolit / Zamítnout right here
                     confirmNotification(c, cmd.optString("cid"), cmd.optString("text"));
                     return "shown";
@@ -369,6 +372,25 @@ public final class JarvisLink {
                     || (android.os.Build.VERSION.SDK_INT >= 31 && t == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET)) return true;
         }
         return false;
+    }
+
+    static final int HABITS_NID = 7300;
+
+    static void habitsNotification(Context c, String title, String text, org.json.JSONArray items) {
+        channels(c);
+        PendingIntent open = PendingIntent.getActivity(c, HABITS_NID, new Intent(Intent.ACTION_VIEW, Uri.parse("jarvis://open/habits"))
+                .setPackage(c.getPackageName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags());
+        Notification.Builder b = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.checkbox_on_background).setContentTitle(title)
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true);
+        for (int k = 0; items != null && k < Math.min(3, items.length()); k++) {
+            org.json.JSONObject it = items.optJSONObject(k);
+            if (it == null) continue;
+            PendingIntent tick = PendingIntent.getBroadcast(c, HABITS_NID + 1 + k, new Intent(c, HabitReceiver.class)
+                    .putExtra("id", it.optInt("id")).putExtra("nid", HABITS_NID), piFlags());
+            b.addAction(new Notification.Action.Builder(null, "✓ " + it.optString("name"), tick).build());
+        }
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm != null) nm.notify(HABITS_NID, b.build());
     }
 
     static void confirmNotification(Context c, String cid, String text) {

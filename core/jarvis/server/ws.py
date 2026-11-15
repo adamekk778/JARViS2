@@ -15,6 +15,7 @@ from .. import config as config_mod
 from .. import secrets, tools, uiplus
 from ..tools.sites import list_sites, site_path
 from ..tools.system import system_snapshot
+from ..background import bg
 
 log = logging.getLogger(__name__)
 
@@ -289,7 +290,10 @@ class Connection:
         except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
             pass
         except Exception as e:
-            log.exception("ws handler %s failed", msg.get("type"))
+            if isinstance(e, ValueError) and friendly_error(e) == str(e):   # a plain "fill in the name" for the user, not a crash
+                log.info("ws %s: %s", msg.get("type"), e)
+            else:
+                log.exception("ws handler %s failed", msg.get("type"))
             try:
                 await self.send("error", message=friendly_error(e))
             except (WebSocketDisconnect, RuntimeError):
@@ -704,7 +708,7 @@ class Connection:
             if m.get("template") != "pc_report":
                 await self.send("error", message="Neznámá mise.")
             else:
-                asyncio.get_running_loop().create_task(rt.agent.run_steps(
+                bg(rt.agent.run_steps(
                     "Zjisti stav počítače, připrav report a ulož ho", [ProtocolStep(tool="pc_health_report")], source="mission"))
         elif t == "artifact_open":        # only a file a mission really produced (and recorded) can be opened from here
             task = rt.tasks.get(str(m.get("task_id") or ""))
@@ -945,15 +949,15 @@ class Connection:
         elif t == "screen_ask_action":
             from .. import screenask
 
-            asyncio.get_running_loop().create_task(screenask.act(rt, str(m.get("action", "")), str(m.get("question", ""))[:2000]))
+            bg(screenask.act(rt, str(m.get("action", "")), str(m.get("question", ""))[:2000]))
         elif t == "screen_ask_start":
             from .. import screenask
 
-            asyncio.get_running_loop().create_task(screenask.start(rt))
+            bg(screenask.start(rt))
         elif t == "selection_action":
             from .. import powers
 
-            asyncio.get_running_loop().create_task(powers.run_selection_action(rt, str(m.get("action", ""))))
+            bg(powers.run_selection_action(rt, str(m.get("action", ""))))
         elif t == "phone_status_get":
             await self.send("phone_status", **rt.phone.status())
         elif t == "phone_ack":      # the app in the foreground handled a command
@@ -1187,7 +1191,10 @@ class Connection:
             elif t == "habit_reorder":
                 hb.reorder(rt, [int(x) for x in (m.get("ids") or [])][:100])
             elif t == "habit_remind_set":
-                hb.set_remind(rt, str(m.get("time") or ""))
+                if "time" in m:
+                    hb.set_remind(rt, str(m.get("time") or ""))
+                if "wake" in m:                        # 3.12 when you get up → the bedtime reminder
+                    hb.set_wake(rt, str(m.get("wake") or ""))
             elif t == "habit_task":                   # add / tick / rename / move / delete a task of the week planner
                 act = str(m.get("action") or "")
                 if act == "add":

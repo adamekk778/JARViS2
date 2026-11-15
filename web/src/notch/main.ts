@@ -411,7 +411,7 @@ function animateShape(w: number, hh: number, r: number) {
   if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(springStep); }
 }
 window.addEventListener("pywebviewready", () => { ensureWindow(); syncRegion(); window.setTimeout(() => syncRegion(true), 500); });
-window.addEventListener("resize", () => window.setTimeout(syncRegion, 30));
+window.addEventListener("resize", () => { window.setTimeout(syncRegion, 30); if (lyrCur) lyrCur.box = 0; });
 // keep the region honest: if Windows ever drops it (DPI change, display change, a failed first send), it comes
 // back within 2 s – sent even unchanged, the host only re-applies it when it is really missing
 window.setInterval(() => { if (!S.raf) syncRegion(true); }, 2000);
@@ -1142,7 +1142,8 @@ function lyricsOn(): boolean {
 let cfgLyrics = true;
 /** The current line, lit word by word as it is sung: each word glows up in turn with a soft, feathered edge (no hard
  *  cut), the word being sung lifts a little, and lines cross-fade (the old one floats up, the new one rises in). */
-type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number; starts: number[] };
+type LyrLine = { el: HTMLElement; lit: HTMLElement; words: HTMLElement[]; litWords: HTMLElement[]; edges: [number, number][]; w: number; starts: number[];
+  fillShown?: string; active?: number; box?: number; shift?: string };
 let lyrCur: LyrLine | null = null;
 let lyrFill = 0;            // eased fill in px (follows the target smoothly, never jumps)
 let lyrLast = 0;
@@ -1162,6 +1163,8 @@ function buildLyrLine(text: string): LyrLine {
 function measureLyr(l: LyrLine) {
   l.edges = l.words.map((wd) => [wd.offsetLeft, wd.offsetLeft + wd.offsetWidth] as [number, number]);
   l.w = (l.el.firstElementChild as HTMLElement).offsetWidth;
+  l.box = 0;
+  window.setTimeout(() => { l.box = 0; }, 450);        // the pill changes its width with the line: measure it again after
 }
 const smooth = (x: number) => x * x * (3 - 2 * x);
 function paintLyrics(_force = false) {
@@ -1238,22 +1241,30 @@ function paintLyrics(_force = false) {
   lyrLast = now;
   lyrFill += (target - lyrFill) * (1 - Math.exp(-dt * (stamps.length ? 30 : 14)));   // word times: follow closely
   if (target < lyrFill - 40) lyrFill = target;   // jumped back (a seek): no slow rewind
-  L.lit.style.setProperty("--fill", `${lyrFill.toFixed(1)}px`);
-  L.litWords.forEach((wd, k) => wd.classList.toggle("now", k === active));
-  L.words.forEach((wd, k) => wd.classList.toggle("now", k === active));
+  // 3.12 smooth without the stutter: only what really moved is written (a write followed by a read of a size made
+  // the browser lay the whole notch out again every frame – 60× a second while a song played)
+  const fill = (Math.round(lyrFill * 2) / 2).toFixed(1);          // half a pixel is the finest step anyone can see
+  if (L.fillShown !== fill) { L.fillShown = fill; L.lit.style.setProperty("--fill", `${fill}px`); }
+  if (L.active !== active) {
+    L.active = active;
+    L.litWords.forEach((wd, k) => wd.classList.toggle("now", k === active));
+    L.words.forEach((wd, k) => wd.classList.toggle("now", k === active));
+  }
   // a line wider than the pill scrolls with the singing so the lit word stays in view
-  const box = lyrEl.clientWidth;
+  const box = L.box || (L.box = lyrEl.clientWidth);
   if (L.w > box) {
-    const shift = Math.min(L.w - box, Math.max(0, lyrFill - box * 0.55));
-    L.el.style.transform = `translateX(${-shift.toFixed(1)}px)`;
+    const shift = Math.min(L.w - box, Math.max(0, lyrFill - box * 0.55)).toFixed(0);
+    if (L.shift !== shift) { L.shift = shift; L.el.style.transform = `translateX(${-shift}px)`; }
   }
 }
 // the karaoke line glides every frame – but only while the lyrics are on screen; otherwise nothing runs at all
 let lyrRaf = 0;
-function lyricsLoop() {
+let lyrPainted = 0;
+function lyricsLoop(ts = performance.now()) {
   lyrRaf = 0;
   if (shape.dataset.island !== "lyrics" || document.hidden) return;
-  paintLyrics();
+  // 3.12 ~45 frames a second is as smooth to the eye and leaves the PC (and a 144 Hz screen) a quarter of the work
+  if (ts - lyrPainted >= 21) { lyrPainted = ts; paintLyrics(); }
   lyrRaf = requestAnimationFrame(lyricsLoop);
 }
 const lyricsWake = () => { if (!lyrRaf && shape.dataset.island === "lyrics" && !document.hidden) lyrRaf = requestAnimationFrame(lyricsLoop); };
