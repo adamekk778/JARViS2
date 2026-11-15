@@ -1461,7 +1461,7 @@ class Connection:
         elif t == "brain_key":                # 3.12 Mozek jen z API klíče: paste → recognised, set up, tested
             from .. import brainkey
 
-            r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test)
+            r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test, str(m.get("preset") or "") or None)
             await self.send("brain_key_result", **r)
             await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
         elif t == "provider_test":

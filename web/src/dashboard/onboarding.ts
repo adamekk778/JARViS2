@@ -13,7 +13,7 @@ const BRAINS: Brain[] = [
     base: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b" },
   { id: "gemini", name: "Google Gemini", tag: "Umí i obrázky", lines: ["Zdarma s Google účtem", "Rozumí fotkám a screenshotům", "Model Gemini 2.5 Flash"],
     url: "https://aistudio.google.com/apikey", host: "aistudio.google.com/apikey", prefix: "AIza",
-    steps: ["Přihlas se Google účtem", "Klikni na „Create API key“", "Zkopíruj klíč (začíná AIza)"],
+    steps: ["Přihlas se Google účtem", "Klikni na „Create API key“", "Klikni na ikonku kopírování u klíče a vlož ho sem"],
     base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
 ];
 
@@ -64,7 +64,7 @@ function show(client: JarvisClient, s: any) {
     paint("busy", "Klíč uložen – zkouším, jestli AI odpovídá…");
     working = false;
     status.dataset.id = "key";
-    client.send("brain_key", { key });
+    client.send("brain_key", { key, preset: brain.id });            // a key in a format JARVIS does not know is tried with this service
   }
 
   function go(n: number) {

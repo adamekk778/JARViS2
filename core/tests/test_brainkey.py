@@ -69,3 +69,20 @@ def test_blocked_internet_is_named_not_the_key():
     assert not ok and "Klíč je v pořádku" in msg and "Opravit síť pro JARVIS" in msg
     from jarvis.llm.openai_compat import friendly_error
     assert friendly_error("gemini", "https://x", OSError("[WinError 10013] forbidden by its access permissions")) == brainkey.BLOCKED
+
+
+def test_an_unknown_key_format_in_the_gemini_step_is_tried_with_gemini(rt):
+    """The wizard said "Klíč pro Google Gemini", the user pasted the key Google gave them – JARVIS answered "Nepoznám,
+    od koho klíč je" (a key that does not start with AIza). The step's service is now used for such a key."""
+    async def test(pid):
+        return {"ok": True, "message": "ok", "ms": 300}
+
+    odd = "AQ.Ab8RN6" + "k" * 40
+    assert brainkey.detect(odd) == "gemini"
+    other = "zz" + "k" * 40
+    assert not asyncio.run(brainkey.apply(rt, other, test))["ok"]                   # no step: still asks which service
+    r = asyncio.run(brainkey.apply(rt, other, test, "gemini"))
+    assert r["ok"] and r["provider"].startswith("gemini") and rt.cfg.brain.chain[0] == r["provider"]
+    r = asyncio.run(brainkey.apply(rt, "gsk_" + "g" * 48, test, "gemini"))         # the key itself wins over the step
+    assert r["provider"].startswith("groq")
+    assert not asyncio.run(brainkey.apply(rt, other, test, "nonsense"))["ok"]

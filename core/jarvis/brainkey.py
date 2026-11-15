@@ -10,7 +10,7 @@ from . import secrets
 from .llm.presets import PRESETS
 
 # the start of the key → the service (the order matters: sk-ant- / sk-or- before plain sk-)
-RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
+RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("AQ.", "gemini"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
                                 ("sk-", "openai")]
 LABEL = {"groq": "Groq", "gemini": "Google Gemini", "anthropic": "Anthropic Claude", "openrouter": "OpenRouter", "openai": "OpenAI"}
 HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (začíná gsk_), Google Gemini (AIza…), OpenAI (sk-…), "
@@ -51,12 +51,14 @@ def explain(err: str) -> tuple[bool, str]:
     return False, f"Nepovedlo se: {msg[:160]}"
 
 
-async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]]) -> dict:
-    """Save the key for the right service, make that service the first brain and try it."""
+async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint: str | None = None) -> dict:
+    """Save the key for the right service, make that service the first brain and try it. `hint`: the service the
+    wizard asked for (its step says "Klíč pro Google Gemini") – a key whose start JARVIS does not know (a new format
+    of the service's keys) is then tried with that service instead of being refused."""
     key = clean(key)
     if len(key) < 20:
         return {"ok": False, "message": "Tohle nevypadá jako celý API klíč – zkopíruj ho celý."}
-    preset = detect(key)
+    preset = detect(key) or (hint if hint in LABEL else None)
     if not preset:
         return {"ok": False, "message": HELP}
     pr = PRESETS[preset]
