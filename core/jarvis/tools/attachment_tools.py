@@ -32,7 +32,7 @@ async def save_attachment(ctx, id: str, folder: str = "Downloads", open: bool = 
     while dest.exists():
         dest = dest_dir / f"{Path(att.name).stem} ({i}){Path(att.name).suffix}"
         i += 1
-    shutil.copy2(att.path, dest)
+    await asyncio.to_thread(shutil.copy2, att.path, dest)
     if open:
         await asyncio.to_thread(ctx.platform.open_path, str(dest))
     return ToolResult(True, f"Uloženo do {dest}", data=str(dest))

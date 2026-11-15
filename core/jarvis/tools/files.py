@@ -150,7 +150,7 @@ async def move_files(ctx, moves: Annotated[list[dict], "seznam {src, dst} – ce
 
 @tool("move_file", "Přesune nebo přejmenuje soubor/složku.", danger=True, category="soubory", details=_move_line)
 async def move_file(ctx, source: str, destination: str) -> ToolResult:
-    dst = shutil.move(str(resolve(source)), str(resolve(destination)))
+    dst = await asyncio.to_thread(shutil.move, str(resolve(source)), str(resolve(destination)))
     return ToolResult(True, f"Přesunuto do {dst}")
 
 
@@ -159,9 +159,9 @@ async def move_file(ctx, source: str, destination: str) -> ToolResult:
 async def copy_file(ctx, source: str, destination: str) -> ToolResult:
     s, d = resolve(source), resolve(destination)
     if s.is_dir():
-        shutil.copytree(s, d)
+        await asyncio.to_thread(shutil.copytree, s, d)
     else:
-        shutil.copy2(s, d)
+        await asyncio.to_thread(shutil.copy2, s, d)
     return ToolResult(True, f"Zkopírováno do {d}")
 
 
@@ -176,7 +176,7 @@ async def delete_file(ctx, path: str) -> ToolResult:
         return ToolResult(True, f"{p.name} přesunuto do koše")
     except ImportError:
         if p.is_dir():
-            shutil.rmtree(p)
+            await asyncio.to_thread(shutil.rmtree, p)
         else:
             p.unlink()
         return ToolResult(True, f"{p.name} smazáno")

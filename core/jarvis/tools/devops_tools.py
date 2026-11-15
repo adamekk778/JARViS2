@@ -140,7 +140,7 @@ async def code_sandbox(ctx, project: str, command: str, timeout_s: int = 300) ->
         code, out = await asyncio.to_thread(_run_cmd, command, box, max(10, min(1800, timeout_s)))
         diff = await asyncio.to_thread(devops.changed_files, root, box)
     finally:
-        shutil.rmtree(box.parent, ignore_errors=True)
+        await asyncio.to_thread(shutil.rmtree, box.parent, True)
     ch = sum(len(v) for v in diff.values())
     return ToolResult(code == 0, f"$ {command} → {'OK' if code == 0 else f'chyba ({code})'}; v kopii by se změnilo {ch} souborů"
                       + (f" (např. {', '.join((diff['changed'] + diff['added'])[:3])})" if ch else "") + ".\n" + _tail(out),

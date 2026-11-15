@@ -79,7 +79,7 @@ async def screenshots(ctx, action: Annotated[str, "list / organize / dedupe"] = 
         for m in plan:
             Path(m["to"]).parent.mkdir(parents=True, exist_ok=True)
             try:
-                shutil.move(m["from"], m["to"])
+                await asyncio.to_thread(shutil.move, m["from"], m["to"])
                 moved += 1
             except OSError:
                 continue

@@ -278,7 +278,7 @@ class Notetaker:
             if not lines:
                 raise RuntimeError("V nahrávce jsem neslyšel žádnou řeč." + (f" ({'; '.join(errors)})" if errors else ""))
             self.rt.db.exec("UPDATE notes SET transcript=? WHERE id=?", (json.dumps(lines, ensure_ascii=False), nid))
-            shutil.rmtree(folder, ignore_errors=True)          # the audio is gone once the words are written
+            await asyncio.to_thread(shutil.rmtree, folder, True)   # the audio is gone once the words are written
             self.rt.bus.publish("notetaker", state="processing", id=nid, progress=0.85)
             text = "\n".join(f"{ln['who']}: {ln['text']}" for ln in lines)[:60000]
             try:
@@ -294,7 +294,7 @@ class Notetaker:
             self.rt.notify("Přepis hovoru je hotový", s["title"], speak=False)
         except Exception as e:
             log.exception("notetaker processing")
-            shutil.rmtree(folder, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, folder, True)
             self.rt.db.exec("UPDATE notes SET status='failed', error=? WHERE id=?", (str(e)[:500], nid))
         finally:
             self.state, self.current = "idle", None
