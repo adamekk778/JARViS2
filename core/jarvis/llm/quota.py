@@ -12,7 +12,7 @@ TPD = {"openai/gpt-oss-120b": 200_000, "openai/gpt-oss-20b": 200_000, "llama-3.3
        "moonshotai/kimi-k2-instruct-0905": 300_000, "qwen/qwen3-32b": 500_000,
        "meta-llama/llama-4-scout-17b-16e-instruct": 500_000, "llama-3.1-8b-instant": 500_000}
 RPD = {"gemini-2.5-flash": 250, "gemini-2.5-flash-lite": 1000, "gemini-2.5-pro": 100}
-LABEL = {"cerebras": "Cerebras", "mistral": "Mistral", "nvidia": "NVIDIA", "github": "GitHub Models", "huggingface": "Hugging Face", "sambanova": "SambaNova", "cohere": "Cohere", "groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", "openai": "OpenAI", "anthropic": "Claude"}
+LABEL = {"cerebras": "Cerebras", "mistral": "Mistral", "nvidia": "NVIDIA", "github": "GitHub Models", "huggingface": "Hugging Face", "sambanova": "SambaNova", "cohere": "Cohere", "deepseek": "DeepSeek", "groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", "openai": "OpenAI", "anthropic": "Claude"}
 
 
 class Quota:

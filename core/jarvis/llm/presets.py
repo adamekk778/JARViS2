@@ -11,6 +11,7 @@ PRESETS: dict[str, dict] = {
     "sambanova": {"label": "SambaNova Cloud", "base_url": "https://api.sambanova.ai/v1", "needs_key": True, "local": False, "model": "Meta-Llama-3.3-70B-Instruct"},
     "cohere": {"label": "Cohere (zkušební klíč zdarma)", "base_url": "https://api.cohere.ai/compatibility/v1", "needs_key": True, "local": False, "model": "command-a-03-2025"},
     "huggingface": {"label": "Hugging Face", "base_url": "https://router.huggingface.co/v1", "needs_key": True, "local": False, "model": "openai/gpt-oss-120b"},
+    "deepseek": {"label": "DeepSeek (levné, platí se kreditem)", "base_url": "https://api.deepseek.com/v1", "needs_key": True, "local": False, "model": "deepseek-chat", "fast_model": "deepseek-chat"},
     "gemini": {"label": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "needs_key": True, "local": False, "model": "gemini-2.5-flash", "fast_model": "gemini-2.5-flash-lite"},
     "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1", "needs_key": True, "local": False, "model": "gpt-4o-mini"},
     "anthropic": {"label": "Anthropic Claude", "base_url": "https://api.anthropic.com/v1", "needs_key": True, "local": False, "model": "claude-haiku-4-5"},

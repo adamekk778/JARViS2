@@ -108,5 +108,5 @@ def test_more_free_services_are_known():
     assert brainkey.detect("nvapi-" + "n" * 40) == "nvidia"
     assert brainkey.detect("github_pat_" + "g" * 40) == "github" and brainkey.detect("ghp_" + "g" * 36) == "github"
     assert brainkey.detect("hf_" + "h" * 34) == "huggingface"
-    for p in ("mistral", "nvidia", "github", "cerebras", "sambanova", "cohere", "huggingface"):
+    for p in ("mistral", "nvidia", "github", "cerebras", "sambanova", "cohere", "huggingface", "deepseek"):
         assert PRESETS[p]["base_url"].startswith("https://") and PRESETS[p]["needs_key"] and p in brainkey.LABEL
