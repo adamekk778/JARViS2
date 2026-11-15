@@ -4,10 +4,11 @@
 import { h, icon, toast } from "../shared/dom";
 import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, weekPlanner, type HabitItem, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
+import { gymView, type GymSnap } from "../shared/gymui";
 import { native } from "./native";
 import "./habits.css";
 
-type Tab = "today" | "habits" | "tasks" | "goals" | "insights" | "edit";
+type Tab = "today" | "habits" | "tasks" | "gym" | "goals" | "insights" | "edit";
 const CACHE = "jarvis.habits.snap", QUEUE = "jarvis.habits.queue";
 const MONTHS_OF = ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září", "října", "listopadu", "prosince"];
 
@@ -32,6 +33,12 @@ export function habitsGlance(c: JarvisClient, open: () => void): HTMLElement {
 
 export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void } {
   let snap: HabitSnap | null = load<HabitSnap | null>(CACHE, null);
+  let gym: GymSnap | null = null;
+  c.on("gym", (m) => {
+    gym = m as unknown as GymSnap;
+    const a = document.activeElement as HTMLElement | null;
+    if (tab === "gym" && !(a && a.tagName === "INPUT" && a.closest(".gy") && !a.classList.contains("gy-ex"))) paint();
+  });
   let tab: Tab = "today";
   let month = "";
   let week = 0;
@@ -88,7 +95,7 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
     const best = s.streaks[0];
     const msg = t.due === 0 ? "Dnes nic naplánovaného – užij si volno." : t.done === t.due ? "Všechno splněno. Paráda!" :
       t.done === 0 ? "Začni prvním návykem – stačí ťuknout." : `Ještě ${t.due - t.done} a máš hotovo.`;
-    const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Návyky", tasks: "Tracker", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
+    const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Návyky", tasks: "Tracker", gym: "Gym", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
     const head = h("div", { class: "mhb-date" },
       h("h1", { class: "mhb-title" }, TITLE[tab]),
       h("span", { class: "hb-date-pill" }, `${d.getDate()}. ${MONTHS_OF[d.getMonth()]} ${d.getFullYear()}`),
@@ -105,7 +112,7 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
   }
 
   function paint() {
-    seg.replaceChildren(...([["today", "Dnes"], ["habits", "Návyky"], ["tasks", "Úkoly"], ["goals", "Cíle"], ["insights", "Přehled"]] as [Tab, string][]).map(([k, l]) =>
+    seg.replaceChildren(...([["today", "Dnes"], ["habits", "Návyky"], ["tasks", "Úkoly"], ["gym", "Gym"], ["goals", "Cíle"], ["insights", "Přehled"]] as [Tab, string][]).map(([k, l]) =>
       h("button", { type: "button", role: "tab", class: tab === k ? "on" : "", "aria-selected": tab === k ? "true" : "false",
         onclick: () => { tab = k; native.haptic(); paint(); } }, l)),
       h("button", { type: "button", class: `mhb-gear${tab === "edit" ? " on" : ""}`, "aria-label": "Upravit návyky",
@@ -130,6 +137,8 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
     } else if (tab === "tasks") {
       body.replaceChildren(s.plan ? weekPlanner(online(), s, (w) => { week = w; ask(); }) : h("p", { class: "hb-empty" }, "Načítám…"));
       requestAnimationFrame(() => (body.querySelector(".hb-day.today") as HTMLElement | null)?.scrollIntoView({ inline: "center", block: "nearest" }));
+    } else if (tab === "gym") {
+      body.replaceChildren(c.status === "open" ? gymView(online(), gym) : h("p", { class: "hb-empty" }, "Gym deník jde, když je PC připojené."));
     } else if (tab === "goals") {
       body.replaceChildren(goalsView(online(), s));
     } else if (tab === "insights") {

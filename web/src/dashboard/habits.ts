@@ -4,14 +4,16 @@
 import { h, icon } from "../shared/dom";
 import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, trackerHead, weekPlanner, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
+import { gymView, type GymSnap } from "../shared/gymui";
 
-type Tab = "today" | "habits" | "tasks" | "goals" | "insights" | "edit";
-const TABS: [Tab, string, string][] = [["today", "house-simple", "Dnes"], ["habits", "grid-four", "Návyky"], ["tasks", "check-square", "Úkoly"],
+type Tab = "today" | "habits" | "tasks" | "gym" | "goals" | "insights" | "edit";
+const TABS: [Tab, string, string][] = [["today", "house-simple", "Dnes"], ["habits", "grid-four", "Návyky"], ["tasks", "check-square", "Úkoly"], ["gym", "barbell", "Gym"],
   ["goals", "target", "Cíle"], ["insights", "chart-line-up", "Přehled"]];
-const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Tracker", tasks: "Tracker", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
+const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Tracker", tasks: "Tracker", gym: "Gym", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
 
 export function buildHabits(client: JarvisClient) {
   let snap: HabitSnap | null = null;
+  let gym: GymSnap | null = null;
   let tab: Tab = "today";
   let month = "";
   let week = 0;
@@ -50,6 +52,8 @@ export function buildHabits(client: JarvisClient) {
         h("p", { class: "hbp-hint" }, "Klikni na kroužek a opravíš den zpětně. Tečka = ten den návyk neplánuješ.")));
     } else if (tab === "tasks") {
       body.replaceChildren(s.plan ? weekPlanner(client, s, (w) => { week = w; ask(); }) : h("p", { class: "hb-empty" }, "Načítám…"));
+    } else if (tab === "gym") {
+      body.replaceChildren(gymView(client, gym));
     } else if (tab === "goals") {
       body.replaceChildren(goalsView(client, s));
     } else if (tab === "insights") {
@@ -73,6 +77,13 @@ export function buildHabits(client: JarvisClient) {
       if (id) (body.querySelector(`input[aria-label="${CSS.escape(id)}"]`) as HTMLInputElement | null)?.focus();
       return;
     }
+    paint();
+  });
+  client.on("gym", (m) => {
+    gym = m as unknown as GymSnap;
+    if (el.hidden || tab !== "gym") return;
+    const a = document.activeElement as HTMLElement | null;
+    if (a && body.contains(a) && a.tagName === "INPUT" && !a.classList.contains("gy-ex") && a.getAttribute("aria-label") !== "Opakování") return;
     paint();
   });
   paintTabs();

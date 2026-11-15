@@ -83,3 +83,17 @@ async def meal_log(ctx, slot: Annotated[str, "snidane, obed, vecere nebo svacina
     hb.set_meal(ctx, slot_id, text, day or None)
     hb.publish(ctx)
     return ToolResult(True, f"Zapsáno do jídelníčku: {dict(hb.MEAL_SLOTS)[slot_id]} – {text}.")
+
+
+@tool("gym_log", "Zapíše sérii z posilovny do gym deníku: „bench 60 kilo 8 opakování“, „3 série dřepů 80 kg po 5“. "
+      "exercise = cvik, weight = kg (0 = vlastní váha), reps = opakování, sets = počet sérií.", category="info", perm="apps")
+async def gym_log(ctx, exercise: str, weight: float, reps: int, sets: int = 1, day: str = "") -> ToolResult:
+    from .. import gym
+
+    gym.add_set(ctx, exercise, weight, reps, day or None, sets)
+    gym.publish(ctx)
+    hb.publish(ctx)
+    ex = gym.name(exercise)
+    best = next((e for e in gym.snapshot(ctx)["exercises"] if e["name"] == ex), None)
+    pr = " Nový osobní rekord! 🔥" if best and best.get("pr_today") and best.get("gain") else ""
+    return ToolResult(True, f"Zapsáno: {ex} {sets}× {reps} opakování po {weight:g} kg.{pr}")
