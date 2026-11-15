@@ -174,7 +174,37 @@ async def song_extras(rt: Any) -> dict:
                   "JARVIS se nedostane na lrclib.net / api.deezer.com / itunes.apple.com. Povol JARVIS v antiviru "
                   "(Bitdefender → Ochrana → Firewall a Ochrana webu → Výjimky: přidej JARVIS.exe) a dej Zkontrolovat znovu."
                   if blocked else "Zkus to za chvíli znovu; pokud to trvá, pošli mi tenhle řádek.")
+    why = song_chain(rt)
+    if why:
+        return _r("songs", name, False, f"{title}: internet jde, ale text se v notchi neukáže – {why}",
+                  "Pusť písničku znovu od začátku; pokud to trvá, pošli mi tenhle řádek.")
     return _r("songs", name, True, f"{title}: texty i obal jdou stáhnout" + ("" if cover else " (obal k téhle písni nenašel)") + ".")
+
+
+def song_chain(rt: Any) -> str:
+    """3.12 why the lyrics of the song playing now would not show in the notch, though the internet works ("" = fine
+    or nothing playing). Each step the notch needs, in order."""
+    from . import nowplaying
+
+    if not getattr(rt.cfg.notch, "lyrics", True):
+        return "texty písní jsou vypnuté (Nastavení → Notch → Texty písní)"
+    if rt.cfg.brain.offline_only:
+        return "je zapnutý režim „jen offline“ – texty se nestahují"
+    m = getattr(rt, "media_state", {}) or {}
+    if not m.get("title"):
+        return ""                                         # nothing playing: nothing to say
+    if not (nowplaying.is_music(str(m.get("source") or "")) or m.get("artist")):
+        return f"Windows neříká, kdo to zpívá („{m.get('app') or '?'}“ bez interpreta)"
+    if "position" not in m:
+        return f"přehrávač ({m.get('app') or '?'}) neposílá Windows, kde v písničce je – bez toho text nejde časovat"
+    ly = getattr(rt, "lyrics_state", {}) or {}
+    if ly.get("title") != m.get("title"):
+        err = nowplaying.NET.get("lyrics")
+        return f"text se nepodařilo stáhnout ({err})" if err else "text se ještě hledá (zkontroluj za pár vteřin znovu)"
+    if not ly.get("lines"):
+        return "k téhle písni má databáze jen text bez časování (ukáže se v záložce Hudba)" if ly.get("plain") else \
+            "k téhle písni databáze text nemá"
+    return ""
 
 
 async def offline_ai(rt: Any) -> dict:

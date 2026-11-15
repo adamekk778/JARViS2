@@ -157,3 +157,26 @@ def test_song_extras_names_a_blocked_connection(monkeypatch):
     monkeypatch.setattr(nowplaying, "_client", blocked)
     r = asyncio.run(selfcheck.song_extras(NS(media_state={"title": "Song", "artist": "Band"})))
     assert r["ok"] is False and "CERTIFICATE" in r["detail"] and "Bitdefender" in r["fix"]
+
+
+def _song_rt(media, lyrics=None, on=True, offline=False):
+    from types import SimpleNamespace as NS
+    return NS(cfg=NS(notch=NS(lyrics=on), brain=NS(offline_only=offline)), media_state=media, lyrics_state=lyrics or {})
+
+
+def test_song_chain_names_each_missing_step(monkeypatch):
+    from jarvis import nowplaying
+
+    monkeypatch.setitem(nowplaying.NET, "lyrics", "")
+    song = {"title": "Reflections", "artist": "The Neighbourhood", "source": "spotify", "app": "Spotify", "position": 12.0}
+    assert "vypnuté" in selfcheck.song_chain(_song_rt(song, on=False))
+    assert "offline" in selfcheck.song_chain(_song_rt(song, offline=True))
+    assert selfcheck.song_chain(_song_rt({})) == ""
+    no_pos = {k: v for k, v in song.items() if k != "position"}
+    assert "kde v písničce" in selfcheck.song_chain(_song_rt(no_pos))
+    assert "hledá" in selfcheck.song_chain(_song_rt(song))
+    monkeypatch.setitem(nowplaying.NET, "lyrics", "ConnectError: blocked")
+    assert "ConnectError" in selfcheck.song_chain(_song_rt(song))
+    assert "nemá" in selfcheck.song_chain(_song_rt(song, {"title": "Reflections", "lines": [], "plain": ""}))
+    assert "bez časování" in selfcheck.song_chain(_song_rt(song, {"title": "Reflections", "lines": [], "plain": "la la"}))
+    assert selfcheck.song_chain(_song_rt(song, {"title": "Reflections", "lines": [{"t": 1, "text": "x"}]})) == ""
