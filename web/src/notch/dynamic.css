@@ -245,3 +245,23 @@ html:not([data-nstyle="dynamic"]) .n-pip { display: none; }
 @media (prefers-reduced-motion: reduce) { .n-pip .pip-art, .n-pip.pop, .n-pip.pop::before { animation: none !important; } }
 .dy-bar .dyb-ic.dyb-hab { width: auto; padding: 0 9px; gap: 5px; display: inline-flex; flex-direction: row; align-items: center; border-radius: 999px; }
 .dyb-hab b { font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* 3.12 a calm head on every tab: three columns that never run into each other –
+   date · weather · time on the left, the tabs in the middle, the window buttons on the right */
+html[data-nstyle="dynamic"] .p-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 14px;
+  container-type: inline-size; }
+html[data-nstyle="dynamic"] .p-head .home-date { grid-column: 1; justify-self: start; min-width: 0; max-width: 100%; overflow: hidden; margin: 0; }
+html[data-nstyle="dynamic"] .p-head .p-tabs { grid-column: 2; position: static; transform: none; min-width: 0; }
+html[data-nstyle="dynamic"] .p-head .p-head-r { grid-column: 3; justify-self: end; flex: none; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button, html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding: 0 11px; }
+html[data-nstyle="dynamic"] .p-head .p-tabs button.active { padding: 0 14px; }
+.p-head .aa-chips-slot { display: none; }
+@container (max-width: 900px) { .p-head .hb-wx { display: none; } }
+@container (max-width: 640px) { .p-head .hb-day { display: none; } .p-head .p-tabs button { padding: 0 9px; } }
+@container (max-width: 660px) { .p-head .p-tabs button.active span { display: none; } }
+/* the other AIs: small round logos in the AI card's head, next to the JARVIS name */
+.tile-head .aa-chips-slot { margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; }
+.tile-head .aa-chips { gap: 5px; flex-wrap: nowrap; }
+.tile-head .aa-chip { width: 24px; height: 24px; }
+.tile-head .aa-chip .brand-logo, .tile-head .aa-chip .brand-logo svg { width: 13px; height: 13px; }
+.tile-head:has(.aa-chip) .ai-dot { margin-left: 8px; }

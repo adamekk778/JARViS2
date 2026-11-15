@@ -135,6 +135,8 @@ export function buildPanel(ctx: PanelCtx) {
   const pinsCard = h("div", { class: "p-card pins-card" },
     h("div", { class: "p-card-head" }, h("span", {}, icon("push-pin"), " Připnuté")), pinsList, pinInput);
 
+  // 3.12 "Zeptej se Claude / ChatGPT / Gemini" sits on the AI card of Domů (it crowded the head of every tab)
+  const aiChipsBox = h("div", { class: "aa-chips-slot" });
   const right = h("aside", { class: "p-right" },
     missingModelCard(client, "compact"),
     taskCard.el,
@@ -448,14 +450,13 @@ export function buildPanel(ctx: PanelCtx) {
   // 3.12 the logos of your AIs on the card: a click asks that one AI (askai.ts); the sheet is made on first use
   let ask: ReturnType<typeof createAskAi> | null = null;
   const askAi = () => (ask ??= createAskAi(() => el.parentElement || el, client, () => show("chat")));
-  const aiChipsBox = h("div", { class: "aa-chips-slot" });
   const cardAi = h("div", { class: "tile ai", role: "button", tabindex: "0",
     onclick: (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest(".aa-chips-slot")) return;
       show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat");
     },
     onkeydown: (e: KeyboardEvent) => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
-    h("div", { class: "tile-head" }, aiLogo, aiName, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
+    h("div", { class: "tile-head" }, aiLogo, aiName, aiChipsBox, h("i", { class: "ai-dot", "aria-hidden": "true" })), aiWord, aiSub);
   // 3.12 the head of the panel on Domů: the weather, the time and your AIs as round logos (like an island bar)
   const hbWx = h("span", { class: "hb-wx" }), hbTime = h("strong", { class: "hb-time" });
   const hbDay = h("span", { class: "hb-day" });                 // 3.12 the same head everywhere: date · weather · time

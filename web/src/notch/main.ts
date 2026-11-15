@@ -180,7 +180,6 @@ const panelWrap = h("div", { class: "n-panel" }, panelHead, panel.el);
 // 3.12 "Přizpůsobit": the clock's colour and look, the panel's background (black / music colours / your photo)
 const look = createLook(panelWrap, panel.clock);
 panelHead.querySelector(".p-head-r")!.prepend(look.button);
-panelHead.querySelector(".p-head-r")!.prepend(panel.askChips);     // 3.12 "Zeptej se Claude / ChatGPT / Gemini"
 /** The look (Nastavení → Notch): "dynamic" (default) puts the panel's section tabs in its head, like iOS. */
 function setStyle(style?: string) {
   const st = style || "dynamic";
@@ -581,9 +580,12 @@ function leave() {
   if (mode === "bar" || mode === "hover" || mode === "panel" || mode === "radial") scheduleClose();
 }
 shape.addEventListener("click", (e) => {
-  if (shape.dataset.island === "msg" && msgEv && !(e.target as HTMLElement).closest("button, input")) { openReply(msgEv.item); return; }
-  if (shape.dataset.island === "habits") { openPanel("habits"); return; }
-  if (shape.dataset.island === "rec" && !(e.target as HTMLElement).closest("button, input")) { client.send("device_listen_set", { on: false }); return; }
+  // a click on the small island itself – never a click inside the open panel (the island keeps its kind while the
+  // panel is open: a click on any tab there used to jump back to Návyky, so you could not leave it)
+  const onIsland = (mode === "closed" || mode === "hover" || mode === "bar") && !(e.target as HTMLElement).closest(".n-panel, .panel");
+  if (onIsland && shape.dataset.island === "msg" && msgEv && !(e.target as HTMLElement).closest("button, input")) { openReply(msgEv.item); return; }
+  if (onIsland && shape.dataset.island === "habits" && !(e.target as HTMLElement).closest("button, input")) { openPanel("habits"); return; }
+  if (onIsland && shape.dataset.island === "rec" && !(e.target as HTMLElement).closest("button, input")) { client.send("device_listen_set", { on: false }); return; }
   // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
   const tgt = e.target as HTMLElement;
   const busyKind = ["claude", "ai", "team", "task"].includes(shape.dataset.island || "");
