@@ -52,7 +52,13 @@ def test_nudge_is_a_server_message():
     assert "focus_nudge" in ws.SERVER_TYPES
 
 
-def test_focus_sessions_add_up_for_today(rt):
+def test_focus_sessions_add_up_for_today(rt, monkeypatch):
+    import datetime as dt
+    import time as _time
+
+    real = _time.time                                   # run the day at noon: shortly after midnight "10 minutes in"
+    shift = dt.datetime.combine(dt.date.today(), dt.time(12)).timestamp() - real()   # would start yesterday
+    monkeypatch.setattr(_time, "time", lambda: real() + shift)
     att = rt.attention
     q = rt.bus.subscribe()
     att.focus(25)
