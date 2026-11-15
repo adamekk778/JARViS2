@@ -6,6 +6,7 @@ import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
 import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
+import { createBrainsPanel } from "../shared/brainsui";
 
 export type Section =
   | "general" | "brain" | "voice" | "notch" | "appearance" | "hotkeys" | "permissions" | "tools" | "integrations"
@@ -111,6 +112,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let permLabels: Record<string, string> = {};
   let query = "";
   const extra: Record<string, any> = {};
+  const brainsPanel = createBrainsPanel(client);         // 3.12 Přehled AI – keeps itself up to date
 
   const set = (path: string, value: unknown) => {
     if (!local) return toast("Nastavení jde měnit jen přímo na PC.", "error");
@@ -309,6 +311,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("div", { class: "key-row" }, qk, h("button", { class: "btn primary", type: "button", onclick: sendKey }, icon("check"), "Použít")),
           qout,
           first ? h("p", { class: "help" }, `Teď odpovídá: ${presets[first.preset]?.label || first.id}${secretsFlags[first.id] || !presets[first.preset]?.needs_key ? "" : " (bez klíče)"}`) : null),
+        (() => { brainsPanel.refresh(); return h("div", { class: "card br-card" }, h("h2", {}, "Přehled AI"), brainsPanel.el); })(),
         h("details", { class: "card qk-advanced" }, h("summary", {}, "Pokročilé – víc poskytovatelů, vlastní server, offline modely"),
           h("div", { class: "card ob-entry" }, h("span", { class: "ob-entry-ico" }, icon("magic-wand", "ph-fill")),
             h("div", {}, h("strong", {}, "Průvodce nastavením AI"), h("p", {}, "Krok za krokem: vybereš Groq nebo Gemini (zdarma), vložíš klíč a hned uvidíš, jestli funguje.")),
@@ -873,11 +876,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     if (!w) client.send("wake_get");
     const mac = (w?.mac || "").match(/../g)?.join(":").toUpperCase() || "";
     const state = !w ? "Zjišťuji…" : !w.mac ? "Síťová karta nenalezena"
-      : w.armed === false ? "Windows zatím buzení nedovolí" : w.wifi ? "Připraveno jen napůl (Wi-Fi)" : "Připraveno";
+      : w.armed === false ? "Windows zatím buzení nedovolí" : w.fast_startup ? "Uspané PC ano, vypnuté zatím ne" : w.wifi ? "Připraveno jen napůl (Wi-Fi)" : "Připraveno";
     return card("Zapnout PC z telefonu", "Vypnuté nebo uspané PC zapneš v aplikaci v telefonu tlačítkem Zapnout PC (Wake-on-LAN). Doma vždy, mimo domov přes JARVIS Link s relay serverem. Telefon si adresu PC zapamatuje sám, když se k PC připojí.",
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, state),
         h("span", {}, w?.mac ? `${w.card || "Síťová karta"} · ${mac} · ${w.ip}` : "")),
         h("button", { class: "btn", type: "button", onclick: () => { extra.wake = undefined; render(); } }, icon("arrows-clockwise"), "Zkontrolovat")),
+      w?.mac && local ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připravit PC jedním klikem"),
+        h("span", {}, "Síťová karta smí PC zapnout i z vypnutého stavu a vypne se Rychlé spuštění Windows. Windows se nejdřív zeptá.")),
+        h("button", { class: "btn primary", type: "button", onclick: () => client.send("wake_prepare") }, icon("power"), "Připravit PC")) : null,
       w ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Mimo domov"),
         h("span", {}, w.away ? "Router přeposílá budicí signál na tohle PC (UPnP) – relay ho může poslat." : "Zatím ne – zapni JARVIS Link s relay serverem a UPnP v routeru."))) : null,
       ...((w?.tips || []) as string[]).map((t) => h("p", { class: "help" }, t)));

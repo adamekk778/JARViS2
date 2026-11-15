@@ -81,3 +81,6 @@
 .nhb-card.done .nhb-wk i { background: rgba(0, 0, 0, .1); }
 .nhb-card.done .nhb-wk i.on { background: #000; }
 .nhb-card.done .nhb-wk i.future { background: transparent; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+/* 3.12 Přehled AI in the notch */
+.p-brains { height: 100%; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 12px 16px; border-radius: 22px; background: #0e0e10;
+  border: 1px solid rgba(255, 255, 255, .07); }

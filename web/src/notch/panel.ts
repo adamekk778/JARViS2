@@ -4,6 +4,7 @@ import { createAskAi } from "./askai";
 import { createClipsView, createShotsView } from "./shelves";
 import { createMirror, createNotesView } from "./notesmirror";
 import { createHabitsView } from "./habits";
+import { createBrainsPanel } from "../shared/brainsui";
 import "./habits.css";
 import { createClock } from "./clock";
 import { createMusicView } from "./music";
@@ -17,7 +18,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity";
+export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -35,9 +36,10 @@ const NAV: [Section, string, string][] = [
   ["settings", "sliders-horizontal", "Nastavení"],
   ["more", "dots-three-circle", "Více"],
   ["activity", "pulse", "Průběh"],
+  ["brains", "brain", "AI přehled"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["notes", "mirror", "files", "workspaces", "tools", "settings", "activity"];
+const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -689,7 +691,9 @@ export function buildPanel(ctx: PanelCtx) {
   const clipsView = createClipsView(client), shotsView = createShotsView(client);   // 3.12 Schránka, Snímky
   const notesView = createNotesView(client), mirror = createMirror();               // 3.12 Poznámky, Zrcátko
   const habitsView = createHabitsView(client, () => ctx.openChat("habits"));         // 3.12 Návyky a zdraví
-  const views: Record<Section, HTMLElement> = { habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  const brainsView = createBrainsPanel(client);                                       // 3.12 Přehled AI
+  brainsView.el.classList.add("p-brains");
+  const views: Record<Section, HTMLElement> = { brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -718,7 +722,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "activity", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -759,6 +763,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "system") { client.send("system_get"); client.send("weather_get"); }
     if (s === "notes") notesView.refresh();
     if (s === "habits") habitsView.refresh();
+    if (s === "brains") brainsView.refresh();
     if (s === "mirror") mirror.start(); else mirror.stop();
     if (s === "clips") clipsView.refresh();
     if (s === "shots") shotsView.refresh();

@@ -48,7 +48,7 @@ CLIENT_TYPES = [
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-    "photo_backup_get", "photo_backup_open", "wake_get", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
+    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
@@ -70,7 +70,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -83,7 +83,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -96,7 +96,7 @@ LOCAL_ONLY = {"phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1263,6 +1263,38 @@ class Connection:
 
             i = await asyncio.to_thread(wol.info, rt)
             await self.send("wake_info", **i, tips=wol.tips(i))
+        elif t == "brains_get":               # 3.12 Přehled AI (notch, Settings): your brains, keys, limits, % left
+            from ..llm import quota
+
+            await self.send("brains", items=quota.overview(rt), tested={})
+        elif t == "brains_test_all":          # 3.12 Vyzkoušet všechny klíče najednou
+            from ..llm import quota
+
+            items = [i for i in quota.overview(rt) if i["enabled"] and i["key"]]
+            sem = asyncio.Semaphore(4)
+
+            async def one(pid: str) -> tuple[str, dict]:
+                async with sem:
+                    r = await self._provider_test(pid)
+                if not r.get("ok"):
+                    from .. import brainkey
+
+                    ok, msg = brainkey.explain(str(r.get("message", "")))
+                    local = next((i["local"] for i in items if i["id"] == pid), False)
+                    if local and not ok:
+                        msg = "Neběží – nainstaluj Ollamu (ollama.com) a zapni Offline zálohu mozku."
+                    r = {**r, "ok": ok, "message": msg, "limit": ok}
+                return pid, r
+
+            tested = dict(await asyncio.gather(*(one(i["id"]) for i in items)))
+            await self.send("brains", items=quota.overview(rt), tested=tested)
+        elif t == "wake_prepare":             # 3.12 Připravit PC na zapnutí z telefonu (Windows asks first – UAC)
+            from .. import wol
+
+            ok = await asyncio.to_thread(wol.prepare)
+            await self.send("notify", title="Zapnout PC z telefonu",
+                            body="Potvrď v okně Windows (Ano). Pak klikni na Zkontrolovat." if ok else "Tohle jde jen na Windows.",
+                            url="", target="dashboard")
         elif t == "photo_backup_get":         # 3.12 Záloha fotek z telefonu (Settings → Telefon)
             await self.send("photo_backup", **rt.photo_backup.status())
         elif t == "photo_backup_open":

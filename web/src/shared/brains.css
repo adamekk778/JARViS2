@@ -1,0 +1,27 @@
+/* 3.12 Přehled AI – black and white, one row per brain */
+.br { display: grid; gap: 10px; font-family: "Geist Variable", var(--font, system-ui), sans-serif; }
+.br-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.br-head div { display: grid; gap: 2px; min-width: 0; }
+.br-head strong { font-size: 15px; font-weight: 800; color: #fff; }
+.br-head span { font-size: 11.5px; color: rgba(255, 255, 255, .55); }
+.br-test { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 800; background: #fff; color: #000; }
+.br-test:disabled { opacity: .6; cursor: default; }
+.br-test:disabled i { animation: br-spin 1s linear infinite; }
+@keyframes br-spin { to { transform: rotate(360deg); } }
+.br-rows { display: grid; gap: 6px; }
+.br-row { display: grid; grid-template-columns: 18px 30px minmax(0, 1fr) 90px; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: 14px; background: rgba(255, 255, 255, .045); border: 1px solid rgba(255, 255, 255, .06); }
+.br-n { font-size: 11px; font-weight: 800; color: rgba(255, 255, 255, .35); text-align: center; }
+.br-logo { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; background: rgba(255, 255, 255, .07); }
+.br-txt { display: grid; min-width: 0; }
+.br-txt strong { font-size: 13px; font-weight: 800; color: #fff; }
+.br-txt span { font-size: 11px; color: rgba(255, 255, 255, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.br-bar { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.br-bar i { display: block; height: 100%; border-radius: 99px; background: #fff; transition: width .4s; }
+.br-row.ok .br-txt span { color: rgba(255, 255, 255, .85); }
+.br-row.wait .br-bar i { background: rgba(255, 255, 255, .4); }
+.br-row.wait .br-txt span { color: #ffcf7a; }
+.br-row.bad .br-txt span { color: #ff8f8f; }
+.br-row.off { opacity: .5; }
+.br-empty { margin: 0; font-size: 12px; color: rgba(255, 255, 255, .55); }

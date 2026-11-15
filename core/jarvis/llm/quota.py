@@ -70,3 +70,36 @@ def brain_state(rt) -> dict:
         except Exception:  # noqa: BLE001
             left = None
     return {"provider": pid, "model": model, "left": left}
+
+
+def overview(rt) -> list[dict]:
+    """3.12 Přehled AI: every brain in your order – does it have a key, is its limit used up right now, % left today."""
+    import time as _t
+
+    from .. import secrets
+    from .presets import PRESETS
+
+    router = rt.router
+    q = getattr(router, "quota", None)
+    by_id = {p.id: p for p in rt.cfg.brain.providers}
+    out = []
+    for pid in rt.cfg.brain.chain:
+        p = by_id.get(pid)
+        if p is None:
+            continue
+        pre = PRESETS.get(p.preset, {})
+        model = router.resolved_models.get(pid) or p.model or pre.get("model", "")
+        until = max((u for (i, _m), u in getattr(router, "limited", {}).items() if i == pid), default=0.0)
+        wait = max(0.0, until - _t.monotonic())
+        left = None
+        if q is not None:
+            try:
+                used, calls = today_for(rt, pid, model)
+                left = q.left_pct(pid, p.preset, model, used, calls)
+            except Exception:  # noqa: BLE001
+                left = None
+        out.append({"id": pid, "preset": p.preset, "label": LABEL.get(p.preset) or pre.get("label", pid), "model": model,
+                    "enabled": bool(p.enabled), "local": bool(pre.get("local")),
+                    "key": bool(secrets.get(pid)) or (not pre.get("needs_key", False) and p.preset != "omniroute"),
+                    "limited_s": round(wait), "left": left, "error": (router.last_errors.get(pid) or "")[:160]})
+    return out

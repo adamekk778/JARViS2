@@ -64,6 +64,52 @@ def armed() -> bool | None:
     return any(_NIC_WORDS.search(line) for line in out.splitlines())
 
 
+def fast_startup() -> bool | None:
+    """Windows "Rychlé spuštění" (Fast Startup): on, a shut-down PC is half asleep and most network cards cannot wake it."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Power") as k:
+            return bool(winreg.QueryValueEx(k, "HiberbootEnabled")[0])
+    except OSError:
+        return None
+
+
+def prepare_script() -> str:
+    """3.12 Připravit PC na zapnutí z telefonu – the Windows half in one elevated step (Windows asks first, UAC):
+    every wired / Wi-Fi card may wake the PC by a magic packet (also from "shut down"), and Fast Startup off, so a
+    shut-down PC really listens. The BIOS half ("Wake on LAN" on, "ErP" off) cannot be done from Windows."""
+    return "\n".join([
+        "$ads = Get-NetAdapter -Physical -ErrorAction SilentlyContinue",
+        "foreach ($a in $ads) {",
+        "  Set-NetAdapterPowerManagement -Name $a.Name -WakeOnMagicPacket Enabled -ErrorAction SilentlyContinue",
+        "  Get-NetAdapterAdvancedProperty -Name $a.Name -ErrorAction SilentlyContinue |",
+        "    Where-Object { $_.DisplayName -match 'Magic|Shutdown Wake|Wake on LAN|Wake-on-LAN|WOL' -and $_.DisplayName -notmatch 'Pattern' } |",
+        "    ForEach-Object {",
+        "      $on = $_.ValidDisplayValues | Where-Object { $_ -match '^(Enabled|On|Zapnuto|Povoleno)$' } | Select-Object -First 1",
+        "      if ($on) { Set-NetAdapterAdvancedProperty -Name $a.Name -DisplayName $_.DisplayName -DisplayValue $on -ErrorAction SilentlyContinue }",
+        "    }",
+        "  powercfg /deviceenablewake \"$($a.InterfaceDescription)\" 2>$null | Out-Null",
+        "}",
+        "reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power\" /v HiberbootEnabled /t REG_DWORD /d 0 /f | Out-Null",
+    ])
+
+
+def prepare() -> bool:
+    """Run prepare_script elevated – Windows shows its own question; nothing happens without the user's yes."""
+    if sys.platform != "win32":
+        return False
+    import base64
+
+    enc = base64.b64encode(prepare_script().encode("utf-16-le")).decode()
+    ps = (f"Start-Process powershell -Verb RunAs -WindowStyle Hidden "
+          f"-ArgumentList '-NoProfile','-WindowStyle','Hidden','-EncodedCommand','{enc}'")
+    subprocess.Popen(["powershell", "-NoProfile", "-Command", ps], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return True
+
+
 def info(rt: Any) -> dict:
     from .server.pairing import local_ips
 
@@ -71,7 +117,7 @@ def info(rt: Any) -> dict:
     card = nic(lan[0] if lan else "")
     router = getattr(getattr(rt, "link", None), "router", {}) or {}
     out = {"mac": card.get("mac", ""), "ip": card.get("ip", ""), "broadcast": card.get("broadcast", ""),
-           "wifi": bool(card.get("wifi")), "card": card.get("name", ""), "armed": armed(),
+           "wifi": bool(card.get("wifi")), "card": card.get("name", ""), "armed": armed(), "fast_startup": fast_startup(),
            "away": bool(router.get("wake")), "public": router.get("public_ip", "") if router.get("wake") else ""}
     return out
 
@@ -87,8 +133,12 @@ def tips(i: dict) -> list[str]:
     if i.get("armed") is False:
         t.append("Windows zatím nedovolí síťové kartě PC probudit: Správce zařízení → Síťové adaptéry → tvoje karta → "
                  "Řízení spotřeby → zaškrtni „Povolit tomuto zařízení probudit počítač“ i „Jen magic packet“.")
-    t.append("Aby šlo zapnout i úplně vypnuté PC: v BIOSu zapni „Wake on LAN“ a ve Windows vypni „Rychlé spuštění“ "
-             "(Ovládací panely → Možnosti napájení → Nastavení tlačítek). Uspané PC se budí i bez toho.")
+    if i.get("armed") is False or i.get("fast_startup"):
+        t.append("Klikni na „Připravit PC“ – JARVIS nastaví Windows sám (síťová karta smí PC zapnout, vypne se Rychlé "
+                 "spuštění). Windows se nejdřív zeptá.")
+    t.append("Úplně vypnuté PC zapne jen síťová karta, které to dovolí BIOS: při startu PC mačkej Delete nebo F2, najdi "
+             "„Wake on LAN“ / „Power On By PCI-E“ / „Resume by LAN“ a zapni ho; „ErP“ / „Deep Sleep“ vypni. Ulož (F10).")
+    t.append("PC musí zůstat v zásuvce (vypnutá zásuvka nebo prodlužovačka s vypínačem = PC nezapneš).")
     if not i.get("away"):
         t.append("Mimo domov: zapni JARVIS Link s relay serverem; router musí povolit UPnP.")
     return t
