@@ -1,12 +1,15 @@
-// 3.12 Návyky a zdraví in the open notch – the tracker in small: the day's ring on the left; on the right NÁVYKY with the
-// mint date pill and a row per habit (its colour dot, its name in heavy capitals) with a circle for every day of this
-// week – mint with a tick = done; tap today (or a past day) to tick it. One button opens the whole tracker.
+// 3.12 Návyky a zdraví in the open notch – today at a glance and one tap away: the day's ring on the left with what is
+// left; on the right DNES with the date and the week's bars, then a card per habit in its own colour – its icon, how
+// far it is today (a tap ticks it, − / + for sleep and water), its streak and this week as dots. One button opens the
+// whole tracker.
 import { h, icon } from "../shared/dom";
 import { ring, safeColor, type HabitItem, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 
 const WD = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
-const MON = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"];
+const WDL = ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle"];
+const MON = ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září", "října", "listopadu", "prosince"];
+const num = (v: number) => String(Math.round(v * 10) / 10).replace(".", ",");
 
 export function createHabitsView(client: JarvisClient, openFull: () => void) {
   let snap: HabitSnap | null = null;
@@ -14,45 +17,96 @@ export function createHabitsView(client: JarvisClient, openFull: () => void) {
   const right = h("div", { class: "nhb-right" });
   const el = h("div", { class: "nhb" }, left, right);
 
-  const dayOf = (s: HabitSnap, j: number) => {                   // j = 0..6 (Monday..Sunday of this week)
-    const d = new Date(`${s.date}T12:00:00`);
-    d.setDate(d.getDate() - s.weekday + j);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const recount = (s: HabitSnap) => {
+    const due = s.items.filter((x) => x.due), done = due.filter((x) => x.done).length;
+    s.today = { done, due: due.length, pct: due.length ? Math.round((100 * done) / due.length) : null };
   };
-  const row = (s: HabitSnap, it: HabitItem) => {
+  // the tap shows at once; the PC's answer (a new snapshot) follows a moment later
+  const log = (it: HabitItem, value: number) => {
+    client.send("habit_log", { id: it.id, value });
+    if (!snap) return;
+    it.value = value;
+    it.done = it.kind === "amount" ? value >= it.target : value >= 1;
+    if (it.hist && it.hist.length) it.hist[it.hist.length - 1] = it.due ? it.done : null;
+    recount(snap);
+    paint();
+  };
+
+  const weekDots = (s: HabitSnap, it: HabitItem) => {
     const hist = it.hist || [];
-    const cells = WD.map((_, j) => {
-      if (j > s.weekday) return h("span", { class: "nhb-c future" });
-      const v = hist[hist.length - 1 - (s.weekday - j)];
-      const isToday = j === s.weekday;
-      const cls = v === null || v === undefined ? "off" : v ? "done" : isToday ? "today" : "miss";
-      if (cls === "off") return h("span", { class: "nhb-c off" });
-      return h("button", { type: "button", class: `nhb-c ${cls}`, "aria-label": `${it.name}, ${WD[j]}: ${v ? "splněno" : "nesplněno"}`,
-        onclick: () => client.send("habit_log", { id: it.id, day: dayOf(s, j), value: v ? 0 : it.kind === "amount" ? it.target : 1 }) },
-        v ? icon("check", "ph-bold") : "");
-    });
-    const amt = it.kind === "amount" ? h("em", {}, `${Math.round((it.value || 0) * 10) / 10}/${it.target}${it.unit === "h" ? " h" : ""}`) : "";
-    return h("div", { class: "nhb-row", style: { "--c": safeColor(it.color) } as any },
-      h("span", { class: "nhb-name" }, h("i", {}), h("b", {}, it.name), amt), ...cells);
+    return h("div", { class: "nhb-wk", "aria-hidden": "true" }, ...WD.map((w, j) => {
+      const v = j > s.weekday ? undefined : hist[hist.length - 1 - (s.weekday - j)];
+      const cls = j > s.weekday ? "future" : v === null || v === undefined ? "off" : v ? "on" : j === s.weekday ? "now" : "miss";
+      return h("i", { class: cls, title: w });
+    }));
   };
-  const paint = () => {
+
+  const card = (s: HabitSnap, it: HabitItem) => {
+    const amount = it.kind === "amount";
+    const step = it.target >= 100 ? Math.round(it.target / 10) : it.unit === "h" ? 0.5 : 1;
+    const p = amount ? Math.min(100, (100 * (it.value || 0)) / (it.target || 1)) : it.done ? 100 : 0;
+    const sub = !it.due ? "dnes volno" : amount ? `${num(it.value || 0)} / ${num(it.target)} ${it.unit}`.trim() : it.done ? "splněno" : "ťukni, až to dáš";
+    const streak = it.streak >= 2 ? h("span", { class: "nhb-fire" }, icon("fire", "ph-fill"), String(it.streak)) : "";
+    let ctl: HTMLElement;
+    if (amount) {
+      const bar = h("span", { class: "nhb-bar" }, h("i", { style: { width: `${p}%` } }));
+      ctl = h("div", { class: "nhb-amt" },
+        h("button", { type: "button", class: "nhb-step", "aria-label": `Ubrat: ${it.name}`, onclick: (e: Event) => { e.stopPropagation(); log(it, Math.max(0, (it.value || 0) - step)); } }, icon("minus", "ph-bold")),
+        bar,
+        h("button", { type: "button", class: "nhb-step", "aria-label": `Přidat: ${it.name}`, onclick: (e: Event) => { e.stopPropagation(); log(it, (it.value || 0) + step); } }, icon("plus", "ph-bold")));
+    } else {
+      ctl = h("span", { class: "nhb-tick", "aria-hidden": "true" }, icon(it.done ? "check" : "plus", "ph-bold"));
+    }
+    const c = h("div", { class: `nhb-card${it.done ? " done" : ""}${it.due ? "" : " rest"}${amount ? " amount" : ""}`, style: { "--c": safeColor(it.color) },
+      role: amount ? "group" : "button", tabindex: amount ? undefined : "0", "aria-pressed": amount ? undefined : String(!!it.done),
+      "aria-label": `${it.name}: ${sub}` },
+      h("div", { class: "nhb-top" },
+        h("span", { class: "nhb-ic" }, icon(it.icon || "check-circle", "ph-fill")),
+        h("div", { class: "nhb-tt" }, h("b", {}, it.name), h("span", {}, sub, streak)),
+        amount ? "" : ctl),
+      amount ? ctl : "",
+      weekDots(s, it));
+    if (!amount) {
+      const toggle = () => { log(it, it.done ? 0 : 1); };
+      c.addEventListener("click", toggle);
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    }
+    return c;
+  };
+
+  const weekBars = (s: HabitSnap) => {
+    const days = s.plan?.days;
+    if (!days || days.length !== 7) return "";
+    return h("div", { class: "nhb-days", "aria-label": "Tento týden" }, ...days.map((d, j) => {
+      const v = d.habit_pct;
+      return h("div", { class: `nhb-day${d.today ? " today" : ""}${d.future ? " future" : ""}`, title: `${WD[j]}: ${v == null ? "–" : `${v} %`}` },
+        h("span", { class: "nhb-day-bar" }, h("i", { style: { height: `${d.future || v == null ? 0 : Math.max(6, v)}%` } })),
+        h("em", {}, WD[j]));
+    }));
+  };
+
+  function paint() {
     if (!snap) { right.replaceChildren(h("p", { class: "hb-empty" }, "Načítám…")); return; }
     const s = snap, t = s.today;
-    const [y, m, d] = s.date.split("-").map(Number);
+    const [, m, d] = s.date.split("-").map(Number);
+    const left_ = t.due - t.done;
+    const msg = !t.due ? "Dnes máš volno." : left_ === 0 ? "Všechno splněno 🔥" : t.done === 0 ? "Začni prvním návykem." : `Ještě ${left_} a máš hotovo.`;
     left.replaceChildren(
-      ring(t.pct, 112, 10, "dnes", t.due ? `${t.done} z ${t.due}` : "volno"),
+      h("div", { class: `nhb-ring${t.due && left_ === 0 ? " full" : ""}` }, ring(t.pct, 116, 11, "dnes", t.due ? `${t.done} z ${t.due}` : "volno")),
+      h("p", { class: "nhb-msg" }, msg),
       h("div", { class: "nhb-mini" },
-        h("div", {}, h("span", {}, "Týden"), h("strong", {}, s.week == null ? "–" : `${s.week}%`)),
+        h("div", {}, h("span", {}, "Týden"), h("strong", {}, s.week == null ? "–" : `${s.week} %`)),
         h("div", {}, h("span", {}, "Série"), h("strong", {}, icon("fire", "ph-fill"), String(s.streaks[0]?.streak || 0)))),
-      h("button", { type: "button", class: "nhb-full", onclick: openFull }, icon("arrows-out-simple"), "Celý tracker"));
+      h("button", { type: "button", class: "nhb-full", onclick: openFull }, icon("arrows-out-simple", "ph-bold"), "Celý tracker"));
+    const order = (a: HabitItem, b: HabitItem) => Number(b.due) - Number(a.due);
     right.replaceChildren(
-      h("div", { class: "nhb-head" }, h("h2", {}, "Návyky"), h("span", { class: "nhb-pill" }, `${d}. ${MON[m - 1]} ${y}`),
-        h("span", { class: "grow" }), h("em", {}, s.delta == null ? "" : `${s.delta >= 0 ? "▲" : "▼"} ${Math.abs(s.delta)} % proti min. týdnu`)),
-      h("div", { class: "nhb-row nhb-top" }, h("span", { class: "nhb-name nhb-col" }, "Návyk"),
-        ...WD.map((w, j) => h("span", { class: `nhb-wd${j === s.weekday ? " now" : ""}` }, w))),
-      h("div", { class: "nhb-rows" }, ...s.items.map((it) => row(s, it)),
-        s.items.length ? "" : h("p", { class: "hb-empty" }, "Žádné návyky – přidej je v celém trackeru.")));
-  };
+      h("div", { class: "nhb-head" },
+        h("div", { class: "nhb-hl" }, h("h2", {}, "Dnes"), h("span", { class: "nhb-pill" }, `${WDL[s.weekday]} ${d}. ${MON[m - 1]}`)),
+        weekBars(s)),
+      s.items.length
+        ? h("div", { class: "nhb-cards" }, ...[...s.items].sort(order).map((it) => card(s, it)))
+        : h("p", { class: "hb-empty" }, "Žádné návyky – přidej si je v celém trackeru."));
+  }
   client.on("habits", (m) => { snap = m as unknown as HabitSnap; paint(); });
   paint();
   return { el, refresh: () => client.send("habits_get") };

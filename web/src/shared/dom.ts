@@ -9,7 +9,14 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     if (k === "class") el.className = v;
     else if (k === "html") el.innerHTML = v;
     else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
-    else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
+    else if (k === "style" && typeof v === "object") {
+      // custom properties ("--c": the habit's colour…) do not go through Object.assign – they were silently lost
+      for (const [sk, sv] of Object.entries(v as Record<string, any>)) {
+        if (sv === undefined || sv === null) continue;
+        if (sk.startsWith("--")) el.style.setProperty(sk, String(sv));
+        else (el.style as any)[sk] = sv;
+      }
+    }
     else el.setAttribute(k, v === true ? "" : String(v));
   }
   for (const c of children) if (c !== null && c !== undefined && c !== false) el.append(c);
