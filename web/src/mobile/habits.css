@@ -82,3 +82,22 @@
   animation: mhb-burst 1.2s cubic-bezier(.2, .8, .3, 1) forwards; transform: rotate(var(--a)) translateY(0); }
 @keyframes mhb-burst { to { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(180deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .mhb-party { display: none; } }
+.mhb-seg { grid-template-columns: repeat(5, 1fr) 40px; }
+.mhb-seg button { font-size: 12.5px; padding: 9px 0; }
+.mhb-gear { display: grid; place-items: center; font-size: 16px; }
+.mhb-gear.on { color: #5ef2c0; background: rgba(46, 230, 166, .18); }
+.mhb-grid .hb-grid { overflow-x: auto; }
+.mhb-grid .hb-grid-row { min-width: 920px; }
+.mhb-grid .hb-cell { max-width: 24px; }
+.mhb-grid .hb-month-title h2 { font-size: 19px; }
+.mhb .hb-days { grid-auto-columns: 78%; scroll-snap-type: x mandatory; }
+.mhb .hb-day { scroll-snap-align: center; }
+.mhb .hb-bars-row { height: 120px; gap: 8px; }
+.mhb .hbp-cards { grid-template-columns: 1fr 1fr; }
+.mhb .hbp-cards .hb-stat.fire { grid-column: span 2; }
+.mhb .hbp-trend-grid { grid-template-columns: minmax(0, 1fr); }
+.mhb .hb-filter { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; max-height: none; }
+.mhb .hbp-two { grid-template-columns: minmax(0, 1fr); }
+.mhb .hb-goal-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+.mhb .hb-goal-pct { font-size: 32px; }
+.mhb .hb-goal-new { min-height: 120px; }

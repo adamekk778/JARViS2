@@ -108,3 +108,27 @@ def test_evening_reminder_once_and_only_when_something_is_left(rt):
     assert hb.remind_time(rt) == "" and hb.snapshot(rt)["remind"] == ""
     hb.set_remind(rt, "7:5")
     assert hb.remind_time(rt) == "07:05"
+
+
+def test_week_planner_tasks_mindset_and_goals(rt):
+    s = hb.snapshot(rt)
+    assert len(s["plan"]["days"]) == 7 and s["plan"]["days"][s["weekday"]]["today"]
+    tid = hb.task_add(rt, "Koupit boty")
+    hb.task_add(rt, "Dokončit úkol do školy")
+    hb.task_set(rt, tid, done=True)
+    hb.set_mindset(rt, "Klid a soustředění")
+    d = hb.snapshot(rt)["plan"]["days"][s["weekday"]]
+    assert [x["text"] for x in d["tasks"]] == ["Koupit boty", "Dokončit úkol do školy"] and d["task_pct"] == 50
+    assert d["mindset"] == "Klid a soustředění" and hb.snapshot(rt)["plan"]["pct"] == 50
+    hb.task_delete(rt, tid)
+    assert len(hb.snapshot(rt)["plan"]["days"][s["weekday"]]["tasks"]) == 1
+    assert hb.snapshot(rt, None, 1)["plan"]["start"] > s["plan"]["start"]       # next week
+    gid = hb.goal_save(rt, {"name": "Uběhnout 50 km", "target": 50, "current": 20, "unit": "km"})
+    g = hb.snapshot(rt)["goals"][0]
+    assert g["pct"] == 40 and g["name"] == "Uběhnout 50 km"
+    hb.goal_save(rt, {"id": gid, "name": "Uběhnout 50 km", "target": 50, "current": 60, "unit": "km"})
+    assert hb.snapshot(rt)["goals"][0]["pct"] == 100
+    hb.goal_delete(rt, gid)
+    assert hb.snapshot(rt)["goals"] == []
+    it = hb.snapshot(rt)["items"][0]
+    assert len(it["hist"]) == 30 and "rate7" in it and "rate90" in it

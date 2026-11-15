@@ -16,6 +16,11 @@ CREATE TABLE IF NOT EXISTS habits (id INTEGER PRIMARY KEY AUTOINCREMENT, name TE
 CREATE TABLE IF NOT EXISTS habit_log (habit_id INTEGER NOT NULL, day TEXT NOT NULL, value REAL, note TEXT, ts REAL,
   PRIMARY KEY (habit_id, day));
 CREATE TABLE IF NOT EXISTS habit_meals (day TEXT NOT NULL, slot TEXT NOT NULL, text TEXT, ts REAL, PRIMARY KEY (day, slot));
+CREATE TABLE IF NOT EXISTS habit_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, text TEXT NOT NULL,
+  done INTEGER DEFAULT 0, ts REAL);
+CREATE TABLE IF NOT EXISTS habit_days (day TEXT PRIMARY KEY, mindset TEXT);
+CREATE TABLE IF NOT EXISTS habit_goals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, target REAL, current REAL,
+  unit TEXT, deadline TEXT, color TEXT, created TEXT);
 """
 
 AREAS = {"gym": "Pohyb", "jidlo": "Jídlo", "spanek": "Spánek", "zdravi": "Zdraví", "mysl": "Mysl", "jine": "Ostatní"}
@@ -188,7 +193,119 @@ def _streaks(h: dict, logs: dict, end: dt.date, days: int = 400) -> tuple[int, i
     return cur, max(best, run, cur)
 
 
-def snapshot(rt: Any, month: str | None = None) -> dict:
+def _rate(h: dict, logs: dict, start: dt.date, end: dt.date) -> int | None:
+    due = done = 0
+    d = max(start, dt.date.fromisoformat(h.get("created") or _iso(start)))
+    while d <= end:
+        if _due(h, d):
+            due += 1
+            done += _done(h, (logs.get((h["id"], _iso(d))) or {}).get("value"))
+        d += dt.timedelta(days=1)
+    return _pct(done, due)
+
+
+# ---------- Úkoly (the week planner) and Cíle (goals) ----------
+def plan(rt: Any, hs: list[dict], logs: dict, week: int = 0) -> dict:
+    """The week (Monday–Sunday, `week` weeks from this one): every day its tasks, its "mindset" line, how much of the
+    tasks and of the habits was done – for the bars on top and a ring on every day."""
+    t = today()
+    mon = t - dt.timedelta(days=t.weekday()) + dt.timedelta(weeks=max(-52, min(52, int(week or 0))))
+    sun = mon + dt.timedelta(days=6)
+    db = _db(rt)
+    tasks = db.all("SELECT id, day, text, done FROM habit_tasks WHERE day BETWEEN ? AND ? ORDER BY id", (_iso(mon), _iso(sun)))
+    minds = {r["day"]: r["mindset"] for r in db.all("SELECT day, mindset FROM habit_days WHERE day BETWEEN ? AND ?", (_iso(mon), _iso(sun)))}
+    days = []
+    for k in range(7):
+        d = mon + dt.timedelta(days=k)
+        di = _iso(d)
+        ts = [{"id": x["id"], "text": x["text"], "done": bool(x["done"])} for x in tasks if x["day"] == di]
+        a, b = _day_score(hs, logs, d) if d <= t else (0, 0)
+        tdone = sum(1 for x in ts if x["done"])
+        both_done, both_all = tdone + a, len(ts) + b
+        days.append({"day": di, "weekday": k, "tasks": ts, "mindset": minds.get(di, ""), "future": d > t, "today": d == t,
+                     "task_pct": _pct(tdone, len(ts)), "habit_pct": _pct(a, b), "pct": _pct(both_done, both_all)})
+    done_all = sum(sum(1 for x in d["tasks"] if x["done"]) for d in days)
+    all_tasks = sum(len(d["tasks"]) for d in days)
+    return {"week": int(week or 0), "start": _iso(mon), "end": _iso(sun), "days": days, "done": done_all, "total": all_tasks,
+            "pct": _pct(done_all, all_tasks)}
+
+
+def task_add(rt: Any, text: str, day: str | None = None) -> int:
+    t = " ".join(str(text or "").split())[:160]
+    if not t:
+        raise ValueError("Napiš, jaký úkol.")
+    d = day or _iso(today())
+    dt.date.fromisoformat(d)
+    return int(_db(rt).exec("INSERT INTO habit_tasks (day, text, done, ts) VALUES (?,?,0,?)", (d, t, time.time())).lastrowid)
+
+
+def task_set(rt: Any, tid: int, done: bool | None = None, text: str | None = None, day: str | None = None) -> None:
+    db = _db(rt)
+    if done is not None:
+        db.exec("UPDATE habit_tasks SET done=? WHERE id=?", (1 if done else 0, int(tid)))
+    if text is not None:
+        db.exec("UPDATE habit_tasks SET text=? WHERE id=?", (" ".join(text.split())[:160] or "?", int(tid)))
+    if day:
+        dt.date.fromisoformat(day)
+        db.exec("UPDATE habit_tasks SET day=? WHERE id=?", (day, int(tid)))
+
+
+def task_delete(rt: Any, tid: int) -> None:
+    _db(rt).exec("DELETE FROM habit_tasks WHERE id=?", (int(tid),))
+
+
+def set_mindset(rt: Any, text: str, day: str | None = None) -> None:
+    d = day or _iso(today())
+    dt.date.fromisoformat(d)
+    v = " ".join(str(text or "").split())[:200]
+    if v:
+        _db(rt).exec("INSERT OR REPLACE INTO habit_days (day, mindset) VALUES (?,?)", (d, v))
+    else:
+        _db(rt).exec("DELETE FROM habit_days WHERE day=?", (d,))
+
+
+def goals(rt: Any) -> list[dict]:
+    out = []
+    for g in _db(rt).all("SELECT * FROM habit_goals ORDER BY id"):
+        target, cur = float(g.get("target") or 0), float(g.get("current") or 0)
+        pct = max(0, min(100, round(100 * cur / target))) if target else 0
+        days_left = None
+        if g.get("deadline"):
+            try:
+                days_left = (dt.date.fromisoformat(g["deadline"]) - today()).days
+            except ValueError:
+                days_left = None
+        out.append({**g, "target": target, "current": cur, "pct": pct, "days_left": days_left})
+    return out
+
+
+def goal_save(rt: Any, g: dict) -> int:
+    name = " ".join(str(g.get("name") or "").split())[:60]
+    if not name:
+        raise ValueError("Cíl potřebuje název.")
+    target = float(g.get("target") or 0)
+    if target <= 0:
+        raise ValueError("Cíl potřebuje číslo, kam chceš dojít (třeba 10 km nebo 5 kg).")
+    current = max(0.0, float(g.get("current") or 0))
+    deadline = str(g.get("deadline") or "")[:10]
+    if deadline:
+        dt.date.fromisoformat(deadline)
+    color = str(g.get("color") or "#2ee6a6")[:20]
+    unit = str(g.get("unit") or "")[:16]
+    db = _db(rt)
+    if g.get("id"):
+        db.exec("UPDATE habit_goals SET name=?, target=?, current=?, unit=?, deadline=?, color=? WHERE id=?",
+                (name, target, current, unit, deadline, color, int(g["id"])))
+        return int(g["id"])
+    return int(db.exec("INSERT INTO habit_goals (name, target, current, unit, deadline, color, created) VALUES (?,?,?,?,?,?,?)",
+                       (name, target, current, unit, deadline, color, _iso(today()))).lastrowid)
+
+
+def goal_delete(rt: Any, gid: int) -> None:
+    _db(rt).exec("DELETE FROM habit_goals WHERE id=?", (int(gid),))
+
+
+def snapshot(rt: Any, month: str | None = None, week_offset: int = 0) -> dict:
     """Everything the notch and the full screen show, in one piece."""
     seed(rt)
     hs = habits(rt)
@@ -218,9 +335,15 @@ def snapshot(rt: Any, month: str | None = None) -> dict:
                 due30 += 1
                 done30 += _done(h, (logs.get((h["id"], _iso(d))) or {}).get("value"))
             d += dt.timedelta(days=1)
+        hist = []                                   # the last 30 days of this habit (the Přehled chart can show one habit)
+        for k in range(29, -1, -1):
+            d = t - dt.timedelta(days=k)
+            hist.append(None if not _due(h, d) else _done(h, (logs.get((h["id"], _iso(d))) or {}).get("value")))
         items.append({**{k: h[k] for k in ("id", "name", "icon", "color", "area", "kind", "target", "unit", "days")},
                       "value": lg.get("value") or 0, "note": lg.get("note") or "", "due": _due(h, t), "done": _done(h, lg.get("value")),
-                      "streak": cur, "best": best, "last7": last7, "rate30": _pct(done30, due30)})
+                      "streak": cur, "best": best, "last7": last7, "rate30": _pct(done30, due30),
+                      "rate7": _rate(h, logs, t - dt.timedelta(days=6), t), "rate90": _rate(h, logs, t - dt.timedelta(days=89), t),
+                      "hist": hist})
     done_t, due_t = _day_score(hs, logs, t)
     monday = t - dt.timedelta(days=t.weekday())
     week = _range_pct(hs, logs, monday, t)
@@ -256,6 +379,8 @@ def snapshot(rt: Any, month: str | None = None) -> dict:
         "meals": [{"slot": s, "label": label, "text": meals.get(s, "")} for s, label in MEAL_SLOTS],
         "remind": remind_time(rt),
         "areas": AREAS,
+        "plan": plan(rt, hs, logs, week_offset),
+        "goals": goals(rt),
     }
 
 
