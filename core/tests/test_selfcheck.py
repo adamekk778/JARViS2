@@ -139,3 +139,21 @@ def test_offline_ai_says_what_is_missing(rt, monkeypatch):
         r = asyncio.run(selfcheck.offline_ai(rt))
         assert r["ok"] is ok and words in r["detail"], r
     assert rt.local.base.startswith("http://127.0.0.1")
+
+
+def test_song_extras_names_a_blocked_connection(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace as NS
+
+    import httpx
+
+    from jarvis import nowplaying
+
+    def blocked(transport=None, **kw):
+        def handler(req):
+            raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kw)
+
+    monkeypatch.setattr(nowplaying, "_client", blocked)
+    r = asyncio.run(selfcheck.song_extras(NS(media_state={"title": "Song", "artist": "Band"})))
+    assert r["ok"] is False and "CERTIFICATE" in r["detail"] and "Bitdefender" in r["fix"]

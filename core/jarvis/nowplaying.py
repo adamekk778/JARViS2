@@ -17,6 +17,17 @@ from collections import OrderedDict
 log = logging.getLogger(__name__)
 
 LRCLIB = "https://lrclib.net/api"
+NET: dict = {"cover": "", "lyrics": ""}   # 3.12 the last reason a cover / lyrics could not be fetched (Kontrola funkcí)
+
+
+def _client(transport=None, **kw):
+    """The HTTP client for lyrics and covers – with the certificates Windows trusts (the same as the AI uses), so an
+    antivirus that checks encrypted connections with its own certificate (Bitdefender) does not break it."""
+    import httpx
+
+    from . import tlsctx
+
+    return httpx.AsyncClient(transport=transport, timeout=8, headers={"User-Agent": UA}, verify=tlsctx.context(), **kw)
 UA = "JARVIS desktop assistant (https://github.com/adamekk778/JARViS2)"
 
 # media session app ids (Windows) → service
@@ -150,8 +161,10 @@ class Lyrics:
         if not os.environ.get("JARVIS_NO_NET") or self.transport is not None:
             try:
                 res = await self._fetch(song, singer, album, duration)
+                NET["lyrics"] = ""
             except Exception as e:  # noqa: BLE001
                 log.info("lyrics %s – %s: %s", singer, song, e)
+                NET["lyrics"] = f"{type(e).__name__}: {e}"[:200]
                 return {**res, "error": f"{type(e).__name__}: {e}"}    # not cached: a network error may pass
         self.cache[key] = res
         while len(self.cache) > self.size:
@@ -159,9 +172,8 @@ class Lyrics:
         return res
 
     async def _fetch(self, song: str, artist: str, album: str, duration: float) -> dict:
-        import httpx
 
-        async with httpx.AsyncClient(transport=self.transport, timeout=8, headers={"User-Agent": UA}) as c:
+        async with _client(self.transport) as c:
             item = None
             params = {"track_name": song, "artist_name": artist}
             if album:
@@ -218,7 +230,6 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
     """Look the song's album art up and return it as a data: URL ("" when nothing fitting was found)."""
     import base64
 
-    import httpx
 
     key = (title or "", artist or "")
     if key in _COVERS:
@@ -227,7 +238,7 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
     if not song or (os.environ.get("JARVIS_NO_NET") and transport is None):
         return ""
     url, answered = "", False
-    async with httpx.AsyncClient(transport=transport, timeout=8, headers={"User-Agent": UA}, follow_redirects=True) as c:
+    async with _client(transport, follow_redirects=True) as c:
         try:
             r = await c.get(DEEZER, params={"q": f'artist:"{singer}" track:"{song}"' if singer else song, "limit": 10})
             answered = True
@@ -238,6 +249,7 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
                         break
         except Exception as e:  # noqa: BLE001
             log.debug("cover deezer: %s", e)
+            NET["cover"] = f"Deezer: {type(e).__name__}: {e}"[:200]
         if not url:
             for country in ("CZ", "US"):
                 try:
@@ -249,6 +261,7 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
                             break
                 except Exception as e:  # noqa: BLE001
                     log.debug("cover itunes: %s", e)
+                    NET["cover"] = f"iTunes: {type(e).__name__}: {e}"[:200]
                 if url:
                     break
         data = ""
@@ -259,7 +272,9 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
             if body and len(body) < 3_000_000 and ctype.startswith("image/"):
                 data = f"data:{ctype};base64," + base64.b64encode(body).decode()
     if not answered:
+        log.info("hudba: obal z internetu nejde – %s", NET["cover"])
         return ""                                    # no internet just now: ask again later, do not remember "none"
+    NET["cover"] = ""
     _COVERS[key] = data
     while len(_COVERS) > 64:
         _COVERS.popitem(last=False)

@@ -142,6 +142,41 @@ async def voice_out(rt: Any) -> dict:
     return _r("tts", name, bool(audio), f"Funguje ({len(audio) // 1024} kB {mime}).")
 
 
+async def song_extras(rt: Any) -> dict:
+    """3.12 Obal a texty písní: can JARVIS fetch a song's lyrics (LRCLIB) and album cover (Deezer / iTunes)? Tried with
+    the song playing now (or a known one), and the exact reason when not – an antivirus or a firewall shows here."""
+    from . import nowplaying
+
+    name = "Obal a texty písní z internetu"
+    m = getattr(rt, "media_state", {}) or {}
+    title, artist = (m.get("title"), m.get("artist")) if m.get("title") else ("Reflections", "The Neighbourhood")
+    errs = []
+    try:
+        async with nowplaying._client() as c:
+            r = await c.get(f"{nowplaying.LRCLIB}/search", params={"track_name": title, "artist_name": artist or ""})
+            if r.status_code == 429:
+                errs.append("texty: LRCLIB teď omezuje počet dotazů (zkus to za pár minut)")
+            elif r.status_code >= 400:
+                errs.append(f"texty: LRCLIB odpověděl {r.status_code}")
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"texty: {type(e).__name__}: {str(e)[:120]}")
+    nowplaying._COVERS.pop((title, artist or ""), None)
+    try:
+        cover = await nowplaying.find_cover(title, artist or "")
+        if not cover and nowplaying.NET.get("cover"):
+            errs.append(f"obal: {nowplaying.NET['cover']}")
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"obal: {type(e).__name__}: {str(e)[:120]}")
+        cover = ""
+    if errs:
+        blocked = any(w in " ".join(errs).lower() for w in ("ssl", "certificate", "10013", "connect", "timed out", "timeout"))
+        return _r("songs", name, False, f"{title}: " + "; ".join(errs),
+                  "JARVIS se nedostane na lrclib.net / api.deezer.com / itunes.apple.com. Povol JARVIS v antiviru "
+                  "(Bitdefender → Ochrana → Firewall a Ochrana webu → Výjimky: přidej JARVIS.exe) a dej Zkontrolovat znovu."
+                  if blocked else "Zkus to za chvíli znovu; pokud to trvá, pošli mi tenhle řádek.")
+    return _r("songs", name, True, f"{title}: texty i obal jdou stáhnout" + ("" if cover else " (obal k téhle písni nenašel)") + ".")
+
+
 async def offline_ai(rt: Any) -> dict:
     """3.12 Offline AI (Ollama): is it running where JARVIS asks, is a model there, is the backup on and does it answer."""
     name = "Offline AI (Ollama)"
@@ -251,7 +286,7 @@ def phone_net(rt: Any) -> list[dict]:
 
 
 INTERNET_HOSTS = [("api.groq.com", "Groq"), ("generativelanguage.googleapis.com", "Gemini"), ("speech.platform.bing.com", "hlas"),
-                  ("lrclib.net", "texty písní")]
+                  ("lrclib.net", "texty písní"), ("itunes.apple.com", "obaly písní")]
 
 
 def security_products() -> list[str]:
@@ -363,6 +398,7 @@ async def run(rt: Any, tester) -> list[dict]:
                 r["fix"] = "Příčina je u položky Internet pro JARVIS – oprav nejdřív tu."
     results += [tts, mind]
     results.append(await _limited(offline_ai(rt), 15, "ollama", "Offline AI (Ollama)", "Ollama neodpověděla včas."))
+    results.append(await _limited(song_extras(rt), 25, "songs", "Obal a texty písní z internetu", "Nestihlo se to ověřit."))
     try:
         results += await asyncio.wait_for(asyncio.to_thread(phone_net, rt), 45)
     except asyncio.TimeoutError:
