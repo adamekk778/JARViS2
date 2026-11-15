@@ -9,6 +9,14 @@ import httpx
 from .base import Chunk, ProviderError, ToolCallAssembler
 
 
+
+def _tls():
+    """The certificates Windows trusts (as the browser) – the same connection the lyrics and covers use, so an
+    antivirus that checks HTTPS (Bitdefender) does not stop the AI."""
+    from .. import tlsctx
+
+    return tlsctx.context()
+
 class OpenAICompat:
     def __init__(self, id: str, base_url: str, model: str, api_key: str = "", *,  # noqa: A002
                  temperature: float = 0.6, max_tokens: int = 2048,
@@ -44,7 +52,7 @@ class OpenAICompat:
             body["tools"] = tools
         asm = ToolCallAssembler()
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
+            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout, verify=_tls()) as client:
                 async with client.stream("POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body) as r:
                     if self.on_headers is not None:
                         try:
@@ -91,7 +99,7 @@ class OpenAICompat:
     async def list_models(self) -> list[str]:
         """GET /models – the model names this endpoint offers (empty when it cannot say)."""
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=15) as client:
+            async with httpx.AsyncClient(transport=self._transport, timeout=15, verify=_tls()) as client:
                 r = await client.get(f"{self.base_url}/models", headers=self._headers())
             if r.status_code != 200:
                 return []

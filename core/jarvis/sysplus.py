@@ -3,6 +3,7 @@ clips (P12.08), Bluetooth devices (P13.04), mood from the tone of voice (P3.12),
 several PCs (P9.09), music in the notch (P12.02) and a personal knowledge graph (P15.07)."""
 from __future__ import annotations
 
+from . import tlsctx
 import asyncio
 import datetime as dt
 import hashlib
@@ -445,7 +446,7 @@ class ScreenShare:
 async def peer_command(peer: dict, token: str, text: str, transport=None, timeout: float = 150) -> dict:
     import httpx
 
-    async with httpx.AsyncClient(transport=transport, timeout=timeout) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=timeout) as c:
         r = await c.post(peer["url"].rstrip("/") + "/api/remote/command", json={"text": text, "from": peer.get("me", "")},
                          headers={"Authorization": f"Bearer {token}"})
     if r.status_code == 401:
@@ -458,7 +459,7 @@ async def peer_status(peer: dict, transport=None) -> dict:
     import httpx
 
     try:
-        async with httpx.AsyncClient(transport=transport, timeout=5) as c:
+        async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=5) as c:
             r = await c.get(peer["url"].rstrip("/") + "/api/health")
         return {"online": r.status_code == 200, **(r.json() if r.status_code == 200 else {})}
     except Exception as e:  # noqa: BLE001

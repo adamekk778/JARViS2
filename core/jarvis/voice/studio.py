@@ -5,6 +5,7 @@ Nothing imitates a real person: no built-in celebrity voices, and a cloned voice
 made in their own ElevenLabs account where they confirm they have the right to it."""
 from __future__ import annotations
 
+from .. import tlsctx
 import io
 import json
 import logging
@@ -111,7 +112,7 @@ async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport
         raise RuntimeError("v Hlasové dílně vyber hlas z ElevenLabs")
     if not re.fullmatch(r"[A-Za-z0-9]{8,64}", voice_id):
         raise RuntimeError("neplatné ID hlasu ElevenLabs")
-    async with httpx.AsyncClient(transport=transport, timeout=60) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=60) as c:
         r = await c.post(f"{ELEVEN_API}/text-to-speech/{voice_id}", params={"output_format": "mp3_44100_128"},
                          headers={"xi-api-key": key, "accept": "audio/mpeg"},
                          json={"text": text, "model_id": model or "eleven_multilingual_v2"})
@@ -128,7 +129,7 @@ async def eleven_voices(key: str, transport=None) -> list[dict]:
     """The voices in the user's ElevenLabs account – their own clones / designs first."""
     if not key:
         return []
-    async with httpx.AsyncClient(transport=transport, timeout=20) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=20) as c:
         r = await c.get(f"{ELEVEN_API}/voices", headers={"xi-api-key": key})
     if r.status_code != 200:
         raise RuntimeError("ElevenLabs odmítl API klíč" if r.status_code in (401, 403) else f"ElevenLabs: HTTP {r.status_code}")
@@ -179,7 +180,7 @@ async def piper_catalog(transport=None) -> list[dict]:
     local = piper_dir() / "voices.json"
     data = None
     try:
-        async with httpx.AsyncClient(transport=transport, timeout=20, follow_redirects=True) as c:
+        async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=20, follow_redirects=True) as c:
             r = await c.get(PIPER_CATALOG)
         if r.status_code == 200:
             data = r.json()

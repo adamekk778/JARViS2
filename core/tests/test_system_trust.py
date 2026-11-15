@@ -50,3 +50,17 @@ def test_httpx_uses_the_joined_list(tmp_path, restore):
     tlsctx.use_system_trust(folder=tmp_path, enum=lambda s: [(der, "x509_asn", True)] if s == "ROOT" else [])
     with httpx.Client() as c:                                # builds its SSL context from certifi.where()
         assert c is not None
+
+
+def test_a_broken_windows_certificate_is_skipped(tmp_path, restore):
+    der = _antivirus_cert()
+    stores = {"ROOT": [(b"\x30\x03\x02\x01\x00", "x509_asn", True), (der, "x509_asn", True)], "CA": []}
+    path = tlsctx.use_system_trust(folder=tmp_path, enum=lambda s: stores[s])
+    assert path and certifi.where() == path
+    ssl.create_default_context(cafile=path)
+
+
+def test_ai_uses_the_windows_trusting_context():
+    from jarvis.llm import openai_compat
+
+    assert openai_compat._tls() is tlsctx.context()

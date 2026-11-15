@@ -46,7 +46,13 @@ def windows_pems(enum=None) -> list[str]:
             continue
         for der, encoding, trust in items:
             if encoding == "x509_asn" and (trust is True or SERVER_AUTH in (trust or ())):
-                out.append(ssl.DER_cert_to_PEM_cert(der))
+                pem = ssl.DER_cert_to_PEM_cert(der)
+                try:                                  # one odd certificate must not break the whole list
+                    ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT).load_verify_locations(cadata=pem)
+                except (ssl.SSLError, ValueError) as e:
+                    log.debug("certificate skipped: %s", e)
+                    continue
+                out.append(pem)
     return out
 
 
@@ -74,6 +80,12 @@ def use_system_trust(folder=None, enum=None) -> str | None:
     text = open(original(), encoding="ascii", errors="ignore").read().rstrip() + "\n" + "".join(extra)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(text, encoding="ascii", errors="ignore")
+    try:                                              # the joined list must load, or nothing is changed
+        ssl.create_default_context(cafile=str(tmp))
+    except (ssl.SSLError, OSError, ValueError) as e:
+        log.warning("Windows certificates not used: %s", e)
+        tmp.unlink(missing_ok=True)
+        return None
     os.replace(tmp, path)
     where = str(path)
     certifi._jarvis_where = original          # type: ignore[attr-defined]

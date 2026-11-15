@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+from . import tlsctx
 import datetime as dt
 import json
 import os
@@ -255,7 +256,7 @@ async def roblox_publish(key: str, universe: int, place: int, file: Path, publis
     if not key:
         raise RuntimeError("chybí API klíč Roblox Open Cloud (create.roblox.com → Credentials, oprávnění universe-places:write)")
     ctype = "application/xml" if file.suffix.lower() == ".rbxlx" else "application/octet-stream"
-    async with httpx.AsyncClient(transport=transport, timeout=120) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=120) as c:
         r = await c.post(f"{OPEN_CLOUD}/universes/v1/{int(universe)}/places/{int(place)}/versions",
                          params={"versionType": "Published" if publish else "Saved"},
                          headers={"x-api-key": key, "Content-Type": ctype}, content=file.read_bytes())
@@ -273,7 +274,7 @@ async def roblox_datastore(key: str, universe: int, store: str, entry: str = "",
         raise RuntimeError("chybí API klíč Roblox Open Cloud (oprávnění universe-datastores.objects:read)")
     base = f"{OPEN_CLOUD}/datastores/v1/universes/{int(universe)}/standard-datastores/datastore/entries"
     params = {"datastoreName": store, "scope": scope}
-    async with httpx.AsyncClient(transport=transport, timeout=30) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=30) as c:
         if entry:
             r = await c.get(base + "/entry", params={**params, "entryKey": entry}, headers={"x-api-key": key})
         else:
@@ -325,7 +326,7 @@ async def pid_departures(key: str, stop: str, limit: int = 8, transport=None) ->
 
     if not key:
         raise RuntimeError("na odjezdy MHD v Praze je potřeba bezplatný klíč z api.golemio.cz")
-    async with httpx.AsyncClient(transport=transport, timeout=20) as c:
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=20) as c:
         r = await c.get("https://api.golemio.cz/v2/pid/departureboards", headers={"X-Access-Token": key},
                         params={"names": stop, "limit": limit, "minutesAfter": 90})
     if r.status_code != 200:

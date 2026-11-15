@@ -2,6 +2,7 @@
 switched on "Aktualizovat sám v noci" (Settings → Obecné), by itself at night while nobody uses the PC."""
 from __future__ import annotations
 
+from . import tlsctx
 import asyncio
 import logging
 import os
@@ -135,7 +136,7 @@ class Updater:
         import httpx
 
         try:
-            async with httpx.AsyncClient(transport=self.transport, timeout=15, follow_redirects=True) as c:
+            async with httpx.AsyncClient(verify=tlsctx.context(), transport=self.transport, timeout=15, follow_redirects=True) as c:
                 r = await c.get(self.rt.cfg.general.update_url, headers={"Accept": "application/vnd.github+json"})
             if r.status_code != 200:
                 log.info("update check: HTTP %s", r.status_code)
@@ -170,7 +171,7 @@ class Updater:
         dest = paths.sub("updates") / f"JARVIS-Setup-{self.status['latest']}.exe"
         self.status.update(state="downloading", progress=0.0, error="")
         self._publish()
-        async with httpx.AsyncClient(transport=self.transport, timeout=None, follow_redirects=True) as c:
+        async with httpx.AsyncClient(verify=tlsctx.context(), transport=self.transport, timeout=None, follow_redirects=True) as c:
             async with c.stream("GET", self._url) as r:
                 r.raise_for_status()
                 total = int(r.headers.get("content-length") or 0)

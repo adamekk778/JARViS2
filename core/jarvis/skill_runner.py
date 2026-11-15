@@ -5,6 +5,7 @@ This is crash/timeout isolation, not a security sandbox.
 """
 from __future__ import annotations
 
+from . import tlsctx
 import asyncio
 import importlib.util
 import json
@@ -37,7 +38,7 @@ def _ctx(permissions: list[str], legacy: bool = False):
         from .memory import DB
 
         store = AttachmentStore(paths.sub("files"), DB(paths.data_dir() / "jarvis.db"))
-    return SimpleNamespace(http=lambda: httpx.AsyncClient(timeout=30), notify=notify, platform=platform, store=store)
+    return SimpleNamespace(http=lambda: httpx.AsyncClient(verify=tlsctx.context(), timeout=30), notify=notify, platform=platform, store=store)
 
 
 def main(argv: list[str]) -> int:
