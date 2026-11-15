@@ -22,6 +22,9 @@ const gemini = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true"><defs
   + `<path fill="url(#jv-gem)" d="${d}"/></svg>`;
 // the Groq mark (from @lobehub/icons-static-svg, MIT)
 const GROQ = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M12.036 2c-3.853-.035-7 3-7.036 6.781-.035 3.782 3.055 6.872 6.908 6.907h2.42v-2.566h-2.292c-2.407.028-4.38-1.866-4.408-4.23-.029-2.362 1.901-4.298 4.308-4.326h.1c2.407 0 4.358 1.915 4.365 4.278v6.305c0 2.342-1.944 4.25-4.323 4.279a4.375 4.375 0 01-3.033-1.252l-1.851 1.818A7 7 0 0012.029 22h.092c3.803-.056 6.858-3.083 6.879-6.816v-6.5C18.907 4.963 15.817 2 12.036 2z"/></svg>`;
+// 3.12 Cerebras: concentric arcs (its wafer), drawn here – not in the icon set
+const CEREBRAS = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">`
+  + `<path d="M17.5 5.2A9 9 0 1 0 17.5 18.8"/><path d="M15.4 8A5.6 5.6 0 1 0 15.4 16"/><path d="M13.3 10.6a2.2 2.2 0 1 0 0 2.8"/></g></svg>`;
 const ROUTER = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="5" cy="12" r="2.6"/><circle cx="19" cy="5" r="2.6"/>`
   + `<circle cx="19" cy="19" r="2.6"/></g><path d="M7.4 11 16.8 6M7.4 13l9.4 5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`;
 
@@ -41,6 +44,7 @@ export const BRANDS: Record<string, Brand> = {
   lmstudio: si("lmstudio", "LM Studio", siLmstudio, "#a99bff"),
   openrouter: si("openrouter", "OpenRouter", siOpenrouter, "#c7d2e0"),
   groq: { id: "groq", name: "Groq", color: "#f55036", svg: GROQ },
+  cerebras: { id: "cerebras", name: "Cerebras", color: "#f05a28", svg: CEREBRAS },
   router: { id: "router", name: "OmniRoute", color: "#4fd1ff", svg: ROUTER },
 };
 
@@ -59,7 +63,7 @@ const BY_MODEL: [RegExp, string][] = [
 ];
 const BY_PROVIDER: [RegExp, string][] = [
   [/anthropic|claude/, "claude"], [/openai/, "chatgpt"], [/gemini|google/, "gemini"], [/ollama/, "ollama"],
-  [/lmstudio|lm-studio/, "lmstudio"], [/openrouter/, "openrouter"], [/groq/, "groq"], [/mistral/, "mistral"],
+  [/lmstudio|lm-studio/, "lmstudio"], [/openrouter/, "openrouter"], [/groq/, "groq"], [/cerebras/, "cerebras"], [/mistral/, "mistral"],
   [/deepseek/, "deepseek"], [/perplexity/, "perplexity"],
 ];
 

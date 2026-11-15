@@ -105,7 +105,7 @@ class OpenAICompat:
 # models a chat can not use (speech, safety filters, embeddings) – never picked as the "best" one
 _NOT_CHAT = ("whisper", "tts", "guard", "embed", "playai", "distil-whisper", "orpheus", "moderation")
 # the strongest known chat models, best first (3.12: Groq's own recommendation after it switched off Llama 3.3)
-_PREFERRED = ("openai/gpt-oss-120b", "openai/gpt-oss-20b")
+_PREFERRED = ("openai/gpt-oss-120b", "gpt-oss-120b", "openai/gpt-oss-20b")
 
 
 def pick_model(models: list[str]) -> str:

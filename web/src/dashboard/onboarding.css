@@ -45,7 +45,7 @@
 .ob-name { height: 48px; font-size: 16px; text-align: center; border-radius: 14px; }
 
 /* choosing the brain */
-.ob-brains { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ob-brains { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .ob-brain { position: relative; text-align: left; padding: 16px; border-radius: 18px; border: 1px solid var(--edge);
   background: var(--glass-2); color: var(--text); font: inherit; cursor: pointer;
   transition: border-color .2s, background .2s, transform .2s var(--spring, ease), box-shadow .2s; }

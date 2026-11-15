@@ -5,9 +5,9 @@ import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import "./onboarding.css";
 
-type Brain = { id: "groq" | "gemini"; name: string; tag: string; lines: string[]; url: string; host: string; prefix: string; steps: string[]; base: string; model: string };
+type Brain = { id: "groq" | "gemini" | "cerebras"; name: string; tag: string; lines: string[]; url: string; host: string; prefix: string; steps: string[]; base: string; model: string };
 const BRAINS: Brain[] = [
-  { id: "groq", name: "Groq", tag: "Doporučeno", lines: ["Zdarma, bez platební karty", "Nejrychlejší odpovědi", "Model GPT-OSS 120B"],
+  { id: "groq", name: "Groq", tag: "Doporučeno", lines: ["Zdarma, bez platební karty", "Velmi rychlé odpovědi", "Model GPT-OSS 120B"],
     url: "https://console.groq.com/keys", host: "console.groq.com/keys", prefix: "gsk_",
     steps: ["Přihlas se (stačí Google účet)", "Klikni na „Create API Key“, napiš libovolný název", "Zkopíruj klíč (začíná gsk_) – ukáže se jen jednou"],
     base: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b" },
@@ -15,6 +15,10 @@ const BRAINS: Brain[] = [
     url: "https://aistudio.google.com/apikey", host: "aistudio.google.com/apikey", prefix: "AIza",
     steps: ["Přihlas se Google účtem", "Klikni na „Create API key“", "Klikni na ikonku kopírování u klíče a vlož ho sem"],
     base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
+  { id: "cerebras", name: "Cerebras", tag: "Nejrychlejší", lines: ["Zdarma, bez platební karty", "Odpovídá skoro okamžitě", "Model GPT-OSS 120B"],
+    url: "https://cloud.cerebras.ai", host: "cloud.cerebras.ai", prefix: "csk-",
+    steps: ["Přihlas se (stačí Google účet)", "Vlevo klikni na „API Keys“ a vytvoř klíč", "Zkopíruj klíč (začíná csk-)"],
+    base: "https://api.cerebras.ai/v1", model: "gpt-oss-120b" },
 ];
 
 let settings: any = null;
@@ -89,13 +93,13 @@ function show(client: JarvisClient, s: any) {
     } else if (step === 1) {
       const pick = (b: Brain) => h("button", { type: "button", class: `ob-brain ${brain.id === b.id ? "on" : ""}`, "data-id": b.id,
         onclick: () => { brain = b; go(1); } },
-        h("div", { class: "ob-brain-head" }, h("span", { class: "ob-logo" }, icon(b.id === "groq" ? "lightning" : "sparkle", "ph-fill")),
+        h("div", { class: "ob-brain-head" }, h("span", { class: "ob-logo" }, icon(b.id === "groq" ? "lightning" : b.id === "cerebras" ? "rocket-launch" : "sparkle", "ph-fill")),
           h("strong", {}, b.name), h("em", {}, b.tag)),
         h("ul", {}, ...b.lines.map((l) => h("li", {}, icon("check"), l))),
         h("span", { class: "ob-radio" }));
       view = h("div", {},
         h("h2", {}, "Vyber mi mozek"),
-        h("p", { class: "ob-lead" }, "Obě možnosti jsou zdarma a běží, i když je počítač slabý. Později můžeš přidat další v Nastavení → AI mozek."),
+        h("p", { class: "ob-lead" }, "Všechny tři jsou zdarma a běží, i když je počítač slabý. Později můžeš přidat další v Nastavení → AI mozek."),
         h("div", { class: "ob-brains" }, ...BRAINS.map(pick)),
         h("button", { type: "button", class: "ob-link", onclick: () => go(3) }, "Už mám AI nastavenou – přeskočit"));
       next.replaceChildren(h("span", {}, `Pokračovat s ${brain.name}`), icon("arrow-right"));

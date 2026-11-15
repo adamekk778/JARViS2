@@ -10,10 +10,10 @@ from . import secrets
 from .llm.presets import PRESETS
 
 # the start of the key → the service (the order matters: sk-ant- / sk-or- before plain sk-)
-RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("AQ.", "gemini"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
+RULES: list[tuple[str, str]] = [("gsk_", "groq"), ("AIza", "gemini"), ("AQ.", "gemini"), ("csk-", "cerebras"), ("sk-ant-", "anthropic"), ("sk-or-", "openrouter"),
                                 ("sk-", "openai")]
-LABEL = {"groq": "Groq", "gemini": "Google Gemini", "anthropic": "Anthropic Claude", "openrouter": "OpenRouter", "openai": "OpenAI"}
-HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (začíná gsk_), Google Gemini (AIza…), OpenAI (sk-…), "
+LABEL = {"cerebras": "Cerebras", "groq": "Groq", "gemini": "Google Gemini", "anthropic": "Anthropic Claude", "openrouter": "OpenRouter", "openai": "OpenAI"}
+HELP = ("Nepoznám, od koho klíč je. Funguje klíč od Groq (začíná gsk_), Cerebras (csk-…), Google Gemini (AIza…), OpenAI (sk-…), "
         "Anthropic (sk-ant-…) nebo OpenRouter (sk-or-…). Zdarma ho dostaneš na console.groq.com nebo aistudio.google.com.")
 
 
@@ -82,7 +82,8 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint:
         from .voice.stt import Transcriber
 
         Transcriber._groq_seen = (0.0, False)      # the voice uses Groq from now on, no waiting
-    chain = [pid] + [c for c in rt.cfg.brain.chain if c != pid]
+    rest = [c for c in rt.cfg.brain.chain if c != pid]
+    chain = [pid] + [c for c in rest if c != "omniroute"] + [c for c in rest if c == "omniroute"]   # your keys before the gateway
     rt.update_config({"brain": {"providers": provs, "chain": chain}})
     r = await test(pid)
     out = {"ok": bool(r.get("ok")), "provider": pid, "label": LABEL.get(preset, preset), "ms": r.get("ms")}

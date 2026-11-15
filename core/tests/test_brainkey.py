@@ -86,3 +86,17 @@ def test_an_unknown_key_format_in_the_gemini_step_is_tried_with_gemini(rt):
     r = asyncio.run(brainkey.apply(rt, "gsk_" + "g" * 48, test, "gemini"))         # the key itself wins over the step
     assert r["provider"].startswith("groq")
     assert not asyncio.run(brainkey.apply(rt, other, test, "nonsense"))["ok"]
+
+
+def test_cerebras_key_and_your_keys_before_omniroute(rt):
+    async def test(pid):
+        return {"ok": True, "message": "ok", "ms": 90}
+
+    assert brainkey.detect("csk-" + "c" * 40) == "cerebras"
+    r = asyncio.run(brainkey.apply(rt, "csk-" + "c" * 40, test))
+    assert r["ok"] and r["provider"] == "cerebras" and "Cerebras" in r["message"]
+    p = next(p for p in rt.cfg.brain.providers if p.id == "cerebras")
+    assert p.base_url == "https://api.cerebras.ai/v1" and p.model == "gpt-oss-120b"
+    asyncio.run(brainkey.apply(rt, "gsk_" + "q" * 48, test))
+    chain = rt.cfg.brain.chain
+    assert chain[:2] == ["groq", "cerebras"] and chain[-1] == "omniroute"      # the gateway only when nothing else answers
