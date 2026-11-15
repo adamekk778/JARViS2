@@ -476,6 +476,35 @@ def remind_due(rt: Any, now: dt.datetime | None = None) -> str:
     return f"Dnes máš {s['today']['pct'] or 0} %. Ještě zbývá: {', '.join(left)}."
 
 
+def weekly_due(rt: Any, now: dt.datetime | None = None) -> str:
+    """3.12 Sunday evening (from 19:00, once a week): how the week went – the %, against last week, the best habit,
+    the one that lags, the longest streak. "" when it is not time, it was sent already, or there is nothing to say."""
+    now = now or dt.datetime.now()
+    if now.weekday() != 6 or now.hour < 19 or not remind_time(rt):
+        return ""
+    week = now.date().isocalendar()
+    key = f"{week[0]}-W{week[1]:02d}"
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_weekly'")
+    if row and row["v"] == key:
+        return ""
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_weekly', ?)", (key,))
+    s = snapshot(rt)
+    rated = [i for i in s["items"] if i.get("rate7") is not None]
+    if s["week"] is None or not rated:
+        return ""
+    parts = [f"Tenhle týden {s['week']} %"
+             + (f" ({'+' if s['delta'] >= 0 else ''}{s['delta']} % proti minulému)." if s.get("delta") is not None else ".")]
+    best = max(rated, key=lambda i: i["rate7"])
+    worst = min(rated, key=lambda i: i["rate7"])
+    parts.append(f"Nejlíp ti šlo: {best['name']} ({best['rate7']} %).")
+    if worst["id"] != best["id"] and worst["rate7"] < 80:
+        parts.append(f"Nejvíc vázne: {worst['name']} ({worst['rate7']} %) – zkus ho příští týden dát hned ráno.")
+    top = max(s["items"], key=lambda i: i["streak"])
+    if top["streak"] >= 3:
+        parts.append(f"Nejdelší série: {top['name']} {top['streak']} dní 🔥")
+    return " ".join(parts)
+
+
 async def remind_loop(rt: Any) -> None:
     import asyncio
     import logging
@@ -488,5 +517,10 @@ async def remind_loop(rt: Any) -> None:
                 rt.notify("Návyky na dnes", text, speak=False)
                 if not rt.user_away():                 # away: notify already sent it to the phone
                     rt.phone_push("notify", title="Návyky na dnes", body=text)
+            week = weekly_due(rt)
+            if week:                                   # 3.12 the week in one message, on the PC and the phone
+                rt.notify("Týden v návycích", week, speak=False)
+                if not rt.user_away():
+                    rt.phone_push("notify", title="Týden v návycích", body=week)
         except Exception as e:  # noqa: BLE001 – try again next minute
             logging.getLogger("jarvis.habits").debug("remind: %s", e)

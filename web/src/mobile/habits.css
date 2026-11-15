@@ -3,7 +3,7 @@
 .mhb > *, .mhb-body > * { min-width: 0; flex-shrink: 0; }
 .mhb[hidden] { display: none; }
 .mhb-top { position: relative; display: grid; gap: 10px; padding: 16px 16px 14px; border-radius: 26px;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(46, 230, 166, .18), transparent 65%), rgba(255, 255, 255, .035);
+  background: radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, .18), transparent 65%), rgba(255, 255, 255, .035);
   border: 1px solid rgba(255, 255, 255, .07); }
 .mhb-date { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .mhb-title { margin: 0; font-family: "Geist Variable", Inter, system-ui, sans-serif; font-size: 34px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase; color: #fff; line-height: 1; }
@@ -17,13 +17,13 @@
 .mhb-chips strong { font-size: 18px; color: #fff; display: inline-flex; align-items: center; gap: 2px; }
 .mhb-chips strong i { color: #ffb84d; font-size: 15px; }
 .mhb-chips em { font-style: normal; font-size: 11px; font-weight: 700; }
-.mhb-chips em.up { color: #5ef2c0; }
+.mhb-chips em.up { color: #ffffff; }
 .mhb-chips em.down { color: #ff8a8a; }
 .mhb-msg { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, .78); text-align: center; }
 .mhb-seg { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 16px;
   background: rgba(20, 22, 26, .86); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .07); }
 .mhb-seg button { border: 0; background: none; color: rgba(255, 255, 255, .6); font: inherit; font-size: 13.5px; padding: 9px 0; border-radius: 12px; }
-.mhb-seg button.on { background: rgba(46, 230, 166, .18); color: #5ef2c0; font-weight: 700; }
+.mhb-seg button.on { background: rgba(255, 255, 255, .18); color: #ffffff; font-weight: 700; }
 .mhb-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .mhb-cal { min-width: 0; }
 .mhb-list { display: grid; gap: 10px; }
@@ -47,19 +47,19 @@
 
 /* the month as a calendar */
 .mhb-focus { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
-.mhb-focus button { --c: #2ee6a6; flex: none; display: inline-flex; gap: 5px; align-items: center; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .04);
+.mhb-focus button { --c: #f2f2f2; flex: none; display: inline-flex; gap: 5px; align-items: center; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .04);
   color: rgba(255, 255, 255, .7); border-radius: 20px; padding: 6px 12px; font: inherit; font-size: 12.5px; }
 .mhb-focus button i { color: var(--c); }
 .mhb-focus button.on { background: color-mix(in srgb, var(--c) 22%, transparent); border-color: color-mix(in srgb, var(--c) 55%, transparent); color: #fff; }
 .mhb-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .mhb-cal-wd { font-size: 11px; color: rgba(255, 255, 255, .45); text-align: center; padding-bottom: 2px; }
 .mhb-cal-day { --p: 0; position: relative; aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; font-size: 12.5px; color: #fff; border: 0; padding: 0;
-  background: color-mix(in srgb, #2ee6a6 calc(var(--p) * 85%), rgba(255, 255, 255, .05));
-  box-shadow: 0 0 calc(var(--p) * 14px) rgba(46, 230, 166, calc(var(--p) * .55)); }
+  background: color-mix(in srgb, #f2f2f2 calc(var(--p) * 85%), rgba(255, 255, 255, .05));
+  box-shadow: 0 0 calc(var(--p) * 14px) rgba(255, 255, 255, calc(var(--p) * .55)); }
 .mhb-cal-day b { font-weight: 650; }
 .mhb-cal-day.future { background: rgba(255, 255, 255, .02); color: rgba(255, 255, 255, .3); box-shadow: none; }
 .mhb-cal-day.today { outline: 2px solid rgba(255, 255, 255, .85); outline-offset: -2px; }
-.mhb-cal-day.one { --c: #2ee6a6; background: rgba(255, 255, 255, .05); box-shadow: none; }
+.mhb-cal-day.one { --c: #f2f2f2; background: rgba(255, 255, 255, .05); box-shadow: none; }
 .mhb-cal-day.one.done { background: var(--c); color: #04140e; box-shadow: 0 0 12px color-mix(in srgb, var(--c) 55%, transparent); }
 .mhb-cal-day.one.done b { display: none; }
 .mhb-cal-day.one.done i { font-size: 16px; }
@@ -69,7 +69,7 @@
 
 /* the glance on Domov */
 .mhb-glance { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; text-align: left; width: 100%; padding: 12px 14px; border-radius: 22px;
-  background: radial-gradient(110% 120% at 0% 50%, rgba(46, 230, 166, .14), transparent 65%), rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08);
+  background: radial-gradient(110% 120% at 0% 50%, rgba(255, 255, 255, .14), transparent 65%), rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08);
   color: #fff; font: inherit; }
 .mhb-glance .hb-ring { font-size: 9px; }
 .mhb-glance .hb-ring-in strong { font-size: 1.7em; }
@@ -86,7 +86,7 @@
 .mhb-seg { grid-template-columns: repeat(5, 1fr) 40px; }
 .mhb-seg button { font-size: 12.5px; padding: 9px 0; }
 .mhb-gear { display: grid; place-items: center; font-size: 16px; }
-.mhb-gear.on { color: #5ef2c0; background: rgba(46, 230, 166, .18); }
+.mhb-gear.on { color: #ffffff; background: rgba(255, 255, 255, .18); }
 .mhb-grid .hb-grid { overflow-x: auto; }
 .mhb-grid .hb-grid-row { min-width: 920px; }
 .mhb-grid .hb-cell { max-width: 24px; }

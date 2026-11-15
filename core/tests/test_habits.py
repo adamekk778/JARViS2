@@ -135,3 +135,19 @@ def test_week_planner_tasks_mindset_and_goals(rt):
     assert hb.snapshot(rt)["goals"] == []
     it = hb.snapshot(rt)["items"][0]
     assert len(it["hist"]) == 30 and "rate7" in it and "rate90" in it
+
+
+def test_sunday_evening_week_summary_once(rt, monkeypatch):
+    hb.seed(rt)
+    today = dt.date.today()
+    sunday = today + dt.timedelta(days=(6 - today.weekday()) % 7)
+    _freeze(monkeypatch, sunday)
+    items = hb.snapshot(rt)["items"]
+    for back in range(0, 7):
+        day = (sunday - dt.timedelta(days=back)).isoformat()
+        hb.log(rt, items[2]["id"], 1, day=day)                       # Zdravé jídlo every day
+    assert hb.weekly_due(rt, dt.datetime.combine(sunday, dt.time(18, 0))) == ""        # not before 19:00
+    assert hb.weekly_due(rt, dt.datetime.combine(sunday - dt.timedelta(days=1), dt.time(20, 0))) == ""   # Saturday
+    text = hb.weekly_due(rt, dt.datetime.combine(sunday, dt.time(19, 30)))
+    assert "Tenhle týden" in text and "Zdravé jídlo" in text
+    assert hb.weekly_due(rt, dt.datetime.combine(sunday, dt.time(21, 0))) == ""        # once a week

@@ -37,7 +37,7 @@ export function ring(pct: number | null, size = 120, stroke = 10, label = "", su
   const id = `hbg${Math.random().toString(36).slice(2, 8)}`;
   const el = h("div", { class: "hb-ring", style: { width: `${size}px`, height: `${size}px` } });
   el.innerHTML = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">
-    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ef2c0"/><stop offset="1" stop-color="#1fb8a0"/></linearGradient></defs>
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#a1a1aa"/></linearGradient></defs>
     <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="${stroke}"/>
     <circle class="hb-ring-arc" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="url(#${id})" stroke-width="${stroke}"
       stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p / 100)).toFixed(1)}"
@@ -118,10 +118,10 @@ export function monthGrid(client: JarvisClient, s: HabitSnap, onMonth: (id: stri
     });
     const pts = pcts.map((p, i) => (p == null ? null : [i + 0.5, 34 - p * 30] as [number, number])).filter(Boolean) as [number, number][];
     const trendRow = h("div", { class: "hb-grid-row hb-grid-trend", style: { gridTemplateColumns: cols } },
-      h("span", { class: "hb-grid-name trend" }, h("i", { class: "hb-pip", style: { "--c": "#2ee6a6" } as any }), "Trend"));
+      h("span", { class: "hb-grid-name trend" }, h("i", { class: "hb-pip", style: { "--c": "#f2f2f2" } as any }), "Trend"));
     const box = h("div", { class: "hb-trend-line" });
     box.innerHTML = `<svg viewBox="0 0 ${s.month.days} 38" preserveAspectRatio="none" aria-hidden="true">${pts.length > 1
-      ? `<polyline points="${pts.map(([x, yy]) => `${x.toFixed(2)},${yy.toFixed(1)}`).join(" ")}" fill="none" stroke="#5ef2c0" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ""}</svg>`;
+      ? `<polyline points="${pts.map(([x, yy]) => `${x.toFixed(2)},${yy.toFixed(1)}`).join(" ")}" fill="none" stroke="#ffffff" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ""}</svg>`;
     pts.forEach(([x, yy]) => box.append(h("i", { class: "hb-tdot", style: { left: `${(x / s.month.days) * 100}%`, top: `${(yy / 38) * 100}%` } })));
     trendRow.append(box);
     const rows = s.month.grid.map((g) => {
@@ -192,7 +192,7 @@ export function trendChart(trend: HabitSnap["trend"], w = 640, hgt = 170, smooth
     return `<text x="${(i / (trend.length - 1) * w).toFixed(0)}" y="${hgt + 16}" text-anchor="${i === 0 ? "start" : i === trend.length - 1 ? "end" : "middle"}">${+dd}. ${+mm}.</text>`;
   }).join("");
   el.innerHTML = `<svg viewBox="0 -4 ${w} ${hgt + 24}" preserveAspectRatio="none" aria-label="Vývoj" role="img">
-    <defs><linearGradient id="hbtr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2ee6a6" stop-opacity=".55"/><stop offset="1" stop-color="#2ee6a6" stop-opacity="0"/></linearGradient></defs>
+    <defs><linearGradient id="hbtr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f2" stop-opacity=".55"/><stop offset="1" stop-color="#f2f2f2" stop-opacity="0"/></linearGradient></defs>
     <path d="${area}" fill="url(#hbtr)"/><path d="${d}" fill="none" stroke="#7af5cc" stroke-width="2.6" stroke-linecap="round"/>${labels}</svg>`;
   return el;
 }
