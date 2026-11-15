@@ -1,79 +1,83 @@
-/* 3.12 Návyky in the open notch – today at a glance: the ring, then a card per habit in its own colour */
+/* 3.12 Návyky in the open notch – black and white: the ring, then a card per habit; a done card turns white */
 .nhb { display: grid; grid-template-columns: 172px minmax(0, 1fr); gap: 10px; height: 100%; min-height: 0; padding: 2px 4px 4px;
   font-family: "Geist Variable", var(--font, system-ui), sans-serif; }
 
 /* left: the day */
 .nhb-left { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px 12px; border-radius: 22px; min-height: 0;
-  background: radial-gradient(120% 70% at 50% 0%, rgba(46, 230, 166, .16), transparent 70%), #111216; border: 1px solid rgba(255, 255, 255, .06); }
+  background: radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, .08), transparent 70%), #0e0e10; border: 1px solid rgba(255, 255, 255, .07); }
 .nhb-ring { position: relative; display: grid; place-items: center; }
-.nhb-ring::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: rgba(46, 230, 166, .14); filter: blur(18px); }
-.nhb-ring.full::before { background: rgba(46, 230, 166, .45); animation: nhb-glow 2.4s ease-in-out infinite; }
-@keyframes nhb-glow { 50% { opacity: .5; transform: scale(.9); } }
+.nhb-ring::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: rgba(255, 255, 255, .06); filter: blur(18px); }
+.nhb-ring.full::before { background: rgba(255, 255, 255, .3); animation: nhb-glow 2.4s ease-in-out infinite; }
+@keyframes nhb-glow { 50% { opacity: .45; transform: scale(.9); } }
 .nhb-ring .hb-ring { position: relative; font-size: 12.5px; }
-.nhb-msg { margin: 0; font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, .72); text-align: center; line-height: 1.3; }
+.nhb-ring .hb-ring svg { filter: drop-shadow(0 0 10px rgba(255, 255, 255, .22)); }
+.nhb-ring .hb-ring-arc { stroke: #fff; }
+.nhb-ring .hb-ring-in em { color: rgba(255, 255, 255, .85); }
+.nhb-msg { margin: 0; font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, .7); text-align: center; line-height: 1.3; }
 .nhb-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
-.nhb-mini div { display: grid; justify-items: center; gap: 1px; padding: 6px 4px; border-radius: 12px; background: rgba(255, 255, 255, .045); }
-.nhb-mini span { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgba(255, 255, 255, .48); }
+.nhb-mini div { display: grid; justify-items: center; gap: 1px; padding: 6px 4px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.nhb-mini span { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: rgba(255, 255, 255, .45); }
 .nhb-mini strong { font-size: 15px; font-weight: 900; color: #fff; display: inline-flex; gap: 2px; align-items: center; }
-.nhb-mini strong i { color: #ffb84d; font-size: 13px; }
+.nhb-mini strong i { color: #fff; font-size: 13px; }
 .nhb-full { margin-top: auto; display: inline-flex; gap: 6px; align-items: center; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit;
-  font-size: 12px; font-weight: 800; background: linear-gradient(90deg, #26d99a, #5ef2c0); color: #03130d; box-shadow: 0 0 18px rgba(46, 230, 166, .4);
-  transition: transform .15s; }
-.nhb-full:hover { transform: translateY(-1px) scale(1.03); }
+  font-size: 12px; font-weight: 800; background: #fff; color: #000; box-shadow: 0 0 18px rgba(255, 255, 255, .22); transition: transform .15s, box-shadow .15s; }
+.nhb-full:hover { transform: translateY(-1px) scale(1.03); box-shadow: 0 0 24px rgba(255, 255, 255, .35); }
 
 /* right: today's habits */
-.nhb-right { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; padding: 10px 12px; border-radius: 22px; background: #111216; border: 1px solid rgba(255, 255, 255, .06); }
+.nhb-right { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; padding: 10px 12px; border-radius: 22px; background: #0e0e10; border: 1px solid rgba(255, 255, 255, .07); }
 .nhb-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .nhb-hl { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .nhb-head h2 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: .02em; text-transform: uppercase; color: #fff; line-height: 1; }
-.nhb-pill { background: #2ee6a6; color: #03130d; font-size: 11.5px; font-weight: 800; padding: 4px 11px; border-radius: 999px; white-space: nowrap;
-  box-shadow: 0 0 14px rgba(46, 230, 166, .4); }
+.nhb-pill { background: #fff; color: #000; font-size: 11.5px; font-weight: 800; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
 .nhb-days { display: flex; gap: 5px; align-items: flex-end; }
 .nhb-day { display: grid; justify-items: center; gap: 2px; }
 .nhb-day-bar { position: relative; width: 9px; height: 26px; border-radius: 5px; background: rgba(255, 255, 255, .07); overflow: hidden; }
-.nhb-day-bar i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 5px; background: rgba(255, 255, 255, .38); transition: height .4s; }
-.nhb-day.today .nhb-day-bar i { background: linear-gradient(180deg, #5ef2c0, #26d99a); box-shadow: 0 0 10px rgba(46, 230, 166, .6); }
-.nhb-day em { font-style: normal; font-size: 9px; font-weight: 800; color: rgba(255, 255, 255, .4); }
-.nhb-day.today em { color: #5ef2c0; }
+.nhb-day-bar i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 5px; background: rgba(255, 255, 255, .35); transition: height .4s; }
+.nhb-day.today .nhb-day-bar i { background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, .5); }
+.nhb-day em { font-style: normal; font-size: 9px; font-weight: 800; color: rgba(255, 255, 255, .38); }
+.nhb-day.today em { color: #fff; }
 .nhb-day.future .nhb-day-bar { background: rgba(255, 255, 255, .035); }
 
-.nhb-cards { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 8px; align-content: start;
-  scrollbar-width: none; }
-.nhb-card { --c: #2ee6a6; position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 9px; border-radius: 16px; min-width: 0;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--c) 9%, #17181d), #15161a); border: 1px solid color-mix(in srgb, var(--c) 18%, transparent);
-  transition: background .3s, border-color .3s, box-shadow .3s, transform .15s; outline: none; }
+.nhb-cards { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 8px;
+  align-content: start; scrollbar-width: none; }
+.nhb-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 9px; border-radius: 16px; min-width: 0;
+  background: linear-gradient(145deg, #1a1a1d, #121214); border: 1px solid rgba(255, 255, 255, .08);
+  transition: background .3s, border-color .3s, box-shadow .3s, transform .15s, color .3s; outline: none; color: #fff; }
 .nhb-card[role="button"] { cursor: pointer; }
-.nhb-card[role="button"]:hover, .nhb-card:focus-visible { transform: translateY(-1px); border-color: color-mix(in srgb, var(--c) 45%, transparent); }
+.nhb-card[role="button"]:hover, .nhb-card:focus-visible { transform: translateY(-1px); border-color: rgba(255, 255, 255, .28); }
 .nhb-card[role="button"]:active { transform: scale(.98); }
-.nhb-card.done { background: linear-gradient(145deg, color-mix(in srgb, var(--c) 34%, #15161a), color-mix(in srgb, var(--c) 10%, #15161a));
-  border-color: color-mix(in srgb, var(--c) 60%, transparent); box-shadow: 0 6px 22px -8px color-mix(in srgb, var(--c) 60%, transparent); }
-.nhb-card.rest { opacity: .5; }
+.nhb-card.done { background: linear-gradient(145deg, #ffffff, #e4e4e7); border-color: #fff; color: #000; box-shadow: 0 8px 24px -10px rgba(255, 255, 255, .45); }
+.nhb-card.rest { opacity: .45; }
 .nhb-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.nhb-ic { flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 16px;
-  color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
-.nhb-card.done .nhb-ic { color: #0b0c10; background: var(--c); }
+.nhb-ic { flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; color: #fff; background: rgba(255, 255, 255, .09); }
+.nhb-card.done .nhb-ic { color: #fff; background: #000; }
 .nhb-tt { display: grid; min-width: 0; flex: 1; }
-.nhb-tt b { font-size: 12px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase; color: #fff; line-height: 1.12; overflow-wrap: anywhere;
+.nhb-tt b { font-size: 12px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase; line-height: 1.12; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.nhb-tt span { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: rgba(255, 255, 255, .55); white-space: nowrap; overflow: hidden; }
-.nhb-card.done .nhb-tt span { color: rgba(255, 255, 255, .8); }
-.nhb-fire { display: inline-flex; align-items: center; gap: 1px; color: #ffb84d; font-weight: 800; }
+.nhb-tt span { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: rgba(255, 255, 255, .5); white-space: nowrap; overflow: hidden; }
+.nhb-card.done .nhb-tt span { color: rgba(0, 0, 0, .6); }
+.nhb-fire { display: inline-flex; align-items: center; gap: 1px; font-weight: 800; color: inherit; }
 .nhb-tick { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px;
-  border: 1.5px dashed color-mix(in srgb, var(--c) 60%, transparent); color: color-mix(in srgb, var(--c) 80%, #fff); transition: all .25s; }
-.nhb-card.done .nhb-tick { border: 0; background: var(--c); color: #0b0c10; box-shadow: 0 0 12px color-mix(in srgb, var(--c) 70%, transparent);
-  animation: nhb-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+  border: 1.5px dashed rgba(255, 255, 255, .4); color: rgba(255, 255, 255, .8); transition: all .25s; }
+.nhb-card.done .nhb-tick { border: 0; background: #000; color: #fff; animation: nhb-pop .35s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes nhb-pop { from { transform: scale(.6); } }
 .nhb-amt { display: flex; align-items: center; gap: 6px; }
 .nhb-step { flex: none; width: 24px; height: 24px; border-radius: 8px; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; font-size: 12px;
-  color: #fff; background: rgba(255, 255, 255, .08); transition: background .15s, transform .1s; }
-.nhb-step:hover { background: color-mix(in srgb, var(--c) 40%, transparent); }
+  color: #fff; background: rgba(255, 255, 255, .09); transition: background .15s, transform .1s; }
+.nhb-step:hover { background: rgba(255, 255, 255, .2); }
 .nhb-step:active { transform: scale(.9); }
-.nhb-bar { flex: 1; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
-.nhb-bar i { display: block; height: 100%; border-radius: 99px; background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); transition: width .35s; }
+.nhb-card.done .nhb-step { color: #000; background: rgba(0, 0, 0, .08); }
+.nhb-bar { flex: 1; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .09); overflow: hidden; }
+.nhb-bar i { display: block; height: 100%; border-radius: 99px; background: #fff; transition: width .35s; }
+.nhb-card.done .nhb-bar { background: rgba(0, 0, 0, .1); }
+.nhb-card.done .nhb-bar i { background: #000; }
 .nhb-wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: auto; }
 .nhb-wk i { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .07); }
-.nhb-wk i.on { background: var(--c); }
+.nhb-wk i.on { background: #fff; }
 .nhb-wk i.miss { background: rgba(255, 255, 255, .16); }
-.nhb-wk i.now { background: color-mix(in srgb, var(--c) 35%, transparent); }
+.nhb-wk i.now { background: rgba(255, 255, 255, .3); }
 .nhb-wk i.off { background: rgba(255, 255, 255, .04); }
-.nhb-wk i.future { background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+.nhb-wk i.future { background: transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07); }
+.nhb-card.done .nhb-wk i { background: rgba(0, 0, 0, .1); }
+.nhb-card.done .nhb-wk i.on { background: #000; }
+.nhb-card.done .nhb-wk i.future { background: transparent; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
