@@ -18,6 +18,7 @@ export interface HabitSnap {
   streaks: { id: number; name: string; color: string; streak: number }[];
   meals: { slot: string; label: string; text: string }[];
   areas: Record<string, string>;
+  remind?: string;
 }
 
 const DAY = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -218,6 +219,14 @@ export function editor(client: JarvisClient, s: HabitSnap): HTMLElement {
     h("span", { class: "hb-ico" }, icon(it.icon, "ph-fill")), h("strong", {}, it.name),
     h("span", {}, it.kind === "amount" ? `cíl ${num(it.target)} ${it.unit}` : "splněno / ne", " · ", it.days.length === 7 ? "každý den" : it.days.split("").map((d) => DAY[+d]).join(" ")),
     icon("pencil-simple"))));
+  // the evening reminder ("what is still left today") – on the PC and on the phone
+  const on = !!s.remind;
+  const time = h("input", { class: "input hb-time", type: "time", value: s.remind || "20:30", disabled: !on, "aria-label": "Čas připomínky" }) as HTMLInputElement;
+  time.onchange = () => client.send("habit_remind_set", { time: time.value });
+  const sw = h("button", { type: "button", class: `hb-switch${on ? " on" : ""}`, role: "switch", "aria-checked": on ? "true" : "false", "aria-label": "Večerní připomínka",
+    onclick: () => client.send("habit_remind_set", { time: on ? "" : time.value || "20:30" }) }, h("i"));
+  box.append(h("div", { class: "hb-card hb-remind" }, icon("bell-ringing", "ph-fill"),
+    h("div", {}, h("strong", {}, "Večerní připomínka"), h("span", {}, on ? `V ${s.remind} ti připomenu, co ještě zbývá (PC i telefon).` : "Vypnutá.")), time, sw));
   box.append(list, h("button", { type: "button", class: "btn primary hb-add", onclick: () => { box.querySelector(".hb-form")?.remove(); list.after(form()); } }, icon("plus"), "Přidat návyk"));
   return box;
 }

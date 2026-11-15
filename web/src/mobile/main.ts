@@ -16,6 +16,7 @@ import { soloProvider, soloScreen } from "./solo";
 import { flingPad } from "./fling";
 import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
+import { habitsGlance, habitsView } from "./habits";
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -209,8 +210,10 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     stop,
     h("button", { class: "icon-btn", type: "button", "aria-label": "Nová konverzace", onclick: () => c.send("new_chat") }, icon("note-pencil")));
 
+  const habits = habitsView(c);                                        // 3.12 Návyky a zdraví
   const views: Record<string, HTMLElement> = {
     chat: h("section", { class: "m-view m-chat" }, asksBox, taskCard.el, chat.el),
+    habits: habits.el,
     control: controlView(c),
     home: homeView(c),
     more: moreView(c, ep, pairing),
@@ -220,16 +223,17 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("span", { class: "fl-entry-ico" }, icon("paper-plane-tilt", "ph-fill")),
     h("div", {}, h("strong", {}, "Poslat na PC"), h("span", {}, "Vyber soubor a švihni ho doprava")), icon("caret-right")));
   const clock = phoneClock(c);
-  views.home.prepend(clock.el, phoneMusic(c));
+  views.home.prepend(clock.el, habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());
   app.after(mochiHere(c), handoffLayer(c));          // OMEGA 195 / 083
   const tabs = h("nav", { class: "tabs" },
-    ...([["chat", "chat-circle-dots", "Chat"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
+    ...([["chat", "chat-circle-dots", "Chat"], ["habits", "heartbeat", "Návyky"], ["control", "game-controller", "Ovládání"], ["home", "house-line", "Domov"], ["more", "dots-three-circle", "Více"]] as const)
       .map(([k, ic, label]) => h("button", { type: "button", "data-tab": k, onclick: () => show(k) }, icon(ic), h("span", {}, label))));
   const show = (k: string) => {
     if (k === "home") clock.want();
+    if (k === "habits") habits.show();
     Object.entries(views).forEach(([n, el]) => (el.hidden = n !== k));
     tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.tab === k));
     native.haptic();

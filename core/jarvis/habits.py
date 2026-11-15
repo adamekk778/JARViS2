@@ -254,6 +254,7 @@ def snapshot(rt: Any, month: str | None = None) -> dict:
         "streaks": sorted([{"id": i["id"], "name": i["name"], "color": i["color"], "streak": i["streak"]} for i in items if i["streak"]],
                           key=lambda x: -x["streak"])[:5],
         "meals": [{"slot": s, "label": label, "text": meals.get(s, "")} for s, label in MEAL_SLOTS],
+        "remind": remind_time(rt),
         "areas": AREAS,
     }
 
@@ -297,3 +298,59 @@ def summary(rt: Any) -> str:
 
 def publish(rt: Any) -> None:
     rt.bus.publish("habits", **snapshot(rt))
+
+
+# ---------- the evening reminder ----------
+REMIND_DEFAULT = "20:30"
+
+
+def remind_time(rt: Any) -> str:
+    """"HH:MM" or "" (off)."""
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_remind'")
+    return REMIND_DEFAULT if row is None else str(row["v"] or "")
+
+
+def set_remind(rt: Any, value: str) -> None:
+    v = (value or "").strip()
+    if v:
+        hh, mm = v.split(":")
+        v = f"{int(hh):02d}:{int(mm):02d}"
+        if not (0 <= int(hh) < 24 and 0 <= int(mm) < 60):
+            raise ValueError("Neplatný čas připomínky.")
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_remind', ?)", (v,))
+
+
+def remind_due(rt: Any, now: dt.datetime | None = None) -> str:
+    """The reminder text when it is time (once a day, only if something is left), else ""."""
+    t = remind_time(rt)
+    if not t:
+        return ""
+    now = now or dt.datetime.now()
+    if now.strftime("%H:%M") < t:
+        return ""
+    day = now.date().isoformat()
+    row = _db(rt).one("SELECT v FROM kv WHERE k='habits_reminded'")
+    if row and row["v"] == day:
+        return ""
+    _db(rt).exec("INSERT OR REPLACE INTO kv VALUES ('habits_reminded', ?)", (day,))
+    s = snapshot(rt)
+    left = [i["name"] for i in s["items"] if i["due"] and not i["done"]]
+    if not left:
+        return ""
+    return f"Dnes máš {s['today']['pct'] or 0} %. Ještě zbývá: {', '.join(left)}."
+
+
+async def remind_loop(rt: Any) -> None:
+    import asyncio
+    import logging
+
+    while True:
+        await asyncio.sleep(60)
+        try:
+            text = remind_due(rt)
+            if text:
+                rt.notify("Návyky na dnes", text, speak=False)
+                if not rt.user_away():                 # away: notify already sent it to the phone
+                    rt.phone_push("notify", title="Návyky na dnes", body=text)
+        except Exception as e:  # noqa: BLE001 – try again next minute
+            logging.getLogger("jarvis.habits").debug("remind: %s", e)

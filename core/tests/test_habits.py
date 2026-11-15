@@ -93,3 +93,18 @@ def test_removed_habit_keeps_history(rt):
     hb.remove(rt, hid)
     assert all(i["id"] != hid for i in hb.snapshot(rt)["items"])
     assert rt.db.one("SELECT value FROM habit_log WHERE habit_id=?", (hid,))["value"] == 1
+
+
+def test_evening_reminder_once_and_only_when_something_is_left(rt):
+    hb.seed(rt)
+    assert hb.remind_time(rt) == "20:30"
+    early = dt.datetime.combine(dt.date.today(), dt.time(19, 0))
+    late = dt.datetime.combine(dt.date.today(), dt.time(21, 0))
+    assert hb.remind_due(rt, early) == ""
+    text = hb.remind_due(rt, late)
+    assert "Ještě zbývá" in text and "Spánek" in text
+    assert hb.remind_due(rt, late) == ""                              # once a day
+    hb.set_remind(rt, "")
+    assert hb.remind_time(rt) == "" and hb.snapshot(rt)["remind"] == ""
+    hb.set_remind(rt, "7:5")
+    assert hb.remind_time(rt) == "07:05"

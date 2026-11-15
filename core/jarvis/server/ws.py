@@ -50,7 +50,7 @@ CLIENT_TYPES = [
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
     "photo_backup_get", "photo_backup_open", "wake_get", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
-    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder",
+    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -1161,7 +1161,7 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
-        elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder"):
+        elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set"):
             from .. import habits as hb               # 3.12 Návyky a zdraví (notch tab + full screen)
 
             if t == "habit_save":
@@ -1175,6 +1175,8 @@ class Connection:
                 hb.set_meal(rt, str(m.get("slot") or ""), str(m.get("text") or ""), m.get("day") or None)
             elif t == "habit_reorder":
                 hb.reorder(rt, [int(x) for x in (m.get("ids") or [])][:100])
+            elif t == "habit_remind_set":
+                hb.set_remind(rt, str(m.get("time") or ""))
             if t == "habits_get":
                 await self.send("habits", **hb.snapshot(rt, m.get("month") or None))
             else:
