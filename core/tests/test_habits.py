@@ -120,6 +120,9 @@ def test_week_planner_tasks_mindset_and_goals(rt):
     d = hb.snapshot(rt)["plan"]["days"][s["weekday"]]
     assert [x["text"] for x in d["tasks"]] == ["Koupit boty", "Dokončit úkol do školy"] and d["task_pct"] == 50
     assert d["mindset"] == "Klid a soustředění" and hb.snapshot(rt)["plan"]["pct"] == 50
+    hb.set_mindset(rt, None, None, energy=4, focus=9, motivation=0)
+    d = hb.snapshot(rt)["plan"]["days"][s["weekday"]]
+    assert (d["energy"], d["focus"], d["motivation"], d["mindset"]) == (4, 5, None, "Klid a soustředění")
     hb.task_delete(rt, tid)
     assert len(hb.snapshot(rt)["plan"]["days"][s["weekday"]]["tasks"]) == 1
     assert hb.snapshot(rt, None, 1)["plan"]["start"] > s["plan"]["start"]       # next week

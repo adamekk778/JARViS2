@@ -38,6 +38,10 @@ DEFAULTS = [
 
 def _db(rt: Any):
     rt.db.conn.executescript(SQL)
+    cols = {r[1] for r in rt.db.conn.execute("PRAGMA table_info(habit_days)")}
+    for c in ("energy", "focus", "motivation"):          # the mindset tracker (1–5 a day), added after the first version
+        if c not in cols:
+            rt.db.conn.execute(f"ALTER TABLE habit_days ADD COLUMN {c} INTEGER")
     return rt.db
 
 
@@ -213,7 +217,8 @@ def plan(rt: Any, hs: list[dict], logs: dict, week: int = 0) -> dict:
     sun = mon + dt.timedelta(days=6)
     db = _db(rt)
     tasks = db.all("SELECT id, day, text, done FROM habit_tasks WHERE day BETWEEN ? AND ? ORDER BY id", (_iso(mon), _iso(sun)))
-    minds = {r["day"]: r["mindset"] for r in db.all("SELECT day, mindset FROM habit_days WHERE day BETWEEN ? AND ?", (_iso(mon), _iso(sun)))}
+    minds = {r["day"]: r for r in db.all("SELECT day, mindset, energy, focus, motivation FROM habit_days WHERE day BETWEEN ? AND ?",
+                                          (_iso(mon), _iso(sun)))}
     days = []
     for k in range(7):
         d = mon + dt.timedelta(days=k)
@@ -222,7 +227,9 @@ def plan(rt: Any, hs: list[dict], logs: dict, week: int = 0) -> dict:
         a, b = _day_score(hs, logs, d) if d <= t else (0, 0)
         tdone = sum(1 for x in ts if x["done"])
         both_done, both_all = tdone + a, len(ts) + b
-        days.append({"day": di, "weekday": k, "tasks": ts, "mindset": minds.get(di, ""), "future": d > t, "today": d == t,
+        md = minds.get(di) or {}
+        days.append({"day": di, "weekday": k, "tasks": ts, "mindset": md.get("mindset") or "", "future": d > t, "today": d == t,
+                     "energy": md.get("energy"), "focus": md.get("focus"), "motivation": md.get("motivation"),
                      "task_pct": _pct(tdone, len(ts)), "habit_pct": _pct(a, b), "pct": _pct(both_done, both_all)})
     done_all = sum(sum(1 for x in d["tasks"] if x["done"]) for d in days)
     all_tasks = sum(len(d["tasks"]) for d in days)
@@ -254,14 +261,18 @@ def task_delete(rt: Any, tid: int) -> None:
     _db(rt).exec("DELETE FROM habit_tasks WHERE id=?", (int(tid),))
 
 
-def set_mindset(rt: Any, text: str, day: str | None = None) -> None:
+def set_mindset(rt: Any, text: str | None = None, day: str | None = None, **rate: Any) -> None:
+    """The day's mindset: a line of text and/or Energie / Soustředění / Motivace from 1 to 5 (0 = clear)."""
     d = day or _iso(today())
     dt.date.fromisoformat(d)
-    v = " ".join(str(text or "").split())[:200]
-    if v:
-        _db(rt).exec("INSERT OR REPLACE INTO habit_days (day, mindset) VALUES (?,?)", (d, v))
-    else:
-        _db(rt).exec("DELETE FROM habit_days WHERE day=?", (d,))
+    db = _db(rt)
+    db.exec("INSERT OR IGNORE INTO habit_days (day) VALUES (?)", (d,))
+    if text is not None:
+        db.exec("UPDATE habit_days SET mindset=? WHERE day=?", (" ".join(str(text).split())[:200], d))
+    for k in ("energy", "focus", "motivation"):
+        if rate.get(k) is not None:
+            v = max(0, min(5, int(rate[k])))
+            db.exec(f"UPDATE habit_days SET {k}=? WHERE day=?", (v or None, d))
 
 
 def goals(rt: Any) -> list[dict]:

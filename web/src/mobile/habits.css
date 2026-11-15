@@ -5,8 +5,9 @@
 .mhb-top { position: relative; display: grid; gap: 10px; padding: 16px 16px 14px; border-radius: 26px;
   background: radial-gradient(120% 80% at 50% 0%, rgba(46, 230, 166, .18), transparent 65%), rgba(255, 255, 255, .035);
   border: 1px solid rgba(255, 255, 255, .07); }
-.mhb-date { display: flex; justify-content: space-between; align-items: center; }
-.mhb-date strong { font-size: 15px; color: #fff; }
+.mhb-date { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.mhb-title { margin: 0; font-family: "Geist Variable", Inter, system-ui, sans-serif; font-size: 34px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase; color: #fff; line-height: 1; }
+.mhb-date .hb-date-pill { font-size: 12px; padding: 6px 12px; }
 .mhb-off { font-size: 12px; color: #ffb84d; display: inline-flex; gap: 4px; align-items: center; }
 .mhb-hero { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
 .mhb-hero .hb-ring { font-size: 15px; }

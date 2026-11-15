@@ -10,7 +10,7 @@ export interface HabitItem {
   rate30: number | null; rate7?: number | null; rate90?: number | null; hist?: (boolean | null)[];
 }
 export interface PlanDay { day: string; weekday: number; tasks: { id: number; text: string; done: boolean }[]; mindset: string; future: boolean; today: boolean;
-  task_pct: number | null; habit_pct: number | null; pct: number | null }
+  task_pct: number | null; habit_pct: number | null; pct: number | null; energy?: number | null; focus?: number | null; motivation?: number | null }
 export interface Goal { id: number; name: string; target: number; current: number; unit: string; deadline: string; color: string; pct: number; days_left: number | null }
 export interface HabitSnap {
   date: string; weekday: number; items: HabitItem[]; today: { done: number; due: number; pct: number | null };
@@ -86,74 +86,114 @@ export function habitTile(client: JarvisClient, it: HabitItem, big = false): HTM
   return tile;
 }
 
-/** the month: every habit a row, every day a circle (filled = done) – click a past day to fix it */
+let gridMode: "day" | "week" = "day";
+
+/** the month (like the tracker): NÁVYKY, the month, the big mint DENNĚ / TÝDNĚ pill, a TREND line over the days,
+ *  then a row per habit (its colour dot, its name in heavy capitals) and a circle per day – mint with a tick = done */
 export function monthGrid(client: JarvisClient, s: HabitSnap, onMonth: (id: string) => void): HTMLElement {
   const [y, m] = s.month.id.split("-").map(Number);
+  const root = h("div", { class: "hb-month" });
   const shift = (d: number) => { const dt = new Date(y, m - 1 + d, 1); onMonth(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`); };
-  const head = h("div", { class: "hb-month-head" },
-    h("div", { class: "hb-month-title" }, h("h2", {}, "Návyky"), h("span", {}, `${MONTHS[m - 1]} ${y}`), h("em", {}, "Měsíční souhrn")),
-    h("span", { class: "grow" }),
-    h("button", { type: "button", class: "hb-nav", "aria-label": "Předchozí měsíc", onclick: () => shift(-1) }, icon("caret-left")),
-    h("button", { type: "button", class: "hb-nav", "aria-label": "Další měsíc", onclick: () => shift(1), disabled: s.month.id >= s.date.slice(0, 7) }, icon("caret-right")));
+  const paint = () => {
+    const head = h("div", { class: "hb-month-head" },
+      h("div", { class: "hb-month-title" }, h("h2", {}, "Návyky"), h("span", {}, `${MONTHS[m - 1]} ${y}`), h("em", {}, "Měsíční souhrn")),
+      h("span", { class: "grow" }),
+      h("button", { type: "button", class: "hb-nav", "aria-label": "Předchozí měsíc", onclick: () => shift(-1) }, icon("caret-left")),
+      h("button", { type: "button", class: "hb-nav", "aria-label": "Další měsíc", onclick: () => shift(1), disabled: s.month.id >= s.date.slice(0, 7) }, icon("caret-right")));
+    const pill = h("div", { class: "hb-mode" },
+      h("button", { type: "button", class: gridMode === "day" ? "on" : "", onclick: () => { gridMode = "day"; paint(); } }, "Denně"),
+      h("button", { type: "button", class: gridMode === "week" ? "on" : "", onclick: () => { gridMode = "week"; paint(); } }, "Týdně"));
+    root.replaceChildren(head, pill, gridMode === "day" ? dayGrid() : weekGrid());
+  };
   const days = Array.from({ length: s.month.days }, (_, i) => i + 1);
-  const cols = `minmax(150px, 1.3fr) repeat(${s.month.days}, minmax(0, 1fr))`;
-  const top = h("div", { class: "hb-grid-row hb-grid-top", style: { gridTemplateColumns: cols } }, h("span", {}, ""),
-    ...days.map((d) => h("span", { class: (s.month.first_weekday + d - 1) % 7 >= 5 ? "we" : "" }, String(d))));
-  // TREND: how much of every day was done, a line over the columns (like the tracker people love)
-  const pcts = days.map((_, i) => {
-    const st = s.month.grid.map((g) => g.cells[i]);
-    const due = st.filter((x) => x === "done" || x === "miss").length;
-    return due ? st.filter((x) => x === "done").length / due : null;
-  });
-  const pts = pcts.map((p, i) => (p == null ? null : `${(i + 0.5).toFixed(2)},${(34 - p * 30).toFixed(1)}`)).filter(Boolean) as string[];
-  const trendRow = h("div", { class: "hb-grid-row hb-grid-trend", style: { gridTemplateColumns: cols } },
-    h("span", { class: "hb-grid-name trend" }, h("i", { class: "hb-pip", style: { "--c": "#2ee6a6" } as any }), "Trend"));
-  const svgBox = h("div", { class: "hb-trend-line" });
-  svgBox.innerHTML = `<svg viewBox="0 0 ${s.month.days} 38" preserveAspectRatio="none" aria-hidden="true">
-    ${pts.length > 1 ? `<polyline points="${pts.join(" ")}" fill="none" stroke="#5ef2c0" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ""}</svg>`;
-  // the dots as round HTML points over the stretched line (an SVG circle would be squashed into an ellipse)
-  pts.forEach((p) => {
-    const [x, y] = p.split(",").map(Number);
-    svgBox.append(h("i", { class: "hb-tdot", style: { left: `${(x / s.month.days) * 100}%`, top: `${(y / 38) * 100}%` } }));
-  });
-  trendRow.append(svgBox);
-  const rows = s.month.grid.map((g) => {
-    const it = s.items.find((x) => x.id === g.id);
-    if (!it) return null;
-    const color = safeColor(it.color);
-    return h("div", { class: "hb-grid-row", style: { gridTemplateColumns: cols, "--c": color } as any },
-      h("span", { class: "hb-grid-name" }, h("i", { class: "hb-pip" }), it.name),
-      ...g.cells.map((c, i) => {
-        const day = `${s.month.id}-${String(i + 1).padStart(2, "0")}`;
-        const clickable = c === "done" || c === "miss" || c === "today";
-        return h("button", { type: "button", class: `hb-cell ${c}`, disabled: !clickable, title: `${it.name} · ${i + 1}. ${m}.`,
-          "aria-label": `${it.name}, ${i + 1}. ${m}.: ${c === "done" ? "splněno" : c === "off" ? "volno" : c === "future" ? "ještě nebylo" : "nesplněno"}`,
-          onclick: () => client.send("habit_log", { id: it.id, day, value: c === "done" ? 0 : it.kind === "amount" ? it.target : 1 }) },
-        c === "done" ? icon("check", "ph-bold") : "");
-      }));
-  });
-  return h("div", { class: "hb-month" }, head, h("div", { class: "hb-grid" }, trendRow, top, ...rows.filter(Boolean) as HTMLElement[]));
+  const name = (it: HabitItem) => h("span", { class: "hb-grid-name" }, h("i", { class: "hb-pip" }), h("b", {}, it.name));
+  function dayGrid(): HTMLElement {
+    const cols = `minmax(170px, 1.4fr) repeat(${s.month.days}, minmax(0, 1fr))`;
+    const top = h("div", { class: "hb-grid-row hb-grid-top", style: { gridTemplateColumns: cols } }, h("span", { class: "hb-col-head" }, "Návyk"),
+      ...days.map((d) => h("span", { class: (s.month.first_weekday + d - 1) % 7 >= 5 ? "we" : "" }, String(d))));
+    const pcts = days.map((_, i) => {
+      const st = s.month.grid.map((g) => g.cells[i]);
+      const due = st.filter((x) => x === "done" || x === "miss").length;
+      return due ? st.filter((x) => x === "done").length / due : null;
+    });
+    const pts = pcts.map((p, i) => (p == null ? null : [i + 0.5, 34 - p * 30] as [number, number])).filter(Boolean) as [number, number][];
+    const trendRow = h("div", { class: "hb-grid-row hb-grid-trend", style: { gridTemplateColumns: cols } },
+      h("span", { class: "hb-grid-name trend" }, h("i", { class: "hb-pip", style: { "--c": "#2ee6a6" } as any }), "Trend"));
+    const box = h("div", { class: "hb-trend-line" });
+    box.innerHTML = `<svg viewBox="0 0 ${s.month.days} 38" preserveAspectRatio="none" aria-hidden="true">${pts.length > 1
+      ? `<polyline points="${pts.map(([x, yy]) => `${x.toFixed(2)},${yy.toFixed(1)}`).join(" ")}" fill="none" stroke="#5ef2c0" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` : ""}</svg>`;
+    pts.forEach(([x, yy]) => box.append(h("i", { class: "hb-tdot", style: { left: `${(x / s.month.days) * 100}%`, top: `${(yy / 38) * 100}%` } })));
+    trendRow.append(box);
+    const rows = s.month.grid.map((g) => {
+      const it = s.items.find((x) => x.id === g.id);
+      if (!it) return null;
+      return h("div", { class: "hb-grid-row", style: { gridTemplateColumns: cols, "--c": safeColor(it.color) } as any }, name(it),
+        ...g.cells.map((c, i) => {
+          const day = `${s.month.id}-${String(i + 1).padStart(2, "0")}`;
+          const clickable = c === "done" || c === "miss" || c === "today";
+          return h("button", { type: "button", class: `hb-cell ${c}`, disabled: !clickable, title: `${it.name} · ${i + 1}. ${m}.`,
+            "aria-label": `${it.name}, ${i + 1}. ${m}.: ${c === "done" ? "splněno" : c === "off" ? "volno" : c === "future" ? "ještě nebylo" : "nesplněno"}`,
+            onclick: () => client.send("habit_log", { id: it.id, day, value: c === "done" ? 0 : it.kind === "amount" ? it.target : 1 }) },
+          c === "done" ? icon("check", "ph-bold") : "");
+        }));
+    });
+    return h("div", { class: "hb-grid" }, trendRow, top, ...rows.filter(Boolean) as HTMLElement[]);
+  }
+  function weekGrid(): HTMLElement {
+    // the month's weeks: how much of each week a habit held (a ring fills up)
+    const weeks: number[][] = [];
+    days.forEach((d) => {
+      const w = Math.floor((s.month.first_weekday + d - 1) / 7);
+      (weeks[w] ||= []).push(d - 1);
+    });
+    const cols = `minmax(170px, 1.4fr) repeat(${weeks.length}, minmax(0, 1fr))`;
+    const top = h("div", { class: "hb-grid-row hb-grid-top", style: { gridTemplateColumns: cols } }, h("span", { class: "hb-col-head" }, "Návyk"),
+      ...weeks.map((w) => h("span", {}, `${w[0] + 1}.–${w[w.length - 1] + 1}.`)));
+    const rows = s.month.grid.map((g) => {
+      const it = s.items.find((x) => x.id === g.id);
+      if (!it) return null;
+      return h("div", { class: "hb-grid-row", style: { gridTemplateColumns: cols, "--c": safeColor(it.color) } as any }, name(it),
+        ...weeks.map((w) => {
+          const st = w.map((i) => g.cells[i]);
+          const due = st.filter((x) => x === "done" || x === "miss" || x === "today").length;
+          const done = st.filter((x) => x === "done").length;
+          const el = h("span", { class: `hb-wcell${due ? "" : " off"}` }, due ? `${done}/${due}` : "–");
+          el.style.setProperty("--p", String(due ? done / due : 0));
+          return el;
+        }));
+    });
+    return h("div", { class: "hb-grid weeks" }, top, ...rows.filter(Boolean) as HTMLElement[]);
+  }
+  paint();
+  return root;
 }
 
-/** the last 30 days as a soft glowing area */
-export function trendChart(trend: HabitSnap["trend"], w = 640, hgt = 170): HTMLElement {
-  const pts = trend.map((t, i) => [i / Math.max(1, trend.length - 1) * w, t.pct == null ? null : hgt - 12 - (t.pct / 100) * (hgt - 28)] as [number, number | null]);
+/** a soft, smooth glowing area (a rolling average, so it reads as a trend and not as noise) */
+export function trendChart(trend: HabitSnap["trend"], w = 640, hgt = 170, smooth = 5): HTMLElement {
+  const vals = trend.map((_, i) => {
+    const win = trend.slice(Math.max(0, i - smooth + 1), i + 1).filter((x) => x.pct != null);
+    return win.length ? win.reduce((a, x) => a + (x.pct || 0), 0) / win.length : null;
+  });
+  const pts = vals.map((v, i) => [i / Math.max(1, trend.length - 1) * w, v == null ? null : hgt - 12 - (v / 100) * (hgt - 28)] as [number, number | null]);
   const known = pts.filter((p) => p[1] != null) as [number, number][];
   const el = h("div", { class: "hb-trend" });
   if (known.length < 2) { el.append(h("p", { class: "hb-empty" }, "Graf se ukáže po pár dnech odškrtávání.")); return el; }
   let d = `M${known[0][0].toFixed(1)},${known[0][1].toFixed(1)}`;
-  for (let i = 1; i < known.length; i++) {                         // a smooth curve through the days
-    const [x0, y0] = known[i - 1], [x1, y1] = known[i], mx = (x0 + x1) / 2;
-    d += ` C${mx.toFixed(1)},${y0.toFixed(1)} ${mx.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+  for (let i = 1; i < known.length; i++) {                         // Catmull-Rom through the points → soft curves
+    const p0 = known[i - 2] || known[i - 1], p1 = known[i - 1], p2 = known[i], p3 = known[i + 1] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
   }
   const area = `${d} L${known[known.length - 1][0].toFixed(1)},${hgt} L${known[0][0].toFixed(1)},${hgt} Z`;
-  const labels = [0, 7, 14, 21, 29].filter((i) => trend[i]).map((i) => {
+  const step = Math.max(1, Math.round((trend.length - 1) / 5));
+  const idx = Array.from(new Set([0, ...Array.from({ length: 5 }, (_, k) => k * step), trend.length - 1])).filter((i) => i < trend.length);
+  const labels = idx.map((i) => {
     const [, mm, dd] = trend[i].day.split("-");
-    return `<text x="${(i / (trend.length - 1) * w).toFixed(0)}" y="${hgt + 16}" text-anchor="${i === 0 ? "start" : i === 29 ? "end" : "middle"}">${+dd}. ${+mm}.</text>`;
+    return `<text x="${(i / (trend.length - 1) * w).toFixed(0)}" y="${hgt + 16}" text-anchor="${i === 0 ? "start" : i === trend.length - 1 ? "end" : "middle"}">${+dd}. ${+mm}.</text>`;
   }).join("");
-  el.innerHTML = `<svg viewBox="0 -4 ${w} ${hgt + 24}" preserveAspectRatio="none" aria-label="Vývoj za 30 dní" role="img">
-    <defs><linearGradient id="hbtr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2ee6a6" stop-opacity=".42"/><stop offset="1" stop-color="#2ee6a6" stop-opacity="0"/></linearGradient></defs>
-    <path d="${area}" fill="url(#hbtr)"/><path d="${d}" fill="none" stroke="#5ef2c0" stroke-width="2.5" stroke-linecap="round"/>${labels}</svg>`;
+  el.innerHTML = `<svg viewBox="0 -4 ${w} ${hgt + 24}" preserveAspectRatio="none" aria-label="Vývoj" role="img">
+    <defs><linearGradient id="hbtr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2ee6a6" stop-opacity=".55"/><stop offset="1" stop-color="#2ee6a6" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#hbtr)"/><path d="${d}" fill="none" stroke="#7af5cc" stroke-width="2.6" stroke-linecap="round"/>${labels}</svg>`;
   return el;
 }
 
@@ -259,29 +299,54 @@ export function editor(client: JarvisClient, s: HabitSnap): HTMLElement {
 const WD = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"];
 const WD3 = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
 
-/** Úkoly: the week – bars of every day's progress on top, then a card per day: its ring, its tasks, its mindset */
+const MOOD: [keyof PlanDay & ("energy" | "focus" | "motivation"), string, string][] = [["energy", "Energie", "#ffb84d"], ["focus", "Soustředění", "#4cc9f0"], ["motivation", "Motivace", "#f472b6"]];
+
+/** Úkoly (the tracker's week): CELKOVÝ POKROK – a bar per day, the week's ring "x / y splněno" and the MINDSET TRACKER
+ *  (energy, focus, motivation as lines) – then a card per day: its date, its ring, its tasks and its mindset */
 export function weekPlanner(client: JarvisClient, s: HabitSnap, onWeek: (w: number) => void): HTMLElement {
   const p = s.plan!;
-  const fmt = (d: string) => { const [, mm, dd] = d.split("-"); return `${+dd}. ${+mm}.`; };
-  const bars = h("div", { class: "hb-card hb-bars" },
-    h("div", { class: "hb-bars-head" }, h("h3", {}, "Celkový pokrok"),
-      h("span", { class: "hb-week-label" }, p.week === 0 ? "Tento týden" : p.week === -1 ? "Minulý týden" : p.week === 1 ? "Příští týden" : `${fmt(p.start)} – ${fmt(p.end)}`),
-      h("span", { class: "grow" }),
-      h("button", { type: "button", class: "hb-nav", "aria-label": "Předchozí týden", onclick: () => onWeek(p.week - 1) }, icon("caret-left")),
-      h("button", { type: "button", class: "hb-nav", "aria-label": "Další týden", onclick: () => onWeek(p.week + 1) }, icon("caret-right"))),
-    h("div", { class: "hb-bars-row" }, ...p.days.map((d) => {
-      const v = d.pct ?? 0;
-      return h("div", { class: `hb-bar${d.today ? " today" : ""}${d.future ? " future" : ""}` },
-        h("em", {}, d.pct == null ? "" : `${d.pct}%`), h("i", { style: { height: `${Math.max(4, v)}%` } }), h("span", {}, WD3[d.weekday]));
-    })));
+  const dmy = (d: string) => { const [yy, mm, dd] = d.split("-"); return `${dd}/${mm}/${yy}`; };
+  const bars = h("div", { class: "hb-bars-row" }, ...p.days.map((d) => {
+    const v = d.pct ?? 0;
+    return h("div", { class: `hb-bar${d.today ? " today" : ""}${d.future ? " future" : ""}` },
+      h("em", {}, d.pct == null ? "" : `${d.pct}%`), h("i", { style: { height: `${Math.max(6, v)}%` } }), h("span", {}, WD3[d.weekday]));
+  }));
+  // the mindset tracker: three soft lines over the week
+  const mt = h("div", { class: "hb-mt" });
+  const W = 300, H = 110;
+  const lines = MOOD.map(([k, , c]) => {
+    const pts = p.days.map((d, i) => (d[k] ? [i / 6 * W, H - 8 - ((d[k] as number) - 1) / 4 * (H - 16)] : null)).filter(Boolean) as number[][];
+    if (!pts.length) return "";
+    const path = pts.map((q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(" ");
+    return `<path d="${path}" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>` +
+      pts.map((q) => `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="3.2" fill="${c}"/>`).join("");
+  }).join("");
+  mt.innerHTML = `<svg viewBox="-6 -6 ${W + 12} ${H + 12}" aria-label="Mindset tracker" role="img">
+    ${[0, 1, 2, 3].map((i) => `<line x1="0" x2="${W}" y1="${8 + i * (H - 16) / 3}" y2="${8 + i * (H - 16) / 3}" stroke="rgba(255,255,255,.06)"/>`).join("")}${lines ||
+    `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="12">Ohodnoť den v kartě dne níž</text>`}</svg>`;
+  const overall = h("div", { class: "hb-card hb-overall" },
+    h("div", { class: "hb-ov-bars" },
+      h("div", { class: "hb-bars-head" }, h("h3", {}, "Celkový pokrok"), h("span", { class: "grow" }),
+        h("button", { type: "button", class: "hb-nav", "aria-label": "Předchozí týden", onclick: () => onWeek(p.week - 1) }, icon("caret-left")),
+        h("span", { class: "hb-week-label" }, p.week === 0 ? "Tento týden" : p.week === -1 ? "Minulý týden" : p.week === 1 ? "Příští týden" : `${dmy(p.start).slice(0, 5)} – ${dmy(p.end).slice(0, 5)}`),
+        h("button", { type: "button", class: "hb-nav", "aria-label": "Další týden", onclick: () => onWeek(p.week + 1) }, icon("caret-right"))),
+      bars),
+    h("div", { class: "hb-ov-ring" }, ring(p.pct, 128, 11), h("span", {}, `${p.done} / ${p.total} splněno`)),
+    h("div", { class: "hb-ov-mind" }, h("h3", {}, "Mindset tracker"),
+      h("div", { class: "hb-legend" }, ...MOOD.map(([, label, c]) => h("span", {}, h("i", { style: { background: c } }), label))), mt));
   const cards = h("div", { class: "hb-days" }, ...p.days.map((d) => {
     const add = h("input", { class: "hb-task-add", placeholder: "+ Přidat úkol", maxlength: "160", "aria-label": `Nový úkol na ${WD[d.weekday]}` }) as HTMLInputElement;
     add.addEventListener("keydown", (e) => { if (e.key === "Enter" && add.value.trim()) { client.send("habit_task", { action: "add", day: d.day, text: add.value }); add.value = ""; } });
-    const mind = h("input", { class: "hb-mind", placeholder: "Na co dnes myslet…", value: d.mindset, maxlength: "200", "aria-label": `Mindset ${WD[d.weekday]}` }) as HTMLInputElement;
+    const mind = h("input", { class: "hb-mind", placeholder: "Myšlenka dne…", value: d.mindset, maxlength: "200", "aria-label": `Mindset ${WD[d.weekday]}` }) as HTMLInputElement;
     mind.addEventListener("change", () => client.send("habit_mindset", { day: d.day, text: mind.value }));
+    const rates = h("div", { class: "hb-rates" }, ...MOOD.map(([k, label, c]) => h("div", { class: "hb-rate", style: { "--c": c } as any },
+      h("span", {}, label),
+      h("div", {}, ...[1, 2, 3, 4, 5].map((v) => h("button", { type: "button", class: (d[k] || 0) >= v ? "on" : "", disabled: d.future,
+        "aria-label": `${label} ${v} z 5`, onclick: () => client.send("habit_mindset", { day: d.day, [k]: d[k] === v ? 0 : v }) }))))));
+    const done = d.tasks.filter((t) => t.done).length;
     return h("div", { class: `hb-day${d.today ? " today" : ""}` },
-      h("div", { class: "hb-day-head" }, h("strong", {}, WD[d.weekday]), h("span", {}, fmt(d.day))),
-      ring(d.pct, 88, 8),
+      h("div", { class: "hb-day-head" }, h("strong", {}, WD[d.weekday]), h("span", {}, dmy(d.day))),
+      ring(d.pct, 96, 8),
       h("h4", {}, "Úkoly"),
       h("div", { class: "hb-tasks" }, ...d.tasks.map((t) => h("div", { class: `hb-task${t.done ? " done" : ""}` },
         h("button", { type: "button", class: "hb-box", "aria-pressed": t.done ? "true" : "false", "aria-label": `${t.done ? "Zrušit" : "Hotovo"}: ${t.text}`,
@@ -289,9 +354,10 @@ export function weekPlanner(client: JarvisClient, s: HabitSnap, onWeek: (w: numb
         h("span", {}, t.text),
         h("button", { type: "button", class: "hb-x", "aria-label": `Smazat: ${t.text}`, onclick: () => client.send("habit_task", { action: "delete", id: t.id }) }, icon("x")))),
         add),
-      h("h4", {}, "Mindset"), mind);
+      h("h4", {}, "Mindset"), rates, mind,
+      h("p", { class: "hb-day-foot" }, d.tasks.length ? `${done} hotovo · ${d.tasks.length - done} zbývá` : "Žádné úkoly"));
   }));
-  return h("div", { class: "hb-plan" }, bars, cards);
+  return h("div", { class: "hb-plan" }, overall, cards);
 }
 
 /** Cíle: something bigger (50 km this month, −5 kg, 12 books) with a glowing bar */
@@ -351,6 +417,7 @@ export function insights(s: HabitSnap): HTMLElement {
     }) : trend;
     const big = it ? it.rate30 : s.consistency;
     const filter = h("div", { class: "hb-filter" },
+      h("div", { class: "hb-pick" }, it ? it.name : "Celkově", icon("caret-down")),
       h("button", { type: "button", class: pick === "all" ? "on" : "", onclick: () => { pick = "all"; paint(); } }, "Celkově"),
       ...s.items.map((x) => h("button", { type: "button", class: pick === x.id ? "on" : "", style: { "--c": safeColor(x.color) } as any,
         onclick: () => { pick = x.id; paint(); } }, h("i", { class: "hb-pip" }), x.name)));
@@ -361,7 +428,7 @@ export function insights(s: HabitSnap): HTMLElement {
     root.replaceChildren(
       h("div", { class: "hb-card hbp-trend" },
         h("div", { class: "hbp-trend-grid" },
-          h("div", {}, h("h3", {}, it ? `${it.name} · 30 dní` : "Celková vytrvalost"), h("strong", { class: "hbp-big" }, big == null ? "–" : `${big}%`), trendChart(roll)),
+          h("div", {}, h("h3", {}, it ? `${it.name} · vytrvalost` : "Celková vytrvalost"), h("strong", { class: "hbp-big" }, big == null ? "–" : `${big}%`), trendChart(roll)),
           filter)),
       h("div", { class: "hbp-cards" },
         statCard("Tento týden", s.week == null ? "–" : `${s.week}%`),
@@ -382,4 +449,14 @@ export function insights(s: HabitSnap): HTMLElement {
   };
   paint();
   return root;
+}
+
+
+const MON_SHORT = ["led", "úno", "bře", "dub", "kvě", "čvn", "čvc", "srp", "zář", "říj", "lis", "pro"];
+/** the tracker's head: a huge title, the mint date pill and the tabs (with icons) */
+export function trackerHead(title: string, date: string, tabs: HTMLElement, extra?: HTMLElement): HTMLElement {
+  const [y, m, d] = date.split("-").map(Number);
+  return h("div", { class: "hb-head" },
+    h("div", { class: "hb-head-l" }, h("h1", {}, title), h("span", { class: "hb-date-pill" }, `${d}. ${MON_SHORT[m - 1]} ${y}`)),
+    h("div", { class: "hb-head-r" }, tabs, extra || ""));
 }

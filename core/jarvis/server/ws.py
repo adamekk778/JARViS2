@@ -1188,7 +1188,8 @@ class Connection:
                     hb.task_set(rt, int(m.get("id") or 0), None if m.get("done") is None else bool(m.get("done")),
                                 None if m.get("text") is None else str(m.get("text")), m.get("day") or None)
             elif t == "habit_mindset":
-                hb.set_mindset(rt, str(m.get("text") or ""), m.get("day") or None)
+                hb.set_mindset(rt, None if m.get("text") is None else str(m.get("text")), m.get("day") or None,
+                               **{k: m.get(k) for k in ("energy", "focus", "motivation")})
             elif t == "habit_goal":
                 if m.get("action") == "delete":
                     hb.goal_delete(rt, int(m.get("id") or 0))

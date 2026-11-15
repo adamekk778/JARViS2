@@ -1,14 +1,14 @@
 // 3.12 Návyky a zdraví over the whole screen, laid out like the habit trackers people love: Dnes (tick everything,
 // the meals), Návyky (the month grid with its trend line), Úkoly (the week planner), Cíle (goals) and Přehled
 // (consistency, this week, the leaderboard, streaks); the gear opens Upravit (your own habits, the reminder).
-import { hero, HEROES } from "../shared/hero";
 import { h, icon } from "../shared/dom";
-import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, weekPlanner, type HabitSnap } from "../shared/habitsui";
+import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, trackerHead, weekPlanner, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 
 type Tab = "today" | "habits" | "tasks" | "goals" | "insights" | "edit";
 const TABS: [Tab, string, string][] = [["today", "house-simple", "Dnes"], ["habits", "grid-four", "Návyky"], ["tasks", "check-square", "Úkoly"],
   ["goals", "target", "Cíle"], ["insights", "chart-line-up", "Přehled"]];
+const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Tracker", tasks: "Tracker", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
 
 export function buildHabits(client: JarvisClient) {
   let snap: HabitSnap | null = null;
@@ -18,14 +18,15 @@ export function buildHabits(client: JarvisClient) {
   const body = h("div", { class: "hbp-body" });
   const tabs = h("div", { class: "hbp-tabs", role: "tablist" });
   const gear = h("button", { type: "button", class: "hbp-gear", title: "Upravit návyky", "aria-label": "Upravit návyky", onclick: () => go(tab === "edit" ? "today" : "edit") }, icon("gear-six"));
-  const go = (t: Tab) => { tab = t; paintTabs(); paint(); };
+  const go = (t: Tab) => { tab = t; paintTabs(); paintHead(); paint(); };
   const paintTabs = () => {
     tabs.replaceChildren(...TABS.map(([k, ic, label]) => h("button", { type: "button", role: "tab", class: tab === k ? "on" : "",
       "aria-selected": tab === k ? "true" : "false", onclick: () => go(k) }, icon(ic), label)));
     gear.classList.toggle("on", tab === "edit");
   };
-  const head = hero(HEROES.habits, "Návyky a zdraví", "Gym, jídlo, spánek, voda… – odškrtni, co jsi dnes udělal, a JARVIS spočítá, jak na tom jsi.");
-  const el = h("section", { class: "page hbp", hidden: true }, head, h("div", { class: "hbp-tools" }, tabs, gear), body);
+  const headBox = h("div", {});
+  const el = h("section", { class: "page hbp", hidden: true }, headBox, body);
+  const paintHead = () => headBox.replaceChildren(trackerHead(TITLE[tab], snap?.date || new Date().toISOString().slice(0, 10), tabs, gear));
   const ask = () => client.send("habits_get", { month: month || undefined, week });
 
   function paint() {
@@ -62,6 +63,7 @@ export function buildHabits(client: JarvisClient) {
     // a tick sent the default view (this month, this week): ask again for the one shown here
     if ((month && s.month.id !== month) || (s.plan && s.plan.week !== week)) { ask(); return; }
     snap = s;
+    paintHead();
     if (el.hidden) return;
     const typing = body.querySelector(".hb-form") || (document.activeElement && body.contains(document.activeElement) && document.activeElement.tagName === "INPUT");
     if (typing && (tab === "edit" || tab === "goals")) return;      // do not throw away a half-filled form
@@ -74,6 +76,7 @@ export function buildHabits(client: JarvisClient) {
     paint();
   });
   paintTabs();
+  paintHead();
   paint();
   return { el, show: () => { ask(); paint(); } };
 }

@@ -243,3 +243,68 @@
 .hbp-gear { width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .04); color: rgba(255, 255, 255, .7); cursor: pointer; display: grid; place-items: center; font-size: 17px; }
 .hbp-gear.on { color: #5ef2c0; border-color: rgba(46, 230, 166, .4); }
 @media (max-width: 900px) { .hbp-trend-grid { grid-template-columns: 1fr; } .hb-filter { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; max-height: none; } }
+
+/* ===== 1:1 with the tracker in the video: near-black, heavy capitals, mint ===== */
+.hbp, .mhb, .nhb { font-family: "Geist Variable", var(--font, system-ui), sans-serif; --hb-card: #111216; --hb-line: rgba(255, 255, 255, .065); --mint: #2ee6a6; }
+.hbp { background: radial-gradient(900px 420px at 0% -10%, rgba(46, 230, 166, .07), transparent 60%), radial-gradient(700px 400px at 100% 0%, rgba(120, 80, 200, .06), transparent 60%); }
+.hbp .hb-card, .mhb .hb-card, .hbp .hb-stat, .mhb .hb-stat, .hb-day { background: var(--hb-card); border: 1px solid var(--hb-line); border-radius: 24px; }
+.hb-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 4px 0 18px; }
+.hb-head-l { display: flex; align-items: center; gap: 16px; }
+.hb-head h1 { margin: 0; font-size: 46px; line-height: 1; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; color: #fff;
+  text-shadow: 0 0 30px rgba(255, 255, 255, .12); }
+.hb-date-pill { background: var(--mint); color: #03130d; font-weight: 800; font-size: 14px; padding: 8px 18px; border-radius: 999px; box-shadow: 0 0 22px rgba(46, 230, 166, .45); white-space: nowrap; }
+.hb-head-r { display: flex; align-items: center; gap: 8px; }
+.hb-head .hbp-tabs { margin: 0; background: transparent; border: 0; padding: 0; gap: 2px; }
+.hb-head .hbp-tabs button { font-size: 13px; padding: 7px 12px; color: rgba(255, 255, 255, .5); }
+.hb-head .hbp-tabs button.on { background: rgba(46, 230, 166, .12); color: var(--mint); }
+
+/* big numbers and labels */
+.hb-ring-in strong, .hbp-big, .hb-stat strong, .hb-goal-pct { font-weight: 900; letter-spacing: -.04em; }
+.hb-card h3, .hb-stat > span, .hb-day h4 { font-weight: 800; letter-spacing: .14em; color: rgba(255, 255, 255, .62); }
+.hbp-big { font-size: 64px; }
+
+/* the grid */
+.hb-month-title h2 { font-size: 30px; }
+.hb-mode { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; }
+.hb-mode button { border: 0; cursor: pointer; font: inherit; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; border-radius: 999px; }
+.hb-mode button:not(.on) { background: transparent; color: rgba(255, 255, 255, .45); font-size: 12px; padding: 8px 14px; }
+.hb-mode button.on { flex: 1; background: linear-gradient(90deg, #26d99a, #5ef2c0); color: #03130d; font-size: 13px; padding: 16px; box-shadow: 0 0 34px rgba(46, 230, 166, .45); }
+.hb-col-head { font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: rgba(255, 255, 255, .45); text-align: left !important; }
+.hb-grid-name b { font-weight: 900; font-size: 14px; letter-spacing: .02em; }
+.hb-grid { gap: 8px; }
+.hb-cell { max-width: 30px; border-width: 1.5px; border-color: rgba(255, 255, 255, .14); }
+.hb-cell.done { background: var(--mint); border-color: var(--mint); color: #03130d; font-size: 14px; box-shadow: 0 0 12px rgba(46, 230, 166, .55); }
+.hb-cell.done i { font-weight: 900; }
+.hb-grid.weeks .hb-grid-row { gap: 10px; }
+.hb-wcell { --p: 0; justify-self: center; min-width: 64px; text-align: center; font-weight: 800; font-size: 13px; padding: 8px 10px; border-radius: 999px; color: #fff;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mint) 70%, transparent) calc(var(--p) * 100%), rgba(255, 255, 255, .06) 0); }
+.hb-wcell.off { background: transparent; color: rgba(255, 255, 255, .3); }
+
+/* the week: overall progress + mindset tracker */
+.hb-overall { display: grid; grid-template-columns: minmax(0, 1.5fr) auto minmax(0, 1fr); gap: 26px; align-items: stretch; }
+.hb-ov-ring { display: grid; justify-items: center; align-content: center; gap: 8px; padding: 0 10px; border-left: 1px solid var(--hb-line); border-right: 1px solid var(--hb-line); }
+.hb-ov-ring > span { font-size: 12px; color: rgba(255, 255, 255, .55); }
+.hb-bar i { background: linear-gradient(180deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06)); box-shadow: none; border-radius: 14px 14px 8px 8px; }
+.hb-bar.today i { background: linear-gradient(180deg, #5ef2c0, rgba(46, 230, 166, .25)); box-shadow: 0 0 18px rgba(46, 230, 166, .45); }
+.hb-ov-mind h3 { margin-bottom: 6px; }
+.hb-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: rgba(255, 255, 255, .6); margin-bottom: 6px; }
+.hb-legend span { display: inline-flex; gap: 5px; align-items: center; }
+.hb-legend i { width: 7px; height: 7px; border-radius: 50%; }
+.hb-mt svg { width: 100%; height: 130px; display: block; }
+.hb-day { padding: 16px 14px; }
+.hb-day-head strong { font-size: 17px; font-weight: 900; }
+.hb-rates { justify-self: stretch; display: grid; gap: 6px; }
+.hb-rate { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; font-size: 12px; color: rgba(255, 255, 255, .6); }
+.hb-rate > div { display: flex; gap: 4px; }
+.hb-rate button { width: 12px; height: 12px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: rgba(255, 255, 255, .12); }
+.hb-rate button.on { background: var(--c); box-shadow: 0 0 6px var(--c); }
+.hb-rate button:disabled { cursor: default; opacity: .4; }
+.hb-day-foot { margin: 2px 0 0; font-size: 11px; color: rgba(255, 255, 255, .4); }
+
+/* insights */
+.hb-pick { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; border: 1.5px solid var(--mint);
+  color: #fff; font-weight: 800; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; box-shadow: 0 0 16px rgba(46, 230, 166, .25); margin-bottom: 6px; }
+.hb-lead-bar { height: 12px; }
+.hb-lead-bar i { background: linear-gradient(90deg, #1fb8a0, #5ef2c0); }
+.hb-stat.up strong { color: var(--mint); }
+.hbp { padding: 22px 30px 48px; box-sizing: border-box; }

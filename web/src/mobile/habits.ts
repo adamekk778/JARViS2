@@ -9,7 +9,6 @@ import "./habits.css";
 
 type Tab = "today" | "habits" | "tasks" | "goals" | "insights" | "edit";
 const CACHE = "jarvis.habits.snap", QUEUE = "jarvis.habits.queue";
-const WEEKDAY = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"];
 const MONTHS_OF = ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září", "října", "listopadu", "prosince"];
 
 const load = <T,>(k: string, d: T): T => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch { return d; } };
@@ -89,9 +88,13 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
     const best = s.streaks[0];
     const msg = t.due === 0 ? "Dnes nic naplánovaného – užij si volno." : t.done === t.due ? "Všechno splněno. Paráda!" :
       t.done === 0 ? "Začni prvním návykem – stačí ťuknout." : `Ještě ${t.due - t.done} a máš hotovo.`;
-    top.replaceChildren(
-      h("div", { class: "mhb-date" }, h("strong", {}, `${WEEKDAY[s.weekday]} ${d.getDate()}. ${MONTHS_OF[d.getMonth()]}`),
-        queue.length ? h("span", { class: "mhb-off" }, icon("cloud-slash"), ` ${queue.length} čeká na PC`) : c.status !== "open" ? h("span", { class: "mhb-off" }, icon("cloud-slash"), " offline") : ""),
+    const TITLE: Record<Tab, string> = { today: "Dnes", habits: "Návyky", tasks: "Tracker", goals: "Cíle", insights: "Přehled", edit: "Upravit" };
+    const head = h("div", { class: "mhb-date" },
+      h("h1", { class: "mhb-title" }, TITLE[tab]),
+      h("span", { class: "hb-date-pill" }, `${d.getDate()}. ${MONTHS_OF[d.getMonth()]} ${d.getFullYear()}`),
+      queue.length ? h("span", { class: "mhb-off" }, icon("cloud-slash"), ` ${queue.length} čeká na PC`) : c.status !== "open" ? h("span", { class: "mhb-off" }, icon("cloud-slash"), " offline") : "");
+    if (tab !== "today") { top.replaceChildren(head); return; }
+    top.replaceChildren(head,
       h("div", { class: "mhb-hero" }, ring(t.pct, 150, 12, "dnes", t.due ? `${t.done} z ${t.due}` : "volno"),
         h("div", { class: "mhb-chips" },
           h("div", {}, h("span", {}, "Týden"), h("strong", {}, s.week == null ? "–" : `${s.week}%`),
