@@ -63,6 +63,7 @@ class Brain(BaseModel):
     local_mode: Literal["eco", "balanced", "performance"] = "balanced"
     local_gpu: str = ""            # result of the last GPU test: "gpu" | "cpu" | ""
     local_gpu_layers: int = -1     # OMEGA 574: layers on the graphics card (-1 = let Ollama decide)
+    save_limits: bool = True       # 3.12 Šetřič limitů: background work (chat summaries) by the AI on this PC when its backup is on
     adaptive_local: bool = True    # OMEGA P15.10: local models step aside during games, on low battery, when RAM runs out
 
 

@@ -83,7 +83,9 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint:
 
         Transcriber._groq_seen = (0.0, False)      # the voice uses Groq from now on, no waiting
     rest = [c for c in rt.cfg.brain.chain if c != pid]
-    chain = [pid] + [c for c in rest if c != "omniroute"] + [c for c in rest if c == "omniroute"]   # your keys before the gateway
+    local = {p["id"] for p in provs if PRESETS.get(p.get("preset", ""), {}).get("local")}
+    chain = ([pid] + [c for c in rest if c != "omniroute" and c not in local]        # your keys first, then the gateway,
+             + [c for c in rest if c == "omniroute"] + [c for c in rest if c in local])   # the AI on this PC always last
     rt.update_config({"brain": {"providers": provs, "chain": chain}})
     r = await test(pid)
     out = {"ok": bool(r.get("ok")), "provider": pid, "label": LABEL.get(preset, preset), "ms": r.get("ms")}

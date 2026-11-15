@@ -107,6 +107,7 @@ class Runtime:
         self.router.gate = self.usage.blocked
         # a provider's minute limit: say so while JARVIS waits instead of going quiet (or giving up)
         self.router.on_switch = self._brain_switched
+        self.router.local_ready = self._local_ready      # 3.12 Šetřič limitů
         self.router.on_wait = lambda pid, secs: self.notify(
             f"{PRESET_LABEL.get(pid, pid)} – minutový limit", f"Čekám {round(secs)} s a pokračuju v úkolu.", speak=False)
         from . import aiplus
@@ -285,6 +286,25 @@ class Runtime:
     def call_soon(self, fn, *args) -> None:
         if self.loop is not None:
             self.loop.call_soon_threadsafe(fn, *args)
+
+    async def _local_ready(self) -> bool:
+        """3.12 Šetřič limitů: the backup AI on this PC is on and Ollama answers (checked at most once a minute)."""
+        import time as _t
+
+        if not self.cfg.brain.save_limits or not self.local.backup().get("on"):
+            return False
+        at, ok = getattr(self, "_local_seen", (0.0, False))
+        if _t.monotonic() - at < 60:
+            return ok
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=2) as c:
+                ok = (await c.get(self.local.base + "/api/version")).status_code == 200
+        except Exception:  # noqa: BLE001
+            ok = False
+        self._local_seen = (_t.monotonic(), ok)
+        return ok
 
     def _brain_switched(self, errors: dict, now: str) -> None:
         """3.12 an AI ran out (limit) and another carries on: say so once an hour, not silently and not every message."""

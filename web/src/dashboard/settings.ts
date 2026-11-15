@@ -323,6 +323,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           range("brain.temperature", "Kreativita (temperature)", 0, 1.5, 0.1, (v) => v.toFixed(1)),
           h("div", { class: "grid2" }, text("brain.max_tokens", "Max délka odpovědi (tokeny)", "", "number"), text("brain.first_token_timeout", "Čekat na první odpověď (s)", "Pak zkusí dalšího poskytovatele", "number")),
           sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet."),
+          sw("brain.save_limits", "Šetřit limity zdarma", "Práci na pozadí (shrnutí dlouhých konverzací) udělá AI v tomhle PC, když máš zapnutou offline zálohu. Na tvoje otázky dál odpovídají rychlé AI z internetu."),
           h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
       ];
     },

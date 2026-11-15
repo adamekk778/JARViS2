@@ -6,7 +6,7 @@ import contextlib
 import logging
 import time
 from collections import defaultdict, deque
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, Awaitable, Callable
 
 import httpx
 
@@ -83,6 +83,7 @@ class Router:
         self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
         self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
         self.cache = None                                                           # OMEGA 584: aiplus.AICache
+        self.local_ready: Callable[[], Awaitable[bool]] | None = None   # 3.12 Šetřič limitů: is the PC's own AI up?
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
         self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
@@ -107,11 +108,20 @@ class Router:
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
-                     model: str | None = None) -> AsyncIterator[Chunk]:
-        """`model` asks one particular model of the provider (to compare several models of one gateway)."""
+                     model: str | None = None, light: bool = False) -> AsyncIterator[Chunk]:
+        """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
+        background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
+        the free cloud limits are kept for what you ask."""
         want_model = model
         errors: dict[str, str] = {}
         cands = self.providers()
+        if light and not only and getattr(self.brain, "save_limits", True) and self.local_ready is not None:
+            try:
+                ready = await self.local_ready()
+            except Exception:  # noqa: BLE001
+                ready = False
+            if ready:
+                cands = sorted(cands, key=lambda p: not PRESETS.get(p.preset, {}).get("local"))
         if only:   # OMEGA 204 / 006: ask one particular provider (to compare models)
             cands = [p for p in cands if p.id == only]
         if need_vision:
@@ -283,12 +293,12 @@ class Router:
         return None
 
     async def complete(self, messages: list[dict], need_vision: bool = False, fast: bool = False, only: str | None = None,
-                       cache: bool = False, model: str | None = None) -> str:
+                       cache: bool = False, model: str | None = None, light: bool = False) -> str:
         key = self.cache.key(messages, vision=need_vision, fast=fast, only=only) if cache and self.cache else ""
         if key and (hit := self.cache.get(key)) is not None:      # OMEGA 584: the same question again → no model call
             return hit
         out = []
-        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only, model=model):
+        async for ch in self.stream(messages, None, need_vision=need_vision, fast=fast, only=only, model=model, light=light):
             out.append(ch.text)
         text = "".join(out)
         if key:

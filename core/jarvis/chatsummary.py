@@ -58,7 +58,7 @@ async def refresh(rt) -> bool:
     text = (f"Dosavadní shrnutí: {s['summary']}\n\n" if s.get("summary") else "") + "Další část konverzace:\n" + "\n".join(lines)
     try:
         summary = (await rt.router.complete([{"role": "system", "content": PROMPT}, {"role": "user", "content": text[-14000:]}],
-                                            fast=True)).strip()
+                                            fast=True, light=True)).strip()
     except Exception as e:  # noqa: BLE001 – no AI right now: the chat simply goes on without a new summary
         log.debug("chat summary: %s", e)
         return False

@@ -99,7 +99,7 @@ def test_cerebras_key_and_your_keys_before_omniroute(rt):
     assert p.base_url == "https://api.cerebras.ai/v1" and p.model == "gpt-oss-120b"
     asyncio.run(brainkey.apply(rt, "gsk_" + "q" * 48, test))
     chain = rt.cfg.brain.chain
-    assert chain[:2] == ["groq", "cerebras"] and chain[-1] == "omniroute"      # the gateway only when nothing else answers
+    assert chain[:2] == ["groq", "cerebras"] and chain[-2:] == ["omniroute", "ollama"]   # the gateway, then the PC's own AI
 
 
 def test_more_free_services_are_known():
