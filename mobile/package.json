@@ -14,8 +14,9 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/status-bar": "^8.0.4",
-    "@capgo/capacitor-share-target": "^8.0.63",
-    "@capgo/capacitor-native-biometric": "^8.9.1"
+    "@capgo/capacitor-health": "^8.13.0",
+    "@capgo/capacitor-native-biometric": "^8.9.1",
+    "@capgo/capacitor-share-target": "^8.0.63"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

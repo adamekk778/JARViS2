@@ -579,3 +579,34 @@ async def meal_from_photo(rt: Any, image: str, slot: str = "", day: str | None =
         s = _slot_by_time()
     set_meal(rt, s, food, day, kcal, protein)
     return {"slot": s, "label": dict(MEAL_SLOTS)[s], "food": food, "kcal": kcal, "protein": protein}
+
+
+# ---------- 3.12 spánek a kroky z telefonu (Health Connect) ----------
+STEPS_HABIT = {"name": "Kroky", "icon": "person-simple-walk", "color": "#a3e635", "area": "gym", "kind": "amount",
+               "target": 8000, "unit": "kroků"}
+
+
+def health_sync(rt: Any, day: str | None, steps: float | None = None, sleep_h: float | None = None) -> dict:
+    """What the phone's Health Connect says for a day: sleep → the sleep habit, steps → the steps habit (made the
+    first time steps come, 8 000 a day). Only ever raises a value – a phone that counted less never lowers it."""
+    d = day or _iso(today())
+    dt.date.fromisoformat(d)
+    out: dict = {}
+    hs = habits(rt)
+    vals = {r["habit_id"]: r["value"] or 0 for r in _db(rt).all("SELECT habit_id, value FROM habit_log WHERE day=?", (d,))}
+    if sleep_h and 0 < float(sleep_h) <= 16:
+        h = next((x for x in hs if x.get("area") == "spanek" and x.get("kind") == "amount"), None)
+        v = round(float(sleep_h), 1)
+        if h and v > vals.get(h["id"], 0):
+            log(rt, h["id"], v, d)
+            out["sleep"] = v
+    if steps and 0 < float(steps) < 200_000:
+        h = next((x for x in hs if "krok" in (x.get("unit") or "").lower() or x.get("name", "").lower() == "kroky"), None)
+        if h is None:
+            hid = save(rt, dict(STEPS_HABIT))
+            h = {"id": hid}
+        v = float(int(steps))
+        if v > vals.get(h["id"], 0):
+            log(rt, h["id"], v, d)
+            out["steps"] = int(v)
+    return out

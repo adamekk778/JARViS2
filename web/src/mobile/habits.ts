@@ -5,6 +5,7 @@ import { h, icon, toast } from "../shared/dom";
 import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, weekPlanner, type HabitItem, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 import { gymView, type GymSnap } from "../shared/gymui";
+import { healthConnect, healthOff, healthState, healthSupported, healthSync } from "./health";
 import { native } from "./native";
 import "./habits.css";
 
@@ -126,7 +127,7 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
       body.replaceChildren(
         h("div", { class: "mhb-list" }, ...due.map((it) => habitTile(proxy, it, true))),
         rest.length ? h("p", { class: "hbp-sub" }, "Dnes volno") : "", rest.length ? h("div", { class: "mhb-list" }, ...rest.map((it) => habitTile(proxy, it, true))) : "",
-        meals(proxy, s));
+        meals(proxy, s), healthCard());
     } else if (tab === "habits") {
       body.replaceChildren(h("div", { class: "hb-card mhb-grid" }, monthGrid(proxy, s, (id) => { month = id; ask(); }),
         h("p", { class: "hbp-hint" }, "Posuň do strany pro celý měsíc. Ťukni na kroužek a opravíš den.")));
@@ -171,5 +172,29 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
     save(QUEUE, queue);
     ask();
   });
-  return { el, show: () => { ask(); paint(); } };
+  // 3.12 spánek a kroky z telefonu (Health Connect)
+  function healthCard(): HTMLElement | string {
+    if (!healthSupported()) return "";
+    const st = healthState();
+    const msg = h("p", { class: "mhb-health-msg" });
+    const connect = async () => {
+      msg.textContent = "Otevírám Health Connect…";
+      const err = await healthConnect().catch((e: any) => e?.message || "Nepovedlo se.");
+      if (err) { msg.textContent = err; return; }
+      await healthSync(c, true);
+      paint();
+    };
+    return h("div", { class: "hb-card mhb-health" },
+      h("div", { class: "mhb-health-h" }, icon("heartbeat", "ph-fill"), h("strong", {}, "Spánek a kroky z telefonu")),
+      st.on
+        ? h("p", {}, `Propojeno ✓${st.steps != null ? ` · dnes ${st.steps.toLocaleString("cs-CZ")} kroků` : ""}${st.sleep != null ? ` · spánek ${String(st.sleep).replace(".", ",")} h` : ""}. Zapisuje se samo.`)
+        : h("p", {}, "Telefon sám zapíše, kolik jsi spal a nachodil – nemusíš nic odškrtávat. Data jdou jen do tvého PC."),
+      h("div", { class: "mhb-health-b" },
+        st.on ? h("button", { type: "button", class: "btn", onclick: async () => { await healthSync(c, true); paint(); } }, icon("arrows-clockwise"), "Načíst teď") : "",
+        st.on ? h("button", { type: "button", class: "btn ghost", onclick: () => { healthOff(); paint(); } }, "Odpojit")
+          : h("button", { type: "button", class: "btn primary", onclick: connect }, icon("link"), "Propojit")),
+      msg);
+  }
+  window.setInterval(() => { healthSync(c).catch(() => {}); }, 30 * 60 * 1000);
+  return { el, show: () => { ask(); paint(); healthSync(c).catch(() => {}); } };
 }

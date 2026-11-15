@@ -30,7 +30,7 @@ export const CLIENT_TYPES = [
   "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
   "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
   "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-  "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
+  "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
   "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ] as const;
 

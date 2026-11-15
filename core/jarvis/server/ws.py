@@ -48,7 +48,7 @@ CLIENT_TYPES = [
     "phone_zone", "client_state", "live_subs_get", "live_subs_set", "focus_set", "mission_simulate", "windows_get", "window_focus", "window_nav",
     "mochi_move", "hardware_get", "voices_get", "voice_preview", "voice_import", "voice_delete",
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
-    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
+    "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
@@ -1161,6 +1161,16 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
+        elif t == "habit_health":             # 3.12 spánek a kroky from the phone (Health Connect)
+            from .. import habits as hb
+
+            def num(v):
+                try:
+                    return float(v) if v is not None else None
+                except (TypeError, ValueError):
+                    return None
+            hb.health_sync(rt, m.get("day") or None, num(m.get("steps")), num(m.get("sleep_h")))
+            hb.publish(rt)
         elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set",
                    "habit_task", "habit_mindset", "habit_goal"):
             from .. import habits as hb               # 3.12 Návyky a zdraví (notch tab + full screen)

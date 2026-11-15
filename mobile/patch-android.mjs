@@ -169,6 +169,14 @@ for (const [k, v] of Object.entries(texts)) {
 }
 writeFileSync(stringsPath, st);
 
+// 3.12 spánek a kroky (Health Connect) needs Android 8.0+ (API 26)
+const varsPath = "android/variables.gradle";
+if (existsSync(varsPath)) {
+  let v = readFileSync(varsPath, "utf8");
+  v = v.replace(/minSdkVersion = \d+/, (x) => (Number(x.split("=")[1]) < 26 ? "minSdkVersion = 26" : x));
+  writeFileSync(varsPath, v);
+}
+
 // keep the app's version in sync with package.json + CI run number
 const gradlePath = "android/app/build.gradle";
 if (existsSync(gradlePath)) {

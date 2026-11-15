@@ -106,3 +106,9 @@
 .mhb-seg { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; min-height: 46px; }
 .mhb-seg::-webkit-scrollbar { display: none; }
 .mhb-seg button { flex: 1 0 auto; padding-left: 12px; padding-right: 12px; }
+/* 3.12 spánek a kroky z telefonu */
+.mhb-health { display: grid; gap: 8px; }
+.mhb-health-h { display: flex; align-items: center; gap: 8px; color: #fff; }
+.mhb-health p { margin: 0; font-size: 13px; color: rgba(255, 255, 255, .7); }
+.mhb-health-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.mhb-health-msg:empty { display: none; }
