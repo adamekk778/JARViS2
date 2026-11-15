@@ -4,6 +4,7 @@
    Runs its frame loop only while it is on screen. */
 import { brandEl, mediaBrand } from "../shared/brands";
 import { h, icon } from "../shared/dom";
+import { fmtShift, lyricShift, setLyricShift } from "../shared/lyricsync";
 
 type Line = { t: number; text: string };
 type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean };
@@ -30,7 +31,19 @@ export function createMusicView(ctx: Ctx) {
     onclick: (e: Event) => { (e.currentTarget as HTMLElement).animate([{ transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(.3,1.6,.5,1)" }); fn(); } },
     ic ? icon(ic, "ph-fill") : playIco);
   const lyrList = h("div", { class: "mu-lines" });
+  // 3.12 the text running late or early: move it by a quarter of a second (kept for this song and the next ones)
+  const shiftVal = h("button", { class: "mu-sync-v", type: "button", title: "Vrátit posun na nulu", onclick: () => nudge(null) });
+  const nudge = (d: number | null) => {
+    const v = setLyricShift(media?.title, media?.artist, d === null ? 0 : lyricShift(media?.title, media?.artist) + d);
+    shiftVal.textContent = fmtShift(v);
+    cur = -2;
+  };
+  const sync = h("div", { class: "mu-sync", role: "group", "aria-label": "Posun textu" },
+    h("button", { type: "button", title: "Text jde pozadu – posunout dřív", onclick: () => nudge(0.25) }, icon("rewind", "ph-fill"), "Text pozadu"),
+    shiftVal,
+    h("button", { type: "button", title: "Text jde napřed – posunout později", onclick: () => nudge(-0.25) }, "Text napřed", icon("fast-forward", "ph-fill")));
   const lyrBox = h("div", { class: "mu-lyrics" }, lyrList);
+  const lyrWrap = h("div", { class: "mu-lyr-wrap" }, lyrBox, sync);       // outside the faded edges of the lyrics
   const back = h("button", { class: "mu-back", type: "button", title: "Zpět", "aria-label": "Zpět na hlavní obrazovku", onclick: () => ctx.back() }, icon("caret-left"));
   const el = h("div", { class: "mu" },
     h("div", { class: "mu-glow", "aria-hidden": "true" }, bg),
@@ -41,7 +54,7 @@ export function createMusicView(ctx: Ctx) {
         btn("skip-back", "Předchozí", () => ctx.quick("media_control", { action: "previous" })),
         btn(null, "Přehrát / pauza", () => ctx.quick("media_control", { action: "play_pause" }), "main"),
         btn("skip-forward", "Další", () => ctx.quick("media_control", { action: "next" })))),
-    lyrBox);
+    lyrWrap);
 
   // ---- where we are in the song ----
   const dur = () => Number(media?.duration) || 0;
@@ -158,7 +171,7 @@ export function createMusicView(ctx: Ctx) {
     if (!visible) return;
     const p = pos();
     if (!dragging && p >= 0) paintBar(p);
-    if (p >= 0) paintLyrics(p);
+    if (p >= 0) paintLyrics(p + lyricShift(media?.title, media?.artist));
     raf = requestAnimationFrame(frame);
   }
   function paintMeta() {
@@ -175,6 +188,7 @@ export function createMusicView(ctx: Ctx) {
       } else { cover.removeAttribute("src"); bg.removeAttribute("src"); }
     }
     title.textContent = has ? media.title : "Nic nehraje";
+    shiftVal.textContent = fmtShift(lyricShift(media?.title, media?.artist));
     artist.textContent = has ? media.artist || "" : "";
     const b = mediaBrand(media?.source || "");
     src.replaceChildren(...(b && b.id !== "browser" ? [brandEl(b), h("span", {}, b.name)] : []));

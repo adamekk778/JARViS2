@@ -78,3 +78,12 @@
 
 @media (prefers-reduced-motion: reduce) { .mu-bg[src] { animation: none; } .mu-lines { transition: none; } }
 :root[data-motion="reduced"] :is(.mu-bg[src]) { animation: none; }
+/* 3.12 lyrics shift: Text pozadu · +0,3 s · Text napřed – quiet until you point at the lyrics */
+.mu-sync { position: absolute; right: 8px; bottom: 8px; z-index: 3; display: flex; gap: 4px; align-items: center; padding: 3px; border-radius: 999px;
+  background: rgba(10, 10, 14, .72); backdrop-filter: blur(10px); opacity: .35; transition: opacity .2s; }
+.mu-lyr-wrap { position: relative; display: grid; min-height: 0; min-width: 0; }
+.mu-lyr-wrap:hover .mu-sync, .mu-sync:focus-within { opacity: 1; }
+.mu-sync button { display: inline-flex; gap: 4px; align-items: center; border: 0; border-radius: 999px; padding: 4px 9px; cursor: pointer; font: inherit;
+  font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, .85); background: rgba(255, 255, 255, .08); }
+.mu-sync button:hover { background: rgba(255, 255, 255, .18); }
+.mu-sync .mu-sync-v { background: transparent; color: #7ff0c8; min-width: 54px; justify-content: center; }

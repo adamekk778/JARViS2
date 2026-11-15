@@ -13,6 +13,7 @@ import "./glass.css";
 import "./redesign.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
+import { lyricShift } from "../shared/lyricsync";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
@@ -1124,9 +1125,14 @@ function songPos(): number {
   if (typeof media.position !== "number") return -1;
   return media.position + (media.playing ? Math.max(0, Date.now() / 1000 - (media.at || Date.now() / 1000)) : 0);
 }
+/** The place in the song the lyrics follow: the song's position plus your shift for it (Text pozadu / napřed). */
+function lyrPos(): number {
+  const p = songPos();
+  return p < 0 ? p : p + lyricShift(media.title, media.artist);
+}
 function lyricsOn(): boolean {
   return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && songPos() >= 0
-    && songPos() >= lyr.lines[0].t - 1.5 && songPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
+    && lyrPos() >= lyr.lines[0].t - 1.5 && lyrPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
 }
 let cfgLyrics = true;
 /** The current line, lit word by word as it is sung: each word glows up in turn with a soft, feathered edge (no hard
@@ -1154,7 +1160,7 @@ function measureLyr(l: LyrLine) {
 }
 const smooth = (x: number) => x * x * (3 - 2 * x);
 function paintLyrics(_force = false) {
-  const pos = songPos();
+  const pos = lyrPos();
   let i = -1;
   for (let k = 0; k < lyr.lines.length && lyr.lines[k].t <= pos; k++) i = k;
   // the player's clock is re-read every second: a correction of a few tenths back must not flip to the previous

@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 
 _MGR: Any = None
 _THUMB: dict = {}
+_THUMB_FAIL: dict = {}                # song → (failed reads, when to try again)
 COVER: dict = {"error": ""}          # why the last cover did not come (Kontrola funkcí says it)
 
 
@@ -98,8 +99,11 @@ async def _snapshot() -> dict:
             key = (out["app"], out["title"], out["artist"])
             # the same song: a cover that came is read a few more times (players send the new cover a moment after the
             # new title – the first one can still be the previous song's); no cover yet: asked again every time
+            fail = _THUMB_FAIL.get(key, (0, 0.0))
             if _THUMB.get("key") == key and _THUMB.get("url") and _THUMB.get("reads", 0) >= 3:
                 out["thumb"] = _THUMB["url"]
+            elif fail[0] and time.time() < fail[1]:
+                pass                               # it failed a moment ago: do not slow every second down with it
             else:
                 try:
                     out["thumb"] = await _thumb(props.thumbnail)
@@ -111,8 +115,17 @@ async def _snapshot() -> dict:
                 if out["thumb"]:
                     reads = _THUMB.get("reads", 0) + 1 if _THUMB.get("key") == key else 1
                     _THUMB.update(key=key, url=out["thumb"], reads=reads)
+                    _THUMB_FAIL.pop(key, None)
+                else:                              # try again in 2, 4, 8 … (at most 60) seconds
+                    n = fail[0] + 1
+                    _THUMB_FAIL.clear()
+                    _THUMB_FAIL[key] = (n, time.time() + min(60.0, 2.0 ** n))
         else:
             COVER["error"] = "přehrávač k písničce žádný obrázek neposlal"
+        if not out["thumb"]:                       # 3.12 Windows gave no picture: the one found online, if any
+            from .. import nowplaying
+
+            out["thumb"] = nowplaying.cached_cover(out["title"], out["artist"]) or None
         return out
     if stuck:
         raise asyncio.TimeoutError("neodpovídá: " + ", ".join(dict.fromkeys(stuck)))
@@ -219,6 +232,33 @@ def changed(prev: dict, snap: dict, tolerance: float = 0.35) -> bool:
     return "position" in snap and "position" not in prev
 
 
+_COVER_ASKED: dict = {}               # song → when the cover was last looked up online
+
+
+def _want_cover(rt, snap: dict) -> None:
+    """No cover from Windows: look it up online once (again after a minute if the internet was not there); the next
+    round of the watcher finds it in the cache and sends it to the notch."""
+    from .. import nowplaying
+
+    if rt.cfg.brain.offline_only or not getattr(rt.cfg.notch, "lyrics", True):
+        return
+    key = (snap.get("title", ""), snap.get("artist", ""))
+    if nowplaying.cached_cover(*key) is not None or time.time() - _COVER_ASKED.get(key, 0) < 60:
+        return
+    if len(_COVER_ASKED) > 50:
+        _COVER_ASKED.clear()
+    _COVER_ASKED[key] = time.time()
+
+    async def go():
+        try:
+            if await nowplaying.find_cover(*key):
+                log.info("hudba: obal písničky doplněn z internetu")
+        except Exception as e:  # noqa: BLE001
+            log.info("hudba: obal z internetu nejde: %s", e)
+
+    asyncio.get_running_loop().create_task(go())
+
+
 async def watch(rt, interval: float = 2.0) -> None:
     try:
         import winsdk  # noqa: F401
@@ -245,6 +285,8 @@ async def watch(rt, interval: float = 2.0) -> None:
                     front = {}
                 # a music app names itself; a browser tab is told by the window title ("… - YouTube - Google Chrome")
                 snap["source"] = nowplaying.source(snap.get("app", ""), front.get("title", ""), snap.get("title", ""))
+            if snap.get("title") and not snap.get("thumb"):
+                _want_cover(rt, snap)
             new_song = (snap.get("title"), snap.get("artist")) != (prev.get("title"), prev.get("artist"))
             if changed(prev, snap):
                 rt.media_state = snap

@@ -184,6 +184,88 @@ class Lyrics:
         return {"lines": lines, "synced": bool(lines), "plain": (item.get("plainLyrics") or "")[:6000]}
 
 
+# ---- 3.12 the album cover from the internet, when Windows does not hand the player's picture over -------------------
+# Spotify and others give Windows the cover, but on some PCs it never arrives (an empty picture or none), so the notch
+# showed a grey note. Then JARVIS asks a public music catalogue (Deezer, then Apple's iTunes) for the album art of
+# that song – only the song title and artist are sent, no account, nothing else.
+DEEZER = "https://api.deezer.com/search"
+ITUNES = "https://itunes.apple.com/search"
+_COVERS: "OrderedDict[tuple, str]" = OrderedDict()   # (title, artist) → data: URL ("" = looked up, none found)
+
+
+def _norm(x: str) -> str:
+    import unicodedata
+
+    x = unicodedata.normalize("NFKD", (x or "").lower())
+    return re.sub(r"[^a-z0-9]+", " ", "".join(ch for ch in x if not unicodedata.combining(ch))).strip()
+
+
+def _fits(song: str, singer: str, name: str, who: str) -> bool:
+    s, a, n, w = _norm(song), _norm(singer), _norm(name), _norm(who)
+    if not s or not n:
+        return False
+    same_song = n == s or n.startswith(s) or s.startswith(n)
+    same_artist = not a or not w or a in w or w in a or bool(set(a.split()) & set(w.split()))
+    return same_song and same_artist
+
+
+def cached_cover(title: str, artist: str) -> str | None:
+    """The cover found online for this song before (None = not looked up yet, "" = there is none)."""
+    return _COVERS.get((title or "", artist or ""))
+
+
+async def find_cover(title: str, artist: str, transport=None) -> str:
+    """Look the song's album art up and return it as a data: URL ("" when nothing fitting was found)."""
+    import base64
+
+    import httpx
+
+    key = (title or "", artist or "")
+    if key in _COVERS:
+        return _COVERS[key]
+    song, singer = split_artist(title, artist)
+    if not song or (os.environ.get("JARVIS_NO_NET") and transport is None):
+        return ""
+    url, answered = "", False
+    async with httpx.AsyncClient(transport=transport, timeout=8, headers={"User-Agent": UA}, follow_redirects=True) as c:
+        try:
+            r = await c.get(DEEZER, params={"q": f'artist:"{singer}" track:"{song}"' if singer else song, "limit": 10})
+            answered = True
+            for x in (r.json() or {}).get("data", []) if r.status_code == 200 else []:
+                if _fits(song, singer, x.get("title_short") or x.get("title", ""), (x.get("artist") or {}).get("name", "")):
+                    url = (x.get("album") or {}).get("cover_xl") or (x.get("album") or {}).get("cover_big") or ""
+                    if url:
+                        break
+        except Exception as e:  # noqa: BLE001
+            log.debug("cover deezer: %s", e)
+        if not url:
+            for country in ("CZ", "US"):
+                try:
+                    r = await c.get(ITUNES, params={"term": f"{singer} {song}".strip(), "entity": "song", "limit": 10, "country": country})
+                    answered = True
+                    for x in (r.json() or {}).get("results", []) if r.status_code == 200 else []:
+                        if _fits(song, singer, x.get("trackName", ""), x.get("artistName", "")) and x.get("artworkUrl100"):
+                            url = x["artworkUrl100"].replace("100x100bb", "600x600bb")
+                            break
+                except Exception as e:  # noqa: BLE001
+                    log.debug("cover itunes: %s", e)
+                if url:
+                    break
+        data = ""
+        if url:
+            r = await c.get(url)
+            body = r.content if r.status_code == 200 else b""
+            ctype = r.headers.get("content-type", "image/jpeg").split(";")[0]
+            if body and len(body) < 3_000_000 and ctype.startswith("image/"):
+                data = f"data:{ctype};base64," + base64.b64encode(body).decode()
+    if not answered:
+        return ""                                    # no internet just now: ask again later, do not remember "none"
+    _COVERS[key] = data
+    while len(_COVERS) > 64:
+        _COVERS.popitem(last=False)
+    return data
+
+
 async def publish_lyrics(rt, snap: dict) -> None:
     """New song playing → look its lyrics up and send them to the notch (once per song)."""
     if not getattr(rt.cfg.notch, "lyrics", True) or rt.cfg.brain.offline_only:
