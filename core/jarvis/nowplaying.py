@@ -267,17 +267,21 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
         for who in dict.fromkeys(x for x in (singer, main) if x is not None):
             if url:
                 break
-            try:
-                r = await c.get(DEEZER, params={"q": f'artist:"{who}" track:"{song}"' if who else song, "limit": 10})
-                answered = True
-                for x in (r.json() or {}).get("data", []) if r.status_code == 200 else []:
-                    if _fits(song, singer, x.get("title_short") or x.get("title", ""), (x.get("artist") or {}).get("name", "")):
-                        url = (x.get("album") or {}).get("cover_xl") or (x.get("album") or {}).get("cover_big") or ""
-                        if url:
-                            break
-            except Exception as e:  # noqa: BLE001
-                log.debug("cover deezer: %s", e)
-                NET["cover"] = f"Deezer: {type(e).__name__}: {e}"[:200]
+            # Deezer: the exact search, then a plain one (the exact one sometimes answers with nothing)
+            for q in dict.fromkeys([f'artist:"{who}" track:"{song}"' if who else song, f"{who} {song}".strip()]):
+                try:
+                    r = await c.get(DEEZER, params={"q": q, "limit": 10})
+                    answered = True
+                    for x in (r.json() or {}).get("data", []) if r.status_code == 200 else []:
+                        if _fits(song, singer, x.get("title_short") or x.get("title", ""), (x.get("artist") or {}).get("name", "")):
+                            url = (x.get("album") or {}).get("cover_xl") or (x.get("album") or {}).get("cover_big") or ""
+                            if url:
+                                break
+                except Exception as e:  # noqa: BLE001
+                    log.debug("cover deezer: %s", e)
+                    NET["cover"] = f"Deezer: {type(e).__name__}: {e}"[:200]
+                if url:
+                    break
             if url:
                 break
             for country in ("CZ", "US"):
