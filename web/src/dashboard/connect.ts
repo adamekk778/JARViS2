@@ -49,7 +49,7 @@ export function buildConnect(client: JarvisClient) {
       h("div", { class: "cn-acts" },
         h("button", { type: "button", class: "btn primary", onclick: save }, icon("floppy-disk"), c.oauth ? "Uložit" : "Uložit a vyzkoušet"),
         c.oauth ? h("button", { type: "button", class: "btn", onclick: () => client.send("connector_oauth", { id: c.id }) },
-          icon("sign-in"), "Přihlásit se Googlem") : "",
+          icon("sign-in"), c.id === "google" ? "Přihlásit se Googlem" : "Přihlásit se Spotify") : "",
         c.connected ? h("button", { type: "button", class: "btn", onclick: () => client.send("connector_test", { id: c.id }) }, icon("lightning"), "Vyzkoušet") : "",
         c.connected ? h("button", { type: "button", class: "btn danger", onclick: () => {
           if (confirm(`Odpojit ${c.name}? Klíče se z tohoto PC smažou.`)) client.send("connector_remove", { id: c.id });

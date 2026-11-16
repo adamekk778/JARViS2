@@ -32,7 +32,7 @@ export const CLIENT_TYPES = [
   "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
   "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "gym_plan_set", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
   "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
-  "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
+  "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
   "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ] as const;
 
@@ -53,7 +53,7 @@ export const SERVER_TYPES = [
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
   "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents",
+  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -136,7 +136,7 @@ def load() -> None:
     import importlib
     import logging
 
-    for m in ("google", "supabase", "spaceship", "github", "notion", "slack"):
+    for m in ("google", "spotify", "supabase", "spaceship", "github", "notion", "slack"):
         try:
             importlib.import_module(f"{__name__}.{m}")
         except Exception as e:  # noqa: BLE001 – one broken connector must not take the others down

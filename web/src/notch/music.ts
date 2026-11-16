@@ -13,7 +13,7 @@ const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.fl
 
 export function createMusicView(ctx: Ctx) {
   let media: any = {};
-  let lyr: { title: string; synced: boolean; lines: Line[]; plain: string; reason?: string } = { title: "", synced: false, lines: [], plain: "" };
+  let lyr: { title: string; synced: boolean; lines: Line[]; plain: string; reason?: string; tr?: string[] } = { title: "", synced: false, lines: [], plain: "" };
   let visible = false, raf = 0, cur = -2, dragging = false, art = "";
 
   const bg = h("img", { class: "mu-bg", alt: "", "aria-hidden": "true" }) as HTMLImageElement;
@@ -129,7 +129,9 @@ export function createMusicView(ctx: Ctx) {
     if (lyr.synced && lyr.lines.length) {
       lyrList.replaceChildren(...lyr.lines.map((l, i) => {
         const words = l.text ? l.text.split(/(\s+)/).map((w) => (/\s+/.test(w) ? w : h("span", { class: "w" }, w))) : [h("span", { class: "mu-dots" }, "• • •")];
-        return h("p", { class: "mu-line", "data-i": String(i), title: `Přetočit na ${mmss(l.t)}`, onclick: () => seek(l.t) }, ...words);
+        const tr = lyr.tr?.[i];             // 3.12 the Czech translation, small under the line
+        return h("p", { class: "mu-line", "data-i": String(i), title: `Přetočit na ${mmss(l.t)}`, onclick: () => seek(l.t) }, ...words,
+          tr && l.text ? h("span", { class: "mu-tr" }, tr) : "");
       }));
     } else {
       lyrList.replaceChildren(h("div", { class: "mu-plain-note" }, "Text bez časování – nepohybuje se se zpěvem"),
@@ -227,7 +229,7 @@ export function createMusicView(ctx: Ctx) {
     },
     setLyrics(m: any) {
       lyr = { title: String(m?.title || ""), synced: !!m?.synced, lines: Array.isArray(m?.lines) ? m.lines : [], plain: String(m?.plain || ""),
-        reason: m?.reason ? String(m.reason) : "" };
+        reason: m?.reason ? String(m.reason) : "", tr: Array.isArray(m?.tr) ? m.tr.map(String) : [] };
       buildLyrics();
     },
     show(on: boolean) {

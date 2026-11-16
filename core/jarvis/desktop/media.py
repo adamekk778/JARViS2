@@ -251,6 +251,53 @@ def changed(prev: dict, snap: dict, tolerance: float = 0.35) -> bool:
 
 
 _COVER_ASKED: dict = {}               # song → when the cover was last looked up online
+_SPOT: dict = {"at": 0.0, "now": None, "covers": {}}
+
+
+def _same_song(a: str, b: str) -> bool:
+    import re as _re
+
+    n = lambda x: _re.sub(r"\W+", " ", (x or "").lower()).strip()   # noqa: E731
+    return bool(n(a)) and (n(a) == n(b) or n(a).startswith(n(b)) or n(b).startswith(n(a)))
+
+
+async def spotify_sync(snap: dict, transport=None) -> bool:
+    """3.12 Spotify is connected (Propojení): its own clock for the song – exact, also for a song that was already
+    playing – and its cover. Asked every 3 s at most; between, the position moves on by itself."""
+    from .. import connectors
+
+    if not connectors.configured("spotify"):
+        return False
+    from ..connectors import spotify
+
+    now = time.time()
+    if now - _SPOT["at"] > 3:
+        _SPOT["at"] = now
+        try:
+            _SPOT["now"] = await _within(spotify.current(transport), 4)
+        except Exception as e:  # noqa: BLE001 – Windows' own clock keeps working
+            log.debug("spotify: %s", e)
+            _SPOT["now"] = None
+    cur = _SPOT["now"]
+    if not cur or not _same_song(cur["title"], snap.get("title", "")):
+        return False
+    pos = cur["position"] + ((now - cur["at"]) if cur["playing"] else 0)
+    snap.update(position=round(min(pos, cur["duration"] or pos), 2), duration=round(cur["duration"], 2), at=now)
+    snap.pop("estimated", None)
+    if not snap.get("thumb") and cur.get("cover"):
+        url = cur["cover"]
+        if url not in _SPOT["covers"]:
+            try:
+                async with connectors.http(transport=transport, timeout=6) as c:
+                    r = await c.get(url)
+                if r.status_code == 200 and r.headers.get("content-type", "").startswith("image/"):
+                    import base64
+
+                    _SPOT["covers"] = {url: f"data:{r.headers['content-type'].split(';')[0]};base64,{base64.b64encode(r.content).decode()}"}
+            except Exception as e:  # noqa: BLE001
+                log.debug("spotify cover: %s", e)
+        snap["thumb"] = _SPOT["covers"].get(url) or None
+    return True
 
 
 def _want_cover(rt, snap: dict) -> None:
@@ -303,6 +350,8 @@ async def watch(rt, interval: float = 2.0) -> None:
                     front = {}
                 # a music app names itself; a browser tab is told by the window title ("… - YouTube - Google Chrome")
                 snap["source"] = nowplaying.source(snap.get("app", ""), front.get("title", ""), snap.get("title", ""))
+            if snap.get("source") == "spotify":
+                await spotify_sync(snap)          # 3.12 your Spotify account: the exact place in the song and the cover
             if snap.get("title") and not snap.get("thumb"):
                 _want_cover(rt, snap)
             new_song = (snap.get("title"), snap.get("artist")) != (prev.get("title"), prev.get("artist"))

@@ -4,7 +4,7 @@
 @property --cw { syntax: "<length>"; inherits: false; initial-value: 200px; }
 @property --ch { syntax: "<length>"; inherits: false; initial-value: 34px; }
 @property --r { syntax: "<length>"; inherits: false; initial-value: 18px; }
-.n-inner, .n-inner::after, .n-inner > .dy-face, .notch::before, .notch::after { --cw: inherit; --ch: inherit; --r: inherit; }
+.n-inner, .n-inner::after, .n-inner > .dy-face, .n-inner > .n-songprog, .n-inner > .n-lyr-tr, .notch::before, .notch::after { --cw: inherit; --ch: inherit; --r: inherit; }
 /* The notch is pure black on purpose: it melts into the top screen bezel like a hardware notch. */
 html.notch-doc, html.notch-doc body { background: transparent !important; overflow: hidden; user-select: none; }
 html.notch-doc.demo body { background: linear-gradient(180deg, #1d2836 0%, #3b4a5e 55%, #7d6a6a 80%, #2a2f3a 100%) !important; min-height: 100vh; }
@@ -717,3 +717,9 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
 .n-hab { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .85); }
 .n-hab.all { color: #fff; }
 .n-water { display: inline-grid; place-items: center; color: #4cc9f0; }
+
+/* 3.12 the Czech translation of the sung line, small under it */
+.n-lyr-tr { position: absolute; left: 60px; right: 58px; top: calc(var(--ch) - 21px); display: none; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; font: 500 11.5px/1.2 var(--font); color: rgb(255 255 255 / .55); pointer-events: none; }
+.notch.has-tr[data-island="lyrics"]:is([data-mode="closed"], [data-mode="hover"]) .n-lyr-tr { display: block; opacity: 1; }
+.notch.has-tr[data-island="lyrics"] .n-lyr { bottom: 16px; }

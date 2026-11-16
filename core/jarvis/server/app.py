@@ -184,13 +184,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(403, "Jen z tohoto počítače")
         return pairing_info(rt.cfg.phone.token, rt.cfg.phone.port)
 
-    @app.get("/api/oauth/google")
-    async def google_oauth(request: Request, code: str = "", state: str = "", error: str = ""):
-        """3.12 Propojení: Google sends the browser back here after you signed in (this PC only)."""
+    @app.get("/api/oauth/{cid}")
+    async def connector_oauth(cid: str, request: Request, code: str = "", state: str = "", error: str = ""):
+        """3.12 Propojení: Google / Spotify send the browser back here after you signed in (this PC only)."""
         if not is_local(request):
             raise HTTPException(403, "Jen z tohoto počítače")
+        if cid not in ("google", "spotify"):
+            raise HTTPException(404, "Neznámé propojení")
+        import importlib
+
         from .. import connectors
-        from ..connectors import google
+
+        mod = importlib.import_module(f"..connectors.{cid}", __package__)
 
         def done(title: str, text: str, ok: bool) -> HTMLResponse:
             colour = "#30d158" if ok else "#ff453a"
@@ -201,10 +206,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         if error or not code:
             return done("Přihlášení zrušeno", f"Google vrátil: {error or 'žádný kód'}.", False)
         try:
-            msg = await google.finish(code, state)
+            msg = await mod.finish(code, state)
         except Exception as e:  # noqa: BLE001
             return done("Nepovedlo se", connectors.friendly(e), False)
-        res = await connectors.test(rt, "google")
+        res = await connectors.test(rt, cid)
         rt.bus.publish("connectors", items=connectors.status())
         return done(msg, res.get("detail", ""), True)
 

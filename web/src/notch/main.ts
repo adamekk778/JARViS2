@@ -57,7 +57,7 @@ function setAlpha(on: boolean) {
 if (window.pywebview) document.documentElement.classList.add("native");
 
 let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6, monitor: 0, offset_x: 0,
-  open_on: "hover", tuck_minutes: 10, native_region_anim: false, tint: "song" };
+  open_on: "hover", tuck_minutes: 10, native_region_anim: false, tint: "song_wall" };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
 let moodInfo: { badge?: number; progress?: number | null; detail?: string; reaction?: any; secondary?: any; ambient?: any } = {};
@@ -112,7 +112,13 @@ const dyIcon = (ic: string, label: string, fn: () => void, cls = "") => h("butto
 // 3.12 today's habits one click away in the quick bar ("3/5" → the Návyky tab, where a tap ticks a habit)
 const dyHab = h("button", { class: "dyb-ic dyb-hab", type: "button", title: "Návyky na dnes", "aria-label": "Návyky na dnes",
   onclick: (e: Event) => { e.stopPropagation(); openPanel("habits"); } }, icon("heartbeat"), h("b"));
-const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, h("span", { class: "dyb-icons" }, dyHab,
+// 3.12 a song plays: back / play-pause / next right in the quick bar
+const dyPlay = h("button", { class: "dyb-ic dyb-play", type: "button", title: "Přehrát / pauza", "aria-label": "Přehrát / pauza",
+  onclick: (e: Event) => { e.stopPropagation(); client.send("quick_action", { action: "media_control", args: { action: "play_pause" } }); } }, icon("play", "ph-fill"));
+const dyMusic = h("span", { class: "dyb-music", hidden: true },
+  dyIcon("skip-back", "Předchozí", () => client.send("quick_action", { action: "media_control", args: { action: "previous" } })), dyPlay,
+  dyIcon("skip-forward", "Další", () => client.send("quick_action", { action: "media_control", args: { action: "next" } })));
+const dyBar = h("div", { class: "dy-bar" }, dyTime, dyState, dyMusic, h("span", { class: "dyb-icons" }, dyHab,
   dyIcon("chat-circle", "Chat", () => openPanel("chat")),
   dyIcon("microphone", "Mluvit (Ctrl+Alt+Mezerník)", () => client.send("push_to_talk"), "mic"),
   dyIcon("squares-four", "Akce", () => openPanel("quick"))));
@@ -120,6 +126,10 @@ const dyCtx = h("div", { class: "dy-ctx" });
 const DY_WORD: Record<string, string> = { idle: "Připraven", listening: "Poslouchám", thinking: "Přemýšlím", working: "Pracuji", speaking: "Mluvím",
   waiting: "Čekám na tebe", success: "Hotovo", error: "Chyba", offline: "Offline", sleeping: "Odpočívám", focus: "Soustředění" };
 function paintDyBar() {
+  const song = !!media?.title;
+  if (dyMusic.hidden === song) dyMusic.hidden = !song;
+  const pi = media?.playing ? "pause" : "play";
+  if (dyPlay.dataset.i !== pi) { dyPlay.dataset.i = pi; dyPlay.replaceChildren(icon(pi, "ph-fill")); }
   const t = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
   if (dyTime.textContent !== t) dyTime.textContent = t;
   const word = DY_WORD[coreMood] || "Připraven";
@@ -214,13 +224,17 @@ const subsEl = h("div", { class: "n-subs", "aria-live": "polite" });
 let subs: { on: boolean; lines: string[]; lang: string; at: number; source: string } = { on: false, lines: [], lang: "", at: 0, source: "" };
 // 3.12 song lyrics: the line being sung, filled and underlined as it is sung (karaoke), album art + the app's logo
 const lyrEl = h("div", { class: "n-lyr" });
-let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string; words?: { t: number; c: number; text: string }[] }[] } = { title: "", artist: "", synced: false, lines: [] };
+const lyrTr = h("div", { class: "n-lyr-tr", "aria-live": "off" });       // 3.12 the Czech translation of the sung line
+let lyr: { title: string; artist: string; synced: boolean; lines: { t: number; text: string; words?: { t: number; c: number; text: string }[] }[];
+  tr?: string[] } = { title: "", artist: "", synced: false, lines: [] };
 let lyrIdx = -2, lyrW = 0;
 // 3.12 the island's living eyes (dynamic look): blink, look around, follow the mouse, show the mood
 const face = createFace(() => document.documentElement.dataset.motion === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches);
 face.init();
 if (demo || demoMood) (window as any).__face = face;      // previews only
-const inner = h("div", { class: "n-inner" }, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
+// 3.12 a thin line under the song: how far it is (closed / hover island while music or lyrics show)
+const songProg = h("i", { class: "n-songprog", "aria-hidden": "true" });
+const inner = h("div", { class: "n-inner" }, songProg, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, lyrTr, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 /** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
 function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
@@ -274,7 +288,7 @@ function dynSize(m: Mode): [number, number] {
   const kind = shape.dataset.island || "";
   switch (m) {
     case "panel": return [780, 400];
-    case "bar": return shape.classList.contains("has-ctx") ? [500, 86] : [400, 44];
+    case "bar": { const extra = media?.title ? 120 : 0; return shape.classList.contains("has-ctx") ? [Math.max(500, 400 + extra), 86] : [400 + extra, 44]; }
     case "alert": return [420, 76];
     case "radial": return [340, 320];
     case "live": {
@@ -296,7 +310,8 @@ function subsSize(hover: boolean): [number, number] {
 }
 /** Lyrics: one wide line; the width follows the longest of this and the next two lines so it does not jump every line. */
 function lyrSize(hover: boolean): [number, number] {
-  return [Math.round(Math.min(760, Math.max(360, lyrW))), hover ? 46 : 44];
+  const tr = !!(lyr.tr && lyr.tr.length) ? 16 : 0;          // room for the small translation line
+  return [Math.round(Math.min(760, Math.max(360, lyrW))), (hover ? 46 : 44) + tr];
 }
 function dynRadius(m: Mode, hh: number): number {
   return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
@@ -1104,7 +1119,8 @@ function setKids(el: HTMLElement, kids: (Node | string)[]) {
 }
 client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; brainLeft = typeof m.left === "number" ? m.left : null; renderBrand(); updateActivity(); });
 client.on("lyrics", (m) => {
-  lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [] };
+  lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [],
+    tr: Array.isArray(m.tr) ? m.tr.map(String) : [] };
   lyrIdx = -2;
   updateActivity();
 });
@@ -1211,6 +1227,9 @@ function paintLyrics(_force = false) {
       window.setTimeout(() => old.el.remove(), 520);
     }
     lyrEl.append(lyrCur.el);
+    const tr = i >= 0 && cur.text ? (lyr.tr?.[i] || "") : "";
+    if (lyrTr.textContent !== tr) lyrTr.textContent = tr;
+    shape.classList.toggle("has-tr", !!(lyr.tr && lyr.tr.length));
     measureLyr(lyrCur);
     lyrFill = 0;
     const around = lyr.lines.slice(Math.max(0, i), i + 3).map((x) => x.text.length).concat(text.length);
@@ -1443,7 +1462,7 @@ function islandActivity(t: any) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
     l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")))];
-    r = src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+    r = mode === "hover" ? songCtl() : src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
     paintLyrics(true);
   } else if (sk("subs") && subs.on && !songApp()) {
     kind = "subs";
@@ -1505,7 +1524,7 @@ function islandActivity(t: any) {
     r = [h("span", { class: "n-focus-left" }, leftS >= 0 ? `${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, "0")}` : "Fokus")];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
-    if (dyn()) r = [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+    if (dyn()) r = mode === "hover" ? songCtl() : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
   } else if (upd?.available && upd.state !== "error") {
     // a new version waiting is the quietest news: it never covers a song, a subtitle or anything else going on
     kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, `Verze ${upd.latest}`)];
@@ -1535,9 +1554,27 @@ function islandActivity(t: any) {
   setKids(trail, r);
   setData(shape, "island", kind);
   paintTint(kind);
+  paintProg(kind);
   faceSync();
   // the next running thing (if any) in the small circle on the right
   paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);
+}
+// 3.12 over the island with the mouse: back / play-pause / next right there
+const mediaCtl = (action: string) => client.send("quick_action", { action: "media_control", args: { action } });
+function songCtl(): HTMLElement[] {
+  const b = (ic: string, label: string, action: string, cls = "") => h("button", { type: "button", class: `n-sc ${cls}`, title: label, "aria-label": label,
+    onclick: (e: Event) => { e.stopPropagation(); mediaCtl(action); } }, icon(ic, "ph-fill"));
+  return [h("span", { class: "n-songctl" }, b("skip-back", "Předchozí", "previous"), b(media?.playing ? "pause" : "play", "Přehrát / pauza", "play_pause", "main"),
+    b("skip-forward", "Další", "next"))];
+}
+function paintProg(kind: string) {
+  const dur = Number(media?.duration) || 0, pos = songPos();
+  const show = (kind === "music" || kind === "lyrics") && dur > 0 && pos >= 0 && (mode === "closed" || mode === "hover");
+  songProg.classList.toggle("on", show);
+  if (show) {
+    const v = Math.max(0, Math.min(1, pos / dur)).toFixed(3);
+    if (songProg.dataset.v !== v) { songProg.dataset.v = v; songProg.style.transform = `scaleX(${v})`; }
+  }
 }
 // 3.12 the island takes the colour of the song: the cover's strongest colour, made dark enough for white text
 const tints = new Map<string, string>();
@@ -1578,8 +1615,13 @@ function coverTint(src: string): Promise<string> {
     img.src = src;
   });
 }
+let wallThumb = "";
+client.on("wallpaper", (m: any) => { wallThumb = String(m?.thumb || ""); paintTint(shape.dataset.island || ""); });
+client.onStatus((st) => { if (st === "open") client.send("wallpaper_get"); });
+window.setInterval(() => client.send("wallpaper_get"), 10 * 60 * 1000);        // a new wallpaper (or a slideshow)
 function paintTint(kind: string) {
-  const want = cfg.tint !== "black" && (kind === "music" || kind === "lyrics") && media?.thumb ? String(media.thumb) : "";
+  const song = cfg.tint !== "black" && (kind === "music" || kind === "lyrics") && media?.thumb ? String(media.thumb) : "";
+  const want = song || (cfg.tint === "song_wall" && !kind && wallThumb && (mode === "closed" || mode === "hover" || mode === "bar") ? wallThumb : "");
   const show = (v: string) => {
     if (v === tintShown) return;
     tintShown = v;
@@ -1658,7 +1700,8 @@ client.on("welcome", (m) => {
   upd = m.update;
   paintUpdate();
   media = m.media || {};
-  if (m.lyrics?.lines) lyr = { title: String(m.lyrics.title || ""), artist: String(m.lyrics.artist || ""), synced: !!m.lyrics.synced, lines: m.lyrics.lines };
+  if (m.lyrics?.lines) lyr = { title: String(m.lyrics.title || ""), artist: String(m.lyrics.artist || ""), synced: !!m.lyrics.synced, lines: m.lyrics.lines,
+    tr: Array.isArray(m.lyrics.tr) ? m.lyrics.tr.map(String) : [] };
   timers = m.timers || [];
   pendingConfirm = m.pending_confirm || null;
   claudeSessions = m.claude_sessions || [];

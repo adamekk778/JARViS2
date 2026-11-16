@@ -91,3 +91,4 @@
 /* 3.12 a way out right where the text should be */
 .mu-go { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 16px; border: 0; border-radius: 999px;
   background: #fff; color: #000; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; pointer-events: auto; }
+.mu-line .mu-tr { display: block; margin-top: 2px; font-size: .62em; font-weight: 600; letter-spacing: 0; color: rgb(255 255 255 / .42); }

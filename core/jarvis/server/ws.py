@@ -52,7 +52,7 @@ CLIENT_TYPES = [
     "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "gym_plan_set", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
-    "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
+    "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
 SERVER_TYPES = [
@@ -73,7 +73,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -86,7 +86,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -1537,7 +1537,16 @@ class Connection:
             from .. import selfcheck
 
             await self.send("selfcheck", running=True, items=[])
-            await self.send("selfcheck", running=False, items=await selfcheck.run(rt, self._provider_test))
+            items = await selfcheck.run(rt, self._provider_test)
+            try:                                       # 3.12 for "Zkopírovat diagnostiku"
+                import json as _json
+
+                from .. import upkeep
+
+                upkeep._set(rt, "selfcheck_last", _json.dumps(items, ensure_ascii=False)[:20000])
+            except Exception:  # noqa: BLE001
+                pass
+            await self.send("selfcheck", running=False, items=items)
         elif t == "phone_net_get":            # 3.12 Settings → Telefon: will the phone get through (network, firewall)?
             from .. import selfcheck
 
@@ -1586,19 +1595,20 @@ class Connection:
                         r = await connectors.test(rt, cid)
                         msg = ("✓ " if r["ok"] else "") + r["detail"]
                     else:
-                        msg = "Uloženo – teď klikni „Přihlásit se Googlem“."
+                        msg = f"Uloženo – teď klikni „Přihlásit se {'Googlem' if cid == 'google' else 'Spotify'}“."
                 elif t == "connector_remove":
                     connectors.remove(cid)
                     msg = "Odpojeno – klíče jsou smazané z tohoto PC."
                 elif t == "connector_test":
                     r = await connectors.test(rt, cid)
                     msg = ("✓ " if r["ok"] else "") + r["detail"]
-                elif t == "connector_oauth" and cid == "google":
-                    from ..connectors import google
+                elif t == "connector_oauth" and cid in ("google", "spotify"):
+                    import importlib
 
-                    url = google.start(f"http://127.0.0.1:{rt.cfg.phone.port}/api/oauth/google")
+                    mod = importlib.import_module(f"..connectors.{cid}", __package__)
+                    url = mod.start(f"http://127.0.0.1:{rt.cfg.phone.port}/api/oauth/{cid}")
                     await asyncio.to_thread(rt.platform.open_url, url)
-                    msg = "V prohlížeči se otevřelo přihlášení Googlem – vyber svůj účet a povol přístup."
+                    msg = f"V prohlížeči se otevřelo přihlášení {'Googlem' if cid == 'google' else 'do Spotify'} – vyber svůj účet a povol přístup."
             except Exception as e:  # noqa: BLE001
                 msg = connectors.friendly(e) if not isinstance(e, ValueError) else str(e)
             await self.send("connectors", items=connectors.status(), id=cid, message=msg)
@@ -1784,6 +1794,23 @@ class Connection:
             from ..tools.skills import list_skills
 
             await self.send("skills", items=list_skills(rt.cfg.tools.approved_skills))
+        elif t == "wallpaper_get":                     # 3.12 the notch in the colour of the wallpaper (a 48 px thumbnail)
+            from .. import wallpaper
+
+            try:
+                th = await asyncio.to_thread(wallpaper.thumb)
+            except Exception:  # noqa: BLE001
+                th = ""
+            await self.send("wallpaper", thumb=th)
+        elif t == "diagnostics_summary":              # 3.12 one click: a text to paste when asking for help (no keys)
+            from .. import upkeep
+
+            text = await asyncio.to_thread(upkeep.summary, rt)
+            try:
+                await asyncio.to_thread(rt.platform.clipboard_set, text)      # into Windows' clipboard straight away
+            except Exception:  # noqa: BLE001
+                pass
+            await self.send("diagnostics_summary", text=text)
         elif t == "mcp_get":
             await self.send("mcp", items=rt.mcp.status() if rt.mcp else [])
         elif t in ("mcp_add", "mcp_remove"):          # 3.12 Propojení → Vlastní MCP (a remote server by its address)
@@ -1844,30 +1871,9 @@ class Connection:
         return {p.id: secrets.has(p.id) for p in self.rt.cfg.brain.providers}
 
     async def _provider_test(self, pid: str) -> dict:
-        from ..llm.router import Router
+        from .. import brainkey
 
-        brain = self.rt.cfg.brain.model_copy(deep=True)
-        brain.chain = [pid]
-        brain.providers = [p for p in brain.providers if p.id == pid]
-        if not brain.providers:
-            return {"id": pid, "ok": False, "message": "Poskytovatel nenalezen"}
-        r = Router(brain, secrets.get, self.rt.router.transport)
-        t0 = time.time()
-        try:
-            text = await asyncio.wait_for(r.complete([{"role": "user", "content": "Odpověz jen slovem: funguju"}]), 60)
-            out = {"id": pid, "ok": True, "message": text.strip()[:200] or "funguju", "ms": round((time.time() - t0) * 1000)}
-            found = r.resolved_models.get(pid)
-            if found:          # the saved model no longer exists there (e.g. Groq's Llama 3.3): keep the one that answered
-                provs = [p.model_dump() for p in self.rt.cfg.brain.providers]
-                for p in provs:
-                    if p["id"] == pid:
-                        p["model"] = found
-                self.rt.update_config({"brain": {"providers": provs}})
-                out["model"] = found
-                out["message"] = f"{out['message']} · model přepnut na {found}"
-            return out
-        except Exception as e:
-            return {"id": pid, "ok": False, "message": str(e)[:300]}
+        return await brainkey.provider_test(self.rt, pid)
 
     async def _share(self, m: dict) -> None:
         rt = self.rt

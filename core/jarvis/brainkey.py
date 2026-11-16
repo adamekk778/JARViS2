@@ -110,3 +110,35 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint:
         ok, msg = explain(str(r.get("message", "")))
         out.update(ok=ok, message=msg)
     return out
+
+
+async def provider_test(rt: Any, pid: str) -> dict:
+    """Ask one AI one short question (its own router: only that provider). A saved model that no longer exists there is
+    replaced by the one that answered."""
+    import asyncio
+    import time
+
+    from .llm.router import Router
+
+    brain = rt.cfg.brain.model_copy(deep=True)
+    brain.chain = [pid]
+    brain.providers = [p for p in brain.providers if p.id == pid]
+    if not brain.providers:
+        return {"id": pid, "ok": False, "message": "Poskytovatel nenalezen"}
+    r = Router(brain, secrets.get, rt.router.transport)
+    t0 = time.time()
+    try:
+        text = await asyncio.wait_for(r.complete([{"role": "user", "content": "Odpověz jen slovem: funguju"}]), 60)
+        out = {"id": pid, "ok": True, "message": text.strip()[:200] or "funguju", "ms": round((time.time() - t0) * 1000)}
+        found = r.resolved_models.get(pid)
+        if found:          # the saved model no longer exists there (e.g. Groq's Llama 3.3): keep the one that answered
+            provs = [p.model_dump() for p in rt.cfg.brain.providers]
+            for p in provs:
+                if p["id"] == pid:
+                    p["model"] = found
+            rt.update_config({"brain": {"providers": provs}})
+            out["model"] = found
+            out["message"] = f"{out['message']} · model přepnut na {found}"
+        return out
+    except Exception as e:  # noqa: BLE001
+        return {"id": pid, "ok": False, "message": str(e)[:300]}

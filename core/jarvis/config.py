@@ -130,9 +130,12 @@ class Notch(BaseModel):
     hide_in_fullscreen: bool = True
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
+    lyrics_translate: bool = True  # 3.12: a small Czech translation under a foreign line (the AI, once per song)
     habit_ring: bool = False       # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
     habit_ring_rev: int = 0        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
-    tint: Literal["song", "black"] = "song"   # 3.12: while music plays the island takes the colour of the song's cover
+    # 3.12: the island's colour – the song's cover while music plays, and with "song_wall" the wallpaper otherwise
+    tint: Literal["song_wall", "song", "black"] = "song_wall"
+    tint_rev: int = 0
     focus_guard: bool = True       # 3.12: while you focus, the notch blinks when YouTube, Netflix, TikTok… come to the front
     native_region_anim: bool = False   # 3.12: JARVIS animates the window outline itself (experimental, off: hung in CI)
     pinned: bool = False   # big panel stays open (also after restart)
@@ -581,6 +584,13 @@ class Config(BaseModel):
         # 3.12: the habits ring in the closed notch was on by default – off once; the idle notch shows the eyes again
         if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("habit_ring_rev", 0) or 0) < 1:
             data = {**data, "notch": {**data["notch"], "habit_ring": False, "habit_ring_rev": 1}}
+        # 3.12: the first notch colour setting was "song" only – the wallpaper joins it once (you can go back)
+        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("tint_rev", 0) or 0) < 1:
+            n = dict(data["notch"])
+            if n.get("tint", "song") == "song":
+                n["tint"] = "song_wall"
+            n["tint_rev"] = 1
+            data = {**data, "notch": n}
         # 3.12: Groq switched off its Llama, Qwen 3 32B and Kimi K2 models in 2026 – a saved one moves to the model Groq
         # names as their replacement (GPT-OSS 120B; the small fast one to GPT-OSS 20B). Other providers stay as they are.
         if isinstance(data, dict) and isinstance(data.get("brain"), dict) and isinstance(data["brain"].get("providers"), list):

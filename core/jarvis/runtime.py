@@ -216,6 +216,10 @@ class Runtime:
         from . import bizagents
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizagents.loop(self)))    # 3.12 Firemní agenti
+        from . import upkeep
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
         from . import selfcheck
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails

@@ -265,3 +265,22 @@ html[data-nstyle="dynamic"] .p-head .p-tabs button.active { padding: 0 14px; }
 .tile-head .aa-chip { width: 24px; height: 24px; }
 .tile-head .aa-chip .brand-logo, .tile-head .aa-chip .brand-logo svg { width: 13px; height: 13px; }
 .tile-head:has(.aa-chip) .ai-dot { margin-left: 8px; }
+
+/* 3.12 the song's progress: a thin line along the bottom of the island */
+.n-inner > .n-songprog { position: absolute; z-index: 3; left: calc((100% - var(--cw)) / 2 + 22px); width: calc(var(--cw) - 44px); top: calc(var(--ch) - 3px);
+  height: 2px; border-radius: 1px; background: rgb(255 255 255 / .55); transform-origin: left center; transform: scaleX(0); opacity: 0;
+  transition: opacity .3s ease, transform 1s linear; pointer-events: none; }
+.n-inner > .n-songprog.on { opacity: 1; }
+.n-inner > .n-songprog { position: absolute; }
+.notch:not([data-mode="closed"]):not([data-mode="hover"]) .n-inner > .n-songprog { opacity: 0; }
+/* 3.12 back / play / next on hover */
+.n-songctl { display: inline-flex; align-items: center; gap: 2px; pointer-events: auto; }
+.n-sc { width: 26px; height: 26px; border: 0; border-radius: 50%; display: grid; place-items: center; background: transparent; color: #fff;
+  font-size: 14px; cursor: pointer; padding: 0; }
+.n-sc:hover { background: rgb(255 255 255 / .14); }
+.n-sc.main { width: 30px; height: 30px; background: #fff; color: #000; font-size: 15px; }
+.n-sc.main:hover { background: #e9e9e9; }
+.dyb-music { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; padding: 0 6px; border-right: 1px solid rgb(255 255 255 / .1); }
+.dyb-music[hidden] { display: none; }
+.dyb-music .dyb-play { background: #fff; color: #000; }
+.dyb-music .dyb-play:hover { background: #e9e9e9; color: #000; }

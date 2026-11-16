@@ -56,11 +56,21 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
           } }, icon("shield-check"), "Opravit síť pro JARVIS") : null))));
   });
   const runCheck = () => client.send("selfcheck_run");
+  // 3.12 a summary to paste when asking for help – what works, the AIs and services; never a key or password
+  client.on("diagnostics_summary", async (m: any) => {
+    const text = String(m.text || "");
+    try { await navigator.clipboard.writeText(text); toast("Diagnostika je ve schránce – vlož ji (Ctrl+V) do zprávy.", "ok", 6000); }
+    catch {
+      const ta = h("textarea", { class: "diag-copy", readonly: true }, text) as HTMLTextAreaElement;
+      checks.prepend(ta); ta.select(); toast("Označeno – zkopíruj Ctrl+C.", "info");
+    }
+  });
 
   const tick = () => { client.send("diagnostics_get"); client.send("system_get", { gpu: true }); };
   const el = h("section", { class: "diag-view" },
     hero(HEROES.diagnostics, "Diagnostika", "Jak se daří JARVISovi a tvému počítači.", [
       h("button", { class: "btn primary", type: "button", onclick: () => ask("Proč je můj počítač pomalý? Použij performance_report.") }, icon("gauge"), "Proč je PC pomalý?"),
+      h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_summary") }, icon("copy"), "Zkopírovat diagnostiku"),
       h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_export") }, icon("file-zip"), "Exportovat")]),
     h("div", { class: "sc-head" }, h("p", { class: "group-label" }, "Kontrola funkcí"),
       h("button", { class: "btn primary", type: "button", onclick: runCheck }, icon("stethoscope"), "Zkontrolovat")), checks,

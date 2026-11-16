@@ -59,6 +59,8 @@ def test_a_plain_text_answer_is_a_readable_error():
 
 def test_habit_ring_off_once_and_song_tint_by_default():
     cfg = Config.model_validate({"notch": {"habit_ring": True}})
-    assert cfg.notch.habit_ring is False and cfg.notch.habit_ring_rev == 1 and cfg.notch.tint == "song"
+    assert cfg.notch.habit_ring is False and cfg.notch.habit_ring_rev == 1 and cfg.notch.tint == "song_wall"
+    assert Config.model_validate({"notch": {"tint": "song"}}).notch.tint == "song_wall"                    # the old default moves on once
+    assert Config.model_validate({"notch": {"tint": "song", "tint_rev": 1}}).notch.tint == "song"         # your later choice stays
     again = Config.model_validate({"notch": {"habit_ring": True, "habit_ring_rev": 1}})
     assert again.notch.habit_ring is True                       # switched on again by you: stays on
