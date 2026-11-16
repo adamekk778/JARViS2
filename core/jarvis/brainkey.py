@@ -72,8 +72,10 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint:
                  "vision_model": pr.get("vision_model", ""), "fast_model": pr.get("fast_model", ""), "enabled": True}
         provs.append(found)
     else:                                           # an old, broken setup of the same service: back to what works
-        found.update(base_url=pr["base_url"], enabled=True)
-        found["model"] = found.get("model") or pr.get("model", "")
+        # a key pasted again = a fresh start: the models JARVIS knows work today (an old saved one may be switched off)
+        found.update(base_url=pr["base_url"], enabled=True, model=pr.get("model", "") or found.get("model", ""),
+                     fast_model=pr.get("fast_model", "") or found.get("fast_model", ""),
+                     vision_model=pr.get("vision_model", "") or found.get("vision_model", ""))
     pid = found["id"]
     secrets.set(pid, key)
     if preset == "groq":

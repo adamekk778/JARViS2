@@ -65,7 +65,14 @@ class OpenAICompat:
                     ctype = r.headers.get("content-type", "")
                     if "text/event-stream" not in ctype:
                         # Some gateways ignore stream=true; accept a plain JSON body.
-                        data = json.loads(await r.aread())
+                        raw = await r.aread()
+                        try:
+                            data = json.loads(raw)
+                        except ValueError:
+                            raise ProviderError(f"HTTP {r.status_code}: nečekaná odpověď služby: "
+                                                f"{raw[:160].decode('utf-8', 'replace')}", status=502) from None
+                        if not isinstance(data, dict):
+                            raise ProviderError(f"HTTP {r.status_code}: nečekaná odpověď služby", status=502)
                         msg = (data.get("choices") or [{}])[0].get("message") or {}
                         if msg.get("tool_calls"):
                             asm.add([{**tc, "index": i} for i, tc in enumerate(msg["tool_calls"])])
@@ -116,11 +123,17 @@ _NOT_CHAT = ("whisper", "tts", "guard", "embed", "playai", "distil-whisper", "or
 _PREFERRED = ("openai/gpt-oss-120b", "gpt-oss-120b", "openai/gpt-oss-20b")
 
 
-def pick_model(models: list[str]) -> str:
+def pick_model(models: list[str], prefer_free: bool = False) -> str:
     """The best general model from a gateway's list: its automatic route if it has one, a known strong chat model,
-    else the first one that can chat."""
+    else the first one that can chat. `prefer_free`: the old model was a free one (OpenRouter) – stay free."""
     if not models:
         return ""
+    if prefer_free:
+        if "openrouter/free" in models:
+            return "openrouter/free"
+        free = [m for m in models if m.endswith(":free") and not any(w in m.lower() for w in _NOT_CHAT)]
+        if free:
+            return free[0]
     for want in ("auto", "auto/smart", "auto/best", "auto/best-free", "auto/free", "auto/fast"):
         if want in models:
             return want

@@ -245,7 +245,8 @@ class Router:
                         if e.is_unknown_model and not resolved and hasattr(prov, "list_models"):
                             # the configured model (e.g. "auto") does not exist there: ask the gateway what it has
                             resolved = True
-                            found = pick_model(await prov.list_models())
+                            found = pick_model(await prov.list_models(), prefer_free=str(model or prov.model).endswith(":free")
+                                               or str(model or prov.model) == "openrouter/free")
                             if found and found != (model or prov.model):
                                 log.info("%s: model %s unknown, using %s", pcfg.id, model or prov.model, found)
                                 self.resolved_models[pcfg.id] = prov.model = found

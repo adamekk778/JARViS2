@@ -19,6 +19,17 @@ GROQ_RETIRED = {"llama-3.3-70b-versatile": GROQ_BEST, "llama3-70b-8192": GROQ_BE
                 "meta-llama/llama-4-scout-17b-16e-instruct": GROQ_BEST, "meta-llama/llama-4-maverick-17b-128e-instruct": GROQ_BEST,
                 "deepseek-r1-distill-llama-70b": GROQ_BEST, "llama-3.1-8b-instant": GROQ_FAST, "llama3-8b-8192": GROQ_FAST,
                 "gemma2-9b-it": GROQ_FAST}
+# 3.12 other services switched models off too (Nov 2026): a saved dead model moves to one that exists – Gemini to its
+# "latest" names (they follow Google's newest Flash), OpenRouter to its router of free models, NVIDIA to GPT-OSS
+RETIRED = {
+    "gemini": {m: "gemini-flash-latest" for m in ("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-flash",
+                                                  "gemini-2.5-pro", "gemini-1.5-flash-latest", "gemini-pro")}
+              | {m: "gemini-flash-lite-latest" for m in ("gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite")},
+    "openrouter": {"meta-llama/llama-3.3-70b-instruct:free": "openrouter/free", "deepseek/deepseek-chat:free": "openrouter/free",
+                   "google/gemini-2.0-flash-exp:free": "openrouter/free", "meta-llama/llama-3.1-8b-instruct:free": "openrouter/free"},
+    "nvidia": {"meta/llama-3.3-70b-instruct": "openai/gpt-oss-20b", "meta/llama-3.1-70b-instruct": "openai/gpt-oss-20b",
+               "meta/llama-3.1-405b-instruct": "openai/gpt-oss-20b"},
+}
 
 
 class ProviderCfg(BaseModel):
@@ -575,6 +586,12 @@ class Config(BaseModel):
                     for key in ("model", "fast_model"):
                         if p.get(key) in GROQ_RETIRED:
                             p[key] = GROQ_RETIRED[p[key]]
+                            changed = True
+                elif isinstance(p, dict) and p.get("preset") in RETIRED:
+                    p = dict(p)
+                    for key in ("model", "fast_model", "vision_model"):
+                        if p.get(key) in RETIRED[p["preset"]]:
+                            p[key] = RETIRED[p["preset"]][p[key]]
                             changed = True
                 provs.append(p)
             if changed:

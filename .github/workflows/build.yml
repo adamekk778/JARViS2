@@ -105,6 +105,14 @@ jobs:
           $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome-sc"
           $env:JARVIS_NO_NET = "1"
           & dist\JARVIS\JARVIS-debug.exe --selfcheck 2>&1 | ForEach-Object { Write-Host "SELFCHECK $_" }
+      - name: Internet on real Windows (AI services, lyrics, covers, weather, updates – inside the packaged JARVIS.exe)
+        shell: pwsh
+        timeout-minutes: 5
+        continue-on-error: true
+        run: |
+          $env:JARVIS_HOME = "$env:RUNNER_TEMP\jhome-net"
+          & dist\JARVIS\JARVIS-debug.exe --netcheck 2>&1 | ForEach-Object { Write-Host "NETCHECK $_" }
+          if ($LASTEXITCODE -ne 0) { Write-Host "::warning::Internet check on Windows: something failed (see NETCHECK lines)"; exit 1 }
       - name: Smoke test windowed JARVIS.exe
         shell: pwsh
         run: |

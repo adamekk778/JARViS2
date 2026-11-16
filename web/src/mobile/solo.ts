@@ -17,11 +17,11 @@ const AI: Record<Pid, { name: string; base: string; model: string; url: string; 
     prefix: "gsk_", hint: "Velmi rychlá. Klíč gsk_…", ico: "lightning" },
   cerebras: { name: "Cerebras", base: "https://api.cerebras.ai/v1", model: "gpt-oss-120b", url: "https://cloud.cerebras.ai",
     prefix: "csk-", hint: "Nejrychlejší. Klíč csk-…", ico: "rocket-launch" },
-  gemini: { name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", url: "https://aistudio.google.com/apikey",
+  gemini: { name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-flash-latest", url: "https://aistudio.google.com/apikey",
     prefix: "AIza", hint: "Od Googlu. Klíč AIza…", ico: "sparkle" },
-  openrouter: { name: "OpenRouter", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", url: "https://openrouter.ai/keys",
+  openrouter: { name: "OpenRouter", base: "https://openrouter.ai/api/v1", model: "openrouter/free", url: "https://openrouter.ai/keys",
     prefix: "sk-or-", hint: "Modely zdarma. Klíč sk-or-…", ico: "shuffle" },
-  nvidia: { name: "NVIDIA", base: "https://integrate.api.nvidia.com/v1", model: "meta/llama-3.3-70b-instruct", url: "https://build.nvidia.com",
+  nvidia: { name: "NVIDIA", base: "https://integrate.api.nvidia.com/v1", model: "openai/gpt-oss-20b", url: "https://build.nvidia.com",
     prefix: "nvapi-", hint: "Velké modely. Klíč nvapi-…", ico: "cpu" },
   mistral: { name: "Mistral", base: "https://api.mistral.ai/v1", model: "mistral-medium-latest", url: "https://console.mistral.ai/api-keys",
     prefix: "", hint: "Hodně zdarma za měsíc.", ico: "wind" },
@@ -55,23 +55,56 @@ async function setKey(p: Pid, key: string) {
   else await NativeBiometric.deleteCredentials({ server: `jarvis.solo.${p}` }).catch(() => {});
 }
 
-/** one answer from the AI (no streaming: the native request avoids the browser's CORS limits) */
-async function ask(p: Pid, key: string, messages: { role: string; content: string }[]): Promise<string> {
-  const a = AI[p];
-  const url = `${a.base}/chat/completions`;
-  const body = { model: a.model, messages, temperature: 0.6, max_tokens: 1200 };
-  const headers = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
-  let status = 0, data: any = null;
+/** a request to the AI service (the native one avoids the browser's CORS limits) */
+async function call(url: string, method: "GET" | "POST", headers: Record<string, string>, body?: unknown): Promise<{ status: number; data: any }> {
   try {
     if (Capacitor.isNativePlatform()) {
-      const r = await CapacitorHttp.request({ url, method: "POST", headers, data: body, connectTimeout: 15000, readTimeout: 60000 });
-      status = r.status; data = typeof r.data === "string" ? JSON.parse(r.data || "{}") : r.data;
-    } else {
-      const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-      status = r.status; data = await r.json().catch(() => ({}));
+      const r = await CapacitorHttp.request({ url, method, headers, data: body, connectTimeout: 15000, readTimeout: 60000 });
+      let data: any = r.data;
+      if (typeof data === "string") { try { data = JSON.parse(data || "{}"); } catch { data = {}; } }
+      return { status: r.status, data };
     }
+    const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, data: await r.json().catch(() => ({})) };
   } catch {
     throw Object.assign(new Error("Nejde se spojit s internetem. Zkontroluj data nebo Wi-Fi."), { net: true });
+  }
+}
+
+// 3.12 services switch models off (NVIDIA's Llama, OpenRouter's free Llama in 2026): when the model is gone, the phone
+// asks the service which ones it has, takes the best and remembers it
+const MODELS = "jarvis.solo.models";
+const NOT_CHAT = /whisper|tts|guard|embed|safety|moderation|retriev|clip|detector|calibration|translate|starcoder|code/i;
+const modelOf = (p: Pid) => load<Record<string, string>>(MODELS, {})[p] || AI[p].model;
+function pickModel(ids: string[], free: boolean): string {
+  const chat = ids.filter((m) => !NOT_CHAT.test(m));
+  if (free) {
+    if (ids.includes("openrouter/free")) return "openrouter/free";
+    const f = chat.find((m) => m.endsWith(":free"));
+    if (f) return f;
+  }
+  for (const want of ["openai/gpt-oss-120b", "gpt-oss-120b", "gemini-flash-latest", "openai/gpt-oss-20b", "gpt-oss-20b"]) if (ids.includes(want)) return want;
+  return chat.find((m) => /gemini.*flash|mistral-(medium|large)|llama|qwen|deepseek|nemotron|gemma/i.test(m)) || chat[0] || "";
+}
+const goneModel = (status: number, data: any) => [400, 404, 410, 422].includes(status)
+  && /model/i.test(JSON.stringify(data || {})) && /not found|unknown|does not exist|no longer|end of life|retired|deprecated|decommission|invalid|gone|not available/i.test(JSON.stringify(data || {}));
+
+/** one answer from the AI (no streaming) */
+async function ask(p: Pid, key: string, messages: { role: string; content: string }[]): Promise<string> {
+  const a = AI[p];
+  const headers = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  let model = modelOf(p);
+  let { status, data } = await call(`${a.base}/chat/completions`, "POST", headers, { model, messages, temperature: 0.6, max_tokens: 1200 });
+  if (goneModel(status, data)) {
+    const list = await call(`${a.base}/models`, "GET", headers).catch(() => ({ status: 0, data: null }));
+    const ids: string[] = (Array.isArray(list.data?.data) ? list.data.data : Array.isArray(list.data) ? list.data : [])
+      .map((m: any) => String(m?.id || "").replace(/^models\//, "")).filter(Boolean);
+    const next = pickModel(ids, model.endsWith(":free") || model === "openrouter/free");
+    if (next && next !== model) {
+      model = next;
+      save(MODELS, { ...load<Record<string, string>>(MODELS, {}), [p]: next });
+      ({ status, data } = await call(`${a.base}/chat/completions`, "POST", headers, { model, messages, temperature: 0.6, max_tokens: 1200 }));
+    }
   }
   if (status === 401 || status === 403) throw new Error(`${a.name} klíč odmítl – zkopíruj ho znovu celý${a.prefix ? ` (začíná ${a.prefix})` : ""}.`);
   if (status === 429) throw Object.assign(new Error(`${a.name}: vyčerpaný bezplatný limit – zkus to za chvíli.`), { limit: true });

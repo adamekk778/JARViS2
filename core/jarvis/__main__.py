@@ -170,6 +170,10 @@ def main(argv: list[str] | None = None) -> int:
         r = subprocess.run(["powershell", "-NoProfile", "-EncodedCommand", enc], capture_output=True, timeout=120,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return r.returncode
+    if argv[:1] == ["--netcheck"]:  # CI: every internet connection on real Windows (AI, lyrics, covers, weather, updates)
+        from . import netcheck_ci
+
+        return netcheck_ci.main()
     if argv[:1] == ["--selfcheck"]:  # CI / support: Kontrola funkcí without the window, printed as JSON lines
         import asyncio as _aio
         import json

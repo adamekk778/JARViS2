@@ -14,7 +14,7 @@ const BRAINS: Brain[] = [
   { id: "gemini", name: "Google Gemini", tag: "Umí i obrázky", lines: ["Zdarma s Google účtem", "Rozumí fotkám a screenshotům", "Model Gemini 2.5 Flash"],
     url: "https://aistudio.google.com/apikey", host: "aistudio.google.com/apikey", prefix: "AIza",
     steps: ["Přihlas se Google účtem", "Klikni na „Create API key“", "Klikni na ikonku kopírování u klíče a vlož ho sem"],
-    base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
+    base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-flash-latest" },
   { id: "cerebras", name: "Cerebras", tag: "Nejrychlejší", lines: ["Zdarma, bez platební karty", "Odpovídá skoro okamžitě", "Model GPT-OSS 120B"],
     url: "https://cloud.cerebras.ai", host: "cloud.cerebras.ai", prefix: "csk-",
     steps: ["Přihlas se (stačí Google účet)", "Vlevo klikni na „API Keys“ a vytvoř klíč", "Zkopíruj klíč (začíná csk-)"],
