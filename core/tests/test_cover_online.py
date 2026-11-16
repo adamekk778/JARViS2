@@ -123,3 +123,26 @@ def test_lyrics_found_by_the_main_artist_when_spotify_names_them_all():
     assert r["synced"] and len(r["lines"]) == 2
     assert asked[1]["artist_name"] == "The Kid LAROI, Ty Dolla $ign" and asked[2]["artist_name"] == "The Kid LAROI"
     assert nowplaying.main_artist("Calvin Harris feat. Rihanna") == "Calvin Harris"
+
+
+def test_cover_found_by_the_main_artist():
+    import asyncio
+
+    import httpx
+
+    from jarvis import nowplaying
+
+    def handler(req: httpx.Request):
+        if "deezer" in req.url.host:
+            q = req.url.params.get("q", "")
+            if 'artist:"The Kid LAROI"' in q:
+                return httpx.Response(200, json={"data": [{"title": "NIGHTS LIKE THIS", "artist": {"name": "The Kid LAROI"},
+                                                           "album": {"cover_xl": "https://img.example/c.jpg"}}]})
+            return httpx.Response(200, json={"data": []})
+        if "itunes" in req.url.host:
+            return httpx.Response(200, json={"results": []})
+        return httpx.Response(200, content=b"\xff\xd8jpg", headers={"content-type": "image/jpeg"})
+
+    nowplaying._COVERS.clear()
+    url = asyncio.run(nowplaying.find_cover("NIGHTS LIKE THIS", "The Kid LAROI, Ty Dolla $ign", transport=httpx.MockTransport(handler)))
+    assert url.startswith("data:image/jpeg;base64,")

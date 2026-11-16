@@ -191,7 +191,7 @@ def _timeline(s, playing: bool, key: tuple = ()) -> dict:
         dur = (tl.end_time - tl.start_time).total_seconds()
         upd = tl.last_updated_time
         if dur <= 0:
-            return {}
+            return _estimate(key, playing)
         upd_ok = bool(upd) and upd.year > 2000
         now = time.time()
         c = _CLOCK.get(key)
@@ -208,7 +208,24 @@ def _timeline(s, playing: bool, key: tuple = ()) -> dict:
         pos = c["anchor"] + (now - c["t"] if c["playing"] else 0.0)
         return {"position": round(min(max(pos, 0.0), dur), 2), "duration": round(dur, 2), "at": now}
     except Exception:
-        return {}
+        return _estimate(key, playing)
+
+
+_EST: dict = {}
+
+
+def _estimate(key: tuple, playing: bool) -> dict:
+    """3.12 the player tells Windows the song but not where in it it is (no timeline): JARVIS counts from the moment
+    the song started (pauses stop the count) – the lyrics follow it, and "Text pozadu / napřed" fixes any offset."""
+    now = time.time()
+    c = _EST.get(key)
+    if c is None:
+        _EST.clear()
+        c = _EST[key] = {"pos": 0.0, "t": now, "playing": playing}
+    if c["playing"]:
+        c["pos"] += now - c["t"]
+    c["t"], c["playing"] = now, playing
+    return {"position": round(c["pos"], 2), "at": now, "estimated": True}
 
 
 async def seek(seconds: float) -> bool:

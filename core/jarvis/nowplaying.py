@@ -262,21 +262,27 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
         return ""
     url, answered = "", False
     async with _client(transport, follow_redirects=True) as c:
-        try:
-            r = await c.get(DEEZER, params={"q": f'artist:"{singer}" track:"{song}"' if singer else song, "limit": 10})
-            answered = True
-            for x in (r.json() or {}).get("data", []) if r.status_code == 200 else []:
-                if _fits(song, singer, x.get("title_short") or x.get("title", ""), (x.get("artist") or {}).get("name", "")):
-                    url = (x.get("album") or {}).get("cover_xl") or (x.get("album") or {}).get("cover_big") or ""
-                    if url:
-                        break
-        except Exception as e:  # noqa: BLE001
-            log.debug("cover deezer: %s", e)
-            NET["cover"] = f"Deezer: {type(e).__name__}: {e}"[:200]
-        if not url:
+        # Spotify names every artist ("The Kid LAROI, Ty Dolla $ign"); the catalogues know the main one
+        main = main_artist(singer)
+        for who in dict.fromkeys(x for x in (singer, main) if x is not None):
+            if url:
+                break
+            try:
+                r = await c.get(DEEZER, params={"q": f'artist:"{who}" track:"{song}"' if who else song, "limit": 10})
+                answered = True
+                for x in (r.json() or {}).get("data", []) if r.status_code == 200 else []:
+                    if _fits(song, singer, x.get("title_short") or x.get("title", ""), (x.get("artist") or {}).get("name", "")):
+                        url = (x.get("album") or {}).get("cover_xl") or (x.get("album") or {}).get("cover_big") or ""
+                        if url:
+                            break
+            except Exception as e:  # noqa: BLE001
+                log.debug("cover deezer: %s", e)
+                NET["cover"] = f"Deezer: {type(e).__name__}: {e}"[:200]
+            if url:
+                break
             for country in ("CZ", "US"):
                 try:
-                    r = await c.get(ITUNES, params={"term": f"{singer} {song}".strip(), "entity": "song", "limit": 10, "country": country})
+                    r = await c.get(ITUNES, params={"term": f"{who} {song}".strip(), "entity": "song", "limit": 10, "country": country})
                     answered = True
                     for x in (r.json() or {}).get("results", []) if r.status_code == 200 else []:
                         if _fits(song, singer, x.get("trackName", ""), x.get("artistName", "")) and x.get("artworkUrl100"):
