@@ -22,6 +22,14 @@ def pcm_to_wav(pcm: bytes, sr: int) -> bytes:
     return buf.getvalue()
 
 
+
+def _tls():
+    """The certificates Windows trusts – Groq's speech recognition goes out the same way as the AI (an antivirus that
+    checks HTTPS does not stop it)."""
+    from .. import tlsctx
+
+    return tlsctx.context()
+
 class Transcriber:
     def __init__(self, cfg_voice, groq_base: str = "https://api.groq.com/openai/v1"):
         self.cfg = cfg_voice
@@ -171,7 +179,7 @@ class Transcriber:
             data["language"] = lang
         if prompt:
             data["prompt"] = prompt[:800]
-        r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+        r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"}, verify=_tls(),
                        files={"file": (filename, wav)}, data=data, timeout=60)
         r.raise_for_status()
         text = r.json().get("text", "").strip()
@@ -233,7 +241,7 @@ class Transcriber:
         if self._language():
             data["language"] = self._language()
         with open(path, "rb") as f:
-            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"}, verify=_tls(),
                            files={"file": ("audio.wav", f.read())}, data=data, timeout=600)
         r.raise_for_status()
         return [(float(s["start"]), float(s["end"]), s["text"].strip()) for s in r.json().get("segments", []) if s.get("text", "").strip()]
@@ -262,7 +270,7 @@ class Transcriber:
         if language or self._language():
             data["language"] = language or self._language()
         with open(path, "rb") as f:
-            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+            r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"}, verify=_tls(),
                            files={"file": ("audio.wav", f.read())}, data=data, timeout=120)
         r.raise_for_status()
         return [{"word": w["word"].strip(), "start": float(w["start"]), "end": float(w["end"]), "p": None} for w in r.json().get("words", [])]
