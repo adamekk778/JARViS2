@@ -594,11 +594,20 @@ function phoneCard(c: JarvisClient): HTMLElement {
     h("div", { class: `row m-step ${ok ? "ok" : ""}` }, icon(ok ? "check-circle" : "circle", ok ? "ph-fill" : ""),
       h("div", { class: "row-text" }, h("strong", {}, title), h("span", {}, desc)),
       ok ? null : h("button", { class: "btn sm", type: "button", onclick: fn }, action));
-  const render = (st: PhoneStatus) => box.replaceChildren(
+  // 3.12 what to tap on the app's page (Android 15, e.g. Nothing Phone): shown as a long notice while the page is open
+const unlockHelp = () => toast("Na stránce JARVIS: Oprávnění → zapni Telefon, SMS a Kontakty. U „odepřen přístup“: vpravo nahoře ⋮ → "
+  + "Povolit omezená nastavení. Pak se vrať do JARVISe.", "info", 12000);
+const render = (st: PhoneStatus) => box.replaceChildren(
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Spojení na pozadí"),
       h("span", {}, st.running ? "Běží – JARVIS ti může zavolat i se zavřenou aplikací." : "Vypnuto – JARVIS tě zastihne, jen když máš aplikaci otevřenou.")),
       sw(st.enabled, async (v) => { localStorage.setItem("jarvis.link", v ? "1" : "0"); render(await native.phone.configure({ enabled: v })); }, "Spojení na pozadí")),
-    step(st.phone, "Volání, SMS a kontakty", "„Zavolej mámě“, „pošli SMS…“", "Povolit", async () => render(await native.phone.requestPhone())),
+    step(st.phone, "Volání, SMS a kontakty", "„Zavolej mámě“, „pošli SMS…“", "Povolit", async () => {
+      const after = await native.phone.requestPhone();
+      render(after);
+      // 3.12 Android no longer shows its question once you said no (or blocks it for an app from a file): the app's own
+      // page opens, where it is switched on by hand in Oprávnění
+      if (!after.phone) { native.phone.openAppDetails(); unlockHelp(); }
+    }),
     step(st.fullScreen, "Zvonění přes zamčenou obrazovku", "Aby JARVISův hovor zazvonil jako opravdový.", "Nastavit", () => native.phone.openFullScreen()),
     step(st.overlay, "Volat a ukázat hovor hned", "„Zobrazovat přes jiné aplikace“ – JARVIS vytočí číslo bez klepnutí.", "Povolit", () => native.phone.openOverlay()),
     step(st.battery, "Bez uspávání baterií", "Jinak Android spojení v noci uspí.", "Povolit", () => native.phone.openBattery()),
@@ -611,9 +620,10 @@ function phoneCard(c: JarvisClient): HTMLElement {
     // allow it yourself on the app's page: ⋮ → Povolit omezená nastavení
     st.notifAccess ? "" : h("div", { class: "row m-unlock" }, h("div", { class: "row-text" },
       h("strong", {}, "Píše „Aplikaci byl odepřen přístup“?"),
-      h("span", {}, "Android to u aplikací instalovaných ze souboru blokuje. Klepni na Odemknout → vpravo nahoře ⋮ (tři tečky) → "
-        + "„Povolit omezená nastavení“ → potvrď. Pak se vrať a klepni znovu na Povolit.")),
-      h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openAppDetails() }, "Odemknout")),
+      h("span", {}, "Android to u aplikací instalovaných ze souboru blokuje. 1) Klepni nejdřív na Povolit (ať Android jednou napíše "
+        + "„odepřen přístup“). 2) Klepni na Odemknout – otevře se stránka JARVIS. 3) Vpravo nahoře ⋮ (tři tečky) → „Povolit omezená "
+        + "nastavení“ → potvrď. 4) Vrať se a klepni znovu na Povolit.")),
+      h("button", { class: "btn sm", type: "button", onclick: () => { native.phone.openAppDetails(); unlockHelp(); } }, "Odemknout")),
     // 3.12 AirDrop-like: knock the phone twice against the monitor (anywhere, also in the gallery) → the newest photo goes
     h("div", { class: "row m-tapdrop" }, h("div", { class: "row-text" }, h("strong", {}, "Ťuk ťuk o monitor → fotka na PC"),
       h("span", {}, st.tapdrop ? (st.photos ? "Zapnuto. Kdekoli (i v galerii) dvakrát ťukni telefonem o monitor a nejnovější fotka nebo screenshot přeskočí na PC."
