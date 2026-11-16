@@ -311,6 +311,13 @@ public class JarvisPhonePlugin extends Plugin {
         status(call);
     }
 
+    /** 3.12 the app's own page in Android's settings: there "⋮ → Povolit omezená nastavení" unlocks the access to
+     *  notifications for an app installed from a file (Android 13+ blocks it until you allow it yourself). */
+    @PluginMethod
+    public void openAppDetails(PluginCall call) {
+        open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())), call);
+    }
+
     @PluginMethod
     public void openNotificationAccess(PluginCall call) {
         open(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), call);

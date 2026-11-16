@@ -55,3 +55,10 @@ def test_a_plain_text_answer_is_a_readable_error():
         raise AssertionError("no error")
     except ProviderError as e:
         assert "nečekaná odpověď" in str(e)
+
+
+def test_habit_ring_off_once_and_song_tint_by_default():
+    cfg = Config.model_validate({"notch": {"habit_ring": True}})
+    assert cfg.notch.habit_ring is False and cfg.notch.habit_ring_rev == 1 and cfg.notch.tint == "song"
+    again = Config.model_validate({"notch": {"habit_ring": True, "habit_ring_rev": 1}})
+    assert again.notch.habit_ring is True                       # switched on again by you: stays on

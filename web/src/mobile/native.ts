@@ -47,6 +47,7 @@ export const native = {
     status: (): Promise<PhoneStatus> => JarvisPhone.status(),
     requestPhone: (): Promise<PhoneStatus> => JarvisPhone.requestPhone(),
     openNotificationAccess: () => JarvisPhone.openNotificationAccess(),
+    openAppDetails: () => JarvisPhone.openAppDetails(),
     openFullScreen: () => JarvisPhone.openFullScreen(),
     openBattery: () => JarvisPhone.openBattery(),
     openOverlay: () => JarvisPhone.openOverlay(),

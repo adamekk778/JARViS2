@@ -607,6 +607,13 @@ function phoneCard(c: JarvisClient): HTMLElement {
         : "Vyžaduje povolit „Přístup k oznámením“ pro JARVIS.")),
       st.notifAccess ? sw(st.mirror, async (v) => render(await native.phone.configure({ mirror: v })), "Zprávy z telefonu na PC")
         : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openNotificationAccess() }, "Povolit")),
+    // 3.12 Android 13+ blocks this access for an app installed from a file ("Aplikaci byl odepřen přístup") until you
+    // allow it yourself on the app's page: ⋮ → Povolit omezená nastavení
+    st.notifAccess ? "" : h("div", { class: "row m-unlock" }, h("div", { class: "row-text" },
+      h("strong", {}, "Píše „Aplikaci byl odepřen přístup“?"),
+      h("span", {}, "Android to u aplikací instalovaných ze souboru blokuje. Klepni na Odemknout → vpravo nahoře ⋮ (tři tečky) → "
+        + "„Povolit omezená nastavení“ → potvrď. Pak se vrať a klepni znovu na Povolit.")),
+      h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openAppDetails() }, "Odemknout")),
     // 3.12 AirDrop-like: knock the phone twice against the monitor (anywhere, also in the gallery) → the newest photo goes
     h("div", { class: "row m-tapdrop" }, h("div", { class: "row-text" }, h("strong", {}, "Ťuk ťuk o monitor → fotka na PC"),
       h("span", {}, st.tapdrop ? (st.photos ? "Zapnuto. Kdekoli (i v galerii) dvakrát ťukni telefonem o monitor a nejnovější fotka nebo screenshot přeskočí na PC."

@@ -402,6 +402,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
           select("notch.style", "Vzhled notche", [["dynamic", "Dynamic Island – jako iPhone"], ["island", "Ostrov – svítící oči"], ["mochi", "Mochi – celá postavička"]],
             "Ostrov ukazuje vlevo a vpravo, co se děje (hudba, časovač, Claude Code), a po otevření tři velké karty."),
+          select("notch.tint", "Barva notche při hudbě", [["song", "Podle písničky (barva obalu)"], ["black", "Vždy černá"]],
+            "Když hraje hudba, ostrůvek se zbarví podle obalu alba – tmavě, aby text zůstal čitelný."),
           select("notch.edges", "Okraje notche", [["smooth", "Hladké (bez zubů)"], ["hard", "Ostré (záloha)"]],
             "Hladké okraje jsou bez viditelných pixelů. Kdyby se kolem notche objevil bílý nebo šedý lem, přepni na Ostré. Projeví se po restartu JARVISe."),
           select("notch.open_on", "Otevírání", [["hover", "Najetím myší"], ["click", "Jen kliknutím"]],

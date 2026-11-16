@@ -57,7 +57,7 @@ function setAlpha(on: boolean) {
 if (window.pywebview) document.documentElement.classList.add("native");
 
 let cfg = { width: 200, height: 34, expanded_width: 1000, expanded_height: 410, open_delay_ms: 150, close_delay_ms: 400, linger_s: 6, monitor: 0, offset_x: 0,
-  open_on: "hover", tuck_minutes: 10, native_region_anim: false };
+  open_on: "hover", tuck_minutes: 10, native_region_anim: false, tint: "song" };
 let mode: Mode = "closed";
 let coreMood: Mood = "idle";
 let moodInfo: { badge?: number; progress?: number | null; detail?: string; reaction?: any; secondary?: any; ambient?: any } = {};
@@ -86,7 +86,7 @@ const weatherText = h("span");
 const barTop = h("div", { class: "bar-top" }, clock, weatherText);
 // 3.12 today's habits for the closed island (the lowest priority: only when nothing else is shown)
 let habitDay: { done: number; due: number } | null = null;
-let cfgHabitRing = true;
+let cfgHabitRing = false;
 // 3.12 voda během dne: every 2 hours (9–21) the island asks for a glass for 40 s – a click adds one
 let water: { id: number; value: number; target: number } | null = null;
 let waterUntil = 0;
@@ -244,7 +244,7 @@ function takeNotchSettings(n: any) {
   if (!n) return;
   cfg = { ...cfg, ...n };
   cfgLyrics = n.lyrics !== false;
-  cfgHabitRing = n.habit_ring !== false;
+  cfgHabitRing = n.habit_ring === true;
   if (!(cfg.expanded_width >= 760)) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
 }
 function windowSize(): [number, number] {
@@ -1534,9 +1534,66 @@ function islandActivity(t: any) {
   setKids(lead, l);
   setKids(trail, r);
   setData(shape, "island", kind);
+  paintTint(kind);
   faceSync();
   // the next running thing (if any) in the small circle on the right
   paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);
+}
+// 3.12 the island takes the colour of the song: the cover's strongest colour, made dark enough for white text
+const tints = new Map<string, string>();
+let tintFor = "", tintShown = "";
+function coverTint(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = c.height = 24;
+        const g = c.getContext("2d", { willReadFrequently: true });
+        if (!g) return resolve("");
+        g.drawImage(img, 0, 0, 24, 24);
+        const d = g.getImageData(0, 0, 24, 24).data;
+        let r = 0, gg = 0, b = 0, w = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+          const weight = 0.15 + (mx - mn) / 255 * (mx > 30 ? 1 : 0.2);      // colourful pixels count more than grey ones
+          r += d[i] * weight; gg += d[i + 1] * weight; b += d[i + 2] * weight; w += weight;
+        }
+        if (!w) return resolve("");
+        r /= w; gg /= w; b /= w;
+        // to HSL, then a dark, still clearly coloured shade (lightness ~18 %, saturation kept up to 70 %)
+        const R = r / 255, G = gg / 255, B = b / 255, mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+        let hh = 0, ss = 0;
+        const ll = (mx + mn) / 2;
+        if (mx !== mn) {
+          const dd = mx - mn;
+          ss = ll > 0.5 ? dd / (2 - mx - mn) : dd / (mx + mn);
+          hh = mx === R ? (G - B) / dd + (G < B ? 6 : 0) : mx === G ? (B - R) / dd + 2 : (R - G) / dd + 4;
+          hh *= 60;
+        }
+        resolve(`hsl(${Math.round(hh)} ${Math.round(Math.min(0.7, ss * 1.15) * 100)}% 17%)`);
+      } catch { resolve(""); }
+    };
+    img.onerror = () => resolve("");
+    img.src = src;
+  });
+}
+function paintTint(kind: string) {
+  const want = cfg.tint !== "black" && (kind === "music" || kind === "lyrics") && media?.thumb ? String(media.thumb) : "";
+  const show = (v: string) => {
+    if (v === tintShown) return;
+    tintShown = v;
+    if (v) shape.style.setProperty("--dy-ink", v); else shape.style.removeProperty("--dy-ink");
+  };
+  if (!want) { tintFor = ""; show(""); return; }
+  if (tints.has(want)) { show(tints.get(want) || ""); return; }
+  if (tintFor === want) return;
+  tintFor = want;
+  coverTint(want).then((v) => {
+    if (tints.size > 30) tints.clear();
+    tints.set(want, v);
+    if (tintFor === want) show(v);
+  });
 }
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
