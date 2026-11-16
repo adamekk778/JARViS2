@@ -314,9 +314,32 @@ async def find_cover(title: str, artist: str, transport=None) -> str:
     return data
 
 
+def refresh(rt) -> None:
+    """3.12 "Jen offline" was switched off (or the lyrics on): the song playing now gets its lyrics and cover at once,
+    not only from the next song."""
+    snap = dict(getattr(rt, "media_state", {}) or {})
+    if not snap.get("title"):
+        return
+    try:
+        from .desktop import media as _media
+
+        _media._COVER_ASKED.clear()
+    except Exception:  # noqa: BLE001
+        pass
+    from .background import bg
+
+    bg(publish_lyrics(rt, snap))
+
+
 async def publish_lyrics(rt, snap: dict) -> None:
     """New song playing → look its lyrics up and send them to the notch (once per song)."""
-    if not getattr(rt.cfg.notch, "lyrics", True) or rt.cfg.brain.offline_only:
+    if not getattr(rt.cfg.notch, "lyrics", True):
+        return
+    if rt.cfg.brain.offline_only:           # nothing goes to the internet – and the music tab says so (with a way out)
+        if snap.get("title"):
+            rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": False, "lines": [],
+                               "plain": "", "reason": "offline"}
+            rt.bus.publish("lyrics", **rt.lyrics_state)
         return
     src = snap.get("source", "")
     if not snap.get("title") or not (is_music(src) or snap.get("artist")):
@@ -335,5 +358,6 @@ async def publish_lyrics(rt, snap: dict) -> None:
     if (rt.media_state or {}).get("title") != snap.get("title"):
         return                                   # the song changed meanwhile
     rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": res["synced"],
-                       "lines": res["lines"][:400], "plain": "" if res["synced"] else (res.get("plain") or "")[:6000]}
+                       "lines": res["lines"][:400], "plain": "" if res["synced"] else (res.get("plain") or "")[:6000],
+                       "reason": str(res.get("error") or "")[:160]}
     rt.bus.publish("lyrics", **rt.lyrics_state)

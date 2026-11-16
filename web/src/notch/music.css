@@ -87,3 +87,7 @@
   font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, .85); background: rgba(255, 255, 255, .08); }
 .mu-sync button:hover { background: rgba(255, 255, 255, .18); }
 .mu-sync .mu-sync-v { background: transparent; color: #7ff0c8; min-width: 54px; justify-content: center; }
+
+/* 3.12 a way out right where the text should be */
+.mu-go { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 16px; border: 0; border-radius: 999px;
+  background: #fff; color: #000; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; pointer-events: auto; }

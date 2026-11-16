@@ -88,11 +88,22 @@ async def apply(rt: Any, key: str, test: Callable[[str], Awaitable[dict]], hint:
     local = {p["id"] for p in provs if PRESETS.get(p.get("preset", ""), {}).get("local")}
     chain = ([pid] + [c for c in rest if c != "omniroute" and c not in local]        # your keys first, then the gateway,
              + [c for c in rest if c == "omniroute"] + [c for c in rest if c in local])   # the AI on this PC always last
-    rt.update_config({"brain": {"providers": provs, "chain": chain}})
+    # a key for an AI on the internet = you want that AI: "Jen offline" (which hides every cloud AI and also stops song
+    # lyrics and covers) is switched off, and you are told so
+    was_offline = bool(rt.cfg.brain.offline_only)
+    rt.update_config({"brain": {"providers": provs, "chain": chain, "offline_only": False}})
+    if was_offline:
+        try:
+            from . import nowplaying
+
+            nowplaying.refresh(rt)                 # the song playing now gets its lyrics and cover straight away
+        except Exception:  # noqa: BLE001
+            pass
     r = await test(pid)
     out = {"ok": bool(r.get("ok")), "provider": pid, "label": LABEL.get(preset, preset), "ms": r.get("ms")}
     if r.get("ok"):
-        out["message"] = f"Hotovo – mozek je {out['label']} a funguje ({r.get('ms', 0)} ms)."
+        out["message"] = f"Hotovo – mozek je {out['label']} a funguje ({r.get('ms', 0)} ms)." + (
+            " Režim „Jen offline“ jsem vypnul (s ním by se AI z internetu ani texty písní nepoužily)." if was_offline else "")
     else:
         ok, msg = explain(str(r.get("message", "")))
         out.update(ok=ok, message=msg)

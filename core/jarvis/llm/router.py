@@ -115,6 +115,13 @@ class Router:
         want_model = model
         errors: dict[str, str] = {}
         cands = self.providers()
+        if not cands:          # say why nothing can answer (it used to be "žádný poskytovatel není nastaven")
+            enabled = [p for p in self.brain.providers if p.enabled]
+            if self.brain.offline_only and enabled:
+                errors["offline"] = ("je zapnutý režim „Jen offline“ – AI z internetu se nepoužívá. Vypni ho v Nastavení → "
+                                     "Mozek, nebo spusť AI v tomhle PC (Ollama).")
+            elif not enabled:
+                errors["mozek"] = "není nastavená žádná AI – vlož API klíč v Nastavení → Mozek (Groq nebo Gemini jsou zdarma)."
         if light and not only and getattr(self.brain, "save_limits", True) and self.local_ready is not None:
             try:
                 ready = await self.local_ready()

@@ -7,13 +7,13 @@ import { h, icon } from "../shared/dom";
 import { fmtShift, lyricShift, setLyricShift } from "../shared/lyricsync";
 
 type Line = { t: number; text: string };
-type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean };
+type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean; onlineOn?: () => void };
 
 const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s)) % 60).padStart(2, "0")}`;
 
 export function createMusicView(ctx: Ctx) {
   let media: any = {};
-  let lyr: { title: string; synced: boolean; lines: Line[]; plain: string } = { title: "", synced: false, lines: [], plain: "" };
+  let lyr: { title: string; synced: boolean; lines: Line[]; plain: string; reason?: string } = { title: "", synced: false, lines: [], plain: "" };
   let visible = false, raf = 0, cur = -2, dragging = false, art = "";
 
   const bg = h("img", { class: "mu-bg", alt: "", "aria-hidden": "true" }) as HTMLImageElement;
@@ -109,6 +109,18 @@ export function createMusicView(ctx: Ctx) {
     el.classList.toggle("no-lyrics", !(same && (lyr.lines.length || lyr.plain)));
     if (!media?.title) { lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("music-notes-simple"), h("strong", {}, "Nic nehraje"), h("span", {}, "Pusť si hudbu – text uvidíš tady."))); return; }
     if (!ctx.lyricsOn()) { lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("text-aa"), h("strong", {}, "Texty jsou vypnuté"), h("span", {}, "Zapneš je v Nastavení → Notch → Texty písní."))); return; }
+    // 3.12 why there is no text, said plainly (it used to stay on "Hledám text…" for ever)
+    if (same && lyr.reason === "offline") {
+      lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("wifi-slash"), h("strong", {}, "Je zapnutý režim „Jen offline“"),
+        h("span", {}, "V něm JARVIS nic nestahuje z internetu – ani texty a obaly písní, ani AI."),
+        ctx.onlineOn ? h("button", { type: "button", class: "mu-go", onclick: () => ctx.onlineOn?.() }, icon("wifi-high"), "Vypnout Jen offline") : ""));
+      return;
+    }
+    if (same && lyr.reason && !lyr.lines.length && !lyr.plain) {
+      lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("warning-circle"), h("strong", {}, "Text se nepodařilo stáhnout"),
+        h("span", {}, `${lyr.reason} – zkusím to znovu u další písně. Diagnostika → Zkontrolovat řekne víc.`)));
+      return;
+    }
     if (!same || (!lyr.lines.length && !lyr.plain)) {
       lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("microphone-stage"), h("strong", {}, same ? "Text jsme nenašli" : "Hledám text…"),
         h("span", {}, same ? "Pro tuhle píseň není v databázi LRCLIB žádný text." : "Chvilku – hledám slova k téhle písni.")));
@@ -214,7 +226,8 @@ export function createMusicView(ctx: Ctx) {
       cur = -2;
     },
     setLyrics(m: any) {
-      lyr = { title: String(m?.title || ""), synced: !!m?.synced, lines: Array.isArray(m?.lines) ? m.lines : [], plain: String(m?.plain || "") };
+      lyr = { title: String(m?.title || ""), synced: !!m?.synced, lines: Array.isArray(m?.lines) ? m.lines : [], plain: String(m?.plain || ""),
+        reason: m?.reason ? String(m.reason) : "" };
       buildLyrics();
     },
     show(on: boolean) {

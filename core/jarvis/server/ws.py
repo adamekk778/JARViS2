@@ -1480,7 +1480,12 @@ class Connection:
                             voice=self._voice_status())
         elif t == "settings_set":
             try:
+                was = (bool(rt.cfg.brain.offline_only), bool(getattr(rt.cfg.notch, "lyrics", True)))
                 rt.update_config(m.get("patch") or {})
+                if was != (bool(rt.cfg.brain.offline_only), bool(getattr(rt.cfg.notch, "lyrics", True))):
+                    from .. import nowplaying
+
+                    nowplaying.refresh(rt)            # the song playing now: lyrics / reason at once
                 await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
             except ValueError as e:
                 await self.send("error", message=f"Neplatné nastavení: {e}")
