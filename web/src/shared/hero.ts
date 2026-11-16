@@ -11,7 +11,7 @@ export interface HeroSpec { color: string; cast: CastMember[] }
 export function wakeBands() { /* nothing to wake */ }
 
 const ICONS: Record<string, string> = {
-  habits: "heartbeat", learn: "graduation-cap", knowledge: "brain", files: "folders", rescue: "first-aid-kit", security: "shield-check", home: "house-line",
+  connect: "plugs-connected", agents: "users-three", habits: "heartbeat", learn: "graduation-cap", knowledge: "brain", files: "folders", rescue: "first-aid-kit", security: "shield-check", home: "house-line",
   auto: "flow-arrow", comms: "envelope-simple", stark: "circle-notch", claude: "terminal-window", dictate: "microphone", stats: "chart-bar",
   notetaker: "record", dictation: "sliders", dictionary: "book-open", chat: "chat-circle-dots", tasks: "list-checks", diagnostics: "pulse",
   general: "user-circle", brain: "brain", voice: "waveform", notch: "rectangle", appearance: "palette", hotkeys: "keyboard",
@@ -50,6 +50,8 @@ export const HEROES: Record<string, HeroSpec> = {
   chat: { color: "#4f8dff", cast: [{ color: "black", size: 58, start: 0.2 }, { color: "blue", size: 44, start: 0.7 }] },
   tasks: { color: "#34d399", cast: [{ color: "green", size: 52, start: 0.15 }, { color: "black", size: 60, start: 0.55 }, { color: "white", size: 40, start: 0.95 }] },
   "voice-mode": { color: "#f97316", cast: [{ color: "orange", size: 56, start: 0.3 }, { color: "black", size: 46, start: 0.85 }] },
+  connect: { color: "#60a5fa", cast: [{ color: "cyan", size: 52, start: 0.2 }, { color: "white", size: 44, start: 0.6 }, { color: "violet", size: 40, start: 0.95 }] },
+  agents: { color: "#f59e0b", cast: [{ color: "orange", size: 54, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 0.95 }] },
   diagnostics: { color: "#22d3ee", cast: [{ color: "cyan", size: 50, start: 0.2 }, { color: "black", size: 58, start: 0.7 }] },
   general: { color: "#8e939c", cast: [{ color: "white", size: 58, start: 0.35 }, { color: "black", size: 46, start: 0.85 }] },
   brain: { color: "#a78bfa", cast: [{ color: "violet", size: 60, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 1 }] },

@@ -51,6 +51,8 @@ CLIENT_TYPES = [
     "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
     "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "gym_plan_set", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test",
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
+    "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
+    "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
 SERVER_TYPES = [
@@ -71,7 +73,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -84,7 +86,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -97,7 +99,7 @@ LOCAL_ONLY = {"brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"bizagent_run", "bizagent_text", "bizproposal_decide", "connector_save", "connector_test", "connector_oauth", "brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1546,6 +1548,60 @@ class Connection:
             ok = await asyncio.to_thread(selfcheck.allow_firewall)
             await self.send("notify", title="Firewall", body="Potvrď v okně Windows (Ano). Pak dej Zkontrolovat znovu." if ok else "Jen na Windows.",
                             url="", target="dashboard")
+        elif t in ("bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide"):
+            from .. import bizagents     # 3.12 Firemní agenti: agents over Propojení; changes wait for your approval
+
+            msg, ok = "", True
+            try:
+                if t == "bizagent_save":
+                    bizagents.save(rt, m.get("agent") or {})
+                    msg = "Agent uložen."
+                elif t == "bizagent_delete":
+                    bizagents.delete(rt, int(m.get("id") or 0))
+                    msg = "Agent smazán."
+                elif t == "bizagent_template":
+                    bizagents.from_template(rt, str(m.get("key") or ""))
+                    msg = "Agent ze šablony je připravený – zkontroluj, kdy má pracovat, a dej Spustit."
+                elif t == "bizagent_text":
+                    await bizagents.create_from_text(rt, str(m.get("text") or "")[:1000])
+                    msg = "Agent je vytvořený podle tvého popisu."
+                elif t == "bizagent_run":
+                    r = await bizagents.run(rt, int(m.get("id") or 0))
+                    ok, msg = r["ok"], r["answer"][:600]
+                elif t == "bizproposal_decide":
+                    r = await bizagents.decide(rt, int(m.get("id") or 0), bool(m.get("approve")))
+                    ok, msg = r["ok"], r["message"]
+            except Exception as e:  # noqa: BLE001
+                ok, msg = False, str(e)[:300]
+            await self.send("bizagents", **bizagents.state(rt), message=msg, ok=ok, req=t)
+        elif t in ("connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth"):
+            from .. import connectors     # 3.12 Propojení (Google, Supabase, Spaceship, GitHub, Notion, Slack)
+
+            cid = str(m.get("id") or "")
+            msg = ""
+            try:
+                if t == "connector_save":
+                    connectors.save(cid, m.get("values") or {})
+                    if not connectors.CONNECTORS[cid].get("oauth"):
+                        r = await connectors.test(rt, cid)
+                        msg = ("✓ " if r["ok"] else "") + r["detail"]
+                    else:
+                        msg = "Uloženo – teď klikni „Přihlásit se Googlem“."
+                elif t == "connector_remove":
+                    connectors.remove(cid)
+                    msg = "Odpojeno – klíče jsou smazané z tohoto PC."
+                elif t == "connector_test":
+                    r = await connectors.test(rt, cid)
+                    msg = ("✓ " if r["ok"] else "") + r["detail"]
+                elif t == "connector_oauth" and cid == "google":
+                    from ..connectors import google
+
+                    url = google.start(f"http://127.0.0.1:{rt.cfg.phone.port}/api/oauth/google")
+                    await asyncio.to_thread(rt.platform.open_url, url)
+                    msg = "V prohlížeči se otevřelo přihlášení Googlem – vyber svůj účet a povol přístup."
+            except Exception as e:  # noqa: BLE001
+                msg = connectors.friendly(e) if not isinstance(e, ValueError) else str(e)
+            await self.send("connectors", items=connectors.status(), id=cid, message=msg)
         elif t == "brain_key":                # 3.12 Mozek jen z API klíče: paste → recognised, set up, tested
             from .. import brainkey
 
@@ -1729,6 +1785,23 @@ class Connection:
 
             await self.send("skills", items=list_skills(rt.cfg.tools.approved_skills))
         elif t == "mcp_get":
+            await self.send("mcp", items=rt.mcp.status() if rt.mcp else [])
+        elif t in ("mcp_add", "mcp_remove"):          # 3.12 Propojení → Vlastní MCP (a remote server by its address)
+            import re as _re
+
+            name = _re.sub(r"[^a-zA-Z0-9_-]", "-", str(m.get("name", "")).strip())[:40]
+            servers = [x.model_dump() for x in rt.cfg.integrations.mcp if x.name != name]
+            if t == "mcp_add":
+                url = str(m.get("url", "")).strip()
+                if not name or not _re.match(r"^https?://", url):
+                    await self.send("error", message="Vyplň název a adresu MCP serveru (https://…).")
+                    return
+                servers.append({"name": name, "url": url, "enabled": True})
+                secrets.set(f"mcp.{name}.token", str(m.get("token", "") or ""))
+            else:
+                secrets.set(f"mcp.{name}.token", "")
+            rt.update_config({"integrations": {"mcp": servers}})
+            await asyncio.sleep(1.5)                  # the MCP manager reconnects on the config change
             await self.send("mcp", items=rt.mcp.status() if rt.mcp else [])
         elif t == "push_to_talk":
             if rt.voice:

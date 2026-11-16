@@ -77,14 +77,25 @@ class McpManager:
         from mcp.client.stdio import stdio_client
 
         if s.url:
-            try:
-                from mcp.client.streamable_http import streamable_http_client as http_client
-            except ImportError:  # mcp < 2
-                from mcp.client.streamable_http import streamablehttp_client as http_client
+            # 3.12 a remote server's token (Propojení → Vlastní MCP) lives in the OS secure storage, never in the config
+            from .. import secrets
+
+            token = secrets.get(f"mcp.{s.name}.token") or ""
+            headers = {"Authorization": token if " " in token else f"Bearer {token}"} if token else None
             if s.url.rstrip("/").endswith("/sse"):
                 from mcp.client.sse import sse_client
 
-                return sse_client(s.url)
+                return sse_client(s.url, headers=headers)
+            try:
+                from mcp.client.streamable_http import streamable_http_client as http_client
+            except ImportError:  # mcp < 2
+                from mcp.client.streamable_http import streamablehttp_client as old_client
+
+                return old_client(s.url, headers=headers)
+            if headers:
+                from mcp.shared._httpx_utils import create_mcp_http_client
+
+                return http_client(s.url, http_client=create_mcp_http_client(headers=headers))
             return http_client(s.url)
         errlog = open(os.devnull, "w")  # windowed app has no stderr
         return stdio_client(StdioServerParameters(command=s.command, args=list(s.args), env={**os.environ, **s.env}), errlog=errlog)

@@ -213,6 +213,9 @@ class Runtime:
         from . import habits
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
+        from . import bizagents
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizagents.loop(self)))    # 3.12 Firemní agenti
         from . import selfcheck
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails

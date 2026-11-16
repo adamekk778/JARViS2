@@ -184,6 +184,30 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(403, "Jen z tohoto počítače")
         return pairing_info(rt.cfg.phone.token, rt.cfg.phone.port)
 
+    @app.get("/api/oauth/google")
+    async def google_oauth(request: Request, code: str = "", state: str = "", error: str = ""):
+        """3.12 Propojení: Google sends the browser back here after you signed in (this PC only)."""
+        if not is_local(request):
+            raise HTTPException(403, "Jen z tohoto počítače")
+        from .. import connectors
+        from ..connectors import google
+
+        def done(title: str, text: str, ok: bool) -> HTMLResponse:
+            colour = "#30d158" if ok else "#ff453a"
+            return HTMLResponse(f"<!doctype html><meta charset=utf-8><title>JARVIS</title><body style='font:16px system-ui;"
+                                f"background:#000;color:#fff;display:grid;place-items:center;height:100vh;margin:0'><div style="
+                                f"'text-align:center'><h1 style='color:{colour}'>{title}</h1><p>{text}</p><p style='color:#888'>"
+                                "Okno můžeš zavřít a vrátit se do JARVISe.</p></div>")
+        if error or not code:
+            return done("Přihlášení zrušeno", f"Google vrátil: {error or 'žádný kód'}.", False)
+        try:
+            msg = await google.finish(code, state)
+        except Exception as e:  # noqa: BLE001
+            return done("Nepovedlo se", connectors.friendly(e), False)
+        res = await connectors.test(rt, "google")
+        rt.bus.publish("connectors", items=connectors.status())
+        return done(msg, res.get("detail", ""), True)
+
     dist = paths.web_dist()
 
     def page(name: str):

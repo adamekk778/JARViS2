@@ -15,6 +15,8 @@ import { autoControls } from "../shared/picker";
 import { buildTasks } from "./tasks";
 import { buildVoiceMode } from "./voice-mode";
 import { buildDiagnostics } from "./diagnostics";
+import { buildConnect } from "./connect";
+import { buildAgents } from "./agents";
 import { buildDictation, buildStats, dictKey, recapOverlay } from "./dictation";
 import { buildNotetaker } from "./notetaker";
 import { buildClaude } from "./claude";
@@ -48,15 +50,17 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "habits" | "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
+type Page = "connect" | "agents" | "habits" | "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "habits", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
+  ["Hlavní", ["chat", "agents", "connect", "habits", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Systém", ["diagnostics"]],          // "Nastavení" is pinned at the bottom of the sidebar (its sections are tabs inside)
 ];
 const NAV: [View, string, string][] = [
   ["chat", "chat-circle-dots", "Chat"],
+  ["agents", "users-three", "Firemní agenti"],
+  ["connect", "plugs-connected", "Propojení"],
   ["habits", "heartbeat", "Návyky a zdraví"],
   ["stark", "circle-notch", "Stark"],
   ["auto", "flow-arrow", "Automatizace"],
@@ -103,6 +107,8 @@ const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
   tasks,
+  connect: buildConnect(client),
+  agents: buildAgents(client),
   habits: buildHabits(client),
   "voice-mode": buildVoiceMode(client),
   diagnostics: buildDiagnostics(client, (text) => { go("chat"); client.send("user_text", { text, attachments: [] }); }),
