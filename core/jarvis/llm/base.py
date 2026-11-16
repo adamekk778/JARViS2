@@ -48,6 +48,15 @@ class ProviderError(Exception):
                              "end of life", "no longer available", "has been removed", "gone"))
 
     @property
+    def is_busy(self) -> bool:
+        """The service is overloaded right now ("high demand", 503 / 529) – the key and the model are fine; another
+        model of the same service, or the same one a moment later, answers."""
+        m = str(self).lower()
+        return self.status in (503, 529) or any(
+            w in m for w in ("overloaded", "high demand", "currently unavailable", "unavailable", "try again later",
+                             "server is busy", "capacity"))
+
+    @property
     def is_vision_unsupported(self) -> bool:
         m = str(self).lower()
         return self.status in (400, 422) and any(w in m for w in ("image", "vision", "multimodal"))

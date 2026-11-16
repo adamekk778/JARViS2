@@ -108,6 +108,7 @@ async function ask(p: Pid, key: string, messages: { role: string; content: strin
   }
   if (status === 401 || status === 403) throw new Error(`${a.name} klíč odmítl – zkopíruj ho znovu celý${a.prefix ? ` (začíná ${a.prefix})` : ""}.`);
   if (status === 429) throw Object.assign(new Error(`${a.name}: vyčerpaný bezplatný limit – zkus to za chvíli.`), { limit: true });
+  if (status === 503 || status === 529) throw Object.assign(new Error(`${a.name} je teď přetížený – zkus to za chvíli.`), { limit: true });   // "high demand": the next AI answers
   if (status >= 400) throw new Error(`${a.name} odpověděl chybou ${status}${data?.error?.message ? `: ${String(data.error.message).slice(0, 140)}` : ""}`);
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || !text.trim()) throw new Error(`${a.name} poslal prázdnou odpověď – zkus to znovu.`);

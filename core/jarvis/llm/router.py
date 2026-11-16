@@ -38,6 +38,10 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
 
 
 # Groq's free models each have their own limits: when one is used up for the day, another one still answers
+# 3.12 when a service says "high demand" (503): its other models, lightest first
+BUSY_ALT = {"gemini": ("gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"),
+            "groq": ("openai/gpt-oss-20b", "llama-3.1-8b-instant"), "cerebras": ("llama3.1-8b",),
+            "mistral": ("mistral-small-latest",), "openrouter": ("openrouter/free",)}
 GROQ_ALT = ("openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile",
             "moonshotai/kimi-k2-instruct-0905", "openai/gpt-oss-20b", "qwen/qwen3-32b", "llama-3.1-8b-instant")
 SHORT_WAIT_S = 60           # "try again in 40 s" (a minute's limit) → JARVIS waits it out and carries on
@@ -153,6 +157,8 @@ class Router:
             eyes = pcfg.vision_model or PRESETS.get(pcfg.preset, {}).get("vision_model", "")  # Groq: Llama 4 Scout sees
             model = want_model or (eyes if need_vision and eyes else quick if fast and quick else None)
             resolved = False
+            busy_tried: set[str] = set()
+            busy_waited = False
             bad_call_retried = False
             fitted_again = False
             last_err: Exception | None = None
@@ -249,6 +255,20 @@ class Router:
                                 log.info("%s: %s used up, switching to %s", pcfg.id, cur, alt)
                                 prov.model, model = alt, None
                                 continue
+                        if e.is_busy and not e.is_unknown_model:
+                            # 3.12 "high demand" (Gemini 503): the key is fine – a lighter model of the same service,
+                            # else once more after a short pause, before moving on to another AI
+                            cur = model or prov.model
+                            busy_tried.add(cur)
+                            alt = None if want_model else self._busy_alt(pcfg, busy_tried)
+                            if alt:
+                                log.info("%s: %s overloaded, trying %s", pcfg.id, cur, alt)
+                                prov.model, model = alt, None
+                                continue
+                            if not busy_waited:
+                                busy_waited = True
+                                await asyncio.sleep(1.5)
+                                continue
                         if e.is_unknown_model and not resolved and hasattr(prov, "list_models"):
                             # the configured model (e.g. "auto") does not exist there: ask the gateway what it has
                             resolved = True
@@ -281,6 +301,15 @@ class Router:
             from .local import MODES
 
             return MODES.get(self.brain.local_mode, MODES["balanced"])[0]
+        return None
+
+    def _busy_alt(self, pcfg: ProviderCfg, tried: set[str]) -> str | None:
+        """A lighter model of the same service while the main one is overloaded (Gemini: Flash-Lite, the older Flash)."""
+        quick = pcfg.fast_model or PRESETS.get(pcfg.preset, {}).get("fast_model", "")
+        more = BUSY_ALT.get(pcfg.preset, ())
+        for m in (quick, *more):
+            if m and m not in tried and not self._is_limited(pcfg.id, m):
+                return m
         return None
 
     async def _alt_model(self, pcfg: ProviderCfg, prov, need: int = 0) -> str | None:

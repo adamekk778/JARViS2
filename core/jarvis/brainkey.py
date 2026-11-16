@@ -38,6 +38,8 @@ def explain(err: str) -> tuple[bool, str]:
     e = err.lower()
     if re.search(r"10013|zakázan|forbidden by its access permissions|access permissions", e):
         return False, BLOCKED
+    if re.search(r"\b(503|529)\b|overloaded|high demand|unavailable|server is busy", e):
+        return True, "Klíč funguje – služba má teď jen přetížený model (\u201ehigh demand\u201c). JARVIS zkusí jiný model nebo jinou AI, za chvíli to půjde."
     if re.search(r"\b429\b|rate.?limit|quota|too many|resource.?exhausted", e):
         return True, "Klíč funguje – služba teď jen hlásí limit. Za chvíli to půjde, JARVIS mezitím zkusí jiný mozek."
     if re.search(r"\b40[13]\b|unauthori|invalid.{0,20}(key|api)|incorrect api key|permission|api.?key not valid|"
