@@ -310,12 +310,20 @@ def _skill(task: str) -> str:
     return t
 
 
+# simple checks that read and report: the fast (cheaper) model is enough
+FAST = {"cash_morning", "orders_morning", "stock", "shipping_sla", "uptime", "deploys", "mentions", "campaigns", "time_report",
+        "slack_digest", "tax_calendar", "vacations", "delivery", "failed_payments", "dns", "github_triage", "db_guard", "all_tasks",
+        "airtable_ops", "calendar_guard", "phishing", "telegram"}
+# start right away when something happens (besides their schedule)
+TRIGGERS = {"lead_triage": ["mail"], "support_triage": ["mail"], "phishing": ["mail"], "returns": ["mail"],
+            "stock": ["order"], "shipping_sla": ["order"], "payment_match": ["payment"], "onboarding": ["order"]}
 BLUEPRINTS: dict[str, dict[str, Any]] = {}
 for _k, _d, _n, _i, _s, _t, _task, _rep in _B:
     _e, _at = _sched(_s)
     BLUEPRINTS[_k] = {"key": _k, "dept": _d, "name": _n, "icon": _i, "tools": list(dict.fromkeys(_t)), "every_min": _e, "daily_at": _at,
                       "work_hours": bool(_e), "task": _task, "replaces": _rep, "skill": _skill(_task),
-                      "role": f"{_n} – oddělení {DEPTS[_d]['name']}. {_task}"}
+                      "role": f"{_n} – oddělení {DEPTS[_d]['name']}. {_task}", "tier": "fast" if _k in FAST else "smart",
+                      "triggers": TRIGGERS.get(_k, [])}
 
 DAYS = ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle"]
 
@@ -324,15 +332,25 @@ DAYS = ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "ned�
 def migrate(db: Any) -> None:
     cols = {r["name"] for r in db.all("PRAGMA table_info(biz_agents)")}
     for name, decl in (("dept", "TEXT DEFAULT ''"), ("skill", "TEXT DEFAULT ''"), ("replaces", "TEXT DEFAULT ''"), ("bkey", "TEXT DEFAULT ''"),
-                       ("runs", "INTEGER DEFAULT 0"), ("fails", "INTEGER DEFAULT 0")):
+                       ("runs", "INTEGER DEFAULT 0"), ("fails", "INTEGER DEFAULT 0"), ("triggers", "TEXT DEFAULT '[]'"),
+                       ("next", "TEXT DEFAULT '[]'"), ("tier", "TEXT DEFAULT 'smart'")):
         if name not in cols:
             db.conn.execute(f"ALTER TABLE biz_agents ADD COLUMN {name} {decl}")
+    pcols = {r["name"] for r in db.all("PRAGMA table_info(biz_proposals)")}
+    if "fp" not in pcols:
+        db.conn.execute("ALTER TABLE biz_proposals ADD COLUMN fp TEXT DEFAULT ''")
     db.conn.executescript("""
+CREATE TABLE IF NOT EXISTS biz_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, agent_id INTEGER, agent TEXT, kind TEXT,
+  tool TEXT, summary TEXT, ok INTEGER, args TEXT);
 CREATE TABLE IF NOT EXISTS biz_brain (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, source TEXT DEFAULT '', created REAL);
 CREATE TABLE IF NOT EXISTS biz_runs (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id INTEGER, agent TEXT, dept TEXT, started REAL,
   seconds REAL, ok INTEGER, proposals INTEGER, summary TEXT);
 CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT);
 """)
+    rcols = {r["name"] for r in db.all("PRAGMA table_info(biz_runs)")}
+    for name, decl in (("rounds", "INTEGER DEFAULT 0"), ("tools", "INTEGER DEFAULT 0"), ("source", "TEXT DEFAULT ''"), ("saved", "REAL DEFAULT 0")):
+        if name not in rcols:
+            db.conn.execute(f"ALTER TABLE biz_runs ADD COLUMN {name} {decl}")
 
 
 def _db(rt: Any):
@@ -414,10 +432,23 @@ def context(rt: Any, agent: dict) -> str:
 
 
 # ---------------------------------------------------------------- runs, budget, numbers
-def record_run(rt: Any, agent: dict, started: float, seconds: float, ok: bool, proposals: int, summary: str) -> None:
+def saves_minutes(a: dict) -> float:
+    """A rough estimate of the person's time one good run saves: a weekly report more than a 30-minute check."""
+    if a.get("every_min"):
+        return 4.0 if int(a["every_min"]) <= 60 else 8.0
+    d = str(a.get("daily_at") or "")
+    if len(d.split()) == 2:
+        return 45.0
+    return 15.0 if d else 20.0
+
+
+def record_run(rt: Any, agent: dict, started: float, seconds: float, ok: bool, proposals: int, summary: str,
+               rounds: int = 0, tools_used: int = 0, source: str = "") -> None:
     db = _db(rt)
-    db.exec("INSERT INTO biz_runs (agent_id, agent, dept, started, seconds, ok, proposals, summary) VALUES (?,?,?,?,?,?,?,?)",
-            (agent.get("id"), agent.get("name", ""), agent.get("dept", ""), started, seconds, int(ok), proposals, summary[:600]))
+    db.exec("INSERT INTO biz_runs (agent_id, agent, dept, started, seconds, ok, proposals, summary, rounds, tools, source, saved) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (agent.get("id"), agent.get("name", ""), agent.get("dept", ""), started, seconds, int(ok), proposals, summary[:600],
+             rounds, tools_used, source[:20], saves_minutes(agent) if ok else 0.0))
     db.exec("UPDATE biz_agents SET runs=COALESCE(runs,0)+1, fails=COALESCE(fails,0)+? WHERE id=?", (0 if ok else 1, agent.get("id")))
     db.exec("DELETE FROM biz_runs WHERE id < (SELECT MAX(id) - 5000 FROM biz_runs)")
 
@@ -452,8 +483,32 @@ def set_paused(rt: Any, on: bool) -> None:
     _set(rt, "biz_paused", "1" if on else "0")
 
 
-def can_run(rt: Any) -> bool:
-    return not paused(rt) and runs_today(rt) < budget(rt)
+def dept_budgets(rt: Any) -> dict[str, int]:
+    try:
+        return {k: int(v) for k, v in json.loads(_kv(rt, "biz_dept_budget", "{}")).items() if int(v) > 0}
+    except (ValueError, TypeError, AttributeError):
+        return {}
+
+
+def set_dept_budget(rt: Any, dept: str, n: int) -> None:
+    b = dept_budgets(rt)
+    if int(n) > 0:
+        b[dept] = min(int(n), 5000)
+    else:
+        b.pop(dept, None)
+    _set(rt, "biz_dept_budget", json.dumps(b))
+
+
+def can_run(rt: Any, dept: str | None = None) -> bool:
+    """The company may work now: not paused, within today's runs – and, for a department with its own limit, within that."""
+    if paused(rt) or runs_today(rt) >= budget(rt):
+        return False
+    if dept is not None:
+        lim = dept_budgets(rt).get(dept)
+        if lim:
+            r = _db(rt).one("SELECT COUNT(*) AS n FROM biz_runs WHERE started >= ? AND dept=?", (_today0(), dept))
+            return (int(r["n"]) if r else 0) < lim
+    return True
 
 
 def runs(rt: Any, limit: int = 80) -> list[dict]:
@@ -464,7 +519,7 @@ def numbers(rt: Any) -> dict:
     db = _db(rt)
     t0 = _today0()
     today = db.one("SELECT COUNT(*) AS n, SUM(ok) AS good, SUM(proposals) AS props FROM biz_runs WHERE started >= ?", (t0,))
-    week = db.one("SELECT COUNT(*) AS n, SUM(ok) AS good FROM biz_runs WHERE started >= ?", (t0 - 6 * 86400,))
+    week = db.one("SELECT COUNT(*) AS n, SUM(ok) AS good, SUM(rounds) AS ai, SUM(saved) AS saved FROM biz_runs WHERE started >= ?", (t0 - 6 * 86400,))
     approved = db.one("SELECT COUNT(*) AS n FROM biz_proposals WHERE status='done' AND decided >= ?", (t0,))
     pending = db.one("SELECT COUNT(*) AS n FROM biz_proposals WHERE status='pending'")
     notes = db.one("SELECT COUNT(*) AS n FROM biz_brain")
@@ -482,7 +537,117 @@ def numbers(rt: Any) -> dict:
     return {"runs_today": n_today, "ok_today": int(today["good"] or 0) if today else 0, "proposals_today": int(today["props"] or 0) if today else 0,
             "runs_week": int(week["n"] or 0) if week else 0, "ok_week": int(week["good"] or 0) if week else 0,
             "approved_today": int(approved["n"] or 0) if approved else 0, "pending": int(pending["n"] or 0) if pending else 0,
-            "notes": int(notes["n"] or 0) if notes else 0, "per_dept": per, "budget": budget(rt), "paused": paused(rt), "per_day": days}
+            "notes": int(notes["n"] or 0) if notes else 0, "per_dept": per, "budget": budget(rt), "paused": paused(rt), "per_day": days,
+            "ai_week": int(week["ai"] or 0) if week else 0, "saved_week_min": round(float(week["saved"] or 0)) if week else 0,
+            "dept_budget": dept_budgets(rt), "phone": _kv(rt, "biz_phone", "away")}
+
+
+# ---------------------------------------------------------------- the action log (everything agents did, for you and for an export)
+def log_action(rt: Any, agent: dict, kind: str, tool: str, summary: str, ok: bool, args: dict | None = None) -> None:
+    from .redact import redact
+
+    try:
+        a = {k: (v if not isinstance(v, str) else v[:300]) for k, v in (args or {}).items()}
+        _db(rt).exec("INSERT INTO biz_actions (at, agent_id, agent, kind, tool, summary, ok, args) VALUES (?,?,?,?,?,?,?,?)",
+                     (time.time(), agent.get("id"), agent.get("name", ""), kind, tool, redact(str(summary))[:500], int(bool(ok)),
+                      redact(json.dumps(a, ensure_ascii=False, default=str))[:2000]))
+        _db(rt).exec("DELETE FROM biz_actions WHERE id < (SELECT MAX(id) - 50000 FROM biz_actions)")
+    except Exception:  # noqa: BLE001 – the log never stops the work
+        pass
+
+
+def actions(rt: Any, limit: int = 300, kind: str = "") -> list[dict]:
+    q = "SELECT * FROM biz_actions" + (" WHERE kind=?" if kind else "") + " ORDER BY id DESC LIMIT ?"
+    return [dict(r) for r in _db(rt).all(q, ((kind, int(limit)) if kind else (int(limit),)))]
+
+
+def _cell(v: Any) -> str:
+    """Text from e-mails or the AI must stay text in Excel: a leading = + - @ would run as a formula."""
+    v = "" if v is None else str(v)
+    return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+
+
+def export_actions(rt: Any) -> str:
+    """The whole log as CSV (Excel opens it) next to JARVIS' other exports."""
+    import csv
+    import datetime as dt
+
+    from . import paths
+
+    folder = paths.data_dir() / "Audit"
+    folder.mkdir(parents=True, exist_ok=True)
+    out = folder / f"velin_zaznam_{dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    names = {"tool": "četl / zjistil", "proposal": "navrhl ke schválení", "approved": "schváleno", "rejected": "zamítnuto",
+             "handoff": "předal práci", "event": "dostal událost"}
+    with open(out, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(["čas", "agent", "co", "nástroj", "popis", "ok", "údaje"])
+        for r in reversed(actions(rt, 50000)):
+            w.writerow([dt.datetime.fromtimestamp(r["at"]).strftime("%Y-%m-%d %H:%M:%S"), _cell(r["agent"]), names.get(r["kind"], r["kind"]),
+                        _cell(r["tool"]), _cell(r["summary"]), "ano" if r["ok"] else "ne", _cell(r["args"])])
+    return str(out)
+
+
+def phone_approval(rt: Any, pid: int, agent: str, desc: str) -> None:
+    """A new proposal → the phone's notification with Schválit / Zamítnout (when you are away, or always if you chose so)."""
+    try:
+        mode = _kv(rt, "biz_phone", "away")
+        if mode == "off" or (mode == "away" and not rt.user_away()):
+            return
+        rt.phone_push("confirm", cid=f"biz:{pid}", text=f"{agent}: {desc}"[:300], title="Agent chce schválit", yes="Schválit")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def memory(rt: Any, agent: dict) -> str:
+    """What the agent did lately – so it continues where it stopped and never proposes the same thing twice."""
+    db = _db(rt)
+    runs_ = db.all("SELECT started, ok, summary FROM biz_runs WHERE agent_id=? ORDER BY id DESC LIMIT 3", (agent.get("id"),))
+    props = db.all("SELECT description, status, created FROM biz_proposals WHERE agent_id=? AND created > ? ORDER BY id DESC LIMIT 15",
+                   (agent.get("id"), time.time() - 14 * 86400))
+    import datetime as dt
+
+    lines = []
+    if runs_:
+        lines.append("TVOJE POSLEDNÍ PRÁCE (navaž na ni, neopakuj ji):")
+        lines += [f"- {dt.datetime.fromtimestamp(r['started']).strftime('%d.%m. %H:%M')}: {(r['summary'] or '')[:350]}" for r in runs_]
+    if props:
+        st = {"pending": "čeká na schválení", "done": "schváleno a provedeno", "rejected": "uživatel zamítl", "failed": "selhalo",
+              "running": "provádí se"}
+        lines.append("TVOJE NÁVRHY ZA 14 DNÍ (stejné znovu nenavrhuj):")
+        lines += [f"- {p['description'][:160]} – {st.get(p['status'], p['status'])}" for p in props]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- chains: agents that hand work to each other
+CHAINS: dict[str, dict[str, Any]] = {
+    "sales": {"name": "Poptávka → odpověď → nabídka", "icon": "handshake", "steps": ["lead_triage", "lead_reply", "proposals"],
+              "desc": "Třídič poptávek pošle dobré leady dál, ten připraví odpověď a autor nabídek nabídku."},
+    "money": {"name": "Faktura → upomínka → platba", "icon": "receipt", "steps": ["invoicing", "dunning", "payment_match"],
+              "desc": "Po vystavení faktury se hlídá splatnost, upomínky a nakonec spárování platby na účtu."},
+    "support": {"name": "Dotaz → odpověď → FAQ", "icon": "lifebuoy", "steps": ["support_triage", "support_reply", "faq"],
+                "desc": "Dotaz zákazníka se roztřídí, dostane odpověď a opakované otázky se zapíšou do FAQ."},
+    "ops": {"name": "Objednávka → sklad → odeslání", "icon": "package", "steps": ["orders_morning", "stock", "shipping_sla"],
+            "desc": "Nové objednávky se projdou, zkontroluje se sklad a hlídá se, aby se včas odeslaly."},
+}
+
+
+def build_chain(rt: Any, key: str) -> list[str]:
+    """Hire the chain's agents that are missing and link each to the next one."""
+    from .bizagents import agents, save
+
+    ch = CHAINS.get(key)
+    if not ch:
+        raise ValueError("Takový řetězec neznám.")
+    have = {a.get("bkey"): a for a in agents(rt)}
+    names = []
+    for i, k in enumerate(ch["steps"]):
+        aid = have[k]["id"] if k in have else hire(rt, k)
+        a = next(x for x in agents(rt) if x["id"] == aid)
+        nxt = sorted(set(a.get("next") or []) | ({ch["steps"][i + 1]} if i + 1 < len(ch["steps"]) else set()))
+        save(rt, {**a, "next": nxt})
+        names.append(a["name"])
+    return names
 
 
 # ---------------------------------------------------------------- the library
@@ -589,10 +754,16 @@ def depts(rt: Any) -> list[dict]:
              "library": sum(1 for b in lib if b["dept"] == k)} for k, v in DEPTS.items()]
 
 
-def snapshot(rt: Any) -> dict:
-    """Everything the control room shows (besides the agents and proposals of bizagents.state)."""
-    return {"depts": depts(rt), "library": library(rt), "profile": profile(rt), "profile_fields": PROFILE_FIELDS,
-            "notes": brain_notes(rt, 60), "numbers": numbers(rt), "runs": runs(rt, 60)}
+def snapshot(rt: Any, full: bool = True) -> dict:
+    """Everything the control room shows (besides the agents and proposals of bizagents.state). Without `full` only what
+    changes when agents work – a live update stays small with 100 agents."""
+    from .bizevents import EVENTS
+
+    out = {"depts": depts(rt), "numbers": numbers(rt), "runs": runs(rt, 60)}
+    if full:
+        out.update(library=library(rt), profile=profile(rt), profile_fields=PROFILE_FIELDS, notes=brain_notes(rt, 60),
+                   chains={k: {kk: v for kk, v in c.items()} for k, c in CHAINS.items()}, events=EVENTS)
+    return out
 
 
 # ---------------------------------------------------------------- tools the agents (and the chat) use
@@ -626,3 +797,22 @@ async def company_brain_note(ctx, text: Annotated[str, "co si má firma pamatova
         return ToolResult(False, "Mozek firmy není dostupný.")
     nid = brain_add(ctx, text[:3000], source="agent")
     return ToolResult(True, f"Zapsáno do mozku firmy (#{nid}).")
+
+
+
+@tool("company_handoff", "Firma: předá práci jinému firemnímu agentovi (podle jména), např. „Autor nabídek: připrav nabídku pro …“. "
+      "Ten ji udělá hned, jak bude na řadě.", category="propojení", perm="network")
+async def company_handoff(ctx, agent: Annotated[str, "jméno agenta, kterému práci předáváš"],
+                          task: Annotated[str, "co přesně má udělat (s údaji, které k tomu potřebuje)"]) -> ToolResult:
+    if getattr(ctx, "db", None) is None:
+        return ToolResult(False, "Firma není dostupná.")
+    from .bizagents import _DEPTH, MAX_DEPTH, enqueue, resolve
+
+    b = resolve(ctx, agent)
+    if not b:
+        return ToolResult(False, f"Agenta „{agent}“ ve firmě nemám.")
+    depth = _DEPTH.get() + 1
+    if depth > MAX_DEPTH or not enqueue(ctx, b["id"], f"PŘEDANÝ ÚKOL:\n{task[:3000]}", depth, "handoff"):
+        return ToolResult(False, "Předání nejde (agent je vypnutý, nebo už je řetězec moc dlouhý).")
+    log_action(ctx, {"id": None, "name": "agent"}, "handoff", "", f"→ {b['name']}: {task[:200]}", True)
+    return ToolResult(True, f"Předáno agentovi {b['name']} – udělá to, až bude na řadě.")

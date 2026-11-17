@@ -216,6 +216,10 @@ class Runtime:
         from . import bizagents
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizagents.loop(self)))    # 3.12 Firemní agenti
+        from . import bizevents, bizreport
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
         from . import upkeep
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update

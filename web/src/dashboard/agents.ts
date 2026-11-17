@@ -118,7 +118,9 @@ export function buildAgents(client: JarvisClient) {
   };
 
   client.on("bizagents", (m: any) => {
-    agents = m.agents || []; props = m.proposals || []; done = m.done || []; toolList = m.tools || []; templates = m.templates || {};
+    agents = m.agents || []; props = m.proposals || []; done = m.done || [];
+    if (m.tools) toolList = m.tools;                 // a live update carries only what changed
+    if (m.templates) templates = m.templates;
     running = m.running || [];
     if (m.req && m.req !== "bizagents_get") busy = "";
     if (m.message) toast(m.message.length > 160 ? `${m.message.slice(0, 160)}…` : m.message, m.ok === false ? "error" : "ok", 6000);

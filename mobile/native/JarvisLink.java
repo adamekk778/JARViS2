@@ -270,7 +270,8 @@ public final class JarvisLink {
                     habitsNotification(c, cmd.optString("title", "Návyky na dnes"), cmd.optString("body", ""), cmd.optJSONArray("items"));
                     return "shown";
                 case "confirm":                  // 3.12 a confirmation while you are away: Povolit / Zamítnout right here
-                    confirmNotification(c, cmd.optString("cid"), cmd.optString("text"));
+                    confirmNotification(c, cmd.optString("cid"), cmd.optString("text"), cmd.optString("title", "JARVIS potřebuje potvrzení"),
+                            cmd.optString("yes", "Povolit"));
                     return "shown";
                 case "clip": {                   // 3.12 shared clipboard: what you copied on the PC
                     android.content.ClipboardManager cm = c.getSystemService(android.content.ClipboardManager.class);
@@ -393,7 +394,7 @@ public final class JarvisLink {
         if (nm != null) nm.notify(HABITS_NID, b.build());
     }
 
-    static void confirmNotification(Context c, String cid, String text) {
+    static void confirmNotification(Context c, String cid, String text, String title, String yesLabel) {
         channels(c);
         int nid = 7100 + (cid.hashCode() & 0xff);
         PendingIntent yes = PendingIntent.getBroadcast(c, nid * 2, new Intent(c, ConfirmReceiver.class).putExtra("id", cid)
@@ -401,9 +402,9 @@ public final class JarvisLink {
         PendingIntent no = PendingIntent.getBroadcast(c, nid * 2 + 1, new Intent(c, ConfirmReceiver.class).putExtra("id", cid)
                 .putExtra("approved", false).putExtra("nid", nid), piFlags());
         PendingIntent open = PendingIntent.getActivity(c, nid, new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags());
-        Notification n = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_alert).setContentTitle("JARVIS potřebuje potvrzení")
+        Notification n = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_alert).setContentTitle(title)
                 .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
-                .addAction(new Notification.Action.Builder(null, "Povolit", yes).build())
+                .addAction(new Notification.Action.Builder(null, yesLabel, yes).build())
                 .addAction(new Notification.Action.Builder(null, "Zamítnout", no).build()).build();
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(nid, n);

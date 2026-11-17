@@ -9,7 +9,7 @@ import type { JarvisClient } from "../shared/ws";
 
 interface Agent { id: number; name: string; icon: string; role: string; task: string; tools: string[]; every_min: number; daily_at: string;
   work_hours: boolean; enabled: boolean; last_run: number | null; last_ok: number | null; last_result: string | null; dept: string;
-  skill: string; replaces: string; bkey: string; runs: number; fails: number; when: string }
+  skill: string; replaces: string; bkey: string; runs: number; fails: number; when: string; triggers: string[]; next: string[]; tier: string }
 interface Proposal { id: number; agent_id: number; agent: string; tool: string; description: string; details: string[]; created: number;
   status: string; result?: string }
 interface Dept { id: string; name: string; icon: string; color: string; desc: string; agents: number; library: number }
@@ -18,12 +18,15 @@ interface Lib { key: string; dept: string; name: string; icon: string; skill: st
 interface Run { id: number; agent_id: number; agent: string; dept: string; started: number; seconds: number; ok: number; proposals: number; summary: string }
 interface Numbers { runs_today: number; ok_today: number; proposals_today: number; runs_week: number; ok_week: number; approved_today: number;
   pending: number; notes: number; per_dept: Record<string, { runs: number; ok: number }>; budget: number; paused: boolean;
-  per_day?: { label: string; runs: number; ok: number }[] }
+  per_day?: { label: string; runs: number; ok: number }[]; ai_week?: number; saved_week_min?: number; dept_budget?: Record<string, number>; phone?: string }
 interface Company { depts: Dept[]; library: Lib[]; profile: Record<string, string>; profile_fields: Record<string, string>;
-  notes: { id: number; text: string; source: string; created: number }[]; numbers: Numbers; runs: Run[] }
+  notes: { id: number; text: string; source: string; created: number }[]; numbers: Numbers; runs: Run[];
+  chains?: Record<string, { name: string; icon: string; steps: string[]; desc: string }>; events?: Record<string, { label: string; icon: string }> }
 interface Conn { id: string; name: string; icon: string; connected: boolean; prefixes: string[] }
 
 type View = "overview" | "dept" | "agents" | "approvals" | "results" | "brain" | "build";
+/** Minutes as hours the Czech way: 0, 1,5, 12. */
+const hours = (min?: number) => { const v = Math.round((min || 0) / 6) / 10; return v.toLocaleString("cs-CZ", { maximumFractionDigits: v >= 10 ? 0 : 1 }); };
 const OTHER: Dept = { id: "ostatni", name: "Ostatní", icon: "dots-three-circle", color: "#7d8fb3", desc: "Agenti bez oddělení.", agents: 0, library: 0 };
 const SVG = "http://www.w3.org/2000/svg";
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -226,7 +229,16 @@ function buildHQ(client: JarvisClient) {
       h("div", { class: "hq-rail-acts" },
         h("button", { type: "button", class: "hq-mini", onclick: () => client.send("bizpause_set", { paused: !n?.paused }) },
           icon(n?.paused ? "play" : "pause"), n?.paused ? "Spustit firmu" : "Pozastavit vše"),
-        budgetSel(n?.budget ?? 80)));
+        budgetSel(n?.budget ?? 80), phoneSel(n?.phone || "away"),
+        h("button", { type: "button", class: "hq-mini", title: "Zkontrolovat nové e-maily, objednávky a platby hned", onclick: () => client.send("bizevents_check") },
+          icon("arrows-clockwise"), "Zkontrolovat události")));
+  };
+  const phoneSel = (cur: string) => {
+    const sel = h("select", { class: "hq-sel", "aria-label": "Schvalování z telefonu" },
+      ...[["away", "Telefon: když nejsem u PC"], ["always", "Telefon: každý návrh"], ["off", "Telefon: neposílat"]]
+        .map(([v, t]) => h("option", { value: v, selected: v === cur }, t))) as HTMLSelectElement;
+    sel.onchange = () => client.send("bizphone_set", { mode: sel.value });
+    return sel;
   };
   const budgetSel = (cur: number) => {
     const sel = h("select", { class: "hq-sel", "aria-label": "Denní limit běhů", title: "Kolikrát denně smí agenti celkem pracovat (šetří limity AI)" },
@@ -427,6 +439,7 @@ function buildHQ(client: JarvisClient) {
       h("h2", {}, d.name.toUpperCase()), h("p", {}, d.desc),
       h("div", { class: "hq-dacts" },
         h("span", {}, `${mine.length} agentů · ${ghosts.length} v knihovně`),
+        deptLimit(d.id),
         ghosts.length ? h("button", { type: "button", class: "hq-btn primary", onclick: () => client.send("bizcompany_build", { depts: [d.id], only_ready: false }) },
           icon("user-plus"), "Najmout celé oddělení") : "",
         mine.length ? h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizagents_bulk", { dept: d.id, enabled: !mine.every((a) => a.enabled) }) },
@@ -434,6 +447,14 @@ function buildHQ(client: JarvisClient) {
     return h("div", { class: "hq-deptview", style: { "--c": d.color } }, head, wrap, sw, card());
   };
   const BL: Record<string, string[]> = {};
+  const deptLimit = (dept: string) => {
+    const cur = company?.numbers.dept_budget?.[dept] || 0;
+    const sel = h("select", { class: "hq-sel", "aria-label": "Denní limit oddělení", title: "Kolikrát denně smí agenti tohoto oddělení pracovat" },
+      ...[[0, "bez limitu oddělení"], [5, "max 5 běhů/den"], [10, "max 10 běhů/den"], [20, "max 20 běhů/den"], [50, "max 50 běhů/den"]]
+        .map(([v, t]) => h("option", { value: String(v), selected: v === cur }, String(t)))) as HTMLSelectElement;
+    sel.onchange = () => client.send("bizdept_budget_set", { dept, runs: Number(sel.value) });
+    return sel;
+  };
   const trunc = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 
   // ---------------------------------------------------------------- an agent's card
@@ -481,6 +502,16 @@ function buildHQ(client: JarvisClient) {
         a.last_result ? h("pre", { class: `hq-res ${a.last_ok ? "" : "bad"}` }, a.last_result) : "") : "",
       mine.length ? sec("seal-check", `ČEKÁ NA SCHVÁLENÍ (${mine.length})`, ...mine.map(propCard)) : "",
       a ? sec("target", "ÚKOL", h("p", { class: "hq-p" }, a.task)) : "",
+      a ? sec("lightning", "SPOUŠTĚT HNED PŘI", h("div", { class: "hq-chips" }, ...Object.entries(company?.events || {}).map(([k, ev]) => {
+        const on = (a.triggers || []).includes(k);
+        return h("button", { type: "button", class: `hq-chip toggle ${on ? "on" : ""}`, "aria-pressed": on ? "true" : "false",
+          onclick: () => client.send("bizagent_save", { agent: { ...a, triggers: on ? a.triggers.filter((x) => x !== k) : [...(a.triggers || []), k] } }) },
+          icon(ev.icon, on ? "ph-fill" : ""), ev.label);
+      }))) : "",
+      a ? sec("arrow-bend-down-right", "PO DOKONČENÍ PŘEDAT", nextPicker(a)) : "",
+      a ? sec("cpu", "MODEL AI", h("div", { class: "hq-chips" }, ...[["smart", "Chytrý"], ["fast", "Rychlý a levný"]].map(([k, t]) =>
+        h("button", { type: "button", class: `hq-chip toggle ${(a.tier || "smart") === k ? "on" : ""}`,
+          onclick: () => client.send("bizagent_save", { agent: { ...a, tier: k } }) }, t)))) : "",
       h("div", { class: "hq-card-acts" }, ...(a ? [
         h("button", { type: "button", class: "hq-btn primary", disabled: running.includes(a.id), onclick: () => { client.send("bizagent_run", { id: a.id }); toast(`${a.name} pracuje…`, "info"); } },
           icon("play", "ph-fill"), "Spustit teď"),
@@ -490,6 +521,20 @@ function buildHQ(client: JarvisClient) {
           icon("trash"))] : [
         h("button", { type: "button", class: "hq-btn primary", onclick: () => client.send("bizagent_hire", { key: l!.key }) }, icon("user-plus"), "Najmout agenta"),
         l!.needs.length && !l!.usable ? h("small", { class: "hq-need" }, `Potřebuje propojit: ${l!.needs.map((c) => conns.find((x) => x.id === c)?.name.split(" (")[0] || c).join(", ")}`) : ""])));
+  };
+  const nextPicker = (a: Agent) => {
+    const refs = a.next || [];
+    const linked = refs.map((r) => agents.find((x) => String(x.id) === r || x.bkey === r)).filter(Boolean) as Agent[];
+    const sel = h("select", { class: "hq-sel", "aria-label": "Přidat agenta, kterému předá práci" },
+      h("option", { value: "" }, "+ přidat agenta…"),
+      ...agents.filter((x) => x.id !== a.id && !linked.includes(x)).map((x) => h("option", { value: x.bkey || String(x.id) }, `${x.name} (${deptOf(x.dept).name})`))) as HTMLSelectElement;
+    sel.onchange = () => { if (sel.value) client.send("bizagent_save", { agent: { ...a, next: [...refs, sel.value] } }); };
+    return h("div", { class: "hq-next" },
+      ...linked.map((x) => h("span", { class: "hq-chip svc on" }, icon("arrow-right"), x.name,
+        h("button", { type: "button", class: "hq-x-mini", "aria-label": `Nepředávat ${x.name}`,
+          onclick: () => client.send("bizagent_save", { agent: { ...a, next: refs.filter((r) => r !== (x.bkey || String(x.id)) && r !== String(x.id)) } }) }, icon("x")))),
+      linked.length ? "" : h("small", { class: "hq-muted" }, "Nikomu – výsledek zůstane jen v hlášení."),
+      sel);
   };
   const sec = (ic: string, t: string, ...kids: (Node | string)[]) => h("section", { class: "hq-sec" }, h("div", { class: "hq-sec-h" }, icon(ic), t), ...kids);
   const propCard = (p: Proposal) => h("div", { class: "hq-prop glass" },
@@ -551,16 +596,33 @@ function buildHQ(client: JarvisClient) {
         kpi(String(company?.numbers.runs_today ?? 0), "běhů dnes"), kpi(String(company?.numbers.ok_today ?? 0), "úspěšných dnes"),
         kpi(String(company?.numbers.proposals_today ?? 0), "návrhů dnes"), kpi(String(company?.numbers.approved_today ?? 0), "schváleno dnes"),
         kpi(String(company?.numbers.runs_week ?? 0), "běhů za 7 dní"),
-        kpi(company?.numbers.runs_week ? `${Math.round(((company.numbers.ok_week || 0) / company.numbers.runs_week) * 100)} %` : "–", "úspěšnost")),
-      rs.length ? h("div", { class: "hq-feed" }, ...rs.map((r) => {
+        kpi(company?.numbers.runs_week ? `${Math.round(((company.numbers.ok_week || 0) / company.numbers.runs_week) * 100)} %` : "–", "úspěšnost"),
+        kpi(String(company?.numbers.ai_week ?? 0), "dotazů na AI (7 dní)"),
+        kpi(`${hours(company?.numbers.saved_week_min)} h`, "ušetřeno za týden (odhad)")),
+      h("div", { class: "hq-tools" },
+        h("button", { type: "button", class: "hq-btn primary", onclick: () => { client.send("bizreport_make"); toast("Kreslím zprávu…", "info"); } },
+          icon("file-pdf", "ph-fill"), "Týdenní zpráva (PDF)"),
+        h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizaudit_export") }, icon("download-simple"), "Exportovat záznam (CSV)"),
+        h("button", { type: "button", class: `hq-btn ${logView ? "on" : ""}`, onclick: () => { logView = !logView; if (logView) client.send("bizaudit_get", { limit: 400 }); paint(); } },
+          icon("list-magnifying-glass"), logView ? "Zpět na běhy" : "Záznam všech akcí")),
+      logView ? auditList() : "",
+      !logView && rs.length ? h("div", { class: "hq-feed" }, ...rs.map((r) => {
         const d = deptOf(r.dept);
         return h("details", { class: `hq-run glass ${r.ok ? "" : "bad"}`, style: { "--c": d.color } },
           h("summary", {}, h("i", { class: "hq-dot" }), h("time", {}, clock(r.started)), h("b", {}, r.agent),
             h("span", {}, (r.summary || "").split("\n")[0].slice(0, 140)),
             h("em", {}, `${Math.round(r.seconds)} s${r.proposals ? ` · ${r.proposals} návrhů` : ""}`)),
           h("pre", {}, r.summary || ""));
-      })) : h("p", { class: "hq-empty" }, "Zatím žádná práce – spusť agenta nebo počkej na jeho čas."));
+      })) : logView ? "" : h("p", { class: "hq-empty" }, "Zatím žádná práce – spusť agenta nebo počkej na jeho čas."));
   };
+  let logView = false;
+  let audit: { at: number; agent: string; kind: string; tool: string; summary: string; ok: number }[] = [];
+  const KIND: Record<string, [string, string]> = { tool: ["magnifying-glass", "zjistil"], proposal: ["seal-question", "navrhl"], approved: ["seal-check", "schváleno"],
+    rejected: ["x-circle", "zamítnuto"], handoff: ["arrow-bend-down-right", "předal"], event: ["lightning", "událost"] };
+  const auditList = () => h("div", { class: "hq-feed" }, ...(audit.length ? audit.map((x) => h("div", { class: `hq-audit ${x.ok ? "" : "bad"} k-${x.kind}` },
+    icon((KIND[x.kind] || ["dot", ""])[0], "ph-fill"), h("time", {}, clock(x.at)), h("b", {}, x.agent || "–"),
+    h("em", {}, (KIND[x.kind] || ["", x.kind])[1]), h("span", {}, `${x.tool ? nice(x.tool) + " · " : ""}${x.summary}`)))
+    : [h("p", { class: "hq-empty" }, "Záznam je zatím prázdný.")]));
   const kpi = (v: string, l: string) => h("div", { class: "hq-kpi glass" }, h("b", {}, v), h("small", {}, l));
 
   const brainView = () => {
@@ -615,6 +677,19 @@ function buildHQ(client: JarvisClient) {
       h("p", { class: "hq-sub" }, `Knihovna má ${lib.length} hotových agentů v ${depts().filter((d) => d.id !== "ostatni").length} odděleních. Najmi je jedním klikem – `
         + "dostanou nástroje tvých propojených služeb, profil a mozek firmy. Pracují postupně, jeden po druhém, v rámci denního limitu běhů."),
       h("div", { class: "hq-tiles" }, ...tiles),
+      h("div", { class: "hq-ph sm chains" }, icon("link", "ph-bold"), "ŘETĚZCE – AGENTI SI PŘEDÁVAJÍ PRÁCI"),
+      h("div", { class: "hq-chains" }, ...Object.entries(company?.chains || {}).map(([k, ch]) => {
+        const lib = company?.library || [];
+        return h("div", { class: "hq-chain glass" },
+          h("div", { class: "hq-chain-h" }, h("span", { class: "hq-tile-ico", style: { "--c": "#8b6bff" } }, icon(ch.icon, "ph-fill")),
+            h("div", {}, h("b", {}, ch.name), h("p", {}, ch.desc))),
+          h("div", { class: "hq-chain-steps" }, ...ch.steps.flatMap((st, i) => {
+            const l = lib.find((x) => x.key === st);
+            const node = h("span", { class: `hq-step ${l?.hired ? "on" : ""}` }, icon(l?.icon || "robot", "ph-fill"), l?.name || st);
+            return i ? [h("i", { class: "ph ph-arrow-right hq-step-arrow" }), node] : [node];
+          })),
+          h("button", { type: "button", class: "hq-btn primary", onclick: () => client.send("bizchain_build", { key: k }) }, icon("link", "ph-bold"), "Zapojit řetězec"));
+      })),
       h("div", { class: "hq-build glass" },
         h("label", { class: "hq-check" }, ready, "Jen agenty, jejichž služby už jsou propojené"),
         h("button", { type: "button", class: "hq-btn primary big", onclick: () => client.send("bizcompany_build", { depts: [...chosen], only_ready: onlyReady }) },
@@ -662,12 +737,14 @@ function buildHQ(client: JarvisClient) {
   client.on("bizagents", (m: any) => {
     agents = m.agents || []; props = m.proposals || []; running = m.running || []; queue = m.queue || [];
     if (m.company) {
-      company = m.company;
+      company = { ...(company || {}), ...m.company } as Company;        // a live update carries only what changed
       for (const l of company!.library) BL[l.key] = (l as any).tools || BL[l.key] || [];
     }
     if (isOpen && m.message && m.req && /^biz(company|agent_hire|agents_bulk|brain|profile|budget|pause)/.test(m.req)) toast(m.message, m.ok === false ? "error" : "ok", 6000);
     soft();
   });
+  client.on("bizaudit", (m: any) => { audit = Array.isArray(m.items) ? m.items : []; if (logView) soft(); });
+  client.on("export_done", (m: any) => { if (isOpen && (m.kind === "velin" || m.kind === "report")) toast(`Uloženo: ${m.path}`, "ok", 9000); });
   client.on("connectors", (m: any) => { conns = Array.isArray(m.items) ? m.items : conns; soft(); });
   client.on("agent_activity", (m: any) => {
     const k = String(m.key || "");

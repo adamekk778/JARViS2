@@ -378,7 +378,19 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
                 near = False
             if not near:
                 raise HTTPException(403, "Schvalovat jde jen z domácí sítě")
-        return {"ok": rt.agent.confirm(str(body.get("id", "")), approved)}
+        cid = str(body.get("id", ""))
+        if cid.startswith("biz:"):                 # 3.12 an agent's proposal from the phone's notification
+            from .. import bizagents
+
+            try:
+                r = await bizagents.decide(rt, int(cid[4:]), approved)
+            except (ValueError, TypeError) as e:
+                return {"ok": False, "message": str(e)}
+            bizagents.publish(rt)
+            rt.bus.publish("notify", title="Schváleno z telefonu" if approved else "Zamítnuto z telefonu", body=r["message"][:200],
+                           url="", target="dashboard")
+            return {"ok": r["ok"], "message": r["message"]}
+        return {"ok": rt.agent.confirm(cid, approved)}
 
     @app.get("/api/link/info")
     async def link_info(request: Request):

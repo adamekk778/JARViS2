@@ -54,6 +54,7 @@ export function buildConnect(client: JarvisClient) {
       c.url ? h("a", { class: "cn-link", href: c.url, target: "_blank", rel: "noopener" }, icon("arrow-square-out"), "Otevřít stránku služby") : "",
       form,
       h("div", { class: "cn-acts" },
+        h("button", { type: "button", class: "btn", onclick: () => wizard(c) }, icon("path", "ph-bold"), "Průvodce krok za krokem"),
         h("button", { type: "button", class: "btn primary", onclick: save }, icon("floppy-disk"), c.oauth ? "Uložit" : "Uložit a vyzkoušet"),
         c.oauth ? h("button", { type: "button", class: "btn", onclick: () => client.send("connector_oauth", { id: c.id }) },
           icon("sign-in"), c.login || "Přihlásit se") : "",
@@ -61,6 +62,65 @@ export function buildConnect(client: JarvisClient) {
         c.connected ? h("button", { type: "button", class: "btn danger", onclick: () => {
           if (confirm(`Odpojit ${c.name}? Klíče se z tohoto PC smažou.`)) client.send("connector_remove", { id: c.id });
         } }, icon("plug"), "Odpojit") : ""));
+  };
+
+  // ---------------------------------------------------------------- step by step: one instruction at a time, the fields at the end
+  let wiz: { id: string; result: HTMLElement } | null = null;
+  const wizard = (c: Conn) => {
+    document.querySelector(".cn-wiz")?.remove();
+    const steps = c.help.map(port);
+    let i = 0;
+    const inputs: Record<string, HTMLInputElement> = {};
+    const result = h("p", { class: "cn-wiz-res", "aria-live": "polite" });
+    const bodyEl = h("div", { class: "cn-wiz-body" });
+    const dots = h("div", { class: "cn-wiz-dots" });
+    const back = h("button", { type: "button", class: "btn", onclick: () => { i = Math.max(0, i - 1); show(); } }, icon("arrow-left"), "Zpět") as HTMLButtonElement;
+    const next = h("button", { type: "button", class: "btn primary" }) as HTMLButtonElement;
+    const close = () => { root.remove(); wiz = null; document.removeEventListener("keydown", esc); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", esc);
+    const total = steps.length + 1;
+    const show = () => {
+      dots.replaceChildren(...Array.from({ length: total }, (_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" })));
+      back.disabled = i === 0;
+      if (i < steps.length) {
+        bodyEl.replaceChildren(
+          h("div", { class: "cn-wiz-step" }, h("span", {}, String(i + 1)), h("p", {}, steps[i])),
+          c.url && i === 0 ? h("a", { class: "btn", href: c.url, target: "_blank", rel: "noopener" }, icon("arrow-square-out"), "Otevřít stránku služby") : "",
+          h("small", { class: "cn-wiz-hint" }, i === 0 ? "Udělej tenhle krok v prohlížeči a pak klikni Další." : "Hotovo? Pokračuj dalším krokem."));
+        next.replaceChildren(document.createTextNode("Další"), icon("arrow-right"));
+        next.onclick = () => { i += 1; show(); };
+      } else {
+        bodyEl.replaceChildren(
+          h("p", { class: "cn-wiz-lead" }, c.oauth ? "Vlož údaje své aplikace, ulož a přihlas se – otevře se stránka služby." : "Vlož klíč – JARVIS ho uloží do zabezpečeného úložiště Windows a hned vyzkouší."),
+          ...c.fields.map((f) => {
+            const inp = h("input", { class: "cn-in", type: f.secret ? "password" : "text", autocomplete: "off", spellcheck: "false",
+              placeholder: f.set ? "•••••••• uloženo (nové přepíše)" : (f.hint || f.label), "aria-label": f.label }) as HTMLInputElement;
+            inputs[f.key] = inp;
+            return h("label", { class: "cn-field" }, h("span", {}, f.label, f.optional ? " (nepovinné)" : ""), inp);
+          }),
+          result,
+          c.oauth ? h("button", { type: "button", class: "btn", onclick: () => client.send("connector_oauth", { id: c.id }) }, icon("sign-in"), c.login || "Přihlásit se") : "");
+        next.replaceChildren(icon("floppy-disk"), document.createTextNode(c.oauth ? "Uložit" : "Uložit a vyzkoušet"));
+        next.onclick = () => {
+          const values: Record<string, string> = {};
+          for (const [k, inp] of Object.entries(inputs)) if (inp.value.trim()) values[k] = inp.value.trim();
+          if (!Object.keys(values).length && !c.connected) { toast("Vyplň klíč.", "error"); return; }
+          result.className = "cn-wiz-res wait"; result.textContent = c.oauth ? "Ukládám…" : "Ukládám a zkouším…";
+          client.send("connector_save", { id: c.id, values });
+        };
+        setTimeout(() => Object.values(inputs)[0]?.focus(), 50);
+      }
+    };
+    const root = h("div", { class: "cn-wiz", role: "dialog", "aria-label": `Průvodce: ${c.name}`, onclick: (e: Event) => { if (e.target === root) close(); } },
+      h("div", { class: "cn-wiz-card" },
+        h("div", { class: "cn-wiz-head" }, h("span", { class: "cn-ico" }, icon(c.icon, "ph-fill")),
+          h("div", {}, h("strong", {}, c.name), h("small", {}, c.what)),
+          h("button", { type: "button", class: "icon-btn", "aria-label": "Zavřít", onclick: close }, icon("x"))),
+        dots, bodyEl, h("div", { class: "cn-wiz-acts" }, back, next)));
+    document.body.append(root);
+    wiz = { id: c.id, result };
+    show();
   };
 
   const paintMcp = () => {
@@ -104,11 +164,18 @@ export function buildConnect(client: JarvisClient) {
     paintMcp();
   };
   const count = h("span", { class: "cn-count" });
+  const testAll = h("button", { type: "button", class: "btn", onclick: () => { client.send("connectors_test_all"); toast("Zkouším všechna propojení…", "info"); } },
+    icon("lightning", "ph-fill"), "Otestovat vše");
   const chips = h("div", { class: "cn-chips", role: "toolbar", "aria-label": "Skupiny služeb" });
   const search = h("input", { class: "cn-in cn-search", type: "search", placeholder: "Hledat službu (Stripe, faktury, e-shop…)",
     "aria-label": "Hledat službu", oninput: () => { query = search.value; paint(); } }) as HTMLInputElement;
   client.on("connectors", (m: any) => {
     items = Array.isArray(m.items) ? m.items : [];
+    if (wiz && m.id === wiz.id && m.message) {             // the wizard shows how its own save / test went
+      const ok = /^✓/.test(m.message) || /Propojen|Uloženo/.test(m.message);
+      wiz.result.className = `cn-wiz-res ${ok ? "ok" : "bad"}`;
+      wiz.result.textContent = m.message;
+    }
     if (m.message) toast(m.message, /^✓/.test(m.message) || /Propojen|Uloženo|Odpojeno|otevřelo/.test(m.message) ? "ok" : "error", 7000);
     paint();
   });
@@ -116,7 +183,7 @@ export function buildConnect(client: JarvisClient) {
 
   const el = h("section", { class: "cn-view" },
     hero(HEROES.connect, "Propojení", "JARVIS pracuje i v tvých službách – čte, hledá a připravuje. Odeslat, zapsat nebo změnit "
-      + "něco smí jen s tvým potvrzením.", [count]),
+      + "něco smí jen s tvým potvrzením.", [count, testAll]),
     h("div", { class: "cn-bar" }, search, chips),
     grid, mcpBox,
     h("p", { class: "help cn-note" }, icon("lock-key"), " Klíče a tokeny se ukládají do zabezpečeného úložiště Windows, ne do souborů. "

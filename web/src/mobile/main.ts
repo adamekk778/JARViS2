@@ -8,6 +8,7 @@ import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
 import { approvalsCard, permissionsWizard } from "./agents";
+import { companyCard } from "./company";
 import { native, type BackupStatus, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
@@ -224,7 +225,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("span", { class: "fl-entry-ico" }, icon("paper-plane-tilt", "ph-fill")),
     h("div", {}, h("strong", {}, "Poslat na PC"), h("span", {}, "Vyber soubor a švihni ho doprava")), icon("caret-right")));
   const clock = phoneClock(c);
-  views.home.prepend(clock.el, approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
+  views.home.prepend(clock.el, companyCard(c), approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());

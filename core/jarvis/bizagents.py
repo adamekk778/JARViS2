@@ -129,6 +129,12 @@ def _db(rt: Any):
 def _row(r: dict) -> dict:
     d = dict(r)
     d["tools"] = json.loads(d.get("tools") or "[]")
+    for k in ("triggers", "next"):
+        try:
+            d[k] = json.loads(d.get(k) or "[]")
+        except ValueError:
+            d[k] = []
+    d["tier"] = d.get("tier") or "smart"
     d["enabled"] = bool(d.get("enabled"))
     d["work_hours"] = bool(d.get("work_hours"))
     return d
@@ -174,15 +180,22 @@ def save(rt: Any, a: dict) -> int:
     dept = keep("dept", 30)
     if dept and dept not in DEPTS:
         dept = ""
+    from .bizevents import EVENTS
+
+    lst = lambda k, ok: json.dumps([str(x) for x in (a[k] if a.get(k) is not None else (old or {}).get(k) or []) if ok(str(x))][:12])  # noqa: E731
+    triggers = lst("triggers", lambda x: x in EVENTS)
+    nxt = lst("next", lambda x: bool(x.strip()))
+    tier = str(a.get("tier") or (old or {}).get("tier") or "smart")
+    tier = tier if tier in ("fast", "smart") else "smart"
     vals = (name, str(a.get("icon") or "robot")[:40], str(a.get("role") or "")[:2000], str(a.get("task") or "")[:2000],
             json.dumps(tl), every, daily, int(bool(a.get("work_hours", True))), int(bool(a.get("enabled", True))),
-            dept, keep("skill", 160), keep("replaces", 300), keep("bkey", 40))
+            dept, keep("skill", 160), keep("replaces", 300), keep("bkey", 40), triggers, nxt, tier)
     if a.get("id"):
         db.exec("UPDATE biz_agents SET name=?, icon=?, role=?, task=?, tools=?, every_min=?, daily_at=?, work_hours=?, enabled=?, "
-                "dept=?, skill=?, replaces=?, bkey=? WHERE id=?", (*vals, int(a["id"])))
+                "dept=?, skill=?, replaces=?, bkey=?, triggers=?, next=?, tier=? WHERE id=?", (*vals, int(a["id"])))
         return int(a["id"])
     return int(db.exec("INSERT INTO biz_agents (name, icon, role, task, tools, every_min, daily_at, work_hours, enabled, dept, skill, "
-                       "replaces, bkey, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (*vals, time.time())).lastrowid)
+                       "replaces, bkey, triggers, next, tier, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (*vals, time.time())).lastrowid)
 
 
 def from_template(rt: Any, key: str) -> int:
@@ -236,17 +249,42 @@ def proposals(rt: Any, status: str = "pending", limit: int = 50) -> list[dict]:
     return [{**dict(r), "args": json.loads(r["args"] or "{}"), "details": json.loads(r["details"] or "[]")} for r in rows]
 
 
+LONG_ARGS = {"body", "text", "description", "notes", "content", "message", "html", "details", "comment", "note"}
+
+
+def fingerprint(tool: str, args: dict) -> str:
+    """What a proposal is about, without its wording: the same e-mail to the same person is the same proposal even when
+    the agent phrases it differently the next hour."""
+    import hashlib
+
+    ident = {k: v for k, v in (args or {}).items() if k not in LONG_ARGS} or args or {}
+    return hashlib.sha1((tool + json.dumps(ident, sort_keys=True, ensure_ascii=False, default=str)).encode()).hexdigest()[:20]
+
+
 def propose(rt: Any, agent: dict, call: ToolCall) -> int:
+    """Into "Ke schválení" – unless the same thing waits there already, was done, or you said no to it lately (then the
+    existing proposal's number comes back negative and nothing new is added)."""
     from .agent import describe_call
 
+    db = _db(rt)
+    fp = fingerprint(call.name, call.arguments)
+    old = db.one("SELECT id, status FROM biz_proposals WHERE fp=? AND (status IN ('pending', 'running', 'done') OR "
+                 "(status='rejected' AND created > ?)) ORDER BY id DESC LIMIT 1", (fp, time.time() - 30 * 86400))
+    if old:
+        return -int(old["id"])
     spec = tools.REGISTRY.get(call.name)
     try:
         details = tools.details_for(spec, call.arguments, rt) if spec else []
     except Exception:  # noqa: BLE001
         details = []
-    pid = int(_db(rt).exec("INSERT INTO biz_proposals (agent_id, agent, tool, args, description, details, created) VALUES (?,?,?,?,?,?,?)",
-                           (agent.get("id"), agent.get("name", ""), call.name, json.dumps(call.arguments, ensure_ascii=False),
-                            describe_call(call.name, call.arguments), json.dumps(details, ensure_ascii=False), time.time())).lastrowid)
+    desc = describe_call(call.name, call.arguments)
+    pid = int(db.exec("INSERT INTO biz_proposals (agent_id, agent, tool, args, description, details, created, fp) VALUES (?,?,?,?,?,?,?,?)",
+                      (agent.get("id"), agent.get("name", ""), call.name, json.dumps(call.arguments, ensure_ascii=False),
+                       desc, json.dumps(details, ensure_ascii=False), time.time(), fp)).lastrowid)
+    from . import bizcompany
+
+    bizcompany.log_action(rt, agent, "proposal", call.name, desc, True, call.arguments)
+    bizcompany.phone_approval(rt, pid, agent.get("name", ""), desc)
     return pid
 
 
@@ -256,8 +294,12 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
     r = db.one("SELECT * FROM biz_proposals WHERE id=?", (int(pid),))
     if not r or r["status"] != "pending":
         raise ValueError("Tenhle návrh už vyřízený je.")
+    from . import bizcompany
+
+    agent = get(rt, int(r["agent_id"] or 0)) or {"id": r["agent_id"], "name": r["agent"]}
     if not approve:
         db.exec("UPDATE biz_proposals SET status='rejected', decided=? WHERE id=?", (time.time(), int(pid)))
+        bizcompany.log_action(rt, agent, "rejected", r["tool"], r["description"], True)
         return {"ok": True, "message": "Zamítnuto."}
     db.exec("UPDATE biz_proposals SET status='running', decided=? WHERE id=?", (time.time(), int(pid)))
     res = await tools.call(r["tool"], json.loads(r["args"] or "{}"), rt)
@@ -266,6 +308,9 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
         rt.tasks.log_action(r["tool"], json.loads(r["args"] or "{}"), res.ok, f"schváleno: {res.summary}", 0)
     except Exception:  # noqa: BLE001
         pass
+    bizcompany.log_action(rt, agent, "approved", r["tool"], f"{r['description']} → {res.summary}", res.ok)
+    if res.ok:                                   # the chain goes on: the next agents get what was done
+        handoff_next(rt, agent, f"SCHVÁLENO A PROVEDENO: {r['description']}. Výsledek: {res.summary}", 0)
     return {"ok": res.ok, "message": res.summary}
 
 
@@ -273,9 +318,52 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
 _RUNNING: set[int] = set()
 QUEUE: list[int] = []                 # due agents waiting for their turn (the control room shows them)
 _BACKOFF = [0.0]                       # the AI was down: the scheduled agents wait until then (a click on Spustit still works)
+JOBS: list[dict] = []                  # runs asked by an event or another agent: {"aid", "extra", "depth", "source"}
+MAX_DEPTH = 3                          # a chain of hand-offs stops here (no agent ping-pong)
+import contextvars  # noqa: E402
+
+_DEPTH: contextvars.ContextVar[int] = contextvars.ContextVar("biz_depth", default=0)
 
 
-async def run(rt: Any, aid: int, extra: str = "") -> dict:
+def enqueue(rt: Any, aid: int, extra: str, depth: int = 0, source: str = "") -> bool:
+    """Ask an agent to work as soon as it is its turn (an event, a hand-off). The same agent waiting already: the new
+    news is added to its job, not a second run."""
+    a = get(rt, aid)
+    if not a or not a.get("enabled") or depth > MAX_DEPTH:
+        return False
+    for j in JOBS:
+        if j["aid"] == aid:
+            if extra not in j["extra"]:
+                j["extra"] = (j["extra"] + "\n\n" + extra)[-6000:]
+            return True
+    JOBS.append({"aid": aid, "extra": extra[:6000], "depth": depth, "source": source})
+    return True
+
+
+def resolve(rt: Any, ref: str) -> dict | None:
+    """An agent by its id, library key or (part of its) name."""
+    ref = str(ref or "").strip()
+    ags = agents(rt)
+    for a in ags:
+        if ref and (str(a["id"]) == ref or a.get("bkey") == ref):
+            return a
+    low = ref.lower()
+    return next((a for a in ags if low and low == a["name"].lower()), None) or next((a for a in ags if low and low in a["name"].lower()), None)
+
+
+def handoff_next(rt: Any, agent: dict, text: str, depth: int) -> int:
+    from . import bizcompany
+
+    n = 0
+    for ref in agent.get("next") or []:
+        b = resolve(rt, ref)
+        if b and b["id"] != agent.get("id") and enqueue(rt, b["id"], f"PŘEDÁNO OD „{agent.get('name')}“:\n{text[:2500]}", depth + 1, "handoff"):
+            bizcompany.log_action(rt, agent, "handoff", "", f"→ {b['name']}", True)
+            n += 1
+    return n
+
+
+async def run(rt: Any, aid: int, extra: str = "", depth: int = 0, source: str = "") -> dict:
     a = get(rt, aid)
     if not a:
         raise ValueError("Agent neexistuje.")
@@ -290,16 +378,20 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
     from . import bizcompany
 
     company = bizcompany.context(rt, a)
+    memory = bizcompany.memory(rt, a)
     started = time.time()
+    token = _DEPTH.set(depth)
+    rounds_used, tool_calls = 0, 0
     msgs: list[dict] = [{"role": "system", "content": f"{COMMON}\n\nTy jsi „{a['name']}“: {a['role']}\nTeď je {now}."
-                         + (f"\n\n{company}" if company else "")},
+                         + (f"\n\n{company}" if company else "") + (f"\n\n{memory}" if memory else "")},
                         {"role": "user", "content": (a["task"] or "Udělej svou práci.") + (f"\n\n{extra}" if extra else "")}]
     proposed: list[int] = []
     answer, ok, ai_down = "", True, False
     try:
         for rnd in range(MAX_ROUNDS + 1):
             text, calls = "", None
-            async for ch in rt.router.stream(msgs, schemas if rnd < MAX_ROUNDS else None):
+            rounds_used += 1
+            async for ch in rt.router.stream(msgs, schemas if rnd < MAX_ROUNDS else None, fast=a.get("tier") == "fast"):
                 text += ch.text or ""
                 if ch.tool_calls:
                     calls = ch.tool_calls
@@ -313,11 +405,17 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
                     content = {"ok": False, "result": f"Nástroj {c.name} tenhle agent nemá."}
                 elif tools.is_dangerous(spec, c.arguments, [], [], rt):
                     pid = propose(rt, a, c)            # never done by the agent itself
-                    proposed.append(pid)
-                    content = {"ok": True, "result": f"Uloženo ke schválení uživatelem (návrh #{pid}). Neprovedeno – pokračuj."}
+                    if pid < 0:
+                        content = {"ok": True, "result": f"Tohle už bylo navrženo dřív (návrh #{-pid}) nebo to uživatel nedávno zamítl – "
+                                                         "znovu to nenavrhuj, pokračuj jinou prací."}
+                    else:
+                        proposed.append(pid)
+                        content = {"ok": True, "result": f"Uloženo ke schválení uživatelem (návrh #{pid}). Neprovedeno – pokračuj."}
                 else:
                     rt.bus.publish("agent_activity", key=f"biz{a['id']}", name=a["name"], icon=a.get("icon") or "robot", state="tool", tool=c.name)
                     res = await tools.call(c.name, c.arguments, rt)
+                    tool_calls += 1
+                    bizcompany.log_action(rt, a, "tool", c.name, res.summary[:200], res.ok, c.arguments)
                     content = res.for_llm()
                 msgs.append({"role": "tool", "tool_call_id": c.id, "name": c.name,
                              "content": content if isinstance(content, str) else json.dumps(content, ensure_ascii=False, default=str)})
@@ -327,16 +425,19 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
         log.info("biz agent %s: %s", a["name"], e)
     finally:
         _RUNNING.discard(a["id"])
+        _DEPTH.reset(token)
     answer = answer or "(agent nic nenapsal)"
     _db(rt).exec("UPDATE biz_agents SET last_run=?, last_ok=?, last_result=? WHERE id=?", (time.time(), int(ok), answer[:4000], a["id"]))
     try:
-        bizcompany.record_run(rt, a, started, time.monotonic() - t0, ok, len(proposed), answer)
+        bizcompany.record_run(rt, a, started, time.monotonic() - t0, ok, len(proposed), answer, rounds_used, tool_calls, source)
     except Exception as e:  # noqa: BLE001
         log.info("run record: %s", e)
     rt.bus.publish("agent_activity", key=f"biz{a['id']}", name=a["name"], icon=a.get("icon") or "robot", state="done", ok=ok,
                    seconds=round(time.monotonic() - t0, 1))
     if proposed:
         rt.notify(f"{a['name']}: {len(proposed)} ke schválení", answer[:300], speak=False)
+    if ok and not ai_down and a.get("next"):
+        handoff_next(rt, a, answer, depth)
     publish(rt)
     return {"ok": ok, "answer": answer, "proposals": proposed, "ai_down": ai_down}
 
@@ -371,13 +472,27 @@ async def loop(rt: Any) -> None:
             if time.time() < _BACKOFF[0]:
                 await asyncio.sleep(60)
                 continue
+            while JOBS and not rt.cfg.brain.offline_only and bizcompany.can_run(rt):
+                job = JOBS.pop(0)
+                a = get(rt, job["aid"])
+                if not a or not bizcompany.can_run(rt, a.get("dept") or ""):
+                    continue
+                r = await run(rt, job["aid"], job["extra"], job["depth"], job["source"])
+                if not r.get("ok") and r.get("ai_down"):
+                    _BACKOFF[0] = time.time() + 600
+                    break
+            if time.time() < _BACKOFF[0]:
+                await asyncio.sleep(60)
+                continue
             waiting = sorted((a for a in agents(rt) if due(a, now)), key=lambda a: a.get("last_run") or 0)
             QUEUE[:] = [a["id"] for a in waiting]
             for a in waiting:
                 if rt.cfg.brain.offline_only or not bizcompany.can_run(rt):
                     break
                 QUEUE[:] = [i for i in QUEUE if i != a["id"]]
-                r = await run(rt, a["id"])
+                if not bizcompany.can_run(rt, a.get("dept") or ""):
+                    continue
+                r = await run(rt, a["id"], source="plán")
                 if not r.get("ok") and r.get("ai_down"):
                     _BACKOFF[0] = time.time() + 600   # the AI does not answer: the others would only fail too – in 10 min again
                     break
@@ -394,13 +509,14 @@ def state(rt: Any, full: bool = True) -> dict:
     for a in ags:
         a["when"] = bizcompany.when(a)
         a["last_result"] = (a.get("last_result") or "")[:1500] or None
-    out = {"agents": ags, "proposals": proposals(rt), "templates": {k: {"name": v["name"], "icon": v["icon"], "role": v["role"],
-           "tools": v["tools"]} for k, v in TEMPLATES.items()}, "tools": allowed_tools(), "running": sorted(_RUNNING),
-           "queue": list(QUEUE), "done": proposals(rt, "done", 10) + proposals(rt, "failed", 5)}
+    out = {"agents": ags, "proposals": proposals(rt), "running": sorted(_RUNNING), "queue": list(QUEUE) + [j["aid"] for j in JOBS],
+           "done": proposals(rt, "done", 10) + proposals(rt, "failed", 5), "company": bizcompany.snapshot(rt, full), "full": full}
     if full:
-        out["company"] = bizcompany.snapshot(rt)
+        out["templates"] = {k: {"name": v["name"], "icon": v["icon"], "role": v["role"], "tools": v["tools"]} for k, v in TEMPLATES.items()}
+        out["tools"] = allowed_tools()
     return out
 
 
 def publish(rt: Any) -> None:
-    rt.bus.publish("bizagents", **state(rt))
+    """A live update after an agent worked: only what changed (agents, approvals, numbers) – not the library."""
+    rt.bus.publish("bizagents", **state(rt, full=False))

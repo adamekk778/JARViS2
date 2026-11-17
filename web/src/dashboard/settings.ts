@@ -429,7 +429,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       const picker = h("input", { type: "color", value: S.appearance.accent, "aria-label": "Vlastní barva" }) as HTMLInputElement;
       picker.onchange = () => set("appearance.accent", picker.value);
       return [bgCard(), card("Barvy", null,
-        select("appearance.theme", "Motiv", [["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
+        select("appearance.theme", "Motiv", [["glass", "Sklo (liquid glass)"], ["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["auto", "Na baterii omezené"], ["reduced", "Omezené"]]),

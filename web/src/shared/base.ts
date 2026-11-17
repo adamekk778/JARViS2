@@ -5,6 +5,7 @@ import "@phosphor-icons/web/bold";
 import "@phosphor-icons/web/fill";
 import "highlight.js/styles/github-dark.css";
 import "./theme.css";
+import "./glass.css";
 
 // OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
 let motionPref = "full";
@@ -23,6 +24,7 @@ export function applyAppearance(s: any) {
   const root = document.documentElement;
   // the notch is a black hardware-like cut-out: it keeps the dark tokens in the light theme too
   root.dataset.theme = a.theme === "light" && !root.classList.contains("notch-doc") ? "light" : "dark";
+  root.dataset.glass = a.theme === "glass" ? "1" : "0";            // 3.12 liquid glass (frosted panels over an aurora)
   if (a.accent) {
     root.style.setProperty("--accent", a.accent);
     root.style.setProperty("--accent-ink", inkFor(a.accent));

@@ -157,7 +157,7 @@ class Notch(BaseModel):
 
 
 class Appearance(BaseModel):
-    theme: Literal["stark", "light"] = "stark"
+    theme: Literal["glass", "stark", "light"] = "glass"     # 3.12 glass: frosted panels over a soft aurora
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
@@ -168,11 +168,15 @@ class Appearance(BaseModel):
     sound_volume: int = 30     # 0–100
     spatial_sounds: bool = True   # OMEGA 102 / 761: sounds come from where things happen (phone right, notch centre…)
 
+    theme_rev: int = 0                  # 3.12: the glass look came – once, a saved "stark" (the old default) becomes "glass"
+
     @model_validator(mode="before")
     @classmethod
     def _new_default_accent(cls, data: Any) -> Any:
         if isinstance(data, dict) and str(data.get("accent", "")).lower() == "#2ee6ff":
             data = {**data, "accent": "#4f8dff"}
+        if isinstance(data, dict) and int(data.get("theme_rev") or 0) < 1:
+            data = {**data, "theme_rev": 1, **({"theme": "glass"} if data.get("theme", "stark") == "stark" else {})}
         return data
 
 

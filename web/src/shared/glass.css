@@ -1,0 +1,72 @@
+/* 3.12 Liquid glass – the whole JARVIS (main window, full chat, phone; the notch's own panels): a soft, pre-blurred
+   aurora behind everything and panels of frosted glass with a bright rim. The aurora is still (no constant redraw);
+   the panels are translucent over it, so no expensive live blur is needed for the big areas. */
+:root[data-glass="1"]:not(.notch-doc) {
+  --bg: #05070f;
+  --bg-2: rgb(255 255 255 / .045);
+  --surface: rgb(255 255 255 / .06);
+  --surface-2: rgb(255 255 255 / .075);
+  --surface-3: rgb(255 255 255 / .11);
+  --glass: rgb(255 255 255 / .06);
+  --glass-2: rgb(255 255 255 / .07);
+  --glass-3: rgb(255 255 255 / .12);
+  --glass-solid: rgb(16 20 40 / .82);
+  --edge: rgb(255 255 255 / .1);
+  --border: rgb(255 255 255 / .1);
+  --border-strong: rgb(255 255 255 / .16);
+  --r-card: 18px;
+  --shadow: 0 24px 60px -16px rgb(0 0 0 / .6);
+}
+:root[data-glass="1"]:not(.notch-doc) body { background: #05070f; }
+:root[data-glass="1"]:not(.notch-doc) body::before { content: ""; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 12% 8%, rgb(92 60 255 / .55), transparent 70%),
+    radial-gradient(34% 40% at 92% 20%, rgb(0 170 255 / .38), transparent 70%),
+    radial-gradient(40% 36% at 48% 108%, rgb(255 79 154 / .3), transparent 70%),
+    radial-gradient(26% 26% at 60% 40%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+  filter: blur(40px) saturate(140%); }
+:root[data-glass="1"]:not(.notch-doc) body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(rgb(160 190 255 / .035) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(90deg, rgb(160 190 255 / .035) 1px, transparent 1px) 0 0 / 34px 34px;
+  mask-image: radial-gradient(ellipse at 50% 40%, #000 15%, transparent 70%); }
+
+/* the shells become see-through, the big panel a sheet of glass */
+:root[data-glass="1"] .shell, :root[data-glass="1"] .fc, :root[data-glass="1"] .m-shell { background: transparent; }
+:root[data-glass="1"] .view, :root[data-glass="1"] .fc-main {
+  background: linear-gradient(155deg, rgb(255 255 255 / .085), rgb(255 255 255 / .03) 40%, rgb(255 255 255 / .02));
+  border-color: rgb(255 255 255 / .1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), inset 0 0 30px rgb(255 255 255 / .02), 0 24px 70px rgb(0 0 0 / .45); }
+:root[data-glass="1"] .fc-side { background: rgb(255 255 255 / .03); }
+:root[data-glass="1"] .m-head, :root[data-glass="1"] .tabs {
+  background: rgb(10 14 30 / .55); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
+  border-color: rgb(255 255 255 / .08); }
+:root[data-glass="1"] .drawer { background: rgb(12 16 34 / .82); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); }
+
+/* cards, panels and the dashboard's own boxes */
+:root[data-glass="1"] .card, :root[data-glass="1"] .cn-card, :root[data-glass="1"] .cn-mcp, :root[data-glass="1"] .ag-card,
+:root[data-glass="1"] .ag-approvals, :root[data-glass="1"] .ag-create, :root[data-glass="1"] .ag-done, :root[data-glass="1"] .phead {
+  background: linear-gradient(150deg, rgb(255 255 255 / .09), rgb(255 255 255 / .035) 45%, rgb(255 255 255 / .025));
+  border-color: rgb(255 255 255 / .1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 14px 40px -18px rgb(0 0 0 / .6); }
+:root[data-glass="1"] .card.list { background: linear-gradient(150deg, rgb(255 255 255 / .085), rgb(255 255 255 / .03)); }
+:root[data-glass="1"] .cn-card.on { box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), inset 0 0 0 1px rgb(52 227 164 / .35), 0 0 24px -6px rgb(52 227 164 / .25); }
+
+/* buttons: glass pills, the primary one a lit gradient */
+:root[data-glass="1"] .btn { background: linear-gradient(180deg, rgb(255 255 255 / .13), rgb(255 255 255 / .05)); border-color: rgb(255 255 255 / .1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 4px 14px rgb(0 0 0 / .22); }
+:root[data-glass="1"] .btn:hover { background: linear-gradient(180deg, rgb(255 255 255 / .19), rgb(255 255 255 / .08)); }
+:root[data-glass="1"] .btn.primary { color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #a78bff), var(--accent) 55%, color-mix(in srgb, var(--accent) 60%, #4fe1ff));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .45), 0 8px 24px -6px color-mix(in srgb, var(--accent) 65%, transparent); }
+:root[data-glass="1"] .input, :root[data-glass="1"] .cn-in, :root[data-glass="1"] textarea, :root[data-glass="1"] select {
+  background-color: rgb(0 0 0 / .25); border-color: rgb(255 255 255 / .1); }
+:root[data-glass="1"] .side-status { background: rgb(255 255 255 / .05); box-shadow: inset 0 1px 0 rgb(255 255 255 / .08); }
+
+/* the notch: the island stays a black cut-out; its opened panels get the glass rim */
+:root[data-glass="1"].notch-doc .np {
+  background: linear-gradient(155deg, rgb(255 255 255 / .09), rgb(255 255 255 / .02) 40%), #101219;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), inset 0 0 0 1px rgb(255 255 255 / .08), 0 10px 30px -18px rgb(0 0 0 / .9); }
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-glass="1"] .m-head, :root[data-glass="1"] .tabs, :root[data-glass="1"] .drawer { -webkit-backdrop-filter: none; backdrop-filter: none; background: #0d1120; }
+}

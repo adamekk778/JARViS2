@@ -1,0 +1,48 @@
+/* 3.12 Velín firmy v telefonu */
+.m-co-entry { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; color: inherit; font: inherit;
+  cursor: pointer; }
+.m-co-entry strong { display: block; font-size: 15px; }
+.m-co-entry span:not(.m-co-ico) { color: var(--muted); font-size: 12.5px; }
+.m-co-entry em { font-style: normal; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 99px; display: grid; place-items: center; font-weight: 800;
+  font-size: 12px; color: #fff; background: linear-gradient(135deg, #ff6b8b, #ff3d6e); box-shadow: 0 0 12px rgb(255 61 110 / .5); }
+.m-co-ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; color: #fff;
+  background: radial-gradient(circle at 30% 25%, #ffb59e, #ff6b6b 45%, #7c3cff 100%); box-shadow: 0 0 22px rgb(255 120 110 / .4), inset 0 1px 0 rgb(255 255 255 / .5); }
+.m-co { position: fixed; inset: 0; z-index: 60; overflow-y: auto; background: #05070f;
+  background: radial-gradient(60% 40% at 10% 0%, rgb(92 60 255 / .45), transparent 70%), radial-gradient(50% 40% at 100% 30%, rgb(0 170 255 / .3), transparent 70%),
+    radial-gradient(60% 40% at 50% 110%, rgb(255 79 154 / .25), transparent 70%), #05070f;
+  animation: m-co-in .3s cubic-bezier(.2, .9, .3, 1); }
+.m-co[hidden] { display: none; }
+@keyframes m-co-in { from { opacity: 0; transform: translateY(16px); } }
+.m-co-in { display: grid; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom)); }
+.m-co-head { display: flex; justify-content: space-between; align-items: center; }
+.m-co-head small { color: var(--muted); font-size: 11px; letter-spacing: .16em; }
+.m-co-head strong { display: block; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.m-co-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.m-co-kpi, .m-co-prop, .m-co-dept, .m-co-run { border-radius: 18px; background: linear-gradient(150deg, rgb(255 255 255 / .1), rgb(255 255 255 / .035));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px -18px rgb(0 0 0 / .6); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.m-co-kpi { padding: 12px 14px; }
+.m-co-kpi b { display: block; font-size: 24px; font-weight: 800; }
+.m-co-kpi small { color: var(--muted); font-size: 12px; }
+.m-co-pause { justify-self: stretch; }
+.m-co h3 { margin: 8px 2px 0; font-size: 13px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.m-co-prop { padding: 14px; display: grid; gap: 6px; background: linear-gradient(150deg, rgb(255 191 90 / .16), rgb(255 255 255 / .04)); }
+.m-co-prop b { color: #ffe0a8; }
+.m-co-prop pre { margin: 0; max-height: 160px; overflow: auto; white-space: pre-wrap; font-size: 12px; color: var(--muted); }
+.m-co-dept { overflow: hidden; }
+.m-co-dhead { width: 100%; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 16px; gap: 10px; align-items: center; padding: 12px 14px; border: 0;
+  background: none; color: inherit; font: inherit; text-align: left; }
+.m-co-dico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; color: #fff;
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c) 85%, #fff), color-mix(in srgb, var(--c) 55%, #000));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--c) 40%, transparent); }
+.m-co-dhead small { color: var(--muted); font-size: 12px; }
+.m-co-agents { display: grid; gap: 2px; padding: 0 8px 10px; }
+.m-co-agent { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 6px; border-radius: 12px; }
+.m-co-agent b { display: block; font-size: 13.5px; font-weight: 600; }
+.m-co-agent small { color: var(--muted); font-size: 11.5px; }
+.m-co-dot { width: 9px; height: 9px; border-radius: 50%; background: #34e3a4; box-shadow: 0 0 8px #34e3a4; }
+.m-co-dot.run { background: #8aa8ff; box-shadow: 0 0 10px #8aa8ff; } .m-co-dot.bad { background: #ff5c7a; box-shadow: 0 0 8px #ff5c7a; }
+.m-co-dot.off { background: #3c4766; box-shadow: none; }
+.m-co-run { padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
+.m-co-run small { color: var(--muted); font-size: 11.5px; }
+.m-co-run p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12.5px; }
+.m-co-run.bad b { color: #ff9db0; }
