@@ -4,6 +4,7 @@ import "./agents.css";
 import { h, icon, toast } from "../shared/dom";
 import { hero, HEROES } from "../shared/hero";
 import type { JarvisClient } from "../shared/ws";
+import { openHQ } from "./hq";
 
 interface Agent { id: number; name: string; icon: string; role: string; task: string; tools: string[]; every_min: number; daily_at: string;
   work_hours: boolean; enabled: boolean; last_run: number | null; last_ok: number | null; last_result: string | null }
@@ -127,7 +128,9 @@ export function buildAgents(client: JarvisClient) {
 
   const el = h("section", { class: "ag-view" },
     hero(HEROES.agents, "Firemní agenti", "AI agenti, kteří se starají o tvoje služby – e-maily, databázi, domény, kalendář… "
-      + "Čtou a připravují sami, odeslat nebo změnit cokoli smí až po tvém schválení."),
+      + "Čtou a připravují sami, odeslat nebo změnit cokoli smí až po tvém schválení.",
+      [h("button", { type: "button", class: "btn primary ag-hq", title: "Celá firma na celé obrazovce: oddělení, 100 agentů, mozek firmy",
+        onclick: () => openHQ(client) }, icon("arrows-out", "ph-bold"), "Velín firmy")]),
     approvals, create, list, log);
   paint();
   return { el, show() { client.send("bizagents_get"); } };

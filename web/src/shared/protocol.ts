@@ -32,7 +32,7 @@ export const CLIENT_TYPES = [
   "link_get", "link_set", "link_check", "link_relay_script", "remote_start", "remote_stop", "remote_input",
   "photo_backup_get", "photo_backup_open", "wake_get", "wake_prepare", "brains_get", "brains_test_all", "gym_get", "gym_set", "gym_delete", "gym_plan_set", "habit_meal_photo", "habit_health", "health_get", "guard_get", "guard_set", "morning_get", "morning_set", "morning_test", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
   "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
-  "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
+  "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
   "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ] as const;
 

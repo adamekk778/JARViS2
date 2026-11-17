@@ -71,7 +71,7 @@ def test_there_are_many_services_and_every_write_asks():
 
 def test_every_tool_has_an_owner_and_every_service_a_group():
     for name, spec in tools.REGISTRY.items():
-        if spec.category == "propojení":
+        if spec.category == "propojení" and not name.startswith("company_"):     # the company brain is JARVIS' own
             assert connectors.owner(name), name
     for c in connectors.status():
         assert c["group"] in connectors.GROUPS, c["id"]

@@ -53,6 +53,7 @@ CLIENT_TYPES = [
     "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "nightcare_get", "nightcare_run", "brain_key", "selfcheck_run", "firewall_allow", "phone_net_get",
     "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
     "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
+    "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
 SERVER_TYPES = [
@@ -86,7 +87,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -1557,11 +1558,39 @@ class Connection:
             ok = await asyncio.to_thread(selfcheck.allow_firewall)
             await self.send("notify", title="Firewall", body="Potvrď v okně Windows (Ano). Pak dej Zkontrolovat znovu." if ok else "Jen na Windows.",
                             url="", target="dashboard")
-        elif t in ("bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide"):
-            from .. import bizagents     # 3.12 Firemní agenti: agents over Propojení; changes wait for your approval
+        elif t in ("bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
+                   "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set"):
+            from .. import bizagents, bizcompany     # 3.12 Firemní agenti + Velín firmy; changes wait for your approval
 
             msg, ok = "", True
             try:
+                if t == "bizcompany_build":
+                    r = bizcompany.build(rt, [str(d) for d in (m.get("depts") or [])] or None, bool(m.get("only_ready", True)))
+                    wait = ", ".join(f"{bizcompany.connector_name(c)} ({n})" for c, n in sorted(r["waiting"].items(), key=lambda x: -x[1])[:6])
+                    msg = (f"Najato {len(r['hired'])} agentů." if r["hired"] else "Žádný nový agent – všichni dostupní už pracují.") + (
+                        f" Další čekají na propojení: {wait}." if wait else "")
+                elif t == "bizagent_hire":
+                    bizcompany.hire(rt, str(m.get("key") or ""))
+                    msg = "Agent nastoupil."
+                elif t == "bizagents_bulk":
+                    n = bizcompany.bulk(rt, [int(i) for i in (m.get("ids") or [])], str(m.get("dept") or ""), m.get("enabled"),
+                                        bool(m.get("delete")))
+                    msg = f"Hotovo ({n} agentů)."
+                elif t == "bizbrain_add":
+                    bizcompany.brain_add(rt, str(m.get("text") or "")[:20000], str(m.get("source") or "ty")[:60])
+                    msg = "Uloženo do mozku firmy – agenti to od teď znají."
+                elif t == "bizbrain_delete":
+                    bizcompany.brain_delete(rt, int(m.get("id") or 0))
+                    msg = "Smazáno z mozku firmy."
+                elif t == "bizprofile_save":
+                    bizcompany.save_profile(rt, m.get("profile") or {})
+                    msg = "Profil firmy uložen – agenti podle něj pracují."
+                elif t == "bizbudget_set":
+                    bizcompany.set_budget(rt, int(m.get("runs") or 0))
+                    msg = f"Denní limit: {bizcompany.budget(rt)} běhů agentů."
+                elif t == "bizpause_set":
+                    bizcompany.set_paused(rt, bool(m.get("paused")))
+                    msg = "Všichni agenti stojí." if m.get("paused") else "Agenti zase pracují podle plánu."
                 if t == "bizagent_save":
                     bizagents.save(rt, m.get("agent") or {})
                     msg = "Agent uložen."

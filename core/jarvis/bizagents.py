@@ -107,11 +107,22 @@ TEMPLATES: dict[str, dict[str, Any]] = {
             "tools": ["vercel_deployments", "vercel_projects", "sentry_issues", "cloudflare_zones", "cloudflare_dns", "supabase_health"],
             "every_min": 0, "daily_at": "09:15"},
 }
-EXTRA_TOOLS = ["web_search", "web_read", "get_time"]
+EXTRA_TOOLS = ["web_search", "web_read", "get_time", "company_brain_search", "company_brain_note"]
+TEMPLATE_DEPT = {"email": "komunikace", "supabase": "tech", "domains": "tech", "calendar": "komunikace", "github": "tech",
+                 "slack": "komunikace", "office": "provoz", "outlook": "komunikace", "finance": "finance", "eshop": "provoz",
+                 "crm": "obchod", "tasks": "provoz", "web": "tech"}
 
 
 def _db(rt: Any):
-    rt.db.conn.executescript(SQL)
+    if not getattr(rt.db, "_biz_ready", False):
+        from . import bizcompany
+
+        rt.db.conn.executescript(SQL)
+        bizcompany.migrate(rt.db)              # 3.12 Velín: departments, the company brain, run history
+        try:
+            rt.db._biz_ready = True
+        except AttributeError:
+            pass
     return rt.db
 
 
@@ -153,17 +164,25 @@ def save(rt: Any, a: dict) -> int:
     if every and every < 15:
         every = 15                                # a free AI limit lasts longer this way
     daily = str(a.get("daily_at") or "").strip()
-    if daily and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", daily):
+    if daily and not re.fullmatch(r"([0-6] )?([01]\d|2[0-3]):[0-5]\d", daily):      # "08:30" daily, "0 08:30" every Monday
         raise ValueError("Čas napiš jako HH:MM, např. 08:30.")
-    vals = (name, str(a.get("icon") or "robot")[:40], str(a.get("role") or "")[:2000], str(a.get("task") or "")[:2000],
-            json.dumps(tl), every, daily, int(bool(a.get("work_hours", True))), int(bool(a.get("enabled", True))))
     db = _db(rt)
+    old = get(rt, int(a["id"])) if a.get("id") else None
+    keep = lambda k, n=200: str(a[k] if a.get(k) is not None else (old or {}).get(k) or "")[:n]  # noqa: E731
+    from .bizcompany import DEPTS
+
+    dept = keep("dept", 30)
+    if dept and dept not in DEPTS:
+        dept = ""
+    vals = (name, str(a.get("icon") or "robot")[:40], str(a.get("role") or "")[:2000], str(a.get("task") or "")[:2000],
+            json.dumps(tl), every, daily, int(bool(a.get("work_hours", True))), int(bool(a.get("enabled", True))),
+            dept, keep("skill", 160), keep("replaces", 300), keep("bkey", 40))
     if a.get("id"):
-        db.exec("UPDATE biz_agents SET name=?, icon=?, role=?, task=?, tools=?, every_min=?, daily_at=?, work_hours=?, enabled=? "
-                "WHERE id=?", (*vals, int(a["id"])))
+        db.exec("UPDATE biz_agents SET name=?, icon=?, role=?, task=?, tools=?, every_min=?, daily_at=?, work_hours=?, enabled=?, "
+                "dept=?, skill=?, replaces=?, bkey=? WHERE id=?", (*vals, int(a["id"])))
         return int(a["id"])
-    return int(db.exec("INSERT INTO biz_agents (name, icon, role, task, tools, every_min, daily_at, work_hours, enabled, created) "
-                       "VALUES (?,?,?,?,?,?,?,?,?,?)", (*vals, time.time())).lastrowid)
+    return int(db.exec("INSERT INTO biz_agents (name, icon, role, task, tools, every_min, daily_at, work_hours, enabled, dept, skill, "
+                       "replaces, bkey, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (*vals, time.time())).lastrowid)
 
 
 def from_template(rt: Any, key: str) -> int:
@@ -171,8 +190,11 @@ def from_template(rt: Any, key: str) -> int:
     if not t:
         raise ValueError("Takovou šablonu neznám.")
     # only the services that are connected (a template covers several – e.g. Fakturoid and iDoklad); none yet → all of them
-    usable = [n for n in t["tools"] if _connected(n)]
-    return save(rt, {**t, "tools": usable or t["tools"], "enabled": True})
+    from . import connectors
+    from .bizcompany import usable_tools
+
+    usable = usable_tools(t["tools"], {c for c in connectors.CONNECTORS if connectors.configured(c)})
+    return save(rt, {**t, "tools": usable, "enabled": True, "dept": TEMPLATE_DEPT.get(key, "")})
 
 
 def _connected(tool_name: str) -> bool:
@@ -187,7 +209,9 @@ def delete(rt: Any, aid: int) -> None:
 
 
 async def create_from_text(rt: Any, text: str) -> int:
-    """One sentence → an agent: the AI picks the name, role, task, tools and when it works."""
+    """One sentence → an agent: the AI picks the name, role, task, tools, department and when it works."""
+    from .bizcompany import DEPTS
+
     pool = [t for t in allowed_tools() if _connected(t["name"])]
     if not any(t["name"] not in EXTRA_TOOLS for t in pool):      # nothing connected yet: offer everything
         pool = allowed_tools()
@@ -196,7 +220,8 @@ async def create_from_text(rt: Any, text: str) -> int:
               "\"icon\": phosphor ikona (např. envelope-simple, database, globe, calendar-check, github-logo, slack-logo, robot), "
               "\"role\": kdo agent je a co hlídá (2 věty), \"task\": přesné zadání jedné práce, \"tools\": [jen názvy nástrojů ze "
               "seznamu, co potřebuje], \"every_min\": po kolika minutách pracovat (0 = ne pravidelně, jinak aspoň 15), \"daily_at\": "
-              "\"HH:MM\" nebo \"\" (jednou denně), \"work_hours\": true/false (jen 8–20 h)}. Česky.")
+              "\"HH:MM\" nebo \"\" (jednou denně), \"work_hours\": true/false (jen 8–20 h), \"dept\": oddělení – jedno z: "
+              + ", ".join(DEPTS) + ", \"skill\": co agent dělá jednou krátkou větou, \"replaces\": jakou ruční práci nahrazuje}. Česky.")
     out = await rt.router.complete([{"role": "user", "content": prompt}])
     m = re.search(r"\{.*\}", out or "", re.S)
     if not m:
@@ -246,6 +271,8 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
 
 # ---------------------------------------------------------------- running
 _RUNNING: set[int] = set()
+QUEUE: list[int] = []                 # due agents waiting for their turn (the control room shows them)
+_BACKOFF = [0.0]                       # the AI was down: the scheduled agents wait until then (a click on Spustit still works)
 
 
 async def run(rt: Any, aid: int, extra: str = "") -> dict:
@@ -260,10 +287,15 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
     names = set(a["tools"]) | set(EXTRA_TOOLS)
     schemas = [tools.REGISTRY[n].schema() for n in names if n in tools.REGISTRY]
     now = dt.datetime.now().strftime("%A %d. %m. %Y %H:%M")
-    msgs: list[dict] = [{"role": "system", "content": f"{COMMON}\n\nTy jsi „{a['name']}“: {a['role']}\nTeď je {now}."},
+    from . import bizcompany
+
+    company = bizcompany.context(rt, a)
+    started = time.time()
+    msgs: list[dict] = [{"role": "system", "content": f"{COMMON}\n\nTy jsi „{a['name']}“: {a['role']}\nTeď je {now}."
+                         + (f"\n\n{company}" if company else "")},
                         {"role": "user", "content": (a["task"] or "Udělej svou práci.") + (f"\n\n{extra}" if extra else "")}]
     proposed: list[int] = []
-    answer, ok = "", True
+    answer, ok, ai_down = "", True, False
     try:
         for rnd in range(MAX_ROUNDS + 1):
             text, calls = "", None
@@ -293,17 +325,22 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
                              "content": content if isinstance(content, str) else json.dumps(content, ensure_ascii=False, default=str)})
     except Exception as e:  # noqa: BLE001 – the AI is down, a limit… said in the result
         ok, answer = False, f"Agent nedoběhl: {e}"
+        ai_down = True
         log.info("biz agent %s: %s", a["name"], e)
     finally:
         _RUNNING.discard(a["id"])
     answer = answer or "(agent nic nenapsal)"
     _db(rt).exec("UPDATE biz_agents SET last_run=?, last_ok=?, last_result=? WHERE id=?", (time.time(), int(ok), answer[:4000], a["id"]))
+    try:
+        bizcompany.record_run(rt, a, started, time.monotonic() - t0, ok, len(proposed), answer)
+    except Exception as e:  # noqa: BLE001
+        log.info("run record: %s", e)
     rt.bus.publish("agent_activity", key=f"biz{a['id']}", name=a["name"], icon=a.get("icon") or "robot", state="done", ok=ok,
                    seconds=round(time.monotonic() - t0, 1))
     if proposed:
         rt.notify(f"{a['name']}: {len(proposed)} ke schválení", answer[:300], speak=False)
     publish(rt)
-    return {"ok": ok, "answer": answer, "proposals": proposed}
+    return {"ok": ok, "answer": answer, "proposals": proposed, "ai_down": ai_down}
 
 
 def due(a: dict, now: dt.datetime) -> bool:
@@ -315,30 +352,56 @@ def due(a: dict, now: dt.datetime) -> bool:
     if a.get("every_min"):
         return last is None or (now - last).total_seconds() >= a["every_min"] * 60
     if a.get("daily_at"):
-        hh, mm = map(int, a["daily_at"].split(":"))
+        d = a["daily_at"].split()
+        if len(d) == 2 and int(d[0]) != now.weekday():         # "0 08:30" = every Monday
+            return False
+        hh, mm = map(int, d[-1].split(":"))
         at = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
         return now >= at and (last is None or last < at)
     return False
 
 
 async def loop(rt: Any) -> None:
-    """Every minute: the agents whose time has come work, one after another (free AI limits last longer)."""
+    """Every minute: the agents whose time has come work, one after another (free AI limits last longer) – the longest
+    waiting first, within the day's budget of runs, unless the whole company is paused in the control room."""
+    from . import bizcompany
+
     await asyncio.sleep(90)
     while True:
         try:
             now = dt.datetime.now()
-            for a in agents(rt):
-                if due(a, now) and not rt.cfg.brain.offline_only:
-                    await run(rt, a["id"])
+            if time.time() < _BACKOFF[0]:
+                await asyncio.sleep(60)
+                continue
+            waiting = sorted((a for a in agents(rt) if due(a, now)), key=lambda a: a.get("last_run") or 0)
+            QUEUE[:] = [a["id"] for a in waiting]
+            for a in waiting:
+                if rt.cfg.brain.offline_only or not bizcompany.can_run(rt):
+                    break
+                QUEUE[:] = [i for i in QUEUE if i != a["id"]]
+                r = await run(rt, a["id"])
+                if not r.get("ok") and r.get("ai_down"):
+                    _BACKOFF[0] = time.time() + 600   # the AI does not answer: the others would only fail too – in 10 min again
+                    break
+            QUEUE.clear()
         except Exception as e:  # noqa: BLE001
             log.warning("biz agents: %s", e)
         await asyncio.sleep(60)
 
 
-def state(rt: Any) -> dict:
-    return {"agents": agents(rt), "proposals": proposals(rt), "templates": {k: {"name": v["name"], "icon": v["icon"], "role": v["role"],
-            "tools": v["tools"]} for k, v in TEMPLATES.items()}, "tools": allowed_tools(), "running": sorted(_RUNNING),
-            "done": proposals(rt, "done", 10) + proposals(rt, "failed", 5)}
+def state(rt: Any, full: bool = True) -> dict:
+    from . import bizcompany
+
+    ags = agents(rt)
+    for a in ags:
+        a["when"] = bizcompany.when(a)
+        a["last_result"] = (a.get("last_result") or "")[:1500] or None
+    out = {"agents": ags, "proposals": proposals(rt), "templates": {k: {"name": v["name"], "icon": v["icon"], "role": v["role"],
+           "tools": v["tools"]} for k, v in TEMPLATES.items()}, "tools": allowed_tools(), "running": sorted(_RUNNING),
+           "queue": list(QUEUE), "done": proposals(rt, "done", 10) + proposals(rt, "failed", 5)}
+    if full:
+        out["company"] = bizcompany.snapshot(rt)
+    return out
 
 
 def publish(rt: Any) -> None:
