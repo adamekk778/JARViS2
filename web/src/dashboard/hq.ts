@@ -103,6 +103,21 @@ class Brain {
   }
 }
 
+/** The shared SVG pieces of the glass look: the light on a glass disc, and the lens that bends what is behind. */
+function glassDefs(): SVGSVGElement {
+  return s("svg", { width: 0, height: 0, "aria-hidden": "true", style: "position:absolute;width:0;height:0" },
+    s("defs", {},
+      s("radialGradient", { id: "hq-sheen", cx: "32%", cy: "24%", r: "78%" },
+        s("stop", { offset: "0%", "stop-color": "#fff", "stop-opacity": ".55" }),
+        s("stop", { offset: "38%", "stop-color": "#fff", "stop-opacity": ".10" }),
+        s("stop", { offset: "70%", "stop-color": "#fff", "stop-opacity": "0" }),
+        s("stop", { offset: "100%", "stop-color": "#fff", "stop-opacity": ".18" })),
+      s("filter", { id: "hq-lens", x: "0%", y: "0%", width: "100%", height: "100%", "color-interpolation-filters": "sRGB" },
+        s("feTurbulence", { type: "fractalNoise", baseFrequency: "0.012 0.018", numOctaves: 1, seed: 4, result: "n" }),
+        s("feGaussianBlur", { in: "n", stdDeviation: 3, result: "nb" }),
+        s("feDisplacementMap", { in: "SourceGraphic", in2: "nb", scale: 26, xChannelSelector: "R", yChannelSelector: "G" }))));
+}
+
 export function openHQ(client: JarvisClient) {
   (window as any).__jarvisHQ ??= buildHQ(client);
   (window as any).__jarvisHQ.open();
@@ -148,7 +163,7 @@ function buildHQ(client: JarvisClient) {
   dump.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); (e.ctrlKey || e.metaKey ? toAgent : toBrain)(); }
   });
-  const dumpBox = h("div", { class: "hq-dump" }, dump,
+  const dumpBox = h("div", { class: "hq-dump glass" }, h("span", { class: "hq-dump-ico" }, icon("sparkle", "ph-fill")), dump,
     h("div", { class: "hq-dump-h" }, h("span", {}, "text · přetáhni soubor · Enter = do mozku · Ctrl+Enter = nový agent"),
       h("button", { type: "button", class: "hq-mini", onclick: toBrain }, icon("brain"), "Do mozku"),
       h("button", { type: "button", class: "hq-mini", onclick: toAgent }, icon("user-plus"), "Nový agent")));
@@ -159,18 +174,20 @@ function buildHQ(client: JarvisClient) {
       f.text().then((t) => client.send("bizbrain_add", { text: `[${f.name}]\n${t.slice(0, 19000)}`, source: f.name }));
     }
   };
+  const chips = h("div", { class: "hq-chips-top" });
   const root = h("div", { class: "hq", role: "dialog", "aria-label": "Velín firmy", hidden: true, ondragover: (e: DragEvent) => e.preventDefault(), ondrop: drop },
-    h("aside", { class: "hq-rail" },
+    h("div", { class: "hq-aurora", "aria-hidden": "true" }, h("i"), h("i"), h("i"), h("i")),
+    h("aside", { class: "hq-rail glass" },
       h("div", { class: "hq-brand" }, h("span", { class: "hq-logo" }, icon("circles-three-plus", "ph-fill")),
-        h("div", {}, h("b", {}, "JARVIS"), h("small", {}, "VELÍN FIRMY"))),
+        h("div", {}, h("b", {}, "JARVIS"), h("small", {}, "Velín firmy"))),
       nav, railStatus),
     h("main", { class: "hq-main" },
-      h("header", { class: "hq-head" },
-        h("div", { class: "hq-head-l" }, crumbs, h("div", { class: "hq-kicker" }, "// ŘÍDICÍ JÁDRO"), title),
+      h("header", { class: "hq-head glass" },
+        h("div", { class: "hq-head-l" }, h("div", { class: "hq-kicker" }, crumbs), title, chips),
         dumpBox,
-        h("button", { type: "button", class: "hq-x", title: "Zavřít velín (Esc)", "aria-label": "Zavřít velín", onclick: () => close() }, icon("x"))),
+        h("button", { type: "button", class: "hq-x lens", title: "Zavřít velín (Esc)", "aria-label": "Zavřít velín", onclick: () => close() }, icon("x"))),
       body));
-  document.body.append(root);
+  document.body.append(root, glassDefs());
 
   const NAV: [View, string, string][] = [["overview", "squares-four", "Přehled"], ["dept", "tree-structure", "Oddělení"], ["agents", "users-three", "Agenti"],
     ["approvals", "seal-check", "Ke schválení"], ["results", "pulse", "Výsledky"], ["brain", "brain", "Mozek firmy"], ["build", "buildings", "Postavit firmu"]];
@@ -186,6 +203,11 @@ function buildHQ(client: JarvisClient) {
       ...depts().map((d) => h("button", { type: "button", class: `hq-nav-i dept ${view === "dept" && deptId === d.id ? "on" : ""}`, style: { "--c": d.color },
         onclick: () => { deptId = d.id; go("dept"); } }, h("i", { class: "hq-dot" }), h("span", {}, d.name), h("small", {}, String(agentsOf(d.id).length)))));
     const run = agents.find((a) => running.includes(a.id));
+    chips.replaceChildren(
+      h("span", { class: "hq-chip-top ok" }, h("i"), `${agents.filter((a) => a.enabled).length} zapnuto`),
+      h("span", { class: `hq-chip-top ${props.length ? "warn" : ""}` }, h("i"), `${props.length} ke schválení`),
+      h("span", { class: "hq-chip-top" }, h("i"), `${n?.runs_today ?? 0} běhů dnes`),
+      run ? h("span", { class: "hq-chip-top run" }, h("i"), `pracuje: ${run.name}`) : "");
     railStatus.replaceChildren(
       h("div", { class: `hq-live ${run ? "run" : n?.paused ? "off" : ""}` }, h("i"),
         h("span", {}, run ? `Pracuje: ${run.name}` : n?.paused ? "Agenti stojí" : "Připraveno")),
@@ -257,8 +279,10 @@ function buildHQ(client: JarvisClient) {
           "aria-label": `${d.name}: ${mine.length} agentů`, onclick: () => { deptId = d.id; go("dept"); },
           onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") { deptId = d.id; go("dept"); } } },
           s("line", { x1: ex, y1: ey, x2: x, y2: y, class: "hq-link" }),
-          s("circle", { cx: x, cy: y, r: 27, class: "hq-dcirc" }),
-          s("text", { x, y: y + 5, class: "hq-dico" }, String(mine.length)),
+          s("circle", { cx: x, cy: y, r: 44, class: "hq-halo" }),
+          s("circle", { cx: x, cy: y, r: 28, class: "hq-dcirc" }),
+          s("circle", { cx: x, cy: y, r: 28, class: "hq-sheen", fill: "url(#hq-sheen)" }),
+          s("text", { x, y: y + 6, class: "hq-dico" }, String(mine.length)),
           s("text", { x, y: y + 46, class: "hq-dlabel" }, d.name.toUpperCase()));
         mine.slice(0, 18).forEach((ag, k) => {                       // the department's agents orbit it
           const b = (k / Math.max(1, Math.min(18, mine.length))) * Math.PI * 2 + a;
@@ -278,7 +302,7 @@ function buildHQ(client: JarvisClient) {
       brain.draw(ctx, geo.cx, geo.cy, geo.R, "#ff8a6b", running.length ? 0.006 : 0.0022);
     });
     const per = n?.per_dept || {};
-    const left = h("div", { class: "hq-panel hq-brainpanel" },
+    const left = h("div", { class: "hq-panel glass hq-brainpanel" },
       h("div", { class: "hq-ph" }, icon("brain"), "MOZEK FIRMY"),
       h("p", { class: "hq-sub" }, company?.profile?.name ? `${company.profile.name} – ${company.profile.what || "doplň, co firma dělá"}` : "Doplň profil firmy – agenti podle něj pracují."),
       h("div", { class: "hq-stats" },
@@ -293,7 +317,7 @@ function buildHQ(client: JarvisClient) {
           h("span", {}, d.name), h("i", { style: { "--p": `${(r.runs / max) * 100}%` } }), h("b", {}, String(r.runs)));
       }),
       h("button", { type: "button", class: "hq-btn wide", onclick: () => go("brain") }, icon("note-pencil"), "Otevřít mozek firmy"));
-    const right = h("div", { class: "hq-panel hq-legend" },
+    const right = h("div", { class: "hq-panel glass hq-legend" },
       h("div", { class: "hq-ph" }, icon("sliders-horizontal"), "LEGENDA"),
       ...[["on", "Zapnutý"], ["run", "Právě pracuje"], ["queue", "Čeká ve frontě"], ["bad", "Poslední běh selhal"], ["off", "Vypnutý"]]
         .map(([k, t]) => h("div", { class: "hq-leg" }, h("i", { class: `hq-adot-i ${k}` }), t)),
@@ -344,17 +368,20 @@ function buildHQ(client: JarvisClient) {
       nodeG.append(s("g", { class: `hq-anode ${st} ${cardId === id ? "sel" : ""}`, tabindex: 0, role: "button", "aria-label": label,
         onclick: () => { cardId = id; paint(); }, onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") { cardId = id; paint(); } } },
         s("title", {}, `${label} – ${skill}`),
+        s("circle", { cx: x, cy: y, r: 34, class: "hq-halo" }),
         s("circle", { cx: x, cy: y, r: 22, class: "hq-acirc" }),
+        s("circle", { cx: x, cy: y, r: 22, class: "hq-sheen", fill: "url(#hq-sheen)" }),
         s("text", { x, y: y + 6, class: "hq-aico" }, n.kind === "a" ? "◉" : "+"),
         s("text", { x, y: y + 42 + lift, class: "hq-alabel" }, trunc(label, 21)),
-        s("rect", { x: x - 7, y: jy - 7, width: 14, height: 14, rx: 2, class: "hq-job" }),
+        s("rect", { x: x - 8, y: jy - 8, width: 16, height: 16, rx: 5, class: "hq-job" }),
         s("text", { x, y: jy + 24 + lift, class: "hq-jlabel" }, trunc(skill, 24))));
     });
     svcIds.forEach((id) => {
       const c = conns.find((x) => x.id === id)!;
       const p = svcPos.get(id)!;
       nodeG.append(s("g", { class: `hq-svc ${c.connected ? "on" : "off"}` },
-        s("circle", { cx: p.x, cy: p.y, r: 13 }), s("circle", { cx: p.x, cy: p.y, r: 4.5, class: "core" }),
+        s("circle", { cx: p.x, cy: p.y, r: 15 }), s("circle", { cx: p.x, cy: p.y, r: 15, class: "hq-sheen", fill: "url(#hq-sheen)" }),
+        s("circle", { cx: p.x, cy: p.y, r: 4.5, class: "core" }),
         s("text", { x: p.x, y: p.y - 22, class: "hq-slabel" }, trunc(c.name.split(" (")[0], 16))));
     });
     svg.append(linkG, nodeG, s("text", { x: hub.x, y: hub.y + 58, class: "hq-hublabel" }, d.name.toUpperCase()));
@@ -364,7 +391,7 @@ function buildHQ(client: JarvisClient) {
       mini.draw(ctx, hub.x, hub.y, 34, d.color, running.some((r) => mine.find((a) => a.id === r)) ? 0.012 : 0.004, false);
     });
     const idx = ds.findIndex((x) => x.id === d.id);
-    const sw = h("div", { class: "hq-switch" },
+    const sw = h("div", { class: "hq-switch glass lens" },
       h("button", { type: "button", "aria-label": "Předchozí oddělení", onclick: () => { deptId = ds[(idx - 1 + ds.length) % ds.length].id; cardId = null; paint(); } }, icon("caret-left")),
       h("span", { style: { "--c": d.color } }, d.name.toUpperCase()),
       h("button", { type: "button", "aria-label": "Další oddělení", onclick: () => { deptId = ds[(idx + 1) % ds.length].id; cardId = null; paint(); } }, icon("caret-right")));
@@ -382,8 +409,11 @@ function buildHQ(client: JarvisClient) {
   const trunc = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 
   // ---------------------------------------------------------------- an agent's card
+  let shownCard: number | string | null = null;        // the card slides in once – not again at every live update
   const card = () => {
-    if (cardId === null) return "";
+    if (cardId === null) { shownCard = null; return ""; }
+    const fresh = cardId !== shownCard;
+    shownCard = cardId;
     const a = typeof cardId === "number" ? agents.find((x) => x.id === cardId) : undefined;
     const l = typeof cardId === "string" ? company?.library.find((x) => x.key === cardId) : a?.bkey ? company?.library.find((x) => x.key === a.bkey) : undefined;
     if (!a && !l) return "";
@@ -395,7 +425,7 @@ function buildHQ(client: JarvisClient) {
     const mine = a ? props.filter((p) => p.agent_id === a.id) : [];
     const rung = (k: string, t: string, txt: string) => h("div", { class: `hq-rung ${k}` }, h("b", {}, t), h("span", {}, txt));
     const closeCard = () => { cardId = null; paint(); };
-    return h("aside", { class: "hq-card", style: { "--c": d.color }, role: "dialog", "aria-label": a?.name || l!.name },
+    return h("aside", { class: `hq-card glass ${fresh ? "fresh" : ""}`, style: { "--c": d.color }, role: "dialog", "aria-label": a?.name || l!.name },
       h("div", { class: "hq-card-top" },
         h("button", { type: "button", class: "hq-back", onclick: closeCard }, icon("arrow-left"), `ZPĚT · ${d.name.toUpperCase()}`),
         h("button", { type: "button", class: "hq-x sm", "aria-label": "Zavřít", onclick: closeCard }, icon("x"))),
@@ -428,7 +458,7 @@ function buildHQ(client: JarvisClient) {
         l!.needs.length && !l!.usable ? h("small", { class: "hq-need" }, `Potřebuje propojit: ${l!.needs.map((c) => conns.find((x) => x.id === c)?.name.split(" (")[0] || c).join(", ")}`) : ""])));
   };
   const sec = (ic: string, t: string, ...kids: (Node | string)[]) => h("section", { class: "hq-sec" }, h("div", { class: "hq-sec-h" }, icon(ic), t), ...kids);
-  const propCard = (p: Proposal) => h("div", { class: "hq-prop" },
+  const propCard = (p: Proposal) => h("div", { class: "hq-prop glass" },
     h("div", { class: "hq-prop-h" }, h("b", {}, p.agent), h("span", {}, p.description)),
     p.details?.length ? h("pre", {}, p.details.slice(0, 30).join("\n")) : "",
     h("div", { class: "hq-prop-a" },
@@ -446,7 +476,7 @@ function buildHQ(client: JarvisClient) {
       h("option", { value: "" }, "Všechna oddělení"), ...depts().map((d) => h("option", { value: d.id, selected: filter.dept === d.id }, d.name)));
     const ssel = h("select", { class: "hq-sel", "aria-label": "Stav", onchange: (e: Event) => { filter.status = (e.target as HTMLSelectElement).value; paint(); } },
       h("option", { value: "" }, "Každý stav"), ...Object.entries(STATE_TXT).map(([k, v]) => h("option", { value: k, selected: filter.status === k }, v.toLowerCase())));
-    const rows = h("div", { class: "hq-table" });
+    const rows = h("div", { class: "hq-table glass" });
     const repaintList = () => {
       const qq = filter.q.toLowerCase();
       const l2 = list.filter((a) => !qq || `${a.name} ${a.skill} ${a.task}`.toLowerCase().includes(qq));
@@ -490,14 +520,14 @@ function buildHQ(client: JarvisClient) {
         kpi(company?.numbers.runs_week ? `${Math.round(((company.numbers.ok_week || 0) / company.numbers.runs_week) * 100)} %` : "–", "úspěšnost")),
       rs.length ? h("div", { class: "hq-feed" }, ...rs.map((r) => {
         const d = deptOf(r.dept);
-        return h("details", { class: `hq-run ${r.ok ? "" : "bad"}`, style: { "--c": d.color } },
+        return h("details", { class: `hq-run glass ${r.ok ? "" : "bad"}`, style: { "--c": d.color } },
           h("summary", {}, h("i", { class: "hq-dot" }), h("time", {}, clock(r.started)), h("b", {}, r.agent),
             h("span", {}, (r.summary || "").split("\n")[0].slice(0, 140)),
             h("em", {}, `${Math.round(r.seconds)} s${r.proposals ? ` · ${r.proposals} návrhů` : ""}`)),
           h("pre", {}, r.summary || ""));
       })) : h("p", { class: "hq-empty" }, "Zatím žádná práce – spusť agenta nebo počkej na jeho čas."));
   };
-  const kpi = (v: string, l: string) => h("div", { class: "hq-kpi" }, h("b", {}, v), h("small", {}, l));
+  const kpi = (v: string, l: string) => h("div", { class: "hq-kpi glass" }, h("b", {}, v), h("small", {}, l));
 
   const brainView = () => {
     const p = company?.profile || {};
@@ -506,7 +536,7 @@ function buildHQ(client: JarvisClient) {
     const note = h("textarea", { class: "hq-in", rows: 3, placeholder: "Ceník, pravidla, důležití zákazníci, co jsme rozhodli… cokoli, co mají agenti vědět",
       "aria-label": "Nová poznámka" }) as HTMLTextAreaElement;
     return h("div", { class: "hq-pane hq-brain" },
-      h("section", { class: "hq-panel" }, h("div", { class: "hq-ph" }, icon("identification-card"), "PROFIL FIRMY"),
+      h("section", { class: "hq-panel glass" }, h("div", { class: "hq-ph" }, icon("identification-card"), "PROFIL FIRMY"),
         h("p", { class: "hq-sub" }, "Tohle čte každý agent při každé práci."),
         ...Object.entries(fields).map(([k, label]) => {
           const ta = h("textarea", { class: "hq-in", rows: k === "rules" || k === "what" ? 3 : 2, "aria-label": label }, p[k] || "") as HTMLTextAreaElement;
@@ -515,7 +545,7 @@ function buildHQ(client: JarvisClient) {
         }),
         h("button", { type: "button", class: "hq-btn primary", onclick: () => client.send("bizprofile_save", { profile: Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, v.value])) }) },
           icon("floppy-disk"), "Uložit profil")),
-      h("section", { class: "hq-panel" }, h("div", { class: "hq-ph" }, icon("brain"), `POZNÁMKY (${company?.numbers.notes ?? 0})`),
+      h("section", { class: "hq-panel glass" }, h("div", { class: "hq-ph" }, icon("brain"), `POZNÁMKY (${company?.numbers.notes ?? 0})`),
         h("p", { class: "hq-sub" }, "Sem píšeš ty i agenti (čísla dne, rozhodnutí, poučení). Soubory .txt/.md/.csv můžeš přetáhnout kamkoli do velínu."),
         note, h("button", { type: "button", class: "hq-btn primary", onclick: () => { if (note.value.trim()) { client.send("bizbrain_add", { text: note.value.trim() }); note.value = ""; } } },
           icon("plus"), "Přidat do mozku"),
@@ -539,7 +569,7 @@ function buildHQ(client: JarvisClient) {
       const need = [...new Set(mine.filter((l) => !l.usable && !l.hired).flatMap((l) => l.needs))].map((c) => conns.find((x) => x.id === c)?.name.split(" (")[0] || c);
       const cb = h("input", { type: "checkbox", checked: true }) as HTMLInputElement;
       cb.onchange = () => { cb.checked ? chosen.add(d.id) : chosen.delete(d.id); count(); };
-      return h("label", { class: "hq-tile", style: { "--c": d.color } }, cb,
+      return h("label", { class: "hq-tile glass", style: { "--c": d.color } }, cb,
         h("span", { class: "hq-tile-ico" }, icon(d.icon, "ph-fill")),
         h("div", {}, h("b", {}, d.name), h("p", {}, d.desc),
           h("small", {}, `${mine.filter((l) => l.hired).length} / ${mine.length} najato · ${mine.filter((l) => !l.hired && l.usable).length} připraveno`),
@@ -551,7 +581,7 @@ function buildHQ(client: JarvisClient) {
       h("p", { class: "hq-sub" }, `Knihovna má ${lib.length} hotových agentů v ${depts().filter((d) => d.id !== "ostatni").length} odděleních. Najmi je jedním klikem – `
         + "dostanou nástroje tvých propojených služeb, profil a mozek firmy. Pracují postupně, jeden po druhém, v rámci denního limitu běhů."),
       h("div", { class: "hq-tiles" }, ...tiles),
-      h("div", { class: "hq-build" },
+      h("div", { class: "hq-build glass" },
         h("label", { class: "hq-check" }, ready, "Jen agenty, jejichž služby už jsou propojené"),
         h("button", { type: "button", class: "hq-btn primary big", onclick: () => client.send("bizcompany_build", { depts: [...chosen], only_ready: onlyReady }) },
           icon("buildings", "ph-fill"), "Postavit firmu (", total, " agentů)")));
@@ -571,11 +601,19 @@ function buildHQ(client: JarvisClient) {
     paintNav();
     animate(null);
     const scroll = (body.firstElementChild as HTMLElement | null)?.querySelector?.(".hq-tree-scroll")?.scrollLeft || 0;
+    const cardScroll = body.querySelector(".hq-card")?.scrollTop || 0;          // a live update must not jump the card
+    const paneScroll = body.querySelector(".hq-pane")?.scrollTop || 0;
     body.replaceChildren(view === "overview" ? overview() : view === "dept" ? deptView() : view === "agents" ? agentsView()
       : view === "approvals" ? approvalsView() : view === "results" ? resultsView() : view === "brain" ? brainView() : buildView());
     const sc = body.querySelector(".hq-tree-scroll") as HTMLElement | null;
     if (sc) sc.scrollLeft = scroll;
+    const cd = body.querySelector(".hq-card") as HTMLElement | null;
+    if (cd && !cd.classList.contains("fresh")) cd.scrollTop = cardScroll;
+    const pn = body.querySelector(".hq-pane") as HTMLElement | null;
+    if (pn && view === lastView) pn.scrollTop = paneScroll;
+    lastView = view;
   };
+  let lastView: View | null = null;
   const go = (v: View) => { view = v; if (v !== "dept") cardId = null; paint(); };
 
   // the agents/brain views have inputs: repainting under the user's fingers would lose what they type
