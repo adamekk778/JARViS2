@@ -13,7 +13,7 @@ _CACHE: dict = {"key": None, "thumb": ""}
 
 def path() -> str:
     """The wallpaper file Windows shows now ("" when there is none, e.g. a plain colour)."""
-    if sys.platform != "win32":
+    if "JARVIS_WALLPAPER" in os.environ or sys.platform != "win32":     # tests (and other systems) name it themselves
         return os.environ.get("JARVIS_WALLPAPER", "")
     try:
         import ctypes
