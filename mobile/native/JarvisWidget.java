@@ -27,8 +27,27 @@ public class JarvisWidget extends AppWidgetProvider {
     /** 3.12 the widget's "Zapnout PC": the magic packet straight from the widget, no app opened. */
     static final String WAKE = "cz.adamekk.jarvis.WIDGET_WAKE";
 
+    /** 3.12 the song on the PC: back / play-pause / next straight from the widget (sent to the PC, no app opened). */
+    static final String MEDIA = "cz.adamekk.jarvis.WIDGET_MEDIA";
+
     @Override
     public void onReceive(Context c, Intent intent) {
+        if (MEDIA.equals(intent.getAction())) {
+            final PendingResult done = goAsync();
+            final Context app = c.getApplicationContext();
+            final String action = intent.getStringExtra("action");
+            new Thread(() -> {
+                try {
+                    org.json.JSONObject b = new org.json.JSONObject();
+                    b.put("action", action == null ? "play_pause" : action);
+                    JarvisLink.http(app, "POST", "/api/phone/media", b.toString(), 8000);
+                } catch (Exception ignored) {
+                } finally {
+                    done.finish();
+                }
+            }, "jarvis-widget-media").start();
+            return;
+        }
         if (WAKE.equals(intent.getAction())) {
             final PendingResult done = goAsync();
             final Context app = c.getApplicationContext();
@@ -50,6 +69,11 @@ public class JarvisWidget extends AppWidgetProvider {
         super.onReceive(c, intent);
     }
 
+    private static PendingIntent media(Context c, String action, int code) {
+        Intent i = new Intent(c, JarvisWidget.class).setAction(MEDIA).putExtra("action", action);
+        return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     private static PendingIntent wake(Context c) {
         Intent i = new Intent(c, JarvisWidget.class).setAction(WAKE);
         return PendingIntent.getBroadcast(c, 9, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
@@ -68,6 +92,12 @@ public class JarvisWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.w_habits, habits);
         v.setViewVisibility(R.id.w_habits, habits.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
         v.setOnClickPendingIntent(R.id.w_habits, open(c, "habits", 4));
+        String song = p.getString("song", "");
+        v.setViewVisibility(R.id.w_music, song.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        v.setTextViewText(R.id.w_song, "♪  " + song);
+        v.setOnClickPendingIntent(R.id.w_prev, media(c, "previous", 21));
+        v.setOnClickPendingIntent(R.id.w_play, media(c, "play_pause", 22));
+        v.setOnClickPendingIntent(R.id.w_next, media(c, "next", 23));
         String ws = p.getString("wake_state", "");
         v.setTextViewText(R.id.w_wake, ws.isEmpty() ? "⏻  Zapnout PC" : "⏻  " + ws);
         v.setViewVisibility(R.id.w_wake, WakePc.known(c) ? android.view.View.VISIBLE : android.view.View.GONE);

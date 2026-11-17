@@ -346,6 +346,19 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         hb.publish(rt)
         return {"ok": True, "name": name}
 
+    @app.post("/api/phone/media")
+    async def phone_media(request: Request):
+        """3.12 the phone widget's ⏮ ⏯ ⏭: the song on this PC."""
+        require_auth(request)
+        body = await request.json()
+        action = str(body.get("action") or "")
+        if action not in ("play_pause", "next", "previous"):
+            raise HTTPException(400, "Neznámá akce")
+        from .. import tools as _tools
+
+        res = await _tools.call("media_control", {"action": action}, rt)
+        return {"ok": res.ok}
+
     @app.post("/api/phone/confirm")
     async def phone_confirm(request: Request):
         """3.12 "Povolit" / "Zamítnout" from the phone's notification while you are away from the PC."""

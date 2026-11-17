@@ -217,3 +217,26 @@ html[data-hand] .m-view { padding-top: 22vh; }
 .m-mirror { display: grid; gap: 4px; margin-top: 4px; }
 .m-pcaudio-row { display: grid; gap: 4px; margin-top: 10px; }
 .m-pcaudio { width: 100%; justify-content: center; }
+
+/* 3.12 Ke schválení (business agents) */
+.m-appr { display: grid; gap: 10px; box-shadow: inset 0 0 0 1px rgb(255 159 10 / .5); }
+.m-appr-h { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; }
+.m-appr-h i { color: #ff9f0a; font-size: 18px; }
+.m-appr-h span { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted, #8e9aa8); }
+.m-appr-item { display: grid; gap: 6px; padding: 10px; border-radius: 14px; background: rgb(0 0 0 / .25); }
+.m-appr-item b { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted, #8e9aa8); }
+.m-appr-item pre { margin: 0; padding: 8px; border-radius: 10px; background: rgb(255 255 255 / .05); white-space: pre-wrap; font: 12px/1.4 ui-monospace, monospace; max-height: 160px; overflow: auto; }
+/* 3.12 permissions guide */
+.m-wiz { position: fixed; inset: 0; z-index: 90; display: grid; align-items: end; background: rgb(0 0 0 / .55); }
+.m-wiz-card { display: grid; gap: 12px; max-height: 88vh; overflow: auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0;
+  background: var(--panel, #111317); }
+.m-wiz-head { display: flex; justify-content: space-between; align-items: center; }
+.m-wiz-head strong { font-size: 17px; }
+.m-wiz-sub { margin: 0; font-size: 13px; color: var(--muted, #8e9aa8); }
+.m-wiz-list { display: grid; gap: 8px; }
+.m-wiz-step { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px;
+  background: rgb(255 255 255 / .05); }
+.m-wiz-step > div { display: grid; gap: 2px; }
+.m-wiz-step span { font-size: 12.5px; color: var(--muted, #8e9aa8); }
+.m-wiz-step.done { opacity: .6; }
+.m-wiz-step.done .m-wiz-ico { color: #30d158; }

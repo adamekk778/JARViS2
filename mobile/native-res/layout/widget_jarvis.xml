@@ -42,6 +42,54 @@
         android:textColor="#FFFFFF"
         android:textSize="13sp"
         android:textStyle="bold" />
+    <LinearLayout
+        android:id="@+id/w_music"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/w_song"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="#F2F5FA"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/w_prev"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/widget_btn"
+            android:gravity="center"
+            android:text="⏮"
+            android:textColor="#F2F5FA"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/w_play"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/widget_btn"
+            android:gravity="center"
+            android:text="⏯"
+            android:textColor="#F2F5FA"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/w_next"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/widget_btn"
+            android:gravity="center"
+            android:text="⏭"
+            android:textColor="#F2F5FA"
+            android:textSize="14sp" />
+    </LinearLayout>
     <TextView
         android:id="@+id/w_pins"
         android:layout_width="match_parent"

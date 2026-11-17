@@ -102,8 +102,23 @@ def _first_sentence(text: str) -> str:
     return (m.group(1) if m else (text or "")).strip()[:300]
 
 
+# 3.12 Propojení: the actions that wait for a click, in words (what is sent / changed and where)
+CONNECTOR_LABELS = {
+    "google_gmail_send": "Odeslat e-mail", "google_gmail_draft": "Koncept e-mailu", "google_calendar_create": "Nová událost v kalendáři",
+    "google_sheets_append": "Zapsat do Google Tabulky", "google_docs_create": "Nový Google Dokument", "supabase_sql": "SQL v Supabase",
+    "spaceship_dns_set": "Změnit DNS záznam", "github_issue_create": "Nové issue na GitHubu", "notion_append": "Zapsat do Notionu",
+    "slack_post": "Zpráva do Slacku",
+}
+
+
 def describe_call(name: str, args: dict) -> str:
-    label = TOOL_LABELS.get(name, name)
+    label = CONNECTOR_LABELS.get(name) or TOOL_LABELS.get(name, name)
+    if name in ("google_gmail_send", "google_gmail_draft") and args.get("to"):
+        return f"{label}: {args['to']} – {args.get('subject', '')}"
+    if name == "spaceship_dns_set" and args.get("domain"):
+        return f"{label}: {args['domain']} {args.get('type', '')} {args.get('name', '@')} → {args.get('value', '')}"
+    if name == "slack_post" and args.get("channel"):
+        return f"{label}: {args['channel']}"
     if name == "volume" and args.get("action") == "set" and args.get("level") is not None:
         return f"{label}: {args['level']} %"
     if name == "media_control" and args.get("action") in MEDIA_ACTIONS:

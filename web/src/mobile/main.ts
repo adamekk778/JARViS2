@@ -7,6 +7,7 @@ import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
+import { approvalsCard, permissionsWizard } from "./agents";
 import { native, type BackupStatus, type PhoneStatus } from "./native";
 import { Blob } from "../character/blob";
 import { stopButton, TaskCard } from "../shared/taskcard";
@@ -223,7 +224,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("span", { class: "fl-entry-ico" }, icon("paper-plane-tilt", "ph-fill")),
     h("div", {}, h("strong", {}, "Poslat na PC"), h("span", {}, "Vyber soubor a švihni ho doprava")), icon("caret-right")));
   const clock = phoneClock(c);
-  views.home.prepend(clock.el, habitsGlance(c, () => show("habits")), phoneMusic(c));
+  views.home.prepend(clock.el, approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());
@@ -240,6 +241,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   };
   app.replaceChildren(h("div", { class: "m-shell" }, header, ...Object.values(views), tabs), drawer, scrim);
   show("chat");
+  window.setTimeout(() => permissionsWizard(), 1500);      // 3.12 the first time: the permissions one by one
 
   // 3.4 phone link: keep the phone reachable for JARVIS (ring, dial, SMS) and answer his calls
   if (native.phone.available) {
@@ -283,7 +285,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const MOOD_TEXT: Record<string, string> = { idle: "Připraven", listening: "Poslouchá…", thinking: "Přemýšlí…", working: "Pracuje…",
     speaking: "Mluví…", waiting: "Čeká na potvrzení", error: "Něco se nepovedlo", offline: "PC je nedostupné", sleeping: "Odpočívá",
     success: "Hotovo", joy: "Připraven", notify: "Má pro tebe zprávu", focus: "Režim soustředění", dancing: "Hraje hudba", limit: "Limit AI" };
-  const widget = { status: "", task: "", pins: "", habits: "", online: false };
+  const widget = { status: "", task: "", pins: "", habits: "", song: "", online: false };
   let widgetTimer = 0;
   const pushWidget = (o: Partial<typeof widget>) => {
     Object.assign(widget, o);
@@ -293,6 +295,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const pinsText = (items: any[]) => (items || []).slice(0, 3).map((p: any) => `• ${p.text}`).join("\n");
   const taskText = (t: any) => (t && ["running", "paused", "waiting"].includes(t.status) ? `Úkol: ${t.goal || t.title || ""}` : "");
   c.on("pins", (m) => pushWidget({ pins: pinsText(m.items) }));
+  // 3.12 the song on the PC with ⏮ ⏯ ⏭ in the widget
+  c.on("media", (m: any) => pushWidget({ song: m?.title ? `${m.title}${m.artist ? ` – ${m.artist}` : ""}` : "" }));
   // 3.12 the widget also shows today's habits ("Návyky 3 z 5 · zbývá Voda, Meditace")
   c.on("habits", (m: any) => {
     const t = m?.today;
@@ -598,6 +602,9 @@ function phoneCard(c: JarvisClient): HTMLElement {
 const unlockHelp = () => toast("Na stránce JARVIS: Oprávnění → zapni Telefon, SMS a Kontakty. U „odepřen přístup“: vpravo nahoře ⋮ → "
   + "Povolit omezená nastavení. Pak se vrať do JARVISe.", "info", 12000);
 const render = (st: PhoneStatus) => box.replaceChildren(
+    h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Průvodce oprávněními"),
+      h("span", {}, "Všechna povolení krok za krokem, i odemknutí omezených nastavení.")),
+      h("button", { class: "btn sm", type: "button", onclick: () => permissionsWizard(true) }, "Otevřít")),
     h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Spojení na pozadí"),
       h("span", {}, st.running ? "Běží – JARVIS ti může zavolat i se zavřenou aplikací." : "Vypnuto – JARVIS tě zastihne, jen když máš aplikaci otevřenou.")),
       sw(st.enabled, async (v) => { localStorage.setItem("jarvis.link", v ? "1" : "0"); render(await native.phone.configure({ enabled: v })); }, "Spojení na pozadí")),
