@@ -12,7 +12,7 @@ PRESETS: dict[str, dict] = {
     "cohere": {"label": "Cohere (zkušební klíč zdarma)", "base_url": "https://api.cohere.ai/compatibility/v1", "needs_key": True, "local": False, "model": "command-a-03-2025"},
     "huggingface": {"label": "Hugging Face", "base_url": "https://router.huggingface.co/v1", "needs_key": True, "local": False, "model": "openai/gpt-oss-120b"},
     "deepseek": {"label": "DeepSeek (levné, platí se kreditem)", "base_url": "https://api.deepseek.com/v1", "needs_key": True, "local": False, "model": "deepseek-chat", "fast_model": "deepseek-chat"},
-    "gemini": {"label": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "needs_key": True, "local": False, "model": "gemini-flash-latest", "fast_model": "gemini-flash-lite-latest"},
+    "gemini": {"label": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "needs_key": True, "local": False, "model": "gemini-3.8-flash", "fast_model": "gemini-3.5-flash-lite"},
     "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1", "needs_key": True, "local": False, "model": "gpt-4o-mini"},
     "anthropic": {"label": "Anthropic Claude", "base_url": "https://api.anthropic.com/v1", "needs_key": True, "local": False, "model": "claude-haiku-4-5"},
     "lmstudio": {"label": "LM Studio (offline)", "base_url": "http://localhost:1234/v1", "needs_key": False, "local": True, "model": "local-model"},

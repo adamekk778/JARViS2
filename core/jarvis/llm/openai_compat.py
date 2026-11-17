@@ -17,6 +17,44 @@ def _tls():
 
     return tlsctx.context()
 
+GEMINI_SKIP = "skip_thought_signature_validator"      # Google's documented value for calls without a signature
+
+
+def with_signatures(messages: list[dict]) -> list[dict]:
+    """Gemini 3 thinks before it calls a tool and signs that thought; the next request must carry the signature back on
+    the first tool call of every assistant step, or Gemini answers 400. Calls that came from another AI (a fallback
+    earlier in the chat) or an older JARVIS get Google's documented "skip" value instead."""
+    out = []
+    for m in messages:
+        calls = m.get("tool_calls") if m.get("role") == "assistant" else None
+        if calls:
+            calls = [dict(c) for c in calls]
+            first = calls[0]
+            google = ((first.get("extra_content") or {}).get("google") or {})
+            if not google.get("thought_signature"):
+                first["extra_content"] = {**(first.get("extra_content") or {}),
+                                          "google": {**google, "thought_signature": GEMINI_SKIP}}
+            m = {**m, "tool_calls": calls}
+        out.append(m)
+    return out
+
+
+def is_gemini(base_url: str) -> bool:
+    return "generativelanguage.googleapis.com" in base_url
+
+
+def best_gemini(models: list[str]) -> str:
+    """The newest general Flash model Google offers (not an image/TTS/live/preview variant)."""
+    def ver(m: str) -> tuple:
+        import re
+
+        v = re.search(r"gemini-(\d+(?:\.\d+)?)-flash", m)
+        return (float(v.group(1)) if v else 0.0, "lite" not in m)
+    names = [m.removeprefix("models/") for m in models]
+    good = [m for m in names if "flash" in m and not any(w in m for w in ("image", "tts", "live", "preview", "exp", "audio", "embed", "thinking"))]
+    return max(good, key=ver) if good else ""
+
+
 class OpenAICompat:
     def __init__(self, id: str, base_url: str, model: str, api_key: str = "", *,  # noqa: A002
                  temperature: float = 0.6, max_tokens: int = 2048,
@@ -41,6 +79,8 @@ class OpenAICompat:
         return h
 
     async def stream(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> AsyncIterator[Chunk]:
+        if is_gemini(self.base_url):
+            messages = with_signatures(messages)
         body: dict = {
             "model": model or self.model,
             "messages": messages,
@@ -128,6 +168,10 @@ def pick_model(models: list[str], prefer_free: bool = False) -> str:
     else the first one that can chat. `prefer_free`: the old model was a free one (OpenRouter) – stay free."""
     if not models:
         return ""
+    if any(m.removeprefix("models/").startswith("gemini-") for m in models[:50]):
+        g = best_gemini(models)                      # Google: the newest Flash (Google retires old ones every few months)
+        if g:
+            return g
     if prefer_free:
         if "openrouter/free" in models:
             return "openrouter/free"

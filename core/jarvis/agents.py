@@ -103,9 +103,7 @@ async def run(rt, key: str, task: str, context: str = "") -> dict:
             answer = text.strip()
             break
         calls = [c for c in calls if c.name not in NEVER_FOR_SPECIALISTS]
-        msgs.append({"role": "assistant", "content": text or None, "tool_calls": [
-            {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
-            for c in calls]})
+        msgs.append({"role": "assistant", "content": text or None, "tool_calls": [c.as_message() for c in calls]})
         for c in calls:
             if c.name not in AGENTS[key]["tools"]:
                 msgs.append({"role": "tool", "tool_call_id": c.id, "name": c.name,

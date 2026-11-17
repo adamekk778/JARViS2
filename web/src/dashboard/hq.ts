@@ -17,7 +17,8 @@ interface Lib { key: string; dept: string; name: string; icon: string; skill: st
   usable: boolean; hired: boolean; when: string }
 interface Run { id: number; agent_id: number; agent: string; dept: string; started: number; seconds: number; ok: number; proposals: number; summary: string }
 interface Numbers { runs_today: number; ok_today: number; proposals_today: number; runs_week: number; ok_week: number; approved_today: number;
-  pending: number; notes: number; per_dept: Record<string, { runs: number; ok: number }>; budget: number; paused: boolean }
+  pending: number; notes: number; per_dept: Record<string, { runs: number; ok: number }>; budget: number; paused: boolean;
+  per_day?: { label: string; runs: number; ok: number }[] }
 interface Company { depts: Dept[]; library: Lib[]; profile: Record<string, string>; profile_fields: Record<string, string>;
   notes: { id: number; text: string; source: string; created: number }[]; numbers: Numbers; runs: Run[] }
 interface Conn { id: string; name: string; icon: string; connected: boolean; prefixes: string[] }
@@ -69,7 +70,7 @@ class Brain {
     }
     this.labels = labels.map((text, k) => ({ text, i: Math.floor(((k + 0.5) / labels.length) * n) % n }));
   }
-  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, color: string, step = 0.0022, labels = true) {
+  draw(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, color: string, step = 0.0022, labels = true, far = "#8b5cff") {
     this.angle += step;
     const ca = Math.cos(this.angle), sa = Math.sin(this.angle), tilt = 0.32, ct = Math.cos(tilt), st = Math.sin(tilt);
     const pr = this.pts.map((p) => {
@@ -77,26 +78,34 @@ class Brain {
       const y = p.y * ct - z0 * st, z = p.y * st + z0 * ct;
       return { X: cx + x * R, Y: cy + y * R, z };
     });
-    ctx.lineWidth = 0.7;
+    const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.05);       // the warm light inside
+    core.addColorStop(0, `${color}38`); core.addColorStop(0.55, `${color}12`); core.addColorStop(1, `${color}00`);
+    ctx.fillStyle = core; ctx.beginPath(); ctx.arc(cx, cy, R * 1.05, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineWidth = 0.75;
     for (const [a, b] of this.links) {
       const za = (pr[a].z + pr[b].z) / 2;
-      ctx.strokeStyle = `${color}${Math.round(18 + (za + 1) * 34).toString(16).padStart(2, "0")}`;
+      ctx.strokeStyle = `${za > -0.1 ? color : far}${Math.round(14 + (za + 1) * 30).toString(16).padStart(2, "0")}`;
       ctx.beginPath(); ctx.moveTo(pr[a].X, pr[a].Y); ctx.lineTo(pr[b].X, pr[b].Y); ctx.stroke();
     }
-    for (const p of pr) {
-      const a = 0.35 + (p.z + 1) * 0.32;
-      ctx.fillStyle = color; ctx.globalAlpha = a;
-      ctx.beginPath(); ctx.arc(p.X, p.Y, 1.2 + (p.z + 1) * 1.15, 0, Math.PI * 2); ctx.fill();
+    for (const p of pr) {                        // near points warm and big, far ones violet and small
+      const near = (p.z + 1) / 2;
+      ctx.fillStyle = near > 0.45 ? color : far;
+      ctx.globalAlpha = 0.18 + near * 0.6;
+      ctx.beginPath(); ctx.arc(p.X, p.Y, 3.2 + near * 3.4, 0, Math.PI * 2); ctx.fill();          // the soft halo
+      ctx.globalAlpha = 0.45 + near * 0.55;
+      ctx.beginPath(); ctx.arc(p.X, p.Y, 0.9 + near * 1.5, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
     if (labels && R > 90) {
-      ctx.font = `${Math.max(10, Math.round(R / 16))}px ui-monospace, "Cascadia Mono", Consolas, monospace`;
+      ctx.font = `600 ${Math.max(10, Math.round(R / 15))}px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif`;
       ctx.textAlign = "center";
       for (const l of this.labels) {
         const p = pr[l.i];
-        if (p.z < -0.15) continue;
-        ctx.fillStyle = color; ctx.globalAlpha = Math.min(1, 0.25 + p.z);
-        ctx.fillText(l.text, p.X, p.Y - 6);
+        if (p.z < -0.1) continue;
+        ctx.fillStyle = "#ffd9cc"; ctx.globalAlpha = Math.min(0.9, 0.15 + p.z * 0.9);
+        ctx.fillText(l.text, p.X, p.Y - 8);
       }
       ctx.globalAlpha = 1;
     }
@@ -261,55 +270,74 @@ function buildHQ(client: JarvisClient) {
     brain.make(Math.min(320, 150 + (n?.notes || 0) * 2 + agents.length), ds.map((d) => d.name));
     const cv = h("canvas", { class: "hq-cv" }) as HTMLCanvasElement;
     const svg = s("svg", { class: "hq-svg" });
-    const stage = h("div", { class: "hq-stage" }, cv, svg);
+    const layer = h("div", { class: "hq-nodes" });
+    const stage = h("div", { class: "hq-stage" }, cv, svg, layer);
     let geo = { cx: 0, cy: 0, R: 0 };
+    let spots: { x: number; y: number; ex: number; ey: number; color: string; busy: boolean; n: number }[] = [];
+    const per = n?.per_dept || {};
     const layout = () => {
       const r = stage.getBoundingClientRect();
-      const R = Math.max(70, Math.min(r.width * 0.21, r.height * 0.22)), rx = Math.min(r.width * 0.37, r.height * 0.52), ry = r.height * 0.355;
+      const R = Math.max(70, Math.min(r.width * 0.2, r.height * 0.21)), rx = Math.min(r.width * 0.37, r.height * 0.52), ry = r.height * 0.355;
       geo = { cx: r.width / 2, cy: r.height / 2 - 6, R };
       svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
-      svg.replaceChildren(s("circle", { cx: geo.cx, cy: geo.cy, r: R * 1.08, class: "hq-ring" }));
-      ds.forEach((d, i) => {
+      svg.replaceChildren(s("circle", { cx: geo.cx, cy: geo.cy, r: R * 1.1, class: "hq-ring" }), s("circle", { cx: geo.cx, cy: geo.cy, r: R * 1.22, class: "hq-ring2" }));
+      spots = [];
+      layer.replaceChildren(...ds.map((d, i) => {
         const a = -Math.PI / 2 + (i / ds.length) * Math.PI * 2;
         const x = geo.cx + Math.cos(a) * rx, y = geo.cy + Math.sin(a) * ry;
-        const ex = geo.cx + Math.cos(a) * R * 1.08, ey = geo.cy + Math.sin(a) * R * 1.08;
+        const ex = geo.cx + Math.cos(a) * R * 1.1, ey = geo.cy + Math.sin(a) * R * 1.1;
         const mine = agentsOf(d.id);
         const busy = mine.some((x2) => running.includes(x2.id));
-        const g = s("g", { class: `hq-dnode ${busy ? "busy" : ""} ${mine.length ? "" : "empty"}`, style: `--c:${d.color}`, tabindex: 0, role: "button",
-          "aria-label": `${d.name}: ${mine.length} agentů`, onclick: () => { deptId = d.id; go("dept"); },
-          onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") { deptId = d.id; go("dept"); } } },
-          s("line", { x1: ex, y1: ey, x2: x, y2: y, class: "hq-link" }),
-          s("circle", { cx: x, cy: y, r: 44, class: "hq-halo" }),
-          s("circle", { cx: x, cy: y, r: 28, class: "hq-dcirc" }),
-          s("circle", { cx: x, cy: y, r: 28, class: "hq-sheen", fill: "url(#hq-sheen)" }),
-          s("text", { x, y: y + 6, class: "hq-dico" }, String(mine.length)),
-          s("text", { x, y: y + 46, class: "hq-dlabel" }, d.name.toUpperCase()));
-        mine.slice(0, 18).forEach((ag, k) => {                       // the department's agents orbit it
-          const b = (k / Math.max(1, Math.min(18, mine.length))) * Math.PI * 2 + a;
-          g.append(s("circle", { cx: x + Math.cos(b) * 37, cy: y + Math.sin(b) * 37, r: 3.2, class: `hq-adot ${state(ag)}` }));
-        });
-        svg.append(g);
-      });
+        const waiting = props.filter((p) => mine.some((m) => m.id === p.agent_id)).length;
+        spots.push({ x, y, ex, ey, color: d.color, busy, n: mine.length });
+        svg.append(s("line", { x1: ex, y1: ey, x2: x, y2: y, class: `hq-link ${busy ? "busy" : ""} ${mine.length ? "" : "empty"}`, style: `--c:${d.color}` }));
+        const runs = per[d.id === "ostatni" ? "" : d.id]?.runs || 0;
+        const orbit = h("span", { class: "hq-dn-orbit" }, ...mine.slice(0, 24).map((ag, k) =>
+          h("i", { class: `hq-dn-dot ${state(ag)}`, style: { transform: `rotate(${(k / Math.max(1, Math.min(24, mine.length))) * 360}deg) translateX(47px)` } })));
+        return h("button", { type: "button", class: `hq-dn ${busy ? "busy" : ""} ${mine.length ? "" : "empty"} ${y > geo.cy ? "low" : ""}`,
+          style: { left: `${x}px`, top: `${y}px`, "--c": d.color }, "aria-label": `${d.name}: ${mine.length} agentů`,
+          onclick: () => { deptId = d.id; go("dept"); } },
+          orbit,
+          h("span", { class: "hq-dn-disc" }, icon(d.icon, "ph-fill"), h("em", {}, String(mine.length))),
+          h("span", { class: "hq-dn-label" }, d.name),
+          h("span", { class: "hq-dn-tip" }, h("b", {}, d.name), h("span", {}, d.desc),
+            h("small", {}, `${mine.length} agentů · ${runs} běhů za týden${waiting ? ` · ${waiting} ke schválení` : ""}${busy ? " · právě pracuje" : ""}`)));
+      }));
     };
     const ro = new ResizeObserver(layout);
     requestAnimationFrame(() => { layout(); ro.observe(stage); });
-    animate(() => {
+    animate((t) => {
       if (!stage.isConnected) { ro.disconnect(); animate(null); return; }
       const { ctx } = fit(cv);
-      const glow = ctx.createRadialGradient(geo.cx, geo.cy, 0, geo.cx, geo.cy, geo.R * 1.5);
-      glow.addColorStop(0, "rgba(255,120,90,.16)"); glow.addColorStop(1, "rgba(255,120,90,0)");
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, geo.cx * 2, geo.cy * 2);
       brain.draw(ctx, geo.cx, geo.cy, geo.R, "#ff8a6b", running.length ? 0.006 : 0.0022);
+      ctx.globalCompositeOperation = "lighter";
+      for (const [k, sp] of spots.entries()) {          // signals: what the brain sends to the departments
+        if (!sp.n) continue;
+        const count = sp.busy ? 3 : 1, speed = sp.busy ? 0.00055 : 0.00016;
+        for (let j = 0; j < count; j++) {
+          const f = ((t * speed) + k * 0.137 + j / count) % 1;
+          const px = sp.ex + (sp.x - sp.ex) * f, py = sp.ey + (sp.y - sp.ey) * f;
+          const g = ctx.createRadialGradient(px, py, 0, px, py, sp.busy ? 9 : 6);
+          g.addColorStop(0, `${sp.color}ff`); g.addColorStop(0.35, `${sp.color}88`); g.addColorStop(1, `${sp.color}00`);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, sp.busy ? 9 : 6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalCompositeOperation = "source-over";
     });
-    const per = n?.per_dept || {};
+    const week = n?.per_day || [];
+    const wmax = Math.max(1, ...week.map((d) => d.runs));
     const left = h("div", { class: "hq-panel glass hq-brainpanel" },
       h("div", { class: "hq-ph" }, icon("brain"), "MOZEK FIRMY"),
       h("p", { class: "hq-sub" }, company?.profile?.name ? `${company.profile.name} – ${company.profile.what || "doplň, co firma dělá"}` : "Doplň profil firmy – agenti podle něj pracují."),
       h("div", { class: "hq-stats" },
-        stat(String(agents.length), "AGENTŮ"), stat(String(agents.filter((a) => a.enabled).length), "ZAPNUTO"),
-        stat(String(n?.notes ?? 0), "POZNÁMEK"), stat(String(conns.filter((c) => c.connected).length), "SLUŽEB"),
-        stat(String(n?.runs_today ?? 0), "BĚHŮ DNES"), stat(String(props.length), "KE SCHVÁLENÍ")),
-      h("div", { class: "hq-ph sm" }, icon("chart-bar"), "PRÁCE ODDĚLENÍ (7 DNÍ)"),
+        stat(String(agents.length), "AGENTŮ", "robot"), stat(String(agents.filter((a) => a.enabled).length), "ZAPNUTO", "power"),
+        stat(String(n?.notes ?? 0), "POZNÁMEK", "note"), stat(String(conns.filter((c) => c.connected).length), "SLUŽEB", "plugs-connected"),
+        stat(String(n?.runs_today ?? 0), "BĚHŮ DNES", "lightning"), stat(String(props.length), "KE SCHVÁLENÍ", "seal-check")),
+      week.length ? h("div", { class: "hq-ph sm" }, icon("chart-line-up"), "PRÁCE ZA TÝDEN") : "",
+      week.length ? h("div", { class: "hq-week" }, ...week.map((d) => h("div", { class: "hq-wcol", title: `${d.label}: ${d.runs} běhů, ${d.ok} úspěšných` },
+        h("i", { style: { "--h": `${Math.max(4, (d.runs / wmax) * 100)}%`, "--ok": `${d.runs ? (d.ok / d.runs) * 100 : 100}%` } }),
+        h("small", {}, d.label)))) : "",
+      h("div", { class: "hq-ph sm" }, icon("chart-bar"), "ODDĚLENÍ (7 DNÍ)"),
       ...ds.map((d) => {
         const r = per[d.id === "ostatni" ? "" : d.id] || { runs: 0, ok: 0 };
         const max = Math.max(1, ...Object.values(per).map((x) => x.runs));
@@ -318,17 +346,18 @@ function buildHQ(client: JarvisClient) {
       }),
       h("button", { type: "button", class: "hq-btn wide", onclick: () => go("brain") }, icon("note-pencil"), "Otevřít mozek firmy"));
     const right = h("div", { class: "hq-panel glass hq-legend" },
-      h("div", { class: "hq-ph" }, icon("sliders-horizontal"), "LEGENDA"),
+      h("div", { class: "hq-ph" }, icon("pulse"), "ŽIVĚ"),
       ...[["on", "Zapnutý"], ["run", "Právě pracuje"], ["queue", "Čeká ve frontě"], ["bad", "Poslední běh selhal"], ["off", "Vypnutý"]]
-        .map(([k, t]) => h("div", { class: "hq-leg" }, h("i", { class: `hq-adot-i ${k}` }), t)),
-      h("div", { class: "hq-ph sm" }, icon("robot"), `AI AGENTI (${agents.length})`),
+        .map(([k, t]) => h("div", { class: "hq-leg" }, h("i", { class: `hq-adot-i ${k}` }), t,
+          h("b", {}, String(agents.filter((a) => state(a) === k).length)))),
+      h("div", { class: "hq-ph sm" }, icon("robot"), `NAPOSLEDY PRACOVALI`),
       h("div", { class: "hq-mini-list" }, ...agents.slice().sort((a, b) => (b.last_run || 0) - (a.last_run || 0)).slice(0, 14).map((a) =>
-        h("button", { type: "button", class: "hq-mini-row", onclick: () => { deptId = a.dept || "ostatni"; cardId = a.id; go("dept"); } },
-          h("i", { class: `hq-adot-i ${state(a)}` }), h("span", {}, a.name), h("small", {}, ago(a.last_run))))),
+        h("button", { type: "button", class: "hq-mini-row", style: { "--c": deptOf(a.dept).color }, onclick: () => { deptId = a.dept || "ostatni"; cardId = a.id; go("dept"); } },
+          h("span", { class: "hq-mini-ico" }, icon(a.icon || "robot", "ph-fill")), h("span", {}, a.name), h("small", {}, ago(a.last_run))))),
       agents.length ? "" : h("button", { type: "button", class: "hq-btn wide primary", onclick: () => go("build") }, icon("buildings"), "Postavit firmu"));
     return h("div", { class: "hq-overview" }, left, stage, right);
   };
-  const stat = (v: string, l: string) => h("div", { class: "hq-stat" }, h("b", {}, v), h("small", {}, l));
+  const stat = (v: string, l: string, ic = "") => h("div", { class: "hq-stat" }, ic ? icon(ic, "ph-fill") : "", h("b", {}, v), h("small", {}, l));
 
   // ---------------------------------------------------------------- one department as a tree
   const deptView = () => {
@@ -350,7 +379,9 @@ function buildHQ(client: JarvisClient) {
     const hub = { x: W / 2, y: H - 70 };
     const sx = (i: number, n: number) => (W / (n + 1)) * (i + 1);
     const svcPos = new Map(svcIds.map((id, i) => [id, { x: sx(i, svcIds.length), y: 70 }]));
-    const linkG = s("g"), nodeG = s("g");
+    const linkG = s("g"), labelG = s("g");
+    const tlayer = h("div", { class: "hq-tnodes" });
+    inner.append(tlayer);
     nodes.forEach((n, i) => {
       const x = sx(i, nodes.length), y = 270, jy = 430;
       const id = n.kind === "a" ? n.a.id : n.l.key;
@@ -358,37 +389,34 @@ function buildHQ(client: JarvisClient) {
       for (const t of toolsOf(n)) {
         const o = ownerOf(t);
         const p = o && svcPos.get(o.id);
-        if (p) linkG.append(s("line", { x1: x, y1: y - 22, x2: p.x, y2: p.y + 16, class: `hq-tl ${st}` }));
+        if (p) linkG.append(s("line", { x1: x, y1: y - 28, x2: p.x, y2: p.y + 20, class: `hq-tl ${st}` }));
       }
-      linkG.append(s("line", { x1: x, y1: y + 22, x2: x, y2: jy - 8, class: `hq-tl v ${st}` }));
-      linkG.append(s("path", { d: `M${x} ${jy + 8} C ${x} ${jy + 80}, ${hub.x} ${hub.y - 90}, ${hub.x} ${hub.y - 34}`, class: `hq-flow ${st}` }));
+      linkG.append(s("line", { x1: x, y1: y + 28, x2: x, y2: jy - 9, class: `hq-tl v ${st}` }));
+      linkG.append(s("path", { d: `M${x} ${jy + 9} C ${x} ${jy + 80}, ${hub.x} ${hub.y - 90}, ${hub.x} ${hub.y - 38}`, class: `hq-flow ${st}` }));
       const label = n.kind === "a" ? n.a.name : n.l.name;
       const skill = n.kind === "a" ? (n.a.skill || n.a.task.slice(0, 40)) : n.l.skill;
       const lift = i % 2 ? 15 : 0;                        // neighbours' labels on two lines, never on top of each other
-      nodeG.append(s("g", { class: `hq-anode ${st} ${cardId === id ? "sel" : ""}`, tabindex: 0, role: "button", "aria-label": label,
-        onclick: () => { cardId = id; paint(); }, onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") { cardId = id; paint(); } } },
-        s("title", {}, `${label} – ${skill}`),
-        s("circle", { cx: x, cy: y, r: 34, class: "hq-halo" }),
-        s("circle", { cx: x, cy: y, r: 22, class: "hq-acirc" }),
-        s("circle", { cx: x, cy: y, r: 22, class: "hq-sheen", fill: "url(#hq-sheen)" }),
-        s("text", { x, y: y + 6, class: "hq-aico" }, n.kind === "a" ? "◉" : "+"),
-        s("text", { x, y: y + 42 + lift, class: "hq-alabel" }, trunc(label, 21)),
-        s("rect", { x: x - 8, y: jy - 8, width: 16, height: 16, rx: 5, class: "hq-job" }),
-        s("text", { x, y: jy + 24 + lift, class: "hq-jlabel" }, trunc(skill, 24))));
+      linkG.append(s("rect", { x: x - 9, y: jy - 9, width: 18, height: 18, rx: 6, class: `hq-job ${st}` }));
+      labelG.append(s("text", { x, y: jy + 26 + lift, class: `hq-jlabel ${st}` }, trunc(skill, 24)));
+      const ic = n.kind === "a" ? (n.a.icon || "robot") : n.l.icon;
+      tlayer.append(h("button", { type: "button", class: `hq-an ${st} ${cardId === id ? "sel" : ""}`, style: { left: `${x}px`, top: `${y}px` },
+        title: `${label} – ${skill}`, "aria-label": label, onclick: () => { cardId = id; paint(); } },
+        h("span", { class: "hq-an-disc" }, icon(ic, "ph-fill"), n.kind === "l" ? h("em", {}, icon("plus", "ph-bold")) : ""),
+        h("span", { class: "hq-an-label", style: { marginTop: `${lift}px` } }, trunc(label, 21))));
     });
     svcIds.forEach((id) => {
       const c = conns.find((x) => x.id === id)!;
       const p = svcPos.get(id)!;
-      nodeG.append(s("g", { class: `hq-svc ${c.connected ? "on" : "off"}` },
-        s("circle", { cx: p.x, cy: p.y, r: 15 }), s("circle", { cx: p.x, cy: p.y, r: 15, class: "hq-sheen", fill: "url(#hq-sheen)" }),
-        s("circle", { cx: p.x, cy: p.y, r: 4.5, class: "core" }),
-        s("text", { x: p.x, y: p.y - 22, class: "hq-slabel" }, trunc(c.name.split(" (")[0], 16))));
+      tlayer.append(h("span", { class: `hq-sv ${c.connected ? "on" : "off"}`, style: { left: `${p.x}px`, top: `${p.y}px` },
+        title: c.connected ? `${c.name} – propojeno` : `${c.name} – nepropojeno (Propojení)` },
+        h("span", { class: "hq-sv-label" }, trunc(c.name.split(" (")[0], 16)),
+        h("span", { class: "hq-sv-disc" }, icon(c.icon || "plug", "ph-fill"))));
     });
-    svg.append(linkG, nodeG, s("text", { x: hub.x, y: hub.y + 58, class: "hq-hublabel" }, d.name.toUpperCase()));
+    svg.append(linkG, labelG, s("text", { x: hub.x, y: hub.y + 62, class: "hq-hublabel" }, d.name.toUpperCase()));
     animate(() => {
       if (!cv.isConnected) { animate(null); return; }
       const { ctx } = fit(cv);
-      mini.draw(ctx, hub.x, hub.y, 34, d.color, running.some((r) => mine.find((a) => a.id === r)) ? 0.012 : 0.004, false);
+      mini.draw(ctx, hub.x, hub.y, 38, d.color, running.some((r) => mine.find((a) => a.id === r)) ? 0.012 : 0.004, false, d.color);
     });
     const idx = ds.findIndex((x) => x.id === d.id);
     const sw = h("div", { class: "hq-switch glass lens" },
@@ -429,10 +457,16 @@ function buildHQ(client: JarvisClient) {
       h("div", { class: "hq-card-top" },
         h("button", { type: "button", class: "hq-back", onclick: closeCard }, icon("arrow-left"), `ZPĚT · ${d.name.toUpperCase()}`),
         h("button", { type: "button", class: "hq-x sm", "aria-label": "Zavřít", onclick: closeCard }, icon("x"))),
-      h("h3", {}, a?.skill || l?.skill || a?.name || ""),
-      h("div", { class: "hq-card-sub" }, `${d.name.toUpperCase()} · ${a?.name || l!.name}`),
+      h("div", { class: "hq-card-hero" },
+        h("span", { class: `hq-card-ico ${st}` }, icon(a?.icon || l?.icon || "robot", "ph-fill")),
+        h("div", {}, h("h3", {}, a?.skill || l?.skill || a?.name || ""),
+          h("div", { class: "hq-card-sub" }, `${d.name.toUpperCase()} · ${a?.name || l!.name}`))),
       h("div", { class: "hq-pills" }, h("span", { class: `hq-pill ${st}` }, a ? STATE_TXT[st] : "V KNIHOVNĚ"),
         h("span", { class: "hq-pill" }, icon("clock"), a?.when || l!.when), live.get(a?.id || -1) ? h("span", { class: "hq-pill run" }, nice(live.get(a!.id)!)) : ""),
+      a ? h("div", { class: "hq-card-stats" },
+        h("div", {}, h("b", {}, String(a.runs || 0)), h("small", {}, "běhů")),
+        h("div", {}, h("b", {}, a.runs ? `${Math.round(((a.runs - (a.fails || 0)) / a.runs) * 100)} %` : "–"), h("small", {}, "úspěšnost")),
+        h("div", {}, h("b", {}, mine.length ? String(mine.length) : "0"), h("small", {}, "ke schválení"))) : "",
       sec("wrench", "NÁSTROJE", h("div", { class: "hq-chips" }, ...tools.slice(0, 18).map((t) => h("span", { class: "hq-chip" }, nice(t))))),
       svc.length ? sec("plugs-connected", "NAPOJENO NA", h("div", { class: "hq-chips" }, ...svc.map((c) =>
         h("span", { class: `hq-chip svc ${c.connected ? "on" : "off"}`, title: c.connected ? "propojeno" : "nepropojeno – Propojení" }, h("i"), c.name.split(" (")[0])))) : "",
@@ -598,6 +632,9 @@ function buildHQ(client: JarvisClient) {
     title.textContent = view === "dept" ? deptOf(deptId).name.toUpperCase() : view === "overview" ? (name ? name.toUpperCase() : "VELÍN FIRMY") : TITLES[view];
     crumbs.textContent = `jarvis / velín / ${TITLES[view].toLowerCase()}`;
     root.dataset.view = view;
+    const key = `${view}:${view === "dept" ? deptId : ""}`;
+    const enter = key !== lastKey;
+    lastKey = key;
     paintNav();
     animate(null);
     const scroll = (body.firstElementChild as HTMLElement | null)?.querySelector?.(".hq-tree-scroll")?.scrollLeft || 0;
@@ -605,6 +642,7 @@ function buildHQ(client: JarvisClient) {
     const paneScroll = body.querySelector(".hq-pane")?.scrollTop || 0;
     body.replaceChildren(view === "overview" ? overview() : view === "dept" ? deptView() : view === "agents" ? agentsView()
       : view === "approvals" ? approvalsView() : view === "results" ? resultsView() : view === "brain" ? brainView() : buildView());
+    if (enter) (body.firstElementChild as HTMLElement | null)?.classList.add("enter");
     const sc = body.querySelector(".hq-tree-scroll") as HTMLElement | null;
     if (sc) sc.scrollLeft = scroll;
     const cd = body.querySelector(".hq-card") as HTMLElement | null;
@@ -614,6 +652,7 @@ function buildHQ(client: JarvisClient) {
     lastView = view;
   };
   let lastView: View | null = null;
+  let lastKey = "";
   const go = (v: View) => { view = v; if (v !== "dept") cardId = null; paint(); };
 
   // the agents/brain views have inputs: repainting under the user's fingers would lose what they type

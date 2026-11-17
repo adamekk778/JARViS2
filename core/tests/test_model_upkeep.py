@@ -16,7 +16,7 @@ def test_dead_saved_models_move_to_living_ones():
         {"id": "nvidia", "preset": "nvidia", "model": "meta/llama-3.3-70b-instruct"},
         {"id": "mine", "preset": "custom", "model": "meta/llama-3.3-70b-instruct"}], "chain": ["gemini"]}})
     m = {p.id: p for p in cfg.brain.providers}
-    assert (m["gemini"].model, m["gemini"].fast_model) == ("gemini-flash-latest", "gemini-flash-lite-latest")
+    assert (m["gemini"].model, m["gemini"].fast_model) == ("gemini-3.8-flash", "gemini-3.5-flash-lite")
     assert m["openrouter"].model == "openrouter/free"
     assert m["nvidia"].model == "openai/gpt-oss-20b"
     assert m["mine"].model == "meta/llama-3.3-70b-instruct"          # your own endpoint: untouched
@@ -25,7 +25,10 @@ def test_dead_saved_models_move_to_living_ones():
 def test_presets_no_longer_name_dead_models():
     assert PRESETS["nvidia"]["model"] == "openai/gpt-oss-20b"
     assert PRESETS["openrouter"]["model"] == "openrouter/free"
-    assert PRESETS["gemini"]["model"] == "gemini-flash-latest"
+    assert PRESETS["gemini"]["model"] == "gemini-3.8-flash"            # a versioned name, not a "-latest" alias
+    cfg = Config.model_validate({"brain": {"providers": [{"id": "g", "preset": "gemini", "model": "gemini-flash-latest",
+                                                          "fast_model": "gemini-flash-lite-latest"}], "chain": ["g"]}})
+    assert (cfg.brain.providers[0].model, cfg.brain.providers[0].fast_model) == ("gemini-3.8-flash", "gemini-3.5-flash-lite")
 
 
 def test_end_of_life_answer_counts_as_unknown_model():

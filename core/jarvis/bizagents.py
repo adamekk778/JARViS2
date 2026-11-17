@@ -306,9 +306,7 @@ async def run(rt: Any, aid: int, extra: str = "") -> dict:
             if not calls or rnd >= MAX_ROUNDS:
                 answer = text.strip()
                 break
-            msgs.append({"role": "assistant", "content": text or None, "tool_calls": [
-                {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
-                for c in calls]})
+            msgs.append({"role": "assistant", "content": text or None, "tool_calls": [c.as_message() for c in calls]})
             for c in calls:
                 spec = tools.REGISTRY.get(c.name)
                 if spec is None or c.name not in names:

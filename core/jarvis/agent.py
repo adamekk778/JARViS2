@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
 import uuid
@@ -512,10 +511,7 @@ class Agent:
                     break
                 if rnd >= rounds:
                     break
-                msgs.append({"role": "assistant", "content": round_text or None, "tool_calls": [
-                    {"id": c.id, "type": "function",
-                     "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
-                    for c in calls]})
+                msgs.append({"role": "assistant", "content": round_text or None, "tool_calls": [c.as_message() for c in calls]})
                 safe = [c for c in calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
                     tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
                 results: dict[str, dict] = {}

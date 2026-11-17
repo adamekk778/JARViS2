@@ -10,6 +10,16 @@ class ToolCall:
     id: str
     name: str
     arguments: dict
+    extra: dict | None = None        # what the provider attached to the call and wants back (Gemini 3: the thought signature)
+
+    def as_message(self) -> dict:
+        """The call as it goes back in the conversation history (with the provider's extra, if any)."""
+        import json
+
+        out = {"id": self.id, "type": "function", "function": {"name": self.name, "arguments": json.dumps(self.arguments, ensure_ascii=False)}}
+        if self.extra:
+            out["extra_content"] = self.extra
+        return out
 
 
 @dataclass
@@ -87,6 +97,7 @@ class _PartialCall:
     id: str = ""
     name: str = ""
     args: str = ""
+    extra: dict | None = None
 
 
 @dataclass
@@ -99,6 +110,8 @@ class ToolCallAssembler:
             p = self.parts.setdefault(d.get("index", len(self.parts)), _PartialCall())
             if d.get("id"):
                 p.id = d["id"]
+            if isinstance(d.get("extra_content"), dict):
+                p.extra = {**(p.extra or {}), **d["extra_content"]}
             fn = d.get("function") or {}
             if fn.get("name"):
                 p.name += fn["name"]
@@ -115,5 +128,6 @@ class ToolCallAssembler:
                 args = json.loads(p.args) if p.args.strip() else {}
             except ValueError:
                 args = {"_raw": p.args}
-            out.append(ToolCall(id=p.id or f"call_{i}", name=p.name, arguments=args if isinstance(args, dict) else {"value": args}))
+            out.append(ToolCall(id=p.id or f"call_{i}", name=p.name, arguments=args if isinstance(args, dict) else {"value": args},
+                                extra=p.extra))
         return out

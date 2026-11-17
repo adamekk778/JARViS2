@@ -17,7 +17,7 @@ const AI: Record<Pid, { name: string; base: string; model: string; url: string; 
     prefix: "gsk_", hint: "Velmi rychlá. Klíč gsk_…", ico: "lightning" },
   cerebras: { name: "Cerebras", base: "https://api.cerebras.ai/v1", model: "gpt-oss-120b", url: "https://cloud.cerebras.ai",
     prefix: "csk-", hint: "Nejrychlejší. Klíč csk-…", ico: "rocket-launch" },
-  gemini: { name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-flash-latest", url: "https://aistudio.google.com/apikey",
+  gemini: { name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.8-flash", url: "https://aistudio.google.com/apikey",
     prefix: "AIza", hint: "Od Googlu. Klíč AIza…", ico: "sparkle" },
   openrouter: { name: "OpenRouter", base: "https://openrouter.ai/api/v1", model: "openrouter/free", url: "https://openrouter.ai/keys",
     prefix: "sk-or-", hint: "Modely zdarma. Klíč sk-or-…", ico: "shuffle" },
@@ -75,7 +75,8 @@ async function call(url: string, method: "GET" | "POST", headers: Record<string,
 // asks the service which ones it has, takes the best and remembers it
 const MODELS = "jarvis.solo.models";
 const NOT_CHAT = /whisper|tts|guard|embed|safety|moderation|retriev|clip|detector|calibration|translate|starcoder|code/i;
-const modelOf = (p: Pid) => load<Record<string, string>>(MODELS, {})[p] || AI[p].model;
+const OLD = /^gemini-(flash|flash-lite|pro)-latest$|^gemini-(1\.5|2\.0|2\.5)-/;          // names Google switched off or re-pointed
+const modelOf = (p: Pid) => { const m = load<Record<string, string>>(MODELS, {})[p]; return m && !OLD.test(m) ? m : AI[p].model; };
 function pickModel(ids: string[], free: boolean): string {
   const chat = ids.filter((m) => !NOT_CHAT.test(m));
   if (free) {
@@ -83,7 +84,11 @@ function pickModel(ids: string[], free: boolean): string {
     const f = chat.find((m) => m.endsWith(":free"));
     if (f) return f;
   }
-  for (const want of ["openai/gpt-oss-120b", "gpt-oss-120b", "gemini-flash-latest", "openai/gpt-oss-20b", "gpt-oss-20b"]) if (ids.includes(want)) return want;
+  // Google: the newest general Flash (they retire old ones every few months; "-latest" aliases can point at a dead one)
+  const gem = chat.map((m) => m.replace(/^models\//, "")).filter((m) => /^gemini-\d+(\.\d+)?-flash/.test(m) && !/image|tts|live|preview|exp|audio/.test(m))
+    .sort((a, b) => parseFloat(b.slice(7)) - parseFloat(a.slice(7)) || Number(a.includes("lite")) - Number(b.includes("lite")));
+  if (gem.length) return gem[0];
+  for (const want of ["openai/gpt-oss-120b", "gpt-oss-120b", "openai/gpt-oss-20b", "gpt-oss-20b"]) if (ids.includes(want)) return want;
   return chat.find((m) => /gemini.*flash|mistral-(medium|large)|llama|qwen|deepseek|nemotron|gemma/i.test(m)) || chat[0] || "";
 }
 const goneModel = (status: number, data: any) => [400, 404, 410, 422].includes(status)

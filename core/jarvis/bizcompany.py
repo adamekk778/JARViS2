@@ -471,10 +471,18 @@ def numbers(rt: Any) -> dict:
     per = {r["dept"] or "": {"runs": r["n"], "ok": r["good"] or 0} for r in
            db.all("SELECT dept, COUNT(*) AS n, SUM(ok) AS good FROM biz_runs WHERE started >= ? GROUP BY dept", (t0 - 6 * 86400,))}
     n_today = int((today or {})["n"] or 0) if today else 0
+    import datetime as dt
+
+    days = []
+    for k in range(6, -1, -1):                       # the last 7 days for the week chart
+        a = t0 - k * 86400
+        r = db.one("SELECT COUNT(*) AS n, SUM(ok) AS good FROM biz_runs WHERE started >= ? AND started < ?", (a, a + 86400))
+        days.append({"label": ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"][dt.date.fromtimestamp(a).weekday()],
+                     "runs": int(r["n"] or 0) if r else 0, "ok": int(r["good"] or 0) if r else 0})
     return {"runs_today": n_today, "ok_today": int(today["good"] or 0) if today else 0, "proposals_today": int(today["props"] or 0) if today else 0,
             "runs_week": int(week["n"] or 0) if week else 0, "ok_week": int(week["good"] or 0) if week else 0,
             "approved_today": int(approved["n"] or 0) if approved else 0, "pending": int(pending["n"] or 0) if pending else 0,
-            "notes": int(notes["n"] or 0) if notes else 0, "per_dept": per, "budget": budget(rt), "paused": paused(rt)}
+            "notes": int(notes["n"] or 0) if notes else 0, "per_dept": per, "budget": budget(rt), "paused": paused(rt), "per_day": days}
 
 
 # ---------------------------------------------------------------- the library

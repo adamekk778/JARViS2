@@ -39,7 +39,7 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
 
 # Groq's free models each have their own limits: when one is used up for the day, another one still answers
 # 3.12 when a service says "high demand" (503): its other models, lightest first
-BUSY_ALT = {"gemini": ("gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"),
+BUSY_ALT = {"gemini": ("gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.1-flash-lite"),
             "groq": ("openai/gpt-oss-20b", "llama-3.1-8b-instant"), "cerebras": ("llama3.1-8b",),
             "mistral": ("mistral-small-latest",), "openrouter": ("openrouter/free",)}
 GROQ_ALT = ("openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile",
