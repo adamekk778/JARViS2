@@ -25,7 +25,7 @@ TOKEN = "https://oauth2.googleapis.com/token"
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/calendar",
           "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/documents",
           "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/contacts.readonly",
-          "openid", "email"]
+          "https://www.googleapis.com/auth/tasks", "openid", "email"]
 _PENDING: dict[str, dict] = {}          # state → {"verifier", "redirect", "at"}
 _ACCESS: dict[str, Any] = {"token": "", "until": 0.0}
 
@@ -43,13 +43,14 @@ register("google", "Google (Gmail, Kalendář, Disk, Dokumenty, Tabulky)", "goog
     {"key": "client_secret", "label": "Client secret", "secret": True, "hint": "GOCSPX-…"},
 ], [
     "Otevři console.cloud.google.com a vytvoř projekt (např. „JARVIS“).",
-    "APIs & Services → Library: zapni Gmail API, Google Calendar API, Google Drive API, Google Docs API, Google Sheets API a People API.",
+    "APIs & Services → Library: zapni Gmail API, Google Calendar API, Google Drive API, Google Docs API, Google Sheets API, People API a Google Tasks API.",
     "OAuth consent screen: typ External, vyplň název a svůj e-mail, v Test users přidej svůj Gmail.",
     "Credentials → Create credentials → OAuth client ID → typ „Desktop app“.",
     "Zkopíruj Client ID a Client secret sem, ulož a klikni „Přihlásit se Googlem“.",
 ], url="https://console.cloud.google.com/apis/credentials", oauth=True,
-    what="E-maily (číst, koncepty, odesílat s potvrzením), kalendář, soubory na Disku, Dokumenty, Tabulky a kontakty.",
-    test=_test)
+    what="E-maily (číst, koncepty, odesílat s potvrzením), kalendář s Google Meet, Disk, Dokumenty, Tabulky, Úkoly a kontakty.",
+    test=_test, group="work", login="Přihlásit se Googlem",
+    probe={"method": "GET", "url": "https://gmail.googleapis.com/gmail/v1/users/me/profile", "headers": {"Authorization": "Bearer FAKE"}})
 
 
 # ---------------------------------------------------------------- sign-in
@@ -232,18 +233,26 @@ async def calendar_events(ctx, days: Annotated[int, "kolik dní dopředu"] = 7) 
         return _fail(e)
 
 
-@tool("google_calendar_create", "Google Kalendář: vytvoří událost (a pozve lidi – pošle jim pozvánku). Zeptá se uživatele.",
-      danger=True, category="propojení", perm="network",
+@tool("google_calendar_create", "Google Kalendář: vytvoří událost (a pozve lidi – pošle jim pozvánku, volitelně s Google Meet). "
+      "Zeptá se uživatele.", danger=True, category="propojení", perm="network",
       details=lambda a: [f"Událost: {a.get('title', '')}", f"Od: {a.get('start', '')}", f"Do: {a.get('end', '')}",
-                         f"Pozvaní: {a.get('attendees', '') or 'nikdo'}"])
+                         f"Pozvaní: {a.get('attendees', '') or 'nikdo'}", *(["S odkazem na Google Meet"] if a.get("meet") else [])])
 async def calendar_create(ctx, title: Annotated[str, "název"], start: Annotated[str, "začátek ISO, např. 2026-11-20T10:00:00+01:00"],
                           end: Annotated[str, "konec ISO"], attendees: Annotated[str, "e-maily oddělené čárkou (nepovinné)"] = "",
-                          description: Annotated[str, "popis"] = "") -> ToolResult:
+                          description: Annotated[str, "popis"] = "", meet: Annotated[bool, "přidat videohovor Google Meet"] = False) -> ToolResult:
     try:
-        body = {"summary": title, "description": description, "start": {"dateTime": start}, "end": {"dateTime": end},
-                "attendees": [{"email": x.strip()} for x in attendees.split(",") if x.strip()]}
-        e = await _post(CAL, body, sendUpdates="all" if body["attendees"] else "none")
-        return ToolResult(True, f"Událost „{title}“ je v kalendáři.", data={"id": e.get("id"), "link": e.get("htmlLink")})
+        import uuid
+
+        body: dict[str, Any] = {"summary": title, "description": description, "start": {"dateTime": start, "timeZone": "Europe/Prague"},
+                                "end": {"dateTime": end, "timeZone": "Europe/Prague"},
+                                "attendees": [{"email": x.strip()} for x in attendees.split(",") if x.strip()]}
+        params: dict[str, Any] = {"sendUpdates": "all" if body["attendees"] else "none"}
+        if meet:
+            body["conferenceData"] = {"createRequest": {"requestId": uuid.uuid4().hex, "conferenceSolutionKey": {"type": "hangoutsMeet"}}}
+            params["conferenceDataVersion"] = 1
+        e = await _post(CAL, body, **params)
+        return ToolResult(True, f"Událost „{title}“ je v kalendáři.", data={"id": e.get("id"), "link": e.get("htmlLink"),
+                                                                         "meet": e.get("hangoutLink")})
     except Exception as e:  # noqa: BLE001
         return _fail(e)
 
@@ -333,5 +342,36 @@ async def contacts_search(ctx, query: Annotated[str, "jméno"]) -> ToolResult:
                 "emails": [e.get("value") for e in p.get("person", {}).get("emailAddresses", []) or []],
                 "phones": [t.get("value") for t in p.get("person", {}).get("phoneNumbers", []) or []]} for p in r.get("results", []) or []]
         return ToolResult(True, f"{len(out)} kontaktů.", data=out)
+    except Exception as e:  # noqa: BLE001
+        return _fail(e)
+
+
+# ---------------------------------------------------------------- Google Úkoly (Tasks)
+TASKS = "https://tasks.googleapis.com/tasks/v1"
+
+
+@tool("google_tasks_list", "Google Úkoly: nesplněné úkoly ze všech seznamů.", category="propojení", perm="network")
+async def tasks_list(ctx) -> ToolResult:
+    try:
+        out = []
+        for lst in (await _get(f"{TASKS}/users/@me/lists", maxResults=20)).get("items", []):
+            r = await _get(f"{TASKS}/lists/{lst['id']}/tasks", showCompleted="false", maxResults=100)
+            out += [{"list": lst.get("title"), "task": t.get("title"), "due": (t.get("due") or "")[:10] or None,
+                     "notes": (t.get("notes") or "")[:200]} for t in r.get("items", []) if t.get("title")]
+        return ToolResult(True, f"{len(out)} úkolů.", data=out)
+    except Exception as e:  # noqa: BLE001
+        return _fail(e)
+
+
+@tool("google_tasks_add", "Google Úkoly: přidá úkol (do výchozího seznamu). Zeptá se uživatele.", danger=True, category="propojení",
+      perm="network", details=lambda a: [f"Úkol: {a.get('title', '')}", f"Termín: {a.get('due', '') or '–'}"])
+async def tasks_add(ctx, title: Annotated[str, "úkol"], due: Annotated[str, "termín YYYY-MM-DD (nepovinné)"] = "",
+                    notes: Annotated[str, "poznámka"] = "") -> ToolResult:
+    try:
+        body: dict[str, Any] = {"title": title, "notes": notes}
+        if due:
+            body["due"] = f"{due[:10]}T00:00:00.000Z"
+        await _post(f"{TASKS}/lists/@default/tasks", body)
+        return ToolResult(True, f"Úkol „{title}“ je v Google Úkolech.")
     except Exception as e:  # noqa: BLE001
         return _fail(e)

@@ -1584,7 +1584,7 @@ class Connection:
                 ok, msg = False, str(e)[:300]
             await self.send("bizagents", **bizagents.state(rt), message=msg, ok=ok, req=t)
         elif t in ("connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth"):
-            from .. import connectors     # 3.12 Propojení (Google, Supabase, Spaceship, GitHub, Notion, Slack)
+            from .. import connectors     # 3.12 Propojení (Google, Microsoft, Stripe, Fakturoid, Shopify, Jira…)
 
             cid = str(m.get("id") or "")
             msg = ""
@@ -1595,20 +1595,17 @@ class Connection:
                         r = await connectors.test(rt, cid)
                         msg = ("✓ " if r["ok"] else "") + r["detail"]
                     else:
-                        msg = f"Uloženo – teď klikni „Přihlásit se {'Googlem' if cid == 'google' else 'Spotify'}“."
+                        msg = f"Uloženo – teď klikni „{connectors.CONNECTORS[cid].get('login') or 'Přihlásit se'}“."
                 elif t == "connector_remove":
                     connectors.remove(cid)
                     msg = "Odpojeno – klíče jsou smazané z tohoto PC."
                 elif t == "connector_test":
                     r = await connectors.test(rt, cid)
                     msg = ("✓ " if r["ok"] else "") + r["detail"]
-                elif t == "connector_oauth" and cid in ("google", "spotify"):
-                    import importlib
-
-                    mod = importlib.import_module(f"..connectors.{cid}", __package__)
-                    url = mod.start(f"http://127.0.0.1:{rt.cfg.phone.port}/api/oauth/{cid}")
+                elif t == "connector_oauth":
+                    url = connectors.oauth_module(cid).start(connectors.redirect_uri(cid, rt.cfg.phone.port))
                     await asyncio.to_thread(rt.platform.open_url, url)
-                    msg = f"V prohlížeči se otevřelo přihlášení {'Googlem' if cid == 'google' else 'do Spotify'} – vyber svůj účet a povol přístup."
+                    msg = (f"V prohlížeči se otevřelo přihlášení ({connectors.CONNECTORS[cid]['name']}) – vyber svůj účet a povol přístup.")
             except Exception as e:  # noqa: BLE001
                 msg = connectors.friendly(e) if not isinstance(e, ValueError) else str(e)
             await self.send("connectors", items=connectors.status(), id=cid, message=msg)

@@ -22,7 +22,8 @@ register("notion", "Notion", "notebook", [
     "Zkopíruj „Internal Integration Secret“ sem a ulož.",
     "V Notionu u stránek, které má JARVIS vidět: ⋯ → Connections → přidej svou integraci.",
 ], url="https://www.notion.so/profile/integrations",
-    what="Hledání a čtení stránek a databází, přidání textu na stránku (s potvrzením).", test=_test)
+    what="Hledání a čtení stránek a databází, přidání textu na stránku (s potvrzením).", test=_test, group="tasks",
+    probe={"method": "GET", "url": API + "/users/me", "headers": {"Authorization": "Bearer FAKE", "Notion-Version": "2022-06-28"}})
 
 
 async def _api(method: str, path: str, body: Any = None, transport=None) -> Any:

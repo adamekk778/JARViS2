@@ -22,7 +22,8 @@ register("github", "GitHub", "github-logo", [
     "Vyber repozitáře a oprávnění Issues, Pull requests a Contents (čtení; zápis jen pokud chceš zakládat issues).",
     "Zkopíruj token sem a ulož.",
 ], url="https://github.com/settings/personal-access-tokens/new",
-    what="Repozitáře, issues a pull requesty; nové issue nebo komentář jen s potvrzením.", test=_test)
+    what="Repozitáře, issues a pull requesty; nové issue nebo komentář jen s potvrzením.", test=_test, group="dev",
+    probe={"method": "GET", "url": API + "/user", "headers": {"Authorization": "Bearer FAKE"}})
 
 
 async def _api(method: str, path: str, body: Any = None, transport=None) -> Any:

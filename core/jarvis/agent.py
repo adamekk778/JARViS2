@@ -107,16 +107,32 @@ CONNECTOR_LABELS = {
     "google_gmail_send": "Odeslat e-mail", "google_gmail_draft": "Koncept e-mailu", "google_calendar_create": "Nová událost v kalendáři",
     "google_sheets_append": "Zapsat do Google Tabulky", "google_docs_create": "Nový Google Dokument", "supabase_sql": "SQL v Supabase",
     "spaceship_dns_set": "Změnit DNS záznam", "github_issue_create": "Nové issue na GitHubu", "notion_append": "Zapsat do Notionu",
-    "slack_post": "Zpráva do Slacku",
+    "slack_post": "Zpráva do Slacku", "google_tasks_add": "Nový úkol v Google Úkolech",
+    "outlook_mail_send": "Odeslat e-mail (Outlook)", "outlook_mail_draft": "Koncept e-mailu (Outlook)",
+    "outlook_calendar_create": "Nová událost v kalendáři Outlook", "mstodo_add": "Nový úkol v Microsoft To Do",
+    "stripe_refund": "Vrátit peníze (Stripe)", "stripe_payment_link": "Platební odkaz (Stripe)",
+    "fakturoid_invoice_create": "Vystavit fakturu (Fakturoid)", "hubspot_contact_create": "Nový kontakt v HubSpotu",
+    "hubspot_note": "Poznámka v HubSpotu", "pipedrive_deal_create": "Nový obchod v Pipedrive", "todoist_add": "Nový úkol v Todoistu",
+    "todoist_done": "Dokončit úkol v Todoistu", "trello_card_create": "Nová karta v Trellu", "asana_task_create": "Nový úkol v Asaně",
+    "linear_issue_create": "Nové issue v Linearu", "jira_issue_create": "Nový úkol v Jiře", "clickup_task_create": "Nový úkol v ClickUpu",
+    "airtable_create": "Nový záznam v Airtable", "monday_item_create": "Nová položka v monday.com", "toggl_timer": "Stopky v Togglu",
+    "cloudflare_dns_set": "Změnit DNS (Cloudflare)", "telegram_send": "Zpráva na Telegram", "discord_send": "Zpráva na Discord",
+    "webhook_send": "Spustit automatizaci",
 }
 
 
 def describe_call(name: str, args: dict) -> str:
     label = CONNECTOR_LABELS.get(name) or TOOL_LABELS.get(name, name)
-    if name in ("google_gmail_send", "google_gmail_draft") and args.get("to"):
+    if name in ("google_gmail_send", "google_gmail_draft", "outlook_mail_send", "outlook_mail_draft") and args.get("to"):
         return f"{label}: {args['to']} – {args.get('subject', '')}"
     if name == "spaceship_dns_set" and args.get("domain"):
         return f"{label}: {args['domain']} {args.get('type', '')} {args.get('name', '@')} → {args.get('value', '')}"
+    if name == "cloudflare_dns_set" and args.get("domain"):
+        return f"{label}: {args['domain']} {args.get('type', '')} {args.get('name', '@')} → {args.get('content', '')}"
+    if name == "fakturoid_invoice_create" and args.get("client"):
+        return f"{label}: {args['client']}"
+    if name == "stripe_refund" and args.get("payment_id"):
+        return f"{label}: {args['payment_id']}" + (f" ({args['amount']})" if args.get("amount") else "")
     if name == "slack_post" and args.get("channel"):
         return f"{label}: {args['channel']}"
     if name == "volume" and args.get("action") == "set" and args.get("level") is not None:

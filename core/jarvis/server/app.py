@@ -185,26 +185,29 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         return pairing_info(rt.cfg.phone.token, rt.cfg.phone.port)
 
     @app.get("/api/oauth/{cid}")
-    async def connector_oauth(cid: str, request: Request, code: str = "", state: str = "", error: str = ""):
-        """3.12 Propojení: Google / Spotify send the browser back here after you signed in (this PC only)."""
+    async def connector_oauth(cid: str, request: Request, code: str = "", state: str = "", error: str = "",
+                              error_description: str = ""):
+        """3.12 Propojení: Google / Microsoft / Dropbox / Spotify send the browser back here after you signed in (this PC only)."""
         if not is_local(request):
             raise HTTPException(403, "Jen z tohoto počítače")
-        if cid not in ("google", "spotify"):
-            raise HTTPException(404, "Neznámé propojení")
-        import importlib
-
         from .. import connectors
 
-        mod = importlib.import_module(f"..connectors.{cid}", __package__)
+        try:
+            mod = connectors.oauth_module(cid)
+        except (ValueError, ImportError):
+            raise HTTPException(404, "Neznámé propojení") from None
+        name = connectors.CONNECTORS.get(cid, {}).get("name", cid)
 
         def done(title: str, text: str, ok: bool) -> HTMLResponse:
+            import html as _html
+
             colour = "#30d158" if ok else "#ff453a"
             return HTMLResponse(f"<!doctype html><meta charset=utf-8><title>JARVIS</title><body style='font:16px system-ui;"
                                 f"background:#000;color:#fff;display:grid;place-items:center;height:100vh;margin:0'><div style="
-                                f"'text-align:center'><h1 style='color:{colour}'>{title}</h1><p>{text}</p><p style='color:#888'>"
-                                "Okno můžeš zavřít a vrátit se do JARVISe.</p></div>")
+                                f"'text-align:center;max-width:640px;padding:0 20px'><h1 style='color:{colour}'>{_html.escape(title)}</h1>"
+                                f"<p>{_html.escape(text)}</p><p style='color:#888'>Okno můžeš zavřít a vrátit se do JARVISe.</p></div>")
         if error or not code:
-            return done("Přihlášení zrušeno", f"Google vrátil: {error or 'žádný kód'}.", False)
+            return done("Přihlášení zrušeno", f"{name} vrátil: {error_description or error or 'žádný kód'}.", False)
         try:
             msg = await mod.finish(code, state)
         except Exception as e:  # noqa: BLE001

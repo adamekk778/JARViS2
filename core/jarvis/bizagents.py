@@ -74,6 +74,38 @@ TEMPLATES: dict[str, dict[str, Any]] = {
                "task": "Najdi dokumenty a tabulky změněné za poslední týden a shrň, co se v nich změnilo nebo co je důležité.",
                "tools": ["google_drive_search", "google_drive_read", "google_docs_create", "google_sheets_read", "google_sheets_append"],
                "every_min": 0, "daily_at": ""},
+    "outlook": {"name": "E-maily v Outlooku", "icon": "microsoft-outlook-logo",
+                "role": "Staráš se o poštu v Outlooku: projdeš nové e-maily, roztřídíš je a na ty, které čekají odpověď, připravíš návrh.",
+                "task": "Projdi nepřečtené e-maily v Outlooku. Na ty, které potřebují odpověď, navrhni odeslání krátké zdvořilé odpovědi "
+                        "(jazykem e-mailu). Zbytek shrň a podívej se, co je dnes v kalendáři.",
+                "tools": ["outlook_mail_search", "outlook_mail_read", "outlook_mail_send", "outlook_calendar_events", "outlook_contacts_search"],
+                "every_min": 60, "daily_at": ""},
+    "finance": {"name": "Finance (platby a faktury)", "icon": "receipt",
+                "role": "Hlídáš peníze firmy: co přišlo na účet a přes Stripe, které faktury nejsou zaplacené a které jsou po splatnosti.",
+                "task": "Zjisti příjmy za poslední den (Fio, Stripe), faktury po splatnosti a nezaplacené (Fakturoid / iDoklad / Stripe). "
+                        "Spáruj příchozí platby s fakturami podle variabilního symbolu nebo částky. Napiš krátký přehled a komu připomenout platbu.",
+                "tools": ["fio_account", "fio_find_payment", "stripe_balance", "stripe_payments", "stripe_invoices", "fakturoid_invoices",
+                          "idoklad_invoices"], "every_min": 0, "daily_at": "08:00"},
+    "eshop": {"name": "E-shop (objednávky a sklad)", "icon": "storefront",
+              "role": "Hlídáš e-shop: nové objednávky, co je potřeba odeslat, tržby a zboží, které dochází.",
+              "task": "Shrň objednávky za poslední den (tržby, kolik čeká na odeslání) a produkty, kterých je skladem méně než 5 kusů.",
+              "tools": ["shopify_orders", "shopify_products", "woocommerce_orders", "woocommerce_products"], "every_min": 0, "daily_at": "08:15"},
+    "crm": {"name": "Obchod a zákazníci (CRM)", "icon": "address-book",
+            "role": "Pomáháš s obchodem: otevřené obchody, co dnes udělat, komu se ozvat a kdo si zarezervoval schůzku.",
+            "task": "Projdi otevřené obchody a nesplněné aktivity v CRM a rezervované schůzky. Napiš, komu se dnes ozvat a proč.",
+            "tools": ["hubspot_deals", "hubspot_contacts", "hubspot_note", "pipedrive_deals", "pipedrive_activities", "pipedrive_people",
+                      "calendly_events", "mailchimp_campaigns"], "every_min": 0, "daily_at": "08:45"},
+    "tasks": {"name": "Úkoly a projekty", "icon": "list-checks",
+              "role": "Hlídáš úkoly napříč nástroji: co je dnes, co je po termínu a co je zaseknuté.",
+              "task": "Projdi úkoly na dnes a po termínu (Todoist, Asana, Jira, Linear, ClickUp, Trello, Google Úkoly, To Do) a sestav "
+                      "jeden přehled seřazený podle důležitosti.",
+              "tools": ["todoist_tasks", "asana_tasks", "jira_issues", "linear_issues", "clickup_tasks", "trello_boards", "trello_cards",
+                        "google_tasks_list", "mstodo_tasks"], "every_min": 0, "daily_at": "07:30"},
+    "web": {"name": "Weby a aplikace (provoz)", "icon": "pulse",
+            "role": "Hlídáš weby a aplikace: jestli nasazení prošla, jaké chyby padají uživatelům a jestli DNS ukazuje správně.",
+            "task": "Zkontroluj poslední nasazení (Vercel), nevyřešené chyby za 24 h (Sentry) a domény (Cloudflare). Upozorni jen na problémy.",
+            "tools": ["vercel_deployments", "vercel_projects", "sentry_issues", "cloudflare_zones", "cloudflare_dns", "supabase_health"],
+            "every_min": 0, "daily_at": "09:15"},
 }
 EXTRA_TOOLS = ["web_search", "web_read", "get_time"]
 
@@ -138,7 +170,16 @@ def from_template(rt: Any, key: str) -> int:
     t = TEMPLATES.get(key)
     if not t:
         raise ValueError("Takovou šablonu neznám.")
-    return save(rt, {**t, "enabled": True})
+    # only the services that are connected (a template covers several – e.g. Fakturoid and iDoklad); none yet → all of them
+    usable = [n for n in t["tools"] if _connected(n)]
+    return save(rt, {**t, "tools": usable or t["tools"], "enabled": True})
+
+
+def _connected(tool_name: str) -> bool:
+    from . import connectors
+
+    cid = connectors.owner(tool_name)
+    return cid is None or connectors.configured(cid)
 
 
 def delete(rt: Any, aid: int) -> None:
@@ -147,7 +188,10 @@ def delete(rt: Any, aid: int) -> None:
 
 async def create_from_text(rt: Any, text: str) -> int:
     """One sentence → an agent: the AI picks the name, role, task, tools and when it works."""
-    roster = "\n".join(f"- {t['name']}{' (mění – jen návrh ke schválení)' if t['danger'] else ''}: {t['description']}" for t in allowed_tools())
+    pool = [t for t in allowed_tools() if _connected(t["name"])]
+    if not any(t["name"] not in EXTRA_TOOLS for t in pool):      # nothing connected yet: offer everything
+        pool = allowed_tools()
+    roster = "\n".join(f"- {t['name']}{' (mění – jen návrh ke schválení)' if t['danger'] else ''}: {t['description']}" for t in pool)
     prompt = (f"Uživatel chce firemního AI agenta: „{text}“\n\nDostupné nástroje:\n{roster}\n\nVrať jen JSON: {{\"name\": krátký název, "
               "\"icon\": phosphor ikona (např. envelope-simple, database, globe, calendar-check, github-logo, slack-logo, robot), "
               "\"role\": kdo agent je a co hlídá (2 věty), \"task\": přesné zadání jedné práce, \"tools\": [jen názvy nástrojů ze "

@@ -23,7 +23,8 @@ register("spaceship", "Spaceship (domény)", "globe", [
     "Vytvoř nový API klíč a zaškrtni oprávnění pro Domains a DNS records (čtení, případně zápis).",
     "Zkopíruj API key a API secret sem a ulož.",
 ], url="https://www.spaceship.com/application/api-manager/",
-    what="Domény a kdy vyprší, DNS záznamy (změny jen s potvrzením), volné domény.", test=_test)
+    what="Domény a kdy vyprší, DNS záznamy (změny jen s potvrzením), volné domény.", test=_test, group="dev",
+    probe={"method": "GET", "url": API + "/domains?take=1&skip=0", "headers": {"X-Api-Key": "FAKE", "X-Api-Secret": "FAKE"}})
 
 
 async def _api(method: str, path: str, body: Any = None, transport=None) -> Any:

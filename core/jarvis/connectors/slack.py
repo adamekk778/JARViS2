@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from ..tools.base import ToolResult, tool
-from . import friendly, http, need, register, value
+from . import ServiceError, friendly, http, need, register, value
 
 API = "https://slack.com/api"
 
@@ -22,7 +22,8 @@ register("slack", "Slack", "slack-logo", [
     "OAuth & Permissions → Bot Token Scopes: channels:read, channels:history, chat:write (a groups:read pro soukromé kanály).",
     "Install to Workspace a zkopíruj „Bot User OAuth Token“ (xoxb-…) sem.",
     "Do kanálů, které má JARVIS číst, bota přidej (/invite @nazev-aplikace).",
-], url="https://api.slack.com/apps", what="Kanály a poslední zprávy, poslání zprávy (s potvrzením).", test=_test)
+], url="https://api.slack.com/apps", what="Kanály a poslední zprávy, poslání zprávy (s potvrzením).", test=_test, group="chat",
+    probe={"method": "POST", "url": API + "/auth.test", "headers": {"Authorization": "Bearer xoxb-FAKE"}, "slack": True})
 
 
 async def _api(method: str, transport=None, **params) -> Any:
@@ -32,7 +33,7 @@ async def _api(method: str, transport=None, **params) -> Any:
         r.raise_for_status()
         d = r.json()
     if not d.get("ok"):
-        raise RuntimeError(f"Slack: {d.get('error', 'chyba')}")
+        raise ServiceError(f"Slack: {d.get('error', 'chyba')}" + (" – klíč je špatný nebo zrušený." if d.get("error") in ("invalid_auth", "not_authed", "token_revoked") else ""))
     return d
 
 

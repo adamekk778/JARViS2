@@ -31,7 +31,8 @@ register("supabase", "Supabase", "database", [
     "Klikni „Generate new token“, pojmenuj ho JARVIS.",
     "Zkopíruj token (začíná sbp_) sem a ulož.",
 ], url="https://supabase.com/dashboard/account/tokens",
-    what="Projekty, tabulky, SQL dotazy (čtení hned, změny dat jen s potvrzením) a stav databáze.", test=_test)
+    what="Projekty, tabulky, SQL dotazy (čtení hned, změny dat jen s potvrzením) a stav databáze.", test=_test, group="dev",
+    probe={"method": "GET", "url": API + "/projects", "headers": {"Authorization": "Bearer sbp_FAKE"}})
 
 
 async def _api(method: str, path: str, body: Any = None, transport=None) -> Any:

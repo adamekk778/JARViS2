@@ -34,7 +34,8 @@ register("spotify", "Spotify (přesné texty písní)", "spotify-logo", [
     "Otevři aplikaci → Settings a zkopíruj Client ID sem, ulož.",
     "Klikni „Přihlásit se Spotify“ a povol přístup (jen čtení, co právě hraje).",
 ], url="https://developer.spotify.com/dashboard", oauth=True,
-    what="Přesné místo v písničce a obal přímo ze Spotify – texty v notchi jdou na desetinu sekundy.", test=_test)
+    what="Přesné místo v písničce a obal přímo ze Spotify – texty v notchi jdou na desetinu sekundy.", test=_test, group="music", login="Přihlásit se Spotify",
+    probe={"method": "GET", "url": "https://api.spotify.com/v1/me/player/currently-playing", "headers": {"Authorization": "Bearer FAKE"}})
 
 
 def start(redirect: str) -> str:

@@ -1,7 +1,7 @@
 """3.12 "Internet on real Windows" – what the packaged JARVIS.exe reaches, tried on a real Windows machine (the CI build)
 before a version is released: the Windows certificates, every AI service (with a made-up key: the answer must be the
 service saying "wrong key", never a connection or certificate error), song lyrics and covers, the weather and the
-update check. `JARVIS.exe --netcheck` prints one JSON line per check; nothing is stored and no real key is used.
+update check, and every service's address in Propojení. `JARVIS.exe --netcheck` prints one JSON line per check; nothing is stored and no real key is used.
 """
 from __future__ import annotations
 
@@ -100,6 +100,13 @@ async def run() -> list[dict]:
         out.append(_r("update-check", r.status_code in (200, 403), f"HTTP {r.status_code}", (time.monotonic() - t0) * 1000))
     except Exception as e:  # noqa: BLE001
         out.append(_r("update-check", False, f"{type(e).__name__}: {e}"))
+
+    # 3.12 Propojení: every service's address with a made-up key – the service must say "wrong key"
+    from . import connectors
+
+    connectors.load()
+    for p in await asyncio.gather(*(connectors.probe(cid) for cid in connectors.PROBES)):
+        out.append(_r(f"connector:{p['id']}", p["ok"], p["detail"], p["ms"]))
     return out
 
 
