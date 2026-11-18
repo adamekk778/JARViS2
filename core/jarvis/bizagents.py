@@ -85,11 +85,13 @@ TEMPLATES: dict[str, dict[str, Any]] = {
                 "task": "Zjisti příjmy za poslední den (Fio, Stripe), faktury po splatnosti a nezaplacené (Fakturoid / iDoklad / Stripe). "
                         "Spáruj příchozí platby s fakturami podle variabilního symbolu nebo částky. Napiš krátký přehled a komu připomenout platbu.",
                 "tools": ["fio_account", "fio_find_payment", "stripe_balance", "stripe_payments", "stripe_invoices", "fakturoid_invoices",
+                          "flexi_invoices", "flexi_bank", "pohoda_invoices", "gopay_statement", "comgate_transfers",
                           "idoklad_invoices"], "every_min": 0, "daily_at": "08:00"},
     "eshop": {"name": "E-shop (objednávky a sklad)", "icon": "storefront",
               "role": "Hlídáš e-shop: nové objednávky, co je potřeba odeslat, tržby a zboží, které dochází.",
               "task": "Shrň objednávky za poslední den (tržby, kolik čeká na odeslání) a produkty, kterých je skladem méně než 5 kusů.",
-              "tools": ["shopify_orders", "shopify_products", "woocommerce_orders", "woocommerce_products"], "every_min": 0, "daily_at": "08:15"},
+              "tools": ["shopify_orders", "shopify_products", "woocommerce_orders", "woocommerce_products", "shoptet_orders", "shoptet_stock",
+                        "zasilkovna_status", "heureka_reviews"], "every_min": 0, "daily_at": "08:15"},
     "crm": {"name": "Obchod a zákazníci (CRM)", "icon": "address-book",
             "role": "Pomáháš s obchodem: otevřené obchody, co dnes udělat, komu se ozvat a kdo si zarezervoval schůzku.",
             "task": "Projdi otevřené obchody a nesplněné aktivity v CRM a rezervované schůzky. Napiš, komu se dnes ozvat a proč.",
@@ -107,7 +109,13 @@ TEMPLATES: dict[str, dict[str, Any]] = {
             "tools": ["vercel_deployments", "vercel_projects", "sentry_issues", "cloudflare_zones", "cloudflare_dns", "supabase_health"],
             "every_min": 0, "daily_at": "09:15"},
 }
-EXTRA_TOOLS = ["web_search", "web_read", "get_time", "company_brain_search", "company_brain_note"]
+EXTRA_TOOLS = ["web_search", "web_read", "get_time", "company_brain_search", "company_brain_note", "company_goals", "company_goal_update"]
+# 3.13 what an approval rule may let an agent do by itself: only records in your own tools that nobody else gets and you
+# can undo (a task, a note, a row). Sending anything (e-mail, SMS, chat, webhook), money, invoices, DNS, databases,
+# calendar invitations and public issues always wait for your click – no rule can change that.
+AUTO_SAFE = {"todoist_add", "todoist_done", "google_tasks_add", "mstodo_add", "trello_card_create", "asana_task_create",
+             "clickup_task_create", "monday_item_create", "notion_append", "airtable_create", "google_sheets_append", "hubspot_note",
+             "hubspot_contact_create", "pipedrive_deal_create", "toggl_timer"}
 TEMPLATE_DEPT = {"email": "komunikace", "supabase": "tech", "domains": "tech", "calendar": "komunikace", "github": "tech",
                  "slack": "komunikace", "office": "provoz", "outlook": "komunikace", "finance": "finance", "eshop": "provoz",
                  "crm": "obchod", "tasks": "provoz", "web": "tech"}
@@ -129,7 +137,7 @@ def _db(rt: Any):
 def _row(r: dict) -> dict:
     d = dict(r)
     d["tools"] = json.loads(d.get("tools") or "[]")
-    for k in ("triggers", "next"):
+    for k in ("triggers", "next", "auto"):
         try:
             d[k] = json.loads(d.get(k) or "[]")
         except ValueError:
@@ -187,15 +195,26 @@ def save(rt: Any, a: dict) -> int:
     nxt = lst("next", lambda x: bool(x.strip()))
     tier = str(a.get("tier") or (old or {}).get("tier") or "smart")
     tier = tier if tier in ("fast", "smart") else "smart"
+    auto = lst("auto", lambda x: x in AUTO_SAFE and x in tl)          # a rule only for a safe tool the agent has
     vals = (name, str(a.get("icon") or "robot")[:40], str(a.get("role") or "")[:2000], str(a.get("task") or "")[:2000],
             json.dumps(tl), every, daily, int(bool(a.get("work_hours", True))), int(bool(a.get("enabled", True))),
-            dept, keep("skill", 160), keep("replaces", 300), keep("bkey", 40), triggers, nxt, tier)
+            dept, keep("skill", 160), keep("replaces", 300), keep("bkey", 40), triggers, nxt, tier, auto)
     if a.get("id"):
         db.exec("UPDATE biz_agents SET name=?, icon=?, role=?, task=?, tools=?, every_min=?, daily_at=?, work_hours=?, enabled=?, "
-                "dept=?, skill=?, replaces=?, bkey=?, triggers=?, next=?, tier=? WHERE id=?", (*vals, int(a["id"])))
+                "dept=?, skill=?, replaces=?, bkey=?, triggers=?, next=?, tier=?, auto=? WHERE id=?", (*vals, int(a["id"])))
         return int(a["id"])
     return int(db.exec("INSERT INTO biz_agents (name, icon, role, task, tools, every_min, daily_at, work_hours, enabled, dept, skill, "
-                       "replaces, bkey, triggers, next, tier, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (*vals, time.time())).lastrowid)
+                       "replaces, bkey, triggers, next, tier, auto, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                       (*vals, time.time())).lastrowid)
+
+
+def quick(rt: Any, aid: int, changes: dict) -> int:
+    """3.13 The phone's small editor: on/off, when it works, the model, what starts it, the rules – the rest stays."""
+    a = get(rt, aid)
+    if not a:
+        raise ValueError("Agent neexistuje.")
+    allowed = {"enabled", "every_min", "daily_at", "work_hours", "tier", "triggers", "auto", "dept"}
+    return save(rt, {**a, **{k: v for k, v in (changes or {}).items() if k in allowed}, "id": a["id"]})
 
 
 def from_template(rt: Any, key: str) -> int:
@@ -261,7 +280,7 @@ def fingerprint(tool: str, args: dict) -> str:
     return hashlib.sha1((tool + json.dumps(ident, sort_keys=True, ensure_ascii=False, default=str)).encode()).hexdigest()[:20]
 
 
-def propose(rt: Any, agent: dict, call: ToolCall) -> int:
+def propose(rt: Any, agent: dict, call: ToolCall, notify: bool = True) -> int:
     """Into "Ke schválení" – unless the same thing waits there already, was done, or you said no to it lately (then the
     existing proposal's number comes back negative and nothing new is added)."""
     from .agent import describe_call
@@ -284,12 +303,14 @@ def propose(rt: Any, agent: dict, call: ToolCall) -> int:
     from . import bizcompany
 
     bizcompany.log_action(rt, agent, "proposal", call.name, desc, True, call.arguments)
-    bizcompany.phone_approval(rt, pid, agent.get("name", ""), desc)
+    if notify:
+        bizcompany.phone_approval(rt, pid, agent.get("name", ""), desc)
     return pid
 
 
-async def decide(rt: Any, pid: int, approve: bool) -> dict:
-    """Your click: approve runs exactly the proposed call (nothing else), reject throws it away."""
+async def decide(rt: Any, pid: int, approve: bool, by: str = "ty") -> dict:
+    """Your click: approve runs exactly the proposed call (nothing else), reject throws it away. by="auto": an approval
+    rule you set for this agent did it (only a tool from AUTO_SAFE, checked again here)."""
     db = _db(rt)
     r = db.one("SELECT * FROM biz_proposals WHERE id=?", (int(pid),))
     if not r or r["status"] != "pending":
@@ -301,6 +322,8 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
         db.exec("UPDATE biz_proposals SET status='rejected', decided=? WHERE id=?", (time.time(), int(pid)))
         bizcompany.log_action(rt, agent, "rejected", r["tool"], r["description"], True)
         return {"ok": True, "message": "Zamítnuto."}
+    if by == "auto" and (r["tool"] not in AUTO_SAFE or r["tool"] not in (agent.get("auto") or [])):
+        raise ValueError("Tohle pravidlo samo schválit nesmí.")
     db.exec("UPDATE biz_proposals SET status='running', decided=? WHERE id=?", (time.time(), int(pid)))
     res = await tools.call(r["tool"], json.loads(r["args"] or "{}"), rt)
     db.exec("UPDATE biz_proposals SET status=?, result=? WHERE id=?", ("done" if res.ok else "failed", res.summary[:500], int(pid)))
@@ -308,10 +331,26 @@ async def decide(rt: Any, pid: int, approve: bool) -> dict:
         rt.tasks.log_action(r["tool"], json.loads(r["args"] or "{}"), res.ok, f"schváleno: {res.summary}", 0)
     except Exception:  # noqa: BLE001
         pass
-    bizcompany.log_action(rt, agent, "approved", r["tool"], f"{r['description']} → {res.summary}", res.ok)
+    bizcompany.log_action(rt, agent, "auto" if by == "auto" else "approved", r["tool"], f"{r['description']} → {res.summary}", res.ok)
     if res.ok:                                   # the chain goes on: the next agents get what was done
         handoff_next(rt, agent, f"SCHVÁLENO A PROVEDENO: {r['description']}. Výsledek: {res.summary}", 0)
     return {"ok": res.ok, "message": res.summary}
+
+
+async def decide_many(rt: Any, ids: list[int], approve: bool) -> dict:
+    """3.13 "Schválit vše" / "Zamítnout vše": exactly the proposals you saw on the screen, one after another."""
+    ok = failed = skipped = 0
+    for pid in [int(i) for i in ids or []][:200]:
+        try:
+            r = await decide(rt, pid, approve)
+        except ValueError:
+            skipped += 1
+            continue
+        ok += bool(r["ok"])
+        failed += not r["ok"]
+    verb = "Schváleno" if approve else "Zamítnuto"
+    return {"ok": failed == 0, "message": f"{verb} {ok}" + (f", nepovedlo se {failed}" if failed else "")
+            + (f", {skipped} už bylo vyřízeno" if skipped else "") + "."}
 
 
 # ---------------------------------------------------------------- running
@@ -363,13 +402,24 @@ def handoff_next(rt: Any, agent: dict, text: str, depth: int) -> int:
     return n
 
 
-async def run(rt: Any, aid: int, extra: str = "", depth: int = 0, source: str = "") -> dict:
+async def run(rt: Any, aid: int, extra: str = "", depth: int = 0, source: str = "", dry: bool = False) -> dict:
+    """One piece of the agent's work. dry=True (3.13 zkušební běh): it reads for real, but whatever it would propose is
+    only shown – nothing is saved for approval, nothing is done, nothing is handed on, the agent's record stays."""
+    from .agent import describe_call
+    from .llm.router import USAGE_SINK
+
     a = get(rt, aid)
     if not a:
         raise ValueError("Agent neexistuje.")
     if a["id"] in _RUNNING:
         return {"ok": False, "answer": "Agent už právě pracuje."}
     _RUNNING.add(a["id"])
+    sink: list = []
+    sink_token = USAGE_SINK.set(sink)
+    would: list[dict] = []
+    auto_done: list[str] = []
+    if dry:
+        source = "zkouška"
     t0 = time.monotonic()
     rt.bus.publish("agent_activity", key=f"biz{a['id']}", name=a["name"], icon=a.get("icon") or "robot", state="start", task=a["task"][:120])
     names = set(a["tools"]) | set(EXTRA_TOOLS)
@@ -403,9 +453,21 @@ async def run(rt: Any, aid: int, extra: str = "", depth: int = 0, source: str = 
                 spec = tools.REGISTRY.get(c.name)
                 if spec is None or c.name not in names:
                     content = {"ok": False, "result": f"Nástroj {c.name} tenhle agent nemá."}
+                elif tools.is_dangerous(spec, c.arguments, [], [], rt) and dry:
+                    try:
+                        det = tools.details_for(spec, c.arguments, rt)
+                    except Exception:  # noqa: BLE001
+                        det = []
+                    would.append({"tool": c.name, "description": describe_call(c.name, c.arguments), "details": det[:12]})
+                    content = {"ok": True, "result": "ZKUŠEBNÍ BĚH: tohle by šlo ke schválení – teď se nic neuložilo ani neprovedlo. Pokračuj."}
                 elif tools.is_dangerous(spec, c.arguments, [], [], rt):
-                    pid = propose(rt, a, c)            # never done by the agent itself
-                    if pid < 0:
+                    auto = c.name in AUTO_SAFE and c.name in (a.get("auto") or []) and bizcompany.auto_left(rt) > 0
+                    pid = propose(rt, a, c, notify=not auto)            # never done by the agent itself
+                    if pid > 0 and auto:                                # your rule for this agent: a safe record, done now
+                        r = await decide(rt, pid, True, by="auto")
+                        auto_done.append(describe_call(c.name, c.arguments))
+                        content = {"ok": r["ok"], "result": f"Provedeno podle pravidla, které ti majitel povolil: {r['message']}"}
+                    elif pid < 0:
                         content = {"ok": True, "result": f"Tohle už bylo navrženo dřív (návrh #{-pid}) nebo to uživatel nedávno zamítl – "
                                                          "znovu to nenavrhuj, pokračuj jinou prací."}
                     else:
@@ -426,20 +488,30 @@ async def run(rt: Any, aid: int, extra: str = "", depth: int = 0, source: str = 
     finally:
         _RUNNING.discard(a["id"])
         _DEPTH.reset(token)
+        USAGE_SINK.reset(sink_token)
     answer = answer or "(agent nic nenapsal)"
-    _db(rt).exec("UPDATE biz_agents SET last_run=?, last_ok=?, last_result=? WHERE id=?", (time.time(), int(ok), answer[:4000], a["id"]))
+    from .llm.pricing import tokens
+
+    usage = {"in": tokens(sum(x[2] for x in sink)), "out": tokens(sum(x[3] for x in sink)),
+             "model": f"{sink[-1][0]}:{sink[-1][1]}" if sink else ""}
+    if not dry:
+        _db(rt).exec("UPDATE biz_agents SET last_run=?, last_ok=?, last_result=? WHERE id=?", (time.time(), int(ok), answer[:4000], a["id"]))
+    run_id = 0
     try:
-        bizcompany.record_run(rt, a, started, time.monotonic() - t0, ok, len(proposed), answer, rounds_used, tool_calls, source)
+        run_id = bizcompany.record_run(rt, a, started, time.monotonic() - t0, ok, len(proposed), answer, rounds_used, tool_calls, source, usage)
     except Exception as e:  # noqa: BLE001
         log.info("run record: %s", e)
     rt.bus.publish("agent_activity", key=f"biz{a['id']}", name=a["name"], icon=a.get("icon") or "robot", state="done", ok=ok,
                    seconds=round(time.monotonic() - t0, 1))
+    if dry:
+        publish(rt)
+        return {"ok": ok, "answer": answer, "would": would, "dry": True, "ai_down": ai_down, "run": run_id}
     if proposed:
         rt.notify(f"{a['name']}: {len(proposed)} ke schválení", answer[:300], speak=False)
     if ok and not ai_down and a.get("next"):
         handoff_next(rt, a, answer, depth)
     publish(rt)
-    return {"ok": ok, "answer": answer, "proposals": proposed, "ai_down": ai_down}
+    return {"ok": ok, "answer": answer, "proposals": proposed, "ai_down": ai_down, "auto": auto_done, "run": run_id}
 
 
 def due(a: dict, now: dt.datetime) -> bool:
@@ -451,13 +523,64 @@ def due(a: dict, now: dt.datetime) -> bool:
     if a.get("every_min"):
         return last is None or (now - last).total_seconds() >= a["every_min"] * 60
     if a.get("daily_at"):
-        d = a["daily_at"].split()
-        if len(d) == 2 and int(d[0]) != now.weekday():         # "0 08:30" = every Monday
+        s = slot(a, now)
+        if last is None:                            # a new agent: its first work at its own time today, not at once
+            return s.date() == now.date()
+        if last >= s:
             return False
-        hh, mm = map(int, d[-1].split(":"))
-        at = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        return now >= at and (last is None or last < at)
+        weekly = len(a["daily_at"].split()) == 2
+        if s.date() != now.date():                  # 3.13 the PC was off at that time: catch up – unless the next is close
+            nxt = s + dt.timedelta(days=7 if weekly else 1)
+            return (nxt - now) > dt.timedelta(hours=3)
+        return True
     return False
+
+
+def slot(a: dict, now: dt.datetime) -> dt.datetime:
+    """The latest time the agent should have worked (today 08:30 once it is past, else yesterday's; weekly: that weekday)."""
+    d = a["daily_at"].split()
+    hh, mm = map(int, d[-1].split(":"))
+    s = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    if len(d) == 2:                                 # "0 08:30" = every Monday
+        s -= dt.timedelta(days=(now.weekday() - int(d[0])) % 7)
+        if s > now:
+            s -= dt.timedelta(days=7)
+    elif s > now:
+        s -= dt.timedelta(days=1)
+    return s
+
+
+async def catch_up(rt: Any) -> dict | None:
+    """3.13 The PC was off (or JARVIS closed) for hours: look what came meanwhile – the e-mails, orders and payments go to
+    the agents that listen, the missed scheduled work runs one after another – and say it in one notice."""
+    from . import bizcompany, bizevents
+
+    alive = float(bizcompany._kv(rt, "biz_alive", "0") or 0)
+    gap = time.time() - alive
+    if not alive or gap < 2 * 3600 or not agents(rt):
+        return None
+    days = min(14, int(gap // 86400) + 2)
+    try:
+        found = await bizevents.check(rt, days=days)
+    except Exception as e:  # noqa: BLE001
+        log.info("catch-up events: %s", e)
+        found = {}
+    now = dt.datetime.now()
+    missed = [a for a in agents(rt) if due(a, now) and a.get("daily_at")]
+    hours = round(gap / 3600)
+    words = {"mail": "e-mailů", "order": "objednávek", "payment": "plateb"}
+    parts = [f"{n} {words[k]}" for k, n in found.items() if n]
+    text = (f"Zatímco JARVIS neběžel ({hours} h): " + (", ".join(parts) if parts else "nic nového v e-mailech, objednávkách ani platbách")
+            + (f"; {len(missed)} agentů dožene svou práci postupně" if missed else "") + ".")
+    info = {"at": time.time(), "hours": hours, "events": found, "missed": [a["name"] for a in missed][:30], "text": text}
+    bizcompany._set(rt, "biz_catchup", json.dumps(info, ensure_ascii=False))
+    try:
+        rt.notify("Velín doháněl", text, speak=False)
+        if parts or missed:
+            rt.phone_push("notify", title="Velín firmy dohání", body=text[:240])
+    except Exception:  # noqa: BLE001
+        pass
+    return info
 
 
 async def loop(rt: Any) -> None:
@@ -466,8 +589,13 @@ async def loop(rt: Any) -> None:
     from . import bizcompany
 
     await asyncio.sleep(90)
+    first = True
     while True:
         try:
+            if first:
+                first = False
+                await catch_up(rt)
+            bizcompany._set(rt, "biz_alive", str(time.time()))
             now = dt.datetime.now()
             if time.time() < _BACKOFF[0]:
                 await asyncio.sleep(60)
@@ -506,14 +634,30 @@ def state(rt: Any, full: bool = True) -> dict:
     from . import bizcompany
 
     ags = agents(rt)
+    last = {int(r["agent_id"] or 0): dict(r) for r in _db(rt).all(
+        "SELECT agent_id, id, rating FROM biz_runs WHERE id IN (SELECT MAX(id) FROM biz_runs WHERE source != 'zkouška' GROUP BY agent_id)")}
+    cost = bizcompany.agent_costs(rt, time.time() - 7 * 86400)
     for a in ags:
         a["when"] = bizcompany.when(a)
         a["last_result"] = (a.get("last_result") or "")[:1500] or None
+        lr = last.get(a["id"]) or {}
+        a["last_run_id"], a["last_rating"] = lr.get("id"), int(lr.get("rating") or 0)
+        a["cost_week"] = cost.get(a["id"], {}).get("czk", 0.0)
+        a["tokens_week"] = cost.get(a["id"], {}).get("tokens", 0)
     out = {"agents": ags, "proposals": proposals(rt), "running": sorted(_RUNNING), "queue": list(QUEUE) + [j["aid"] for j in JOBS],
            "done": proposals(rt, "done", 10) + proposals(rt, "failed", 5), "company": bizcompany.snapshot(rt, full), "full": full}
     if full:
         out["templates"] = {k: {"name": v["name"], "icon": v["icon"], "role": v["role"], "tools": v["tools"]} for k, v in TEMPLATES.items()}
         out["tools"] = allowed_tools()
+        out["auto_safe"] = sorted(AUTO_SAFE)
+    try:
+        from . import bizgoals
+
+        out["goals"] = bizgoals.goals(rt)
+        if full:
+            out["metrics"] = bizgoals.METRICS
+    except Exception:  # noqa: BLE001
+        out["goals"] = []
     return out
 
 

@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 LINGER_S = 1.5          # the frame stays this long after the last action (no flicker between quick actions)
 LABELS = {"computer_use": "Myš a klávesnice", "type_text": "Píše", "press_keys": "Klávesy",
-          "mouse": "Myš", "ui_click": "Kliká", "ui_type": "Píše"}
+          "mouse": "Myš", "ui_click": "Kliká", "ui_type": "Píše", "game": "Hraje za tebe"}
 
 
 class PcControl:

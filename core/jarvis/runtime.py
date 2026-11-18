@@ -216,10 +216,11 @@ class Runtime:
         from . import bizagents
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizagents.loop(self)))    # 3.12 Firemní agenti
-        from . import bizevents, bizreport
+        from . import bizevents, bizgoals, bizreport
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
         from . import upkeep
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
@@ -468,6 +469,11 @@ class Runtime:
         """Emergency STOP (spec §4.4): everything JARVIS is doing stops now."""
         self.agent.drop_queued()
         self.agent.stop()
+        ap = getattr(self, "autopilot", None)
+        if ap is not None and ap.on:              # 3.13 STOP also ends playing for you
+            if ap.task:
+                ap.why = "Zastaveno tlačítkem STOP."
+                ap.task.cancel()
         if getattr(self, "remote_desk", None) is not None and self.remote_desk.on:
             self.remote_desk.stop()           # STOP also ends a phone driving the PC
         self.pc_control.reset()

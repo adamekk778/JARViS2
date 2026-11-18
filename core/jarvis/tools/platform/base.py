@@ -63,6 +63,11 @@ class Platform:
     def type_text(self, text: str) -> None: raise NotImplementedError
     def hotkey(self, keys: list[str]) -> None: raise NotImplementedError
     def scroll(self, dy: int) -> None: raise NotImplementedError
+    # 3.13 input a game accepts (scan codes, relative mouse) – Windows only
+    def game_input_ok(self) -> bool: return False
+    def game_keys(self, keys: list[str], hold_ms: int = 200) -> None: raise NotImplementedError
+    def game_mouse(self, dx: int, dy: int) -> None: raise NotImplementedError
+    def game_click(self, button: str = "left", hold_ms: int = 60) -> None: raise NotImplementedError
     def notify(self, title: str, body: str) -> None: pass
     def release_all_input(self) -> None: pass
     def idle_seconds(self) -> float: return 0.0   # since the last mouse/keyboard input (0 = unknown → present)

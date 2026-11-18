@@ -49,9 +49,59 @@ def _close_details(a: dict, ctx=None) -> list[str]:
     return out
 
 
-@tool("close_app", "Zavře (ukončí) aplikaci podle názvu. Vždy se nejdřív zeptá uživatele (hry, neuložená práce).",
+def _plain(text: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", str(text or "").lower())
+    return "".join(c for c in t if c.isalnum())
+
+
+def playing(apps: list[dict]) -> list[dict]:
+    """3.13 The games among these programs – known game folders and names, or the program now in front over the whole
+    screen (that is what you are playing)."""
+    out = [a for a in apps if a.get("game")]
+    try:
+        import sys
+
+        if sys.platform == "win32" and not out:
+            from ..desktop.winutil import foreground_is_fullscreen
+
+            if foreground_is_fullscreen():
+                import ctypes
+                from ctypes import wintypes
+
+                import psutil
+
+                pid = wintypes.DWORD()
+                ctypes.windll.user32.GetWindowThreadProcessId(ctypes.windll.user32.GetForegroundWindow(), ctypes.byref(pid))
+                front = (psutil.Process(pid.value).name() or "").lower()
+                out = [a for a in apps if a["name"].lower() == front]
+    except Exception:  # noqa: BLE001 – unknown is not a game
+        pass
+    return out
+
+
+def named(request: str, games: list[dict], name: str) -> bool:
+    """Did you yourself name this game in what you asked ("zavři Roblox")? "Vypni zbytečné aplikace" does not."""
+    req = _plain(request)
+    if not req:
+        return False
+    words = {_plain(name)}
+    for g in games:
+        stem = _plain(g["name"].lower().removesuffix(".exe"))
+        words.add(stem)
+        words |= {_plain(h) for h in GAME_HINTS if h in (g.get("path") or "") or h.replace(" ", "") in stem}
+    return any(len(w) >= 3 and w in req for w in words)
+
+
+@tool("close_app", "Zavře (ukončí) aplikaci podle názvu. Hru, kterou uživatel hraje, zavře jen když ji výslovně jmenoval.",
       danger=True, details=_close_details, category="aplikace")
 async def close_app(ctx, name: Annotated[str, "název aplikace"]) -> ToolResult:
+    games = playing(await asyncio.to_thread(matching_apps, name))
+    if games and not named(getattr(ctx, "request_text", "") or "", games, name):
+        g = games[0]["name"].removesuffix(".exe").removesuffix(".EXE")
+        return ToolResult(False, f"🎮 {g} je hra a běží – uprostřed hry ji nezavřu. Když ji opravdu chceš zavřít, řekni to výslovně "
+                                 f"(např. „zavři {g}“).")
     n = await asyncio.to_thread(ctx.platform.close_app, name)
     return ToolResult(n > 0, f"Zavřeno procesů: {n}" if n else f"{name} neběží")
 

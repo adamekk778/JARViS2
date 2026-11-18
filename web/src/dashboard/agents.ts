@@ -123,7 +123,8 @@ export function buildAgents(client: JarvisClient) {
     if (m.templates) templates = m.templates;
     running = m.running || [];
     if (m.req && m.req !== "bizagents_get") busy = "";
-    if (m.message) toast(m.message.length > 160 ? `${m.message.slice(0, 160)}…` : m.message, m.ok === false ? "error" : "ok", 6000);
+    if (m.message && !document.body.classList.contains("hq-open"))      // the open Velín says it itself (once)
+      toast(m.message.length > 160 ? `${m.message.slice(0, 160)}…` : m.message, m.ok === false ? "error" : "ok", 6000);
     paint();
   });
   client.on("agent_activity", (m: any) => { if (String(m.key || "").startsWith("biz") && m.state !== "tool") client.send("bizagents_get"); });

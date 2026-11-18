@@ -309,7 +309,7 @@ async def probe(cid: str, transport=None) -> dict:
 MODULES = ("google", "microsoft", "dropbox", "stripe", "fakturoid", "idoklad", "fio", "shopify", "woocommerce", "hubspot",
            "pipedrive", "mailchimp", "calendly", "todoist", "trello", "asana", "linear", "atlassian", "clickup", "airtable",
            "monday", "notion", "toggl", "github", "supabase", "spaceship", "vercel", "cloudflare", "sentry", "slack",
-           "telegram", "discord", "webhook", "spotify")
+           "telegram", "discord", "webhook", "spotify", "shoptet", "zasilkovna", "heureka", "gopay", "comgate", "flexi", "pohoda")
 
 
 def load() -> None:

@@ -326,6 +326,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     else if (what === "photo") { show("control"); sendPhoto(c, "shelf"); }
     else if (what === "scan") scanCommand(c);
     else if (what === "habits") show("habits" as any);
+    else if (what === "company") { show("home" as any); window.dispatchEvent(new Event("jarvis-open-company")); }
   });
   c.on("welcome", (m) => {
     if (m.guest) { app.replaceChildren(guestView(c, m.guest)); return; }     // OMEGA 727: a temporary guest pairing

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
 import logging
 import time
 from collections import defaultdict, deque
@@ -18,6 +19,8 @@ from .openai_compat import OpenAICompat, friendly_error, pick_model
 from .presets import PRESETS
 
 log = logging.getLogger(__name__)
+# 3.13 who asked counts their own use: a firm agent's run collects (provider, model, input chars, output chars) here
+USAGE_SINK: contextvars.ContextVar[list | None] = contextvars.ContextVar("usage_sink", default=None)
 
 
 def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.AsyncBaseTransport | None = None):
@@ -200,6 +203,9 @@ class Router:
                             out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
                             yield ch
                         self.last_errors = errors
+                        sink = USAGE_SINK.get()
+                        if sink is not None:
+                            sink.append((pcfg.id, model or prov.model, sum(len(str(m.get("content") or "")) for m in msgs), out))
                         if self.on_usage:
                             try:
                                 self.on_usage(pcfg.id, model or prov.model, msgs, out)

@@ -53,7 +53,9 @@ class Pkce:
         if r.status_code >= 400:
             try:
                 d = r.json()
-                why = d.get("error_description") or d.get("error") or r.text[:200]
+                errs = d.get("errors") if isinstance(d.get("errors"), list) else []
+                why = d.get("error_description") or d.get("error") or (errs[0].get("message") if errs and isinstance(errs[0], dict) else "") \
+                    or r.text[:200]
             except Exception:  # noqa: BLE001
                 why = r.text[:200]
             raise ServiceError(f"{self.name} přihlášení odmítl: {str(why)[:300]}")
@@ -107,7 +109,9 @@ class ClientCredentials:
         if r.status_code >= 400:
             try:
                 d = r.json()
-                why = d.get("error_description") or d.get("error") or r.text[:200]
+                errs = d.get("errors") if isinstance(d.get("errors"), list) else []
+                why = d.get("error_description") or d.get("error") or (errs[0].get("message") if errs and isinstance(errs[0], dict) else "") \
+                    or r.text[:200]
             except Exception:  # noqa: BLE001
                 why = r.text[:200]
             raise ServiceError(f"{self.name} nepřijal Client ID / Client secret ({r.status_code}: {str(why)[:200]}) – zkontroluj je.")

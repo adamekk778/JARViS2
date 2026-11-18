@@ -392,6 +392,16 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             return {"ok": r["ok"], "message": r["message"]}
         return {"ok": rt.agent.confirm(cid, approved)}
 
+    @app.api_route("/api/velin/hook/{key}", methods=["GET", "POST"])
+    async def biz_hook(key: str):
+        """3.13 a service's webhook: "something new" → the Velín looks right away. The body is never read (the news is
+        read from the service itself); a wrong key is a plain 404, so the address cannot be guessed by trying."""
+        from .. import bizevents, bizhooks
+
+        if not bizhooks.valid(key):
+            raise HTTPException(404, "Not found")
+        return {"ok": True, "looking": bizevents.poke()}
+
     @app.get("/api/link/info")
     async def link_info(request: Request):
         """3.12 JARVIS Link: how the paired phone reaches this PC from outside + the certificate fingerprint to pin."""

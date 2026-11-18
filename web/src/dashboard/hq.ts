@@ -9,7 +9,10 @@ import type { JarvisClient } from "../shared/ws";
 
 interface Agent { id: number; name: string; icon: string; role: string; task: string; tools: string[]; every_min: number; daily_at: string;
   work_hours: boolean; enabled: boolean; last_run: number | null; last_ok: number | null; last_result: string | null; dept: string;
-  skill: string; replaces: string; bkey: string; runs: number; fails: number; when: string; triggers: string[]; next: string[]; tier: string }
+  skill: string; replaces: string; bkey: string; runs: number; fails: number; when: string; triggers: string[]; next: string[]; tier: string;
+  auto?: string[]; last_run_id?: number | null; last_rating?: number; cost_week?: number; tokens_week?: number }
+interface Goal { id: number; name: string; metric: string; target: number; unit: string; period: string; period_name: string; direction: string;
+  current: number | null; pct: number | null; on_track: boolean | null; days_left: number; elapsed: number; updated: number | null; note: string }
 interface Proposal { id: number; agent_id: number; agent: string; tool: string; description: string; details: string[]; created: number;
   status: string; result?: string }
 interface Dept { id: string; name: string; icon: string; color: string; desc: string; agents: number; library: number }
@@ -18,13 +21,17 @@ interface Lib { key: string; dept: string; name: string; icon: string; skill: st
 interface Run { id: number; agent_id: number; agent: string; dept: string; started: number; seconds: number; ok: number; proposals: number; summary: string }
 interface Numbers { runs_today: number; ok_today: number; proposals_today: number; runs_week: number; ok_week: number; approved_today: number;
   pending: number; notes: number; per_dept: Record<string, { runs: number; ok: number }>; budget: number; paused: boolean;
-  per_day?: { label: string; runs: number; ok: number }[]; ai_week?: number; saved_week_min?: number; dept_budget?: Record<string, number>; phone?: string }
+  per_day?: { label: string; runs: number; ok: number }[]; ai_week?: number; saved_week_min?: number; dept_budget?: Record<string, number>; phone?: string;
+  rated_up?: number; rated_down?: number; cost_week?: { czk: number; free: boolean; tokens: number }; auto_today?: number }
 interface Company { depts: Dept[]; library: Lib[]; profile: Record<string, string>; profile_fields: Record<string, string>;
   notes: { id: number; text: string; source: string; created: number }[]; numbers: Numbers; runs: Run[];
-  chains?: Record<string, { name: string; icon: string; steps: string[]; desc: string }>; events?: Record<string, { label: string; icon: string }> }
+  chains?: Record<string, { name: string; icon: string; steps: string[]; desc: string }>; events?: Record<string, { label: string; icon: string }>;
+  catchup?: { at: number; hours: number; text: string; missed: string[] } | null; events_every?: number }
 interface Conn { id: string; name: string; icon: string; connected: boolean; prefixes: string[] }
 
-type View = "overview" | "dept" | "agents" | "approvals" | "results" | "brain" | "build";
+type View = "overview" | "dept" | "agents" | "goals" | "approvals" | "results" | "brain" | "build";
+const czk = (v: number) => v < 1 ? v.toLocaleString("cs-CZ", { maximumFractionDigits: 2 }) : Math.round(v).toLocaleString("cs-CZ");
+const num = (v: number | null | undefined, unit = "") => v == null ? "–" : `${Math.abs(v) >= 100 || Number.isInteger(v) ? Math.round(v).toLocaleString("cs-CZ") : v.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ""}`;
 /** Minutes as hours the Czech way: 0, 1,5, 12. */
 const hours = (min?: number) => { const v = Math.round((min || 0) / 6) / 10; return v.toLocaleString("cs-CZ", { maximumFractionDigits: v >= 10 ? 0 : 1 }); };
 const OTHER: Dept = { id: "ostatni", name: "Ostatní", icon: "dots-three-circle", color: "#7d8fb3", desc: "Agenti bez oddělení.", agents: 0, library: 0 };
@@ -138,6 +145,8 @@ export function openHQ(client: JarvisClient) {
 function buildHQ(client: JarvisClient) {
   let agents: Agent[] = [], props: Proposal[] = [], running: number[] = [], queue: number[] = [], conns: Conn[] = [];
   let company: Company | null = null;
+  let goals: Goal[] = [], metrics: Record<string, { label: string; unit: string; direction: string; how: string }> = {}, autoSafe: string[] = [];
+  let hook: { url: string; path: string; host: string } | null = null;
   let view: View = "overview", deptId = "", cardId: number | string | null = null, isOpen = false;
   let filter = { q: "", dept: "", status: "" };
   const live = new Map<number, string>();            // agent id → the tool it is using now
@@ -202,7 +211,7 @@ function buildHQ(client: JarvisClient) {
   document.body.append(root, glassDefs());
 
   const NAV: [View, string, string][] = [["overview", "squares-four", "Přehled"], ["dept", "tree-structure", "Oddělení"], ["agents", "users-three", "Agenti"],
-    ["approvals", "seal-check", "Ke schválení"], ["results", "pulse", "Výsledky"], ["brain", "brain", "Mozek firmy"], ["build", "buildings", "Postavit firmu"]];
+    ["goals", "target", "Cíle firmy"], ["approvals", "seal-check", "Ke schválení"], ["results", "pulse", "Výsledky"], ["brain", "brain", "Mozek firmy"], ["build", "buildings", "Postavit firmu"]];
   const paintNav = () => {
     const n = company?.numbers;
     nav.replaceChildren(
@@ -230,8 +239,12 @@ function buildHQ(client: JarvisClient) {
         h("button", { type: "button", class: "hq-mini", onclick: () => client.send("bizpause_set", { paused: !n?.paused }) },
           icon(n?.paused ? "play" : "pause"), n?.paused ? "Spustit firmu" : "Pozastavit vše"),
         budgetSel(n?.budget ?? 80), phoneSel(n?.phone || "away"),
+        speedSel(company?.events_every || 60),
         h("button", { type: "button", class: "hq-mini", title: "Zkontrolovat nové e-maily, objednávky a platby hned", onclick: () => client.send("bizevents_check") },
-          icon("arrows-clockwise"), "Zkontrolovat události")));
+          icon("arrows-clockwise"), "Zkontrolovat události"),
+        h("button", { type: "button", class: "hq-mini", title: "Adresa, kterou může zavolat webhook služby – JARVIS se pak podívá hned",
+          onclick: () => { client.send("bizhook_get"); hookOpen = true; } }, icon("webhooks-logo"), "Webhook adresa"),
+        h("button", { type: "button", class: "hq-mini", title: "Hledat agenty, cíle a poznámky (Ctrl+K)", onclick: () => openSearch() }, icon("magnifying-glass"), "Hledat (Ctrl+K)")));
   };
   const phoneSel = (cur: string) => {
     const sel = h("select", { class: "hq-sel", "aria-label": "Schvalování z telefonu" },
@@ -239,6 +252,29 @@ function buildHQ(client: JarvisClient) {
         .map(([v, t]) => h("option", { value: v, selected: v === cur }, t))) as HTMLSelectElement;
     sel.onchange = () => client.send("bizphone_set", { mode: sel.value });
     return sel;
+  };
+  const speedSel = (cur: number) => {
+    const sel = h("select", { class: "hq-sel", "aria-label": "Jak rychle reagovat na události", title: "Jak často se JARVIS dívá na nové e-maily, objednávky a platby (bez AI)" },
+      ...[[60, "Reagovat do 1 min"], [180, "Reagovat do 3 min"], [600, "Reagovat do 10 min"]].map(([v, t]) => h("option", { value: String(v), selected: v === cur }, String(t)))) as HTMLSelectElement;
+    sel.onchange = () => client.send("bizevents_speed", { seconds: Number(sel.value) });
+    return sel;
+  };
+  let hookOpen = false;
+  const hookBox = () => {
+    if (!hookOpen || !hook) return "";
+    const full = hook.url || `https://<tvoje-veřejná-adresa>${hook.path}`;
+    return h("div", { class: "hq-modal-bg", onclick: (e: Event) => { if (e.target === e.currentTarget) { hookOpen = false; paint(); } } },
+      h("div", { class: "hq-modal glass", role: "dialog", "aria-label": "Webhook adresa" },
+        h("h3", {}, icon("webhooks-logo", "ph-fill"), "Okamžitá reakce přes webhook"),
+        h("p", { class: "hq-p" }, "Agenti se na nové e-maily, objednávky a platby dívají samy každou minutu. Pokud má tvoje PC veřejnou HTTPS adresu "
+          + "(vlastní doména, Cloudflare Tunnel…), vlož tuhle adresu do webhooku služby (Shoptet, Shopify, Stripe, WooCommerce) – JARVIS se pak podívá hned. "
+          + "Obsah webhooku se nečte (novinky si JARVIS přečte sám z té služby), takže adresa nic neprozradí."),
+        h("pre", { class: "hq-res" }, full),
+        hook.url ? "" : h("small", { class: "hq-muted" }, "Veřejnou adresu doplň v Nastavení → JARVIS Link (veřejná adresa)."),
+        h("div", { class: "hq-card-acts" },
+          h("button", { type: "button", class: "hq-btn primary", onclick: () => { navigator.clipboard?.writeText(full); toast("Zkopírováno.", "ok"); } }, icon("copy"), "Kopírovat"),
+          h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizhook_new") }, icon("arrows-clockwise"), "Nová adresa (stará přestane platit)"),
+          h("button", { type: "button", class: "hq-btn", onclick: () => { hookOpen = false; paint(); } }, "Zavřít"))));
   };
   const budgetSel = (cur: number) => {
     const sel = h("select", { class: "hq-sel", "aria-label": "Denní limit běhů", title: "Kolikrát denně smí agenti celkem pracovat (šetří limity AI)" },
@@ -487,7 +523,9 @@ function buildHQ(client: JarvisClient) {
       a ? h("div", { class: "hq-card-stats" },
         h("div", {}, h("b", {}, String(a.runs || 0)), h("small", {}, "běhů")),
         h("div", {}, h("b", {}, a.runs ? `${Math.round(((a.runs - (a.fails || 0)) / a.runs) * 100)} %` : "–"), h("small", {}, "úspěšnost")),
-        h("div", {}, h("b", {}, mine.length ? String(mine.length) : "0"), h("small", {}, "ke schválení"))) : "",
+        h("div", {}, h("b", {}, mine.length ? String(mine.length) : "0"), h("small", {}, "ke schválení")),
+        h("div", { title: "Odhad podle ceníku placeného API – s bezplatným klíčem neplatíš nic" }, h("b", {}, a.cost_week ? `${czk(a.cost_week)} Kč` : "0 Kč"),
+          h("small", {}, "AI za týden"))) : "",
       sec("wrench", "NÁSTROJE", h("div", { class: "hq-chips" }, ...tools.slice(0, 18).map((t) => h("span", { class: "hq-chip" }, nice(t))))),
       svc.length ? sec("plugs-connected", "NAPOJENO NA", h("div", { class: "hq-chips" }, ...svc.map((c) =>
         h("span", { class: `hq-chip svc ${c.connected ? "on" : "off"}`, title: c.connected ? "propojeno" : "nepropojeno – Propojení" }, h("i"), c.name.split(" (")[0])))) : "",
@@ -499,7 +537,16 @@ function buildHQ(client: JarvisClient) {
           rung("auto", "AGENT SÁM", "Čte, hlídá a hlásí sám. Odeslat, zapsat nebo zaplatit nikdy bez tebe."))),
       sec("user", "TY", h("p", { class: "hq-p" }, propose ? "Schvaluješ jeho návrhy (Ke schválení) a doplňuješ mozek firmy." : "Čteš jeho hlášení a doplňuješ mozek firmy.")),
       a ? sec("clock-counter-clockwise", "POSLEDNÍ PRÁCE", h("p", { class: "hq-p" }, `${ago(a.last_run)} · ${a.runs || 0}× pracoval${a.fails ? ` · ${a.fails}× selhal` : ""}`),
-        a.last_result ? h("pre", { class: `hq-res ${a.last_ok ? "" : "bad"}` }, a.last_result) : "") : "",
+        a.last_result ? h("pre", { class: `hq-res ${a.last_ok ? "" : "bad"}` }, a.last_result) : "",
+        a.last_run_id ? h("div", { class: "hq-rate" }, h("span", {}, "Jak se povedlo?"),
+          h("button", { type: "button", class: `hq-chip toggle ${a.last_rating === 1 ? "on" : ""}`, "aria-pressed": a.last_rating === 1 ? "true" : "false",
+            onclick: () => client.send("bizrun_rate", { agent: a.id, rating: a.last_rating === 1 ? 0 : 1 }) }, "👍 Dobré"),
+          h("button", { type: "button", class: `hq-chip toggle bad ${a.last_rating === -1 ? "on" : ""}`, "aria-pressed": a.last_rating === -1 ? "true" : "false",
+            onclick: () => {
+              if (a.last_rating === -1) { client.send("bizrun_rate", { agent: a.id, rating: 0 }); return; }
+              const why = prompt("Co bylo špatně? (agent si to zapamatuje – nepovinné)") ?? null;
+              if (why !== null) client.send("bizrun_rate", { agent: a.id, rating: -1, note: why });
+            } }, "👎 Nedobré")) : "") : "",
       mine.length ? sec("seal-check", `ČEKÁ NA SCHVÁLENÍ (${mine.length})`, ...mine.map(propCard)) : "",
       a ? sec("target", "ÚKOL", h("p", { class: "hq-p" }, a.task)) : "",
       a ? sec("lightning", "SPOUŠTĚT HNED PŘI", h("div", { class: "hq-chips" }, ...Object.entries(company?.events || {}).map(([k, ev]) => {
@@ -509,12 +556,22 @@ function buildHQ(client: JarvisClient) {
           icon(ev.icon, on ? "ph-fill" : ""), ev.label);
       }))) : "",
       a ? sec("arrow-bend-down-right", "PO DOKONČENÍ PŘEDAT", nextPicker(a)) : "",
+      a && a.tools.some((t) => autoSafe.includes(t)) ? sec("shield-check", "SMÍ SÁM (BEZ SCHVALOVÁNÍ)",
+        h("p", { class: "hq-p" }, "Jen bezpečné záznamy v tvých nástrojích (úkol, poznámka, řádek). E-maily, zprávy, peníze, DNS a databáze vždy čekají na tebe."),
+        h("div", { class: "hq-chips" }, ...a.tools.filter((t) => autoSafe.includes(t)).map((t) => {
+          const on = (a.auto || []).includes(t);
+          return h("button", { type: "button", class: `hq-chip toggle ${on ? "on" : ""}`, "aria-pressed": on ? "true" : "false",
+            onclick: () => client.send("bizagent_save", { agent: { ...a, auto: on ? (a.auto || []).filter((x) => x !== t) : [...(a.auto || []), t] } }) },
+            icon(on ? "check-circle" : "circle", on ? "ph-fill" : ""), nice(t));
+        }))) : "",
       a ? sec("cpu", "MODEL AI", h("div", { class: "hq-chips" }, ...[["smart", "Chytrý"], ["fast", "Rychlý a levný"]].map(([k, t]) =>
         h("button", { type: "button", class: `hq-chip toggle ${(a.tier || "smart") === k ? "on" : ""}`,
           onclick: () => client.send("bizagent_save", { agent: { ...a, tier: k } }) }, t)))) : "",
       h("div", { class: "hq-card-acts" }, ...(a ? [
         h("button", { type: "button", class: "hq-btn primary", disabled: running.includes(a.id), onclick: () => { client.send("bizagent_run", { id: a.id }); toast(`${a.name} pracuje…`, "info"); } },
           icon("play", "ph-fill"), "Spustit teď"),
+        h("button", { type: "button", class: "hq-btn", disabled: running.includes(a.id), title: "Agent si vše přečte naostro, ale nic neuloží ani neprovede – ukáže, co by udělal",
+          onclick: () => { client.send("bizagent_test", { id: a.id }); toast(`${a.name}: zkušební běh…`, "info"); } }, icon("flask"), "Zkušební běh"),
         h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizagent_save", { agent: { ...a, enabled: !a.enabled } }) },
           icon("power"), a.enabled ? "Vypnout" : "Zapnout"),
         h("button", { type: "button", class: "hq-btn danger", onclick: () => { if (confirm(`Propustit agenta „${a.name}“?`)) { client.send("bizagent_delete", { id: a.id }); cardId = null; } } },
@@ -547,14 +604,19 @@ function buildHQ(client: JarvisClient) {
   // ---------------------------------------------------------------- all agents
   const agentsView = () => {
     const q = filter.q.toLowerCase();
-    const list = agents.filter((a) => (!filter.dept || (a.dept || "ostatni") === filter.dept) && (!filter.status || state(a) === filter.status)
+    const extra = (a: Agent) => filter.status === "props" ? props.some((p) => p.agent_id === a.id) : filter.status === "bad_rated" ? a.last_rating === -1
+      : filter.status === "fast" ? a.tier === "fast" : filter.status === "events" ? (a.triggers || []).length > 0 : filter.status === "rules" ? (a.auto || []).length > 0
+      : !filter.status || state(a) === filter.status;
+    const list = agents.filter((a) => (!filter.dept || (a.dept || "ostatni") === filter.dept) && extra(a)
       && (!q || `${a.name} ${a.skill} ${a.task}`.toLowerCase().includes(q)));
     const search = h("input", { class: "hq-in", type: "search", placeholder: "hledat agenta…", value: filter.q, "aria-label": "Hledat agenta",
       oninput: () => { filter.q = search.value; repaintList(); } }) as HTMLInputElement;
     const dsel = h("select", { class: "hq-sel", "aria-label": "Oddělení", onchange: (e: Event) => { filter.dept = (e.target as HTMLSelectElement).value; paint(); } },
       h("option", { value: "" }, "Všechna oddělení"), ...depts().map((d) => h("option", { value: d.id, selected: filter.dept === d.id }, d.name)));
     const ssel = h("select", { class: "hq-sel", "aria-label": "Stav", onchange: (e: Event) => { filter.status = (e.target as HTMLSelectElement).value; paint(); } },
-      h("option", { value: "" }, "Každý stav"), ...Object.entries(STATE_TXT).map(([k, v]) => h("option", { value: k, selected: filter.status === k }, v.toLowerCase())));
+      h("option", { value: "" }, "Každý stav"), ...Object.entries(STATE_TXT).map(([k, v]) => h("option", { value: k, selected: filter.status === k }, v.toLowerCase())),
+      ...[["props", "má návrh ke schválení"], ["bad_rated", "ohodnocený 👎"], ["fast", "rychlý a levný model"], ["events", "spouští se událostí"], ["rules", "smí něco sám"]]
+        .map(([k, v]) => h("option", { value: k, selected: filter.status === k }, v)));
     const rows = h("div", { class: "hq-table glass" });
     const repaintList = () => {
       const qq = filter.q.toLowerCase();
@@ -584,9 +646,101 @@ function buildHQ(client: JarvisClient) {
       rows);
   };
 
+  // ---------------------------------------------------------------- 3.13 goals of the company
+  const goalsView = () => {
+    const name = h("input", { class: "hq-in", placeholder: "Název cíle (např. Odpověď zákazníkovi do 2 h)", "aria-label": "Název cíle" }) as HTMLInputElement;
+    const metric = h("select", { class: "hq-sel", "aria-label": "Jak se měří" },
+      h("option", { value: "" }, "Hlásí agenti (vlastní cíl)"),
+      ...Object.entries(metrics).map(([k, m]) => h("option", { value: k }, `Měří se samo: ${m.label}`))) as HTMLSelectElement;
+    const target = h("input", { class: "hq-in", type: "number", min: "0", step: "any", placeholder: "Cíl (číslo)", "aria-label": "Cílová hodnota" }) as HTMLInputElement;
+    const unit = h("input", { class: "hq-in", placeholder: "jednotka (Kč, ks, h)", "aria-label": "Jednotka", maxlength: 12 }) as HTMLInputElement;
+    const period = h("select", { class: "hq-sel", "aria-label": "Období" },
+      ...[["week", "za týden"], ["month", "za měsíc"], ["quarter", "za kvartál"], ["year", "za rok"]].map(([v, t]) => h("option", { value: v, selected: v === "month" }, t))) as HTMLSelectElement;
+    const dir = h("select", { class: "hq-sel", "aria-label": "Směr" }, h("option", { value: "up" }, "víc je lépe"), h("option", { value: "down" }, "méně je lépe")) as HTMLSelectElement;
+    metric.onchange = () => { const m = metrics[metric.value]; if (m) { unit.value = m.unit; dir.value = m.direction; if (!name.value) name.value = m.label; } };
+    const add = () => {
+      if (!target.value) { toast("Napiš cílovou hodnotu.", "error"); return; }
+      client.send("bizgoal_save", { goal: { name: name.value, metric: metric.value, target: target.value, unit: unit.value, period: period.value, direction: dir.value } });
+      name.value = ""; target.value = "";
+    };
+    return h("div", { class: "hq-pane" },
+      h("p", { class: "hq-sub" }, "Cíle vidí každý agent ve svém zadání a pracuje tak, aby se k nim firma blížila. Tržby, objednávky, platby a faktury se měří samy z propojených služeb, ostatní čísla hlásí agenti."),
+      h("div", { class: "hq-goals" }, ...goals.map((g) => {
+        const pct = g.pct ?? 0;
+        const tone = g.pct == null ? "" : g.on_track ? "ok" : "warn";
+        return h("div", { class: `hq-goal glass ${tone}` },
+          h("div", { class: "hq-goal-h" }, h("b", {}, g.name), h("span", { class: `hq-pill ${tone === "ok" ? "on" : tone === "warn" ? "bad" : ""}` },
+            g.pct == null ? "zatím bez čísla" : g.on_track ? "v plánu" : "pozadu"),
+            h("button", { type: "button", class: "hq-icon", "aria-label": `Smazat cíl ${g.name}`, title: "Smazat", onclick: () => { if (confirm(`Smazat cíl „${g.name}“?`)) client.send("bizgoal_delete", { id: g.id }); } }, icon("trash"))),
+          h("div", { class: "hq-goal-n" }, h("b", {}, num(g.current, g.unit)), h("span", {}, ` z ${num(g.target, g.unit)} ${g.period_name === "týden" ? "za týden" : `za ${g.period_name}`}${g.direction === "down" ? " (méně je lépe)" : ""}`)),
+          h("div", { class: "hq-goal-bar", style: { "--p": `${Math.min(100, pct)}%`, "--t": `${g.elapsed}%` } }, h("i"), h("em", { title: "kde bys měl teď být" })),
+          h("small", { class: "hq-muted" }, `${g.pct == null ? "" : `${g.pct} % · `}zbývá ${g.days_left} dní · ${g.metric ? `měří se samo (${metrics[g.metric]?.how || ""})` : "hlásí agenti"}${g.note ? ` · ${g.note}` : ""}`));
+      }), goals.length ? "" : h("p", { class: "hq-empty" }, "Zatím žádné cíle – přidej první níže.")),
+      h("div", { class: "hq-panel glass" }, h("div", { class: "hq-ph" }, icon("plus-circle"), "NOVÝ CÍL"),
+        h("div", { class: "hq-goal-form" }, name, metric, target, unit, period, dir,
+          h("button", { type: "button", class: "hq-btn primary", onclick: add }, icon("target", "ph-fill"), "Přidat cíl"))),
+      h("div", { class: "hq-tools" }, h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizgoals_refresh") }, icon("arrows-clockwise"), "Přeměřit teď")));
+  };
+
+  // ---------------------------------------------------------------- 3.13 the test run's result, the search
+  let testResult: { id: number; ok: boolean; answer: string; would: { tool: string; description: string; details: string[] }[] } | null = null;
+  const testBox = () => {
+    if (!testResult) return "";
+    const a = agents.find((x) => x.id === testResult!.id);
+    const shut = () => { testResult = null; paint(); };
+    return h("div", { class: "hq-modal-bg", onclick: (e: Event) => { if (e.target === e.currentTarget) shut(); } },
+      h("div", { class: "hq-modal glass", role: "dialog", "aria-label": "Zkušební běh" },
+        h("h3", {}, icon("flask", "ph-fill"), `Zkušební běh – ${a?.name || "agent"}`),
+        h("p", { class: "hq-sub" }, "Nic se neuložilo ani neprovedlo. Takhle by agent pracoval naostro:"),
+        h("pre", { class: `hq-res ${testResult.ok ? "" : "bad"}` }, testResult.answer),
+        testResult.would.length ? h("div", {}, h("div", { class: "hq-ph sm" }, icon("seal-question"), `ŠLO BY KE SCHVÁLENÍ (${testResult.would.length})`),
+          ...testResult.would.map((w) => h("div", { class: "hq-prop glass" }, h("div", { class: "hq-prop-h" }, h("b", {}, nice(w.tool)), h("span", {}, w.description)),
+            w.details?.length ? h("pre", {}, w.details.join("\n")) : ""))) : h("p", { class: "hq-muted" }, "Nic by nenavrhl ke schválení."),
+        h("div", { class: "hq-card-acts" }, h("button", { type: "button", class: "hq-btn primary", onclick: shut }, "Zavřít"))));
+  };
+  let searchOpen = false, searchQ = "";
+  const openSearch = () => { searchOpen = true; searchQ = ""; paint(); setTimeout(() => (root.querySelector(".hq-search-in") as HTMLInputElement | null)?.focus(), 30); };
+  const searchBox = () => {
+    if (!searchOpen) return "";
+    const shut = () => { searchOpen = false; paint(); };
+    const res = h("div", { class: "hq-search-res" });
+    const fill = () => {
+      const q = searchQ.trim().toLowerCase();
+      const hit = (t: string) => !q || t.toLowerCase().includes(q);
+      const ag = agents.filter((a) => hit(`${a.name} ${a.skill} ${a.task} ${deptOf(a.dept).name} ${a.tools.join(" ")}`)).slice(0, 12);
+      const gs = goals.filter((g) => hit(g.name)).slice(0, 5);
+      const ns = (company?.notes || []).filter((n) => q && hit(n.text)).slice(0, 5);
+      const lib = (company?.library || []).filter((l) => q && !l.hired && hit(`${l.name} ${l.skill}`)).slice(0, 6);
+      res.replaceChildren(
+        ...ag.map((a) => h("button", { type: "button", class: "hq-search-i", onclick: () => { searchOpen = false; deptId = deptOf(a.dept).id; cardId = a.id; go("dept"); } },
+          icon(a.icon || "robot"), h("span", {}, h("b", {}, a.name), h("small", {}, `${deptOf(a.dept).name} · ${STATE_TXT[state(a)].toLowerCase()}`)))),
+        ...gs.map((g) => h("button", { type: "button", class: "hq-search-i", onclick: () => { searchOpen = false; go("goals"); } }, icon("target"),
+          h("span", {}, h("b", {}, g.name), h("small", {}, `cíl · ${g.pct ?? "–"} %`)))),
+        ...lib.map((l) => h("button", { type: "button", class: "hq-search-i", onclick: () => { searchOpen = false; deptId = l.dept; cardId = l.key; go("dept"); } }, icon(l.icon || "robot"),
+          h("span", {}, h("b", {}, l.name), h("small", {}, "v knihovně – najmout")))),
+        ...ns.map((n) => h("button", { type: "button", class: "hq-search-i", onclick: () => { searchOpen = false; go("brain"); } }, icon("brain"),
+          h("span", {}, h("b", {}, n.text.slice(0, 80)), h("small", {}, "mozek firmy")))),
+        ag.length + gs.length + ns.length + lib.length ? "" : h("p", { class: "hq-empty" }, "Nic nenalezeno."));
+    };
+    const inp = h("input", { class: "hq-in hq-search-in", type: "search", placeholder: "hledat agenta, oddělení, nástroj, cíl, poznámku…", value: searchQ,
+      "aria-label": "Hledat ve Velínu", oninput: () => { searchQ = inp.value; fill(); },
+      onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") (res.querySelector(".hq-search-i") as HTMLElement | null)?.click(); } }) as HTMLInputElement;
+    fill();
+    return h("div", { class: "hq-modal-bg", onclick: (e: Event) => { if (e.target === e.currentTarget) shut(); } },
+      h("div", { class: "hq-modal glass hq-search", role: "dialog", "aria-label": "Hledat ve Velínu" }, inp, res));
+  };
+
   // ---------------------------------------------------------------- approvals, results, brain, build
   const approvalsView = () => h("div", { class: "hq-pane" },
     h("p", { class: "hq-sub" }, "Tohle agenti připravili. Nic z toho se nestalo – proběhne přesně to, co tu vidíš, až po tvém kliknutí."),
+    props.length > 1 ? h("div", { class: "hq-tools" },
+      h("button", { type: "button", class: "hq-btn primary", onclick: () => {
+        const ids = props.map((p) => p.id);
+        if (confirm(`Schválit a provést všech ${ids.length} návrhů?\n\n${props.slice(0, 12).map((p) => `• ${p.agent}: ${p.description}`).join("\n")}${ids.length > 12 ? "\n…" : ""}`))
+          client.send("bizproposals_decide", { ids, approve: true });
+      } }, icon("checks", "ph-bold"), `Schválit vše (${props.length})`),
+      h("button", { type: "button", class: "hq-btn", onclick: () => { const ids = props.map((p) => p.id); if (confirm(`Zamítnout všech ${ids.length} návrhů?`)) client.send("bizproposals_decide", { ids, approve: false }); } },
+        icon("x"), "Zamítnout vše")) : "",
     props.length ? h("div", { class: "hq-props" }, ...props.map(propCard)) : h("p", { class: "hq-empty" }, "Nic nečeká. Agenti pracují a hlásí se, až budou něco potřebovat."));
 
   const resultsView = () => {
@@ -598,7 +752,10 @@ function buildHQ(client: JarvisClient) {
         kpi(String(company?.numbers.runs_week ?? 0), "běhů za 7 dní"),
         kpi(company?.numbers.runs_week ? `${Math.round(((company.numbers.ok_week || 0) / company.numbers.runs_week) * 100)} %` : "–", "úspěšnost"),
         kpi(String(company?.numbers.ai_week ?? 0), "dotazů na AI (7 dní)"),
-        kpi(`${hours(company?.numbers.saved_week_min)} h`, "ušetřeno za týden (odhad)")),
+        kpi(`${hours(company?.numbers.saved_week_min)} h`, "ušetřeno za týden (odhad)"),
+        kpi(company?.numbers.cost_week ? (company.numbers.cost_week.free ? "0 Kč" : `≈ ${czk(company.numbers.cost_week.czk)} Kč`) : "–",
+          "AI za týden (ceník placeného API)"),
+        kpi(`${company?.numbers.rated_up ?? 0} / ${company?.numbers.rated_down ?? 0}`, "👍 / 👎 tvoje hodnocení (7 dní)")),
       h("div", { class: "hq-tools" },
         h("button", { type: "button", class: "hq-btn primary", onclick: () => { client.send("bizreport_make"); toast("Kreslím zprávu…", "info"); } },
           icon("file-pdf", "ph-fill"), "Týdenní zpráva (PDF)"),
@@ -631,7 +788,19 @@ function buildHQ(client: JarvisClient) {
     const inputs: Record<string, HTMLTextAreaElement> = {};
     const note = h("textarea", { class: "hq-in", rows: 3, placeholder: "Ceník, pravidla, důležití zákazníci, co jsme rozhodli… cokoli, co mají agenti vědět",
       "aria-label": "Nová poznámka" }) as HTMLTextAreaElement;
+    const file = h("input", { type: "file", accept: ".json,application/json", hidden: true, onchange: async () => {
+      const f = file.files?.[0];
+      if (!f) return;
+      const replace = confirm("Nahradit celou firmu zálohou?\n\nOK = nahradit (agenti, cíle a mozek tady se smažou)\nZrušit = jen přidat k tomu, co tu je");
+      client.send("bizsetup_import", { data: await f.text(), replace });
+      file.value = "";
+    } }) as HTMLInputElement;
     return h("div", { class: "hq-pane hq-brain" },
+      h("section", { class: "hq-panel glass wide" }, h("div", { class: "hq-ph" }, icon("archive"), "ZÁLOHA A PŘENOS FIRMY"),
+        h("p", { class: "hq-sub" }, "Celé nastavení Velínu v jednom souboru – agenti, řetězce, pravidla, cíle, limity, profil a mozek firmy. Bez klíčů a hesel: služby se na jiném PC jen znovu propojí."),
+        h("div", { class: "hq-tools" },
+          h("button", { type: "button", class: "hq-btn primary", onclick: () => client.send("bizsetup_export") }, icon("download-simple"), "Zálohovat nastavení"),
+          h("button", { type: "button", class: "hq-btn", onclick: () => file.click() }, icon("upload-simple"), "Obnovit ze zálohy…"), file)),
       h("section", { class: "hq-panel glass" }, h("div", { class: "hq-ph" }, icon("identification-card"), "PROFIL FIRMY"),
         h("p", { class: "hq-sub" }, "Tohle čte každý agent při každé práci."),
         ...Object.entries(fields).map(([k, label]) => {
@@ -699,7 +868,7 @@ function buildHQ(client: JarvisClient) {
   };
 
   // ---------------------------------------------------------------- paint
-  const TITLES: Record<View, string> = { overview: "PŘEHLED", dept: "ODDĚLENÍ", agents: "AGENTI", approvals: "KE SCHVÁLENÍ", results: "VÝSLEDKY",
+  const TITLES: Record<View, string> = { overview: "PŘEHLED", dept: "ODDĚLENÍ", agents: "AGENTI", goals: "CÍLE FIRMY", approvals: "KE SCHVÁLENÍ", results: "VÝSLEDKY",
     brain: "MOZEK FIRMY", build: "POSTAVIT FIRMU" };
   const paint = () => {
     if (!isOpen) return;
@@ -715,8 +884,12 @@ function buildHQ(client: JarvisClient) {
     const scroll = (body.firstElementChild as HTMLElement | null)?.querySelector?.(".hq-tree-scroll")?.scrollLeft || 0;
     const cardScroll = body.querySelector(".hq-card")?.scrollTop || 0;          // a live update must not jump the card
     const paneScroll = body.querySelector(".hq-pane")?.scrollTop || 0;
-    body.replaceChildren(view === "overview" ? overview() : view === "dept" ? deptView() : view === "agents" ? agentsView()
-      : view === "approvals" ? approvalsView() : view === "results" ? resultsView() : view === "brain" ? brainView() : buildView());
+    const cu = company?.catchup;
+    body.replaceChildren(view === "overview" ? overview() : view === "dept" ? deptView() : view === "agents" ? agentsView() : view === "goals" ? goalsView()
+      : view === "approvals" ? approvalsView() : view === "results" ? resultsView() : view === "brain" ? brainView() : buildView(),
+    view === "overview" && cu && !cuSeen.has(cu.at) ? h("div", { class: "hq-catchup glass", role: "status" }, icon("clock-clockwise", "ph-fill"), h("span", {}, cu.text),
+      h("button", { type: "button", class: "hq-x-mini", "aria-label": "Skrýt", onclick: () => { cuSeen.add(cu.at); paint(); } }, icon("x"))) : "",
+    hookBox(), testBox(), searchBox());
     if (enter) (body.firstElementChild as HTMLElement | null)?.classList.add("enter");
     const sc = body.querySelector(".hq-tree-scroll") as HTMLElement | null;
     if (sc) sc.scrollLeft = scroll;
@@ -727,24 +900,32 @@ function buildHQ(client: JarvisClient) {
     lastView = view;
   };
   let lastView: View | null = null;
+  const cuSeen = new Set<number>();
   let lastKey = "";
   const go = (v: View) => { view = v; if (v !== "dept") cardId = null; paint(); };
 
   // the agents/brain views have inputs: repainting under the user's fingers would lose what they type
-  const typing = () => view === "brain" || (view === "agents" && document.activeElement?.closest(".hq-tools"));
+  const typing = () => view === "brain" || searchOpen || (view === "goals" && !!document.activeElement?.matches?.(".hq-goal-form input, .hq-goal-form select"))
+    || (view === "agents" && document.activeElement?.closest(".hq-tools"));
   const soft = () => { if (!isOpen) return; if (typing()) paintNav(); else paint(); };
 
   client.on("bizagents", (m: any) => {
     agents = m.agents || []; props = m.proposals || []; running = m.running || []; queue = m.queue || [];
+    if (Array.isArray(m.goals)) goals = m.goals;
+    if (m.metrics) metrics = m.metrics;
+    if (Array.isArray(m.auto_safe)) autoSafe = m.auto_safe;
     if (m.company) {
       company = { ...(company || {}), ...m.company } as Company;        // a live update carries only what changed
       for (const l of company!.library) BL[l.key] = (l as any).tools || BL[l.key] || [];
     }
-    if (isOpen && m.message && m.req && /^biz(company|agent_hire|agents_bulk|brain|profile|budget|pause)/.test(m.req)) toast(m.message, m.ok === false ? "error" : "ok", 6000);
+    if (isOpen && m.message && m.req && m.req !== "bizagent_test")    // the test run shows its own window
+      toast(m.message.length > 220 ? `${m.message.slice(0, 220)}…` : m.message, m.ok === false ? "error" : "ok", 6000);
     soft();
   });
+  client.on("bizagent_test_result", (m: any) => { testResult = { id: m.id, ok: !!m.ok, answer: String(m.answer || ""), would: m.would || [] }; if (isOpen) paint(); });
+  client.on("bizhook", (m: any) => { hook = { url: m.url || "", path: m.path || "", host: m.host || "" }; if (isOpen && hookOpen) paint(); });
   client.on("bizaudit", (m: any) => { audit = Array.isArray(m.items) ? m.items : []; if (logView) soft(); });
-  client.on("export_done", (m: any) => { if (isOpen && (m.kind === "velin" || m.kind === "report")) toast(`Uloženo: ${m.path}`, "ok", 9000); });
+  client.on("export_done", (m: any) => { if (isOpen && (m.kind === "velin" || m.kind === "report" || m.kind === "velin_setup")) toast(`Uloženo: ${m.path}`, "ok", 9000); });
   client.on("connectors", (m: any) => { conns = Array.isArray(m.items) ? m.items : conns; soft(); });
   client.on("agent_activity", (m: any) => {
     const k = String(m.key || "");
@@ -758,7 +939,9 @@ function buildHQ(client: JarvisClient) {
   });
 
   const onKey = (e: KeyboardEvent) => {
+    if (isOpen && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openSearch(); return; }
     if (!isOpen || e.key !== "Escape") return;
+    if (searchOpen || testResult || hookOpen) { searchOpen = false; testResult = null; hookOpen = false; paint(); return; }
     if ((e.target as HTMLElement)?.closest?.("textarea, input, select")) { (e.target as HTMLElement).blur(); return; }
     if (cardId !== null) { cardId = null; paint(); } else close();
   };

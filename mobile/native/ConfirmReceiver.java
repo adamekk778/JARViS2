@@ -17,13 +17,24 @@ public class ConfirmReceiver extends BroadcastReceiver {
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null && nid != 0) nm.cancel(nid);
         if (id == null) return;
+        final boolean fromWidget = i.getBooleanExtra("widget", false);
+        if (fromWidget) {                       // 3.13 the widget shows the answer at once; the app sends the next one later
+            JarvisWidget.prefs(c).edit().putString("biz", ok ? "Schvaluji…" : "Zamítnuto").putString("biz_id", "").apply();
+            JarvisWidget.refresh(c);
+        }
         final PendingResult pr = goAsync();
         new Thread(() -> {
             try {
                 JSONObject b = new JSONObject();
                 b.put("id", id);
                 b.put("approved", ok);
-                JarvisLink.http(c, "POST", "/api/phone/confirm", b.toString(), 10000);
+                String r = JarvisLink.http(c, "POST", "/api/phone/confirm", b.toString(), 10000);
+                if (fromWidget && ok) {
+                    String msg = "Schváleno";
+                    try { msg = new JSONObject(r).optString("message", msg); } catch (Exception ignored) { }
+                    JarvisWidget.prefs(c).edit().putString("biz", "✓ " + msg).apply();
+                    JarvisWidget.refresh(c);
+                }
             } catch (Exception ignored) {
             } finally {
                 pr.finish();

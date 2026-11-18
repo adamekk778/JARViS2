@@ -67,7 +67,7 @@ def test_a_hired_agent_gets_the_tools_of_connected_services(rt):
     aid = bizcompany.hire(rt, "cash_morning")                       # Fio + Stripe, only Fio is connected
     assert bizagents.get(rt, aid)["tools"] == ["fio_account"]
     aid2 = bizcompany.hire(rt, "orders_morning")                    # nothing of it connected: all tools, it says what to connect
-    assert set(bizagents.get(rt, aid2)["tools"]) == {"shopify_orders", "woocommerce_orders"}
+    assert set(bizagents.get(rt, aid2)["tools"]) == {"shopify_orders", "woocommerce_orders", "shoptet_orders"}
     a = bizagents.get(rt, aid)
     assert a["dept"] == "finance" and a["bkey"] == "cash_morning" and a["skill"] and a["replaces"]
 

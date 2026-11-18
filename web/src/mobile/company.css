@@ -46,3 +46,26 @@
 .m-co-run small { color: var(--muted); font-size: 11.5px; }
 .m-co-run p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12.5px; }
 .m-co-run.bad b { color: #ff9db0; }
+
+/* 3.13 actions, brief, goals, the agent's small editor */
+.m-co-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.m-co-brief { padding: 14px; border-radius: 18px; display: grid; gap: 10px; background: linear-gradient(150deg, rgb(124 92 255 / .2), rgb(255 255 255 / .04));
+  border: 1px solid rgb(255 255 255 / .1); }
+.m-co-brief p { margin: 0; font-size: 14px; line-height: 1.5; }
+.m-co-goal { display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; background: rgb(255 255 255 / .05); border: 1px solid rgb(255 255 255 / .08); }
+.m-co-goal b { display: block; font-size: 14px; }
+.m-co-goal small { color: var(--muted); font-size: 12px; }
+.m-co-goal > i { display: block; height: 6px; border-radius: 99px; background: rgb(255 255 255 / .08); position: relative; overflow: hidden; }
+.m-co-goal > i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: inherit; background: linear-gradient(90deg, #7c5cff, #8aa8ff); }
+.m-co-goal.ok > i::after { background: linear-gradient(90deg, #1fb985, #34e3a4); }
+.m-co-goal.warn > i::after { background: linear-gradient(90deg, #ff8a3d, #ffbf5a); }
+.m-co-aname { all: unset; cursor: pointer; display: block; min-width: 0; }
+.m-co-aname:focus-visible { outline: 2px solid #8aa8ff; outline-offset: 3px; border-radius: 8px; }
+.m-co-edit { display: grid; gap: 10px; margin: 0 6px 8px 26px; padding: 12px; border-radius: 14px; background: rgb(255 255 255 / .05); border: 1px solid rgb(255 255 255 / .08); }
+.m-co-switch, .m-co-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.m-co-field select { max-width: 60%; }
+.m-co-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.m-co-chips > span { width: 100%; color: var(--muted); font-size: 12px; }
+.m-co-chips .chip { border: 0; padding: 7px 12px; border-radius: 99px; background: rgb(255 255 255 / .08); color: inherit; font: inherit; font-size: 13px; }
+.m-co-chips .chip.on { background: linear-gradient(135deg, rgb(124 92 255 / .6), rgb(138 168 255 / .35)); color: #fff; }
+.m-co-res { margin: 0; max-height: 140px; overflow: auto; white-space: pre-wrap; font-size: 12px; color: var(--muted); }

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 import uuid
 from typing import Any
@@ -11,6 +12,7 @@ from . import tools
 from .llm.base import AllProvidersFailed, ProviderError, ToolCall
 from .prompt import build_system_prompt
 from .tools import select as sel
+from .tools.base import UNTRUSTED_OUTPUT
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +90,14 @@ def _needs_second(call: ToolCall, limits) -> bool:
 
 def _wave_of(waves: list[list[int]], i: int) -> int:
     return next((k for k, w in enumerate(waves) if i in w), -1)
+
+
+_DOTS = re.compile(r"^[\s.…·]*$")
+
+
+def only_dots(text: str) -> bool:
+    """3.13 "...", "…", ". . ." – no words at all (not shown, not spoken, not kept)."""
+    return bool(_DOTS.match(text or ""))
 
 
 AGENT_MODE_RULE = ("Režim Agent: u úkolu s více kroky nejdřív zavolej update_plan se seznamem kroků, po každém kroku "
@@ -391,7 +401,10 @@ class Agent:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
         else:
             approved = True
-            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt):
+            from . import trust
+
+            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt) and \
+                    not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False)):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:
@@ -428,6 +441,8 @@ class Agent:
                     except Exception:  # noqa: BLE001
                         before = None
                 res = await tools.call(call.name, call.arguments, rt)
+                if call.name in UNTRUSTED_OUTPUT:
+                    self._untrusted_seen = True
                 if before is not None and res.ok:
                     try:
                         from .changes import from_text
@@ -464,6 +479,8 @@ class Agent:
         voice = source in ("voice", "mobile_voice", "headset")      # spoken: short answers without tables or code
         self._goal = text or "(příloha)"
         self._sources = []
+        self._untrusted_seen = False            # 3.13 full trust asks again after e-mails / web pages were read
+        rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
         status = "done"
         if record_user:
             um = rt.memory.add_message("user", text, attachments, source)
@@ -472,6 +489,10 @@ class Agent:
         bus.publish("state", state="thinking")
         if rt.cfg.agent.mode:
             extra = (extra + "\n" if extra else "") + AGENT_MODE_RULE
+        from . import trust
+
+        if trust.on(rt):
+            extra = (extra + "\n" if extra else "") + trust.RULE
         msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
         speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
         schemas = self._tool_schemas(text)
@@ -489,20 +510,26 @@ class Agent:
                 round_text = ""
                 calls: list[ToolCall] | None = None
                 use_tools = schemas if rnd < rounds else None
+                shown = 0                                  # 3.13 how much of round_text is on the screen already
                 async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **({"only": self._only} if self._only else {})):
                     if ch.text:
-                        if not round_text and full_text:
-                            bus.publish("assistant_delta", text="\n\n")
-                            full_text += "\n\n"
-                            if speech:
-                                speech.feed("\n\n")
                         round_text += ch.text
-                        full_text += ch.text
-                        bus.publish("assistant_delta", text=ch.text)
-                        if speech:
-                            speech.feed(ch.text)
+                        if not only_dots(round_text):      # "..." alone (some models send it between steps) is not shown
+                            if not shown and full_text:
+                                bus.publish("assistant_delta", text="\n\n")
+                                full_text += "\n\n"
+                                if speech:
+                                    speech.feed("\n\n")
+                            new_text = round_text[shown:]
+                            shown = len(round_text)
+                            full_text += new_text
+                            bus.publish("assistant_delta", text=new_text)
+                            if speech:
+                                speech.feed(new_text)
                     if ch.tool_calls:
                         calls = ch.tool_calls
+                if only_dots(round_text):
+                    round_text = ""
                 if rt.router.last_used:          # 3.12 with how much of today's free AI is left ("Groq · 70 %")
                     from .llm.quota import brain_state
 
@@ -533,9 +560,22 @@ class Agent:
             else:
                 pass
             self._recent_tools = list(dict.fromkeys(reversed(used_now)))[:8]   # a follow-up ("a teď ho pošli") has them
-            if not full_text.strip():
-                full_text = "Hotovo." if tool_cards else "…"
+            cut = bool(calls) and rnd >= rounds              # stopped by the round limit, not by an empty answer
+            if not full_text.strip() and cut:
+                full_text = "Hotovo."
                 bus.publish("assistant_delta", text=full_text)
+            elif not full_text.strip():                       # 3.13 the AI sent nothing: ask once more, never answer "…"
+                again = ""
+                try:
+                    again = await rt.router.complete(msgs + [{"role": "system", "content": "Odpověz uživateli teď – krátce, česky, "
+                                                              "skutečnými slovy (ne jen tečkami)."}])
+                except Exception as e:  # noqa: BLE001
+                    log.info("empty answer retry: %s", e)
+                full_text = again.strip() if again and not only_dots(again) else "Hotovo." if tool_cards else \
+                    "Promiň, AI mi tentokrát neposlala žádnou odpověď. Zkus to prosím napsat ještě jednou."
+                bus.publish("assistant_delta", text=full_text)
+                if speech:
+                    speech.feed(full_text)
         except AllProvidersFailed as e:
             status = "failed"
             log.warning("all providers failed: %s", e)

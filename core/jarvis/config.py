@@ -197,6 +197,7 @@ class Tools(BaseModel):
     disabled: list[str] = Field(default_factory=list)
     always_confirm: list[str] = Field(default_factory=list)
     trusted: list[str] = Field(default_factory=list)
+    full_trust: bool = False    # 3.13 Plná důvěra: PC actions without asking (see trust.py for what still asks)
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
     approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)

@@ -63,6 +63,11 @@ export const native = {
     if (isNative) JarvisPhone.widget(o).catch(() => {});
   },
 
+  /** 3.13 Velín on the widget: the first proposal waiting for approval (✓ / ✕ right on the home screen). */
+  widgetBiz(o: { text: string; id: string }) {
+    if (isNative) JarvisPhone.widgetBiz(o).catch(() => {});
+  },
+
   /** jarvis:// links: the widget, app shortcuts and command QR codes scanned by the camera app. */
   onLink(cb: (url: string) => void) {
     if (!isNative) return;

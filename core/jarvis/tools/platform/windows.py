@@ -486,6 +486,25 @@ class WindowsPlatform(Platform):
     def hotkey(self, keys):
         self._pg().hotkey(*[k.lower() for k in keys])
 
+    # 3.13 for games: scan codes and relative mouse (gameinput_win)
+    def game_input_ok(self):
+        return True
+
+    def game_keys(self, keys, hold_ms=200):
+        from . import gameinput_win
+
+        gameinput_win.keys(list(keys), int(hold_ms))
+
+    def game_mouse(self, dx, dy):
+        from . import gameinput_win
+
+        gameinput_win.mouse_move(int(dx), int(dy))
+
+    def game_click(self, button="left", hold_ms=60):
+        from . import gameinput_win
+
+        gameinput_win.mouse_button(button, int(hold_ms))
+
     def foreground_app(self):
         import ctypes
         from ctypes import wintypes

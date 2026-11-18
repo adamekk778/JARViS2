@@ -512,6 +512,12 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       hotkey("hotkeys.device_listen", "Poslech zařízení", "Píše všechno, co hraje z PC; podruhé zastaví a nabídne prompt, shrnutí nebo poznámky."))],
 
     permissions: () => [
+      card("Plná důvěra", "Když je zapnutá, JARVIS na tomhle PC udělá, co řekneš, bez ptaní a bez diskuze: otevírá a zavírá aplikace, vypíná programy po startu, "
+        + "uklízí soubory, mění nastavení, ovládá myš a klávesnici a hraje za tebe hry.",
+        sw("tools.full_trust", "Plná důvěra – dělat vše bez ptaní", "Hru, kterou právě hraješ, nikdy sám nezavře – jen když ji výslovně jmenuješ."),
+        h("p", { class: "help" }, "I tak se vždy zeptá u: odeslání čehokoli jiným lidem (e-mail, SMS, zprávy, hovory, sdílení obrazovky), peněz a faktur, "
+          + "mazání, zveřejnění (git push, DNS), kódu a PowerShellu, který napsala AI, a změn souborů a systému hned poté, co četl cizí e-mail nebo web "
+          + "(aby ho cizí text nemohl navést).")),
       card("Oblasti oprávnění", "Platí okamžitě. Nebezpečné akce (mazání, odesílání, instalace, PowerShell…) JARVIS vždy nejdřív potvrdí s tebou.",
         ...Object.keys(PERM_HELP).map((k) => sw(`permissions.${k}`, permLabels[k] || k, PERM_HELP[k]))),
       card("Soukromí", null,

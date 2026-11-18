@@ -368,6 +368,14 @@ public class JarvisPhonePlugin extends Plugin {
         call.resolve();
     }
 
+    /** 3.13 Velín on the widget: the first proposal waiting for approval (text + its number), or nothing. */
+    @PluginMethod
+    public void widgetBiz(PluginCall call) {
+        JarvisWidget.prefs(getContext()).edit().putString("biz", call.getString("text", "")).putString("biz_id", call.getString("id", "")).apply();
+        JarvisWidget.refresh(getContext());
+        call.resolve();
+    }
+
     @PluginMethod
     public void takePendingReply(PluginCall call) {
         JSObject r = new JSObject();

@@ -74,6 +74,12 @@ public class JarvisWidget extends AppWidgetProvider {
         return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** 3.13 "✓ Schválit" / "✕" for a Velín proposal right on the widget – the same path as the notification's buttons. */
+    private static PendingIntent decide(Context c, String pid, boolean yes, int code) {
+        Intent i = new Intent(c, ConfirmReceiver.class).putExtra("id", "biz:" + pid).putExtra("approved", yes).putExtra("widget", true);
+        return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     private static PendingIntent wake(Context c) {
         Intent i = new Intent(c, JarvisWidget.class).setAction(WAKE);
         return PendingIntent.getBroadcast(c, 9, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
@@ -92,6 +98,18 @@ public class JarvisWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.w_habits, habits);
         v.setViewVisibility(R.id.w_habits, habits.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
         v.setOnClickPendingIntent(R.id.w_habits, open(c, "habits", 4));
+        String biz = p.getString("biz", "");            // 3.13 Velín: the first thing waiting for your approval
+        String bizId = p.getString("biz_id", "");
+        v.setViewVisibility(R.id.w_biz, biz.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        v.setTextViewText(R.id.w_biz_text, "🏢  " + biz);
+        v.setOnClickPendingIntent(R.id.w_biz_text, open(c, "company", 5));
+        boolean act = !bizId.isEmpty();
+        v.setViewVisibility(R.id.w_biz_yes, act ? android.view.View.VISIBLE : android.view.View.GONE);
+        v.setViewVisibility(R.id.w_biz_no, act ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (act) {
+            v.setOnClickPendingIntent(R.id.w_biz_yes, decide(c, bizId, true, 31));
+            v.setOnClickPendingIntent(R.id.w_biz_no, decide(c, bizId, false, 32));
+        }
         String song = p.getString("song", "");
         v.setViewVisibility(R.id.w_music, song.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
         v.setTextViewText(R.id.w_song, "♪  " + song);

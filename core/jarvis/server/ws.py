@@ -55,6 +55,7 @@ CLIENT_TYPES = [
     "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
     "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
+    "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
 SERVER_TYPES = [
@@ -75,7 +76,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -88,7 +89,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -101,7 +102,7 @@ LOCAL_ONLY = {"bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"bizreport_make", "bizevents_check", "connectors_test_all", "bizaudit_export", "bizagent_run", "bizagent_text", "bizproposal_decide", "connector_save", "connector_test", "connector_oauth", "brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"bizgoals_refresh", "bizagent_test", "bizproposals_decide", "bizsetup_export", "bizsetup_import", "bizreport_make", "bizevents_check", "connectors_test_all", "bizaudit_export", "bizagent_run", "bizagent_text", "bizproposal_decide", "connector_save", "connector_test", "connector_oauth", "brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1561,12 +1562,65 @@ class Connection:
                             url="", target="dashboard")
         elif t in ("bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
                    "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
-                   "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check"):
+                   "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check",
+                   "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed",
+                   "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick"):
             from .. import bizagents, bizcompany     # 3.12 Firemní agenti + Velín firmy; changes wait for your approval
 
             msg, ok = "", True
             try:
-                if t == "bizchain_build":
+                if t in ("bizgoal_save", "bizgoal_delete", "bizgoals_refresh"):      # 3.13 the company's goals
+                    from .. import bizgoals
+
+                    if t == "bizgoal_save":
+                        bizgoals.save(rt, m.get("goal") or {})
+                        await bizgoals.refresh(rt)
+                        msg = "Cíl uložen – agenti se podle něj řídí."
+                    elif t == "bizgoal_delete":
+                        bizgoals.delete(rt, int(m.get("id") or 0))
+                        msg = "Cíl smazán."
+                    else:
+                        n = await bizgoals.refresh(rt)
+                        msg = f"Změřeno {n} cílů." if n else "Žádný cíl se nedá změřit sám (chybí propojení) – čísla doplní agenti."
+                elif t == "bizrun_rate":
+                    r = bizcompany.rate(rt, int(m.get("rating") or 0), str(m.get("note") or "")[:300], int(m.get("run") or 0) or None,
+                                        int(m.get("agent") or 0) or None)
+                    msg = ("Díky – agent si to zapamatuje." if r["rating"] > 0 else "Zapsáno – agent se tomu příště vyhne.") if r["rating"] else "Hodnocení zrušeno."
+                elif t == "bizagent_test":
+                    r = await bizagents.run(rt, int(m.get("id") or 0), dry=True)
+                    ok, msg = r["ok"], r["answer"][:600]
+                    await self.send("bizagent_test_result", id=int(m.get("id") or 0), ok=r["ok"], answer=r["answer"][:4000],
+                                    would=r.get("would") or [])
+                elif t == "bizproposals_decide":
+                    r = await bizagents.decide_many(rt, [int(i) for i in (m.get("ids") or [])], bool(m.get("approve")))
+                    ok, msg = r["ok"], r["message"]
+                elif t == "bizevents_speed":
+                    sec = int(m.get("seconds") or 60)
+                    bizcompany._set(rt, "biz_events_every", str(sec if sec in (60, 180, 600) else 60))
+                    msg = f"Na nové e-maily, objednávky a platby agenti zareagují do {int(bizcompany._kv(rt, 'biz_events_every', '60')) // 60} min."
+                elif t in ("bizhook_get", "bizhook_new"):
+                    from .. import bizhooks
+
+                    if t == "bizhook_new":
+                        bizhooks.renew()
+                        msg = "Nová adresa pro webhooky – stará přestala platit."
+                    await self.send("bizhook", **bizhooks.info(rt))
+                elif t == "bizsetup_export":
+                    from .. import bizbackup
+
+                    path = await asyncio.to_thread(bizbackup.save_file, rt)
+                    await self.send("export_done", kind="velin_setup", path=path, detail="záloha nastavení Velínu (bez klíčů)")
+                    msg = f"Záloha uložena: {path}"
+                elif t == "bizsetup_import":
+                    from .. import bizbackup
+
+                    r = await asyncio.to_thread(bizbackup.restore, rt, str(m.get("data") or ""), bool(m.get("replace")))
+                    msg = (f"Obnoveno: {r['added']} nových a {r['updated']} upravených agentů, {r['goals']} cílů, {r['notes']} poznámek"
+                           + (f" ({r['skipped']} agentů vynecháno – jejich služby tu nejsou)" if r["skipped"] else "") + ".")
+                elif t == "bizagent_quick":
+                    bizagents.quick(rt, int(m.get("id") or 0), m.get("changes") or {})
+                    msg = "Uloženo."
+                elif t == "bizchain_build":
                     names = bizcompany.build_chain(rt, str(m.get("key") or ""))
                     msg = "Řetězec je zapojený: " + " → ".join(names) + "."
                 elif t == "bizdept_budget_set":
@@ -1641,6 +1695,10 @@ class Connection:
             except Exception as e:  # noqa: BLE001
                 ok, msg = False, str(e)[:300]
             await self.send("bizagents", **bizagents.state(rt), message=msg, ok=ok, req=t)
+        elif t == "bizbrief_get":
+            from .. import bizcompany
+
+            await self.send("bizbrief", text=bizcompany.brief(rt))
         elif t == "bizaudit_get":
             from .. import bizcompany
 

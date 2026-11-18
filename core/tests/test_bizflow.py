@@ -74,7 +74,7 @@ def test_the_agent_sees_its_recent_work_and_is_told_not_to_repeat(rt):
 def test_events_start_the_subscribed_agents_after_the_first_look(rt, monkeypatch):
     items = [("g:1", "E-mail od Jan: „Poptávka“")]
 
-    async def probe():
+    async def probe(days=1):
         return list(items)
     monkeypatch.setitem(bizevents.PROBES, "mail", probe)
     aid = bizcompany.hire(rt, "lead_triage")                                       # listens to "mail" by default
