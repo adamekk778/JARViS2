@@ -77,16 +77,17 @@ def search(registry: dict, query: str, limit: int = MAX_FOUND, exclude: set[str]
     return [n for _, n in scored[:limit]]
 
 
-def pick(registry: dict, allowed: set[str], text: str, recent: list[str] = ()) -> list[str]:
-    """The tool names to send with this message: the everyday set, what the words point to, the last turn's tools."""
+def pick(registry: dict, allowed: set[str], text: str, recent: list[str] = (), extra: int = MAX_EXTRA) -> list[str]:
+    """The tool names to send with this message: the everyday set, what the words point to, the last turn's tools.
+    extra: how many the words may add (3.13: fewer for an AI on this PC – every tool is text it must read first)."""
     names = [n for n in CORE if n in allowed]
     for n in recent:
         if n in allowed and n not in names:
             names.append(n)
-    for n in search(registry, text, MAX_EXTRA * 3, exclude=set(names)):
+    for n in search(registry, text, extra * 3, exclude=set(names)):
         if n in allowed and n not in names:
             names.append(n)
-            if len(names) >= len(CORE) + len(recent) + MAX_EXTRA:
+            if len(names) >= len(CORE) + len(recent) + extra:
                 break
     if FIND in allowed:
         names.append(FIND)

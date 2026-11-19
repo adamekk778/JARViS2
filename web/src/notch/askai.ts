@@ -103,10 +103,18 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
   const chips = h("div", { class: "aa-chips", role: "group", "aria-label": "Zeptat se konkrétní AI" });
   function paintChips(settings: any) {
     const ts = askTargets(settings);
+    const chain: string[] = settings?.brain?.chain || [];
+    const provs: Prov[] = settings?.brain?.providers || [];
+    const active = chain.find((id) => provs.some((p) => p.id === id && p.enabled !== false)) || "";
     chips.hidden = !ts.length;
     chips.replaceChildren(...ts.map((t) => {
-      const b = h("button", { type: "button", class: "aa-chip", title: `Zeptej se ${label(t)}`, "aria-label": `Zeptej se ${label(t)}`,
-        onclick: (e: Event) => { e.stopPropagation(); open(t); } }, brandEl(t.brand));
+      const on = t.p.id === active;
+      // 3.13 a click: from now on this AI answers (the others stay as backup); right-click: ask it just once (with a photo)
+      const b = h("button", { type: "button", class: `aa-chip ${on ? "on" : ""}`, "aria-pressed": on ? "true" : "false",
+        title: on ? `Teď odpovídá ${label(t)} · pravým: zeptat se jednou` : `Odpovídat bude ${label(t)} · pravým: zeptat se jednou`,
+        "aria-label": `Odpovídat bude ${label(t)}`,
+        onclick: (e: Event) => { e.stopPropagation(); if (!on) { client.send("brain_pick", { id: t.p.id }); toast(`Teď odpovídá ${label(t)}`, "ok", 1800); } },
+        oncontextmenu: (e: Event) => { e.preventDefault(); e.stopPropagation(); open(t); } }, brandEl(t.brand));
       b.style.setProperty("--c", t.brand.color);
       b.dataset.brand = t.brand.id;                   // app-icon colours per brand (askai.css)       // custom properties do not go through h()'s style object
       return b;

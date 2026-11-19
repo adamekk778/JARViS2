@@ -28,8 +28,8 @@ async def test_agent_english_hint(rt):
 
 
 async def test_agent_czech_no_hint(rt):
-    rt.router = FakeRouter(["Je deset."])
-    await rt.agent.handle("kolik je hodin")
+    rt.router = FakeRouter(["Mám se dobře."])
+    await rt.agent.handle("jak se dneska máš")
     assert "Odpověz anglicky" not in rt.router.calls[0]["messages"][0]["content"]
 
 

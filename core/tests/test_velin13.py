@@ -241,7 +241,7 @@ async def test_full_trust_closes_without_asking(rt):
     rt.cfg.tools.full_trust = True
     rt.router = FakeRouter([[("set_dark_mode", {"dark": True}), ("close_app", {"name": "notepad"})], "Hotovo."])
     q = rt.bus.subscribe()
-    out = await asyncio.wait_for(rt.agent.handle("zavři notepad"), 5)
+    out = await asyncio.wait_for(rt.agent.handle("zapni tmavý režim a pak zavři notepad"), 5)
     events = []
     while not q.empty():
         events.append(q.get_nowait())
@@ -364,7 +364,7 @@ def test_only_windows_can_play_for_you(rt):
 async def test_dots_are_never_shown_and_an_empty_answer_is_asked_again(rt):
     rt.router = FakeRouter([[("get_time", {})], "...", "Je půl třetí."])
     q = rt.bus.subscribe()
-    out = await rt.agent.handle("kolik je hodin")
+    out = await rt.agent.handle("řekni mi přesný čas")
     deltas = []
     while not q.empty():
         e = q.get_nowait()

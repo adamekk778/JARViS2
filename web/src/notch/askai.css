@@ -111,3 +111,7 @@ html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding
 
 /* 3.12 the same head on every tab: date · weather · time */
 .hb-day { font-size: 13px; font-weight: 600; color: rgb(255 255 255 / .6); text-transform: capitalize; white-space: nowrap; }
+/* 3.13 the AI that answers now: a bright ring and a soft glow; the others are dimmed a little */
+.aa-chips:has(.aa-chip.on) .aa-chip:not(.on) { opacity: .62; filter: saturate(.7); }
+.aa-chip.on { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 85%, #fff), 0 0 14px color-mix(in srgb, var(--c) 55%, transparent); opacity: 1; }
+.aa-chip { transition: transform .18s ease, opacity .2s ease, box-shadow .2s ease, filter .2s ease; }

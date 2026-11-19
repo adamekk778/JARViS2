@@ -58,6 +58,11 @@ class Ollama:
                       "options": {"temperature": self.temperature, **self.options}}
         if self.keep_alive:
             body["keep_alive"] = self.keep_alive
+        from .local import think_value
+
+        think = think_value(body["model"])
+        if think is not None:                       # 3.13 no thinking aloud before every answer – the answer starts at once
+            body["think"] = think
         if tools:
             body["tools"] = tools
         calls: list[ToolCall] = []

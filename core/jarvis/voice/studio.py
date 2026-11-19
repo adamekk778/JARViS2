@@ -104,8 +104,38 @@ def encode_wav(pcm, sr: int) -> bytes:
     return buf.getvalue()
 
 
-# ---------- ElevenLabs (your own created / cloned voice) ----------
-async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport=None) -> bytes:
+# ---------- ElevenLabs (your own created / cloned voice, or one from their Voice Library) ----------
+# 3.13 the voices on elevenlabs.io's front page (their Voice Library – made for every ElevenLabs user to use; the voice
+# actors are paid through ElevenLabs): one click in Hlasová dílna, JARVIS adds it to your account the first time
+FEATURED = [
+    {"id": "UgBBYS2sOqTuMpoF3BR0", "name": "Mark – přirozený rozhovor (úvodní stránka ElevenLabs)", "search": "Mark - Natural Conversations"},
+    {"id": "EkK5I93UQWFDigLMpZcX", "name": "James – hluboký vypravěč", "search": "James - Husky Storyteller"},
+    {"id": "tnSpp4vdxKPjI9w0GnoV", "name": "Hope – svěží, sociální sítě", "search": "Hope - Social Media"},
+]
+
+
+async def eleven_add_shared(key: str, voice_id: str, transport=None) -> str:
+    """A Voice Library voice into your ElevenLabs account (needed once before it speaks through the API)."""
+    feat = next((f for f in FEATURED if f["id"] == voice_id), None)
+    if not feat:
+        return voice_id
+    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=30) as c:
+        r = await c.get(f"{ELEVEN_API}/shared-voices", params={"search": feat["search"], "page_size": 30}, headers={"xi-api-key": key})
+        if r.status_code != 200:
+            raise RuntimeError(f"ElevenLabs: knihovnu hlasů teď nejde otevřít (HTTP {r.status_code})")
+        hit = next((v for v in r.json().get("voices", []) if v.get("voice_id") == voice_id), None)
+        if not hit or not hit.get("public_owner_id"):
+            raise RuntimeError("ElevenLabs: tenhle hlas v knihovně teď není – vyber jiný")
+        r = await c.post(f"{ELEVEN_API}/voices/add/{hit['public_owner_id']}/{voice_id}", headers={"xi-api-key": key},
+                         json={"new_name": feat["search"]})
+    if r.status_code != 200:
+        why = r.text[:160]
+        raise RuntimeError("ElevenLabs: hlasy z knihovny tvůj tarif přes API nedovoluje – stačí nejlevnější placený" if r.status_code in (401, 402, 403)
+                           else f"ElevenLabs: hlas nejde přidat ({r.status_code} {why})")
+    return r.json().get("voice_id") or voice_id
+
+
+async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport=None, _added: bool = False) -> bytes:
     if not key:
         raise RuntimeError("chybí API klíč ElevenLabs (Nastavení → Hlas → Hlasová dílna)")
     if not voice_id:
@@ -116,6 +146,9 @@ async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport
         r = await c.post(f"{ELEVEN_API}/text-to-speech/{voice_id}", params={"output_format": "mp3_44100_128"},
                          headers={"xi-api-key": key, "accept": "audio/mpeg"},
                          json={"text": text, "model_id": model or "eleven_multilingual_v2"})
+    if r.status_code in (400, 404) and "voice" in r.text.lower() and not _added and any(f["id"] == voice_id for f in FEATURED):
+        new_id = await eleven_add_shared(key, voice_id, transport)      # first time: the library voice into your account
+        return await eleven_synth(text, key, new_id, model, transport, _added=True)
     if r.status_code in (401, 403):
         raise RuntimeError("ElevenLabs odmítl API klíč – zkontroluj ho v Hlasové dílně")
     if r.status_code == 429 or "quota" in r.text.lower():
@@ -136,7 +169,9 @@ async def eleven_voices(key: str, transport=None) -> list[dict]:
     own = ("cloned", "generated", "professional")
     out = [{"id": v.get("voice_id"), "name": v.get("name") or "?", "own": v.get("category") in own}
            for v in r.json().get("voices", []) if v.get("voice_id")]
-    return sorted(out, key=lambda v: (not v["own"], v["name"].lower()))
+    have = {v["id"] for v in out}
+    featured = [{"id": f["id"], "name": f["name"], "own": False, "featured": True} for f in FEATURED if f["id"] not in have]
+    return featured + sorted(out, key=lambda v: (not v["own"], v["name"].lower()))
 
 
 # ---------- the Edge and Piper catalogues ----------

@@ -103,7 +103,8 @@ class Voice(BaseModel):
     tts_pitch: str = "+0Hz"
     tts_volume: str = "+0%"
     speak_mode: Literal["always", "voice", "never"] = "voice"
-    silence_seconds: float = 0.8
+    silence_seconds: float = 0.6     # 3.13 the answer starts sooner after you stop talking (was 0.8)
+    silence_rev: int = 0
     followup: bool = False          # after an answer, listen 6 s more without the wake word
     output_device: str = ""         # speaker name; empty = Windows default
     tts_voice_en: str = "en-GB-RyanNeural"
@@ -525,6 +526,7 @@ class PrivacyCfg(BaseModel):
 
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
+    instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
 
 
 class Permissions(BaseModel):
@@ -589,8 +591,15 @@ class Config(BaseModel):
             n["edges_rev"] = 1
             data = {**data, "notch": n}
         # 3.12: the habits ring in the closed notch was on by default – off once; the idle notch shows the eyes again
-        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("habit_ring_rev", 0) or 0) < 1:
-            data = {**data, "notch": {**data["notch"], "habit_ring": False, "habit_ring_rev": 1}}
+        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("habit_ring_rev", 0) or 0) < 2:
+            data = {**data, "notch": {**data["notch"], "habit_ring": False, "habit_ring_rev": 2}}   # 3.13 the eyes, always
+        # 3.13: a saved 0.8 s wait after speech becomes 0.6 s once (faster answers; you can set it back)
+        if isinstance(data, dict) and isinstance(data.get("voice"), dict) and int(data["voice"].get("silence_rev", 0) or 0) < 1:
+            v = dict(data["voice"])
+            if float(v.get("silence_seconds", 0.8) or 0.8) == 0.8:
+                v["silence_seconds"] = 0.6
+            v["silence_rev"] = 1
+            data = {**data, "voice": v}
         # 3.12: the first notch colour setting was "song" only – the wallpaper joins it once (you can go back)
         if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("tint_rev", 0) or 0) < 1:
             n = dict(data["notch"])

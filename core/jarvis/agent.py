@@ -380,7 +380,11 @@ class Agent:
         return {n for n, s in tools.REGISTRY.items() if n not in off and allowed(cfg, s)}
 
     def _tool_schemas(self, text: str) -> list[dict]:
-        names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []))
+        b = self.rt.cfg.brain
+        first = next((p for i in (b.chain or []) for p in b.providers if p.id == i and p.enabled), None)
+        local = first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and not self._only
+        names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []),
+                         extra=6 if local else sel.MAX_EXTRA)
         return [tools.REGISTRY[n].schema() for n in names]
 
     def _rounds(self) -> int:
@@ -493,17 +497,45 @@ class Agent:
 
         if trust.on(rt):
             extra = (extra + "\n" if extra else "") + trust.RULE
-        msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
-        speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
-        schemas = self._tool_schemas(text)
-        offered = {sc.get("function", sc).get("name") for sc in schemas}
-        used_now: list[str] = []
         full_text = ""
         tool_cards: list[dict] = []
         out_atts: list[str] = []
+        used_now: list[str] = []
         cancelled = False
+        quick = None                                       # 3.13 an everyday command: done at once, no AI in between
+        if not attachments and not self._only and getattr(rt.cfg.agent, "instant", True):
+            from . import instant
+
+            p = instant.plan(text)
+            if p and p.kind == "app" and p.calls[0][0] == "open_app" and not instant.app_known(rt, p.calls[0][1]["name"]):
+                p = None                                   # not an app this PC knows ("spusť herní režim"): the AI decides
+            if p:
+                try:
+                    for n, (name, args) in enumerate(p.calls):
+                        await self._run_call(ToolCall(id=f"q{n}", name=name, arguments=dict(args)), tool_cards, out_atts)
+                    quick = instant.answer(p, tool_cards)
+                except Exception as e:  # noqa: BLE001 – anything odd: the AI takes over
+                    log.info("instant %s: %s", p.kind, e)
+                    quick = None
+                if quick is None:
+                    tool_cards.clear()
+        msgs: list[dict] = []
+        need_vision = False
+        schemas: list[dict] = []
+        if quick is None:
+            msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
+            schemas = self._tool_schemas(text)
+        speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+        offered = {sc.get("function", sc).get("name") for sc in schemas}
+        calls: list[ToolCall] | None = None
+        rnd = 0
         try:
-            rounds = self._rounds()
+            rounds = -1 if quick is not None else self._rounds()
+            if quick is not None:
+                full_text = quick
+                bus.publish("assistant_delta", text=quick)
+                if speech:
+                    speech.feed(quick)
             for rnd in range(rounds + 1):
                 if rnd:
                     await rt.tasks.checkpoint()

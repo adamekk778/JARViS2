@@ -387,7 +387,6 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, on ? "Titulky běží" : "Titulky jsou vypnuté"),
               h("span", {}, `Zkratka ${combo(S.hotkeys.subtitles || "ctrl+alt+t")} nebo řekni „zapni titulky“.` + (extra.subs?.error ? ` ${extra.subs.error}` : ""))), btn);
           })(),
-          sw("notch.habit_ring", "Návyky v zavřeném notchi", "Když se nic jiného neděje, notch ukáže malý kroužek dnešních návyků (např. 3/5). Kliknutím je otevřeš."),
           sw("notch.lyrics", "Texty písní v notchi", "Když hraje hudba (Spotify, YouTube Music, Apple Music…), notch ukáže právě zpívaný řádek a čára pod ním jede se zpěvem. Texty jsou z LRCLIB – posílá se jen název písně a interpret."),
           sw("notch.focus_guard", "Hlídat soustředění", "Když máš zapnuté soustředění a do popředí se dostane YouTube, Netflix, TikTok, Instagram a podobně, notch zabliká a oči se zamračí. Nic nezavírá ani neblokuje – jen připomene."),
           sw("notch.subs_translate", "Překládat do češtiny", "Video v cizím jazyce: titulek se přes AI přeloží do češtiny (žlutá značka CC). Pošle se jen text titulku."),
@@ -803,6 +802,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       h("div", { class: "models" }, ...rows),
       h("div", { class: "btn-row" },
         h("button", { class: "btn", type: "button", disabled: !st.running, onclick: () => { extra.gpuMsg = "Testuji… (první spuštění modelu může chvíli trvat)"; client.send("local_gpu_test"); render(); } }, icon("graphics-card"), "Otestovat GPU"),
+        h("button", { class: "btn", type: "button", title: "Zapne v Ollamě flash attention a úspornější paměť konverzace (jen pro tvého uživatele Windows)",
+          onclick: () => { extra.gpuMsg = "Zapínám zrychlení…"; client.send("local_tune"); render(); } }, icon("lightning"), "Zrychlit Ollamu"),
         h("button", { class: "btn ghost", type: "button", disabled: !st.running, onclick: () => client.send("local_unload") }, icon("eject"), "Uvolnit z paměti"),
         h("button", { class: "btn ghost", type: "button", onclick: () => { extra.localAsked = false; render(); } }, icon("arrows-clockwise"), "Obnovit")),
       extra.gpuMsg || st.gpu ? h("p", { class: "help" }, extra.gpuMsg || (st.gpu === "gpu" ? "Poslední test: model běží na GPU." : "Poslední test: model běží jen na procesoru.")) : null);
@@ -1110,10 +1111,18 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       key.onchange = () => { client.send("secret_set", { name: "elevenlabs", value: key.value.trim() }); key.value = "";
         toast("Klíč uložen do Správce pověření Windows", "ok"); extra.voices = null; extra.voicesAsked = false; window.setTimeout(render, 400); };
       const voices: any[] = D.eleven || [];
+      const MARK = "UgBBYS2sOqTuMpoF3BR0";          // 3.13 the voice in the middle of elevenlabs.io's front page
+      const isMark = getPath(S, "voice.eleven_voice_id") === MARK;
+      parts.push(h("div", { class: "row has-ico" }, icon("star", "ph-fill"),
+        h("div", { class: "row-text" }, h("strong", {}, "Hlas z úvodní stránky ElevenLabs"),
+          h("span", {}, "„Mark – přirozený rozhovor“ (Conversational). Je z knihovny hlasů ElevenLabs, JARVIS si ho do tvého účtu přidá sám při prvním použití.")),
+        h("button", { type: "button", class: `btn ${isMark ? "" : "primary"}`, disabled: isMark,
+          onclick: () => { set("voice.eleven_voice_id", MARK); set("voice.eleven_model", "eleven_multilingual_v2"); toast("Hlas Mark nastaven – dej „Poslechnout ukázku“.", "ok"); } },
+          isMark ? "Používá se" : "Použít tento hlas")));
       parts.push(field("API klíč ElevenLabs", key, D.eleven_error || ""),
         voices.length
-          ? select("voice.eleven_voice_id", "Hlas", [["", "– vyber –"], ...voices.map((v) => [v.id, `${v.own ? "★ " : ""}${v.name}`] as [string, string])],
-            "★ = hlas, který sis vytvořil(a) ty. Ostatní jsou hotové hlasy ElevenLabs.")
+          ? select("voice.eleven_voice_id", "Hlas", [["", "– vyber –"], ...voices.map((v) => [v.id, `${v.own ? "★ " : v.featured ? "◆ " : ""}${v.name}`] as [string, string])],
+            "★ = hlas, který sis vytvořil(a) ty. ◆ = z úvodní stránky ElevenLabs (přidá se do účtu sám). Ostatní jsou hotové hlasy ElevenLabs.")
           : h("p", { class: "help" }, D.eleven_key ? "V účtu zatím nejsou žádné hlasy." : "Po vložení klíče se tu objeví hlasy z tvého účtu."),
         select("voice.eleven_model", "Model", [["eleven_multilingual_v2", "Multilingual v2 – nejlepší čeština"], ["eleven_flash_v2_5", "Flash v2.5 – rychlejší a levnější"]]),
         h("p", { class: "help" }, "Text odpovědí se posílá na servery ElevenLabs. Bezplatný tarif má měsíční limit znaků."));

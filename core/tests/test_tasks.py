@@ -35,11 +35,11 @@ async def test_text_answer_creates_no_task(rt):
 
 async def test_tool_call_creates_task(rt):
     rt.router = FakeRouter([[("get_time", {})], "Je 10:00. A ještě něco."])
-    await rt.agent.handle("kolik je hodin")
+    await rt.agent.handle("řekni mi přesný čas")
     items = rt.tasks.list()
     assert len(items) == 1
     t = rt.tasks.get(items[0]["id"])
-    assert t["status"] == "done" and t["goal"] == "kolik je hodin"
+    assert t["status"] == "done" and t["goal"] == "řekni mi přesný čas"
     assert t["summary"].startswith("Je 10:00")
     assert [(a["tool"], a["ok"]) for a in t["actions"]] == [("get_time", 1)]
     assert rt.tasks.current is None

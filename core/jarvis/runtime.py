@@ -221,6 +221,12 @@ class Runtime:
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
         self._sys_tasks.append(asyncio.get_running_loop().create_task(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
+        try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
+            first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
+            if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
+                self._sys_tasks.append(asyncio.get_running_loop().create_task(self.local.warm(first.model or None)))
+        except Exception as e:  # noqa: BLE001
+            log.debug("warm: %s", e)
         from . import upkeep
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update

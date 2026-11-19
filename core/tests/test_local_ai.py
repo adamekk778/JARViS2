@@ -19,7 +19,7 @@ async def test_status_not_running(rt):
 
     st = await _rt_with(rt, h).status()
     assert st["running"] is False and st["catalog"] and st["installed"] == []
-    assert st["recommended"][0] == "qwen2.5:3b"
+    assert st["recommended"][0] in ("qwen3:4b", "qwen3:8b", "qwen3:30b")         # 3.13 the Qwen 3 family by RAM / graphics
 
 
 async def test_status_lists_installed_and_loaded(rt):
@@ -88,9 +88,9 @@ async def test_gpu_test_gpu(rt):
 
 
 @pytest.mark.parametrize("mode,expected", [
-    ("eco", ({"num_ctx": 2048, "num_thread": 3}, "1m")),
-    ("balanced", ({"num_ctx": 4096, "num_thread": 6}, "5m")),
-    ("performance", ({"num_ctx": 8192, "num_thread": 11}, "30m")),
+    ("eco", ({"num_ctx": 4096, "num_thread": 3}, "10m")),
+    ("balanced", ({"num_ctx": 8192, "num_thread": 6}, "60m")),
+    ("performance", ({"num_ctx": 16384, "num_thread": 11}, "-1")),
 ])
 def test_mode_options(mode, expected):
     assert local.mode_options(mode, 12) == expected
@@ -124,7 +124,7 @@ def test_router_skips_local_when_disabled(rt):
 def test_recommend():
     assert all(m["size_gb"] <= 3.5 for m in local.MODELS if m["name"] in local.recommend({"ram_gb": 8}))
     big = local.recommend({"ram_gb": 32})
-    assert "qwen2.5:7b" in big and big[0] == "qwen2.5:3b"
+    assert big[0] == "qwen3:30b" and all(n in {m["name"] for m in local.MODELS} for n in big)
 
 
 async def test_ollama_sends_mode_options(rt):

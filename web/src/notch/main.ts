@@ -258,7 +258,6 @@ function takeNotchSettings(n: any) {
   if (!n) return;
   cfg = { ...cfg, ...n };
   cfgLyrics = n.lyrics !== false;
-  cfgHabitRing = n.habit_ring === true;
   if (!(cfg.expanded_width >= 760)) { cfg.expanded_width = 1000; cfg.expanded_height = 410; }
 }
 function windowSize(): [number, number] {
@@ -1538,13 +1537,8 @@ function islandActivity(t: any) {
       client.send("habit_log", { id: water.id, value: water.value + 1 });
       water.value += 1; waterUntil = 0; updateActivity(); if (mode === "closed") apply(mode);
     } }, `+1 · ${Math.round(water.value)}/${water.target}`)];
-  } else if (habitDay && habitDay.due > 0 && cfgHabitRing) {
-    // 3.12 nothing else going on: today's habits as a small ring ("3/5"), a tick when the day is done; a click opens them
-    kind = "habits";
-    const all = habitDay.done >= habitDay.due;
-    l = [h("span", { class: "n-hab-ring" }, ring(habitDay.done / habitDay.due))];
-    r = [h("span", { class: `n-hab ${all ? "all" : ""}` }, all ? icon("check", "ph-bold") : "", `${habitDay.done}/${habitDay.due}`)];
   }
+  // 3.13 nothing else going on: the eyes – the habits ring ("0/5") no longer takes their place (habits are in the hover bar)
   const nowMs = Date.now();
   if (kind) { lastKind = kind; lastKindAt = nowMs; }
   else if (lastKind && PERSIST.includes(lastKind) && shape.dataset.island === lastKind && nowMs - lastKindAt < 2000) {

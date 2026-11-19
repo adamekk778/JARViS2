@@ -27,7 +27,7 @@ CLIENT_TYPES = [
     "weather_get", "timers_get", "tools_get", "jobs_get", "job_delete", "skills_get", "mcp_get", "push_to_talk",
     "voice_toggle", "ping", "mood_set", "pet_command", "update_check", "update_install",
     "stop_all", "clip_from_phone", "clip_sync_set", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "tasks_get", "task_get", "task_pause", "task_resume", "task_cancel", "task_retry", "tasks_clear",
-    "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test",
+    "local_status", "local_pull", "local_pull_cancel", "local_delete", "local_unload", "local_gpu_test", "local_tune",
     "message_edit", "conversation_rename", "conversation_move", "memory_export", "memory_import",
     "audio_devices_get", "voice_mode", "diagnostics_get", "diagnostics_export", "skill_approve",
     "dictation_get", "dictation_delete", "dictation_clear", "recap_get", "recap_seen",
@@ -55,7 +55,7 @@ CLIENT_TYPES = [
     "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide",
     "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
-    "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get",
+    "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
 ]
 SERVER_TYPES = [
@@ -76,7 +76,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -91,7 +91,7 @@ QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_
                  "save_attachment", "send_to_phone"}
 LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
-              "local_unload", "local_gpu_test", "memory_import", "diagnostics_export",
+              "local_unload", "local_gpu_test", "local_tune", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
               "note_get", "note_delete", "note_start", "note_stop", "note_cancel",
               "claude_hooks_status", "claude_hooks_preview", "claude_hooks_apply", "sounds_folder",
@@ -1380,6 +1380,9 @@ class Connection:
             self.spawn(self._local_then_status(rt.local.delete(m.get("name", ""))))
         elif t == "local_unload":
             self.spawn(self._local_then_status(rt.local.unload()))
+        elif t == "local_tune":               # 3.13 "Zrychlit Ollamu": its own speed switches for this Windows user
+            msg = await asyncio.to_thread(rt.local.tune_windows)
+            await self.send("local_info", **await rt.local.status(), gpu_message=msg)
         elif t == "local_gpu_test":
             async def gpu():
                 msg = await rt.local.gpu_test()
@@ -1744,6 +1747,21 @@ class Connection:
             r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test, str(m.get("preset") or "") or None)
             await self.send("brain_key_result", **r)
             await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+        elif t == "brain_pick":           # 3.13 a click on an AI's logo in the notch: from now on that AI answers (the rest are backup)
+            pid = str(m.get("id") or "")
+            provs = {p.id: p for p in rt.cfg.brain.providers}
+            if pid not in provs:
+                await self.send("notify", title="AI", body="Tuhle AI v nastavení nemám.", url="", target="dashboard")
+            else:
+                chain = [pid] + [x for x in (rt.cfg.brain.chain or list(provs)) if x != pid]
+                chain += [x for x in provs if x not in chain]
+                patch: dict = {"brain": {"chain": chain}}
+                if not provs[pid].enabled:
+                    patch["brain"]["providers"] = [{**p.model_dump(), "enabled": True} if p.id == pid else p.model_dump() for p in rt.cfg.brain.providers]
+                rt.update_config(patch)                  # → settings_changed: the logos repaint, the chat shows the AI
+                rt.bus.publish("brain_picked", id=pid, name=provs[pid].id)
+                if (provs[pid].preset or pid) in ("ollama", "lmstudio"):
+                    self.spawn(rt.local.warm(provs[pid].model or None))   # loaded now, so the first answer is quick
         elif t == "provider_test":
             await self.send("provider_test_result", **(await self._provider_test(m.get("id", ""))))
         elif t == "memory_get":

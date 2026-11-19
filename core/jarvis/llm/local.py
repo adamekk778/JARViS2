@@ -16,20 +16,27 @@ from .. import paths
 
 log = logging.getLogger(__name__)
 
-# Sizes from the official Ollama library at the time of writing (GB).
+# Sizes from the official Ollama library (GB, the default quantisation). 3.13: the newer families first – Qwen 3 answers
+# well in Czech and calls tools reliably; gpt-oss:20b is the strongest that fits a 16 GB graphics card.
 MODELS: list[dict] = [
-    {"name": "qwen2.5:3b", "label": "Qwen 2.5 3B", "size_gb": 1.9, "min_ram_gb": 8, "vision": False, "note": "výchozí, rychlý"},
-    {"name": "llama3.2:3b", "label": "Llama 3.2 3B", "size_gb": 2.0, "min_ram_gb": 8, "vision": False, "note": ""},
-    {"name": "gemma3:4b", "label": "Gemma 3 4B", "size_gb": 3.3, "min_ram_gb": 8, "vision": True, "note": ""},
-    {"name": "qwen2.5:7b", "label": "Qwen 2.5 7B", "size_gb": 4.7, "min_ram_gb": 16, "vision": False, "note": "chytřejší, pomalejší"},
-    {"name": "llama3.1:8b", "label": "Llama 3.1 8B", "size_gb": 4.9, "min_ram_gb": 16, "vision": False, "note": ""},
-    {"name": "qwen2.5vl:7b", "label": "Qwen 2.5 VL 7B", "size_gb": 6.0, "min_ram_gb": 16, "vision": True, "note": ""},
-    {"name": "qwen2.5-coder:7b", "label": "Qwen 2.5 Coder 7B", "size_gb": 4.7, "min_ram_gb": 16, "vision": False, "note": "programování"},
+    {"name": "qwen3:4b", "label": "Qwen 3 4B", "size_gb": 2.5, "min_ram_gb": 8, "vram_gb": 4, "vision": False, "note": "rychlý, slabší PC"},
+    {"name": "qwen3:8b", "label": "Qwen 3 8B", "size_gb": 5.2, "min_ram_gb": 16, "vram_gb": 8, "vision": False, "note": "nejlepší poměr – grafika 8 GB"},
+    {"name": "qwen3:14b", "label": "Qwen 3 14B", "size_gb": 9.3, "min_ram_gb": 16, "vram_gb": 12, "vision": False, "note": "chytřejší – grafika 12 GB"},
+    {"name": "gpt-oss:20b", "label": "gpt-oss 20B (OpenAI)", "size_gb": 14.0, "min_ram_gb": 16, "vram_gb": 16, "vision": False, "note": "nejchytřejší pro grafiku 16 GB"},
+    {"name": "qwen3:30b", "label": "Qwen 3 30B (MoE)", "size_gb": 19.0, "min_ram_gb": 32, "vram_gb": 24, "vision": False, "note": "rychlý i s 32 GB RAM (aktivní 3B)"},
+    {"name": "gemma3:12b", "label": "Gemma 3 12B", "size_gb": 8.1, "min_ram_gb": 16, "vram_gb": 12, "vision": True, "note": "vidí obrázky"},
+    {"name": "gemma3:4b", "label": "Gemma 3 4B", "size_gb": 3.3, "min_ram_gb": 8, "vram_gb": 4, "vision": True, "note": "vidí obrázky, malý"},
+    {"name": "qwen2.5vl:7b", "label": "Qwen 2.5 VL 7B", "size_gb": 6.0, "min_ram_gb": 16, "vram_gb": 8, "vision": True, "note": "obrazovka a fotky"},
+    {"name": "qwen2.5:3b", "label": "Qwen 2.5 3B", "size_gb": 1.9, "min_ram_gb": 8, "vram_gb": 3, "vision": False, "note": "starší, velmi malý"},
+    {"name": "llama3.1:8b", "label": "Llama 3.1 8B", "size_gb": 4.9, "min_ram_gb": 16, "vram_gb": 8, "vision": False, "note": ""},
+    {"name": "qwen2.5-coder:7b", "label": "Qwen 2.5 Coder 7B", "size_gb": 4.7, "min_ram_gb": 16, "vram_gb": 8, "vision": False, "note": "programování"},
 ]
-MODES = {  # mode → (num_ctx, threads(cores), keep_alive)
-    "eco": (2048, lambda c: max(2, c // 4), "1m"),
-    "balanced": (4096, lambda c: max(2, c // 2), "5m"),
-    "performance": (8192, lambda c: max(2, c - 1), "30m"),
+# 3.13 mode → (num_ctx, threads(cores), keep_alive). JARVIS' instructions + tools need ~6–8k tokens: a smaller context cut
+# them off (the model then "forgot" its tools). The model stays loaded – a reload is the slowest part of an answer.
+MODES = {
+    "eco": (4096, lambda c: max(2, c // 4), "10m"),
+    "balanced": (8192, lambda c: max(2, c // 2), "60m"),
+    "performance": (16384, lambda c: max(2, c - 1), "-1"),
 }
 _hw_cache: tuple[float, dict] | None = None
 
@@ -67,11 +74,35 @@ def detect_hardware(force: bool = False) -> dict:
     return hw
 
 
+def vram(hw: dict) -> float:
+    return max((g.get("vram_gb") or 0 for g in hw.get("gpus") or []), default=0.0)
+
+
 def recommend(hw: dict) -> list[str]:
-    """A short pick, not the whole catalog: the fast default, a vision model and (with ≥16 GB RAM) a smarter 7B."""
-    if hw.get("ram_gb", 8) < 16:
-        return ["qwen2.5:3b", "gemma3:4b"]
-    return ["qwen2.5:3b", "qwen2.5:7b", "gemma3:4b"]
+    """3.13 A short pick by the graphics card (what fits in VRAM is fast), then RAM: the main model and one that sees."""
+    v, ram = vram(hw), hw.get("ram_gb", 8)
+    if v >= 15:
+        return ["gpt-oss:20b", "qwen3:14b", "gemma3:12b"]
+    if v >= 11:
+        return ["qwen3:14b", "qwen3:8b", "gemma3:12b"]
+    if v >= 7:
+        return ["qwen3:8b", "qwen2.5vl:7b"]
+    if ram >= 32:
+        return ["qwen3:30b", "qwen3:8b", "gemma3:4b"]     # MoE: only ~3B work per word – fast even without a big GPU
+    if ram >= 16:
+        return ["qwen3:8b", "qwen3:4b", "gemma3:4b"]
+    return ["qwen3:4b", "gemma3:4b"]
+
+
+def think_value(model: str) -> bool | str | None:
+    """3.13 Ollama's "think": Qwen 3 / DeepSeek-R1 think aloud before every answer (slow) – off for JARVIS;
+    gpt-oss cannot switch it off – the shortest. Other models: not sent (an old Ollama refuses the field)."""
+    m = (model or "").lower()
+    if m.startswith("gpt-oss"):
+        return "low"
+    if m.startswith(("qwen3", "deepseek-r1", "magistral", "qwen3-vl")) and "coder" not in m:
+        return False
+    return None
 
 
 class LocalManager:
@@ -197,6 +228,33 @@ class LocalManager:
                     await c.post(self.base + "/api/generate", json={"model": m["name"], "keep_alive": 0})
         except (httpx.HTTPError, ValueError) as e:
             log.debug("ollama unload: %s", e)
+
+    async def warm(self, model: str | None = None) -> bool:
+        """3.13 Load the model into memory now (no answer generated) – the first question is then as fast as the rest."""
+        m = model or self.model
+        if not m or not self.rt.cfg.brain.local_enabled:
+            return False
+        _, keep = mode_options(self.rt.cfg.brain.local_mode, os.cpu_count() or 4)
+        try:
+            async with self._client(120) as c:
+                r = await c.post(self.base + "/api/generate", json={"model": m, "keep_alive": keep})
+            return r.status_code < 400
+        except httpx.HTTPError as e:
+            log.debug("ollama warm: %s", e)
+            return False
+
+    def tune_windows(self) -> str:
+        """3.13 Ollama's own speed switches for this Windows user (no admin): flash attention and a half-size memory
+        for the conversation (KV cache q8_0) – faster and fits bigger models. They apply after Ollama restarts."""
+        if sys.platform != "win32":
+            return "Tohle nastavení je pro Ollamu ve Windows."
+        done = []
+        for k, v in (("OLLAMA_FLASH_ATTENTION", "1"), ("OLLAMA_KV_CACHE_TYPE", "q8_0")):
+            r = subprocess.run(["setx", k, v], capture_output=True, text=True, timeout=15, creationflags=0x08000000)
+            if r.returncode == 0:
+                done.append(k)
+        return ("Hotovo – zapnuto zrychlení Ollamy (flash attention a úspornější paměť konverzace). Ukonči Ollamu v liště "
+                "(ikona lamy → Quit) a znovu ji spusť, pak to platí." if len(done) == 2 else "Nastavení se nepodařilo zapsat.")
 
     async def gpu_test(self) -> str:
         try:

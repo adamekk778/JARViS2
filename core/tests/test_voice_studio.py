@@ -66,7 +66,8 @@ async def test_elevenlabs_synth_and_voices():
 
     tr = httpx.MockTransport(handler)
     voices = await studio.eleven_voices("k1", tr)
-    assert voices[0] == {"id": "mine0000ABCD", "name": "Můj hlas", "own": True}
+    assert voices[0]["featured"] and voices[0]["id"] == "UgBBYS2sOqTuMpoF3BR0"                # 3.13 the front-page voices first
+    assert [v for v in voices if not v.get("featured")][0] == {"id": "mine0000ABCD", "name": "Můj hlas", "own": True}
     audio = await studio.eleven_synth("Ahoj", "k1", "mine0000ABCD", "eleven_multilingual_v2", tr)
     assert audio == b"ID3mp3" and seen["key"] == "k1" and seen["body"]["model_id"] == "eleven_multilingual_v2"
     with pytest.raises(RuntimeError, match="API klíč"):
