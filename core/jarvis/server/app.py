@@ -333,11 +333,14 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         """3.13 the phone tells at once: plugged in, unplugged (its battery level with it)."""
         require_auth(request)
         body = await request.json()
-        if str(body.get("kind", "")) == "power":
+        kind = str(body.get("kind", ""))
+        if kind == "power":
             try:
                 rt.phone.on_battery(int(body.get("level", 0)), bool(body.get("charging")), instant=True)
             except (TypeError, ValueError):
                 raise HTTPException(400, "Špatná hodnota baterie")
+        elif kind in ("headphones", "dnd"):          # 3.13 headphones on the phone, Do Not Disturb
+            rt.phone.on_device(kind, bool(body.get("on")), str(body.get("name") or ""))
         return {"ok": True}
 
     @app.post("/api/phone/ack")

@@ -206,7 +206,7 @@ class Agent:
                 self.rt.bus.publish("state", state="idle")
 
     async def run_steps(self, title: str, steps: list, source: str = "protocol", task_id: str | None = None,
-                        track: bool = False) -> str:
+                        track: bool = False, say: str = "voice") -> str:
         """A protocol segment: JARVIS lines and tool calls, without the AI. Tools go through the same path as any AI
         tool call (permissions, confirmation of dangerous actions, STOP, task log, chips in the chat).
         `track` = a structured mission: its steps are remembered and shown, steps whose `needs` are done run together
@@ -286,8 +286,12 @@ class Agent:
             bus.publish("assistant_done", id=am["id"], text=text, tools=cards,
                         attachments=[rt.public_attachment(a) for a in atts])
             bus.publish("state", state="idle")
-            if not cancelled and rt.cfg.voice.speak_mode != "never":
-                rt.speak(text)
+            # 3.13 how an automation speaks up: aloud (held while you play), only in the notch, or on the phone
+            name = title.removeprefix("▶ ").strip()
+            if not cancelled and say == "phone":
+                rt.phone_push("notify", title=name[:80], body=text[:400])
+            elif not cancelled and say != "notch" and rt.cfg.voice.speak_mode != "never":
+                rt.speak(text, announce=name)
             return text
 
     def confirm(self, cid: str, approved: bool) -> bool:

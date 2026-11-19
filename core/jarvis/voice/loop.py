@@ -217,6 +217,31 @@ class VoiceLoop:
             return True
         return hot
 
+    TALK_OVER_S = 0.64          # this long of clear speech while JARVIS talks = you want to say something
+    TALK_OVER_GRACE_S = 0.8     # …not in the first moment of its speech (the echo canceller is still settling)
+
+    def _talk_over(self, frame: bytes, vad, np, now: float | None = None) -> bool:
+        """3.13 Skočit do řeči: JARVIS speaks, its own voice is taken out of the microphone, and what is left is clear,
+        loud speech for ~0.6 s → it stops talking and listens. Only with echo cancellation (otherwise it would hear itself)."""
+        v = self.rt.cfg.voice
+        now = time.monotonic() if now is None else now
+        if not (getattr(v, "barge_in", True) and v.echo_cancel and self.speaker.speaking):
+            self._over_n, self._spk_since = 0, 0.0
+            return False
+        if not getattr(self, "_spk_since", 0.0):
+            self._spk_since = now
+        if now - self._spk_since < self.TALK_OVER_GRACE_S:
+            return False
+        a = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
+        rms = float(np.sqrt(np.mean(a * a))) if a.size else 0.0
+        floor = getattr(self, "_floor", None) or 300.0
+        clear = rms > max(900.0, floor * 3.0) and self._is_speech(frame, vad, np)
+        self._over_n = (getattr(self, "_over_n", 0) + 1) if clear else 0
+        if self._over_n * FRAME / SR >= self.TALK_OVER_S:
+            self._over_n, self._spk_since = 0, 0.0
+            return True
+        return False
+
     def _listen_forever(self, ww, vad, np) -> None:
         cooldown = 0.0
         while not self._restart.is_set():
@@ -229,6 +254,8 @@ class VoiceLoop:
             if frame is not None:
                 self._recent.append(frame)
             triggered = self._ptt.is_set()
+            if frame is not None and not triggered and self._talk_over(frame, vad, np):
+                triggered = True                          # 3.13 you started talking over JARVIS
             if frame is not None and ww is not None and self.rt.cfg.voice.wake_word and time.time() > cooldown \
                     and self._wake_gate(frame, ww, vad, np):
                 scores = ww.predict(np.frombuffer(frame, dtype=np.int16))

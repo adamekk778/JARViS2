@@ -120,6 +120,9 @@ class Runtime:
         from .uixplus import Attention
 
         self.attention = Attention(self)       # OMEGA 753 / 234: notices wait while you are focused
+        from collections import deque as _deque
+
+        self.notices: _deque = _deque(maxlen=60)   # 3.13 Historie upozornění: what JARVIS told you lately
         self.mochi_at = "pc"                   # OMEGA 195: where Mochi is right now (pc / phone)
         self.on_anchor = None                  # OMEGA 752: the desktop host moves the notch above a window
         self.voice_mood: dict | None = None    # OMEGA P3.12: last read of the tone of voice (when enabled)
@@ -371,9 +374,9 @@ class Runtime:
     # ---------- what's new (once after each feature version) ----------
     def whats_new_due(self) -> str:
         """'3.0' when this major.minor has not been introduced yet, else ''."""
-        from . import __version__
+        from . import NEWS, __version__
 
-        mm = ".".join(__version__.split(".")[:2])
+        mm = NEWS or ".".join(__version__.split(".")[:2])
         row = self.db.one("SELECT v FROM kv WHERE k='whats_new_seen'")
         return "" if row and row["v"] == mm else mm
 
@@ -448,12 +451,16 @@ class Runtime:
     def mobile_clients(self) -> int:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
-    def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False) -> int:
+    def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False,
+               actions: list[dict] | None = None) -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
-        self.bus.publish("notify", title=title, body=body, url=url, target=target)
+        # 3.13 buttons in the notice ("Za 10 min", "+5 min") – each a notice_action the notch sends back
+        acts = [{"label": str(a["label"])[:24], "action": str(a["action"]), "args": a.get("args") or {}} for a in (actions or [])][:3]
+        self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
+        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts)
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400])
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
@@ -516,9 +523,13 @@ class Runtime:
             except Exception as e:  # noqa: BLE001
                 log.debug("anchor: %s", e)
 
-    def speak(self, text: str, lang: str = "cs", reply_to: str = "") -> None:
+    def speak(self, text: str, lang: str = "cs", reply_to: str = "", announce: str = "") -> None:
         """Say it aloud. `reply_to` = the source of the request this answers ("voice" = you spoke to JARVIS); empty for
         announcements (an automation, a phone notice, the greeting) – after those JARVIS does not start listening."""
+        if announce and not reply_to:
+            att = getattr(self, "attention", None)        # 3.13 an automation's line while you play: kept for later
+            if att is not None and getattr(self.cfg.voice, "game_quiet", True) and att.hold_speech(text, announce):
+                return
         if getattr(self.cfg.appearance, "captions", False) and text.strip():      # OMEGA 790: live captions
             from .uixplus import caption_chunks, caption_timing
 
@@ -572,4 +583,6 @@ class Runtime:
             self.voice.expect_confirmation(cid)
 
     def _timer_fired(self, label: str) -> None:
-        self.notify("⏲ " + label, f"{label} – čas vypršel!", target="all", urgent=True)
+        self.notify("⏲ " + label, f"{label} – čas vypršel!", target="all", urgent=True,
+                    actions=[{"label": "+5 min", "action": "timer_more", "args": {"label": label, "minutes": 5}},
+                             {"label": "Ok", "action": "dismiss"}])

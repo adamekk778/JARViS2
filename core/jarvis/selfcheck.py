@@ -130,6 +130,44 @@ def speech(rt: Any) -> dict:
     return _r("stt", name, True, "Hlasový modul běží" + (" a poslouchá." if st.get("listening") else "."))
 
 
+def notch(rt: Any) -> dict:
+    """3.13 the notch is there and talks to JARVIS (its page is connected)."""
+    name = "Notch"
+    if not rt.cfg.notch.enabled:
+        return _r("notch", name, None, "Notch je vypnutý.", "Zapneš ho v Nastavení → Notch.")
+    on = any(c.get("client") == "notch" for c in getattr(rt, "clients", {}).values())
+    return _r("notch", name, True, "Notch běží a je spojený s JARVISem.") if on else \
+        _r("notch", name, None, "Notch se teď nehlásí (po startu chvíli trvá, nebo je schovaný Ctrl+Alt+N).", "Zkontroluj znovu za minutu.")
+
+
+def wake(rt: Any) -> dict:
+    """3.13 "Hey Jarvis" is loaded and listening."""
+    name = "Probouzení „Hey Jarvis“"
+    v = getattr(rt, "voice", None)
+    if not rt.cfg.voice.enabled or not rt.cfg.voice.wake_word:
+        return _r("wake", name, None, "Probouzení slovem je vypnuté – funguje zkratka Ctrl+Alt+Mezerník.",
+                  "Zapneš ho v Nastavení → Hlas.")
+    err = str(getattr(v, "error", "") or "") if v is not None else "hlasový modul neběží"
+    if err:
+        return _r("wake", name, False, f"„Hey Jarvis“ nefunguje: {err[:160]}", "Pošli tenhle text – podle něj to opravím.")
+    if v is not None and getattr(v, "paused", False):
+        return _r("wake", name, None, "Poslech je pozastavený.", "Zapneš ho v ikoně JARVISe u hodin → Zapnout poslech.")
+    return _r("wake", name, True, f"Poslouchá na „Hey Jarvis“ (citlivost {rt.cfg.voice.wake_threshold:.2f}). "
+              "Budí se sám nebo tě neslyší? Nastavení → Hlas → Kalibrace.")
+
+
+def phone(rt: Any) -> dict:
+    """3.13 the phone app is connected (if you use it)."""
+    name = "Telefon"
+    ph = getattr(rt, "phone", None)
+    alive = bool(ph and ph.link_alive()) or (rt.mobile_clients() if hasattr(rt, "mobile_clients") else 0) > 0
+    if alive:
+        bat = (ph.battery or {}) if ph else {}
+        return _r("phone", name, True, "Telefon je spojený s PC" + (f" (baterie {bat['level']} %)." if bat.get("level") is not None else "."))
+    return _r("phone", name, None, "Telefon se teď nehlásí – aplikace JARVIS v telefonu je zavřená, nebo telefon není spárovaný.",
+              "Otevři aplikaci v telefonu; spárování je v Nastavení → Telefon.")
+
+
 async def voice_out(rt: Any) -> dict:
     name = "Hlas JARVISe"
     if not getattr(rt, "speaker", None):
@@ -433,6 +471,7 @@ async def run(rt: Any, tester) -> list[dict]:
         results += await asyncio.wait_for(asyncio.to_thread(phone_net, rt), 45)
     except asyncio.TimeoutError:
         results.append(_r("lan", "Domácí síť", None, "Kontrola sítě nestihla doběhnout."))
+    results += [wake(rt), notch(rt), phone(rt)]        # 3.13 "Hey Jarvis", the notch and the phone too
     for r in results:                                  # into the log, so a diagnostics export carries them
         (log.warning if r["ok"] is False else log.info)("kontrola %s: %s – %s", r["key"], "OK" if r["ok"] else "CHYBA", r["detail"])
     return results

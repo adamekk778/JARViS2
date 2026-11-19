@@ -56,6 +56,41 @@ def _plain(text: str) -> str:
     return "".join(c for c in t if c.isalnum())
 
 
+def front_is_game(info: dict | None = None, fullscreen: bool | None = None) -> bool:
+    """3.13 Herní režim: the program in front is a game – a known game folder/name, or anything over the whole screen
+    that is not a browser or a video player (a film in full screen is not a game)."""
+    try:
+        import sys
+
+        if sys.platform != "win32" and info is None:
+            return False
+        if info is None:
+            from .platform.windows import WindowsPlatform  # noqa: F401 – only on Windows
+
+            import ctypes
+            from ctypes import wintypes
+
+            import psutil
+
+            pid = wintypes.DWORD()
+            ctypes.windll.user32.GetWindowThreadProcessId(ctypes.windll.user32.GetForegroundWindow(), ctypes.byref(pid))
+            p = psutil.Process(pid.value)
+            info = {"exe": p.name(), "path": p.exe()}
+        exe = str(info.get("exe") or "").lower()
+        path = str(info.get("path") or "").lower()
+        if any(g in path or g.replace(" ", "") in exe for g in GAME_HINTS):
+            return True
+        if fullscreen is None:
+            from ..desktop.winutil import foreground_is_fullscreen
+
+            fullscreen = foreground_is_fullscreen()
+        not_games = ("chrome", "msedge", "firefox", "opera", "brave", "vlc", "mpc-hc", "potplayer", "wmplayer", "netflix",
+                     "powerpnt", "explorer", "zoom", "teams", "discord", "obs64", "jarvis", "python")
+        return bool(fullscreen) and bool(exe) and not any(n in exe for n in not_games)
+    except Exception:  # noqa: BLE001 – unknown is not a game
+        return False
+
+
 def playing(apps: list[dict]) -> list[dict]:
     """3.13 The games among these programs – known game folders and names, or the program now in front over the whole
     screen (that is what you are playing)."""

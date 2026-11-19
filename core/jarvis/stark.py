@@ -49,7 +49,7 @@ def find_protocol(rt, name: str):
     return next((p for p in items if want in _fold(p.name) or _fold(p.name) in want), None)
 
 
-async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = "") -> str:
+async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = "", say: str = "voice") -> str:
     """Runs the steps in order. Plain steps go in one go (no AI); an "ask" step is a normal request to the AI."""
     title = f"▶ {kind} {proto.name}"
     out: list[str] = []
@@ -57,14 +57,14 @@ async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = ""
     for st in proto.steps:
         if st.ask:
             if chunk:
-                out.append(await rt.agent.run_steps(title, chunk))
+                out.append(await rt.agent.run_steps(title, chunk, say=say))
                 chunk, title = [], f"▶ {kind} {proto.name} (pokračuje)"
             out.append(await rt.agent.handle(st.ask, [], "protocol", extra_system=(
                 extra_system or f"Tohle je krok protokolu „{proto.name}“, který si uživatel spustil. Rovnou ho proveď, bez ptaní.")))
         else:
             chunk.append(st)
     if chunk or not out:
-        out.append(await rt.agent.run_steps(title, chunk))
+        out.append(await rt.agent.run_steps(title, chunk, say=say))
     return "\n".join(o for o in out if o)
 
 

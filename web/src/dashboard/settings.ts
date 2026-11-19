@@ -160,6 +160,36 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     inp.onchange = () => set(path, out ? out(Number(inp.value)) : Number(inp.value));
     return field(label, h("div", { class: "range" }, inp, o), "", false, path);
   };
+  // 3.13 Kalibrace „Hey Jarvis“: three steps right here – the room's own sound, your phrase, the recommended level
+  let onWakeCal: ((m: any) => void) | null = null;          // the page is drawn again often: one listener, newest row
+  client.on("wake_calibration", (m: any) => onWakeCal?.(m));
+  const wakeCalibration = () => {
+    const msg = h("span", {}, "Když se JARVIS budí sám (z videa) nebo tě neslyší z dálky, nastav citlivost podle své místnosti.");
+    const btn = h("button", { class: "btn", type: "button" }, icon("waveform"), "Kalibrovat") as HTMLButtonElement;
+    const save = h("button", { class: "btn primary", type: "button", hidden: true }, icon("check"), "Uložit") as HTMLButtonElement;
+    let step: "ticho" | "fraze" | "vysledek" = "ticho";
+    const run = (s: typeof step, apply = false) => { step = s; btn.disabled = true; client.send("wake_calibrate", { step: s, apply }); };
+    btn.onclick = () => { save.hidden = true; msg.textContent = "1/2 · Buď 8 s potichu (ať běží, co běží obvykle – hudba, větrák)…"; run("ticho"); };
+    save.onclick = () => run("vysledek", true);
+    onWakeCal = (m: any) => {
+      btn.disabled = false;
+      if (!m.ok) { msg.textContent = m.summary; btn.textContent = "Zkusit znovu"; return; }
+      if (m.step === "ticho") {
+        msg.textContent = "2/2 · Teď 8 s: řekni normálně 3–4× „Hey Jarvis“…";
+        window.setTimeout(() => run("fraze"), 900);
+        btn.disabled = true;
+      } else if (m.step === "fraze") {
+        msg.textContent = m.summary;
+        save.hidden = !(m.data && m.data.ok);
+      } else {
+        msg.textContent = m.summary;
+        save.hidden = true;
+        toast("Citlivost „Hey Jarvis“ uložena", "ok");
+      }
+    };
+    return h("div", { class: "row has-ico" }, icon("waveform"), h("div", { class: "row-text" }, h("strong", {}, "Kalibrace „Hey Jarvis“"), msg),
+      h("div", { class: "btn-row" }, btn, save));
+  };
   // a titled group: the label above, the rows inside one card, thin lines between them
   const card = (title: string, help: string | null, ...kids: (Node | null)[]) =>
     h("section", { class: "group" }, h("h2", { class: "group-label" }, title),
@@ -334,11 +364,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         sw("voice.enabled", "Hlasové ovládání", "Mikrofon, rozpoznávání řeči a hlas"),
         sw("voice.wake_word", "Probouzení slovem „Hey Jarvis“", "Bez toho funguje zkratka (výchozí Ctrl+Alt+Mezerník)"),
         range("voice.wake_threshold", "Citlivost probouzení", 0.2, 0.9, 0.05, (v) => (v < 0.4 ? "vysoká" : v > 0.65 ? "nízká" : "střední") + ` (${v.toFixed(2)})`),
+        wakeCalibration(),
         voiceStatus.devices?.length
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
         range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
         sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“."),
+        sw("voice.barge_in", "Skočit JARVISovi do řeči", "Když JARVIS mluví a ty začneš mluvit, hned zmlkne a poslouchá tě (jeho vlastní hlas si z mikrofonu odečte)."),
+        sw("voice.game_quiet", "Herní režim", "Když hraješ hru přes celou obrazovku, JARVIS nemluví – ohlášení a upozornění si podrží a po hře je řekne jednou větou."),
         sw("voice.emotion", "Poznat náladu z tónu hlasu", "Podle výšky, tempa a síly hlasu (ne slov) pozná únavu nebo spěch a přizpůsobí odpovědi. Ukládá jen pár čísel, žádný zvuk.")),
       card("Čistý zvuk", null,
         sw("voice.noise_suppression", "Filtr hluku", "Před rozpoznáním odfiltruje šum místnosti (ventilátor, klimatizace) podle vteřiny před „Hey Jarvis“."),

@@ -1,12 +1,12 @@
 """3.0 extras: what's new once per feature version, your own sounds, the wardrobe setting."""
 from fastapi.testclient import TestClient
 
-from jarvis import __version__, config
+from jarvis import NEWS, __version__, config
 from jarvis.server.app import create_app
 
 
 def test_whats_new_once_per_feature_version(rt):
-    mm = ".".join(__version__.split(".")[:2])
+    mm = NEWS or ".".join(__version__.split(".")[:2])
     assert rt.whats_new_due() == mm
     rt.whats_new_seen()
     assert rt.whats_new_due() == ""

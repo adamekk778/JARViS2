@@ -466,6 +466,19 @@ public final class JarvisLink {
         }).start();
     }
 
+    /** 3.13 headphones on the phone / Do Not Disturb: a quiet line in the PC's notch. */
+    static void deviceEvent(final Context c, final String kind, final boolean on, final String name) {
+        new Thread(() -> {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("kind", kind);
+                o.put("on", on);
+                o.put("name", name == null ? "" : name);
+                http(c, "POST", "/api/phone/event", o.toString(), 15000);
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     static JSONArray poll(Context c) throws Exception {
         // 3.12 battery: one request every 50 s while nothing happens (a command still arrives at once)
         String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c), null, 65000);

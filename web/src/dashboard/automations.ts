@@ -7,7 +7,7 @@ import { stepsEditor, stepText, type Step } from "./stark";
 import { missionGraph } from "../shared/viz";
 
 interface Trigger { type: string; value: string; text: string; days: number[] }
-interface Automation { id: string; name: string; enabled: boolean; trigger: Trigger; steps: Step[] }
+interface Automation { id: string; name: string; enabled: boolean; trigger: Trigger; steps: Step[]; say?: "voice" | "notch" | "phone" }
 
 /** Each trigger: label, what `value` means (none = no field), whether `text` matters, an example. */
 const TRIGGERS: Record<string, { label: string; ico: string; value?: { label: string; ph: string; type?: string }; text?: string; hint: string }> = {
@@ -165,6 +165,14 @@ export function buildAutomations(client: JarvisClient) {
         const x = h("input", { class: "input", value: draft.trigger.text, placeholder: "(nemusí)", "aria-label": t.text }) as HTMLInputElement;
         x.oninput = () => { draft.trigger.text = x.value; };
         parts.push(h("label", { class: "pe-row" }, h("span", {}, t.text), x));
+      }
+      // 3.13 how the automation speaks up
+      {
+        const sel = h("select", { class: "input", "aria-label": "Jak se ozve" }, h("option", { value: "voice" }, "Nahlas (během hry počká)"),
+          h("option", { value: "notch" }, "Tiše – jen v notchi"), h("option", { value: "phone" }, "Do telefonu")) as HTMLSelectElement;
+        sel.value = draft.say || "voice";
+        sel.onchange = () => { draft.say = sel.value as Automation["say"]; };
+        parts.push(h("label", { class: "pe-row" }, h("span", {}, "Jak se ozve"), sel));
       }
       if (draft.trigger.type === "time") {
         const days = h("div", { class: "auto-days", role: "group", "aria-label": "Dny" }, ...DAYS.map((d, i) => {

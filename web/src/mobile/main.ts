@@ -19,6 +19,7 @@ import { flingPad } from "./fling";
 import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 import { habitsGlance, habitsView } from "./habits";
+import "./polish.css";              // 3.13 the phone in the same airy look as the PC (loaded last)
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 

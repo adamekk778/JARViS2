@@ -11,6 +11,11 @@ from typing import Annotated
 from .base import ToolResult, tool
 
 MAX_STEPS = 30
+LONG_STEPS = 160          # 3.13 a task with time ("najdi zápas a vyber Jett") – the time is the limit, not 30 moves
+WAIT_LONG_S = 30          # …and it may wait longer between looks (a queue for a match)
+# 3.13 games whose rules (anti-cheat) may treat automated clicks as cheating – said once, never blocks
+ANTI_CHEAT = ("valorant", "league of legends", "lol", "counter-strike", "cs2", "fortnite", "apex", "overwatch", "rainbow six",
+              "pubg", "call of duty", "warzone", "dota", "rocket league")
 SYSTEM = """Ovládáš Windows počítač uživatele pomocí myši a klávesnice. Dostaneš úkol a aktuální snímek obrazovky
 (rozlišení {w}×{h} px, souřadnice 0,0 vlevo nahoře). Odpověz VŽDY jen jedním JSON objektem s další akcí, nic jiného:
 {{"action":"click","x":123,"y":456,"button":"left","double":false,"why":"..."}}
@@ -24,6 +29,60 @@ SYSTEM = """Ovládáš Windows počítač uživatele pomocí myši a klávesnice
 {{"action":"fail","reason":"proč to nejde"}}
 Postupuj po malých krocích, po každé akci dostaneš nový snímek. Klikej doprostřed prvků. Nedělej nic, co úkol nevyžaduje.
 Preferuj prvky ze stromu (ui_click/ui_type); souřadnice jen když prvek ve stromu není."""
+GAME_RULES = """
+Tohle je úkol v menu hry/aplikace a smí trvat až {minutes} min. Hry se ovládají myší podle snímku (klik na souřadnice);
+strom prvků tam nebývá. Když čekáš (fronta na zápas, načítání), dej {{"action":"wait","seconds":20}} – až {wait} s – a podívej
+se znovu. Výběr postavy/agenta má krátký čas: jakmile ho uvidíš, hned klikni na požadovanou postavu a pak na potvrzení
+(např. LOCK IN). Nikdy nepiš do chatu, nic nekupuj, neměň nastavení účtu, neopouštěj zápas.{how}"""
+
+
+def _howto_file():
+    from .. import paths
+
+    return paths.data_dir() / "howto_apps.json"
+
+
+def saved_steps(app: str) -> str:
+    """What worked last time in this app/game (so the next time is quicker – "zjisti, jak na to" only once)."""
+    try:
+        return json.loads(_howto_file().read_text(encoding="utf-8")).get(app.strip().lower(), "")
+    except (OSError, ValueError):
+        return ""
+
+
+def remember_steps(app: str, task: str, history: list[str]) -> None:
+    f = _howto_file()
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        d = {}
+    lines = [h for h in history if "neplatná" not in h][-14:]
+    d[app.strip().lower()] = (f"Úkol: {task}\n" + "\n".join(lines))[:3000]
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def anti_cheat_note(app: str, task: str) -> str:
+    """Once per game: its rules may count automated clicks as cheating (the user decides; JARVIS does not hide anything)."""
+    text = f"{app} {task}".lower()
+    game = next((g for g in ANTI_CHEAT if g in text), "")
+    if not game:
+        return ""
+    f = _howto_file().with_name("howto_warned.json")
+    try:
+        seen = set(json.loads(f.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        seen = set()
+    if game in seen:
+        return ""
+    seen.add(game)
+    try:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps(sorted(seen)), encoding="utf-8")
+    except OSError:
+        pass
+    return (" (Jen jednou pro info: hry s anti-cheatem jako tahle můžou automatické klikání brát jako porušení pravidel – "
+            "klikám normální myší, nic neskrývám, riziko je na tvém účtu.)")
 
 
 def _ui_context(p) -> str:
@@ -66,10 +125,22 @@ def _shrink(png: bytes, max_w: int = 1280) -> tuple[str, float]:
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode(), scale
 
 
-async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolResult:
+async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS, minutes: int = 0, app: str = "") -> ToolResult:
+    import time as _time
+
     p = ctx.platform
     history: list[str] = []
+    minutes = max(0, min(int(minutes or 0), 30))
+    deadline = _time.monotonic() + minutes * 60 if minutes else None
+    if minutes:
+        max_steps = max(max_steps, LONG_STEPS)
+    how = saved_steps(app) if app else ""
+    extra = GAME_RULES.format(minutes=minutes, wait=WAIT_LONG_S,
+                              how=f"\nTakhle to minule v {app} fungovalo (zkus stejně, obrazovka se ale mohla změnit):\n{how}" if how else "") \
+        if minutes else ""
     for step in range(1, max_steps + 1):
+        if deadline is not None and _time.monotonic() > deadline:
+            return ToolResult(False, f"Úkol nedokončen – vypršel čas ({minutes} min).", data={"history": history[-10:]})
         from .screenshot import capturing
 
         with capturing(ctx, "computer_use"):
@@ -78,7 +149,7 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
         url, scale = await asyncio.to_thread(_shrink, png)
         sw, sh = p.screen_size()
         w, h = int(sw * scale), int(sh * scale)
-        msgs = [{"role": "system", "content": SYSTEM.format(w=w, h=h)},
+        msgs = [{"role": "system", "content": SYSTEM.format(w=w, h=h) + extra},
                 {"role": "user", "content": [
                     {"type": "text", "text": f"Úkol: {task}\nDosavadní kroky:\n" + ("\n".join(history[-12:]) or "(žádné)")
                      + ui + "\nJaká je další akce?"},
@@ -93,6 +164,12 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
         ctx.bus.publish("task_progress", id="computer_use", title=task, step=step, total=max_steps,
                         done=act in ("done", "fail"), detail=a.get("why") or a.get("summary") or act)
         if act == "done":
+            if app:
+                history.append(f"{step}. hotovo: {a.get('summary', '')}")
+                try:
+                    remember_steps(app, task, history)           # next time it knows the way
+                except OSError:
+                    pass
             return ToolResult(True, a.get("summary", "Hotovo"), data={"steps": step})
         if act == "fail":
             return ToolResult(False, a.get("reason", "Nepovedlo se"), data={"steps": step})
@@ -120,7 +197,7 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
             await asyncio.sleep(0.4)
             continue
         elif act == "wait":
-            await asyncio.sleep(min(10, float(a.get("seconds", 1))))
+            await asyncio.sleep(min(WAIT_LONG_S if minutes else 10, float(a.get("seconds", 1))))
         history.append(f"{step}. {json.dumps(a, ensure_ascii=False)}")
         await asyncio.sleep(0.6)
     return ToolResult(False, f"Úkol nedokončen po {max_steps} krocích", data={"history": history[-10:]})
@@ -129,7 +206,13 @@ async def run_computer_task(ctx, task: str, max_steps: int = MAX_STEPS) -> ToolR
 @tool("computer_use", "Ovládne počítač jako člověk (vidí obrazovku, kliká, píše) a splní úkol, na který není jiný nástroj, "
       "např. 'v Excelu udělej graf z otevřené tabulky' nebo 'v nastavení Windows zapni noční světlo'.",
       danger=True, category="ovládání počítače")
-async def computer_use(ctx, task: Annotated[str, "co přesně udělat"]) -> ToolResult:
+async def computer_use(ctx, task: Annotated[str, "co přesně udělat"],
+                       app: Annotated[str, "v jaké aplikaci/hře (např. Valorant) – JARVIS si zapamatuje, jak to tam šlo"] = "",
+                       minutes: Annotated[int, "smí to trvat déle (čekání na zápas, načítání) – kolik minut, nejvýš 30; 0 = krátký úkol"] = 0) -> ToolResult:
     if not (ctx.cfg.permissions.input and ctx.cfg.permissions.screen):
         return ToolResult(False, "Ovládání počítače potřebuje oprávnění Myš/klávesnice i Obrazovka (Nastavení → Oprávnění).")
-    return await run_computer_task(ctx, task)
+    r = await run_computer_task(ctx, task, minutes=minutes, app=app)
+    note = anti_cheat_note(app, task)
+    if note:
+        r.summary = (r.summary or "") + note
+    return r

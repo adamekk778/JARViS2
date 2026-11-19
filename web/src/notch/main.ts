@@ -67,6 +67,7 @@ let pinned = false;      // the pin button (stays open, also after a restart)
 let holding = false;     // you are writing in the panel's chat
 let pendingConfirm: string | null = null;
 let liveText = "";
+let liveSrc: { kind: string; name: string } | null = null;     // 3.13 the live card belongs to an automation / protocol
 let alertTimer = 0, lingerTimer = 0, openTimer = 0, closeTimer = 0, uiMoodTimer = 0;
 let selAsk: any = null, selTimer = 0;   // 3.3 selected-text menu (Ctrl+Alt+E)
 let uiMood: Mood | null = null; // opening / closing / dragged flashes
@@ -209,7 +210,8 @@ function setPinned(v: boolean, save = true) {
 const alertTitle = h("strong");
 const alertBody = h("span");
 const alertIco = h("span", { class: "n-alert-ico", "aria-hidden": "true" });   // 3.13 a tinted glass disc on top
-const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody);
+const alertActs = h("div", { class: "n-alert-acts" });                          // 3.13 "Za 10 min" · "Ok" · "+5 min"
+const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs);
 /** 3.13 the notice's icon and colour from what it is about (Přestávka → coffee, Časovač → timer, a failure → warning…). */
 const ALERT_KINDS: [RegExp, string, string][] = [
   [/přestávk|pauz|protáhn|sedíte/i, "coffee", "#ffb340"],
@@ -791,9 +793,16 @@ function onMood(m: any) {
   updateBlob();
 }
 
-function showAlert(title: string, body: string) {
+function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = []) {
   alertTitle.textContent = title;
   alertBody.textContent = body;
+  alertActs.replaceChildren(...actions.map((a, i) => h("button", { type: "button", class: `n-alert-btn ${i === 0 && a.action !== "dismiss" ? "main" : ""}`,
+    onclick: (e: Event) => {
+      e.stopPropagation();
+      if (a.action !== "dismiss") client.send("notice_action", { action: a.action, args: a.args || {} });
+      window.clearTimeout(alertTimer);
+      settle(true);
+    } }, a.label)));
   const [ico, tint] = alertKind(title || "", body || "");
   alertIco.replaceChildren(icon(ico, "ph-fill"));
   shape.style.setProperty("--alert-tint", tint);
@@ -802,7 +811,7 @@ function showAlert(title: string, body: string) {
     if (mode === "alert") apply("alert");                     // the card fits this text
     window.clearTimeout(alertTimer);
     // a longer notice stays a little longer, so it can be read (5–9 s)
-    alertTimer = window.setTimeout(() => mode === "alert" && settle(), Math.min(9000, 5000 + (body || "").length * 35));
+    alertTimer = window.setTimeout(() => mode === "alert" && settle(), actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
   }
 }
 
@@ -1182,6 +1191,17 @@ client.on("volume", (m) => {
   volHide = window.setTimeout(updateActivity, 1700);
 });
 function renderBrand() {
+  if (dyn() && liveSrc) {
+    const state = liveText ? (jarvisBusy() ? "Hlásím" : "Hotovo") : bubbleState.textContent || "Spouštím";
+    const sig = `src|${liveSrc.kind}|${liveSrc.name}|${state}`;
+    if (brandBadge.dataset.sig === sig) return;
+    brandBadge.dataset.sig = sig;
+    shape.style.setProperty("--brand", liveSrc.kind === "Protokol" ? "#64d2ff" : "#ffd60a");
+    brandBadge.replaceChildren(h("span", { class: "nb-logo" }, icon(liveSrc.kind === "Protokol" ? "circle-notch" : "lightning", "ph-fill")),
+      h("span", { class: "nb-text" }, h("b", { class: "nb-name" }, liveSrc.name),
+        h("span", { class: `nb-state ${busy() ? "on" : ""}` }, h("i", { class: "nb-dot" }), `${liveSrc.kind} · ${state}`)));
+    return;
+  }
   if (dyn()) {          // Dynamic Island: the card's head says who answers and what it is doing
     const b = brain ? brandOf(brain.provider, brain.model) : null;
     const state = bubbleState.textContent || (liveText ? "Odpovídám" : "");
@@ -1897,7 +1917,14 @@ client.on("music_level", (m) => {
   if (on) musicOff = window.setTimeout(() => musicBars.classList.remove("on"), 1500);
 });
 client.on("transcript", (m) => { bubbleTranscript.textContent = m.text ? `„${m.text}“` : ""; renderLive(); });
-client.on("user_message", (m) => { if (m.source !== "notch") bubbleTranscript.textContent = m.text ? `„${m.text}“` : ""; liveText = ""; renderLive(); });
+client.on("user_message", (m) => {
+  // 3.13 an automation / protocol: the card says so ("Automatizace · Nabíječka") – not the AI that answered last time
+  const t = String(m.text || "");
+  const auto = m.source === "protocol" && t.startsWith("▶") ? /^▶\s*(Automatizace|Protokol)\s+(.+?)(?:\s+\(pokračuje\))?$/.exec(t) : null;
+  liveSrc = auto ? { kind: auto[1], name: auto[2] } : null;
+  if (m.source !== "notch") bubbleTranscript.textContent = auto ? "" : t ? `„${t}“` : "";
+  liveText = ""; renderLive();
+});
 client.on("assistant_delta", (m) => { liveText += m.text; renderLive(); });
 client.on("assistant_done", (m) => { liveText = m.text; bubbleTool.textContent = ""; renderLive(); client.send("timers_get"); });
 client.on("tool_start", (m) => {
@@ -1918,7 +1945,7 @@ client.on("confirm_request", (m) => {
 });
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
-client.on("notify", (m) => { showAlert(m.title, m.body); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
+client.on("notify", (m) => { showAlert(m.title, m.body, Array.isArray(m.actions) ? m.actions : []); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
 client.on("sounds", (m) => setCustomSounds(m.files));
 client.on("update_status", (m) => { upd = m; paintUpdate(); updateActivity(); });
 client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });
@@ -1990,7 +2017,8 @@ if (demo) {
     liveText = "Pouštím **Avengers: Endgame**, oficiální trailer.";
     setInterval(() => blob.setLevel(0.05 + Math.random() * 0.12), 100);
   }
-  if (demo === "alert") showAlert("Přestávka", "Pane, sedíte u počítače už 90 minut v kuse. Doporučuji krátkou pauzu – protáhnout se a napít.");
+  if (demo === "alert") showAlert("Přestávka", "Pane, sedíte u počítače už 90 minut v kuse. Doporučuji krátkou pauzu – protáhnout se a napít.",
+    [{ label: "Za 10 min", action: "break_snooze", args: { minutes: 10 } }, { label: "Ok", action: "dismiss" }]);
   renderLive();
   setMode(demo);
 }

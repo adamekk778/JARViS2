@@ -56,7 +56,7 @@ CLIENT_TYPES = [
     "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
     "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
-    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal",
+    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -76,7 +76,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -1454,6 +1454,23 @@ class Connection:
             res = await tools.call(name, args, rt)
             await self.send("quick_result", action=name, ok=res.ok, summary=res.summary,
                             attachments=[rt.public_attachment(a) for a in res.attachments])
+        elif t == "notice_action":               # 3.13 a button in a notice ("Za 10 min", "+5 min")
+            act, args = str(m.get("action") or ""), m.get("args") or {}
+            if act == "break_snooze":
+                rt.activity.snooze_break(int(args.get("minutes") or 10))
+                await self.send("quick_result", action=act, ok=True, summary="Připomenu za chvíli.")
+            elif act == "timer_more":
+                mins = max(1, min(int(args.get("minutes") or 5), 120))
+                res = await tools.call("set_timer", {"seconds": mins * 60, "label": str(args.get("label") or "Časovač")[:60]}, rt)
+                await self.send("quick_result", action=act, ok=res.ok, summary=res.summary)
+        elif t == "wake_calibrate":              # 3.13 Kalibrace „Hey Jarvis“ from the settings (3 steps)
+            step = str(m.get("step") or "vysledek")
+            if step not in ("ticho", "fraze", "vysledek"):
+                step = "vysledek"
+            res = await tools.call("wake_word_calibrate", {"step": step, "seconds": 8, "apply": bool(m.get("apply"))}, rt)
+            await self.send("wake_calibration", step=step, ok=res.ok, summary=res.summary, data=res.data if isinstance(res.data, dict) else {})
+        elif t == "notices_get":                 # 3.13 Historie upozornění
+            await self.send("notices", items=list(rt.notices)[:40])
         elif t == "share_ready":                 # 3.12 the phone holds files ready for "přilož k monitoru": the notch waits for them
             n = max(0, min(50, int(m.get("count") or 0)))
             rt.bus.publish("share_ready", on=bool(m.get("on")) and n > 0, count=n, device=str(self.name or "Telefon")[:40])

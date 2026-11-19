@@ -750,6 +750,8 @@ async def watch_loop(rt, every: float = 5.0) -> None:
             summary = att.flush()                  # OMEGA 753: what waited during the focus / meeting / game
             if summary:
                 rt.notify(summary["title"], summary["body"], speak=False, urgent=True)
+                if summary.get("game") and getattr(rt.cfg.voice, "speak_mode", "voice") != "never":
+                    rt.speak(summary.get("spoken") or summary["title"])      # 3.13 after the game, in one sentence
         if not getattr(rt.cfg.powers, "download_watch", True):
             continue
         try:

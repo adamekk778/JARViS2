@@ -74,6 +74,20 @@ class PhoneLink:
                                speak=self.rt.cfg.phone_link.speak, target="dashboard")
                 break
 
+    def on_device(self, kind: str, on: bool, name: str = "") -> None:
+        """3.13 more quiet news from the phone: headphones connected / gone, Do Not Disturb on / off."""
+        if not getattr(self.rt.cfg.phone_link, "notch_events", True):
+            return
+        name = (name or "").strip()[:40]
+        if kind == "headphones":
+            text, right, icon = (name or "Sluchátka u telefonu", "Připojeno" if on else "Odpojeno", "headphones")
+            tint = "#ffffff" if on else "#98989f"
+        elif kind == "dnd":
+            text, right, icon, tint = ("Telefon: Nerušit", "Zapnuto" if on else "Vypnuto", "moon-stars", "#bf5af2" if on else "#98989f")
+        else:
+            return
+        self.rt.bus.publish("phone_event", kind=kind, text=text, right=right, icon=icon, tint=tint, pct=None, on=on)
+
     def _phone_event(self, kind: str, level: int, charging: bool, instant: bool = False) -> None:
         """The phone's plug / battery news: an event for automations and a quiet line in the notch (never spoken)."""
         if kind == "power":

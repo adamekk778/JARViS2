@@ -112,8 +112,15 @@ class Attention:
             return ""
         try:
             info = self.rt.platform.foreground_info() or {}
-            if info.get("fullscreen"):
-                return "aplikace přes celou obrazovku"
+            full = info.get("fullscreen")
+            if full is None:                 # 3.13 Windows' foreground_info does not say it: ask the screen (it never worked)
+                from .desktop import winutil
+
+                full = winutil.foreground_is_fullscreen()
+            if full:
+                from .tools.apps import front_is_game
+
+                return "hra" if front_is_game(info if info.get("path") else None, True) else "aplikace přes celou obrazovku"
         except Exception:  # noqa: BLE001
             pass
         db = getattr(self.rt, "db", None)
@@ -129,7 +136,7 @@ class Attention:
         why = self.busy_reason()
         if not why:
             return True
-        self.deferred.append({"title": title, "body": body, "ts": time.time()})
+        self.deferred.append({"title": title, "body": body, "ts": time.time(), "why": why})
         self.deferred = self.deferred[-50:]
         self.rt.bus.publish("focus", active=True, until=self.focus_until, waiting=len(self.deferred), why=why)
         return False
@@ -141,7 +148,25 @@ class Attention:
         heads = [i["title"] for i in items]
         body = "; ".join(f"{t}: {b[:80]}" for t, b in ((i["title"], i["body"]) for i in items[:5])) + (f" a dalších {len(items) - 5}" if len(items) > 5 else "")
         self.rt.bus.publish("focus", active=False, until=0, waiting=0)
-        return {"title": f"Zatímco jsi byl soustředěný: {len(items)} upozornění", "body": body, "titles": heads}
+        game = sum(1 for i in items if i.get("why") == "hra") * 2 >= len(items)
+        n = len(items)
+        word = "upozornění"
+        head = f"Během hry: {n} {word}" if game else f"Zatímco jsi byl soustředěný: {n} {word}"
+        # 3.13 said aloud in one short sentence after a game ("Během hry: 3 upozornění – Máma: Přijdeš?, Nabíječka…")
+        spoken = (f"Během hry přišlo {n} upozornění: " if game else f"Mezitím přišlo {n} upozornění: ") + \
+            ", ".join(dict.fromkeys(heads[:3])) + ("." if n <= 3 else " a další.")
+        return {"title": head, "body": body, "titles": heads, "game": game, "spoken": spoken}
+
+    def hold_speech(self, text: str, title: str = "JARVIS") -> bool:
+        """3.13 an announcement JARVIS would say (an automation's line, the greeting) while you play / focus / are in a
+        call: kept for the summary instead (True = held). Answers to you and urgent things are never held."""
+        why = self.busy_reason()
+        if not why or not text.strip():
+            return False
+        self.deferred.append({"title": title, "body": text, "ts": time.time(), "why": why})
+        self.deferred = self.deferred[-50:]
+        self.rt.bus.publish("focus", active=True, until=self.focus_until, waiting=len(self.deferred), why=why)
+        return True
 
 
 # ---------------------------------------------------------------- 759 data lens

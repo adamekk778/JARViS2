@@ -220,7 +220,7 @@ class Automations:
         from .stark import run_protocol
 
         bg(
-            run_protocol(self.rt, proto, "Automatizace", THIRD_PARTY.format(name=a.name)))
+            run_protocol(self.rt, proto, "Automatizace", THIRD_PARTY.format(name=a.name), say=getattr(a, "say", "voice")))
         return True
 
     async def _boot(self) -> None:

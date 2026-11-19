@@ -3,6 +3,16 @@ import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.13": [
+    { icon: "game-controller", title: "Herní režim", line: "Když hraješ hru přes celou obrazovku, JARVIS nemluví a notch ti nebere pozornost (Valorant se už sám neminimalizuje). Ohlášení a upozornění si podrží a po hře je řekne jednou větou: „Během hry přišla 3 upozornění…“. Vypneš v Nastavení → Hlas." },
+    { icon: "crosshair", title: "Úkoly ve hrách za tebe", line: "„Jarvisi, jdu na 2 minuty pryč, zapni kompetitivní hru a vyber Jett“ – JARVIS sám zjistí, kde co je, klikne, počká ve frontě a vybere agenta. Postup si zapamatuje, příště to jde rychleji. Hry s anti-cheatem můžou automatické klikání brát jako porušení pravidel – riziko je na tvém účtu." },
+    { icon: "bell-simple", title: "Upozornění s tlačítky a historie", line: "Přestávka má „Za 10 min“, časovač „+5 min“. Všechno, co ti JARVIS hlásil, najdeš v notchi: Více → Upozornění." },
+    { icon: "lightning", title: "Automatizace po svém", line: "U každé automatizace si vybereš, jak se ozve: nahlas, tiše jen v notchi, nebo do telefonu. A karta v notchi ukáže její název, ne logo AI." },
+    { icon: "device-mobile", title: "Telefon v notchi", line: "Telefon na nabíječce, odpojený, nabitý, slabá baterie, sluchátka, režim Nerušit – notch to tiše ukáže. Nové spouštěče automatizací „Telefon na nabíječce“ a „Slabá baterie telefonu“." },
+    { icon: "waveform", title: "Hlas", line: "Skoč JARVISovi do řeči – začni mluvit a hned zmlkne a poslouchá. Kalibrace „Hey Jarvis“ přímo v Nastavení → Hlas. Po ohlášeních už nezačne poslouchat, jen když začneš ty." },
+    { icon: "sparkle", title: "Nový vzhled", line: "Karta odpovědi v notchi jako sklo na iPhonu, vycentrovaná upozornění, vzdušnější stránky se zaoblenými rohy a čitelné sklo i přes světlou tapetu. Text v chatu (i v notchi) jde označit a zkopírovat." },
+    { icon: "microphone-stage", title: "Hlas Mark z ElevenLabs", line: "Hlas z úvodní stránky ElevenLabs je v Nastavení → Hlas jedním tlačítkem „Použít tento hlas“." },
+  ],
   "3.10": [
     { icon: "headphones", title: "Zvuk z PC do telefonu", line: "V telefonu (Ovládání → Média → Poslouchat PC v telefonu) uslyšíš, co hraje PC – hudbu, film nebo hru – v reproduktoru nebo sluchátkách, i v jiné místnosti a mimo domov přes JARVIS Link. Bere se jen zvuk, který PC samo hraje, nikdy mikrofon; v telefonu je po celou dobu oznámení se Zastavit." },
     { icon: "images", title: "Obrázky ve sdílené schránce", line: "Sdílená schránka PC ↔ telefon teď přenáší i obrázky: snímek obrazovky z PC vložíš rovnou v telefonu a fotku zkopírovanou v telefonu vložíš na PC Ctrl+V (pošle se, když otevřeš JARVIS). Hesla nikdy." },

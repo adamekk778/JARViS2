@@ -18,7 +18,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains";
+export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -37,9 +37,10 @@ const NAV: [Section, string, string][] = [
   ["more", "dots-three-circle", "Více"],
   ["activity", "pulse", "Průběh"],
   ["brains", "brain", "AI přehled"],
+  ["notices", "bell-simple", "Upozornění"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity"];
+const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -614,6 +615,7 @@ export function buildPanel(ctx: PanelCtx) {
   const moreView = h("div", { class: "p-sec more mo" },
     moActivity,
     subsTile,
+    tile("notices", "bell-simple", "Upozornění", "Co ti JARVIS hlásil, když jsi nekoukal"),
     tile(null, "eye-slash", "Schovat notch", "Zpátky Ctrl+Alt+N", "mo-hide", () => { (window as any).pywebview?.api?.hide_notch?.(); }),
     tile("files", "folder-simple", "Soubory", "Police na soubory"),
     tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
@@ -695,7 +697,22 @@ export function buildPanel(ctx: PanelCtx) {
   const habitsView = createHabitsView(client, () => ctx.openChat("habits"));         // 3.12 Návyky a zdraví
   const brainsView = createBrainsPanel(client);                                       // 3.12 Přehled AI
   brainsView.el.classList.add("p-brains");
-  const views: Record<Section, HTMLElement> = { brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  // 3.13 Historie upozornění: the latest notices, newest first, with the time
+  const noticesList = h("div", { class: "nt-list" });
+  const noticesView = h("div", { class: "p-sec notices" },
+    h("div", { class: "nt-head" }, h("strong", {}, "Upozornění"), h("span", {}, "Co ti JARVIS hlásil v posledních hodinách")), noticesList);
+  const fmtAgo = (ts: number) => {
+    const s = Math.max(0, Date.now() / 1000 - ts);
+    return s < 60 ? "teď" : s < 3600 ? `před ${Math.round(s / 60)} min` : new Date(ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  };
+  client.on("notices", (m) => {
+    const items: any[] = m.items || [];
+    noticesList.replaceChildren(...(items.length ? items.map((n) => h("div", { class: "nt-item" },
+      h("div", { class: "nt-row" }, h("strong", {}, String(n.title || "")), h("span", { class: "nt-time" }, fmtAgo(Number(n.ts) || 0))),
+      h("p", {}, String(n.body || "")))) : [h("p", { class: "nt-empty" }, "Zatím nic – všechno, co ti JARVIS řekne nebo ukáže, najdeš tady.")]));
+  });
+  client.on("notify", () => { if (current === "notices") client.send("notices_get"); });
+  const views: Record<Section, HTMLElement> = { notices: noticesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -724,7 +741,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -774,6 +791,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "tools") { client.send("tools_get"); client.send("skills_get"); client.send("mcp_get"); }
     renderHome();                                   // the head (date · weather · time) is the same on every tab: paint it now
     if (s === "activity") renderActivity();
+    if (s === "notices") client.send("notices_get");
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
 

@@ -106,12 +106,14 @@ class Voice(BaseModel):
     silence_seconds: float = 0.6     # 3.13 the answer starts sooner after you stop talking (was 0.8)
     silence_rev: int = 0
     followup: bool = False          # after an answer, listen 6 s more without the wake word
+    game_quiet: bool = True         # 3.13 Herní režim: while a game runs, announcements wait and come as one line afterwards
     output_device: str = ""         # speaker name; empty = Windows default
     tts_voice_en: str = "en-GB-RyanNeural"
     piper_voice_en: str = "en_GB-alan-medium"
     noise_suppression: bool = True  # clean the recording before it is recognised (filter the hum and hiss)
     auto_gain: bool = True          # level a quiet / distant voice up before recognition
     echo_cancel: bool = True        # remove JARVIS's own voice from the microphone (talking over it works)
+    barge_in: bool = True           # 3.13 start talking while JARVIS speaks → it stops and listens (needs echo_cancel)
     duck_media: bool = True         # turn other programs down while JARVIS listens or speaks
     duck_level: float = 0.3         # … to this share of their volume
 
@@ -481,6 +483,7 @@ class Automation(BaseModel):
     enabled: bool = True
     trigger: AutoTrigger = Field(default_factory=AutoTrigger)
     steps: list[ProtocolStep] = Field(default_factory=list)
+    say: Literal["voice", "notch", "phone"] = "voice"   # 3.13 how it speaks up: aloud · only in the notch (quiet) · on the phone
 
 
 def _default_automations() -> list[Automation]:
@@ -637,7 +640,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "general.user_name", "general.address_as", "general.language", "general.personality", "general.city",
     "brain.chain", "brain.temperature", "brain.offline_only",
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
-    "voice.speak_mode", "voice.stt_language", "voice.followup", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
+    "voice.speak_mode", "voice.stt_language", "voice.followup", "voice.game_quiet", "voice.barge_in", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
     "appearance.theme", "appearance.accent", "appearance.animations",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",

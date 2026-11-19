@@ -1,0 +1,17 @@
+/* =====================================================================================
+   3.13 The phone in the same look as the PC: a floating glass head, buttons in a card side by side and equally wide,
+   calmer gaps, every box rounded.
+   ===================================================================================== */
+.m-head { margin: 8px 10px 0; border: 0; border-radius: 24px; padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
+  background: rgb(14 16 24 / .72); -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .1), inset 0 0 0 1px rgb(255 255 255 / .06), 0 10px 30px -14px rgb(0 0 0 / .7); }
+html[data-hand] .m-head { margin: 0 10px 8px; }
+/* buttons in a card: two equal columns that fill the card (one full-width when alone) */
+.m-view .card > .btn-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.m-view .card > .btn-row > .btn { justify-content: center; min-height: 46px; border-radius: 16px; }
+/* calmer card insides: the label, its line and the content closer together */
+.m-view .card { gap: 10px; border-radius: 26px; }
+.m-view .card > .help { margin: 0; line-height: 1.5; }
+.m-view { gap: 14px; }
+.input, select.input, textarea.input { border-radius: 14px; }
+.chip, button.chip { border-radius: 999px; }

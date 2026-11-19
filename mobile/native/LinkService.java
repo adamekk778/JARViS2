@@ -20,6 +20,9 @@ public class LinkService extends Service {
     static volatile boolean running;
     private Thread worker;
     private android.content.BroadcastReceiver power;      // 3.13 plugged in / unplugged → the PC's notch at once
+    private android.content.BroadcastReceiver dnd;        // 3.13 Do Not Disturb on / off
+    private android.media.AudioDeviceCallback heads;      // 3.13 headphones connected / gone (no extra permission)
+    private boolean headsReady;
 
     static void start(Context c) {
         Intent i = new Intent(c, LinkService.class);
@@ -64,6 +67,53 @@ public class LinkService extends Service {
                 else registerReceiver(power, f);
             } catch (Exception ignored) { power = null; }
         }
+        if (dnd == null) {
+            dnd = new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(Context c, Intent i) {
+                    try {
+                        android.app.NotificationManager nm = c.getSystemService(android.app.NotificationManager.class);
+                        int f = nm.getCurrentInterruptionFilter();
+                        JarvisLink.deviceEvent(c.getApplicationContext(), "dnd", f != android.app.NotificationManager.INTERRUPTION_FILTER_ALL, "");
+                    } catch (Exception ignored) { }
+                }
+            };
+            try {
+                android.content.IntentFilter f = new android.content.IntentFilter(android.app.NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED);
+                if (Build.VERSION.SDK_INT >= 33) registerReceiver(dnd, f, Context.RECEIVER_NOT_EXPORTED);
+                else registerReceiver(dnd, f);
+            } catch (Exception ignored) { dnd = null; }
+        }
+        if (heads == null && Build.VERSION.SDK_INT >= 23) {
+            headsReady = false;                       // the first call lists what is already connected: not news
+            heads = new android.media.AudioDeviceCallback() {
+                @Override
+                public void onAudioDevicesAdded(android.media.AudioDeviceInfo[] added) { report(added, true); }
+
+                @Override
+                public void onAudioDevicesRemoved(android.media.AudioDeviceInfo[] removed) { report(removed, false); }
+
+                private void report(android.media.AudioDeviceInfo[] list, boolean on) {
+                    if (!headsReady) { headsReady = true; return; }
+                    for (android.media.AudioDeviceInfo d : list) {
+                        if (!d.isSink()) continue;
+                        int t = d.getType();
+                        boolean hp = t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES || t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET
+                                || t == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || t == android.media.AudioDeviceInfo.TYPE_USB_HEADSET
+                                || (Build.VERSION.SDK_INT >= 31 && t == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET);
+                        if (hp) {
+                            CharSequence n = d.getProductName();
+                            JarvisLink.deviceEvent(getApplicationContext(), "headphones", on, n == null ? "" : n.toString());
+                            return;
+                        }
+                    }
+                }
+            };
+            try {
+                android.media.AudioManager am = getSystemService(android.media.AudioManager.class);
+                am.registerAudioDeviceCallback(heads, new android.os.Handler(android.os.Looper.getMainLooper()));
+            } catch (Exception ignored) { heads = null; }
+        }
         if (!running) {
             running = true;
             worker = new Thread(this::loop, "jarvis-link");
@@ -98,6 +148,14 @@ public class LinkService extends Service {
         if (power != null) {
             try { unregisterReceiver(power); } catch (Exception ignored) { }
             power = null;
+        }
+        if (dnd != null) {
+            try { unregisterReceiver(dnd); } catch (Exception ignored) { }
+            dnd = null;
+        }
+        if (heads != null && Build.VERSION.SDK_INT >= 23) {
+            try { getSystemService(android.media.AudioManager.class).unregisterAudioDeviceCallback(heads); } catch (Exception ignored) { }
+            heads = null;
         }
         TapDrop.stop();
         PhoneIsland.stop();

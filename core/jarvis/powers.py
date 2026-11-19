@@ -177,7 +177,17 @@ class Activity:
             a = self.rt.cfg.general.address_as or "pane"
             self.rt.call_soon(lambda: self.rt.notify(
                 "Přestávka", f"{a.capitalize()}, sedíte u počítače už {round((now - self._active_since) / 60)} minut v kuse. "
-                             "Doporučuji krátkou pauzu – protáhnout se a napít.", speak=self.rt.cfg.voice.speak_mode != "never"))
+                             "Doporučuji krátkou pauzu – protáhnout se a napít.", speak=self.rt.cfg.voice.speak_mode != "never",
+                actions=[{"label": "Za 10 min", "action": "break_snooze", "args": {"minutes": 10}}, {"label": "Ok", "action": "dismiss"}]))
+
+    def snooze_break(self, minutes: int = 10, now: float | None = None) -> None:
+        """3.13 "Za 10 min" in the break notice: the reminder comes again in that many minutes (unless you take a break)."""
+        import time as _t
+
+        now = _t.time() if now is None else now
+        mins = max(1, int(getattr(self.rt.cfg.powers, "break_minutes", 0) or 0))
+        self._break_said = False
+        self._active_since = now - max(0, mins * 60 - max(1, min(int(minutes), 120)) * 60)
 
     # ---------- queries ----------
     def screen_time(self, days: int = 1, today: dt.date | None = None) -> list[dict]:
