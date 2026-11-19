@@ -2,6 +2,7 @@
 import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
+import { openTrial } from "../shared/trial";
 
 export function buildDiagnostics(client: JarvisClient, ask: (text: string) => void) {
   let timer = 0;
@@ -70,6 +71,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const el = h("section", { class: "diag-view" },
     hero(HEROES.diagnostics, "Diagnostika", "Jak se daří JARVISovi a tvému počítači.", [
       h("button", { class: "btn primary", type: "button", onclick: () => ask("Proč je můj počítač pomalý? Použij performance_report.") }, icon("gauge"), "Proč je PC pomalý?"),
+      h("button", { class: "btn", type: "button", onclick: () => openTrial(client) }, icon("play-circle"), "Vyzkoušet novinky"),
       h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_summary") }, icon("copy"), "Zkopírovat diagnostiku"),
       h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_export") }, icon("file-zip"), "Exportovat")]),
     h("div", { class: "sc-head" }, h("p", { class: "group-label" }, "Kontrola funkcí"),

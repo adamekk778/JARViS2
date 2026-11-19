@@ -426,6 +426,14 @@ class MailCfg(BaseModel):
     check_seconds: int = 20
 
 
+class GamesCfg(BaseModel):
+    """3.13 Herní pomocník: what you play is recognised; tips in the notch, playing time, the graphics card for the game."""
+    tips: bool = True               # a short tip for the game in the notch now and then
+    tips_every: int = 6             # …every this many minutes
+    boost: bool = True              # while you play, the offline AI model leaves the graphics card
+    stats: bool = True              # keep the playing time per game (Herní statistiky)
+
+
 class PhoneLinkCfg(BaseModel):
     """3.4 the JARVIS app on your phone: it rings, dials, sends SMS and mirrors your phone's notifications."""
     announce: bool = True        # someone writes to you on WhatsApp / SMS / Messenger or calls → JARVIS tells you on the PC
@@ -567,6 +575,7 @@ class Config(BaseModel):
     mail: MailCfg = Field(default_factory=MailCfg)
     calendar: CalendarCfg = Field(default_factory=CalendarCfg)
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
+    games: GamesCfg = Field(default_factory=GamesCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
@@ -650,7 +659,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "appearance.spatial_sounds", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
-    "phone_link.announce", "phone_link.speak", "phone_link.notch_events",
+    "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 

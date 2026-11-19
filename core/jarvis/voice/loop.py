@@ -256,6 +256,7 @@ class VoiceLoop:
             triggered = self._ptt.is_set()
             if frame is not None and not triggered and self._talk_over(frame, vad, np):
                 triggered = True                          # 3.13 you started talking over JARVIS
+                self.rt.bus.publish_threadsafe("barge_in")
             if frame is not None and ww is not None and self.rt.cfg.voice.wake_word and time.time() > cooldown \
                     and self._wake_gate(frame, ww, vad, np):
                 scores = ww.predict(np.frombuffer(frame, dtype=np.int16))

@@ -120,6 +120,10 @@ class Runtime:
         from .uixplus import Attention
 
         self.attention = Attention(self)       # OMEGA 753 / 234: notices wait while you are focused
+        from .gamecoach import GameCoach
+
+        self.gamecoach = GameCoach(self)         # 3.13 Herní pomocník (what you play, tips, playing time)
+        self.on_game_tip = None                  # the desktop shows the notch over a game for a tip
         from collections import deque as _deque
 
         self.notices: _deque = _deque(maxlen=60)   # 3.13 Historie upozornění: what JARVIS told you lately
@@ -171,6 +175,17 @@ class Runtime:
         tools.load_builtin()
 
     # ---------- lifecycle ----------
+    LATER_S = 25.0      # 3.13 faster start: what is not needed in the first seconds starts this much later
+
+    def _later(self, coro, delay: float | None = None) -> asyncio.Task:
+        """Start a background loop a little later (the notch, the voice and the chat come first after switching on)."""
+        async def run():
+            await asyncio.sleep(self.LATER_S if delay is None else delay)
+            await coro
+        t = asyncio.get_running_loop().create_task(run())
+        t.add_done_callback(lambda tt: coro.close() if tt.cancelled() else None)   # never started: no warning
+        return t
+
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
         self.bus.bind_loop(self.loop)
@@ -196,7 +211,7 @@ class Runtime:
                            bg(sysplus.volume_loop(self))]   # 3.11 volume bar
         from . import netwatch
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(netwatch.loop(self)))   # OMEGA 708/709/719
+        self._sys_tasks.append(self._later(netwatch.loop(self)))   # OMEGA 708/709/719 (3.13: a little later)
         from . import focusguard
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
@@ -205,25 +220,28 @@ class Runtime:
         self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
         from . import fsplus
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(fsplus.version_loop(self)))   # OMEGA 328
+        self._sys_tasks.append(self._later(fsplus.version_loop(self)))   # OMEGA 328
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.health.run()))          # 3.12 Zdraví PC
+        self._sys_tasks.append(self._later(self.health.run()))          # 3.12 Zdraví PC
         self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
         from . import morning
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.nightcare.loop()))      # 3.12 Noční údržba
+        self._sys_tasks.append(self._later(self.nightcare.loop()))      # 3.12 Noční údržba
         from . import habits
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
+        from . import gamecoach
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
         from . import bizagents
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizagents.loop(self)))    # 3.12 Firemní agenti
+        self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti
         from . import bizevents, bizgoals, bizreport
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
+        self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
+        self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
+        self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
         try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
             first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
             if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
@@ -448,6 +466,35 @@ class Runtime:
         att = self.store.get(aid)
         return att.public() if att else {"id": aid, "name": "?", "missing": True}
 
+    async def notice_action(self, act: str, args: dict) -> tuple[bool, str] | None:
+        """3.13 a button of a notice – from the notch or from the phone's notification (the same buttons)."""
+        args = args if isinstance(args, dict) else {}
+        if act == "break_snooze":
+            self.activity.snooze_break(int(args.get("minutes") or 10))
+            return True, "Připomenu za chvíli."
+        if act == "timer_more":
+            mins = max(1, min(int(args.get("minutes") or 5), 120))
+            res = await tools.call("set_timer", {"seconds": mins * 60, "label": str(args.get("label") or "Časovač")[:60]}, self)
+            return res.ok, res.summary
+        if act == "game_tip":
+            g = str(args.get("game") or self.gamecoach.game or "")
+            if g:
+                self.gamecoach.show_tip(g, self.gamecoach.next_tip(g))
+            return None
+        if act == "report_bug":
+            from . import upkeep
+
+            text = await asyncio.to_thread(upkeep.summary, self)
+            try:
+                await asyncio.to_thread(self.platform.clipboard_set, text)
+            except Exception:  # noqa: BLE001
+                pass
+            self.notify("Zkopírováno", "Popis chyby je ve schránce (bez hesel a klíčů) – vlož ho do chatu s vývojářem.", speak=False)
+            return None
+        if act == "open_window" and self.ui_hook:
+            self.ui_hook(str(args.get("view") or "chat"))
+        return None
+
     def mobile_clients(self) -> int:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
@@ -462,7 +509,7 @@ class Runtime:
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
         self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts)
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
-            self.phone_push("notify", title=title[:80], body=body[:400])
+            self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] != "open_window"])
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
 

@@ -214,6 +214,10 @@ const alertActs = h("div", { class: "n-alert-acts" });                          
 const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs);
 /** 3.13 the notice's icon and colour from what it is about (Přestávka → coffee, Časovač → timer, a failure → warning…). */
 const ALERT_KINDS: [RegExp, string, string][] = [
+  [/^tip\b/i, "lightbulb", "#ffd60a"],
+  [/^firma/i, "briefcase", "#64d2ff"],
+  [/^zkopírováno/i, "clipboard-text", "#30d158"],
+  [/^je to tady/i, "bell-ringing", "#30d158"],
   [/přestávk|pauz|protáhn|sedíte/i, "coffee", "#ffb340"],
   [/časovač|minutk|budík|vypršel/i, "timer", "#ff9f0a"],
   [/limit/i, "gauge", "#ff9f0a"],
@@ -421,7 +425,8 @@ function syncRegion(force = false, W = S.w, H = S.h, R = S.r) {
       const pl = cx + W / 2 + 8, pt = top + (H - 36) / 2;
       // while it drips out, the window also covers the gap between the island and the circle
       const from = pip.classList.contains("pop") ? cx + W / 2 - 18 : pl;
-      polys.push(roundRect({ left: from, right: pl + 36, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
+      const pw = Math.max(36, pip.offsetWidth || 36);  // 3.13 the timer capsule is wider than a circle
+      polys.push(roundRect({ left: from, right: pl + pw, top: pt, bottom: pt + 36 } as DOMRect, 18, window.devicePixelRatio || 1, regionPad));
     }
     sendRegion(polys, force);
     return;
@@ -624,7 +629,42 @@ function leave() {
   window.clearTimeout(openTimer);
   if (mode === "bar" || mode === "hover" || mode === "panel" || mode === "radial") scheduleClose();
 }
+// 3.13 gestures on the island (like the iPhone): drag left / right = next / previous song, drag down = open;
+// two fingers sideways on a touchpad do the same for the song
+let gest: { x: number; y: number; t: number; id: number } | null = null;
+let gestAt = 0, wheelX = 0, wheelAt = 0;
+shape.addEventListener("pointerdown", (e) => {
+  if (!(mode === "closed" || mode === "hover" || mode === "bar") || (e.target as HTMLElement).closest("button, input, a")) return;
+  gest = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId };
+  try { shape.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+});
+shape.addEventListener("pointerup", (e) => {
+  const g = gest;
+  gest = null;
+  if (!g || g.id !== e.pointerId || Date.now() - g.t > 800) return;
+  const dx = e.clientX - g.x, dy = e.clientY - g.y;
+  if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(dy) * 1.4 && media?.title) {
+    mediaCtl(dx < 0 ? "next" : "previous");
+    gestAt = Date.now();
+  } else if (dy > 26 && dy > Math.abs(dx) * 1.2) {
+    gestAt = Date.now();
+    openPanel("home");
+  }
+});
+shape.addEventListener("wheel", (e) => {
+  if (!media?.title || !(mode === "closed" || mode === "hover") || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+  const now = Date.now();
+  if (now - wheelAt > 600) wheelX = 0;
+  wheelAt = now;
+  wheelX += e.deltaX;
+  if (Math.abs(wheelX) > 120 && now - gestAt > 900) {
+    mediaCtl(wheelX > 0 ? "next" : "previous");
+    gestAt = now;
+    wheelX = 0;
+  }
+}, { passive: true });
 shape.addEventListener("click", (e) => {
+  if (Date.now() - gestAt < 450) return;          // that was a swipe, not a click
   // a click on the small island itself – never a click inside the open panel (the island keeps its kind while the
   // panel is open: a click on any tab there used to jump back to Návyky, so you could not leave it)
   const onIsland = (mode === "closed" || mode === "hover" || mode === "bar") && !(e.target as HTMLElement).closest(".n-panel, .panel");
@@ -780,7 +820,8 @@ function onMood(m: any) {
   }
   if ((m.mood === "error" || m.mood === "limit") && m.detail && mode !== "panel" && mode !== "live") {
     showAlert(m.mood === "limit" ? "Dosažen limit" : "Něco se nepovedlo", m.mood === "limit"
-      ? "Všichni AI poskytovatelé teď hlásí limit. Počkej chvilku nebo přidej dalšího v Nastavení → Mozek." : m.detail);
+      ? "Všichni AI poskytovatelé teď hlásí limit. Počkej chvilku nebo přidej dalšího v Nastavení → Mozek." : m.detail,
+      m.mood === "limit" ? [] : [{ label: "Nahlásit", action: "report_bug" }, { label: "Ok", action: "dismiss" }]);  // 3.13 one click
   }
   if (busy()) {
     window.clearTimeout(lingerTimer);
@@ -1436,9 +1477,11 @@ function paintPip(kind: string | undefined, t: any, cc: any) {
   if (!show || !kind) { delete pip.dataset.kind; return; }
   pip.dataset.kind = kind;
   let kids: (Node | string)[] = [];
+  pip.classList.toggle("wide", kind === "focus");
   if (kind === "focus") {
+    // 3.13 two things at once, both readable: the timer beside the song is a small capsule with the time left
     const tm = timers[0], left = Math.max(0, Math.round(tm.ends_at - Date.now() / 1000));
-    kids = [ring(tm.seconds ? left / tm.seconds : 1), h("b", {}, String(Math.max(1, Math.ceil(left / 60))))];
+    kids = [ring(tm.seconds ? left / tm.seconds : 1), h("b", { class: "pip-time" }, `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`)];
     pip.title = `${tm.label || "Časovač"} · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   } else if (kind === "music" || kind === "lyrics") {
     const pos = songPos(), dur = Number(media.duration) || 0;
@@ -1887,6 +1930,14 @@ client.on("share_ready", (m) => {
 client.on("device_link", (m) => {
   const hp = m.kind === "headphones";
   showLink({ icon: hp ? "headphones" : "speaker-hifi", text: String(m.name || (hp ? "Sluchátka" : "Reproduktory")), right: hp ? "Připojeno" : "Zvuk sem", pct: null, tint: hp ? "#ffffff" : "#64d2ff" });
+});
+// 3.13 Herní pomocník: what you play (a quiet line) and a tip for it now and then (a card with "Další tip")
+client.on("game_state", (m) => {
+  if (m.on) showLink({ icon: "game-controller", text: String(m.game || "Hra"), right: "Herní režim", pct: null, tint: "#bf5af2" });
+});
+client.on("game_tip", (m) => {
+  showAlert(`Tip · ${m.game || "hra"}`, String(m.tip || ""),
+    [{ label: "Další tip", action: "game_tip", args: { game: m.game } }, { label: "Ok", action: "dismiss" }]);
 });
 // 3.13 the phone: plugged in / unplugged / full / low → a quiet line in the island ("Telefon se nabíjí · 64 %"), no voice
 client.on("phone_event", (m) => {

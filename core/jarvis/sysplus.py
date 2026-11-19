@@ -745,6 +745,16 @@ async def watch_loop(rt, every: float = 5.0) -> None:
                 rt.bus.publish("device_link", **link)
         except Exception:  # noqa: BLE001
             pass
+        try:                                       # 3.13 the morning company card in the notch (once a day)
+            from .bizcompany import morning_card
+
+            idle = await asyncio.to_thread(rt.platform.idle_seconds)
+            card = morning_card(rt, idle=float(idle))
+            if card:
+                rt.notify(card["title"], card["body"], speak=False,
+                          actions=[{"label": "Otevřít", "action": "open_window", "args": {"view": "agents"}}, {"label": "Ok", "action": "dismiss"}])
+        except Exception as e:  # noqa: BLE001
+            log.debug("morning card: %s", e)
         att = getattr(rt, "attention", None)
         if att is not None:
             summary = att.flush()                  # OMEGA 753: what waited during the focus / meeting / game

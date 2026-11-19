@@ -343,6 +343,17 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             rt.phone.on_device(kind, bool(body.get("on")), str(body.get("name") or ""))
         return {"ok": True}
 
+    @app.post("/api/phone/notice_action")
+    async def phone_notice_action(request: Request):
+        """3.13 a button tapped in a JARVIS notification on the phone ("+5 min", "Za 10 min")."""
+        require_auth(request)
+        body = await request.json()
+        act = str(body.get("action") or "")
+        if act not in ("break_snooze", "timer_more", "game_tip"):
+            raise HTTPException(400, "Neznámá akce")
+        res = await rt.notice_action(act, body.get("args") or {})
+        return {"ok": True if res is None else res[0], "message": "" if res is None else res[1]}
+
     @app.post("/api/phone/ack")
     async def phone_ack(request: Request):
         require_auth(request)

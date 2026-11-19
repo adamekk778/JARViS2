@@ -18,7 +18,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices";
+export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices" | "games";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -38,9 +38,10 @@ const NAV: [Section, string, string][] = [
   ["activity", "pulse", "Průběh"],
   ["brains", "brain", "AI přehled"],
   ["notices", "bell-simple", "Upozornění"],
+  ["games", "game-controller", "Hry"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices"];
+const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices", "games"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -616,6 +617,7 @@ export function buildPanel(ctx: PanelCtx) {
     moActivity,
     subsTile,
     tile("notices", "bell-simple", "Upozornění", "Co ti JARVIS hlásil, když jsi nekoukal"),
+    tile("games", "game-controller", "Hry", "Co hraješ, jak dlouho a výsledky"),
     tile(null, "eye-slash", "Schovat notch", "Zpátky Ctrl+Alt+N", "mo-hide", () => { (window as any).pywebview?.api?.hide_notch?.(); }),
     tile("files", "folder-simple", "Soubory", "Police na soubory"),
     tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
@@ -712,7 +714,22 @@ export function buildPanel(ctx: PanelCtx) {
       h("p", {}, String(n.body || "")))) : [h("p", { class: "nt-empty" }, "Zatím nic – všechno, co ti JARVIS řekne nebo ukáže, najdeš tady.")]));
   });
   client.on("notify", () => { if (current === "notices") client.send("notices_get"); });
-  const views: Record<Section, HTMLElement> = { notices: noticesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  // 3.13 Herní statistiky: the week per game – time, sessions, wins / losses you told JARVIS
+  const gamesList = h("div", { class: "nt-list" });
+  const gamesHead = h("span", {}, "Posledních 7 dní");
+  const gamesView = h("div", { class: "p-sec notices games" },
+    h("div", { class: "nt-head" }, h("strong", {}, "Hry"), gamesHead), gamesList,
+    h("p", { class: "nt-empty" }, "Výsledek zapíšeš hlasem: „Jarvisi, vyhrál jsem 13:7“. Tip do hry: „dej mi tip“."));
+  const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`);
+  client.on("games", (m) => {
+    const games: any[] = m.games || [];
+    gamesHead.textContent = `Posledních ${m.days || 7} dní · celkem ${hm(Number(m.minutes) || 0)}` + (m.playing ? ` · teď ${m.playing}` : "");
+    gamesList.replaceChildren(...(games.length ? games.map((g) => h("div", { class: "nt-item" },
+      h("div", { class: "nt-row" }, h("strong", {}, String(g.game)), h("span", { class: "nt-time" }, hm(Number(g.minutes) || 0))),
+      h("p", {}, `${g.sessions}× hráno` + (g.wins || g.losses || g.draws ? ` · ${g.wins} výher, ${g.losses} proher${g.draws ? `, ${g.draws} remíz` : ""}` : "")))) :
+      [h("p", { class: "nt-empty" }, "Zatím žádné hraní – JARVIS ho začne počítat sám, jakmile spustíš hru.")]));
+  });
+  const views: Record<Section, HTMLElement> = { notices: noticesView, games: gamesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -741,7 +758,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "games", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -792,6 +809,7 @@ export function buildPanel(ctx: PanelCtx) {
     renderHome();                                   // the head (date · weather · time) is the same on every tab: paint it now
     if (s === "activity") renderActivity();
     if (s === "notices") client.send("notices_get");
+    if (s === "games") client.send("games_get", { days: 7 });
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
 

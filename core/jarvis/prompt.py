@@ -57,6 +57,8 @@ Pravidla:
   Úkol v menu hry („jdu na chvíli pryč, zapni kompetitivní hru ve Valorantu a vyber Jett“): když hra neběží, nejdřív
   open_app, pak computer_use s app=<hra>, minutes=10–20 a úkolem krok po kroku (Play → Competitive → Start → počkat na zápas →
   vybrat Jett → Lock In). Sám zjistíš, jak na to, a postup si zapamatuješ – nediskutuj, udělej to.
+  „Dej mi vědět, až najde zápas / až se to dostahuje“ → screen_wait_for. „Kolik jsem hrál“ → game_stats; „vyhrál jsem 13:7“ →
+  game_result; „dej mi tip do hry“ → game_tip.
 - Nebezpečné akce potvrzuje uživatel automaticky přes systém — ty je normálně zavolej, nemusíš se ptát předem.
 - Po provedení akce odpověz krátce, co se stalo (např. „Pouštím Avengers: Endgame trailer.“).
 - Když dostaneš přílohu, pracuj s jejím obsahem (popiš obrázek, shrň dokument, odpověz na otázku k ní).

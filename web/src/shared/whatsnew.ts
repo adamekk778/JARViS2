@@ -1,9 +1,15 @@
 // "Co je nového" (3.0): shown once in the window after JARVIS updates to a new feature version.
 import { h, icon } from "./dom";
 import type { JarvisClient } from "./ws";
+import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.13": [
+    { icon: "lightbulb", title: "Herní pomocník", line: "JARVIS pozná, co hraješ, a v notchi občas ukáže krátký tip ke hře (Valorant, CS2, LoL, Minecraft, Fortnite… a pro ostatní si tipy napíše AI). Počítá, kolik a co hraješ (Více → Hry), výsledek zapíšeš hlasem „vyhrál jsem 13:7“ a během hry uvolní grafiku od offline AI. Tipy jsou nejlépe vidět, když má hra „Okno bez okrajů“." },
+    { icon: "bell-ringing", title: "„Dej mi vědět, až najde zápas“", line: "JARVIS hlídá obrazovku a jakmile se objeví, co čekáš (nalezený zápas, dostahovaná hra), dá vědět v notchi i do telefonu." },
+    { icon: "hand-swipe-left", title: "Gesta na notchi", line: "Táhni po notchi doleva/doprava = další/předchozí písnička, dolů = otevřít. Funguje i dvěma prsty na touchpadu. Časovač vedle písničky ukazuje zbývající čas." },
+    { icon: "play-circle", title: "Vyzkoušej novinky a Nahlásit", line: "V Diagnostice (i po aktualizaci) projdeš novinky jednu po druhé na svém PC; co nefunguje, je jedna zpráva pro opravu. U chyby v notchi je tlačítko Nahlásit." },
+    { icon: "briefcase", title: "Ranní souhrn firmy", line: "Ráno, když si sedneš k PC, notch krátce ukáže, co čeká na schválení a co agenti udělali – s tlačítkem Otevřít." },
     { icon: "game-controller", title: "Herní režim", line: "Když hraješ hru přes celou obrazovku, JARVIS nemluví a notch ti nebere pozornost (Valorant se už sám neminimalizuje). Ohlášení a upozornění si podrží a po hře je řekne jednou větou: „Během hry přišla 3 upozornění…“. Vypneš v Nastavení → Hlas." },
     { icon: "crosshair", title: "Úkoly ve hrách za tebe", line: "„Jarvisi, jdu na 2 minuty pryč, zapni kompetitivní hru a vyber Jett“ – JARVIS sám zjistí, kde co je, klikne, počká ve frontě a vybere agenta. Postup si zapamatuje, příště to jde rychleji. Hry s anti-cheatem můžou automatické klikání brát jako porušení pravidel – riziko je na tvém účtu." },
     { icon: "bell-simple", title: "Upozornění s tlačítky a historie", line: "Přestávka má „Za 10 min“, časovač „+5 min“. Všechno, co ti JARVIS hlásil, najdeš v notchi: Více → Upozornění." },
@@ -159,7 +165,9 @@ export function whatsNewOverlay(client: JarvisClient) {
           h("button", { class: "icon-btn", type: "button", "aria-label": "Zavřít", onclick: close }, icon("x"))),
         ...items.map((it) => h("div", { class: "wn-item" }, h("span", { class: "suggest-ico" }, icon(it.icon)),
           h("div", {}, h("strong", {}, it.title), h("p", {}, it.line)))),
-        h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: close }, "Super, jdeme na to")))));
+        h("div", { class: "btn-row" },
+          h("button", { class: "btn", type: "button", onclick: () => { close(); openTrial(client); } }, icon("play-circle"), "Vyzkoušet novinky"),
+          h("button", { class: "btn primary", type: "button", onclick: close }, "Super, jdeme na to")))));
     document.body.append(root);
   });
 }

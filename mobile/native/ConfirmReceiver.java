@@ -16,6 +16,24 @@ public class ConfirmReceiver extends BroadcastReceiver {
         int nid = i.getIntExtra("nid", 0);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null && nid != 0) nm.cancel(nid);
+        final String act = i.getStringExtra("notice_action");
+        if (act != null) {                       // 3.13 a button of a notice from the PC ("+5 min", "Za 10 min")
+            if ("dismiss".equals(act)) return;
+            final String args = i.getStringExtra("notice_args");
+            final PendingResult pr = goAsync();
+            new Thread(() -> {
+                try {
+                    JSONObject b = new JSONObject();
+                    b.put("action", act);
+                    b.put("args", new JSONObject(args == null ? "{}" : args));
+                    JarvisLink.http(c, "POST", "/api/phone/notice_action", b.toString(), 10000);
+                } catch (Exception ignored) {
+                } finally {
+                    pr.finish();
+                }
+            }, "jarvis-notice").start();
+            return;
+        }
         if (id == null) return;
         final boolean fromWidget = i.getBooleanExtra("widget", false);
         if (fromWidget) {                       // 3.13 the widget shows the answer at once; the app sends the next one later

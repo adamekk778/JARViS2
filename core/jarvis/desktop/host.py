@@ -97,6 +97,7 @@ class DesktopHost:
         self.hud_alpha = False
         self._anchor_win = None
         rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
+        rt.on_game_tip = self.peek_over_game  # 3.13 a game tip: the notch shows itself over the game for a moment
         self._region: list = []            # the last notch outline from the page, put back if Windows drops it
         self._region_applied: tuple | None = None
         self._region_warned = 0.0
@@ -451,6 +452,22 @@ class DesktopHost:
         done = winutil.show_quietly(hwnd) if show else winutil.hide_quietly(hwnd)
         if not done:                                    # not Windows / no handle yet: pywebview's own way
             (self.notch.show if show else self.notch.hide)()
+
+    PEEK_S = 9.0
+
+    def peek_over_game(self) -> None:
+        """3.13 a tip for the game: the notch is hidden over a full-screen game, so it comes out for a few seconds –
+        shown without taking the focus (the game keeps running), then hides again if the game is still in front."""
+        if not self.notch or self._hidden_manual or not self._hidden_fullscreen:
+            return
+        self._notch_visible(True)
+        self.keep_on_top()
+
+        def back() -> None:
+            time.sleep(self.PEEK_S)
+            if self._hidden_fullscreen and not self._hidden_manual and winutil.foreground_is_fullscreen():
+                self._notch_visible(False)
+        threading.Thread(target=back, daemon=True, name="game-tip").start()
 
     def keep_on_top(self) -> None:
         """Over a borderless game or a full-screen video another top-most window can cover the notch: put it back on top."""

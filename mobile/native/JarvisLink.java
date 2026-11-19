@@ -245,7 +245,12 @@ public final class JarvisLink {
                 }
                 case "notify": {                // 3.12 you are away from the PC: what matters comes here
                     Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
+                    JSONArray acts = cmd.optJSONArray("actions");
+                    if (acts != null && acts.length() > 0) {        // 3.13 with its buttons ("+5 min", "Za 10 min")
+                        noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open, acts);
+                    } else {
+                        actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
+                    }
                     return "shown";
                 }
                 case "mirror_ask": {             // 3.12 the PC wants to show this phone's screen: you allow it here
@@ -345,6 +350,27 @@ public final class JarvisLink {
                 .setContentText(text).setContentIntent(pi).setAutoCancel(true).setCategory(Notification.CATEGORY_MESSAGE).build();
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify((int) (System.currentTimeMillis() & 0xfffff), n);
+    }
+
+    /** 3.13 a notice from the PC with its buttons: a tap goes back to the PC as the same button in the notch would. */
+    static void noticeWithButtons(Context c, String title, String text, Intent target, JSONArray acts) {
+        channels(c);
+        int nid = (int) (System.currentTimeMillis() & 0xfffff);
+        PendingIntent pi = PendingIntent.getActivity(c, nid, target, piFlags());
+        Notification.Builder b = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true);
+        for (int k = 0; k < acts.length() && k < 3; k++) {
+            JSONObject a = acts.optJSONObject(k);
+            if (a == null) continue;
+            Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", a.optString("action"))
+                    .putExtra("notice_args", String.valueOf(a.optJSONObject("args") == null ? "{}" : a.optJSONObject("args")))
+                    .putExtra("nid", nid);
+            PendingIntent ap = PendingIntent.getBroadcast(c, nid * 4 + k, i, piFlags());
+            b.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_send),
+                    a.optString("label", "Ok"), ap).build());
+        }
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm != null) nm.notify(nid, b.build());
     }
 
     /** 3.12 Ranní souhrn: the whole text in the notice and "Přehrát" (JARVIS's voice in the visible JARVIS window). */

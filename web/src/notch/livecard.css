@@ -159,3 +159,8 @@ html[data-nstyle="dynamic"] .n-alert-acts:empty { display: none; }
 .n-alert-btn:active { transform: scale(.95); }
 .n-alert-btn.main { color: #111; background: color-mix(in srgb, var(--alert-tint, #0a84ff) 85%, #fff); box-shadow: 0 6px 16px -8px var(--alert-tint, #0a84ff); }
 .notch[data-mode="alert"] .n-alert-text { pointer-events: auto; }
+
+/* 3.13 the timer beside the song: a small capsule with the time left */
+html[data-nstyle="dynamic"] .n-pip.wide { width: 74px; border-radius: 18px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 9px 0 7px; }
+.n-pip.wide .pip-time { font-size: 12.5px; font-weight: 650; color: #ff9f0a; font-variant-numeric: tabular-nums; }
+.n-pip.wide .n-ring { width: 18px; height: 18px; }

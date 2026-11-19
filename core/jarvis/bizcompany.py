@@ -942,6 +942,25 @@ def brief(rt: Any) -> str:
     return " ".join(x for x in out if x)
 
 
+def morning_card(rt: Any, now: float | None = None, idle: float = 0.0) -> dict | None:
+    """3.13 Ranní souhrn firmy v notchi: the first time you sit at the PC in the morning (7–12 h) a quiet card – what waits
+    for you, what the agents did, the goals – with "Otevřít". Once a day, only when the company has agents."""
+    import datetime as _dt
+
+    now = time.time() if now is None else now
+    d = _dt.datetime.fromtimestamp(now)
+    if not (7 <= d.hour < 12) or idle > 120 or not _agents(rt):
+        return None
+    today = d.date().isoformat()
+    if _kv(rt, "biz_morning_card") == today:
+        return None
+    _set(rt, "biz_morning_card", today)
+    text = brief(rt)
+    parts = re.split(r"(?<=[.!?…])\s+", text)
+    body = " ".join(parts[:3])
+    return {"title": "Firma dnes", "body": body[:400]}
+
+
 @tool("company_brief", "Firma: co je nového ve firmě – krátce nahlas: co čeká na schválení, co dnes udělali agenti, jak jdou cíle firmy.",
       category="propojení", perm="network")
 async def company_brief(ctx) -> ToolResult:

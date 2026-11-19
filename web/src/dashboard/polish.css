@@ -84,3 +84,16 @@ details > summary { border-radius: 10px; }
 .chat-view .sidebar > .btn { min-height: 38px; border-radius: 19px; }
 .chat-view .sidebar { gap: 10px; padding: 16px 12px; }
 .chat-view .conv { padding: 10px 12px; }
+
+/* 3.13 Vyzkoušej novinky */
+.trial .tr-list { display: grid; gap: 10px; margin: 6px 0 4px; }
+.trial .tr-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 18px;
+  background: var(--surface, rgb(255 255 255 / .05)); border: 1px solid var(--edge, rgb(255 255 255 / .08)); }
+.trial .tr-row.done { opacity: .85; }
+.trial .tr-text strong { font-size: 14px; }
+.trial .tr-text p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.trial .tr-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.tr-chip { font-size: 11.5px; font-weight: 650; padding: 3px 10px; border-radius: 999px; background: var(--glass-2, rgb(255 255 255 / .07)); color: var(--muted); white-space: nowrap; }
+.tr-chip.ok { background: rgb(48 209 88 / .16); color: #30d158; }
+.tr-chip.bad { background: rgb(255 69 58 / .16); color: #ff6961; }
+@media (max-width: 640px) { .trial .tr-row { grid-template-columns: auto minmax(0, 1fr); } .trial .tr-acts { grid-column: 1 / -1; } }
