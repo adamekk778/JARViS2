@@ -158,6 +158,11 @@ async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport
     return r.content
 
 
+def featured_voices() -> list[dict]:
+    """The voices from the ElevenLabs front page (Mark…) – offered even when the account's list cannot be read."""
+    return [{"id": f["id"], "name": f["name"], "own": False, "featured": True} for f in FEATURED]
+
+
 async def eleven_voices(key: str, transport=None) -> list[dict]:
     """The voices in the user's ElevenLabs account – their own clones / designs first."""
     if not key:

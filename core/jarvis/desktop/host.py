@@ -89,6 +89,7 @@ class DesktopHost:
         self._making_chat = False
         self._notch_size = notch_window_size(rt.cfg.notch)
         self._hidden_fullscreen = False
+        self._top_for, self._top_at = 0, 0.0      # keep_on_top over a game: for which window, when
         self._hidden_manual = False      # hidden by the user (hotkey / panel / tray) until they bring it back
         self.alpha = False
         self.hud = None
@@ -433,15 +434,23 @@ class DesktopHost:
         try:
             if show:
                 self._hidden_manual = self._hidden_fullscreen = False
-                self.notch.show()
+                self._notch_visible(True)
                 self.keep_on_top()
             else:
                 self._hidden_manual = True
-                self.notch.hide()
+                self._notch_visible(False)
                 hk = self.rt.cfg.hotkeys.notch_toggle
                 self.rt.notify("Notch je schovaný", f"Zpátky ho vrátíš zkratkou {hk.upper()} nebo v ikoně JARVISe u hodin.", speak=False)
         except Exception as e:
             log.debug("toggle_notch: %s", e)
+
+    def _notch_visible(self, show: bool) -> None:
+        """3.13 show / hide the notch without ever taking the focus: a full-screen game in front keeps it (before,
+        pywebview's show() activated the notch and Valorant & co. minimised themselves a second after you opened them)."""
+        hwnd = self.notch_hwnd()
+        done = winutil.show_quietly(hwnd) if show else winutil.hide_quietly(hwnd)
+        if not done:                                    # not Windows / no handle yet: pywebview's own way
+            (self.notch.show if show else self.notch.hide)()
 
     def keep_on_top(self) -> None:
         """Over a borderless game or a full-screen video another top-most window can cover the notch: put it back on top."""
@@ -471,12 +480,16 @@ class DesktopHost:
                 # subtitles keep the notch over the video even when it would hide there
                 hide = fs and self.rt.cfg.notch.hide_in_fullscreen and not self._subs_on()
                 if hide and not self._hidden_fullscreen:
-                    self.notch.hide()
+                    self._notch_visible(False)
                     self._hidden_fullscreen = True
                 elif not hide and self._hidden_fullscreen:
-                    self.notch.show()
+                    self._notch_visible(True)
                     self._hidden_fullscreen = False
-                if fs and not hide:
+                # over a game the notch is put back on top when the game changes (or now and then), not every
+                # 1.5 s – some full-screen games do not like a window being re-stacked above them all the time
+                fg = winutil.foreground_window()
+                if fs and not hide and (fg != self._top_for or time.monotonic() - self._top_at > 10):
+                    self._top_for, self._top_at = fg, time.monotonic()
                     self.keep_on_top()
             except Exception:
                 pass

@@ -118,3 +118,25 @@ def test_phone_triggers_for_automations():
     assert describe_trigger(plug.trigger) == "když dám telefon nabíjet"
     assert describe_trigger(low.trigger) == "když baterie telefonu klesne pod 20 %"
     assert Config().phone_link.notch_events is True
+
+
+def test_the_notch_never_takes_the_focus_from_a_game(rt, monkeypatch):
+    """pywebview's show() activates the window – over a full-screen game (Valorant) the game then minimises."""
+    from types import SimpleNamespace
+
+    import pytest
+
+    from jarvis.desktop import host as host_mod
+    from jarvis.desktop import winutil
+
+    seen = []
+    monkeypatch.setattr(winutil, "window_handle", lambda win, title: 4242)
+    monkeypatch.setattr(winutil, "find_window", lambda title: 4242)
+    monkeypatch.setattr(winutil, "show_quietly", lambda hwnd: seen.append(("show", hwnd)) or True)
+    monkeypatch.setattr(winutil, "hide_quietly", lambda hwnd: seen.append(("hide", hwnd)) or True)
+    monkeypatch.setattr(winutil, "make_topmost", lambda hwnd: seen.append(("top", hwnd)))
+    h = host_mod.DesktopHost(rt, "http://127.0.0.1:8765")
+    h.notch = SimpleNamespace(show=lambda: pytest.fail("activating show() used"), hide=lambda: pytest.fail("pywebview hide used"))
+    h.toggle_notch(False)
+    h.toggle_notch(True)
+    assert ("hide", 4242) in seen and ("show", 4242) in seen

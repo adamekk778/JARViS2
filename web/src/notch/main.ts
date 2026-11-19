@@ -208,7 +208,25 @@ function setPinned(v: boolean, save = true) {
 
 const alertTitle = h("strong");
 const alertBody = h("span");
-const alertBox = h("div", { class: "n-alert-text" }, alertTitle, alertBody);
+const alertIco = h("span", { class: "n-alert-ico", "aria-hidden": "true" });   // 3.13 a tinted glass disc on top
+const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody);
+/** 3.13 the notice's icon and colour from what it is about (Přestávka → coffee, Časovač → timer, a failure → warning…). */
+const ALERT_KINDS: [RegExp, string, string][] = [
+  [/přestávk|pauz|protáhn|sedíte/i, "coffee", "#ffb340"],
+  [/časovač|minutk|budík|vypršel/i, "timer", "#ff9f0a"],
+  [/limit/i, "gauge", "#ff9f0a"],
+  [/nepovedl|chyb|selhal|nejde|error/i, "warning-circle", "#ff453a"],
+  [/zastaven/i, "hand-palm", "#ff453a"],
+  [/schůzk|hovor/i, "users-three", "#64d2ff"],
+  [/e-mail|mail|zpráv/i, "envelope-simple", "#0a84ff"],
+  [/telefon|baterie/i, "device-mobile", "#30d158"],
+  [/skvělá práce|soustředění|fokus|hotovo/i, "sparkle", "#bf5af2"],
+  [/notch/i, "eye-slash", "#98989f"],
+];
+function alertKind(title: string, body: string): [string, string] {
+  const hit = ALERT_KINDS.find(([re]) => re.test(title)) || ALERT_KINDS.find(([re]) => re.test(body));
+  return hit ? [hit[1], hit[2]] : ["bell-simple", "#0a84ff"];
+}
 const radialBox = h("div", { class: "n-radial", role: "menu", "aria-label": "Akce" });
 // OMEGA P12.02: little bars at the right edge of the closed notch that move with the music (only while something plays)
 const musicBars = h("div", { class: "n-music", "aria-hidden": "true" }, ...Array.from({ length: 7 }, () => h("i")));
@@ -291,7 +309,11 @@ function dynSize(m: Mode): [number, number] {
   switch (m) {
     case "panel": return [780, 400];
     case "bar": { const extra = media?.title ? 120 : 0; return shape.classList.contains("has-ctx") ? [Math.max(500, 400 + extra), 86] : [400 + extra, 44]; }
-    case "alert": return [420, 76];
+    case "alert": {
+      // 3.13 centred: the icon, the title and the text under each other; as tall as the text needs
+      const content = alertBox.scrollHeight || 64;
+      return [460, Math.max(108, Math.min(220, content + 40))];
+    }
     case "radial": return [340, 320];
     case "live": {
       // 3.13 the card fits what it says: a head (logo, name, what it does) and the text under it – measured from the
@@ -772,10 +794,15 @@ function onMood(m: any) {
 function showAlert(title: string, body: string) {
   alertTitle.textContent = title;
   alertBody.textContent = body;
+  const [ico, tint] = alertKind(title || "", body || "");
+  alertIco.replaceChildren(icon(ico, "ph-fill"));
+  shape.style.setProperty("--alert-tint", tint);
   if (mode === "closed" || mode === "alert" || mode === "hover") {
     setMode("alert");
+    if (mode === "alert") apply("alert");                     // the card fits this text
     window.clearTimeout(alertTimer);
-    alertTimer = window.setTimeout(() => mode === "alert" && settle(), 5000);
+    // a longer notice stays a little longer, so it can be read (5–9 s)
+    alertTimer = window.setTimeout(() => mode === "alert" && settle(), Math.min(9000, 5000 + (body || "").length * 35));
   }
 }
 
@@ -1963,7 +1990,7 @@ if (demo) {
     liveText = "Pouštím **Avengers: Endgame**, oficiální trailer.";
     setInterval(() => blob.setLevel(0.05 + Math.random() * 0.12), 100);
   }
-  if (demo === "alert") { alertTitle.textContent = "Časovač"; alertBody.textContent = "Pizza je hotová!"; }
+  if (demo === "alert") showAlert("Přestávka", "Pane, sedíte u počítače už 90 minut v kuse. Doporučuji krátkou pauzu – protáhnout se a napít.");
   renderLive();
   setMode(demo);
 }

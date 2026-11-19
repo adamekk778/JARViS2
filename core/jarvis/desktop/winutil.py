@@ -104,6 +104,40 @@ def make_topmost(hwnd: int) -> None:
     ctypes.windll.user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE)
 
 
+def show_quietly(hwnd: int) -> bool:
+    """Show a hidden window WITHOUT activating it. pywebview's show() also activates the window: over a full-screen
+    game (Valorant…) that takes the focus away and the game minimises itself a second after you open it."""
+    if not IS_WIN or not hwnd:
+        return False
+    SW_SHOWNA = 8
+    try:
+        ctypes.windll.user32.ShowWindow(ctypes.c_void_p(hwnd), SW_SHOWNA)
+        make_topmost(hwnd)
+        return True
+    except (AttributeError, OSError):
+        return False
+
+
+def hide_quietly(hwnd: int) -> bool:
+    """Hide a window; the active window (a game) is not touched."""
+    if not IS_WIN or not hwnd:
+        return False
+    try:
+        ctypes.windll.user32.ShowWindow(ctypes.c_void_p(hwnd), 0)      # SW_HIDE
+        return True
+    except (AttributeError, OSError):
+        return False
+
+
+def foreground_window() -> int:
+    if not IS_WIN:
+        return 0
+    try:
+        return int(ctypes.windll.user32.GetForegroundWindow() or 0)
+    except (AttributeError, OSError):
+        return 0
+
+
 def set_autostart(enabled: bool, command: str) -> None:
     if not IS_WIN:
         return

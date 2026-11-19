@@ -2092,7 +2092,8 @@ class Connection:
         try:
             out["eleven"] = await studio.eleven_voices(secrets.get("elevenlabs"))
         except Exception as e:
-            out["eleven"], out["eleven_error"] = [], str(e)[:200]
+            # 3.13 the account's list could not be read: Mark & co. are still offered (added to the account on first use)
+            out["eleven"], out["eleven_error"] = (studio.featured_voices() if secrets.has("elevenlabs") else []), str(e)[:200]
         return out
 
     async def _voice_preview(self, m: dict) -> None:
