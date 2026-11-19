@@ -105,12 +105,16 @@ class VoiceLoop:
         self._restart.set()
 
     # ---------- internals ----------
-    def _after_speech(self) -> None:
+    def _after_speech(self, reply_to: str = "") -> None:
         # JARVIS just asked "Ano, nebo ne?" → listen right away without the wake word
         if self._confirm_id and self.rt.agent.pending_confirm() == self._confirm_id:
             self._ptt.set()
             return
-        # follow-up: keep the conversation going for 6 s without the wake word (visible "listening" state)
+        # follow-up: keep the conversation going for 6 s without the wake word (visible "listening" state) – 3.13 only
+        # after an answer to something you SAID ("Hey Jarvis, …"). An announcement (an automation, notifications from
+        # the phone, the greeting after start-up, a reminder) is just said; the microphone does not open after it.
+        if reply_to not in ("voice",):
+            return
         if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False)) and not self.paused:
             self.followup_active = True
             self._ptt.set()

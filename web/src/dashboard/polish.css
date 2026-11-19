@@ -1,0 +1,86 @@
+/* =====================================================================================
+   3.13 Vzdušnější JARVIS: every page gets the same room around it and between its parts, every box has rounded
+   corners (no square strips), and the glass stays readable over a bright background picture. Loaded last.
+   ===================================================================================== */
+
+/* ---------- room: the same padding on every page, more space between the parts ---------- */
+.view > :is(.tasks-view, .diag-view, .cn-view, .ag-view) { padding: 28px 34px 72px; gap: 22px; align-content: start; }
+.view > :is(.cn-view, .ag-view) { height: 100%; overflow-y: auto; box-sizing: border-box; scrollbar-gutter: stable; }
+.page-inner { padding: 28px 34px 72px; gap: 22px; }
+.view > .page.hbp { padding: 28px 34px 72px; }
+@media (max-width: 900px) {
+  .view > :is(.tasks-view, .diag-view, .cn-view, .ag-view), .page-inner, .view > .page.hbp { padding: 18px 16px 56px; gap: 16px; }
+}
+
+/* ---------- the page head: a rounded glass card instead of a square strip ---------- */
+.phead { padding: 18px 22px; border: 1px solid var(--edge, rgb(255 255 255 / .08)); border-radius: 26px; margin-bottom: 2px;
+  background: linear-gradient(150deg, rgb(255 255 255 / .07), rgb(255 255 255 / .02) 55%); }
+.phead.compact { padding: 14px 18px; }
+.phead-ico { width: 48px; height: 48px; border-radius: 15px; }
+.phead p { line-height: 1.5; margin-top: 2px; }
+:root[data-theme="light"] .phead { background: linear-gradient(150deg, rgb(255 255 255 / .9), rgb(255 255 255 / .6)); }
+
+/* ---------- cards: one radius, more air inside ---------- */
+.card, .proto-card, .ag-card, .cn-card, .ag-approvals, .ag-create, .ag-done, .cn-mcp, .taskcard { border-radius: 22px; }
+.proto-card, .ag-card { padding: 18px 20px; gap: 12px; }
+.ag-approvals, .ag-create, .ag-done, .cn-mcp { padding: 18px 20px; gap: 12px; }
+.ag-list, .cn-sections { gap: 16px; }
+.ag-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.proto-grid, .auto-grid { gap: 16px !important; }
+.group-label { padding: 10px 4px 2px; }
+
+/* a lone switch row ("Automatizace zapnuté") sits on its own card, not on the bare page */
+.tasks-view > label.row, .tasks-view > .row { height: auto; min-height: 64px; padding: 14px 20px; border-radius: 20px; background: var(--surface, rgb(255 255 255 / .05));
+  border: 1px solid var(--edge, rgb(255 255 255 / .08)); }
+
+/* buttons in a card wrap neatly instead of squeezing; round, a little taller */
+.btn-row, .ag-acts { flex-wrap: wrap; gap: 8px; row-gap: 8px; }
+.btn { border-radius: 14px; }
+.btn.sm { border-radius: 12px; }
+.btn.ghost:only-child, .icon-btn { border-radius: 12px; }
+
+/* inputs, text areas, code and tables: rounded too */
+.input, textarea.input, select.input, .ag-create textarea { border-radius: 14px; }
+.ag-create textarea { padding: 12px 14px; min-height: 64px; }
+pre, .md pre, .ag-res pre { border-radius: 14px; }
+table, .md table { border-radius: 14px; overflow: hidden; }
+details > summary { border-radius: 10px; }
+.chip, button.chip, .ag-tpl, .cn-chip { border-radius: 999px; }
+.provider { border-radius: 16px; }
+.d-entries, .nt-detail, .hub-warn { border-radius: 18px; }
+.tag { border-radius: 8px; }
+
+/* ---------- the sidebar: the status line is a small rounded pill ---------- */
+.side-status { margin-top: 10px; padding: 9px 12px; border-top: 0; border-radius: 14px; background: var(--glass-2, rgb(255 255 255 / .06)); }
+.rail button { border-radius: 12px; }
+.rail-group { padding-top: 18px; }
+
+/* ---------- readable glass over your own background picture ---------- */
+:root[data-winbg] .side { margin: 12px 0 12px 12px; padding: 18px 12px 14px; border-radius: 24px; height: auto; align-self: stretch;
+  background: rgb(9 10 14 / .74); -webkit-backdrop-filter: blur(28px) saturate(1.3); backdrop-filter: blur(28px) saturate(1.3);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .1), inset 0 0 0 1px rgb(255 255 255 / .07); }
+:root[data-winbg] .view { background: rgb(10 11 15 / .76); -webkit-backdrop-filter: blur(30px) saturate(1.3); backdrop-filter: blur(30px) saturate(1.3);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), 0 24px 70px rgb(0 0 0 / .45); }
+:root[data-winbg] .view { margin-left: 12px; }
+:root[data-winbg] .rail button:not(.active) { color: rgb(240 243 248 / .86); }
+:root[data-winbg] .rail button:not(.active):hover { color: #fff; }
+:root[data-winbg] .rail-group, :root[data-winbg] .side-version { color: rgb(240 243 248 / .55); }
+:root[data-winbg] .side-status { color: rgb(240 243 248 / .78); }
+:root[data-winbg] :is(.card, .proto-card, .ag-card, .cn-card, .ag-approvals, .ag-create, .ag-done, .cn-mcp, .phead, .taskcard, .tasks-view > label.row) {
+  background: rgb(24 25 32 / .78); border-color: rgb(255 255 255 / .1); }
+:root[data-winbg] :is(.help, .phead p, .muted, .ag-role) { color: rgb(232 236 242 / .7); }
+/* the plain glass look (no picture): a touch more body in cards so text never floats on the aurora */
+:root[data-glass="1"]:not([data-winbg]) :is(.ag-card, .cn-card, .proto-card) {
+  background: linear-gradient(150deg, rgb(255 255 255 / .1), rgb(255 255 255 / .045) 45%, rgb(255 255 255 / .035)); }
+/* a switched-off card stays readable (dimmed, not ghosted) */
+.auto-card.off, .ag-card.off, .proto-card.off { opacity: .78; }
+.auto-card.off :is(.pc-ico, .auto-when) { filter: saturate(.4); }
+/* full-page sections and the message box follow the rounded panel */
+.view > section { border-radius: inherit; }
+.chat-input { border-radius: 14px; }
+.play-over { border-radius: inherit; }
+/* the chat's side list: "Nová konverzace" keeps its full height when there are many conversations */
+.chat-view .sidebar > :is(.btn, .side-title, .search, .input) { flex: none; }
+.chat-view .sidebar > .btn { min-height: 38px; border-radius: 19px; }
+.chat-view .sidebar { gap: 10px; padding: 16px 12px; }
+.chat-view .conv { padding: 10px 12px; }

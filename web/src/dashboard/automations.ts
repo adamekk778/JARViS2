@@ -22,6 +22,8 @@ const TRIGGERS: Record<string, { label: string; ico: string; value?: { label: st
   phone_call: { label: "Když mi někdo volá", ico: "phone-incoming", value: { label: "Kdo volá (prázdné = kdokoli)", ph: "Petr" }, hint: "{sender} = kdo volá." },
   battery: { label: "Když je slabá baterie", ico: "battery-low", value: { label: "Pod kolik %", ph: "20", type: "number" }, hint: "{percent} = stav baterie." },
   power: { label: "Nabíječka", ico: "plug", hint: "Připojení nebo odpojení nabíječky." },
+  phone_power: { label: "Telefon na nabíječce", ico: "device-mobile", hint: "Telefon dáš nabíjet nebo ho odpojíš. {percent} = baterie telefonu. Notch to ukáže i bez automatizace (tiše)." },
+  phone_battery: { label: "Slabá baterie telefonu", ico: "battery-warning", value: { label: "Pod kolik %", ph: "20", type: "number" }, hint: "{percent} = baterie telefonu." },
   away: { label: "Když odejdu od PC", ico: "person-simple-walk", value: { label: "Po kolika minutách", ph: "10", type: "number" }, hint: "Třeba pozastavit hudbu a zamknout." },
   home_state: { label: "Když čidlo v domácnosti…", ico: "thermometer", value: { label: "Čidlo / zařízení (název z Home Assistantu)", ph: "Teplota obývák" }, text: "Stav nebo hodnota: on, off, open… nebo > 25, < 10 (prázdné = při každé změně)", hint: "JARVIS se dívá do Home Assistantu každých 30 s a spustí to, když podmínka začne platit." },
   webhook: { label: "Když přijde webhook", ico: "webhooks-logo", value: { label: "Název webhooku (prázdné = jakýkoli)", ph: "E-shop" },
@@ -47,6 +49,8 @@ export function whenText(t: Trigger): string {
     case "phone_call": return `Když mi volá ${v ? `„${v}“` : "kdokoli"}`;
     case "battery": return `Když baterie klesne pod ${v || 20} %`;
     case "power": return v === "out" ? "Když odpojím nabíječku" : "Když připojím nabíječku";
+    case "phone_power": return v === "out" ? "Když odpojím telefon od nabíječky" : "Když dám telefon nabíjet";
+    case "phone_battery": return `Když baterie telefonu klesne pod ${v || 20} %`;
     case "away": return `Když odejdu od PC na ${v || 10} min`;
     case "back": return `Když se vrátím k PC (po ${v || 10}+ min)`;
     case "zone_enter": return `Když přijdu na místo ${v ? `„${v}“` : ""}`.trim();
@@ -150,7 +154,7 @@ export function buildAutomations(client: JarvisClient) {
         v.oninput = () => { draft.trigger.value = v.value; };
         parts.push(h("label", { class: "pe-row" }, h("span", {}, t.value.label), v));
       }
-      if (draft.trigger.type === "power") {
+      if (draft.trigger.type === "power" || draft.trigger.type === "phone_power") {
         const sel = h("select", { class: "input", "aria-label": "Nabíječka" }, h("option", { value: "in" }, "Připojím"), h("option", { value: "out" }, "Odpojím")) as HTMLSelectElement;
         sel.value = draft.trigger.value === "out" ? "out" : "in";
         draft.trigger.value = sel.value;

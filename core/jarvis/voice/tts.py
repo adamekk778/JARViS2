@@ -156,7 +156,7 @@ class Speaker:
     def stop(self) -> None:
         self._stop.set()
 
-    async def say(self, text: str, lang: str = "cs") -> None:
+    async def say(self, text: str, lang: str = "cs", reply_to: str = "") -> None:
         if not text.strip():
             return
         async with self._lock:
@@ -184,7 +184,7 @@ class Speaker:
                     self.rt.bus.publish("state", state="idle")
                 if self.on_finished:
                     try:
-                        self.on_finished()
+                        self.on_finished(reply_to)
                     except Exception:
                         pass
 

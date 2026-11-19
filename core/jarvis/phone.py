@@ -49,18 +49,44 @@ class PhoneLink:
         return {"link": self.link_alive(), "last_poll": self.last_poll, "queued": len(self.queue),
                 "twilio": twilio_ready(self.rt), "notifications": len(self.notifications), "battery": self.battery}
 
-    def on_battery(self, level: int, charging: bool) -> None:
-        """Every poll carries the phone's battery; JARVIS says once when it gets low (and not charging)."""
+    def on_battery(self, level: int, charging: bool, instant: bool = False) -> None:
+        """Every poll carries the phone's battery (and the phone tells at once when it is plugged in or unplugged).
+        3.13: a change shows as a quiet notice in the notch – "Telefon se nabíjí · 64 %" – and can start an automation
+        (Když … telefon na nabíječce / slabá baterie telefonu). JARVIS says once aloud when it gets really low."""
         level = max(0, min(100, int(level)))
         was = self.battery.get("level")
+        was_charging = self.battery.get("charging")
         self.battery = {"level": level, "charging": charging, "ts": time.time()}
-        if charging or was is None:
+        if (was_charging is not None and bool(was_charging) != bool(charging)) or (instant and was_charging is None):
+            self._phone_event("power", level=level, charging=charging, instant=instant)
+        if charging:
+            if was is not None and level >= 100 > was:
+                self._phone_event("full", level=level, charging=True)
             return
+        if was is None:
+            return
+        if level < was:
+            self.rt.bus.publish("phone_battery", level=level, was=was)       # automations: "slabá baterie telefonu"
         for mark in (15, 5):
             if level <= mark < was:
+                self._phone_event("low", level=level, charging=False)
                 self.rt.notify("Telefon", f"Telefonu zbývá {level} % baterie. Dejte ho nabít.",
                                speak=self.rt.cfg.phone_link.speak, target="dashboard")
                 break
+
+    def _phone_event(self, kind: str, level: int, charging: bool, instant: bool = False) -> None:
+        """The phone's plug / battery news: an event for automations and a quiet line in the notch (never spoken)."""
+        if kind == "power":
+            self.rt.bus.publish("phone_power", charging=charging, level=level, instant=instant)
+        if not getattr(self.rt.cfg.phone_link, "notch_events", True):
+            return
+        text, right, icon, tint = {
+            "power": ("Telefon se nabíjí", f"{level} %", "lightning", "#30d158") if charging
+            else ("Telefon odpojen", f"{level} %", "device-mobile", "#ffffff"),
+            "full": ("Telefon je nabitý", "100 %", "battery-full", "#30d158"),
+            "low": ("Telefon – slabá baterie", f"{level} %", "battery-warning", "#ff453a"),
+        }[kind]
+        self.rt.bus.publish("phone_event", kind=kind, text=text, right=right, icon=icon, tint=tint, pct=level, charging=charging)
 
     # ---------- commands to the phone ----------
     def send(self, kind: str, **data: Any) -> dict:

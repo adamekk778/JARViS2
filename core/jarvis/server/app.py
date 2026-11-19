@@ -328,6 +328,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             rt.phone.on_battery(battery, bool(charging))
         return {"commands": await rt.phone.poll(max(0.0, min(wait, 50.0)))}
 
+    @app.post("/api/phone/event")
+    async def phone_event(request: Request):
+        """3.13 the phone tells at once: plugged in, unplugged (its battery level with it)."""
+        require_auth(request)
+        body = await request.json()
+        if str(body.get("kind", "")) == "power":
+            try:
+                rt.phone.on_battery(int(body.get("level", 0)), bool(body.get("charging")), instant=True)
+            except (TypeError, ValueError):
+                raise HTTPException(400, "Špatná hodnota baterie")
+        return {"ok": True}
+
     @app.post("/api/phone/ack")
     async def phone_ack(request: Request):
         require_auth(request)

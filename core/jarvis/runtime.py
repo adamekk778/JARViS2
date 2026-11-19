@@ -516,13 +516,15 @@ class Runtime:
             except Exception as e:  # noqa: BLE001
                 log.debug("anchor: %s", e)
 
-    def speak(self, text: str, lang: str = "cs") -> None:
+    def speak(self, text: str, lang: str = "cs", reply_to: str = "") -> None:
+        """Say it aloud. `reply_to` = the source of the request this answers ("voice" = you spoke to JARVIS); empty for
+        announcements (an automation, a phone notice, the greeting) – after those JARVIS does not start listening."""
         if getattr(self.cfg.appearance, "captions", False) and text.strip():      # OMEGA 790: live captions
             from .uixplus import caption_chunks, caption_timing
 
             self.bus.publish("caption", who="jarvis", lines=caption_timing(caption_chunks(text)))
         if self.speaker:
-            bg(self.speaker.say(text, lang))
+            bg(self.speaker.say(text, lang, reply_to=reply_to))
 
     def wants_speech(self, source: str) -> bool:
         if source == "headset":           # 3.12 talking through the phone: the answer plays there, the PC stays quiet
@@ -532,7 +534,7 @@ class Runtime:
 
     def maybe_speak(self, text: str, source: str, lang: str = "cs") -> None:
         if self.wants_speech(source):
-            self.speak(text, lang)
+            self.speak(text, lang, reply_to=source)
 
     def speech_stream(self, source: str, lang: str = "cs"):
         """3.12 an answer that will be spoken: speech starts with its first sentence (voice/stream.py)."""
@@ -540,7 +542,7 @@ class Runtime:
             return None
         from .voice.stream import SpeechStream
 
-        return SpeechStream(self, lang)
+        return SpeechStream(self, lang, reply_to=source)
 
     # ---------- 3.12 away from the PC: notices and confirmations come to the phone ----------
     AWAY_S = 120

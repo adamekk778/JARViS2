@@ -19,6 +19,7 @@ import org.json.JSONObject;
 public class LinkService extends Service {
     static volatile boolean running;
     private Thread worker;
+    private android.content.BroadcastReceiver power;      // 3.13 plugged in / unplugged → the PC's notch at once
 
     static void start(Context c) {
         Intent i = new Intent(c, LinkService.class);
@@ -49,6 +50,20 @@ public class LinkService extends Service {
         else PhoneIsland.stop();
         if (PhotoBackup.enabled(this)) PhotoBackup.start(this);   // 3.12 new photos → the PC by themselves
         else PhotoBackup.stop();
+        if (power == null) {
+            power = new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(Context c, Intent i) {
+                    JarvisLink.powerEvent(c.getApplicationContext(), Intent.ACTION_POWER_CONNECTED.equals(i.getAction()));
+                }
+            };
+            android.content.IntentFilter f = new android.content.IntentFilter(Intent.ACTION_POWER_CONNECTED);
+            f.addAction(Intent.ACTION_POWER_DISCONNECTED);
+            try {
+                if (Build.VERSION.SDK_INT >= 33) registerReceiver(power, f, Context.RECEIVER_NOT_EXPORTED);
+                else registerReceiver(power, f);
+            } catch (Exception ignored) { power = null; }
+        }
         if (!running) {
             running = true;
             worker = new Thread(this::loop, "jarvis-link");
@@ -80,6 +95,10 @@ public class LinkService extends Service {
     @Override
     public void onDestroy() {
         running = false;
+        if (power != null) {
+            try { unregisterReceiver(power); } catch (Exception ignored) { }
+            power = null;
+        }
         TapDrop.stop();
         PhoneIsland.stop();
         PhotoBackup.stop();

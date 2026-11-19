@@ -29,6 +29,7 @@ KIND_LABEL = {
     "battery": "Slabá baterie", "power": "Nabíječka", "away": "Odejdu od PC", "back": "Vrátím se k PC",
     "zone_enter": "Přijdu na místo (telefon)", "zone_leave": "Odejdu z místa (telefon)",
     "home_state": "Čidlo v domácnosti (Home Assistant)",
+    "phone_power": "Telefon na nabíječce", "phone_battery": "Slabá baterie telefonu",
 }
 HOME_POLL_S = 30
 
@@ -88,6 +89,10 @@ def describe_trigger(t) -> str:
         return f"když s telefonem odejdu z místa „{v or 'Domov'}“"
     if t.type == "webhook":
         return f"když přijde webhook „{v or 'jakýkoli'}“"
+    if t.type == "phone_power":
+        return "když odpojím telefon od nabíječky" if v == "out" else "když dám telefon nabíjet"
+    if t.type == "phone_battery":
+        return f"když baterie telefonu klesne pod {v or '20'} %"
     if t.type == "home_state":
         cond = x or "změní stav"
         return f"když {v or 'čidlo'} " + (f"je {cond}" if not cond.startswith(("<", ">", "=")) else f"má hodnotu {cond}")
@@ -126,7 +131,7 @@ def fill(text: str, vars: dict) -> str:
     return re.sub(r"\{(\w+)\}", lambda m: str(vars.get(m.group(1), m.group(0))), text or "")
 
 
-EVENT_TYPES = ("mail_new", "phone_notification", "phone_zone", "webhook")
+EVENT_TYPES = ("mail_new", "phone_notification", "phone_zone", "webhook", "phone_power", "phone_battery")
 
 
 def match_event(a, ev: dict) -> dict | None:
@@ -140,6 +145,12 @@ def match_event(a, ev: dict) -> dict | None:
         return {"zone": ev.get("zone", "")}
     if ev.get("type") == "webhook" and t.type == "webhook" and _has(ev.get("name", ""), t.value) and _has(ev.get("text", ""), t.text):
         return {"sender": ev.get("name", ""), "text": ev.get("text", "")}
+    if ev.get("type") == "phone_power" and t.type == "phone_power" and bool(ev.get("charging")) == (t.value != "out"):
+        return {"percent": ev.get("level", ""), "text": f"Telefon {'se nabíjí' if ev.get('charging') else 'odpojen'}, {ev.get('level', '?')} %"}
+    if ev.get("type") == "phone_battery" and t.type == "phone_battery":
+        mark = _num(t.value or "20", 20)
+        if int(ev.get("level", 101)) <= mark < int(ev.get("was", 0)):
+            return {"percent": ev.get("level", ""), "text": f"Telefonu zbývá {ev.get('level')} %"}
     if ev.get("type") == "phone_notification":
         if t.type == "phone_call" and ev.get("call") and _has(ev.get("title", ""), t.value):
             return {"sender": ev.get("title", ""), "app": ev.get("app", "")}

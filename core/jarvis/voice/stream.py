@@ -38,9 +38,10 @@ def speakable(text: str) -> str:
 
 
 class SpeechStream:
-    def __init__(self, rt, lang: str = "cs"):
+    def __init__(self, rt, lang: str = "cs", reply_to: str = ""):
         self.rt = rt
         self.lang = lang
+        self.reply_to = reply_to        # the source of the request this answers ("voice" → JARVIS may listen on after it)
         self.buf = ""
         self.fed = ""                   # everything given so far (the agent adds only what is new at the end)
         self.first = True
@@ -126,6 +127,6 @@ class SpeechStream:
                         self.rt.bus.publish("state", state="idle")
                     if sp.on_finished:
                         try:
-                            sp.on_finished()
+                            sp.on_finished(self.reply_to)
                         except Exception:  # noqa: BLE001
                             pass

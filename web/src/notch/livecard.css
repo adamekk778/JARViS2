@@ -1,0 +1,107 @@
+/* =====================================================================================
+   3.13 The answer card (Dynamic Island, "live"): clean liquid glass like on the iPhone.
+   Head: the AI's logo in a glass tile, its name and – under it – what it does right now; STOP as a soft red capsule.
+   Body: what you said (quiet), the step it takes (a glass chip), then the answer in big readable text that you can
+   select and copy. The card is exactly as tall as its content. Loaded last; only the dynamic look is touched.
+   ===================================================================================== */
+
+/* the shape sizes are registered as non-inherited (fast animation), so the card parts take them over explicitly */
+.n-inner > :is(.n-sheen, .n-brand, .stop-btn, .n-bubble) { --cw: inherit; --ch: inherit; --r: inherit; }
+
+/* the glass light: a soft specular edge on top, a faint tint of the AI's colour from the top-left corner */
+html[data-nstyle="dynamic"] .n-inner > .n-sheen {
+  left: calc((100% - var(--cw)) / 2); top: 0; width: var(--cw); height: var(--ch); border-radius: var(--r); z-index: 0;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--brand, #0a84ff) 20%, transparent) 0%, transparent 58%),
+    radial-gradient(80% 60% at 100% 100%, rgb(255 255 255 / .035) 0%, transparent 70%),
+    linear-gradient(180deg, rgb(255 255 255 / .075) 0%, rgb(255 255 255 / .015) 34%, transparent 60%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), inset 0 0 0 1px rgb(255 255 255 / .075), inset 0 -1px 0 rgb(255 255 255 / .05);
+}
+html[data-nstyle="dynamic"] .notch:is([data-mode="live"], [data-mode="alert"]) .n-inner > .n-sheen { opacity: 1; }
+html[data-nstyle="dynamic"] .notch.ctl .n-inner > .n-sheen { opacity: 1; }
+
+/* ---- head ---- */
+html[data-nstyle="dynamic"] .n-inner > .n-brand {
+  top: 16px; left: calc((100% - var(--cw)) / 2 + 18px); right: auto; bottom: auto; height: 34px; padding: 0; gap: 11px;
+  background: none; box-shadow: none; width: max-content; max-width: 300px; z-index: 2; display: flex; align-items: center; overflow: visible;
+}
+.n-brand .nb-logo {
+  width: 34px; height: 34px; flex: none; border-radius: 11px; display: grid; place-items: center;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand, #0a84ff) 30%, rgb(255 255 255 / .1)), color-mix(in srgb, var(--brand, #0a84ff) 10%, rgb(255 255 255 / .03)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .28), inset 0 0 0 1px rgb(255 255 255 / .1), 0 4px 14px -6px var(--brand, #0a84ff);
+}
+.n-brand .nb-logo .brand-logo { display: grid; place-items: center; width: 18px; height: 18px; font-size: 18px; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .35)); }
+.n-brand .nb-logo .brand-logo svg { width: 18px; height: 18px; fill: currentColor; }
+.n-brand .nb-logo .n-orb.sm { width: 16px; height: 16px; }
+.n-brand .nb-text { display: grid; gap: 2px; min-width: 0; line-height: 1.2; padding-right: 2px; }
+.n-brand .nb-name { font-size: 14px; font-weight: 650; color: #fff; letter-spacing: -.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.n-brand .nb-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: rgb(235 240 245 / .62);
+  white-space: nowrap; }
+.n-brand .nb-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: rgb(255 255 255 / .35); font-style: normal; }
+.n-brand .nb-state.on .nb-dot { background: var(--brand, #30d158); box-shadow: 0 0 0 0 var(--brand, #30d158); animation: nb-ping 1.5s ease-out infinite; }
+@keyframes nb-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand, #30d158) 70%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+
+/* STOP: a soft red glass capsule, not a loud red block */
+html[data-nstyle="dynamic"] .n-inner > .stop-btn {
+  top: 19px; right: calc((100% - var(--cw)) / 2 + 18px); height: 28px; padding: 0 12px 0 10px; gap: 6px; border-radius: 14px; z-index: 2;
+  background: rgb(255 69 58 / .16); color: #ff6961; font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), inset 0 0 0 1px rgb(255 105 97 / .32); animation: none;
+  transition: opacity .2s ease, background .2s ease, transform .2s ease;
+}
+html[data-nstyle="dynamic"] .n-inner > .stop-btn i { font-size: 14px; }
+html[data-nstyle="dynamic"] .n-inner > .stop-btn:hover { background: rgb(255 69 58 / .28); color: #ff8a84; }
+html[data-nstyle="dynamic"] .n-inner > .stop-btn:active { transform: scale(.95); }
+
+/* the eyes sit in the head between the name and STOP (or at the right edge when there is no STOP) */
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face { top: 22px; transform: scale(.78); }
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-inner > .dy-face.on { transform: scale(.78); }
+html[data-nstyle="dynamic"] .notch[data-mode="live"][data-facepos="edge"] .n-inner > .dy-face { right: calc((100% - var(--cw)) / 2 + 20px); }
+
+/* ---- body ---- */
+html[data-nstyle="dynamic"] .n-bubble {
+  left: calc((100% - var(--cw)) / 2 + 20px); right: auto; width: 480px; top: 66px; bottom: 18px;
+  gap: 10px; justify-content: flex-start; font-size: 14px; z-index: 1;
+}
+html[data-nstyle="dynamic"] .notch[data-mode="live"] .n-bubble:has(.b-answer:empty) { justify-content: flex-start; }
+/* what you said: quiet, one line */
+html[data-nstyle="dynamic"] .b-transcript { font-size: 13px; color: rgb(235 240 245 / .58); font-weight: 500; }
+/* the step it takes: a glass chip */
+html[data-nstyle="dynamic"] :is(.b-tool, .b-task) {
+  align-self: flex-start; max-width: 100%; height: 28px; padding: 0 12px 0 10px; border-radius: 14px; gap: 7px;
+  display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; text-overflow: ellipsis;
+  color: color-mix(in srgb, var(--brand, #0a84ff) 45%, #fff);
+  background: linear-gradient(180deg, rgb(255 255 255 / .1), rgb(255 255 255 / .05));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), inset 0 0 0 1px rgb(255 255 255 / .07);
+}
+html[data-nstyle="dynamic"] :is(.b-tool, .b-task) i { font-size: 14px; flex: none; }
+html[data-nstyle="dynamic"] .n-bubble > :empty { display: none; }
+html[data-nstyle="dynamic"] .b-task { color: rgb(235 240 245 / .85); }
+html[data-nstyle="dynamic"] .b-task i { color: var(--brand, #0a84ff); }
+/* the answer: big, calm, readable – scrolls inside the card when long, fading at the top */
+html[data-nstyle="dynamic"] .b-answer {
+  flex: none; max-height: 220px; overflow-y: auto; font-size: 15px; line-height: 1.5; letter-spacing: -.1px; color: #f5f7fa;
+  font-weight: 450; scrollbar-width: none;
+}
+html[data-nstyle="dynamic"] .b-answer.over { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px); mask-image: linear-gradient(180deg, transparent 0, #000 22px); }
+html[data-nstyle="dynamic"] .b-answer p { margin: 0 0 .45em; }
+html[data-nstyle="dynamic"] .b-answer p:last-child { margin-bottom: 0; }
+html[data-nstyle="dynamic"] .b-answer strong { font-weight: 650; color: #fff; }
+html[data-nstyle="dynamic"] .b-answer code { padding: 1px 6px; border-radius: 6px; background: rgb(255 255 255 / .1); font-size: .9em; }
+html[data-nstyle="dynamic"] .b-answer :is(ul, ol) { margin: 0 0 .45em; padding-left: 1.2em; }
+html[data-nstyle="dynamic"] .b-answer a { color: color-mix(in srgb, var(--brand, #0a84ff) 55%, #fff); }
+/* confirm: glass pills */
+html[data-nstyle="dynamic"] .b-confirm { gap: 8px; padding-top: 2px; }
+html[data-nstyle="dynamic"] .b-confirm > span { color: #ffd60a; font-size: 13.5px; font-weight: 500; }
+html[data-nstyle="dynamic"] .b-confirm button { height: 30px; padding: 0 14px; border-radius: 15px; border: 0; font: inherit; font-size: 12.5px; font-weight: 650;
+  color: #fff; background: rgb(255 255 255 / .1); box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), inset 0 0 0 1px rgb(255 255 255 / .08); cursor: pointer; }
+html[data-nstyle="dynamic"] .b-confirm button:hover { background: rgb(255 255 255 / .17); }
+
+/* text you can select and copy – in the card and in the notch chat (the notch window turns selection off elsewhere) */
+.notch :is(.b-answer, .b-transcript, .msg .md, .msg .user-text, .msg pre, .msg code, .msg td, .msg th, .msg li) {
+  -webkit-user-select: text; user-select: text; cursor: text;
+}
+.notch .msg :is(button, .actions, .meta) { -webkit-user-select: none; user-select: none; cursor: default; }
+.notch ::selection { background: color-mix(in srgb, var(--brand, #0a84ff) 55%, transparent); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) { .n-brand .nb-state.on .nb-dot { animation: none; } }
+:root[data-motion="reduced"] .n-brand .nb-state.on .nb-dot { animation: none; }

@@ -11,6 +11,7 @@ import { createLook } from "./look";
 import "./look.css";
 import "./glass.css";
 import "./redesign.css";
+import "./livecard.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
 import { lyricShift } from "../shared/lyricsync";
@@ -234,7 +235,8 @@ face.init();
 if (demo || demoMood) (window as any).__face = face;      // previews only
 // 3.12 a thin line under the song: how far it is (closed / hover island while music or lyrics show)
 const songProg = h("i", { class: "n-songprog", "aria-hidden": "true" });
-const inner = h("div", { class: "n-inner" }, songProg, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, lyrTr, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
+const sheen = h("div", { class: "n-sheen", "aria-hidden": "true" });   // 3.13 the liquid-glass light of the answer card
+const inner = h("div", { class: "n-inner" }, sheen, songProg, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, lyrTr, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
 /** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
 function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
@@ -283,6 +285,7 @@ function openChat(view = "chat") {
 // between a small idle pill, a wider "live activity", a card with the answer and the big panel.
 const GAP = 6;
 function dyn() { return document.documentElement.dataset.nstyle === "dynamic"; }
+const LIVE_TEXT_MAX = 220;                // px of answer text before it scrolls inside the card
 function dynSize(m: Mode): [number, number] {
   const kind = shape.dataset.island || "";
   switch (m) {
@@ -291,9 +294,12 @@ function dynSize(m: Mode): [number, number] {
     case "alert": return [420, 76];
     case "radial": return [340, 320];
     case "live": {
+      // 3.13 the card fits what it says: a head (logo, name, what it does) and the text under it – measured from the
+      // content itself, so a short answer after a long one makes the card small again
       const kids = [...bubble.children].filter((c) => c !== bubbleState && (c as HTMLElement).textContent) as HTMLElement[];
-      const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(240, k.scrollHeight) : k.offsetHeight || 20), 0) + Math.max(0, kids.length - 1) * 6;
-      return [480, kids.length ? Math.min(330, 54 + content + 18) : 54];
+      const content = kids.reduce((sum, k) => sum + (k === bubbleAnswer ? Math.min(LIVE_TEXT_MAX, k.scrollHeight) : k.offsetHeight || 22), 0)
+        + Math.max(0, kids.length - 1) * 10;
+      return [520, kids.length ? Math.min(380, 66 + content + 20) : 64];
     }
     case "hover": return kind === "subs" ? subsSize(true) : kind === "lyrics" ? lyrSize(true) : kind ? [kind === "volume" ? 360 : kind === "nudge" ? 400 : 348, 38] : [196, 38];
     default: return kind === "subs" ? subsSize(false) : kind === "lyrics" ? lyrSize(false) : kind ? [kind === "volume" ? 340 : kind === "nudge" || kind === "msg" || kind === "rec" || kind === "meet" ? 390 : 330, 36] : [176, 36];
@@ -495,6 +501,7 @@ function setMode(m: Mode) {
   if (m === "panel" && prev !== "panel") window.setTimeout(() => panel.enter(), 90);   // cards come in as the shape opens
   if (m === "closed" && (prev === "bar" || prev === "panel" || prev === "hover")) flashUi("closing", 450);
   apply(m);
+  if (prev !== m) try { paintTint(shape.dataset.island || ""); } catch { /* still starting up */ }
 }
 
 function flashUi(mood: Mood, ms: number) {
@@ -602,6 +609,7 @@ shape.addEventListener("click", (e) => {
   if (onIsland && shape.dataset.island === "rec" && !(e.target as HTMLElement).closest("button, input")) { client.send("device_listen_set", { on: false }); return; }
   // 3.12: a click on an AI at work (compact island or the answer card) opens Průběh – every step and every change
   const tgt = e.target as HTMLElement;
+  if (String(window.getSelection?.() || "").trim() && tgt.closest(".n-bubble")) return;     // 3.13 you were selecting text to copy
   const busyKind = ["claude", "ai", "team", "task"].includes(shape.dataset.island || "");
   if (dyn() && !tgt.closest("button, a, input, textarea, select, .n-panel")
       && ((mode === "live") || ((mode === "closed" || mode === "hover" || mode === "bar") && busyKind))) {
@@ -725,6 +733,7 @@ function renderLive() {
   const text = liveText.length > 600 ? "…" + liveText.slice(-600) : liveText;
   bubbleAnswer.innerHTML = text ? renderMarkdown(text) : "";
   bubbleAnswer.scrollTop = bubbleAnswer.scrollHeight;
+  bubbleAnswer.classList.toggle("over", bubbleAnswer.scrollHeight > bubbleAnswer.clientHeight + 2);
   renderBrand();
   faceSync();
   if (mode === "live") apply("live");
@@ -1149,10 +1158,15 @@ function renderBrand() {
   if (dyn()) {          // Dynamic Island: the card's head says who answers and what it is doing
     const b = brain ? brandOf(brain.provider, brain.model) : null;
     const state = bubbleState.textContent || (liveText ? "Odpovídám" : "");
-    if (!b && !state) { brandBadge.replaceChildren(); return; }
+    if (!b && !state) { brandBadge.replaceChildren(); brandBadge.dataset.sig = ""; return; }
     if (b) shape.style.setProperty("--brand", b.color);
-    brandBadge.replaceChildren(b ? brandEl(b) : h("span", { class: "n-orb sm" }), h("span", {}, b ? b.name : "JARVIS"),
-      state ? h("span", { class: "dy-state" }, state) : "");
+    // 3.13 the card's head: the AI's logo in a glass tile, its name, and under it what it is doing right now
+    const sig = `${b ? b.name : "JARVIS"}|${state}|${coreMood}`;
+    if (brandBadge.dataset.sig === sig) return;
+    brandBadge.dataset.sig = sig;
+    brandBadge.replaceChildren(h("span", { class: "nb-logo" }, b ? brandEl(b) : h("span", { class: "n-orb sm" })),
+      h("span", { class: "nb-text" }, h("b", { class: "nb-name" }, b ? b.name : "JARVIS"),
+        state ? h("span", { class: `nb-state ${busy() ? "on" : ""}` }, h("i", { class: "nb-dot" }), state) : ""));
     return;
   }
   if (!brain || !jarvisBusy()) { brandBadge.replaceChildren(); return; }
@@ -1461,7 +1475,7 @@ function islandActivity(t: any) {
     kind = "lyrics";
     const src = mediaBrand(media.source || "");
     l = [h("span", { class: "n-art-wrap" }, media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill")))];
-    r = mode === "hover" ? songCtl() : src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+    r = mode === "hover" && songCtlOn() ? songCtl() : src ? [brandEl(src, "n-src")] : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
     paintLyrics(true);
   } else if (sk("subs") && subs.on && !songApp()) {
     kind = "subs";
@@ -1523,7 +1537,7 @@ function islandActivity(t: any) {
     r = [h("span", { class: "n-focus-left" }, leftS >= 0 ? `${Math.floor(leftS / 60)}:${String(leftS % 60).padStart(2, "0")}` : "Fokus")];
   } else if (media?.playing && media.title) {
     kind = "music"; l = [media.thumb ? h("img", { class: "n-art", src: media.thumb, alt: "" }) : h("span", { class: "n-art" }, icon("music-notes", "ph-fill"))];
-    if (dyn()) r = mode === "hover" ? songCtl() : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
+    if (dyn()) r = mode === "hover" && songCtlOn() ? songCtl() : [h("span", { class: "n-wave music" }, ...Array.from({ length: 5 }, () => h("i")))];
   } else if (upd?.available && upd.state !== "error") {
     // a new version waiting is the quietest news: it never covers a song, a subtitle or anything else going on
     kind = "update"; l = [icon("arrow-circle-up", "ph-fill"), h("span", {}, `Verze ${upd.latest}`)];
@@ -1554,6 +1568,8 @@ function islandActivity(t: any) {
   paintPip(PERSIST.includes(kind) ? actives.find((k) => k !== kind) : undefined, t, cc);
 }
 // 3.12 over the island with the mouse: back / play-pause / next right there
+// 3.13 not when the notch opens only by a click: then the mouse over it changes nothing, the song just keeps its look
+function songCtlOn() { return cfg.open_on !== "click"; }
 const mediaCtl = (action: string) => client.send("quick_action", { action: "media_control", args: { action } });
 function songCtl(): HTMLElement[] {
   const b = (ic: string, label: string, action: string, cls = "") => h("button", { type: "button", class: `n-sc ${cls}`, title: label, "aria-label": label,
@@ -1614,7 +1630,9 @@ client.on("wallpaper", (m: any) => { wallThumb = String(m?.thumb || ""); paintTi
 client.onStatus((st) => { if (st === "open") client.send("wallpaper_get"); });
 window.setInterval(() => client.send("wallpaper_get"), 10 * 60 * 1000);        // a new wallpaper (or a slideshow)
 function paintTint(kind: string) {
-  const song = cfg.tint !== "black" && (kind === "music" || kind === "lyrics") && media?.thumb ? String(media.thumb) : "";
+  // 3.13 the colour of the song stays while it plays – also with the eyes, the volume bar, the answer card or the open bar
+  const playing = (kind === "music" || kind === "lyrics" || !!media?.playing) && mode !== "panel" && mode !== "radial";
+  const song = cfg.tint !== "black" && playing && media?.thumb ? String(media.thumb) : "";
   const want = song || (cfg.tint === "song_wall" && !kind && wallThumb && (mode === "closed" || mode === "hover" || mode === "bar") ? wallThumb : "");
   const show = (v: string) => {
     if (v === tintShown) return;
@@ -1822,6 +1840,11 @@ client.on("share_ready", (m) => {
 client.on("device_link", (m) => {
   const hp = m.kind === "headphones";
   showLink({ icon: hp ? "headphones" : "speaker-hifi", text: String(m.name || (hp ? "Sluchátka" : "Reproduktory")), right: hp ? "Připojeno" : "Zvuk sem", pct: null, tint: hp ? "#ffffff" : "#64d2ff" });
+});
+// 3.13 the phone: plugged in / unplugged / full / low → a quiet line in the island ("Telefon se nabíjí · 64 %"), no voice
+client.on("phone_event", (m) => {
+  const pct = typeof m.pct === "number" ? Math.round(m.pct) : null;
+  showLink({ icon: String(m.icon || "device-mobile"), text: String(m.text || "Telefon"), right: String(m.right || ""), pct, tint: String(m.tint || "#ffffff") });
 });
 client.on("power_state", (m) => {
   if (Date.now() - bootAt < 8000) return;                  // the first report at start-up is not a "connect"

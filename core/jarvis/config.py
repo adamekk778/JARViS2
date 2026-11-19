@@ -435,6 +435,7 @@ class PhoneLinkCfg(BaseModel):
     morning_time: str = "07:00"
     morning_autoplay: bool = False   # …plays by itself when headphones are on
     speak: bool = False          # …aloud
+    notch_events: bool = True    # 3.13 the phone plugged in / unplugged / low / full → a quiet notice in the notch (no voice)
     # optional real phone calls when the phone app cannot be reached (Twilio; the token is in the keyring)
     twilio_sid: str = ""
     twilio_from: str = ""        # your Twilio number, +1…
@@ -466,8 +467,9 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state"] = "time"
+                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state", "phone_power", "phone_battery"] = "time"
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
+    #                    3.13 phone_power "in"/"out" (the phone on / off its charger) · phone_battery % (the phone runs low)
     text: str = ""     # …and the subject / message must contain this · home_state: the state ("on", "open") or "> 25" / "< 10"
     days: list[int] = Field(default_factory=list)   # time: 0 = Monday … 6 = Sunday; empty = every day
 
@@ -645,7 +647,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "appearance.spatial_sounds", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
-    "phone_link.announce", "phone_link.speak",
+    "phone_link.announce", "phone_link.speak", "phone_link.notch_events",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 

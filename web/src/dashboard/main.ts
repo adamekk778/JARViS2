@@ -35,6 +35,7 @@ import { whatsNewOverlay } from "../shared/whatsnew";
 import { onboarding } from "./onboarding";
 import { missingModelCard } from "../shared/localmissing";
 import { commandPalette } from "./palette";
+import "./polish.css";                // 3.13 room, rounded corners and readable glass on every page (loaded last)
 
 const client = new JarvisClient(localEndpoint(), "dashboard", "PC");
 const chat = new ChatView(client);

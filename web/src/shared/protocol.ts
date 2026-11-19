@@ -53,7 +53,7 @@ export const SERVER_TYPES = [
   "app_context", "pins", "workspaces", "workspace_result",
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
   "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record",
+  "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

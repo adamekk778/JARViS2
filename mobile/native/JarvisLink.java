@@ -446,6 +446,26 @@ public final class JarvisLink {
         }
     }
 
+    /** 3.13 the phone was plugged in / unplugged: tell the PC at once (its notch shows "Telefon se nabíjí · 64 %"). */
+    static void powerEvent(final Context c, final boolean charging) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500);                    // the level and the charging state settle a moment after the plug
+                int level = -1;
+                try {
+                    BatteryManager bm = c.getSystemService(BatteryManager.class);
+                    level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                } catch (Exception ignored) { }
+                if (level < 0 || level > 100) return;
+                JSONObject o = new JSONObject();
+                o.put("kind", "power");
+                o.put("charging", charging);
+                o.put("level", level);
+                http(c, "POST", "/api/phone/event", o.toString(), 15000);
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     static JSONArray poll(Context c) throws Exception {
         // 3.12 battery: one request every 50 s while nothing happens (a command still arrives at once)
         String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c), null, 65000);
