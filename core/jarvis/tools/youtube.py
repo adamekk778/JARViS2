@@ -23,6 +23,11 @@ async def youtube_play(ctx, query: Annotated[str, "co pustit"]) -> ToolResult:
         return ToolResult(False, f"Na YouTube jsem nic nenašel pro „{query}“")
     v = res[0]
     await asyncio.to_thread(ctx.platform.open_url, f"https://www.youtube.com/watch?v={v['id']}&autoplay=1")
+    if getattr(ctx, "webknow", None) is not None and ctx.cfg.webknow.youtube:   # spec 2026-11-20 §5.12
+        from ..background import bg
+        from ..webknow.youtube import learn_video
+
+        bg(learn_video(ctx, f"https://www.youtube.com/watch?v={v['id']}"))
     return ToolResult(True, f"Pouštím: {v['title']}", data=v)
 
 
