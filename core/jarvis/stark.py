@@ -168,7 +168,14 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
         log.debug("briefing system: %s", e)
 
     if news if news is not None else rt.cfg.stark.briefing_news:
-        hl = await headlines(rt)
+        hl: list[str] = []
+        store = getattr(rt, "webknow", None)       # spec 2026-11-20: the hourly digest instead of three headlines
+        d = store.latest_digest("") if store is not None else None
+        if d and time.time() - d["fetched"] < 12 * 3600:
+            from .webknow.study import first_sentences
+
+            hl = first_sentences(d["text"], 3)
+        hl = hl or await headlines(rt)
         if hl:
             parts.append("Ze zpráv: " + "; ".join(hl) + ".")
             data["news"] = hl

@@ -245,6 +245,9 @@ class Runtime:
         self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
         self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
         self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
+        from .webknow import study as webstudy
+
+        self._sys_tasks.append(self._later(webstudy.study_loop(self)))   # spec 2026-11-20: hourly study of the internet
         try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
             first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
             if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
