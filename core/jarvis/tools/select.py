@@ -13,7 +13,7 @@ import unicodedata
 
 # what people ask for every day – always offered (only those that exist and are allowed are sent)
 CORE = (
-    "open_app", "close_app", "open_url", "web_search", "web_read", "get_time", "weather", "set_timer", "set_reminder",
+    "open_app", "close_app", "open_url", "web_research", "web_search", "web_read", "get_time", "weather", "set_timer", "set_reminder",
     "media_control", "volume", "youtube_play", "remember", "search_memory", "clipboard_get", "type_text", "press_keys",
     "window_control", "screenshot", "system_info", "send_to_phone",
 )

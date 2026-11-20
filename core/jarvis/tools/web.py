@@ -37,6 +37,10 @@ async def web_search(ctx, query: Annotated[str, "dotaz"], max_results: int = 6, 
     res = await asyncio.to_thread(_ddg, query, max_results, news)
     items = [{"title": r.get("title"), "url": r.get("href") or r.get("url"), "snippet": r.get("body") or r.get("excerpt"),
               "date": r.get("date")} for r in res]
+    from ..webknow.research import remember
+    from ..webknow.store import Doc
+
+    remember(ctx, [Doc(url=i["url"], title=i["title"] or "", kind="search", snippet=i["snippet"] or "") for i in items if i["url"]])
     return ToolResult(True, f"{len(items)} výsledků pro „{query}“", data=items)
 
 
@@ -55,4 +59,10 @@ async def web_read(ctx, url: Annotated[str, "URL"], max_chars: int = 12000) -> T
 
         text = re.sub(r"<[^>]+>", " ", html)
         text = re.sub(r"\s+", " ", text)
+    import re as _re
+    from ..webknow.research import remember
+    from ..webknow.store import Doc
+
+    m = _re.search(r"<title[^>]*>(.*?)</title>", html[:200_000], _re.I | _re.S)
+    remember(ctx, [Doc(url=str(url), title=(m.group(1).strip() if m else url)[:300], kind="read", text=text[:6000])])
     return ToolResult(True, f"Přečteno {len(text)} znaků", data=text[:max_chars])
