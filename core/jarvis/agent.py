@@ -335,6 +335,15 @@ class Agent:
         summary, history = chatsummary.apply(rt, history)
         if summary:
             extra = (extra + "\n\n" if extra else "") + f"Shrnutí dřívější části této konverzace: {summary}"
+        if not rt.memory.private:                  # spec 2026-11-20 §5.2: what JARVIS already read on the internet
+            try:
+                from .webknow import inject
+
+                web = await inject.block_for(rt, text)
+            except Exception:  # noqa: BLE001 – the answer never waits on this
+                web = ""
+            if web:
+                extra = (extra + "\n\n" if extra else "") + web
         msgs: list[dict] = [{"role": "system", "content": build_system_prompt(rt.cfg, facts, voice, extra)}]
         msgs += [_stored_to_llm(m) for m in history if m["role"] in ("user", "assistant")]
         need_vision = False

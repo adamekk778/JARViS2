@@ -17,7 +17,8 @@ from ..knowledge import norm, stem
 from ..tools.select import _STOP
 
 KINDS = ("news", "digest", "search", "read", "browser", "wiki", "video", "notes")
-EXTRA_STOP = {"kdo", "kde", "kdy", "proc", "jaky", "jaka", "jake", "ktery", "byl", "byla", "bylo", "ten", "tom", "tem"}
+EXTRA_STOP = {"kdo", "kde", "kdy", "proc", "jaky", "jaka", "jake", "ktery", "byl", "byla", "bylo", "ten", "tom", "tem",
+              "vis", "rekni", "neco", "zjisti", "najdi"}
 TRACKING = re.compile(r"^(utm_\w*|fbclid|gclid|dclid|msclkid|yclid|igshid|mc_cid|mc_eid|_hsenc|_hsmi|ref_src|oc)$", re.I)
 MAX_TEXT = 15000
 NEWS_DUP_S = 3 * 86400        # the same headline from another source within 3 days = the same news
