@@ -136,6 +136,9 @@ class Runtime:
         from .perf import PerfHistory
 
         self.knowledge = Knowledge(self)       # OMEGA §04: categories, sources, projects, conflicts, timeline, search
+        from .webknow import WebStore
+
+        self.webknow = WebStore(self)          # spec 2026-11-20: what JARVIS saw on the internet
         from .learning import Learning
 
         self.learning = Learning(self)         # OMEGA §10 / §36: flashcards, tests, weak spots, exam plans

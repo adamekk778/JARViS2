@@ -554,6 +554,36 @@ class Permissions(BaseModel):
     home: bool = True
 
 
+NEVER_LEARN = [   # spec 2026-11-20 §5.5: never learned from (banks, e-mail, payments); the user can edit the list
+    "csas.cz", "kb.cz", "csob.cz", "fio.cz", "airbank.cz", "rb.cz", "moneta.cz", "mbank.cz", "unicreditbank.cz",
+    "mail.google.com", "outlook.live.com", "outlook.office.com", "email.seznam.cz", "paypal.com", "gopay.com", "gopay.cz",
+]
+WEB_CATEGORIES = ["svet", "cesko", "byznys", "technologie", "ai", "veda", "zdravi", "sport", "zabava", "hry"]
+
+
+class WebKnowCfg(BaseModel):
+    """Spec 2026-11-20: JARVIS knows what is on the internet – hourly study, the browser, YouTube."""
+    study: bool = True                   # study the news every interval_min minutes
+    interval_min: int = 60               # 15 / 30 / 60 / 180; never below 15
+    digest: bool = True                  # a short AI digest of what is new after each round
+    categories: list[str] = Field(default_factory=lambda: list(WEB_CATEGORIES))
+    guess_interests: bool = True         # JARVIS guesses topics you are into and studies them
+    browser: bool = False                # learn from the pages you read in your browser (offered once)
+    browser_offered: bool = False
+    youtube: bool = True                 # learn the videos you watch from their subtitles
+    never_learn: list[str] = Field(default_factory=lambda: list(NEVER_LEARN))
+    keep_news_days: int = 30
+    keep_search_days: int = 180
+    keep_browser_days: int = 90
+    keep_digest_days: int = 365
+    max_mb: int = 300
+
+    @model_validator(mode="after")
+    def _floor(self):
+        self.interval_min = max(15, int(self.interval_min or 60))
+        return self
+
+
 class Config(BaseModel):
     general: General = Field(default_factory=General)
     brain: Brain = Field(default_factory=Brain)
@@ -578,6 +608,7 @@ class Config(BaseModel):
     games: GamesCfg = Field(default_factory=GamesCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
+    webknow: WebKnowCfg = Field(default_factory=WebKnowCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
@@ -661,6 +692,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
+    "webknow.study", "webknow.interval_min", "webknow.digest", "webknow.browser", "webknow.youtube", "webknow.guess_interests",
 }
 
 # Never sent to remote clients.
