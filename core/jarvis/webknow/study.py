@@ -141,6 +141,11 @@ async def run_round(rt) -> dict:
 
         if topics.guess_due(rt):
             await topics.guess_interests(rt)
+        from . import notebooks                      # §5.13: one notebook per round
+
+        name = notebooks.next_due(rt)
+        if name and await notebooks.update(rt, name):
+            out["notebook"] = name
     return out
 
 
