@@ -4,6 +4,7 @@
 import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
+import { whatsNewCard } from "./webnews";
 
 const KIND: Record<string, [string, string]> = {
   chat: ["chat-circle-dots", "Chat"], fact: ["brain", "Paměť"], dictation: ["microphone", "Diktování"], call: ["record", "Hovor"],
@@ -106,15 +107,17 @@ export function buildBrain(client: JarvisClient) {
   client.on("knowledge", (m) => { k = { ...k, ...m }; render(); });
   client.on("error", (m) => { if (/projekt/i.test(m.message || "")) toast(m.message, "error"); });
 
+  const news = whatsNewCard(client);          // spec 2026-11-20: the hourly digest of what is new
   const el = h("section", { class: "tasks-view brain-view" },
     hero(HEROES.knowledge, "Paměť a projekty", "Co JARVIS ví, odkud to ví a kde jste skončili. Všechno jde najít, opravit i smazat – a v soukromém režimu se nic neukládá.", []),
+    news.el,
     h("h2", { class: "group-label" }, "Hledat ve všem"), h("div", { class: "card sec-card" }, h("div", { class: "list-add" }, q, h("button", { class: "btn primary", type: "button", onclick: search }, icon("magnifying-glass"), "Hledat")), meaningLabel, hits),
     h("h2", { class: "group-label" }, "Projekty"), projBox,
     h("h2", { class: "group-label" }, "Časová osa"), h("div", { class: "card sec-card" }, day, tl),
     h("h2", { class: "group-label" }, "Rozpory v paměti"), conflictBox,
     h("h2", { class: "group-label" }, "Co o tobě vím"), factsBox);
   return { el, show: () => {
-    client.send("knowledge_get"); client.send("timeline_get", { day: day.value });
+    client.send("knowledge_get"); client.send("timeline_get", { day: day.value }); news.refresh();
     meaningLabel.title = k.embed ? `Model: ${k.embed}` : "Potřebuje místní model na embeddingy v Ollamě (např. nomic-embed-text).";
   } };
 }

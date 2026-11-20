@@ -57,6 +57,7 @@ CLIENT_TYPES = [
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
     "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run",
+    "webknow_get", "webknow_topic", "webknow_study_now", "webknow_forget",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -77,6 +78,7 @@ SERVER_TYPES = [
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in",
+    "webknow",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -89,7 +91,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
                  "save_attachment", "send_to_phone"}
-LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
+LOCAL_ONLY = {"webknow_forget", "webknow_topic", "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "local_tune", "memory_import", "diagnostics_export",
               "skill_approve", "dictation_delete", "dictation_clear",
@@ -102,7 +104,7 @@ LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_te
 
 
 # answered in the background: a slow weather lookup (15 s offline) must not freeze the notch or the HUD
-SLOW = {"bizgoals_refresh", "bizagent_test", "bizproposals_decide", "bizsetup_export", "bizsetup_import", "bizreport_make", "bizevents_check", "connectors_test_all", "bizaudit_export", "bizagent_run", "bizagent_text", "bizproposal_decide", "connector_save", "connector_test", "connector_oauth", "brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
+SLOW = {"webknow_study_now", "bizgoals_refresh", "bizagent_test", "bizproposals_decide", "bizsetup_export", "bizsetup_import", "bizreport_make", "bizevents_check", "connectors_test_all", "bizaudit_export", "bizagent_run", "bizagent_text", "bizproposal_decide", "connector_save", "connector_test", "connector_oauth", "brains_test_all", "phone_net_get", "selfcheck_run", "brain_key", "nightcare_run", "morning_test", "health_get", "wake_get", "link_set", "link_check", "voices_get", "voice_preview", "voice_import", "hardware_get", "notch_context_get", "workspace_restore", "privacy_get", "audit_export", "data_export", "backup_create", "backup_restore", "reset_all", "network_get", "network_wake", "home_set", "home_get", "home_action", "mail_account_add", "mail_status_get", "calendar_get", "weather_get", "briefing_get", "system_get", "provider_test", "diagnostics_get", "update_check",
         "memory_export", "sites_get", "claude_hooks_preview", "local_status", "audio_devices_get",
         "rescue_run", "perf_get", "perf_bench", "netcheck", "seccheck", "files_run", "netwatch_get", "netwatch_set", "winupd_get", "knowledge_get", "knowledge_search", "timeline_get", "learn_tool"}
 
@@ -1812,6 +1814,27 @@ class Connection:
             out = self._knowledge()
             out["embed"] = await rt.knowledge.embed_model()
             await self.send("knowledge", **out)
+        elif t in ("webknow_get", "webknow_topic", "webknow_study_now", "webknow_forget"):   # spec 2026-11-20 §5.7
+            from ..webknow import semantic, study, ui
+
+            if t == "webknow_topic":
+                op, name = str(m.get("op") or ""), str(m.get("name") or "")[:60]
+                acts = {"add": rt.topics.add, "remove": rt.topics.remove, "watch": rt.topics.watch,
+                        "unwatch": rt.topics.unwatch, "star": rt.topics.star}
+                try:
+                    if op not in acts or not name.strip():
+                        raise ValueError("Neznámá akce s tématem.")
+                    acts[op](name)
+                except ValueError as e:
+                    await self.send("error", message=str(e))
+            elif t == "webknow_study_now":
+                await study.run_round(rt)
+            elif t == "webknow_forget":
+                rt.webknow.forget(domain=str(m.get("domain") or "")[:200], everything=bool(m.get("everything")))
+            out = ui.snapshot(rt)
+            out["embed"] = await semantic.model(rt)          # fresh: a model just downloaded shows at once …
+            rt._webknow_embed = (time.time(), out["embed"])  # … and the answers use it at once too
+            await self.send("webknow", **out)
         elif t == "knowledge_search":
             q = str(m.get("q") or "")[:200]
             hits = await asyncio.to_thread(rt.knowledge.search, q, 30)

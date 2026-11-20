@@ -37,7 +37,7 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 - **Mazlíček na ploše:** chytni JARVISe v notchi a táhni dolů. Chodí po hlavním panelu a oknech, skáče, usíná; klik = poslouchej, dvojklik = zpět do notche, pravé tlačítko = menu.
 - **Aktualizace:** panel → Systém → Zkontrolovat / Aktualizovat (instaluje jen po potvrzení).
 - **Ovládání PC:** aplikace, YouTube, Spotify/média, hlasitost, okna, soubory, schránka, screenshot, vypnutí (s potvrzením), PowerShell.
-- **Internet:** vyhledávání a čtení stránek, počasí.
+- **Internet:** každou hodinu sám studuje zprávy ze všech oborů (s krátkým AI přehledem „co je nového“), pamatuje si, co kdy našel nebo co čteš v prohlížeči a na YouTube, hlídá témata, vede si o nich sešity a hledá na víc místech najednou (DuckDuckGo, Google Zprávy, Wikipedie). Na co už jednou viděl, odpoví hned bez hledání. Nastavení → Internet a znalosti.
 - **Superschopnosti:** ovládání počítače jako člověk (vidí obrazovku a kliká), ovládání prohlížeče, spouštění Python kódu,
   generování obrázků, MCP servery (Gmail, kalendář, …), **učí se nové dovednosti** (napíše si nástroj, ty schválíš kód),
   rutiny („každý den v 7:00 mi řekni počasí“).

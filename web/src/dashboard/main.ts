@@ -92,6 +92,7 @@ const NAV: [View, string, string][] = [
   ["integrations", "plugs-connected", "Integrace"],
   ["phone", "device-mobile", "Telefon"],
   ["memory", "database", "Paměť"],
+  ["internet", "globe", "Internet a znalosti"],
   ["jobs", "calendar-check", "Rutiny"],
   ["backup", "floppy-disk", "Záloha"],
   ["diagnostics", "pulse", "Diagnostika"],
@@ -138,7 +139,7 @@ const settingsUI = buildSettings(client, settingsHost);
 
 const settingsBtn: HTMLButtonElement = h("button", { type: "button", class: "side-settings", "data-view": "general", title: "Nastavení", onclick: () => go("general") },
   icon("gear-six"), h("span", {}, "Nastavení"));
-const SETTINGS_VIEWS: View[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"];
+const SETTINGS_VIEWS: View[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "internet", "jobs", "backup"];
 function go(v: View) {
   [...nav.querySelectorAll("button"), settingsBtn].forEach((b) => b.classList.toggle("active", b.dataset.view === v || (b.dataset.view === "general" && SETTINGS_VIEWS.includes(v))));
   const page = pages[v as Page];

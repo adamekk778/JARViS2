@@ -629,3 +629,9 @@ html[data-density="large"] body { zoom: 1.15; }
 .sc-text span { color: var(--muted); }
 .sc-text em { font-style: normal; color: var(--text); background: color-mix(in oklab, var(--accent, #34d399) 9%, transparent); padding: 6px 9px; border-radius: 8px; }
 .sc-text .btn { justify-self: start; margin-top: 4px; }
+
+/* spec 2026-11-20: Co je nového (the hourly digest of the internet) */
+.wk-news .chip.on { border-color: #34c3ff; color: #fff; background: rgb(52 195 255 / .18); }
+.wk-digest { display: grid; gap: 6px; margin: 8px 0; }
+.wk-digest h3 { margin: 8px 0 0; font-size: 14px; }
+.wk-digest p { margin: 0; line-height: 1.5; }

@@ -1,4 +1,5 @@
 import { openOnboarding } from "./onboarding";
+import { ago } from "./webnews";
 import { openPhoneMirror } from "./phonemirror";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
@@ -10,7 +11,7 @@ import { createBrainsPanel } from "../shared/brainsui";
 
 export type Section =
   | "general" | "brain" | "voice" | "notch" | "appearance" | "hotkeys" | "permissions" | "tools" | "integrations"
-  | "phone" | "memory" | "jobs" | "backup" | "dictation" | "dictionary";
+  | "phone" | "memory" | "internet" | "jobs" | "backup" | "dictation" | "dictionary";
 
 const TITLES: Record<Section, [string, string, string]> = {
   general: ["user-circle", "Obecné", "Kdo jsi a jak se k tobě JARVIS chová."],
@@ -24,6 +25,7 @@ const TITLES: Record<Section, [string, string, string]> = {
   integrations: ["plugs-connected", "Integrace", "MCP servery (Gmail, kalendář, Spotify, chytrá domácnost…) a generování obrázků."],
   phone: ["device-mobile", "Telefon", "Spáruj Android aplikaci naskenováním QR kódu."],
   memory: ["database", "Paměť", "Co si o tobě JARVIS pamatuje."],
+  internet: ["globe", "Internet a znalosti", "Co JARVIS sleduje a co si z internetu pamatuje."],
   jobs: ["calendar-check", "Rutiny a připomínky", "Naplánované úlohy. Vytváříš je hlasem nebo v chatu („každý den v 7:00 mi řekni počasí“)."],
   backup: ["floppy-disk", "Záloha", "Export a import nastavení a paměti."],
   dictation: ["sliders", "Nastavení diktování", "Klávesa, diktování bez držení a úprava textu pomocí AI."],
@@ -34,7 +36,7 @@ const TITLES: Record<Section, [string, string, string]> = {
 const SEC_COLOR: Record<Section, [string, string]> = {
   general: ["#3b9bff", "#0a64e0"], brain: ["#b77bff", "#7c3aed"], voice: ["#ff9f45", "#f0640a"], notch: ["#8e8e93", "#3a3a40"],
   appearance: ["#ff6fa8", "#e2245a"], hotkeys: ["#2fd6c3", "#0e9e8e"], permissions: ["#4ade80", "#16a34a"], tools: ["#ffc145", "#e09400"],
-  integrations: ["#6e7bff", "#3f45d8"], phone: ["#5ad1ff", "#0a8fd6"], memory: ["#c58bff", "#8b3fe0"], jobs: ["#ff6b62", "#e0261f"],
+  integrations: ["#6e7bff", "#3f45d8"], phone: ["#5ad1ff", "#0a8fd6"], memory: ["#c58bff", "#8b3fe0"], internet: ["#34c3ff", "#0a7fd6"], jobs: ["#ff6b62", "#e0261f"],
   backup: ["#94a3b8", "#475569"], dictation: ["#3b9bff", "#0a64e0"], dictionary: ["#ffd60a", "#d9a400"],
 };
 const ROW_ICON: [RegExp, string][] = [
@@ -724,6 +726,81 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       ];
     },
 
+    internet: () => {                     // spec 2026-11-20: JARVIS knows what is on the internet
+      const w = extra.webknow;
+      if (!w) client.send("webknow_get");
+      const c = S?.webknow || {};
+      const cats: Record<string, string> = w?.categories || {};
+      const KINDS: Record<string, string> = { news: "zprávy", digest: "přehledy", search: "výsledky hledání", read: "přečtené stránky",
+        browser: "z prohlížeče", wiki: "Wikipedie", video: "videa", notes: "sešity" };
+      const catBox = h("div", { class: "btn-row" }, ...Object.entries(cats).map(([k, label]) => {
+        const inp = h("input", { type: "checkbox", "aria-label": label }) as HTMLInputElement;
+        inp.checked = (c.categories || []).includes(k);
+        inp.onchange = () => set("webknow.categories", Object.keys(cats).filter((x) => x === k ? inp.checked : (c.categories || []).includes(x)));
+        return h("label", { class: "check" }, inp, " ", label);
+      }));
+      const topic = h("input", { class: "input", placeholder: "Např. GTA 6, umělá inteligence, Sparta Praha", "aria-label": "Nové téma" }) as HTMLInputElement;
+      const addTopic = (watch: boolean) => {
+        if (!topic.value.trim()) return;
+        client.send("webknow_topic", { op: watch ? "watch" : "add", name: topic.value.trim() });
+        topic.value = "";
+      };
+      const topicRow = (t: any) => h("div", { class: "row" },
+        h("div", { class: "row-text" }, h("strong", {}, t.label, t.kind === "auto" ? h("span", { class: "tag", style: "margin-left:8px;vertical-align:middle" }, "odhadnuto") : ""),
+          h("span", {}, t.watch ? "Hlídám – dám vědět, až vyjde něco nového" : "Studuju, neohlašuju")),
+        h("span", { class: "row-actions" },
+          h("button", { class: "icon-btn", type: "button", "aria-label": t.watch ? "Přestat hlídat" : "Hlídat", title: t.watch ? "Přestat hlídat" : "Hlídat",
+            onclick: () => client.send("webknow_topic", { op: t.watch ? "unwatch" : "watch", name: t.label }) }, icon(t.watch ? "bell-ringing" : "bell")),
+          t.kind === "auto" ? h("button", { class: "icon-btn", type: "button", "aria-label": "Nechat si", title: "Nechat si jako vlastní téma",
+            onclick: () => client.send("webknow_topic", { op: "star", name: t.label }) }, icon("star")) : null,
+          h("button", { class: "icon-btn", type: "button", "aria-label": `Odebrat ${t.label}`,
+            onclick: () => client.send("webknow_topic", { op: "remove", name: t.label }) }, icon("x"))));
+      const never = h("textarea", { class: "input", rows: 4, "aria-label": "Nikdy se neučit z" }) as HTMLTextAreaElement;
+      never.value = (c.never_learn || []).join("\n");
+      never.onchange = () => set("webknow.never_learn", never.value.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean));
+      const pull = w ? extra.pull?.[w.embed_model] : null;
+      const st = w?.stats || {};
+      const counts = Object.entries(st.by_kind || {}).map(([k, n]) => `${n} ${KINDS[k] || k}`).join(" · ");
+      return [
+        card("Studium internetu", "Každou hodinu (nebo jak nastavíš) projde zprávy ze všech oborů a napíše krátký přehled „co je nového“. "
+          + "Na otázky pak odpovídá z toho, co už ví, a na internetu hledá jen to, co ještě neviděl.",
+          sw("webknow.study", "Studovat internet", "Zprávy ze světa, Česka, byznysu, techniky, AI, vědy, zdraví, sportu, zábavy a her."),
+          select("webknow.interval_min", "Jak často", [["15", "Každých 15 minut"], ["30", "Každých 30 minut"], ["60", "Každou hodinu"], ["180", "Každé 3 hodiny"]]),
+          sw("webknow.digest", "AI přehled", "Po každém studiu krátký přehled po oborech (jeden dotaz na rychlou AI, ve hře počká)."),
+          field("Obory", catBox, "Které zprávy sleduje.", true)),
+        card("Témata", "Vlastní témata studuje navíc. Hlídaná (zvoneček) ohlásí, jakmile o nich vyjde něco nového – nejvýš 6× denně, "
+          + "ve hře a v noci potichu. Odhadnutá témata si JARVIS přidává sám podle toho, na co se ptáš a co čteš.",
+          h("div", { class: "fact" }, topic,
+            h("button", { class: "btn", type: "button", onclick: () => addTopic(false) }, icon("plus"), "Přidat"),
+            h("button", { class: "btn primary", type: "button", onclick: () => addTopic(true) }, icon("bell"), "Hlídat")),
+          ...(w?.topics || []).map(topicRow),
+          w && !(w.topics || []).length ? h("p", { class: "help" }, "Zatím žádná témata. Zkus i v chatu: „hlídej mi novinky o GTA 6“.") : null,
+          sw("webknow.guess_interests", "Odhadovat, co mě zajímá", "Jednou denně z tvých otázek a čtení (nikdy citlivá témata, nikdy ze soukromého režimu).")),
+        card("Prohlížeč a YouTube", "JARVIS si zapamatuje stránky, které čteš, a videa, která pustíš – aby věděl, o čem byly. Vše zůstává jen v tomhle PC.",
+          sw("webknow.browser", "Učit se z prohlížeče", "Chrome, Edge, Brave, Opera, Vivaldi, Firefox. Ne bankovnictví, e-mail, přihlášení ani anonymní okna."),
+          sw("webknow.youtube", "Videa z YouTube", "Z titulků videí (nejvýš 30 denně). Video ani zvuk se nestahují."),
+          field("Nikdy se neučit z", never, "Jeden web na řádek (např. mojebanka.cz).", true)),
+        card("Hledání podle významu", "Najde „ten článek o robotovi, co uměl vařit“, i když jsou v něm jiná slova. Potřebuje místní model v Ollamě, "
+          + "který rozumí češtině.",
+          w?.embed ? h("p", {}, `Zapnuto – model ${w.embed}.`)
+            : pull && !pull.done && !pull.error ? h("p", {}, `Stahuji ${w.embed_model}… ${pull.status || ""} ${pull.percent != null ? pull.percent + " %" : ""}`)
+            : h("div", { class: "btn-row" },
+              h("button", { class: "btn primary", type: "button", disabled: !w, onclick: () => {
+                if (!local) return toast("Stahovat jde jen přímo na PC.", "error");
+                client.send("local_pull", { name: w.embed_model }); extra.pull = { ...(extra.pull || {}), [w.embed_model]: { status: "začínám" } }; render();
+              } }, icon("download-simple"), "Stáhnout model (~600 MB)"),
+              pull?.error ? h("span", { class: "help" }, pull.error) : null)),
+        card("Kolik toho JARVIS ví", counts ? `${counts}. Celkem ${((st.bytes || 0) / 1048576).toFixed(1)} MB.` : "Zatím nic – první studium proběhne do pár minut.",
+          h("p", { class: "help" }, `Poslední studium: ${ago(st.last_study || 0)} · poslední přehled: ${ago(st.last_digest || 0)}`),
+          h("div", { class: "btn-row" },
+            h("button", { class: "btn", type: "button", onclick: () => { client.send("webknow_study_now"); toast("Studuju, co je nového…", "ok"); } },
+              icon("arrows-clockwise"), "Prostudovat teď"),
+            h("button", { class: "btn danger", type: "button", onclick: () => {
+              if (confirm("Opravdu zapomenout všechno, co JARVIS viděl na internetu (zprávy, přehledy, stránky, videa, sešity)?")) client.send("webknow_forget", { everything: true });
+            } }, icon("trash"), "Zapomenout vše z internetu"))),
+      ];
+    },
+
     jobs: () => {
       const jobs: any[] | undefined = extra.jobs;
       if (!jobs) client.send("jobs_get");
@@ -1297,7 +1374,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   // the page on the right uses the full width
   const NAV_GROUPS: [string, Section[]][] = [
     ["Ty a JARVIS", ["general", "voice", "appearance"]],
-    ["Inteligence", ["brain", "tools", "memory", "jobs"]],
+    ["Inteligence", ["brain", "tools", "memory", "internet", "jobs"]],
     ["Notch a ovládání", ["notch", "hotkeys", "dictation", "dictionary"]],
     ["Připojení a data", ["integrations", "phone", "permissions", "backup"]],
   ];
@@ -1363,6 +1440,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     extra.pull = { ...(extra.pull || {}), [m.name]: m };
     if (m.done || m.cancelled || m.error) { extra.localAsked = false; if (m.done) toast(`${m.name} staženo`, "ok"); }
     if (current === "brain") render();
+    if (current === "internet") { if (m.done) client.send("webknow_get"); else render(); }
   });
   client.on("local_model_missing", (m) => toast(`Pro offline režim stáhni ${m.name} (${m.size_gb} GB) v Nastavení → Mozek → Lokální AI.`, "info", 9000));
   client.on("audio_devices", (m) => { extra.audio = m; if (current === "voice") render(); });
@@ -1398,6 +1476,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("lockdown_done", (m) => toast(`Uzamčeno: odpojeno ${m.revoked} zařízení, nový párovací kód, režim jen pro čtení.`, "ok"));
   client.on("memory", (m) => { extra.facts = m.facts; if (current === "memory" || current === "backup") render(); });
   client.on("jobs", (m) => { extra.jobs = m.items; if (current === "jobs") render(); });
+  client.on("webknow", (m) => { extra.webknow = m; if (current === "internet") render(); });
 
   return {
     show(s: Section) {
