@@ -146,6 +146,10 @@ async def run_round(rt) -> dict:
         name = notebooks.next_due(rt)
         if name and await notebooks.update(rt, name):
             out["notebook"] = name
+    if not ai_paused(rt):
+        from . import semantic                       # §5.15: vectors for search by meaning (only with the model)
+
+        await semantic.embed_pending(rt)
     return out
 
 

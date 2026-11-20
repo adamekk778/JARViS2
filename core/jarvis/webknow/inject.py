@@ -87,6 +87,11 @@ async def block_for(rt, text: str) -> str:
     hits = [h for h in store.search(text, limit=12) if _qualifies(h, stems)]
     hits.sort(key=lambda h: h["kind"] != "notes")          # a topic notebook first, then the best hits
     hits = [h for h in hits if h["kind"] != "digest"][:MAX_ITEMS] or hits[:MAX_ITEMS]
+    if not hits:                                         # §5.15: other words, the same thing
+        from . import semantic
+
+        if await semantic.cached_model(rt):
+            hits = await semantic.search(rt, text, MAX_ITEMS, budget_s=0.3)
     if not hits:
         return ""
     tp = getattr(rt, "topics", None)
