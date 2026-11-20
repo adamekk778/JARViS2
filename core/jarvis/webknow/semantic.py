@@ -80,25 +80,49 @@ async def embed_pending(rt, limit: int = 200) -> int:
     return done
 
 
+_MATS: dict[tuple[int, str], tuple[tuple, np.ndarray, np.ndarray]] = {}
+
+
+def _matrix(rt, m: str) -> tuple[np.ndarray, np.ndarray]:
+    """(doc ids, unit vectors) kept in memory and reloaded only when the vectors changed – runs in a thread (review I8)."""
+    marker = tuple(rt.db.one("SELECT COUNT(*) AS n, MAX(doc) AS x FROM web_emb WHERE model=?", (m,)).values())
+    key = (id(rt), m)
+    hit = _MATS.get(key)
+    if hit and hit[0] == marker:
+        return hit[1], hit[2]
+    rows = rt.db.all("SELECT doc, vec FROM web_emb WHERE model=? ORDER BY doc DESC LIMIT ?", (m, MAX_VECTORS))
+    if not rows:
+        ids, mat = np.zeros(0, dtype=np.int64), np.zeros((0, 1), dtype=np.float32)
+    else:
+        ids = np.fromiter((r["doc"] for r in rows), dtype=np.int64, count=len(rows))
+        mat = np.stack([np.frombuffer(r["vec"], dtype=np.float32) for r in rows])
+        mat = mat / (np.linalg.norm(mat, axis=1, keepdims=True) + 1e-9)
+    _MATS[key] = (marker, ids, mat)
+    return ids, mat
+
+
+def _top(ids: np.ndarray, mat: np.ndarray, q: np.ndarray, limit: int) -> list[tuple[int, float]]:
+    sims = mat @ (q / (np.linalg.norm(q) or 1))
+    order = np.argsort(-sims)[:limit]
+    return [(int(ids[i]), float(sims[i])) for i in order if sims[i] > MIN_SCORE]
+
+
 async def search(rt, query: str, limit: int = 5, budget_s: float | None = None) -> list[dict]:
     async def go() -> list[dict]:
         m = await cached_model(rt)
         if not m or not (query or "").strip():
             return []
         _table(rt)
-        rows = rt.db.all("SELECT d.*, e.vec FROM web_emb e JOIN web_docs d ON d.id=e.doc WHERE e.model=? ORDER BY d.id DESC LIMIT ?",
-                         (m, MAX_VECTORS))
-        if not rows:
-            return []
         q = np.asarray((await rt.knowledge._embed(m, [query]))[0], dtype=np.float32)
-        mat = np.stack([np.frombuffer(r["vec"], dtype=np.float32) for r in rows])
-        sims = mat @ q / (np.linalg.norm(mat, axis=1) * (np.linalg.norm(q) or 1) + 1e-9)
+        ids, mat = await asyncio.to_thread(_matrix, rt, m)
+        if not len(ids) or mat.shape[1] != q.shape[0]:
+            return []
+        best = await asyncio.to_thread(_top, ids, mat, q, limit)
         out = []
-        for i in np.argsort(-sims)[:limit]:
-            if sims[i] > MIN_SCORE:
-                r = dict(rows[i])
-                r.pop("vec", None)
-                r["score"] = round(float(sims[i]), 3)
+        for did, score in best:
+            r = rt.webknow.get(did)
+            if r:
+                r["score"] = round(score, 3)
                 out.append(r)
         return out
 

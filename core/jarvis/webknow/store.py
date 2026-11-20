@@ -8,17 +8,23 @@ everything can be seen, exported and forgotten (privacy inventory, "Zapomenout v
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 import time
 from dataclasses import dataclass
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from ..knowledge import norm, stem
+from ..knowledge import norm
 from ..tools.select import _STOP
 
 KINDS = ("news", "digest", "search", "read", "browser", "wiki", "video", "notes")
-EXTRA_STOP = {"kdo", "kde", "kdy", "proc", "jaky", "jaka", "jake", "ktery", "byl", "byla", "bylo", "ten", "tom", "tem",
-              "vis", "rekni", "neco", "zjisti", "najdi"}
+# words of everyday requests that say nothing about WHAT is asked (review C2: they matched almost any long page)
+EXTRA_STOP = set("""kdo kde kdy proc jaky jaka jake ktery ktera ktere kolik byl byla bylo byli bude budu jsem jsi jste jsou neni
+ten tom tem tim tuhle tenhle tohle tomhle tahle tamto vis vite rekni neco nic zjisti najdi cem ceho cemu mas mam mate mame
+dnes dneska zitra vcera ted pak hned jeste porad taky take velmi hodne mezi nejaky nejakou nejake prosim muzes muzete
+chci chtel chtela potrebuju clanek clanku clanky video videu videa stranka strance stranku precti napis pust pusti otevri
+udelej vysvetli pomoz spocitej zkontroluj priprav uprav posli nastav zapni vypni ztlum preloz pripomen hledej vyhledej
+ukaz umi umis muj moje mem mym moji tvuj svuj sve nas vas tebe tobe sem tam tady zde""".split())
 TRACKING = re.compile(r"^(utm_\w*|fbclid|gclid|dclid|msclkid|yclid|igshid|mc_cid|mc_eid|_hsenc|_hsmi|ref_src|oc)$", re.I)
 MAX_TEXT = 15000
 NEWS_DUP_S = 3 * 86400        # the same headline from another source within 3 days = the same news
@@ -66,16 +72,35 @@ def domain(url: str) -> str:
 _domain = domain     # forget() has a parameter called "domain"
 
 
+def cz_stem(w: str) -> str:
+    """Czech case endings away: počítačích / počítače / počítač → "pocitac", kvantových → "kvantov"."""
+    n = len(w)
+    if n >= 7:
+        return w[:max(5, n - 3)]
+    return w[:4] if n == 6 else w
+
+
 def query_stems(text: str) -> list[str]:
     """The words of a question that matter, as stems: no accents, no small words, Czech endings cut."""
     out: list[str] = []
     for w in re.findall(r"[a-z0-9]+", norm(text or "")):
         if len(w) < 3 or w in _STOP or w in EXTRA_STOP:
             continue
-        s = stem(w)
+        s = cz_stem(w)
         if s not in out:
             out.append(s)
     return out
+
+
+def word_hits(stems: list[str], text: str) -> int:
+    """How many stems start a word of the text (whole words – "mas" no longer matches "masaryk"… only its own words)."""
+    words = set(re.findall(r"[a-z0-9]+", norm(text or "")))
+    return sum(1 for s in stems if any(w.startswith(s) for w in words))
+
+
+def clean_title(title: str) -> str:
+    """One line, no HTML entities – a title can never pose as a new line of instructions."""
+    return re.sub(r"\s+", " ", html.unescape(title or "")).strip()
 
 
 def _hash(title: str) -> str:
@@ -104,7 +129,7 @@ class WebStore:
         if doc.kind not in KINDS:
             raise ValueError(f"Neznámý druh: {doc.kind}")
         url = normalize_url(doc.url)
-        title = (doc.title or "").strip()[:300] or url[:300]
+        title = clean_title(doc.title)[:300] or url[:300]
         snippet, text = (doc.snippet or "").strip()[:600], (doc.text or "").strip()[:MAX_TEXT]
         now = time.time()
         old = self.db.one("SELECT id, text, snippet FROM web_docs WHERE url=?", (url,))
@@ -165,8 +190,8 @@ class WebStore:
         args.append(max(limit * 4, 20))
         rows = self.db.all(sql, tuple(args))
         for r in rows:
-            hay = norm(f"{r['title']} {r['snippet']} {r['text']}")
-            r["matched"] = sum(1 for s in stems if s in hay)
+            r["matched"] = word_hits(stems, f"{r['title']} {r['snippet']} {(r['text'] or '')[:1500]}")
+            r["matched_title"] = word_hits(stems, r["title"])
             r["score"] = -float(r.pop("rank"))
         rows.sort(key=lambda r: (-r["matched"], -r["score"]))
         return rows[:limit]
@@ -198,8 +223,13 @@ class WebStore:
 
     # ------------------------------------------------------------------------------------------ overview and forgetting
     def _bytes(self) -> int:
+        """What the store really takes: the texts twice (the table and the search index) plus the meaning vectors."""
         r = self.db.one("SELECT COALESCE(SUM(LENGTH(title) + LENGTH(snippet) + LENGTH(text)), 0) AS b FROM web_docs")
-        return int(r["b"] if r else 0)
+        total = 2 * int(r["b"] if r else 0)
+        if self.db.one("SELECT 1 FROM sqlite_master WHERE name='web_emb'"):
+            e = self.db.one("SELECT COALESCE(SUM(LENGTH(vec)), 0) AS b FROM web_emb")
+            total += int(e["b"] if e else 0)
+        return total
 
     def stats(self) -> dict:
         by_kind = {r["kind"]: r["n"] for r in self.db.all("SELECT kind, COUNT(*) AS n FROM web_docs GROUP BY kind")}
@@ -239,11 +269,24 @@ class WebStore:
             ids += [r["id"] for r in self.db.all("SELECT id FROM web_docs WHERE kind=? AND fetched<?", (kind, now - days * 86400))]
         n = self._delete(ids)
         cap = cap_bytes if cap_bytes is not None else c.max_mb * 2 ** 20
+        size = self._bytes()                      # measured once; what is deleted is subtracted (review I9)
+        if size <= cap:
+            return n
+        emb = bool(self.db.one("SELECT 1 FROM sqlite_master WHERE name='web_emb'"))
+        vec = "(SELECT COALESCE(SUM(LENGTH(vec)), 0) FROM web_emb e WHERE e.doc = d.id)" if emb else "0"
         for group in CAP_ORDER:
             marks = ",".join("?" * len(group))
-            while self._bytes() > cap:
-                batch = [r["id"] for r in self.db.all(f"SELECT id FROM web_docs WHERE kind IN ({marks}) ORDER BY fetched, id LIMIT 20", group)]
-                if not batch:
+            while size > cap:
+                rows = self.db.all(f"SELECT d.id, 2 * (LENGTH(d.title) + LENGTH(d.snippet) + LENGTH(d.text)) + {vec} AS b "
+                                   f"FROM web_docs d WHERE d.kind IN ({marks}) ORDER BY d.fetched, d.id LIMIT 200", group)
+                if not rows:
                     break
+                batch, freed = [], 0
+                for r in rows:
+                    batch.append(r["id"])
+                    freed += int(r["b"] or 0)
+                    if size - freed <= cap:
+                        break
                 n += self._delete(batch)
+                size -= freed
         return n

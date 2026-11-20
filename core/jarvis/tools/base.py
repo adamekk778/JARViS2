@@ -157,7 +157,8 @@ def unregister_source(source: str) -> None:
 NEVER_TRUSTED = {"claude_code", "delete_file"}
 # results that carry text written by someone else (e-mails, web pages, files, messages): scanned for hidden orders
 UNTRUSTED_OUTPUT = {"email_read", "email_inbox", "email_search", "web_read", "web_search", "google_search", "browser_read",
-                    "phone_messages", "read_text_file", "read_attachment", "clipboard_get", "ui_read", "selected_text"}   # always confirmed, even when the user marked them trusted
+                    "phone_messages", "read_text_file", "read_attachment", "clipboard_get", "ui_read", "selected_text",
+                    "web_research", "whats_new", "topic_notes", "web_knowledge_search"}   # always confirmed, even when the user marked them trusted
 
 
 def is_dangerous(spec: ToolSpec, args: dict, always_confirm: list[str] = (), trusted: list[str] = (),

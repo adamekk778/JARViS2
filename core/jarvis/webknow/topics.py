@@ -44,6 +44,12 @@ def matches(topic: str, text: str) -> bool:
     return True
 
 
+def drop_notes(rt, label: str) -> None:
+    notes = rt.webknow.notes(label)
+    if notes:
+        rt.webknow._delete([notes["id"]])
+
+
 class Topics:
     def __init__(self, rt):
         self.rt = rt
@@ -82,11 +88,9 @@ class Topics:
             return
         if row["kind"] == "auto":
             self.db.exec("UPDATE web_topics SET dismissed=1, watch=0 WHERE name=?", (row["name"],))
-            return
-        self.db.exec("DELETE FROM web_topics WHERE name=?", (row["name"],))
-        notes = self.rt.webknow.notes(row["label"])
-        if notes:
-            self.rt.webknow._delete([notes["id"]])
+        else:
+            self.db.exec("DELETE FROM web_topics WHERE name=?", (row["name"],))
+        drop_notes(self.rt, row["label"])         # review I6: a removed topic keeps no notebook
 
     def star(self, name: str) -> None:
         self.db.exec("UPDATE web_topics SET kind='own', dismissed=0 WHERE name=?", (norm(name),))
@@ -194,16 +198,18 @@ async def guess_interests(rt) -> list[str]:
         if topics._row(n) is None:
             topics.add(n.strip(), kind="auto")
             added.append(n.strip())
-    extra = rt.db.all("SELECT name FROM web_topics WHERE kind='auto' AND dismissed=0 ORDER BY last_seen DESC, created DESC, rowid DESC")[MAX_AUTO:]
+    extra = rt.db.all("SELECT name, label FROM web_topics WHERE kind='auto' AND dismissed=0 ORDER BY last_seen DESC, created DESC, rowid DESC")[MAX_AUTO:]
     for r in extra:
         rt.db.exec("DELETE FROM web_topics WHERE name=?", (r["name"],))
+        drop_notes(rt, r["label"])
     return [a for a in added if topics._row(a)]
 
 
 def fade(rt, now: float | None = None) -> int:
     """A guessed topic with no activity for 30 days goes away by itself (not dismissed: it may be guessed again)."""
     cut = (now or time.time()) - FADE_S
-    rows = rt.db.all("SELECT name FROM web_topics WHERE kind='auto' AND dismissed=0 AND last_seen<?", (cut,))
+    rows = rt.db.all("SELECT name, label FROM web_topics WHERE kind='auto' AND dismissed=0 AND last_seen<?", (cut,))
     for r in rows:
         rt.db.exec("DELETE FROM web_topics WHERE name=?", (r["name"],))
+        drop_notes(rt, r["label"])
     return len(rows)

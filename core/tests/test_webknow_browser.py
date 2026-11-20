@@ -90,8 +90,8 @@ async def test_learn_round_stores_pages_titles_and_queries(rt, tmp_path, monkeyp
     assert await browser.learn_round(rt, now=t + 60) == 3
     assert rt.webknow.search("robot uvaril", kinds=("browser",)) and rt.webknow.search("hledal gta", kinds=("browser",))
     assert not rt.webknow.search("login")
-    zed = rt.webknow.search("prihlasit", kinds=("browser",))[0]
-    assert zed["text"] == "" and abs(zed["visited"] - t) < 1
+    zed = rt.db.one("SELECT * FROM web_docs WHERE url='https://b.cz/zed'")     # a login wall: the anonymous title only
+    assert zed["text"] == "" and zed["title"] == "X" and abs(zed["visited"] - t) < 1
     assert await browser.learn_round(rt, now=t + 120) == 0        # the same visits are not read twice
 
 

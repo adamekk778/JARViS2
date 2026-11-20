@@ -9,6 +9,7 @@ import asyncio
 import ipaddress
 import logging
 import os
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -17,7 +18,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import sources
-from .store import Doc
+from .store import Doc, domain
 
 log = logging.getLogger("jarvis.webknow")
 CHROMIUM_EPOCH = 11644473600          # seconds between 1601-01-01 and 1970-01-01
@@ -25,8 +26,12 @@ FIRST_LOOK_S = 24 * 3600              # the first time: the last day only
 PER_FILE = 200
 TICK_S = 600
 START_DELAY_S = 120
-SECRET_PARAMS = {"token", "access_token", "id_token", "session", "sessionid", "sid", "code", "password", "pass", "key",
-                 "apikey", "api_key", "sig", "signature", "auth", "otp"}
+# review: a parameter whose name only CONTAINS one of these (reset_token, X-Amz-Signature, pwd…) is secret too
+SECRET_PARTS = ("token", "sig", "secret", "pwd", "pass", "key", "auth", "session", "sid", "otp", "code", "nonce", "ticket")
+# one-time links: opening them again would unsubscribe you, confirm, reset, log you out or use up a magic link
+ONE_TIME = re.compile(r"unsubscribe|odhlas|reset|verif|confirm|potvr|activat|aktivac|logout|log-out|signout|sign-out|magic|"
+                      r"password|passwd|heslo|invite|pozvan|oauth|callback|/otp|2fa", re.I)
+LAN_SUFFIX = (".local", ".lan", ".internal", ".intranet", ".home", ".box", ".router", ".localdomain", ".corp")
 SIGN_IN = ("accounts.", "login.", "auth.", "signin.", "sso.", "checkout.")
 SEARCH_HOSTS = {"google.": ("/search", "q"), "bing.com": ("/search", "q"), "duckduckgo.com": ("", "q"),
                 "search.seznam.cz": ("", "q"), "search.yahoo.com": ("/search", "p")}
@@ -85,7 +90,7 @@ def blocked(url: str, never: list[str]) -> bool:
     if p.scheme not in ("http", "https"):
         return True
     host = (p.hostname or "").lower()
-    if not host or host == "localhost" or host.endswith((".local", ".lan", ".internal")):
+    if not host or host == "localhost" or "." not in host or host.endswith(LAN_SUFFIX):
         return True
     try:
         ip = ipaddress.ip_address(host)
@@ -97,9 +102,9 @@ def blocked(url: str, never: list[str]) -> bool:
         d = d.lower().strip().removeprefix("www.")
         if d and (host == d or host.endswith("." + d) or host == "www." + d):
             return True
-    if "bank" in host or "paypal." in host or host.startswith(SIGN_IN):
+    if "bank" in host or "paypal." in host or host.startswith(SIGN_IN) or ONE_TIME.search(p.path or ""):
         return True
-    return any(k.lower() in SECRET_PARAMS for k in parse_qs(p.query, keep_blank_values=True))
+    return any(part in k.lower() for k in parse_qs(p.query, keep_blank_values=True) for part in SECRET_PARTS)
 
 
 def search_query(url: str) -> str | None:
@@ -130,17 +135,21 @@ async def _learn(rt, browser_name: str, url: str, title: str, ts: float) -> bool
     if known and known["text"]:                    # read before: only the time of the visit changes
         return store.add(Doc(url=url, title=title, kind="browser", visited=ts)) is not None
     page_title, text = await sources.read_page(rt, url)
-    if not text or sources.looks_like_login(title or page_title, text):
-        text = ""                                  # a login wall / nothing readable: the title and the address only
-    return store.add(Doc(url=url, title=title or page_title or url, kind="browser", text=text[:6000], source=browser_name,
+    if not text or sources.looks_like_login(page_title, text):
+        # a login wall / nothing readable: only what anybody sees – never the title of YOUR signed-in page (review I5)
+        return store.add(Doc(url=url, title=page_title or domain(url), kind="browser", source=browser_name, visited=ts)) is not None
+    return store.add(Doc(url=url, title=page_title or title or url, kind="browser", text=text[:6000], source=browser_name,
                          visited=ts)) is not None
 
 
 async def learn_round(rt, now: float | None = None) -> int:
     cfg = rt.cfg.webknow
-    if not cfg.browser or rt.memory.private:
-        return 0
     now = now or time.time()
+    if not cfg.browser or rt.memory.private:
+        # what you visit while this is off or in the private mode is never learned later (review I4)
+        for _name, _flavor, path in history_files():
+            rt.db.exec("INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)", (f"webknow_browser_since:{path}", str(now)))
+        return 0
     stored = 0
     sem = asyncio.Semaphore(4)
     for name, flavor, path in history_files():

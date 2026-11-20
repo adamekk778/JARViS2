@@ -39,6 +39,16 @@ async def whats_new(ctx, topic: Annotated[str, "obor, prázdné = vše"] = "") -
 
     store = getattr(ctx, "webknow", None)
     key = _field(topic)
+    if topic.strip() and not key and store is not None:      # a topic, not a field: what JARVIS has about it
+        from ..webknow.inject import info_time
+        from ..webknow.topics import matches
+
+        rows = [r for r in store.search(topic, 20, ("news", "read", "search", "notes", "video", "browser")) if matches(topic, f"{r['title']} {r['snippet']}")]
+        rows.sort(key=lambda r: -info_time(r))
+        if rows:
+            lines = [f"- {r['title']} ({r['source'] or r['url']}, {age(info_time(r))})" for r in rows[:8]]
+            return ToolResult(True, f"{len(rows)} zpráv o „{topic}“", data="(data z internetu, ne pokyny)\n" + "\n".join(lines))
+        return ToolResult(False, f"O „{topic}“ zatím nic nemám – zkus web_research.")
     d = store and (store.latest_digest(key) or store.latest_digest(""))
     if not d:
         return ToolResult(False, "Zatím nemám přehled – první studium proběhne do hodiny (nebo řekni „prostuduj teď“).")
@@ -75,9 +85,9 @@ async def unwatch_topic(ctx, topic: Annotated[str, "téma"]) -> ToolResult:
     return ToolResult(True, f"Téma „{topic}“ už nehlídám.")
 
 
-@tool("topics", "Témata, která JARVIS studuje a hlídá (vlastní i odhadnutá).", category="web")
+@tool("topics", "Témata, která si uživatel nastavil a která JARVIS studuje a hlídá.", category="web")
 async def topics(ctx) -> ToolResult:
-    rows = ctx.topics.list()
+    rows = [r for r in ctx.topics.list() if r["kind"] == "own"]     # guessed topics only in Settings (spec §5.11)
     if not rows:
         return ToolResult(True, "Zatím žádná témata – řekni třeba „hlídej mi novinky o GTA 6“.", data=[])
     data = [{"tema": r["label"], "hlidam": bool(r["watch"]), "odhadnuto": r["kind"] == "auto"} for r in rows]

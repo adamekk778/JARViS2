@@ -344,6 +344,7 @@ class Agent:
                 web = ""
             if web:
                 extra = (extra + "\n\n" if extra else "") + web
+                self._untrusted_seen = True        # review C1: text from the web is in this turn – full trust asks again
         msgs: list[dict] = [{"role": "system", "content": build_system_prompt(rt.cfg, facts, voice, extra)}]
         msgs += [_stored_to_llm(m) for m in history if m["role"] in ("user", "assistant")]
         need_vision = False

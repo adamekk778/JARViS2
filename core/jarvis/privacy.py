@@ -27,7 +27,8 @@ TABLES = {
     "db_snapshots": "záznamy o velikosti databází", "experiments": "deník experimentů",
     "doc_files": "zaindexované dokumenty", "doc_idx": "rejstřík dokumentů",
     "site_checks": "kontroly dostupnosti webů", "creative_assets": "evidence souborů a licencí", "tutor_progress": "postup v procvičování", "voice_bookmarks": "záložky v hovorech a konverzacích", "quotes": "evidence cenových nabídek", "customer_requests": "požadavky zákazníků", "competitor_snapshots": "uložené stránky konkurence", "sfx_index": "rejstřík zvukových efektů", "render_jobs": "fronta renderů", "pins": "připnuté úkoly v notchi", "fw_projects": "firmwarové projekty", "fw_builds": "historie sestavení firmwaru", "consents": "evidence souhlasů", "ai_cache": "mezipaměť odpovědí AI", "event_log": "záznam událostí pro automatizace", "sem_links": "propojení lidí a projektů napříč PC", "learn_projects": "projekty k učení",
-    "web_docs": "znalosti z internetu", "web_idx": "rejstřík znalostí z internetu",
+    "web_docs": "znalosti z internetu", "web_idx": "rejstřík znalostí z internetu", "web_topics": "témata (vlastní i odhadnutá)",
+    "web_watch_seen": "už ohlášené zprávy hlídaných témat", "web_emb": "rejstřík znalostí z internetu podle významu",
 }
 # (table, time column) pruned by the retention rule
 RETAIN = [("messages", "created"), ("tasks", "created"), ("task_actions", "ts"), ("task_evidence", "ts"),
@@ -212,7 +213,8 @@ def reset_all(rt) -> dict:
     for t in TABLES:
         if t in have:
             out[t] = rt.db.exec(f"DELETE FROM {t}").rowcount
-    rt.db.exec("DELETE FROM kv WHERE k NOT IN ('whats_new_seen')")
+    # the browser's "read up to here" marks stay: after a reset JARVIS must not re-learn the last day of browsing
+    rt.db.exec("DELETE FROM kv WHERE k NOT IN ('whats_new_seen') AND k NOT LIKE 'webknow_browser_since:%'")
     files = paths.data_dir() / "files"
     if files.is_dir():
         shutil.rmtree(files, ignore_errors=True)

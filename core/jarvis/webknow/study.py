@@ -90,6 +90,19 @@ def _key(label: str) -> str:
     return next((k for k, v in sources.CATEGORY_NAMES.items() if norm(v) == n or k == n), label.strip())
 
 
+def _mix(items: list[dict]) -> list[dict]:
+    """Newest first, taking turns between the sources (not twelve from the last feed of a field)."""
+    by_src: dict[str, list[dict]] = {}
+    for d in sorted(items, key=lambda d: -(d["published"] or d["fetched"] or 0)):
+        by_src.setdefault(d["source"] or "", []).append(d)
+    out: list[dict] = []
+    while any(by_src.values()):
+        for lst in by_src.values():
+            if lst:
+                out.append(lst.pop(0))
+    return out
+
+
 async def digest(rt) -> bool:
     """One AI call over the news not yet in a digest; one digest per field plus the whole one."""
     if not rt.cfg.webknow.digest:
@@ -98,13 +111,26 @@ async def digest(rt) -> bool:
     news = rt.webknow.since(upto, ("news",))
     if not news:
         return False
+    tp = getattr(rt, "topics", None)
+    own = {t["label"] for t in tp.list() if t["kind"] == "own"} if tp is not None else set()
     groups: dict[str, list[dict]] = {}
-    for d in news:
-        groups.setdefault(d["topic"] or "", []).append(d)
+    for d in news:                      # fields and your own topics; guessed topics never show up here (review I6)
+        if d["topic"] in sources.CATEGORY_NAMES or d["topic"] in own:
+            groups.setdefault(d["topic"], []).append(d)
+    if not groups:
+        _set(rt, "webknow_digest_upto", max(d["fetched"] for d in news))
+        return False
+    room = (DIGEST_IN - 40 * len(groups)) // len(groups)      # every field gets its share (review I2)
     lines: list[str] = []
     for topic, items in groups.items():
         lines.append(f"## {_label(topic)}")
-        lines += [f"- {d['title']}" + (f" ({d['source']})" if d["source"] else "") for d in items[-PER_GROUP:]]
+        used = 0
+        for d in _mix(items)[:PER_GROUP]:
+            line = f"- {d['title']}" + (f" ({d['source']})" if d["source"] else "")
+            if used + len(line) > room:
+                break
+            lines.append(line)
+            used += len(line) + 1
     text = "\n".join(lines)[:DIGEST_IN]
     try:
         out = (await rt.router.complete([{"role": "system", "content": DIGEST_PROMPT}, {"role": "user", "content": text}],
@@ -153,12 +179,12 @@ async def run_round(rt) -> dict:
     return out
 
 
-def daily(rt, today: dt.date | None = None) -> None:
+async def daily(rt, today: dt.date | None = None) -> None:
     today = today or dt.date.today()
     if _kv(rt, "webknow_daily") == today.isoformat():
         return
     _set(rt, "webknow_daily", today.isoformat())
-    rt.webknow.prune()
+    await asyncio.to_thread(rt.webknow.prune)              # review I9: never freezes voice, notch and chat
     if getattr(rt, "topics", None) is not None:
         from . import topics
 
@@ -171,7 +197,7 @@ async def study_loop(rt) -> None:
         try:
             if due(rt):
                 await run_round(rt)
-            daily(rt)
+            await daily(rt)
         except Exception as e:  # noqa: BLE001 – try again at the next tick
             log.warning("studium internetu: %s", e)
         await asyncio.sleep(TICK_S)

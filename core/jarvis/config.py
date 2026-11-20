@@ -692,7 +692,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
-    "webknow.study", "webknow.interval_min", "webknow.digest", "webknow.browser", "webknow.youtube", "webknow.guess_interests",
+    "webknow.study", "webknow.interval_min", "webknow.digest", "webknow.youtube", "webknow.guess_interests",
 }
 
 # Never sent to remote clients.
