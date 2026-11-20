@@ -251,6 +251,9 @@ class Runtime:
         from .webknow import study as webstudy
 
         self._sys_tasks.append(self._later(webstudy.study_loop(self)))   # spec 2026-11-20: hourly study of the internet
+        from .webknow import browser as webbrowser
+
+        self._sys_tasks.append(self._later(webbrowser.browser_loop(self)))   # spec 2026-11-20 §5.5: learn from the browser
         try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
             first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
             if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
@@ -500,6 +503,9 @@ class Runtime:
                 pass
             self.notify("Zkopírováno", "Popis chyby je ve schránce (bez hesel a klíčů) – vlož ho do chatu s vývojářem.", speak=False)
             return None
+        if act == "webknow_browser_on":             # spec 2026-11-20 §5.5: the one-time offer's button
+            self.update_config({"webknow": {"browser": True}})
+            return True, "Učení z prohlížeče je zapnuté."
         if act == "web_more":                     # spec 2026-11-20 §5.10: "Řekni víc" under a topic notice
             title = str(args.get("title") or "")[:200]
             if title:
