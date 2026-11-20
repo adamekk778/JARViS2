@@ -190,6 +190,46 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     return h("div", { class: "row has-ico" }, icon("waveform"), h("div", { class: "row-text" }, h("strong", {}, "Kalibrace „Hey Jarvis“"), msg),
       h("div", { class: "btn-row" }, btn, save));
   };
+  // 3.13 Přehled o světě: JARVIS reads the news by itself (topics + your own interests) and keeps a summary in mind
+  const WORLD_TOPICS: [string, string][] = [["cz", "Česko"], ["world", "Svět"], ["tech", "Technologie"], ["ai", "Umělá inteligence"],
+    ["business", "Ekonomika"], ["science", "Věda"], ["sport", "Sport"], ["games", "Hry"]];
+  let onWorld: ((m: any) => void) | null = null;
+  client.on("world", (m: any) => { extra.world = m; onWorld?.(m); });
+  const worldCard = () => {
+    const chosen = new Set<string>(getPath(S, "world.topics") || []);
+    const chips = h("div", { class: "wd-chips" }, ...WORLD_TOPICS.map(([id, label]) => {
+      const b = h("button", { type: "button", class: `chip ${chosen.has(id) ? "on" : ""}`, "aria-pressed": String(chosen.has(id)),
+        onclick: () => {
+          chosen.has(id) ? chosen.delete(id) : chosen.add(id);
+          b.classList.toggle("on", chosen.has(id));
+          b.setAttribute("aria-pressed", String(chosen.has(id)));
+          set("world.topics", WORLD_TOPICS.map(([t]) => t).filter((t) => chosen.has(t)));
+        } }, label);
+      return b;
+    }));
+    const interests = h("input", { class: "input", type: "text", placeholder: "Např. Valorant, Sparta Praha, Bitcoin",
+      value: (getPath(S, "world.interests") || []).join(", ") }) as HTMLInputElement;
+    interests.onchange = () => set("world.interests", interests.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 8));
+    const status = h("span", {}, "Zprávy z Google News (jen veřejné titulky, nic o tobě se nikam neposílá).");
+    const btn = h("button", { class: "btn", type: "button" }, icon("arrows-clockwise"), "Aktualizovat teď") as HTMLButtonElement;
+    btn.onclick = () => { btn.disabled = true; status.textContent = "Čtu zprávy a píšu přehled…"; client.send("world_refresh", { digest: true }); };
+    onWorld = (m: any) => {
+      btn.disabled = false;
+      const n = (m.topics || []).reduce((a: number, t: any) => a + (t.items || []).length, 0);
+      const at = Number(m.at) || 0;
+      status.textContent = `${n} čerstvých titulků` + (at ? ` · přehled z ${new Date(at * 1000).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}` : " · přehled ještě není");
+    };
+    if (extra.world) onWorld(extra.world);                // the page is drawn again often: show what is already known
+    if (!extra.worldAsked) { extra.worldAsked = true; client.send("world_get"); }
+    return card("Přehled o světě", "JARVIS má přístup k internetu a Googlu. Sám průběžně čte zprávy, píše si krátký přehled a ví, co se děje – na „co je nového“ odpoví hned, na přesné věci (výsledky, ceny) se zeptá Googlu i se zdroji. Google se zdroji používá tvůj klíč Gemini; bez něj hledá přes běžné vyhledávání.",
+      sw("world.enabled", "Sledovat dění ve světě", "Každou chvíli si přečte titulky zpráv podle témat níže."),
+      sw("world.in_answers", "Mít přehled v každé odpovědi", "Krátké shrnutí toho, co se děje, je součástí každé odpovědi (pár set znaků)."),
+      sw("world.digest", "Psát si přehled", "Pár krát denně z titulků napíše krátké shrnutí (stojí jednu odpověď AI, jen když jsi u PC)."),
+      field("Témata", chips, "Co sledovat", true),
+      field("Vlastní zájmy", interests, "Oddělené čárkou, nejvýš 8 – čte zprávy i o nich", false, "world.interests"),
+      range("world.every_min", "Číst zprávy jednou za", 15, 360, 15, (v) => (v >= 60 ? `${Math.floor(v / 60)} h${v % 60 ? ` ${v % 60} min` : ""}` : `${v} min`)),
+      h("div", { class: "row has-ico" }, h("span", { class: "set-ico", "aria-hidden": "true" }, icon("globe-hemisphere-west")), h("div", { class: "row-text" }, h("strong", {}, "Co JARVIS ví"), status), h("div", { class: "btn-row" }, btn)));
+  };
   // a titled group: the label above, the rows inside one card, thin lines between them
   const card = (title: string, help: string | null, ...kids: (Node | null)[]) =>
     h("section", { class: "group" }, h("h2", { class: "group-label" }, title),
@@ -355,6 +395,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet."),
           sw("brain.save_limits", "Šetřit limity zdarma", "Práci na pozadí (shrnutí dlouhých konverzací) udělá AI v tomhle PC, když máš zapnutou offline zálohu. Na tvoje otázky dál odpovídají rychlé AI z internetu."),
           h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
+        worldCard(),
       ];
     },
 

@@ -97,3 +97,19 @@ details > summary { border-radius: 10px; }
 .tr-chip.ok { background: rgb(48 209 88 / .16); color: #30d158; }
 .tr-chip.bad { background: rgb(255 69 58 / .16); color: #ff6961; }
 @media (max-width: 640px) { .trial .tr-row { grid-template-columns: auto minmax(0, 1fr); } .trial .tr-acts { grid-column: 1 / -1; } }
+
+/* 3.13 Přehled o světě: topic chips */
+.wd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.wd-chips .chip { height: 32px; padding: 0 14px; border: 1px solid var(--edge, rgb(255 255 255 / .1)); background: var(--glass-2, rgb(255 255 255 / .05));
+  color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.wd-chips .chip:hover { color: var(--text); }
+.wd-chips .chip.on { border-color: rgb(10 132 255 / .55); background: rgb(10 132 255 / .2); color: var(--text, #fff); }
+
+/* pop-up windows (Co je nového, souhrn…) are always readable: a dimmed, blurred page behind, a solid glass panel, and
+   a long list scrolls inside instead of running off the screen */
+.palette.recap-overlay { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); background: rgb(0 0 0 / .55); }
+.recap-box > .card { max-height: calc(100vh - 48px); overflow-y: auto; scrollbar-width: thin; box-sizing: border-box; }
+.recap-box > .whatsnew { background: radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%), rgb(20 21 27 / .94);
+  -webkit-backdrop-filter: blur(30px) saturate(1.3); backdrop-filter: blur(30px) saturate(1.3); box-shadow: inset 0 1px 0 rgb(255 255 255 / .1), 0 30px 80px rgb(0 0 0 / .5); }
+:root[data-theme="light"] .recap-box > .whatsnew { background: rgb(255 255 255 / .96); }
+.wn-item .suggest-ico { flex: none; }

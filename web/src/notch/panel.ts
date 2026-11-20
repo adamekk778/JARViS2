@@ -18,7 +18,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices" | "games";
+export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices" | "games" | "world";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -39,9 +39,10 @@ const NAV: [Section, string, string][] = [
   ["brains", "brain", "AI přehled"],
   ["notices", "bell-simple", "Upozornění"],
   ["games", "game-controller", "Hry"],
+  ["world", "globe-hemisphere-west", "Ve světě"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices", "games"];
+const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices", "games", "world"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -618,6 +619,7 @@ export function buildPanel(ctx: PanelCtx) {
     subsTile,
     tile("notices", "bell-simple", "Upozornění", "Co ti JARVIS hlásil, když jsi nekoukal"),
     tile("games", "game-controller", "Hry", "Co hraješ, jak dlouho a výsledky"),
+    tile("world", "globe-hemisphere-west", "Ve světě", "Co se děje – JARVIS čte zprávy sám"),
     tile(null, "eye-slash", "Schovat notch", "Zpátky Ctrl+Alt+N", "mo-hide", () => { (window as any).pywebview?.api?.hide_notch?.(); }),
     tile("files", "folder-simple", "Soubory", "Police na soubory"),
     tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
@@ -729,7 +731,30 @@ export function buildPanel(ctx: PanelCtx) {
       h("p", {}, `${g.sessions}× hráno` + (g.wins || g.losses || g.draws ? ` · ${g.wins} výher, ${g.losses} proher${g.draws ? `, ${g.draws} remíz` : ""}` : "")))) :
       [h("p", { class: "nt-empty" }, "Zatím žádné hraní – JARVIS ho začne počítat sám, jakmile spustíš hru.")]));
   });
-  const views: Record<Section, HTMLElement> = { notices: noticesView, games: gamesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  // 3.13 Přehled o světě: JARVIS's own summary of the news + the latest headlines per topic (a click opens the article)
+  const worldDigest = h("p", { class: "wd-text" });
+  const worldList = h("div", { class: "nt-list" });
+  const worldHead = h("span", {}, "JARVIS sám čte zprávy a ví, co se děje");
+  const worldBtn = h("button", { class: "wd-refresh", type: "button", title: "Načíst zprávy znovu a napsat nový přehled",
+    onclick: () => { worldBtn.classList.add("busy"); client.send("world_refresh", { digest: true }); } }, icon("arrows-clockwise"), "Aktualizovat");
+  const worldView = h("div", { class: "p-sec notices world" },
+    h("div", { class: "nt-head wd-head" }, h("div", {}, h("strong", {}, "Ve světě"), worldHead), worldBtn),
+    h("div", { class: "nt-item wd-digest" }, h("div", { class: "nt-row" }, h("strong", {}, "Co se teď děje")), worldDigest), worldList);
+  client.on("world", (m) => {
+    worldBtn.classList.remove("busy");
+    const at = Number(m.at) || 0;
+    worldHead.textContent = m.enabled === false ? "Vypnuto v Nastavení → Přehled o světě"
+      : at ? `Přehled ${fmtAgo(at)} · JARVIS ho má v každé odpovědi` : "JARVIS sám čte zprávy a ví, co se děje";
+    worldDigest.textContent = String(m.digest || "Přehled ještě není napsaný – klikni na Aktualizovat, nebo počkej, JARVIS ho napíše sám.");
+    const topics: any[] = (m.topics || []).filter((t: any) => (t.items || []).length);
+    worldList.replaceChildren(...(topics.length ? topics.map((t) => h("div", { class: "nt-item wd-topic" },
+      h("div", { class: "nt-row" }, h("strong", {}, String(t.label))),
+      ...(t.items || []).slice(0, 4).map((it: any) => h("button", { class: "wd-line", type: "button", title: String(it.url || ""),
+        onclick: () => it.url && quick("open_url", { url: it.url }) },
+        h("span", { class: "wd-title" }, String(it.title || "")), h("span", { class: "nt-time" }, `${it.source || ""} · ${fmtAgo(Number(it.published) || 0)}`)))))
+      : [h("p", { class: "nt-empty" }, "Zprávy se ještě načítají – JARVIS je čte sám každou hodinu.")]));
+  });
+  const views: Record<Section, HTMLElement> = { world: worldView, notices: noticesView, games: gamesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -758,7 +783,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "games", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "games", "world", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -810,6 +835,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "activity") renderActivity();
     if (s === "notices") client.send("notices_get");
     if (s === "games") client.send("games_get", { days: 7 });
+    if (s === "world") client.send("world_get");
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
 

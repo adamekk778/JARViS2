@@ -5,6 +5,7 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.13": [
+    { icon: "globe-hemisphere-west", title: "JARVIS ví, co se děje ve světě", line: "Má přístup k internetu a Googlu. Sám průběžně čte zprávy (Česko, svět, technologie, AI, hry… i tvoje vlastní zájmy), píše si krátký přehled a ten má v každé odpovědi. Na přesné věci (výsledky, ceny, kdo vyhrál) se zeptá Googlu a řekne i zdroje. „Sleduj zprávy o Valorantu“ přidá téma. V notchi: Více → Ve světě, nastavení v Mozku." },
     { icon: "lightbulb", title: "Herní pomocník", line: "JARVIS pozná, co hraješ, a v notchi občas ukáže krátký tip ke hře (Valorant, CS2, LoL, Minecraft, Fortnite… a pro ostatní si tipy napíše AI). Počítá, kolik a co hraješ (Více → Hry), výsledek zapíšeš hlasem „vyhrál jsem 13:7“ a během hry uvolní grafiku od offline AI. Tipy jsou nejlépe vidět, když má hra „Okno bez okrajů“." },
     { icon: "bell-ringing", title: "„Dej mi vědět, až najde zápas“", line: "JARVIS hlídá obrazovku a jakmile se objeví, co čekáš (nalezený zápas, dostahovaná hra), dá vědět v notchi i do telefonu." },
     { icon: "hand-swipe-left", title: "Gesta na notchi", line: "Táhni po notchi doleva/doprava = další/předchozí písnička, dolů = otevřít. Funguje i dvěma prsty na touchpadu. Časovač vedle písničky ukazuje zbývající čas." },

@@ -15,7 +15,7 @@ import unicodedata
 CORE = (
     "open_app", "close_app", "open_url", "web_search", "web_read", "get_time", "weather", "set_timer", "set_reminder",
     "media_control", "volume", "youtube_play", "remember", "search_memory", "clipboard_get", "type_text", "press_keys",
-    "window_control", "screenshot", "system_info", "send_to_phone",
+    "window_control", "screenshot", "system_info", "send_to_phone", "google_ask", "world_news",
 )
 MAX_EXTRA = 10          # tools picked by the message's words
 MAX_FOUND = 8           # tools one find_tools call adds

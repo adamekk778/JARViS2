@@ -123,6 +123,9 @@ class Runtime:
         from .gamecoach import GameCoach
 
         self.gamecoach = GameCoach(self)         # 3.13 Herní pomocník (what you play, tips, playing time)
+        from .worldwatch import WorldWatch
+
+        self.world = WorldWatch(self)            # 3.13 Přehled o světě (the news, by itself)
         self.on_game_tip = None                  # the desktop shows the notch over a game for a tip
         from collections import deque as _deque
 
@@ -234,6 +237,9 @@ class Runtime:
         from . import gamecoach
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
+        from . import worldwatch
+
+        self._sys_tasks.append(self._later(worldwatch.loop(self)))                              # 3.13 Přehled o světě
         from . import bizagents
 
         self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti

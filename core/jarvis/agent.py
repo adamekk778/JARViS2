@@ -27,6 +27,7 @@ NO_BRAIN = ("Omlouvám se, teď se nemůžu spojit s žádným AI mozkem. V Nast
 TOOL_LABELS = {
     "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
     "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
+    "google_ask": "Ptám se Googlu", "world_news": "Čtu zprávy",
     "volume": "Hlasitost", "media_control": "Média", "screenshot": "Snímek obrazovky",
     "system_power": "Napájení", "run_shell": "PowerShell", "computer_use": "Ovládám počítač",
     "run_python": "Spouštím kód", "generate_image": "Kreslím obrázek", "set_timer": "Časovač",
@@ -326,7 +327,12 @@ class Agent:
         vm = getattr(rt, "voice_mood", None)          # OMEGA P3.12: only when switched on, only fresh, only a hint
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
                 if voice and vm and time.time() - vm["ts"] < 60 and vm["mood"] not in ("klid", "nevím") else "")
-        extra = "\n\n".join(x for x in (proj, mood, extra) if x)
+        world = ""
+        try:                                         # 3.13 what is going on in the world (its own summary of the news)
+            world = rt.world.for_prompt() if getattr(rt, "world", None) is not None else ""
+        except Exception:  # noqa: BLE001
+            world = ""
+        extra = "\n\n".join(x for x in (proj, mood, world, extra) if x)
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:
             history = history[:-1]

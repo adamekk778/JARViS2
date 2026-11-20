@@ -164,3 +164,21 @@ html[data-nstyle="dynamic"] .n-alert-acts:empty { display: none; }
 html[data-nstyle="dynamic"] .n-pip.wide { width: 74px; border-radius: 18px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 9px 0 7px; }
 .n-pip.wide .pip-time { font-size: 12.5px; font-weight: 650; color: #ff9f0a; font-variant-numeric: tabular-nums; }
 .n-pip.wide .n-ring { width: 18px; height: 18px; }
+
+/* 3.13 Ve světě: the summary card and the headlines per topic (a line opens the article) */
+.world .wd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.world .wd-head > div { display: grid; gap: 2px; min-width: 0; }
+.world .wd-refresh { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: rgb(255 255 255 / .1); color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); transition: background .2s; }
+.world .wd-refresh:hover { background: rgb(255 255 255 / .16); }
+.world .wd-refresh.busy i { animation: wd-spin 1s linear infinite; }
+@keyframes wd-spin { to { transform: rotate(360deg); } }
+.world .wd-digest { background: linear-gradient(150deg, rgb(10 132 255 / .16), rgb(255 255 255 / .04) 60%); }
+.world .wd-text { margin: 6px 0 0; white-space: pre-line; font-size: 13px; line-height: 1.55; color: rgb(235 240 245 / .86); user-select: text; -webkit-user-select: text; }
+.world .wd-topic { display: grid; gap: 2px; }
+.world .wd-line { display: grid; gap: 2px; width: calc(100% + 16px); padding: 7px 8px; margin: 0 -8px; border: 0; border-radius: 12px; background: none; text-align: left;
+  color: inherit; font: inherit; cursor: pointer; transition: background .15s; }
+.world .wd-line:hover { background: rgb(255 255 255 / .07); }
+.world .wd-title { font-size: 13px; line-height: 1.4; color: rgb(240 243 248 / .9); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.world .wd-line .nt-time { font-size: 11px; }

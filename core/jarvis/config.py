@@ -426,6 +426,16 @@ class MailCfg(BaseModel):
     check_seconds: int = 20
 
 
+class WorldCfg(BaseModel):
+    """3.13 Přehled o světě: JARVIS reads the news by itself and knows what is going on."""
+    enabled: bool = True
+    topics: list[str] = Field(default_factory=lambda: ["cz", "world", "tech", "ai", "games"])
+    interests: list[str] = Field(default_factory=list)   # your own topics ("Valorant", "Sparta Praha", "Bitcoin")
+    every_min: int = 60              # how often the news is read
+    digest: bool = True              # a few times a day the AI writes a short summary from the headlines
+    in_answers: bool = True          # …and keeps it in mind in every answer
+
+
 class GamesCfg(BaseModel):
     """3.13 Herní pomocník: what you play is recognised; tips in the notch, playing time, the graphics card for the game."""
     tips: bool = True               # a short tip for the game in the notch now and then
@@ -576,6 +586,7 @@ class Config(BaseModel):
     calendar: CalendarCfg = Field(default_factory=CalendarCfg)
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
     games: GamesCfg = Field(default_factory=GamesCfg)
+    world: WorldCfg = Field(default_factory=WorldCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
@@ -660,6 +671,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
+    "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 
