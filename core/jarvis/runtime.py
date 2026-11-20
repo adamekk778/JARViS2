@@ -139,6 +139,9 @@ class Runtime:
         from .webknow import WebStore
 
         self.webknow = WebStore(self)          # spec 2026-11-20: what JARVIS saw on the internet
+        from .webknow.topics import Topics
+
+        self.topics = Topics(self)             # spec 2026-11-20 §5.10: watched and guessed topics
         from .learning import Learning
 
         self.learning = Learning(self)         # OMEGA §10 / §36: flashcards, tests, weak spots, exam plans
@@ -496,6 +499,12 @@ class Runtime:
             except Exception:  # noqa: BLE001
                 pass
             self.notify("Zkopírováno", "Popis chyby je ve schránce (bez hesel a klíčů) – vlož ho do chatu s vývojářem.", speak=False)
+            return None
+        if act == "web_more":                     # spec 2026-11-20 §5.10: "Řekni víc" under a topic notice
+            title = str(args.get("title") or "")[:200]
+            if title:
+                bg(self.agent.handle(f"Řekni mi víc o: {title}", [], "notice"))
+                return True, "Zjišťuju víc…"
             return None
         if act == "open_window" and self.ui_hook:
             self.ui_hook(str(args.get("view") or "chat"))

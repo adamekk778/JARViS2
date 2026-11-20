@@ -57,3 +57,28 @@ async def study_now(ctx) -> ToolResult:
         return ToolResult(False, "Studium internetu je vypnuté (Nastavení → Internet a znalosti).")
     tail = "a napsal přehled" if r["digest"] else "(přehled napíšu, až bude AI volná)"
     return ToolResult(True, f"Prostudováno: {r['new']} nových zpráv {tail}.", data=r)
+
+
+@tool("watch_topic", "Hlídá téma na internetu („hlídej mi novinky o GTA 6“): jakmile o něm vyjde něco nového, dá vědět "
+      "v notchi / na mobilu (nejvýš 6× denně, ne ve hře ani v noci). Téma se zároveň studuje.", category="web")
+async def watch_topic(ctx, topic: Annotated[str, "téma, 2–4 slova"]) -> ToolResult:
+    try:
+        t = ctx.topics.watch(topic)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    return ToolResult(True, f"Hlídám téma „{t['label']}“. Ozvu se, až o něm vyjde něco nového.")
+
+
+@tool("unwatch_topic", "Přestane hlídat téma („už mi nehlídej GTA 6“). Téma se dál studuje, jen bez upozornění.", category="web")
+async def unwatch_topic(ctx, topic: Annotated[str, "téma"]) -> ToolResult:
+    ctx.topics.unwatch(topic)
+    return ToolResult(True, f"Téma „{topic}“ už nehlídám.")
+
+
+@tool("topics", "Témata, která JARVIS studuje a hlídá (vlastní i odhadnutá).", category="web")
+async def topics(ctx) -> ToolResult:
+    rows = ctx.topics.list()
+    if not rows:
+        return ToolResult(True, "Zatím žádná témata – řekni třeba „hlídej mi novinky o GTA 6“.", data=[])
+    data = [{"tema": r["label"], "hlidam": bool(r["watch"]), "odhadnuto": r["kind"] == "auto"} for r in rows]
+    return ToolResult(True, ", ".join(r["label"] + (" 🔔" if r["watch"] else "") for r in rows), data=data)

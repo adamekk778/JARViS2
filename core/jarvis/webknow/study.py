@@ -125,6 +125,10 @@ async def run_round(rt) -> dict:
     new = await collect(rt)
     out["new"] = len(new)
     _set(rt, "webknow_last_study", time.time())
+    if getattr(rt, "topics", None) is not None:
+        from . import topics
+
+        out["notified"] = await topics.check_watches(rt, new)
     if not ai_paused(rt):
         out["digest"] = await digest(rt)
     return out
