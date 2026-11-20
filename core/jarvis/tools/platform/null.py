@@ -113,6 +113,10 @@ class NullPlatform(Platform):
         return {"window": self._WINDOW, "focused": "Výsledek"}
     def set_dark_mode(self, dark): self._rec("set_dark_mode", dark)
 
+    def screenshot_monitor(self, index: int) -> bytes:
+        self._rec("screenshot_monitor", index)
+        return self.screenshot()
+
     def screenshot(self) -> bytes:
         from PIL import Image
 

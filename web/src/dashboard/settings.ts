@@ -396,6 +396,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("brain.save_limits", "Šetřit limity zdarma", "Práci na pozadí (shrnutí dlouhých konverzací) udělá AI v tomhle PC, když máš zapnutou offline zálohu. Na tvoje otázky dál odpovídají rychlé AI z internetu."),
           h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
         worldCard(),
+        card("Multitasking", "JARVIS se umí rozdělit až na 100 agentů, kteří pracují zároveň: jeden ovládá monitor (aplikaci, menu hry, obchodní platformu), druhý jiný monitor jen sleduje a hodnotí („vyplatí se, nebo ne“), další hledají a počítají. Stačí říct např. „na monitoru 1 obchoduj, na monitoru 2 hlídej, jestli se to vyplatí“. Každý nákup, prodej nebo platbu ti vždy dá ke schválení. Agenty vidíš v notchi: Více → Agenti.",
+          range("multitask.parallel", "Kolik agentů se ptá AI najednou", 1, 50, 1, (v) => `${v}`),
+          h("p", { class: "help" }, "Bezplatné AI mají limit dotazů za minutu – při 4–8 to běží plynule, víc má smysl s placeným klíčem. Ostatní agenti se střídají."),
+          range("multitask.watch_every_s", "Sledující agent se dívá jednou za", 5, 120, 5, (v) => `${v} s`)),
       ];
     },
 

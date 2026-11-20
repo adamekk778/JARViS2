@@ -5,6 +5,7 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.13": [
+    { icon: "users-three", title: "Multitasking – až 100 agentů najednou", line: "JARVIS se rozdělí na agenty, kteří pracují zároveň na pozadí, a ty s ním mezitím dál mluvíš. Jeden ovládá monitor (aplikaci, menu hry, obchodní platformu), druhý jiný monitor sleduje a hodnotí, jestli se to vyplatí, další hledají a počítají. Každý nákup, prodej nebo platbu ti vždy dá ke schválení. V notchi: Více → Agenti." },
     { icon: "globe-hemisphere-west", title: "JARVIS ví, co se děje ve světě", line: "Má přístup k internetu a Googlu. Sám průběžně čte zprávy (Česko, svět, technologie, AI, hry… i tvoje vlastní zájmy), píše si krátký přehled a ten má v každé odpovědi. Na přesné věci (výsledky, ceny, kdo vyhrál) se zeptá Googlu a řekne i zdroje. „Sleduj zprávy o Valorantu“ přidá téma. V notchi: Více → Ve světě, nastavení v Mozku." },
     { icon: "lightbulb", title: "Herní pomocník", line: "JARVIS pozná, co hraješ, a v notchi občas ukáže krátký tip ke hře (Valorant, CS2, LoL, Minecraft, Fortnite… a pro ostatní si tipy napíše AI). Počítá, kolik a co hraješ (Více → Hry), výsledek zapíšeš hlasem „vyhrál jsem 13:7“ a během hry uvolní grafiku od offline AI. Tipy jsou nejlépe vidět, když má hra „Okno bez okrajů“." },
     { icon: "bell-ringing", title: "„Dej mi vědět, až najde zápas“", line: "JARVIS hlídá obrazovku a jakmile se objeví, co čekáš (nalezený zápas, dostahovaná hra), dá vědět v notchi i do telefonu." },

@@ -126,6 +126,9 @@ class Runtime:
         from .worldwatch import WorldWatch
 
         self.world = WorldWatch(self)            # 3.13 Přehled o světě (the news, by itself)
+        from .multitask import Multitask
+
+        self.multitask = Multitask(self)         # 3.14 Multitasking (many agents at once, more monitors)
         self.on_game_tip = None                  # the desktop shows the notch over a game for a tip
         from collections import deque as _deque
 
@@ -540,6 +543,9 @@ class Runtime:
             if ap.task:
                 ap.why = "Zastaveno tlačítkem STOP."
                 ap.task.cancel()
+        mt = getattr(self, "multitask", None)
+        if mt is not None:                        # 3.14 STOP also stops every multitasking agent
+            mt.stop(why="Zastaveno tlačítkem STOP.")
         if getattr(self, "remote_desk", None) is not None and self.remote_desk.on:
             self.remote_desk.stop()           # STOP also ends a phone driving the PC
         self.pc_control.reset()

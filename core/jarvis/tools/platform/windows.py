@@ -452,6 +452,27 @@ class WindowsPlatform(Platform):
         u = ctypes.windll.user32
         return u.GetSystemMetrics(0), u.GetSystemMetrics(1)
 
+    def monitors(self) -> list[dict]:
+        """3.14 every monitor in desktop coordinates; the main one first (index 1), then left to right."""
+        import mss
+
+        with mss.mss() as s:
+            mons = [dict(m) for m in s.monitors[1:]]
+        mons.sort(key=lambda m: (not (m["left"] == 0 and m["top"] == 0), m["left"], m["top"]))
+        return [{"index": i, "left": m["left"], "top": m["top"], "width": m["width"], "height": m["height"],
+                 "primary": m["left"] == 0 and m["top"] == 0} for i, m in enumerate(mons, 1)]
+
+    def screenshot_monitor(self, index: int) -> bytes:
+        import mss
+        import mss.tools
+
+        m = next((x for x in self.monitors() if x["index"] == index), None)
+        if m is None:
+            raise ValueError(f"Monitor {index} není připojený.")
+        with mss.mss() as s:
+            shot = s.grab({"left": m["left"], "top": m["top"], "width": m["width"], "height": m["height"]})
+            return mss.tools.to_png(shot.rgb, shot.size)
+
     def run_shell(self, command: str, timeout: int = 60) -> tuple[int, str]:
         return _ps(command, timeout=timeout)
 

@@ -18,7 +18,7 @@ import { missingModelCard } from "../shared/localmissing";
 import { windowMap } from "../shared/viz";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 
-export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices" | "games" | "world";
+export type Section = "home" | "habits" | "music" | "chat" | "quick" | "system" | "clips" | "shots" | "notes" | "mirror" | "files" | "workspaces" | "tools" | "settings" | "more" | "activity" | "brains" | "notices" | "games" | "world" | "agents";
 
 const NAV: [Section, string, string][] = [
   ["home", "house", "Domů"],
@@ -40,9 +40,10 @@ const NAV: [Section, string, string][] = [
   ["notices", "bell-simple", "Upozornění"],
   ["games", "game-controller", "Hry"],
   ["world", "globe-hemisphere-west", "Ve světě"],
+  ["agents", "users-three", "Agenti"],
 ];
 // 3.12 Dynamic Island: five tabs in the head; the rest sits behind "Více"
-const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices", "games", "world"];
+const EXTRA: Section[] = ["brains", "notes", "mirror", "files", "workspaces", "tools", "settings", "activity", "notices", "games", "world", "agents"];
 
 export interface PanelCtx {
   client: JarvisClient;
@@ -620,6 +621,7 @@ export function buildPanel(ctx: PanelCtx) {
     tile("notices", "bell-simple", "Upozornění", "Co ti JARVIS hlásil, když jsi nekoukal"),
     tile("games", "game-controller", "Hry", "Co hraješ, jak dlouho a výsledky"),
     tile("world", "globe-hemisphere-west", "Ve světě", "Co se děje – JARVIS čte zprávy sám"),
+    tile("agents", "users-three", "Agenti", "Multitasking – kdo na čem pracuje, monitory"),
     tile(null, "eye-slash", "Schovat notch", "Zpátky Ctrl+Alt+N", "mo-hide", () => { (window as any).pywebview?.api?.hide_notch?.(); }),
     tile("files", "folder-simple", "Soubory", "Police na soubory"),
     tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
@@ -754,7 +756,50 @@ export function buildPanel(ctx: PanelCtx) {
         h("span", { class: "wd-title" }, String(it.title || "")), h("span", { class: "nt-time" }, `${it.source || ""} · ${fmtAgo(Number(it.published) || 0)}`)))))
       : [h("p", { class: "nt-empty" }, "Zprávy se ještě načítají – JARVIS je čte sám každou hodinu.")]));
   });
-  const views: Record<Section, HTMLElement> = { world: worldView, notices: noticesView, games: gamesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
+  // 3.14 Multitasking: every agent live – what it does, on which monitor, the watchers' verdicts; stop one or all
+  const agHead = h("span", {}, "Řekni třeba: „na monitoru 1 obchoduj, na monitoru 2 hlídej, jestli se to vyplatí“");
+  const agMons = h("div", { class: "ag-mons" });
+  const agList = h("div", { class: "nt-list" });
+  const agStopAll = h("button", { class: "wd-refresh ag-stop", type: "button", hidden: true,
+    onclick: () => client.send("multitask_stop", {}) }, icon("stop-circle"), "Zastavit vše");
+  const agentsView = h("div", { class: "p-sec notices world agents" },
+    h("div", { class: "nt-head wd-head" }, h("div", {}, h("strong", {}, "Agenti"), agHead), agStopAll), agMons, agList);
+  const AG_ICON: Record<string, string> = { work: "brain", screen: "cursor-click", watch: "eye" };
+  const AG_STATE: Record<string, string> = { waiting: "čeká", running: "pracuje", done: "hotovo", failed: "chyba", stopped: "zastaven" };
+  client.on("multitask", (m) => {
+    const mons: any[] = m.monitors || [];
+    const sessions: any[] = m.sessions || [];
+    const running = Number(m.running) || 0;
+    agStopAll.hidden = !running;
+    const who = running === 1 ? "Pracuje 1 agent" : running < 5 ? `Pracují ${running} agenti` : `Pracuje ${running} agentů`;
+    agHead.textContent = running ? `${who} · AI najednou ${m.parallel}` : sessions.length ? "Nic neběží – poslední výsledky níž"
+      : "Řekni třeba: „na monitoru 1 obchoduj, na monitoru 2 hlídej, jestli se to vyplatí“";
+    // the monitors as small screens with who works on them
+    const live = sessions.flatMap((s) => (s.workers || []).filter((w: any) => w.state === "running" && w.monitor));
+    agMons.replaceChildren(...mons.map((mo) => {
+      const on = live.filter((w: any) => w.monitor === mo.index);
+      return h("div", { class: `ag-mon ${on.length ? "on" : ""}` },
+        h("strong", {}, `Monitor ${mo.index}`), h("span", {}, `${mo.width}×${mo.height}${mo.primary ? " · hlavní" : ""}`),
+        h("em", {}, on.length ? on.map((w: any) => `${w.name}${w.verdict ? ` · ${w.verdict}` : ""}`).join(", ") : "volný"));
+    }));
+    agList.replaceChildren(...(sessions.length ? sessions.slice(0, 3).map((s) => {
+      const c = s.count || {};
+      const workers: any[] = s.workers || [];
+      return h("div", { class: "nt-item ag-session" },
+        h("div", { class: "nt-row" }, h("strong", {}, String(s.goal || "Úkol")),
+          h("span", { class: "nt-time" }, `${c.running || 0} pracuje · ${c.done || 0} hotovo${c.failed ? ` · ${c.failed} chyba` : ""}`)),
+        s.summary ? h("p", { class: "ag-sum" }, String(s.summary)) : null,
+        h("div", { class: "ag-grid" }, ...workers.slice(0, 100).map((w) => h("div", { class: `ag-w ${w.state}`, title: String(w.task || "") },
+          h("span", { class: "ag-ico" }, icon(AG_ICON[w.kind] || "robot")),
+          h("div", { class: "ag-txt" },
+            h("b", {}, String(w.name), w.monitor ? h("i", {}, ` · M${w.monitor}`) : null),
+            h("span", {}, w.verdict ? `${w.verdict}${w.last && w.last !== w.verdict ? " · " + w.last : ""}` : String(w.last || AG_STATE[w.state] || ""))),
+          w.state === "running" || w.state === "waiting"
+            ? h("button", { class: "ag-x", type: "button", title: "Zastavit tohohle agenta",
+              onclick: () => client.send("multitask_stop", { session: s.id, worker: w.id }) }, icon("x")) : h("span", { class: `ag-dot ${w.state}` })))));
+    }) : [h("p", { class: "nt-empty" }, "JARVIS se umí rozdělit až na 100 agentů najednou: jeden ovládá monitor, druhý ho sleduje a hodnotí, další hledají a počítají.")]));
+  });
+  const views: Record<Section, HTMLElement> = { agents: agentsView, world: worldView, notices: noticesView, games: gamesView, brains: brainsView.el, habits: habitsView.el, clips: clipsView.el, shots: shotsView.el, notes: notesView.el, mirror: mirror.el, home: homeView, music: music.el, chat: chat.el, quick: quickView, system: systemView, files: filesView, workspaces: wsView, tools: toolsView, settings: settingsView, more: moreView, activity: activityView };
 
   // the volume of the PC, right in the tab bar (follows changes made anywhere else)
   const volIcon = h("button", { class: "p-vol-ico", type: "button", "aria-label": "Ztlumit / zrušit ztlumení",
@@ -783,7 +828,7 @@ export function buildPanel(ctx: PanelCtx) {
 
   // 3.12 motion: a pill slides under the active tab, a section glides in from the side of its tab, and its cards
   // come in one after another (Web Animations: transform / opacity only, on the GPU)
-  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "games", "world", "files", "workspaces", "tools", "settings"];
+  const ORDER: Section[] = ["home", "habits", "music", "chat", "quick", "system", "clips", "shots", "notes", "mirror", "more", "brains", "activity", "notices", "games", "world", "agents", "files", "workspaces", "tools", "settings"];
   const tabInd = h("span", { class: "p-tab-ind", "aria-hidden": "true" });
   navEl.prepend(tabInd);
   const moveInd = (instant = false) => {
@@ -836,6 +881,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "notices") client.send("notices_get");
     if (s === "games") client.send("games_get", { days: 7 });
     if (s === "world") client.send("world_get");
+    if (s === "agents") client.send("multitask_get");
     if (s === "chat" && el.isConnected && el.closest(".notch")?.getAttribute("data-mode") === "panel") setTimeout(() => chat.focus(), 50);
   }
 

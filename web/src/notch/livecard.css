@@ -182,3 +182,34 @@ html[data-nstyle="dynamic"] .n-pip.wide { width: 74px; border-radius: 18px; disp
 .world .wd-line:hover { background: rgb(255 255 255 / .07); }
 .world .wd-title { font-size: 13px; line-height: 1.4; color: rgb(240 243 248 / .9); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .world .wd-line .nt-time { font-size: 11px; }
+
+/* 3.14 Agenti (multitasking): the monitors as small screens, then every agent as a tile */
+.agents .ag-stop { background: rgb(255 69 58 / .18); box-shadow: inset 0 0 0 1px rgb(255 69 58 / .35); }
+.agents .ag-stop:hover { background: rgb(255 69 58 / .28); }
+.agents .ag-mons { display: flex; gap: 8px; flex-wrap: wrap; }
+.agents .ag-mon { flex: 1 1 160px; display: grid; gap: 2px; padding: 10px 14px; border-radius: 16px; background: rgb(255 255 255 / .04);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08); min-width: 0; }
+.agents .ag-mon.on { background: linear-gradient(150deg, rgb(10 132 255 / .2), rgb(255 255 255 / .04)); box-shadow: inset 0 0 0 1px rgb(10 132 255 / .45); }
+.agents .ag-mon strong { font-size: 13px; color: #fff; }
+.agents .ag-mon span { font-size: 11px; color: rgb(235 240 245 / .5); }
+.agents .ag-mon em { font-style: normal; font-size: 12px; color: rgb(235 240 245 / .8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents .ag-sum { white-space: pre-line; }
+.agents .ag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; margin-top: 8px; }
+.agents .ag-w { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 12px;
+  background: rgb(255 255 255 / .04); }
+.agents .ag-w.running { background: rgb(10 132 255 / .12); }
+.agents .ag-w.failed { background: rgb(255 69 58 / .1); }
+.agents .ag-ico { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgb(255 255 255 / .07); font-size: 14px; color: rgb(235 240 245 / .85); }
+.agents .ag-w.running .ag-ico { color: #64d2ff; animation: ag-pulse 1.6s ease-in-out infinite; }
+@keyframes ag-pulse { 50% { opacity: .55; } }
+.agents .ag-txt { display: grid; min-width: 0; }
+.agents .ag-txt b { font-size: 12.5px; font-weight: 650; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents .ag-txt b i { font-style: normal; font-weight: 500; color: rgb(235 240 245 / .5); }
+.agents .ag-txt span { font-size: 11.5px; color: rgb(235 240 245 / .65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agents .ag-x { width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: 8px; background: rgb(255 255 255 / .06);
+  color: rgb(235 240 245 / .7); cursor: pointer; font-size: 12px; }
+.agents .ag-x:hover { background: rgb(255 69 58 / .25); color: #fff; }
+.agents .ag-dot { width: 8px; height: 8px; border-radius: 50%; background: rgb(235 240 245 / .3); margin-right: 8px; }
+.agents .ag-dot.done { background: #30d158; }
+.agents .ag-dot.failed { background: #ff453a; }
+.agents .ag-dot.stopped { background: #ff9f0a; }

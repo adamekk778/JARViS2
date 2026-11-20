@@ -56,6 +56,14 @@ class Platform:
     def clipboard_image_set(self, data: bytes) -> None: raise NotImplementedError
     def screenshot(self) -> bytes: raise NotImplementedError
     def screen_size(self) -> tuple[int, int]: return (1920, 1080)
+
+    # 3.14 more monitors: [{index (1 = main), left, top, width, height, primary}] – coordinates of the whole desktop
+    def monitors(self) -> list[dict]:
+        w, h = self.screen_size()
+        return [{"index": 1, "left": 0, "top": 0, "width": w, "height": h, "primary": True}]
+
+    def screenshot_monitor(self, index: int) -> bytes:   # one monitor's picture (1 = main)
+        return self.screenshot()
     def run_shell(self, command: str, timeout: int = 60) -> tuple[int, str]: raise NotImplementedError
     # computer use
     def click(self, x: int, y: int, button: str = "left", double: bool = False) -> None: raise NotImplementedError

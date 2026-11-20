@@ -436,6 +436,13 @@ class WorldCfg(BaseModel):
     in_answers: bool = True          # …and keeps it in mind in every answer
 
 
+class MultitaskCfg(BaseModel):
+    """3.14 Multitasking: JARVIS splits into many agents working at the same time (on more monitors too)."""
+    parallel: int = 6                # how many agents may ask the AI at the same moment (free AI limits: keep it low)
+    max_agents: int = 100            # how many agents one task may have
+    watch_every_s: int = 20          # how often a watching agent looks at its monitor
+
+
 class GamesCfg(BaseModel):
     """3.13 Herní pomocník: what you play is recognised; tips in the notch, playing time, the graphics card for the game."""
     tips: bool = True               # a short tip for the game in the notch now and then
@@ -587,6 +594,7 @@ class Config(BaseModel):
     phone_link: PhoneLinkCfg = Field(default_factory=PhoneLinkCfg)
     games: GamesCfg = Field(default_factory=GamesCfg)
     world: WorldCfg = Field(default_factory=WorldCfg)
+    multitask: MultitaskCfg = Field(default_factory=MultitaskCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
@@ -672,6 +680,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
+    "multitask.parallel", "multitask.watch_every_s",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 

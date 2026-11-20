@@ -28,6 +28,7 @@ TOOL_LABELS = {
     "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
     "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
     "google_ask": "Ptám se Googlu", "world_news": "Čtu zprávy",
+    "money_action": "Peníze – schválíš?", "multitask_start": "Rozděluji se na agenty", "multitask_stop": "Zastavuji agenty",
     "volume": "Hlasitost", "media_control": "Média", "screenshot": "Snímek obrazovky",
     "system_power": "Napájení", "run_shell": "PowerShell", "computer_use": "Ovládám počítač",
     "run_python": "Spouštím kód", "generate_image": "Kreslím obrázek", "set_timer": "Časovač",
