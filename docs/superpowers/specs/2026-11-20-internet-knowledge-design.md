@@ -1,7 +1,7 @@
-# JARVIS ví, co je na internetu: rychlé hledání, hodinové studium, učení z prohlížeče (spec)
+# JARVIS ví, co je na internetu: rychlé hledání, hodinové studium, učení z prohlížeče a z videí, hlídání témat (spec)
 
 Datum: 2026-11-20
-Stav: ke schválení
+Stav: schváleno (uživatel: „okey udělej vše“ – návrh + všech 6 vylepšení)
 Navazuje na: `tools/web.py` (web_search, web_read, google_search), `stark.py` (titulky z Google News v brífinku),
 `knowledge.py` (paměť a fulltext), `chatsummary.py` (práce AI na pozadí přes rychlý model).
 
@@ -30,6 +30,9 @@ Dnes JARVIS internet má (`web_search` přes DuckDuckGo, `web_read`, `google_sea
 - Vybral **variantu B**: sbírat + AI to každou hodinu prostuduje.
 - „když se ho zeptám na cokoliv, co jsem našel na internetu, tak aby to už věděl a mohl odpovídat a neprohledávat
   internet“. Na dotaz, jestli myslí to, co našel JARVIS, nebo i stránky, které čte sám v prohlížeči: **obojí**.
+- Na otázku „co se dá ještě vylepšit“ dostal 6 návrhů a řekl „udělej vše“: hlídání témat s upozorněním, JARVIS sám
+  pozná, co ho zajímá, videa z YouTube, hlubší studium jeho témat, kontrola z více zdrojů, hledání podle významu
+  (sekce 5.10–5.15).
 
 ## 2. Cíle, ne-cíle, anti-cíle
 
@@ -42,14 +45,23 @@ Dnes JARVIS internet má (`web_search` přes DuckDuckGo, `web_read`, `google_sea
   AI dostane vše v jednom kroku. Výsledek se uloží, takže příště už to JARVIS ví.
 - Každou hodinu (nastavitelné) studium: stovky titulků z mnoha oborů + krátký AI přehled „co je nového“ po oborech.
 - „Co je nového?“ (chat, hlas, telefon) → JARVIS odpoví hned z posledního přehledu.
+- Hlídaná témata: o tématu, které si uživatel řekne hlídat, JARVIS dá vědět, jakmile vyjde něco nového (notch / mobil),
+  bez rušení ve hře, při soustředění a v noci.
+- JARVIS sám pozná, co uživatele zajímá, a tato témata studuje (vidět v nastavení, jdou smazat).
+- Videa z YouTube, která uživatel pustí, si „přečte“ z titulků.
+- O tématech uživatele ví i pozadí: jednou denně si o každém přečte víc a vede si o něm „sešit“.
+- U důležitých faktů odpověď stojí aspoň na dvou nezávislých zdrojích; když se neshodnou, řekne to.
+- Hledá i podle významu (jiná slova, stejná věc), když si uživatel stáhne model.
 
 **Ne-cíle**
 - Stáhnout „celý internet“. Nejde to (ani Google to nedělá každou hodinu). JARVIS ví: co mu řekne jeho AI model z tréninku
   + co nasbíral + co si rychle dohledá a zapamatuje.
 - Číst celé články při hodinovém studiu (vyřazeno, viz Přístupy).
 - Rozšíření do prohlížeče, čtení stránek za přihlášením, čtení anonymních oken.
-- JARVIS sám od sebe neohlašuje zprávy (žádné vyskakování ani mluvení při nové zprávě). Ví to a řekne, když se
-  zeptáš. Upozornění na velké zprávy může přijít později jako samostatná věc.
+- Upozornění na všechny zprávy nebo „velké zprávy obecně“. JARVIS se ozve jen u témat, která si uživatel výslovně
+  řekl hlídat (5.10). Témata, která JARVIS sám odhadl (5.11), se studují, ale neohlašují.
+- Stahovat videa z YouTube (jen titulky) nebo přepisovat řeč videí bez titulků.
+- Stahovat model pro hledání podle významu bez souhlasu (platí pravidlo `knowledge.py`: nikdy nic potichu nestahovat).
 - Nová obrazovka v telefonní aplikaci (telefon mluví se stejným agentem, takže „co je nového“ funguje i tam).
 
 **Anti-cíle (i kdyby to technicky fungovalo, je to selhání)**
@@ -58,6 +70,8 @@ Dnes JARVIS internet má (`web_search` přes DuckDuckGo, `web_read`, `google_sea
 - Studium nebo AI přehled na lokální Ollamě rozhodí FPS ve hře.
 - JARVIS uloží obsah z bankovnictví, e-mailu, přihlašovacích stránek nebo z anonymního okna.
 - Text z webu se chová jako pokyn (prompt injection): webový obsah je vždy jen data.
+- Hlídané téma zaplaví notch nebo mobil (víc upozornění za hodinu na jedno téma, opakovaně stejná zpráva).
+- Odhadnuté téma je trapné nebo citlivé (zdraví, vztahy, peníze) a objeví se někde, kde ho uvidí někdo další.
 - Každá zpráva v chatu je dražší o tisíce tokenů, i když znalosti s otázkou nesouvisí.
 
 ## 3. Omezení
@@ -95,7 +109,7 @@ Dnes JARVIS internet má (`web_search` přes DuckDuckGo, `web_read`, `google_sea
 
 Tabulky v `rt.db`:
 - `web_docs`: `id, url (normalizovaná: bez utm_/fbclid, bez #), title, source_kind (news | digest | search | read |
-  browser | wiki), topic, source (např. „ČT24“, „Wikipedie“), published REAL, fetched REAL, visited REAL (prohlížeč),
+  browser | wiki | video | notes), topic, source (např. „ČT24“, „Wikipedie“), published REAL, fetched REAL, visited REAL (prohlížeč),
   snippet, text (nejvýš ~6 000 znaků), hash`. Unikátní podle `url` (u zpráv i podle hashe titulku: stejná zpráva
   z více zdrojů = jeden záznam + seznam zdrojů je builderova volba).
 - `web_idx`: FTS5 `title, body`, `tokenize='unicode61 remove_diacritics 2'` (stejně jako `knowledge.py`).
@@ -197,6 +211,9 @@ Pak funguje „co bylo v tom článku, co jsem ráno četl o …“ (zásah ve `
 - `web_knowledge_search(query, days, kind)`: hledání ve znalostech (i „co jsem četl v pondělí“).
 - `web_knowledge_forget(domain | all)`: „zapomeň, co jsem četl na …“. Potvrzuje uživatel (jako jiné mazání).
 - `study_now()`: „prostuduj teď, co je nového“ → jedno kolo studia hned.
+- `watch_topic(topic)`, `unwatch_topic(topic)`, `topics()`: hlídaná a studovaná témata (5.10, 5.11).
+- `topic_notes(topic)`: „co víš o …“ ze sešitu tématu (5.13). Sešit se do promptu dostane i sám přes 5.2.
+- `web_research(..., verify=true)`: kontrola z více zdrojů (5.14).
 
 ### 5.7 Nastavení a UI
 
@@ -207,6 +224,12 @@ Nová sekce v `config.py` (`Internet` / `cfg.webknow`) a v Nastavení dashboardu
   v prohlížeči. Zapnout?“, jedním klikem). Seznam „Nikdy se neučit z“ (výchozí citlivé weby jsou vidět a jdou upravit).
 - Kolik toho JARVIS ví: počet článků podle druhu, velikost, poslední studium, poslední přehled. Tlačítka „Prostudovat
   teď“ a „Zapomenout vše z internetu“.
+- Témata: hlídaná (zvoneček, přidat/odebrat), odhadnutá JARVISem (štítek „odhadnuto“, ✕ = už nikdy nenavrhovat,
+  ⭐ = udělat z něj vlastní téma), u každého odkaz na jeho sešit. Přepínač „Odhadovat, co mě zajímá“ (výchozí zapnuto).
+- Videa z YouTube: přepínač (výchozí zapnuto, ale funguje jen se zapnutým učením z prohlížeče nebo u videí, která pustí
+  JARVIS sám).
+- Hledání podle významu: stav (model je / není) a tlačítko „Stáhnout model (~600 MB)“; stahuje se přes stávající správce
+  lokální AI s průběhem, jen po kliknutí.
 - Domovská obrazovka dashboardu: karta „Co je nového“ s posledním přehledem (rozklik po oborech).
 - Klíče nastavení přidat do seznamu nastavitelných hlasem (jako `stark.briefing_news`), třeba „studuj každých 30 minut“.
 
@@ -228,6 +251,86 @@ Nová sekce v `config.py` (`Internet` / `cfg.webknow`) a v Nastavení dashboardu
   výsledky se uloží.
 - Studium: falešné RSS → nové položky; AI selže → sběr uložen, přehled ne; hra na celou obrazovku + Ollama → přehled odložen.
 - Prohlížeč: falešná databáze historie Chromium i Firefox (převod času), vyloučené weby, přihlašovací zeď, vypnuto = nic.
+- Hlídání: nová zpráva o tématu → jedno upozornění se všemi novinkami; stejná zpráva podruhé ne; strop za den; při
+  `quiet_reason` / attention gate se upozornění neřekne nahlas a počká na souhrn (stávající chování `rt.notify`).
+- Odhad témat: AI vrátí témata → uloží se jako odhadnutá; smazané se znovu neobjeví; citlivé se vyřadí; soukromé
+  konverzace se nepoužijí; AI nedostupná → nic se nezmění.
+- YouTube: falešný výstup yt-dlp (VTT titulky cs/en, žádné titulky) → text / jen titulek a popis; denní strop.
+- Sešity: falešná Wikipedie + články → AI dostane starý sešit + nové zdroje, nový sešit se uloží a zaindexuje.
+- Kontrola zdrojů: `verify=true` vrátí aspoň 2 různé domény se štítkem důvěryhodnosti; když jsou k dispozici jen
+  stránky jedné domény, výsledek to řekne.
+- Hledání podle významu: bez modelu se nic nevolá a fulltext funguje; s falešným modelem se zásahy přidají a časový
+  limit se dodrží.
+
+### 5.10 Hlídání témat s upozorněním
+
+- Tabulka `web_topics`: `name, kind (own | auto), watch INTEGER, created, last_seen, notes TEXT, notes_ts, dismissed INTEGER`.
+- „Hlídej mi novinky o GTA 6“ → `watch_topic` (téma se zároveň stane vlastním tématem studia).
+- Každé kolo studia (5.4) se pro hlídané téma stáhne Google News RSS hledání a projdou se nově nasbírané položky. Nové
+  zásahy, které uživatel ještě neviděl (`web_watch_seen`: téma + hash url/titulku), se sloučí do **jednoho** upozornění
+  na téma: titulek „Novinka: GTA 6“, text = 1–3 titulky, tlačítko „Otevřít“ (odkaz) a „Řekni víc“ (pošle JARVISovi
+  „řekni mi víc o <titulek>“).
+- Doručení přes `rt.notify(...)`: ten už řeší rušení (attention gate: ve hře, při soustředění, na schůzce se upozornění
+  odloží do souhrnu; v noci a ve hře se neřekne nahlas) a když uživatel není u PC, pošle to na mobil.
+- Proti zahlcení (moje volba): nejvýš 1 upozornění na téma za kolo a 6 na téma za den; víc se uloží a řekne se až na
+  dotaz („co nového o GTA 6?“). Nejvýš 10 hlídaných témat.
+- Shoda zprávy s tématem: všechna slova tématu (bez diakritiky, české koncovky) v titulku nebo úryvku; builder může
+  zpřesnit.
+
+### 5.11 JARVIS sám pozná, co tě zajímá
+
+- Jednou denně (moje volba: první kolo studia po 10:00) vezme za posledních 7 dní: otázky uživatele v chatu (ne
+  ze soukromého režimu), titulky stránek z prohlížeče, videí a hledání. Jedno volání rychlého modelu: „navrhni nejvýš 5
+  témat, která uživatele dlouhodobě zajímají; ne citlivá témata (zdraví, vztahy, peníze, politické přesvědčení,
+  sexualita)“. Vstup ~4 000 znaků.
+- Výsledek se uloží jako `kind=auto`. Témata, která uživatel smazal (`dismissed=1`), se znovu nenavrhnou. Odhadnuté
+  téma, ke kterému 30 dní nepřibyla žádná aktivita, samo zmizí.
+- Odhadnutá témata se studují (5.4 sběr, 5.13 sešit), ale **neohlašují** (žádné upozornění, jen 5.10).
+- Nejvýš 8 odhadnutých témat. Vidět jsou jen v Nastavení → Internet a znalosti, nikde jinde (ne v notchi ani na mobilu).
+
+### 5.12 Videa z YouTube
+
+- Zdroje: návštěvy `youtube.com/watch`, `youtu.be`, `youtube.com/shorts` z historie prohlížeče (5.5, takže jen když je
+  učení z prohlížeče zapnuté) a videa, která pustí JARVIS sám (`youtube_play`).
+- `yt-dlp` (už v závislostech) jen pro metadata a titulky: `skip_download`, titulky ručně psané i automatické, jazyky
+  cs, sk, en (první, který je). Žádné stahování videa ani zvuku.
+- VTT → čistý text (bez časů, bez opakovaných řádků automatických titulků), uloží se `source_kind=video`: titulek, kanál,
+  délka, popis (zkrácený), text titulků (nejvýš ~15 000 znaků).
+- Bez titulků → jen titulek, kanál a popis.
+- Denní strop 30 videí (moje volba), aby YouTube JARVISe neomezil. Bez AI v době ukládání: shrnutí udělá AI až na otázku
+  („o čem bylo to video o …?“).
+
+### 5.13 Hlubší studium témat („sešity“)
+
+- Jednou denně pro každé vlastní a odhadnuté téma (nejvýš 12 témat za den, ostatní příště; moje volba):
+  1. úvod článku z Wikipedie (cs, když není, en),
+  2. 2–3 nejlepší celé články o tématu z posledních 7 dní (z nasbíraných zpráv, jinak `web_research`),
+  3. jedno volání rychlého modelu: starý sešit + nové zdroje → nový sešit tématu: pozadí, klíčová fakta, co je nového,
+     otevřené otázky. Nejvýš ~3 000 znaků, česky, se zdroji.
+- Sešit se uloží do `web_topics.notes` a zaindexuje (`source_kind=notes`), takže ho 5.2 vloží do odpovědi sám.
+- Rozložení přes den: jeden sešit za kolo studia, aby nešlo 12 volání AI najednou (moje volba).
+- AI nedostupná nebo hra na celou obrazovku s lokální Ollamou → téma se přesune na další kolo.
+
+### 5.14 Kontrola z více zdrojů
+
+- `web_research(query, verify=true)` vybere stránky z **aspoň 2 různých domén** (jako stávající `fact_check`)
+  a u každé vrátí doménu a štítek důvěryhodnosti z `webintel.reliability`.
+- Pravidlo v promptu: u zdraví, peněz, práva, bezpečnosti, „je pravda, že…“ a u čísel a dat, na kterých něco závisí,
+  použij `verify=true`. Porovnej zdroje. Když se liší, řekni to a uveď oba. Když potvrzuje jen jeden zdroj, řekni to.
+- Žádné další volání AI navíc: porovnává hlavní AI v odpovědi. Cena je jen pomalejší síťová část (víc stránek).
+- Stávající `fact_check` zůstává na výslovné „ověř, jestli je pravda, že…“.
+- Do 5.2: když lokální znalosti obsahují stejný fakt ze 2+ domén, blok to uvede („potvrzeno 2 zdroji“).
+
+### 5.15 Hledání podle významu
+
+- Použije stávající mechanismus `knowledge.py` (`embed_model`, `_embed` přes Ollamu). Nový je jen rejstřík pro `web_docs`
+  (`web_emb`: id dokumentu, model, vektor z titulku + úryvku / začátku textu).
+- Model musí umět česky (vícejazyčný embedding model v Ollamě, ~600 MB; přesný výběr ověří builder na českých dotazech).
+  Stahuje se **jen po kliknutí** v Nastavení přes stávajícího správce lokální AI.
+- Vektory nových dokumentů se počítají po kolech studia po dávkách, ne při hře na celou obrazovku.
+- Použití: v 5.2 se hledá podle významu **jen když fulltext nenajde silný zásah** a model je k dispozici, s časovým
+  limitem ~300 ms (jinak se přeskočí). Ve `web_knowledge_search` vždy (fulltext + význam, sloučeno).
+- Bez modelu vše funguje jen s fulltextem.
 
 ## 6. Co je na stavitelovi
 
@@ -236,6 +339,9 @@ Nová sekce v `config.py` (`Internet` / `cfg.webknow`) a v Nastavení dashboardu
 - Slučování stejné zprávy z více zdrojů.
 - Vzhled sekce v Nastavení a karty „Co je nového“ (v duchu současného liquid glass vzhledu).
 - Kde přesně v kódu se `web_search` / `web_read` napojí na ukládání.
+- Přesný embedding model pro češtinu (5.15) a shoda zprávy s hlídaným tématem (5.10).
+- Rozpočet AI: celkem ~24 přehledů + ~12 sešitů + 1 odhad témat = ~37 volání rychlého modelu denně. Když provider hlásí
+  limit, přednost má chat uživatele; práce na pozadí počká (builder ověří, že to `rt.router` umí, jinak doplní).
 
 ## 7. Rozhodnutí, která jsem udělal já (uživatel je může změnit)
 
@@ -247,4 +353,9 @@ Nová sekce v `config.py` (`Internet` / `cfg.webknow`) a v Nastavení dashboardu
 5. Z výsledků vyhledávání v prohlížeči se ukládá jen dotaz.
 6. Ranní brífink použije AI přehled místo 3 titulků.
 7. AI přehled se odloží při hře na celou obrazovku, když by běžel na lokální Ollamě.
-8. JARVIS zprávy sám od sebe neohlašuje, jen je ví.
+8. Ozve se jen u hlídaných témat; odhadnutá témata se studují, ale neohlašují.
+9. Proti zahlcení: 1 upozornění na téma za kolo, 6 na téma za den, nejvýš 10 hlídaných témat.
+10. Odhad témat jednou denně, nejvýš 8 odhadnutých, bez citlivých témat, po 30 dnech bez aktivity zmizí.
+11. YouTube: nejvýš 30 videí denně, jen titulky a popis, shrnutí až na otázku.
+12. Sešity: nejvýš 12 témat denně, jeden za kolo studia.
+13. Model pro hledání podle významu má ~600 MB (ne ~300 MB, jak jsem psal v chatu): menší modely česky neumí dobře.
