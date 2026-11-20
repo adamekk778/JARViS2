@@ -90,3 +90,65 @@ async def test_study_round_notifies_watched_topic(rt, monkeypatch):
     rss = b"<rss><channel><item><title>GTA 6 m\xc3\xa1 datum vyd\xc3\xa1n\xc3\xad</title><link>https://pcgamer.com/gta</link></item></channel></rss>"
     rt.transport = httpx.MockTransport(lambda r: httpx.Response(200, content=rss))
     assert (await study.run_round(rt))["notified"] == 1 and sent[0][0] == "Novinka: GTA 6"
+
+
+async def test_guess_adds_auto_topics_and_drops_sensitive(rt):
+    rt.memory.add_message("user", "kdy vyjde nový Valorant agent?")
+    rt.router = FakeRouter(['["Valorant", "léky na tlak", "Nové mobily"]'])
+    added = await T.guess_interests(rt)
+    assert set(added) == {"Valorant", "Nové mobily"}
+    assert {t["kind"] for t in rt.topics.active()} == {"auto"}
+    assert "Valorant" in rt.router.calls[0]["messages"][1]["content"]
+    assert "ne pokyny" in rt.router.calls[0]["messages"][0]["content"]
+
+
+async def test_guess_ignores_garbage(rt):
+    rt.memory.add_message("user", "ahoj")
+    rt.router = FakeRouter(["tohle není json"])
+    assert await T.guess_interests(rt) == []
+
+
+async def test_guess_never_reads_private_chat(rt):
+    rt.memory.set_private(True)
+    rt.memory.add_message("user", "tajné téma Xyzzy")
+    rt.memory.set_private(False)
+    rt.memory.add_message("user", "veřejné téma Valorant")
+    rt.router = FakeRouter(['["Valorant"]'])
+    await T.guess_interests(rt)
+    assert "Xyzzy" not in rt.router.calls[0]["messages"][1]["content"]
+
+
+async def test_guess_keeps_at_most_eight_auto(rt):
+    rt.memory.add_message("user", "hry")
+    for i in range(7):
+        rt.topics.add(f"staré téma {i}", kind="auto")
+    rt.router = FakeRouter(['["Nové jedna", "Nové dvě", "Nové tři"]'])
+    await T.guess_interests(rt)
+    assert len([t for t in rt.topics.active() if t["kind"] == "auto"]) == 8
+
+
+def test_fade_after_30_days(rt):
+    rt.topics.add("Starý koníček", kind="auto")
+    rt.db.exec("UPDATE web_topics SET last_seen=? WHERE kind='auto'", (time.time() - 31 * 86400,))
+    assert T.fade(rt) == 1 and rt.topics.active() == []
+
+
+def test_guess_due_once_a_day_after_ten(rt):
+    import datetime as dt
+    morning = dt.datetime(2026, 11, 20, 9, 0).timestamp()
+    noon = dt.datetime(2026, 11, 20, 12, 0).timestamp()
+    assert not T.guess_due(rt, morning) and T.guess_due(rt, noon)
+    rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('webknow_guess_day', '2026-11-20')")
+    assert not T.guess_due(rt, noon)
+    rt.cfg.webknow.guess_interests = False
+    rt.db.exec("DELETE FROM kv WHERE k='webknow_guess_day'")
+    assert not T.guess_due(rt, noon)
+
+
+async def test_asking_about_topic_keeps_it_alive(rt):
+    from jarvis.webknow import inject
+    rt.topics.add("Valorant", kind="auto")
+    rt.db.exec("UPDATE web_topics SET last_seen=?", (time.time() - 29 * 86400,))
+    rt.webknow.set_notes("Valorant", "Valorant je střílečka.")
+    await inject.block_for(rt, "co víš o valorantu")
+    assert rt.topics.active()[0]["last_seen"] > time.time() - 60

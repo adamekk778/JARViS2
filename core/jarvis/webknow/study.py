@@ -73,7 +73,12 @@ async def collect(rt) -> list[int]:
                 published=it.published)
             for (cat, name, _), items in zip(jobs, found) for it in items[:PER_FEED]
             if not (it.published and now - it.published > MAX_AGE_S)]
-    return rt.webknow.add_many(docs)
+    new = rt.webknow.add_many(docs)
+    if topics is not None and new:              # §5.11: a topic with fresh news stays alive
+        labels = {t["label"] for t in topics.active()}
+        for lab in {d["topic"] for d in (rt.webknow.get(i) for i in new) if d and d["topic"] in labels}:
+            topics.seen(lab)
+    return new
 
 
 def _label(topic: str) -> str:
@@ -131,6 +136,11 @@ async def run_round(rt) -> dict:
         out["notified"] = await topics.check_watches(rt, new)
     if not ai_paused(rt):
         out["digest"] = await digest(rt)
+    if getattr(rt, "topics", None) is not None and not ai_paused(rt):
+        from . import topics
+
+        if topics.guess_due(rt):
+            await topics.guess_interests(rt)
     return out
 
 
@@ -140,6 +150,10 @@ def daily(rt, today: dt.date | None = None) -> None:
         return
     _set(rt, "webknow_daily", today.isoformat())
     rt.webknow.prune()
+    if getattr(rt, "topics", None) is not None:
+        from . import topics
+
+        topics.fade(rt)
 
 
 async def study_loop(rt) -> None:

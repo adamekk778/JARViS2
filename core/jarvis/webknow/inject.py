@@ -89,6 +89,10 @@ async def block_for(rt, text: str) -> str:
     hits = [h for h in hits if h["kind"] != "digest"][:MAX_ITEMS] or hits[:MAX_ITEMS]
     if not hits:
         return ""
+    tp = getattr(rt, "topics", None)
+    for h in hits:                                       # §5.11: asking about a topic keeps it alive
+        if h["kind"] == "notes" and tp is not None and h["topic"]:
+            tp.seen(h["topic"])
     title_stems = [set(query_stems(h["title"])) for h in hits]
     lines, room = [HEAD], MAX_CHARS - len(HEAD) - 1
     per = room // len(hits)
