@@ -195,6 +195,22 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     ["business", "Ekonomika"], ["science", "Věda"], ["sport", "Sport"], ["games", "Hry"]];
   let onWorld: ((m: any) => void) | null = null;
   client.on("world", (m: any) => { extra.world = m; onWorld?.(m); });
+  // 3.14 Test monitorů: the mouse goes to the middle of every monitor (no click) and JARVIS checks where it landed
+  let onMonCheck: ((m: any) => void) | null = null;
+  client.on("monitor_check_result", (m: any) => onMonCheck?.(m));
+  const monitorCheckRow = () => {
+    const out = h("span", {}, "Myš se na chvíli přesune doprostřed každého monitoru (nic neklikne) a JARVIS ověří, že míří správně.");
+    const btn = h("button", { class: "btn", type: "button" }, icon("monitor"), "Vyzkoušet monitory") as HTMLButtonElement;
+    btn.onclick = () => { btn.disabled = true; out.textContent = "Zkouším…"; client.send("monitor_check"); };
+    onMonCheck = (m: any) => {
+      btn.disabled = false;
+      out.textContent = String(m.text || "");
+      out.style.whiteSpace = "pre-line";
+      toast(m.ok ? "Monitory v pořádku – JARVIS míří přesně" : "Na některém monitoru JARVIS nemíří přesně", m.ok ? "ok" : "error");
+    };
+    return h("div", { class: "row has-ico" }, h("span", { class: "set-ico", "aria-hidden": "true" }, icon("monitor")),
+      h("div", { class: "row-text" }, h("strong", {}, "Test monitorů"), out), h("div", { class: "btn-row" }, btn));
+  };
   const worldCard = () => {
     const chosen = new Set<string>(getPath(S, "world.topics") || []);
     const chips = h("div", { class: "wd-chips" }, ...WORLD_TOPICS.map(([id, label]) => {
@@ -399,7 +415,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         card("Multitasking", "JARVIS se umí rozdělit až na 100 agentů, kteří pracují zároveň: jeden ovládá monitor (aplikaci, menu hry, obchodní platformu), druhý jiný monitor jen sleduje a hodnotí („vyplatí se, nebo ne“), další hledají a počítají. Stačí říct např. „na monitoru 1 obchoduj, na monitoru 2 hlídej, jestli se to vyplatí“. Každý nákup, prodej nebo platbu ti vždy dá ke schválení. Agenty vidíš v notchi: Více → Agenti.",
           range("multitask.parallel", "Kolik agentů se ptá AI najednou", 1, 50, 1, (v) => `${v}`),
           h("p", { class: "help" }, "Bezplatné AI mají limit dotazů za minutu – při 4–8 to běží plynule, víc má smysl s placeným klíčem. Ostatní agenti se střídají."),
-          range("multitask.watch_every_s", "Sledující agent se dívá jednou za", 5, 120, 5, (v) => `${v} s`)),
+          range("multitask.watch_every_s", "Sledující agent se dívá jednou za", 5, 120, 5, (v) => `${v} s`),
+          monitorCheckRow()),
       ];
     },
 

@@ -357,7 +357,7 @@ class Agent:
             msgs.append({"role": "user", "content": text})
         return msgs, need_vision
 
-    async def _ask_confirm(self, call: ToolCall, second: bool = False) -> bool:
+    async def _ask_confirm(self, call: ToolCall, second: bool = False, timeout: float | None = None, phone: bool = False) -> bool:
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
         desc = describe_call(call.name, call.arguments)
@@ -372,9 +372,9 @@ class Agent:
         self._confirms[cid] = fut
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
                             details=details, second=second)
-        self.rt.on_confirm_request(cid, desc)
+        self.rt.on_confirm_request(cid, desc, phone=phone)
         try:
-            return await asyncio.wait_for(fut, CONFIRM_TIMEOUT)
+            return await asyncio.wait_for(fut, timeout or CONFIRM_TIMEOUT)
         except asyncio.TimeoutError:
             self.rt.bus.publish("confirm_timeout", id=cid)
             return False

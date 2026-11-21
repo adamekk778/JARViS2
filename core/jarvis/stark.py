@@ -76,6 +76,14 @@ def start_protocol(rt, proto) -> None:
 
 # ---------------------------------------------------------------------------------------------- briefing
 async def headlines(rt, n: int = 3) -> list[str]:
+    ww = getattr(rt, "world", None)              # 3.14 the news JARVIS reads itself – your own interests first
+    if ww is not None:
+        try:
+            top = ww.top(n) if ww.enabled() else []
+            if top:
+                return top
+        except Exception as e:  # noqa: BLE001
+            log.debug("headlines (world): %s", e)
     try:
         async with rt.http() as c:
             r = await c.get(NEWS_RSS, timeout=6)

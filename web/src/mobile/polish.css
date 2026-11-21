@@ -15,3 +15,7 @@ html[data-hand] .m-head { margin: 0 10px 8px; }
 .m-view { gap: 14px; }
 .input, select.input, textarea.input { border-radius: 14px; }
 .chip, button.chip { border-radius: 999px; }
+
+/* 3.14 Agenti on the phone: always on dark glass so the shared view reads the same in a light theme */
+.card.m-agents { padding: 14px 12px; border-radius: 24px; background: rgb(14 15 20 / .92); color: #fff;
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08); }

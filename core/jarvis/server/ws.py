@@ -56,7 +56,7 @@ CLIENT_TYPES = [
     "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set",
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
     "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
-    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop",
+    "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop", "multitask_tell", "multitask_preset", "monitor_check", "paper_get", "paper_reset",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -76,7 +76,7 @@ SERVER_TYPES = [
     "app_context", "pins", "workspaces", "workspace_result",
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
-    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask",
+    "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask", "multitask_result", "monitor_check_result", "paper",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -1483,6 +1483,29 @@ class Connection:
             await self.send("multitask", **rt.multitask.state())
         elif t == "multitask_stop":              # one agent, one task or all of them
             rt.multitask.stop(str(m.get("session") or ""), str(m.get("worker") or ""), "Zastaveno z notche.")
+        elif t == "multitask_tell":              # 3.14 a message to an agent that is working
+            w = rt.multitask.tell(str(m.get("session") or ""), str(m.get("worker") or ""), str(m.get("text") or ""))
+            await self.send("multitask_result", ok=w is not None, message=f"Předáno agentovi {w.name}." if w else "Ten agent už nepracuje.")
+        elif t == "multitask_preset":            # 3.14 a ready-made team from the notch / the phone
+            try:
+                paper = m.get("paper")
+                s = await rt.multitask.start_preset(str(m.get("preset") or ""), str(m.get("topic") or ""),
+                                                    None if paper is None else bool(paper))
+                await self.send("multitask_result", ok=True, message=f"Spuštěno: {s.goal} ({len(s.workers)} agentů).")
+            except (ValueError, PermissionError) as e:
+                await self.send("multitask_result", ok=False, message=str(e))
+        elif t == "monitor_check":               # 3.14 Test monitorů (Nastavení → Mozek → Multitasking)
+            from ..multitask import check_monitors
+
+            await self.send("monitor_check_result", **(await check_monitors(rt)))
+        elif t == "paper_get":
+            from .. import papertrade
+
+            await self.send("paper", **papertrade.of(rt).summary())
+        elif t == "paper_reset":
+            from .. import papertrade
+
+            await self.send("paper", **papertrade.of(rt).reset(float(m.get("cash") or 10000)))
         elif t == "world_get":                   # 3.13 Přehled o světě (notch + settings)
             await self.send("world", **rt.world.state())
         elif t == "world_refresh":               # "Aktualizovat teď": read the news, then the summary (the event comes back)

@@ -30,6 +30,9 @@ Pravidla:
   vyplatí“, „rozděl se na agenty“, „ať na tom dělá 50 agentů“), zavolej multitask_start – agenti běží na pozadí a ty
   mezitím odpovídáš dál. Druhy: work (bez myši), screen (ovládá jeden monitor), watch (jen sleduje monitor a hodnotí).
   Monitory zjistíš list_monitors. Stav: multitask_status, zastavení: multitask_stop. Peníze vždy schvaluje uživatel.
+  Hotové sestavy: multitask_preset (obchodni_stul, vyzkum, hra_fronta, porovnani). Pokyn běžícímu agentovi: multitask_tell.
+  Agenti na čas („každé ráno v 8 …“): multitask_schedule. „Zkušebně / nanečisto / bez peněz“ obchodování: paper=true
+  (stav účtu paper_portfolio). Ověření, že JARVIS míří na monitory správně: monitor_check.
 - Když něco neumíš žádným nástrojem: přes find_tools si vyžádej run_python, ovládání prohlížeče (browser_*),
   ovládání počítače (computer_use) nebo si vytvoř novou dovednost (create_skill). Uživatel chce, abys uměl úplně všechno.
 - Když chce web, stránku, prezentaci v prohlížeči nebo malou webovou aplikaci/hru, postav ji nástrojem make_website:

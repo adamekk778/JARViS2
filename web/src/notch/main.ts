@@ -1141,6 +1141,7 @@ const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "P�
 let brain: { provider: string; model: string } | null = null;
 let brainLeft: number | null = null;      // 3.12 % of today's free AI left (null = unknown / paid)
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
+let mtAgents = { running: 0, verdict: "", tone: "" };                      // 3.14 multitasking agents at work
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
 let nudge: { app: string; until: number } | null = null;
@@ -1453,13 +1454,13 @@ window.setInterval(() => {                                                   // 
   if (mode === "closed") apply(mode);
   window.setTimeout(() => { updateActivity(); if (mode === "closed") apply(mode); }, 40_500);
 }, 60_000);
-const PERSIST = ["lyrics", "subs", "team", "ai", "claude", "focus", "task", "download", "music"];
+const PERSIST = ["lyrics", "subs", "team", "agents", "ai", "claude", "focus", "task", "download", "music"];
 let lastKind = "", lastKindAt = 0;
 let preferKind = "";
 let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
   const on: Record<string, boolean> = {
-    lyrics: lyricsOn(), subs: subs.on && !songApp(), team: team.size > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
+    lyrics: lyricsOn(), subs: subs.on && !songApp(), team: team.size > 0, agents: mtAgents.running > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
     focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000),
     music: !lyricsOn() && !!(media?.playing && media.title),
   };
@@ -1492,6 +1493,10 @@ function paintPip(kind: string | undefined, t: any, cc: any) {
   else if (kind === "ai" && brain) { const b = brandOf(brain.provider, brain.model); kids = [brandEl(b)]; pip.title = b.name; }
   else if (kind === "task" && t) { kids = [ring(t.total ? t.done / t.total : 0)]; pip.title = `Krok ${Math.min(t.done + 1, t.total)}/${t.total}`; }
   else if (kind === "team") { kids = [icon("users-three", "ph-fill")]; pip.title = "Tým agentů"; }
+  else if (kind === "agents") {
+    kids = [h("span", { class: `pip-agents ${mtAgents.tone}` }, icon("users-three", "ph-fill"), h("b", {}, String(mtAgents.running)))];
+    pip.title = `Pracuje ${mtAgents.running} agentů${mtAgents.verdict ? ` · ${mtAgents.verdict}` : ""}`;
+  }
   else if (kind === "download") { kids = [icon("download-simple", "ph-fill")]; pip.title = "Stahování"; }
   else if (kind === "subs") { kids = [h("span", { class: "n-cc" }, "CC")]; pip.title = "Titulky"; }
   setKids(pip, kids);
@@ -1584,6 +1589,11 @@ function islandActivity(t: any) {
     l = [h("span", { class: "n-team" }, ...all.slice(0, 4).map((a) => h("i", { title: a.name }, icon(a.icon, "ph-fill")))),
          h("span", {}, all.length === 1 ? all[0].name : `Tým · ${all.length}`)];
     r = [`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`];
+  } else if (sk("agents") && mtAgents.running > 0) {        // 3.14 multitasking: how many work, the analyst's verdict
+    kind = "agents";
+    l = [h("span", { class: `n-agents-ico ${mtAgents.tone}` }, icon("users-three", "ph-fill")),
+         h("span", {}, mtAgents.running === 1 ? "1 agent" : mtAgents.running < 5 ? `${mtAgents.running} agenti` : `${mtAgents.running} agentů`)];
+    r = mtAgents.verdict ? [h("span", { class: `n-agents-v ${mtAgents.tone}` }, mtAgents.verdict.length > 18 ? mtAgents.verdict.slice(0, 17) + "…" : mtAgents.verdict)] : ["pracují"];
   } else if (sk("ai") && jarvisBusy() && brain && coreMood !== "listening") {
     const b = brandOf(brain.provider, brain.model);
     kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")];
@@ -1787,6 +1797,7 @@ client.on("pc_control", (m) => {
   else if (mode === "live") apply("live");                  // the card grows / shrinks with the bar
 });
 client.onStatus((s) => { if (s !== "open") { coreMood = "offline"; updateBlob(); } });
+client.on("welcome", () => client.send("multitask_get"));   // 3.14 agents already at work → the badge at once
 client.on("welcome", (m) => {
   takeFocus(m.focus);
   if (m.pc_control) { pcCtl = { ...pcCtl, ...m.pc_control }; paintCtl(); }
@@ -1932,6 +1943,17 @@ client.on("device_link", (m) => {
   showLink({ icon: hp ? "headphones" : "speaker-hifi", text: String(m.name || (hp ? "Sluchátka" : "Reproduktory")), right: hp ? "Připojeno" : "Zvuk sem", pct: null, tint: hp ? "#ffffff" : "#64d2ff" });
 });
 // 3.13 Herní pomocník: what you play (a quiet line) and a tip for it now and then (a card with "Další tip")
+// 3.14 the closed island counts the agents at work; its dot takes the colour of the analyst's verdict
+client.on("multitask", (m: any) => {
+  const running = Number(m.running) || 0;
+  const verdict = String((m.sessions || []).flatMap((s: any) => s.workers || [])
+    .find((w: any) => w.state === "running" && w.kind === "watch" && w.verdict)?.verdict || "");
+  const t = verdict.toLowerCase();
+  const tone = !t ? "" : /nevyplat|prodat|prodej|ztrát|klesá/.test(t) ? "bad" : /vyplat|koupit|kup|ano|roste/.test(t) ? "good" : "wait";
+  const changed = running !== mtAgents.running || verdict !== mtAgents.verdict;
+  mtAgents = { running, verdict, tone };
+  if (changed) updateActivity();                // the island (or the small circle beside it) shows it at once
+});
 client.on("game_state", (m) => {
   if (m.on) showLink({ icon: "game-controller", text: String(m.game || "Hra"), right: "Herní režim", pct: null, tint: "#bf5af2" });
 });

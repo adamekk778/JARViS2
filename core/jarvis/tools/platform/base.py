@@ -64,6 +64,9 @@ class Platform:
 
     def screenshot_monitor(self, index: int) -> bytes:   # one monitor's picture (1 = main)
         return self.screenshot()
+
+    def cursor_pos(self) -> tuple[int, int] | None:      # where the mouse is (desktop coordinates); None = unknown
+        return None
     def run_shell(self, command: str, timeout: int = 60) -> tuple[int, str]: raise NotImplementedError
     # computer use
     def click(self, x: int, y: int, button: str = "left", double: bool = False) -> None: raise NotImplementedError

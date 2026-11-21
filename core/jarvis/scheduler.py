@@ -135,6 +135,15 @@ class Scheduler:
                 from .sysplus import run_backup
 
                 await run_backup(self.rt, p)
+            elif job["kind"] == "multitask":  # 3.14 agents on a schedule ("každé ráno v 8 projdi 10 agenty trhy")
+                mt = self.rt.multitask
+                if p.get("preset"):
+                    s = await mt.start_preset(p["preset"], p.get("topic", ""), p.get("paper"))
+                else:
+                    s = await mt.start(p.get("goal", ""), p.get("workers") or None, int(p.get("max_agents") or 10),
+                                       paper=bool(p.get("paper")))
+                self.rt.notify(job["title"] or "Agenti podle plánu", f"Spustil jsem {len(s.workers)} agentů – uvidíš je v notchi "
+                               "(Více → Agenti), na konci dám vědět.", speak=False)
             elif job["kind"] == "prompt":
                 text = await self.rt.agent.handle(
                     p["prompt"], [], "schedule",

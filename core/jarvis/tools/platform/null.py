@@ -39,8 +39,16 @@ class NullPlatform(Platform):
     def clipboard_image_get(self): return getattr(self, "clipboard_image", None)
     def clipboard_image_set(self, data): self._rec("clipboard_image_set", len(data)); self.clipboard_image = data
     def run_shell(self, command, timeout=60): self._rec("run_shell", command); return 0, f"ran: {command}"
-    def click(self, x, y, button="left", double=False): self._rec("click", x, y, button, double)
-    def move(self, x, y): self._rec("move", x, y)
+    def click(self, x, y, button="left", double=False):
+        self._cursor = (x, y)
+        self._rec("click", x, y, button, double)
+
+    def move(self, x, y):
+        self._cursor = (x, y)
+        self._rec("move", x, y)
+
+    def cursor_pos(self):
+        return getattr(self, "_cursor", (10, 10))
     def type_text(self, text): self._rec("type_text", text)
     def hotkey(self, keys):
         self._rec("hotkey", tuple(keys))

@@ -163,6 +163,25 @@ class WorldWatch:
                 out.append(row)
         return out[:n]
 
+    def top(self, n: int = 3, hours: float = 24, now: float | None = None) -> list[str]:
+        """3.14 the few headlines that matter to you: your own interests first, then Česko and the world, one per topic."""
+        out: list[str] = []
+        seen: set[str] = set()
+        feeds = self.feeds()
+        order = [f for f in feeds if f[0].startswith("i:")] + [f for f in feeds if not f[0].startswith("i:")]
+        for _round in range(3):
+            for tid, label, _u in order:
+                for h in self.headlines(tid, hours, 3, now):
+                    key = h["title"].lower()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    out.append(f"{h['title']}" + (f" ({label})" if tid.startswith("i:") else ""))
+                    break
+                if len(out) >= n:
+                    return out
+        return out
+
     # ---------- the summary JARVIS keeps in mind ----------
     def _kv(self, k: str) -> str:
         db = self._db()

@@ -19,6 +19,7 @@ import { flingPad } from "./fling";
 import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 import { habitsGlance, habitsView } from "./habits";
+import { createAgentsView } from "../shared/agentsview";
 import "./polish.css";              // 3.13 the phone in the same airy look as the PC (loaded last)
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
@@ -229,6 +230,18 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   views.home.prepend(clock.el, companyCard(c), approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
   views.more.prepend(screenCard(c, ep), mochiCard(c));
+  // 3.14 Agenti on the phone: on Domů while agents work (stop one, write to one, the play wallet); in Více always, with
+  // the ready-made teams to start from the phone
+  const agentsHome = createAgentsView(c, { compact: true });
+  const agentsHomeCard = h("div", { class: "card m-agents", hidden: true }, agentsHome.el);
+  c.on("multitask", (m: any) => {
+    const recent = (m.sessions || []).some((s: any) => s.state === "running" || Date.now() / 1000 - Number(s.created || 0) < 6 * 3600);
+    agentsHomeCard.hidden = !recent;
+  });
+  views.home.insertBefore(agentsHomeCard, views.home.children[2] || null);
+  const agentsMore = createAgentsView(c, { compact: true });
+  views.more.prepend(h("div", { class: "card m-agents" }, agentsMore.el));
+  c.on("welcome", () => agentsHome.refresh());
   document.querySelectorAll(".m-mochi, .m-handoff-layer").forEach((e) => e.remove());
   app.after(mochiHere(c), handoffLayer(c));          // OMEGA 195 / 083
   const tabs = h("nav", { class: "tabs" },

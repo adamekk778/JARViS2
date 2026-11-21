@@ -484,12 +484,26 @@ class WindowsPlatform(Platform):
         pyautogui.PAUSE = 0.05
         return pyautogui
 
+    def cursor_pos(self):
+        from ctypes import wintypes
+
+        pt = wintypes.POINT()
+        if ctypes.windll.user32.GetCursorPos(ctypes.byref(pt)):
+            return int(pt.x), int(pt.y)
+        return None
+
+    def _put_cursor(self, x, y):
+        """3.14 straight to desktop coordinates – also on a monitor left of / above the main one (negative x / y),
+        which pyautogui's own move may not reach."""
+        ctypes.windll.user32.SetCursorPos(int(x), int(y))
+
     def click(self, x, y, button="left", double=False):
         pg = self._pg()
-        pg.click(x, y, clicks=2 if double else 1, button=button)
+        self._put_cursor(x, y)
+        pg.click(clicks=2 if double else 1, button=button)
 
     def move(self, x, y):
-        self._pg().moveTo(x, y, duration=0.15)
+        self._put_cursor(x, y)
 
     def type_text(self, text):
         # pyautogui.write can't type non-ASCII (č, ř, ž) → paste via clipboard

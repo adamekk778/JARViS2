@@ -502,6 +502,18 @@ class Runtime:
             return None
         if act == "open_window" and self.ui_hook:
             self.ui_hook(str(args.get("view") or "chat"))
+        if act == "open_report":                  # 3.14 the multitasking results – only a file JARVIS wrote itself
+            from pathlib import Path
+
+            from .multitask import reports_dir
+
+            p = Path(str(args.get("path") or ""))
+            try:
+                ok = p.is_file() and p.resolve().parent == reports_dir().resolve()
+            except OSError:
+                ok = False
+            if ok:
+                await asyncio.to_thread(self.platform.open_path, str(p))
         return None
 
     def mobile_clients(self) -> int:
@@ -518,7 +530,7 @@ class Runtime:
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
         self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts)
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
-            self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] != "open_window"])
+            self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
 
@@ -633,8 +645,9 @@ class Runtime:
         phone.send(kind, **data)
         return True
 
-    def on_confirm_request(self, cid: str, desc: str) -> None:
-        if self.user_away():
+    def on_confirm_request(self, cid: str, desc: str, phone: bool = False) -> None:
+        """phone = also to the phone right away (3.14 money: approve from anywhere), not only when you are away."""
+        if phone or self.user_away():
             self.phone_push("confirm", cid=cid, text=desc[:300])
         if self.speaker and self.cfg.voice.speak_mode != "never":
             self.speak(f"Potřebuji potvrzení: {desc}. Ano, nebo ne?")
