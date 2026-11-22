@@ -60,7 +60,7 @@ voice = [
   "faster-whisper>=1.0",
   "piper-tts>=1.2",
 ]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "pytest-timeout>=2.3"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "pytest-timeout>=2.3", "hypothesis>=6.100", "ruff>=0.6", "mypy>=1.10"]
 
 [tool.setuptools.packages.find]
 include = ["jarvis*"]
@@ -69,3 +69,27 @@ include = ["jarvis*"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 timeout = 60
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+# real bugs only: undefined names, syntax, unused things, mutable defaults, dangling tasks, odd unicode
+select = ["F", "E9", "E7", "B", "RUF006", "PLE"]
+# reviewed and kept on purpose: one-line `a; b`, short names (l, I), small lambdas, zip() over equal-length lists,
+# unused loop variables in unpacking, lambdas that run inside the same loop round (B023), pytest.raises(Exception)
+ignore = ["E702", "E741", "E731", "B905", "B007", "B023", "B017", "B008", "B904", "B027", "B024"]
+
+[tool.ruff.lint.per-file-ignores]
+"jarvis/testlab.py" = ["PLE2502"]   # the fuzz values contain a right-to-left mark on purpose
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = false
+check_untyped_defs = false
+# the typed core first; more modules join the list as they get annotated
+files = ["jarvis/llm", "jarvis/evals", "jarvis/quality.py", "jarvis/redact.py", "jarvis/events.py"]

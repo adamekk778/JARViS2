@@ -4,6 +4,11 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.14": [
+    { icon: "heartbeat", title: "Zdraví JARVISe", line: "Diagnostika ukáže, které nástroje JARVISovi selhávají, jak rychle odpovídá každá AI a hlas, kolik bere procesoru a baterie a jestli je nová verze lepší než ta předchozí. Tlačítko Nahlásit chybu otevře předvyplněné hlášení na GitHubu (bez hesel a klíčů)." },
+    { icon: "arrow-counter-clockwise", title: "Bezpečné aktualizace", line: "Když po aktualizaci přestane fungovat notch nebo hlas, JARVIS se sám vrátí na předchozí verzi a tu rozbitou znovu nenainstaluje. V Diagnostice si můžeš vybrat i kanál Beta, kde novinky přijdou dřív." },
+    { icon: "target", title: "Rychlejší porozumění", line: "JARVIS líp pozná, co myslíš („uspi počítač“, „kolik stojí bitcoin“, „kdy jede tramvaj“) a rovnou k tomu sáhne, místo aby nástroj teprve hledal. Každou verzi teď hlídá sada 290 skutečných českých požadavků." },
+  ],
   "3.13": [
     { icon: "piggy-bank", title: "Zkušební obchodování", line: "Obchodní stůl umí hrát o virtuální peníze: JARVIS na Koupit/Prodat neklikne, obchod jen zapíše za cenu z obrazovky a ukáže zisk nebo ztrátu (Více → Agenti). Až strategie funguje, přepneš na skutečný účet – tam ti každý nákup a prodej dá ke schválení, i na telefon." },
     { icon: "users-three", title: "Sestavy agentů a pokyny za běhu", line: "Jedním klikem Obchodní stůl, Výzkum 20 agenty, Hra + hlídání fronty nebo Porovnání nabídek. Běžícímu agentovi napíšeš pokyn (klik na něj, nebo „řekni analytikovi, ať sleduje i ETH“). Sledující agent kreslí graf hodnot, u každého úkolu vidíš spotřebu AI, při limitu AI se agenti sami zpomalí a výsledky se uloží do zprávy." },

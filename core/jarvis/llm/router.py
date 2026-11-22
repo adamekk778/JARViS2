@@ -7,7 +7,7 @@ import contextvars
 import logging
 import time
 from collections import defaultdict, deque
-from typing import AsyncIterator, Awaitable, Callable
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 import httpx
 
@@ -88,8 +88,8 @@ class Router:
         self.ttft: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))  # ms to first token, per provider
         self.on_usage: Callable[[str, str, list[dict], int], None] | None = None   # OMEGA 178: usage ledger
         self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
-        self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
-        self.cache = None                                                           # OMEGA 584: aiplus.AICache
+        self.local_queue: Any = None                                                # OMEGA 577: aiplus.InferenceQueue
+        self.cache: Any = None                                                          # OMEGA 584: aiplus.AICache
         self.local_ready: Callable[[], Awaitable[bool]] | None = None   # 3.12 Šetřič limitů: is the PC's own AI up?
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
@@ -184,7 +184,10 @@ class Router:
                                 log.info("%s: request ~%d tokens > %d of %s, using %s", pcfg.id, need, limit, prov.model, big)
                                 prov.model, model = big, None
                                 limit = self._limit_of(pcfg, big)
-                                send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
+                                if limit:                # the bigger model may have no known limit: send it all
+                                    send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
+                                else:
+                                    send_msgs, send_tools = msgs, use_tools
                     try:
                         agen = prov.stream(send_msgs, send_tools, model=model)
                         t_req = time.monotonic()

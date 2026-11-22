@@ -169,7 +169,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   }
   function paint(thinking = false) {
     if (!hist.length && !thinking) {
-      const tip = (t: string) => h("button", { class: "suggest", type: "button", onclick: () => { input.value = t; submit(); } }, h("span", {}, t), icon("arrow-up-right", "suggest-go"));
+      const tip = (t: string) => h("button", { class: "suggest", type: "button", onclick: () => { input.value = t; void submit(); } }, h("span", {}, t), icon("arrow-up-right", "suggest-go"));
       list.replaceChildren(h("div", { class: "chat-empty solo-empty" },
         h("div", { class: "solo-eyes big", "aria-hidden": "true" }, h("i"), h("i")),
         h("h2", {}, "Jsem tu i bez PC"), h("p", { class: "chat-sub" }, `Odpovídá ${AI[provider].name} zdarma přímo z telefonu.`),
@@ -233,7 +233,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     const paintChoose = async () => {
       const saved = await Promise.all(ORDER.map(async (p) => !!(await getKey(p))));
       choose.replaceChildren(...ORDER.map((p, i) => h("button", { type: "button", class: `solo-opt ${pick === p ? "on" : ""}`,
-        onclick: () => { pick = p; paintChoose(); } }, icon(AI[p].ico, "ph-fill"), h("strong", {}, AI[p].name, saved[i] ? " ✓" : ""), h("span", {}, AI[p].hint))));
+        onclick: () => { pick = p; void paintChoose(); } }, icon(AI[p].ico, "ph-fill"), h("strong", {}, AI[p].name, saved[i] ? " ✓" : ""), h("span", {}, AI[p].hint))));
       link.href = AI[pick].url;
       (link.lastChild as HTMLElement).textContent = `Získat klíč (${new URL(AI[pick].url).host})`;
       const has = !!(await getKey(pick));
@@ -261,7 +261,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
       h("button", { class: "btn primary", type: "button", onclick: go }, icon("check"), "Uložit a vyzkoušet"), status,
       h("button", { class: "btn ghost", type: "button", onclick: () => { close(); o.pair(); } }, icon("qr-code"), "Spárovat s PC znovu")));
     shell.append(sheet);
-    paintChoose();
+    void paintChoose();
   }
 
   async function lookForPc(manual = false) {
@@ -269,8 +269,8 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     if (await o.retry()) { window.clearInterval(timer); return; }
     if (manual) toast("PC zatím neodpovídá", "error");
   }
-  timer = window.setInterval(() => { if (!shell.isConnected) { window.clearInterval(timer); return; } if (!busy) lookForPc(); }, 20000);
+  timer = window.setInterval(() => { if (!shell.isConnected) { window.clearInterval(timer); return; } if (!busy) void lookForPc(); }, 20000);
   paintPill();
   paint();
-  getKey(provider).then((k) => { if (!k) setup(); });
+  void getKey(provider).then((k) => { if (!k) setup(); });
 }

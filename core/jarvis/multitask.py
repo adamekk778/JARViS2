@@ -101,6 +101,7 @@ class Session:
     preset: str = ""
     report: str = ""                  # the file with the results (written at the end)
     usage: dict = field(default_factory=lambda: {"calls": 0, "tin": 0, "tout": 0, "czk": 0.0})
+    finisher: object = field(default=None, repr=False, compare=False)   # the task that closes the session
 
     def board(self, n: int = 10, skip: str = "") -> str:
         rows = [x for x in list(self.notes) if x[1] != skip][-n:]
@@ -407,7 +408,7 @@ class Multitask:
         loop = asyncio.get_running_loop()
         for w in ws:
             w.task_obj = loop.create_task(self._run(s, w))
-        loop.create_task(self._finish_when_done(s))
+        s.finisher = loop.create_task(self._finish_when_done(s))   # kept: a task nobody holds may be collected mid-run
         self.emit(force=True)
         return s
 

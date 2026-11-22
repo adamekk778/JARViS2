@@ -61,6 +61,8 @@ class General(BaseModel):
     city: str = "Praha"
     update_url: str = "https://api.github.com/repos/adamekk778/JARViS2/releases/latest"
     auto_update: bool = True       # 3.12 a new version installs itself at night (2–6 h) while nobody uses the PC
+    update_channel: Literal["stable", "beta"] = "stable"   # 3.14 beta: test builds come first (návrh 13)
+    auto_rollback: bool = True     # 3.14 the check after an update finds the notch / voice broken → previous version (12)
     night_care: bool = True        # 3.12 Noční údržba: old temp files, disk health, waiting Windows updates (once a night)
     onboarded: bool = False        # 3.12 the first-run guide was finished or skipped
 
@@ -104,7 +106,7 @@ class Voice(BaseModel):
     tts_volume: str = "+0%"
     speak_mode: Literal["always", "voice", "never"] = "voice"
     silence_seconds: float = 0.6     # 3.13 the answer starts sooner after you stop talking (was 0.8)
-    silence_rev: int = 0
+    silence_rev: int = 1            # fresh configs are already migrated (a saved 0 would undo your own 0.8 s later)
     followup: bool = False          # after an answer, listen 6 s more without the wake word
     game_quiet: bool = True         # 3.13 Herní režim: while a game runs, announcements wait and come as one line afterwards
     output_device: str = ""         # speaker name; empty = Windows default
@@ -137,10 +139,10 @@ class Notch(BaseModel):
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
     lyrics_translate: bool = True  # 3.12: a small Czech translation under a foreign line (the AI, once per song)
     habit_ring: bool = False       # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
-    habit_ring_rev: int = 0        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
+    habit_ring_rev: int = 2        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
     # 3.12: the island's colour – the song's cover while music plays, and with "song_wall" the wallpaper otherwise
     tint: Literal["song_wall", "song", "black"] = "song_wall"
-    tint_rev: int = 0
+    tint_rev: int = 1               # fresh configs are already migrated (else your own "song" turned back next start)
     focus_guard: bool = True       # 3.12: while you focus, the notch blinks when YouTube, Netflix, TikTok… come to the front
     native_region_anim: bool = False   # 3.12: JARVIS animates the window outline itself (experimental, off: hung in CI)
     pinned: bool = False   # big panel stays open (also after restart)

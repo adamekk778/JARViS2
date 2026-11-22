@@ -67,7 +67,7 @@ def plan(text: str) -> Plan | None:
         return Plan([("volume", {"action": "set", "level": max(0, min(100, int(m.group(1))))})], kind="volume")
     if re.fullmatch(r"(?:dej |udelej )?(?:hlasitejc?i|nahlas|zesil\w*|pridej\w*(?: zvuk| hlasitost)?|hlasitej\w*)", t):
         return Plan([("volume", {"action": "up"})], kind="volume")
-    if re.fullmatch(r"(?:dej |udelej )?(?:tisejc?i|potichu|zeslab\w*|uber\w*(?: zvuk| hlasitost)?|ztis\w*)", t):
+    if re.fullmatch(r"(?:dej |udelej )?(?:tisejc?i|potichu|zeslab\w*|(?:uber|ubrat|ubir)\w*(?: zvuk| hlasitost)?|ztis\w*)", t):
         return Plan([("volume", {"action": "down"})], kind="volume")
     if re.fullmatch(r"(?:vypni zvuk|ztlum\w*(?: zvuk| to| vse| vsechno)?|mute)", t):
         return Plan([("volume", {"action": "mute"})], kind="volume")
@@ -78,7 +78,7 @@ def plan(text: str) -> Plan | None:
         return Plan([("media_control", {"action": "next"})], say=lambda c: "Další.", kind="media")
     if re.fullmatch(r"(?:predchozi|predesl\w*|zpet)(?: pisnick\w*| skladb\w*| song\w*| video)?", t):
         return Plan([("media_control", {"action": "previous"})], say=lambda c: "Předchozí.", kind="media")
-    if re.fullmatch(r"(?:pauza|pozastav\w*)(?: hudbu| pisnick\w*| video| to)?|zastav (?:hudbu|pisnick\w*|video)|(?:pust|pokracuj)(?: hudbu| to| dal)?", t):
+    if re.fullmatch(r"(?:pauza|pozastav\w*)(?: hudbu| pisnick\w*| video| to)?|zastav (?:hudbu|pisnick\w*|video)|(?:pust|pokracuj)(?: hudbu| to)?(?: dal)?", t):
         return Plan([("media_control", {"action": "play_pause"})], say=lambda c: "Hotovo.", kind="media")
     # ---- time, date
     if re.fullmatch(r"(?:kolik je hodin|kolik je|jaky je cas|cas)", t):
@@ -92,7 +92,7 @@ def plan(text: str) -> Plan | None:
         sec = n * (3600 if m.group(2).startswith("hodin") else 1 if m.group(2).startswith(("sek", "vter")) else 60)
         return Plan([("set_timer", {"seconds": sec})], kind="timer")
     # ---- weather, screenshot
-    if re.fullmatch(r"(?:jake je |jak je )?pocasi(?: dnes| ted| venku)?|(?:bude prset|je venku zima|kolik je venku stupnu)", t):
+    if re.fullmatch(r"(?:jake je |jak je )?(?:venku )?pocasi(?: dnes| ted| venku)?|(?:bude prset|je venku zima|kolik je venku stupnu)", t):
         return Plan([("weather", {})], kind="weather")
     if re.fullmatch(r"(?:udelej |vyfot\w* |zachyt\w* )?(?:screenshot|snimek obrazovky|screen)", t):
         return Plan([("screenshot", {})], say=lambda c: "Hotovo, snímek je v chatu." if c and c[0]["ok"] else c[0]["summary"], kind="screenshot")

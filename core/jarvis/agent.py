@@ -470,8 +470,11 @@ class Agent:
                         log.debug("change diff: %s", e)
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
                 if call.name != "update_plan":
-                    rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,
-                                        int((time.monotonic() - t0) * 1000))
+                    ms = int((time.monotonic() - t0) * 1000)
+                    rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary, ms)
+                    from . import quality
+
+                    quality.record_tool(rt, call.name, res.ok, ms)      # Zdraví JARVISe (návrh 16)
         attachments += [a for a in res.attachments if a not in attachments]
         if res.ok:                                     # OMEGA 550: what the answer rests on
             try:

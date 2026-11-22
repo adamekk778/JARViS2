@@ -72,7 +72,7 @@ export function photoRequests(c: JarvisClient, host: HTMLElement, onShow: () => 
     host.prepend(card);
     onShow();
     native.haptic();
-    if (document.hidden) native.notify("JARVIS žádá fotku", m.reason || "Otevři aplikaci");
+    if (document.hidden) void native.notify("JARVIS žádá fotku", m.reason || "Otevři aplikaci");
   });
 }
 

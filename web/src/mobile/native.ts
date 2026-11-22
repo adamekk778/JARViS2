@@ -72,7 +72,7 @@ export const native = {
   onLink(cb: (url: string) => void) {
     if (!isNative) return;
     import("@capacitor/app").then(({ App }) => {
-      App.addListener("appUrlOpen", (e: any) => e?.url && cb(e.url));
+      void App.addListener("appUrlOpen", (e: any) => e?.url && cb(e.url));
       App.getLaunchUrl().then((r: any) => r?.url && cb(r.url)).catch(() => {});
     }).catch(() => {});
   },

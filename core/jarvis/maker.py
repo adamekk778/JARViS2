@@ -373,7 +373,7 @@ def workflow_search(rt, query: str) -> list[dict]:
 
     from .docsearch import STOP
 
-    filler = STOP | {"jsem", "jsme", "jsi", "delal", "delala", "delali", "minule", "udelat", "udelal", "postup", "postupy", "tim", "tom", "tohle", "jsem"}
+    filler = STOP | {"jsem", "jsme", "jsi", "delal", "delala", "delali", "minule", "udelat", "udelal", "postup", "postupy", "tim", "tom", "tohle"}
     words = [w for w in re.findall(r"\w{3,}", fold(query)) if w not in filler]
     hits = []
 

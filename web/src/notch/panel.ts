@@ -831,7 +831,7 @@ export function buildPanel(ctx: PanelCtx) {
     if (s === "notes") notesView.refresh();
     if (s === "habits") habitsView.refresh();
     if (s === "brains") brainsView.refresh();
-    if (s === "mirror") mirror.start(); else mirror.stop();
+    if (s === "mirror") void mirror.start(); else mirror.stop();
     if (s === "clips") clipsView.refresh();
     if (s === "shots") shotsView.refresh();
     if (s === "workspaces") { client.send("workspaces_get"); wmap.refresh(); }

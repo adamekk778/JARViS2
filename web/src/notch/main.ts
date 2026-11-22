@@ -298,10 +298,10 @@ function ensureWindow() {
   const key = `${w}x${hh}@${cfg.monitor}:${cfg.offset_x}`;   // monitor / offset: the host places the window again
   if (key === windowKey) return;
   windowKey = key;
-  resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
+  void resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
 }
 function openChat(view = "chat") {
-  if (window.pywebview) window.pywebview.api.open_chat(view);
+  if (window.pywebview) void window.pywebview.api.open_chat(view);
   else window.open(view === "full" ? "/chat" : view === "hud" ? "/hud" : `/#${view}`, "_blank");
 }
 
@@ -343,7 +343,7 @@ function subsSize(hover: boolean): [number, number] {
 }
 /** Lyrics: one wide line; the width follows the longest of this and the next two lines so it does not jump every line. */
 function lyrSize(hover: boolean): [number, number] {
-  const tr = !!(lyr.tr && lyr.tr.length) ? 16 : 0;          // room for the small translation line
+  const tr = (lyr.tr && lyr.tr.length) ? 16 : 0;          // room for the small translation line
   return [Math.round(Math.min(760, Math.max(360, lyrW))), (hover ? 46 : 44) + tr];
 }
 function dynRadius(m: Mode, hh: number): number {
@@ -1169,7 +1169,7 @@ const gestureCam = new GestureCam({
   },
   onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
 });
-function syncGestures(on: boolean) { if (on && !gestureCam.on) gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop(); }
+function syncGestures(on: boolean) { if (on && !gestureCam.on) void gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop(); }
 client.on("agent_activity", (m) => {
   if (m.state === "start") team.set(m.key, { icon: m.icon || "robot", name: m.name, since: team.get(m.key)?.since || Date.now() });
   if (m.state === "done") team.delete(m.key);
@@ -1743,7 +1743,7 @@ function paintTint(kind: string) {
   if (tints.has(want)) { show(tints.get(want) || ""); return; }
   if (tintFor === want) return;
   tintFor = want;
-  coverTint(want).then((v) => {
+  void coverTint(want).then((v) => {
     if (tints.size > 30) tints.clear();
     tints.set(want, v);
     if (tintFor === want) show(v);

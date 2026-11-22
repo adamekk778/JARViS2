@@ -629,3 +629,10 @@ html[data-density="large"] body { zoom: 1.15; }
 .sc-text span { color: var(--muted); }
 .sc-text em { font-style: normal; color: var(--text); background: color-mix(in oklab, var(--accent, #34d399) 9%, transparent); padding: 6px 9px; border-radius: 8px; }
 .sc-text .btn { justify-self: start; margin-top: 4px; }
+
+/* 3.14 Zdraví JARVISe */
+.qh { display: grid; gap: 8px; }
+.qh .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--edge); }
+.qh .row.warn span:first-child { color: var(--warn, #f5a524); }
+.qh .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.qh select { max-width: 260px; }

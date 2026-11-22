@@ -16,6 +16,7 @@ from .. import secrets, tools, uiplus
 from ..tools.sites import list_sites, site_path
 from ..tools.system import system_snapshot
 from ..background import bg
+from . import handlers
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ CLIENT_TYPES = [
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
     "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop", "multitask_tell", "multitask_preset", "monitor_check", "paper_get", "paper_reset",
+    "quality_get", "bug_report", "rollback_now", "update_channel_set",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -77,6 +79,7 @@ SERVER_TYPES = [
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask", "multitask_result", "monitor_check_result", "paper",
+    "quality", "bug_report_url",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -108,6 +111,11 @@ SLOW = {"bizgoals_refresh", "bizagent_test", "bizproposals_decide", "bizsetup_ex
 
 
 LIVE: "weakref.WeakSet[Connection]" = weakref.WeakSet()
+
+
+handlers.load()
+LOCAL_ONLY |= handlers.LOCAL_ONLY
+SLOW |= handlers.SLOW
 
 
 async def close_devices(which) -> int:
@@ -525,6 +533,10 @@ class Connection:
         if t in LOCAL_ONLY and not self.local:
             await self.send("error", message="Tohle jde změnit jen přímo na počítači.")
             return
+        handler = handlers.HANDLERS.get(t)          # areas moved out of this file (server/handlers/*)
+        if handler is not None:
+            await handler(self, m)
+            return
         if t == "hello":
             self.client = m.get("client", "unknown")
             self.name = m.get("name", "")
@@ -575,28 +587,6 @@ class Connection:
         elif t == "tasks_get":
             await self.send("tasks", items=rt.tasks.list(int(m.get("limit", 50)), m.get("q", ""), m.get("status", "")),
                             current=rt.tasks.current)
-        elif t == "dictation_get":
-            await self.send("dictation_data", stats=rt.dictation.stats(str(m.get("period", "month"))),
-                            history=rt.dictation.history(str(m.get("q", "")), int(m.get("limit", 200))) if self.local else [],
-                            state=rt.dictation.state)
-        elif t == "dictation_delete":
-            rt.dictation.delete(int(m.get("id", 0)))
-            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=rt.dictation.history(), state=rt.dictation.state)
-        elif t == "dictation_clear":
-            rt.dictation.clear()
-            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=[], state=rt.dictation.state)
-        elif t == "notes_get":
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
-        elif t == "note_get":
-            await self.send("note", note=rt.notetaker.get(str(m.get("id", ""))))
-        elif t == "note_delete":
-            rt.notetaker.delete(str(m.get("id", "")))
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
-        elif t in ("note_start", "note_stop", "note_cancel"):
-            res = rt.notetaker.start() if t == "note_start" else rt.notetaker.stop(cancel=t == "note_cancel")
-            if not res.get("ok"):
-                await self.send("error", message=res.get("message", ""))
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
         elif t == "whats_new_seen":
             rt.whats_new_seen()
         elif t == "sounds_folder":

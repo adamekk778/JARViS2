@@ -132,7 +132,7 @@ class LocalManager:
         p = self._provider()
         return (p.model if p else "") or "qwen2.5:3b"
 
-    def _client(self, timeout: float = 10.0) -> httpx.AsyncClient:
+    def _client(self, timeout: float | None = 10.0) -> httpx.AsyncClient:
         return httpx.AsyncClient(transport=self.transport, timeout=timeout, trust_env=False)
 
     # ---------- queries ----------

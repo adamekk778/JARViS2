@@ -192,7 +192,7 @@ function buildHQ(client: JarvisClient) {
     e.preventDefault();
     for (const f of Array.from(e.dataTransfer?.files || [])) {
       if (!/\.(txt|md|csv|json|html?)$/i.test(f.name) || f.size > 400_000) { toast(`${f.name}: zatím umím jen textové soubory do 400 kB.`, "error"); continue; }
-      f.text().then((t) => client.send("bizbrain_add", { text: `[${f.name}]\n${t.slice(0, 19000)}`, source: f.name }));
+      void f.text().then((t) => client.send("bizbrain_add", { text: `[${f.name}]\n${t.slice(0, 19000)}`, source: f.name }));
     }
   };
   const chips = h("div", { class: "hq-chips-top" });
@@ -272,7 +272,7 @@ function buildHQ(client: JarvisClient) {
         h("pre", { class: "hq-res" }, full),
         hook.url ? "" : h("small", { class: "hq-muted" }, "Veřejnou adresu doplň v Nastavení → JARVIS Link (veřejná adresa)."),
         h("div", { class: "hq-card-acts" },
-          h("button", { type: "button", class: "hq-btn primary", onclick: () => { navigator.clipboard?.writeText(full); toast("Zkopírováno.", "ok"); } }, icon("copy"), "Kopírovat"),
+          h("button", { type: "button", class: "hq-btn primary", onclick: () => { void navigator.clipboard?.writeText(full); toast("Zkopírováno.", "ok"); } }, icon("copy"), "Kopírovat"),
           h("button", { type: "button", class: "hq-btn", onclick: () => client.send("bizhook_new") }, icon("arrows-clockwise"), "Nová adresa (stará přestane platit)"),
           h("button", { type: "button", class: "hq-btn", onclick: () => { hookOpen = false; paint(); } }, "Zavřít"))));
   };

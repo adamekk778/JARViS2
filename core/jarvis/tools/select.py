@@ -77,12 +77,71 @@ def search(registry: dict, query: str, limit: int = MAX_FOUND, exclude: set[str]
     return [n for _, n in scored[:limit]]
 
 
+# 3.14 (návrh 5): Czech ways of saying things the word stems miss ("uspi", "vypni počítač", "kolik stojí bitcoin") –
+# found by the evals (python -m jarvis.evals); each pattern runs on the text without accents, lower case
+INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (r"\b(vypn\w*|uspi|usp[ai]t|restartuj|restart|hibern\w*|odhlas\w*)\b.*\b(pocitac\w*|pc|kompl?\w*|notebook\w*|system\w*)\b"
+     r"|\b(uspi|restartuj)\b", ("system_power",)),
+    (r"\b(kolik stoj\w*|cen\w* (bitcoin\w*|akci\w*|zlat\w*)|kurz\w*|bitcoin\w*|ethereum|akci\w* \w+)\b", ("price", "exchange_rate")),
+    (r"\b(tramvaj\w*|autobus\w*|metr[oa]\w*|mhd|odjezd\w*|spoj\w*|vlak\w*|jede\b)", ("transit_departures", "transit_connection")),
+    (r"\bnajdi\b.*\b(soubor\w*|dokument\w*|faktur\w*|fotk\w*|pdf|slozk\w*)\b", ("find_file", "windows_search")),
+    (r"\b(prejmenuj|prejmenovat)\w*\b", ("rename_files", "smart_rename")),
+    (r"\b(zaloh\w*|backup)\b", ("backup_folder", "auto_backup", "check_backups")),
+    (r"\b(modr\w* obrazovk\w*|bsod|spadl\w*|pad\w* (pocitac|system|pc)|minidump\w*)\b", ("crash_dumps", "explain_crash_code")),
+    (r"\b(wifi|wi fi|siti|sit\b|router\w*)\b.*\b(zarizeni|pripojen\w*|kdo)\b|\bzarizeni\b.*\b(wifi|siti)\b", ("network_devices",)),
+    (r"\b(probud\w*|wake on lan|zapni\w* (druhy|jiny) pocitac)\b", ("wake_device",)),
+    (r"\b(kolik (casu|hodin)|cas u pocitace|stravil\w*|screen time)\b", ("screen_time",)),
+    (r"\b(kopiroval\w*|zkopiroval\w*|historie schranky|predtim zkopirovan\w*)\b", ("clipboard_history",)),
+    (r"\b(spust|pust|rozbehni)\w* testy\b|\btesty\b.*\bspust\w*", ("run_tests",)),
+    (r"\b(web\w*|strank\w*|landing\w*|eshop\w*)\b.*\b(udelej|vytvor|naprogramuj|postav)\w*|\b(udelej|vytvor|postav)\w*\b.*\b(web\w*|strank\w*)\b",
+     ("make_website",)),
+    (r"\b(v kodu|ve zdrojac\w*|v projektu)\b.*\b(najdi|kde)\b|\bnajdi\b.*\bv kodu\b", ("find_in_files",)),
+    (r"\b(hesl\w*|token\w*|klic\w*|secret\w*)\b.*\b(projekt\w*|kod\w*|repozitar\w*|gitu?)\b"
+     r"|\b(projekt\w*|kod\w*|repozitar\w*)\b.*\b(hesl\w*|token\w*|secret\w*)\b", ("scan_secrets",)),
+    (r"\b(nespolehliv\w*|flaky|obcas pad\w*)\b.*\btest\w*", ("find_flaky_tests", "flaky_tests")),
+    (r"\b(tabulk\w*|schema\w*|sloupc\w*)\b.*\b(databaz\w*|db|sql)\b|\bdatabaz\w*\b.*\b(tabulk\w*|schema)", ("db_schema",)),
+    (r"\b(vygeneruj|nakresli|namaluj|vytvor)\w*\b.*\b(obrazek|obrazku|obraz|fotku|ilustrac\w*|logo)\b", ("generate_image",)),
+    (r"\b(nahled\w*|thumbnail\w*|miniatur\w*)\b", ("make_thumbnail",)),
+    (r"\b(odstran|vystrihni|smaz)\w* (ticho|pauzy|mezery)\b", ("remove_silence",)),
+    (r"\b(hlasovk\w*|nahravk\w*|audio)\b.*\b(na text|prepis\w*)\b|\bprepis\w*\b.*\b(hlasovk\w*|nahravk\w*)\b",
+     ("read_attachment", "clean_speech")),
+    (r"\b(barevn\w* (schema|paletu|paleta|kombinac\w*)|paleta barev|barvy pro)\b", ("color_theme",)),
+    (r"\b(slab\w*|nejde mi|potize)\b.*\b(matemat\w*|fyzi\w*|chemi\w*|anglictin\w*|predmet\w*|uceni|ucen\w*)\b", ("learning_weak_spots",)),
+    (r"\bprevod\w*|\bprevedd?\b.*\b(na|do)\b.*\b(km|kilometr\w*|mil\w*|metr\w*|kil\w*|liber\w*|stupn\w*|palc\w*|litr\w*)\b"
+     r"|\b\d+ (mil|liber|palcu|stop|galonu|uncí|unci)\b", ("unit_calc",)),
+    (r"\bvyslovnost\w*", ("pronunciation_practice",)),
+    (r"\b(kazd\w* (den|rano|vecer|tyden|pondeli|hodin\w*)|vzdy (kdyz|v)|pravideln\w*)\b", ("create_automation", "schedule_task")),
+    (r"\b(naucit|nauc) se\b|\bukazu ti\b|\bnahraj (postup|co delam)\b", ("record_workflow_start", "workflow_record")),
+    (r"\b(nedodelal\w*|nedokoncil\w*|rozdelan\w*|zapomnel\w* udelat)\b", ("forgotten_work", "pinned_tasks")),
+    (r"\b(dari|daril\w*|statistik\w*|winrate|kolik jsem hral\w*)\b.*\b(hra|hrach|hre|hraju|valorant\w*|cs2|lol)\b", ("game_stats", "gaming_stats")),
+    (r"\b(mluv|mluvit) (rychle|pomale|potise|hlasite|jinak)\w*|\bzmen\w*\b.*\b(barv\w*|hlas\w*|jmen\w*|velikost\w*)\b"
+     r"|\b(postavick\w*|mochi)\b.*\b(barv\w*|velk\w*|mal\w*)\b|\bnastav\w*\b.*\b(hlas|notch|vzhled)\b", ("update_setting",)),
+)
+_INTENT_RX: list = []
+
+
+def intents(text: str) -> list[str]:
+    """Tools these words mean, by the INTENTS patterns (most specific first, at most 6)."""
+    if not _INTENT_RX:
+        _INTENT_RX.extend((re.compile(rx), names) for rx, names in INTENTS)
+    t = re.sub(r"[^a-z0-9 ]", " ", _norm(text or ""))
+    t = " ".join(t.split())
+    out: list[str] = []
+    for rx, names in _INTENT_RX:
+        if rx.search(t):
+            out += [n for n in names if n not in out]
+    return out[:6]
+
+
 def pick(registry: dict, allowed: set[str], text: str, recent: list[str] = (), extra: int = MAX_EXTRA) -> list[str]:
     """The tool names to send with this message: the everyday set, what the words point to, the last turn's tools.
     extra: how many the words may add (3.13: fewer for an AI on this PC – every tool is text it must read first)."""
     names = [n for n in CORE if n in allowed]
     for n in recent:
         if n in allowed and n not in names:
+            names.append(n)
+    for n in intents(text):                         # 3.14 what the words mean, before what they look like
+        if n in allowed and n in registry and n not in names:
             names.append(n)
     for n in search(registry, text, extra * 3, exclude=set(names)):
         if n in allowed and n not in names:

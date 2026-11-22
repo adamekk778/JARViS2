@@ -41,11 +41,11 @@ window.addEventListener("hashchange", () => {
   if (p) {
     savePairing(p);
     history.replaceState(null, "", location.pathname);
-    boot();
+    void boot();
   }
 });
 
-boot();
+void boot();
 
 async function boot() {
   startUpdateCheck();                                   // 3.12 a newer app → one tap to update
@@ -111,7 +111,7 @@ let clipSync = false;
 let clipSent = "";
 let clipImgSent = "";
 function shareClipboard(c: JarvisClient) {
-  c.on("welcome", (m) => { clipSync = !!m.clip_sync; sendClip(); });
+  c.on("welcome", (m) => { clipSync = !!m.clip_sync; void sendClip(); });
   c.on("clip_sync", (m) => { clipSync = !!m.on; });
   const sendClip = async () => {
     if (!clipSync || document.hidden || !native.isNative) return;
@@ -143,12 +143,12 @@ function connectScreen(prev?: Pairing | null, error?: string) {
   const tryPairing = async (p: Pairing | null) => {
     if (!p) return toast("Tohle není platný párovací kód", "error");
     savePairing(p);
-    boot();
+    void boot();
   };
   const scan = async () => {
     try {
       const text = await native.scanQr();
-      if (text) tryPairing(parsePairing(text));
+      if (text) void tryPairing(parsePairing(text));
     } catch (e: any) {
       toast(e.message || "Skenování se nepodařilo", "error");
     }
@@ -261,7 +261,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   // 3.4 phone link: keep the phone reachable for JARVIS (ring, dial, SMS) and answer his calls
   if (native.phone.available) {
     native.phone.configure({ base: ep.base, token: ep.token, enabled: localStorage.getItem("jarvis.link") !== "0" }).catch(() => {});
-    refreshLink(ep, pairing).then((p) => { pairing = p; });   // 3.12 JARVIS Link: how to reach the PC from outside
+    void refreshLink(ep, pairing).then((p) => { pairing = p; });   // 3.12 JARVIS Link: how to reach the PC from outside
     native.phone.onReply(() => { show("chat"); chat.focus(); toast("Řekni nebo napiš JARVISovi odpověď", "ok", 3500); });
     c.on("phone_cmd", async (cmd) => {
       try {
@@ -333,12 +333,12 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   // jarvis:// links – the widget, app shortcuts and command QR codes (a command is always shown before it is sent)
   native.onLink((url) => {
     const cmd = parseCommandLink(url);
-    if (cmd) { show("chat"); confirmCommand(c, cmd); return; }
+    if (cmd) { show("chat"); void confirmCommand(c, cmd); return; }
     const what = url.replace(/^jarvis:\/\/open\/?/, "");
     if (what === "talk") { show("control"); toast("Podrž mikrofon a mluv", "info", 2500); }
     else if (what === "chat") { show("chat"); chat.focus(); }
-    else if (what === "photo") { show("control"); sendPhoto(c, "shelf"); }
-    else if (what === "scan") scanCommand(c);
+    else if (what === "photo") { show("control"); void sendPhoto(c, "shelf"); }
+    else if (what === "scan") void scanCommand(c);
     else if (what === "habits") show("habits" as any);
     else if (what === "company") { show("home" as any); window.dispatchEvent(new Event("jarvis-open-company")); }
   });
@@ -364,15 +364,15 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   });
   c.on("stopped", () => { toast("Zastaveno.", "ok"); native.haptic(); });
   c.on("notify", (m) => {
-    if (document.hidden) native.notify(m.title, m.body);
+    if (document.hidden) void native.notify(m.title, m.body);
     else toast(`${m.title}: ${m.body}`, "info", 6000);
     native.haptic();
   });
-  c.on("assistant_done", (m) => { if (document.hidden) native.notify("JARVIS", String(m.text).slice(0, 180)); });
-  c.on("confirm_request", (m) => { if (document.hidden) native.notifyApproval("JARVIS potřebuje potvrzení", m.description, { kind: "jarvis", id: m.id, label: m.description }); native.haptic(); });
+  c.on("assistant_done", (m) => { if (document.hidden) void native.notify("JARVIS", String(m.text).slice(0, 180)); });
+  c.on("confirm_request", (m) => { if (document.hidden) void native.notifyApproval("JARVIS potřebuje potvrzení", m.description, { kind: "jarvis", id: m.id, label: m.description }); native.haptic(); });
   c.on("claude_permission", (m) => {
     asks.push(m); paintAsks(); show("chat"); native.haptic();
-    if (document.hidden) native.notifyApproval(`Claude Code · ${m.project} čeká`, m.label, { kind: "claude", id: m.id, label: m.label });
+    if (document.hidden) void native.notifyApproval(`Claude Code · ${m.project} čeká`, m.label, { kind: "claude", id: m.id, label: m.label });
   });
   c.on("claude_permission_resolved", (m) => { asks = asks.filter((a) => a.id !== m.id); paintAsks(); });
   native.onApprovalAction(async (action, extra) => {
@@ -520,8 +520,8 @@ function pcAudioRow(): HTMLElement | string {
   };
   const refresh = () => native.phone.pcAudio({}).then((r) => { on = r.on; paint(); }).catch(() => {});
   paint();
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return h("div", { class: "m-pcaudio-row" }, btn,
     h("p", { class: "help" }, "Hudba, film nebo hra z PC v telefonu a sluchátkách – i v jiné místnosti a mimo domov. Bere se jen zvuk, který PC samo hraje."));
 }
@@ -695,8 +695,8 @@ const render = (st: PhoneStatus) => box.replaceChildren(
       toast("JARVIS za chvilku zavolá", "ok");
     } }, icon("phone-call"), "Vyzkoušet hovor od JARVISe")));
   const refresh = () => native.phone.status().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });   // back from Android settings
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });   // back from Android settings
   return box;
 }
 
@@ -720,8 +720,8 @@ function mirrorCard(): HTMLElement {
         st.control ? null : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openAccessibility() }, "Povolit")));
   };
   const refresh = () => native.phone.mirrorStatus().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return box;
 }
 
@@ -787,13 +787,13 @@ function backupCard(): HTMLElement {
     box.replaceChildren(
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Záloha fotek na PC"), h("span", { class: b.running ? "m-live" : "" }, say(b))),
         sw(b.on || choosing, (v) => {
-          if (v) { choosing = true; render(b); } else { choosing = false; set({ on: false }); }
+          if (v) { choosing = true; render(b); } else { choosing = false; void set({ on: false }); }
         }, "Záloha fotek na PC")),
       choosing ? h("div", { class: "m-choice" },
         h("p", { class: "help" }, "Co poslat na PC? Pak už se budou posílat jen nové."),
         h("div", { class: "btn-row" },
-          h("button", { class: "btn primary sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: true }); } }, icon("images"), "Všechny fotky"),
-          h("button", { class: "btn sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: false }); } }, icon("sparkle"), "Jen nové od teď"),
+          h("button", { class: "btn primary sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); void set({ on: true, all: true }); } }, icon("images"), "Všechny fotky"),
+          h("button", { class: "btn sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); void set({ on: true, all: false }); } }, icon("sparkle"), "Jen nové od teď"),
           h("button", { class: "btn ghost sm", type: "button", onclick: () => { choosing = false; render(b); } }, "Zrušit"))) : "",
       b.on && !choosing ? h("div", { class: "m-subrows" },
         h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Jen přes Wi-Fi"), h("span", {}, "Nešetří data – na mobilních datech čeká.")),
@@ -807,8 +807,8 @@ function backupCard(): HTMLElement {
           : h("button", { class: "btn sm", type: "button", disabled: b.running, onclick: () => set({ now: true }) }, icon("cloud-arrow-up"), b.running ? "Zálohuji…" : "Zálohovat teď"))) : "");
   };
   const refresh = () => native.phone.backupStatus().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return box;
 }
 

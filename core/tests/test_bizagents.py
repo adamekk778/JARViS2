@@ -1,7 +1,6 @@
 """3.12 Firemní agenti: an agent reads and prepares; whatever sends or changes only lands in "Ke schválení"."""
 import asyncio
 import datetime as dt
-from types import SimpleNamespace as NS
 
 import pytest
 

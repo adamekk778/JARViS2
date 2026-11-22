@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.2.1",
@@ -29,7 +30,10 @@
     "simple-icons": "16.36.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
     "typescript": "~5.9.3",
+    "typescript-eslint": "^8.73.0",
     "vite": "^8.3.5"
   }
 }

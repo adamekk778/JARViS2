@@ -66,7 +66,7 @@ export function flingPad(c: JarvisClient) {
     if (v < 17) return;
     lastBump = Date.now();
     const top = stack.querySelector(".fl-card.top") as HTMLElement | null;
-    if (top) fling(top, "tap");
+    if (top) void fling(top, "tap");
   }
   function paint() {
     hint.replaceChildren(...(items.length
@@ -111,7 +111,7 @@ export function flingPad(c: JarvisClient) {
       on = false;
       const vx = dx / Math.max(1, performance.now() - t0);
       target.classList.remove("ready");
-      if (dx > w() * 0.42 || (dx > 40 && vx > 0.6)) fling(card);
+      if (dx > w() * 0.42 || (dx > 40 && vx > 0.6)) void fling(card);
       else {
         card.style.transition = "transform .45s cubic-bezier(.3, 1.5, .5, 1)";
         card.style.transform = "";

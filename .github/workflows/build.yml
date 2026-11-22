@@ -24,7 +24,29 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -e "./core[dev]"
+      - name: Lint (ruff – real bugs only, see core/pyproject.toml)
+        run: cd core && ruff check jarvis tests
+      - name: Types (mypy on the typed core)
+        run: cd core && mypy
       - run: cd core && pytest -q
+      - name: Quality evals (offline – which tools a Czech request reaches, the instant commands)
+        run: cd core && python -m jarvis.evals --offline --min-score 0.9
+
+  audit:
+    # known holes in the libraries JARVIS ships with; reported on every build, never blocks a release by itself
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install pip-audit && pip install "./core"
+      - name: pip-audit (Python packages)
+        run: pip-audit --progress-spinner off --skip-editable
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: npm audit (web UI, production packages)
+        run: cd web && npm ci --no-audit --no-fund && npm audit --omit=dev --audit-level=high
 
   web:
     runs-on: ubuntu-latest
@@ -32,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
-      - run: cd web && npm ci && npm run build
+      - run: cd web && npm ci && npm run lint && npm run build
       # build outputs travel through the cache, not artifacts: the artifact quota filled up and blocked releases,
       # the cache evicts old entries by itself
       - uses: actions/cache/save@v4
@@ -41,9 +63,36 @@ jobs:
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
+  ui-check:
+    # every page in a real browser at three sizes against a real JARVIS server: script errors, pages spilling
+    # sideways, clipped buttons, the notch off its window; the screenshots are kept for a look (návrh 21)
+    needs: [web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pip install -e "./core[dev]"
+      - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 && npx playwright install --with-deps chromium
+      - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome python -m jarvis.uicheck --out $RUNNER_TEMP/uicheck
+      - uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with: { name: ui-screenshots, path: "${{ runner.temp }}/uicheck", retention-days: 7 }
+
   windows:
     needs: [web]
     runs-on: windows-latest
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4
@@ -69,6 +118,21 @@ jobs:
       - name: PyInstaller
         timeout-minutes: 25      # normally 4–5 min; a hang must end with a log, not after 6 hours
         run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
+      - name: Sign JARVIS.exe (only when a code-signing certificate is in the repository secrets)
+        # Settings → Secrets → Actions: WINDOWS_CERT_PFX (the .pfx as base64) + WINDOWS_CERT_PASSWORD. Without them the
+        # build stays unsigned (SmartScreen then warns once); see docs/SIGNING.md
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = "$env:RUNNER_TEMP\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $st.FullName sign /f $pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 dist\JARVIS\JARVIS.exe dist\JARVIS\JARVIS-debug.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+          Remove-Item $pfx
       - name: Bundle size by package (what makes the installer big)
         shell: pwsh
         run: |
@@ -377,6 +441,19 @@ jobs:
           if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           & $iscc "/DMyAppVersion=$env:JARVIS_VERSION" packaging\installer.iss
           if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+      - name: Sign JARVIS-Setup.exe (only with the certificate secrets, as above)
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = "$env:RUNNER_TEMP\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $st.FullName sign /f $pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 dist\JARVIS-Setup.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+          Remove-Item $pfx
       - name: Installer smoke test (fresh install, then an upgrade over it, then start)
         timeout-minutes: 10
         shell: pwsh
@@ -447,7 +524,8 @@ jobs:
 
   release:
     needs: [test, windows, android]
-    if: github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch'
+    # the default branch = stable releases; the `beta` branch = test builds (pre-release, only the beta channel gets them)
+    if: github.ref_name == github.event.repository.default_branch || github.ref_name == 'beta' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/cache/restore@v4
@@ -468,7 +546,8 @@ jobs:
           tag_name: v${{ env.JARVIS_VERSION }}
           name: JARVIS ${{ env.JARVIS_VERSION }}
           target_commitish: ${{ github.sha }}
-          make_latest: true
+          make_latest: ${{ github.ref_name != 'beta' }}
+          prerelease: ${{ github.ref_name == 'beta' }}
           body: |
             ## Stáhni a nainstaluj
             - **PC (Windows 10/11):** `JARVIS-Setup.exe` → spusť a klikni Další.
