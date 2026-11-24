@@ -5,6 +5,8 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.14": [
+    { icon: "brain", title: "Vyber si mozek jedním klikem", line: "Nastavení → Mozek → Kdo odpovídá (nebo klik na štítek AI v chatu): klikni na Claude, Ollamu, Groq či Gemini a od teď odpovídá ona. Pod ní přepneš model – u Ollamy ty stažené v PC, u Claude Opus, Sonnet, Haiku nebo Fable. Funguje i hlasem: „přepni na Ollamu“." },
+    { icon: "microphone-stage", title: "Texty písní sedí", line: "Notch už neukazuje text jiné písně se stejným názvem ani jiné verze: musí sedět název, interpret i délka. A kdyby přesto nesedl, tlačítko Jiný text ho zahodí a zkusí jiný." },
     { icon: "translate", title: "JARVIS anglicky", line: "Nastavení → Obecné → Jazyk → English: JARVIS odpovídá anglicky a přepne do angličtiny i aplikaci, notch a telefon. Instalace jde i přes winget a projekt má vlastní webovou stránku." },
     { icon: "chart-bar", title: "Statistiky jen se souhlasem", line: "Chceš pomoct JARVIS zlepšovat? V Bezpečí a soukromí můžeš zapnout anonymní statistiky – předem ti ukážu přesně, co by se poslalo. Nikdy nic z toho, co říkáš nebo píšeš. Ve výchozím stavu je to vypnuté." },
     { icon: "shield-check", title: "Kód v ohrádce", line: "Python, který JARVIS spouští, i naučené dovednosti běží v omezeném prostředí: bez spouštění programů, bez sítě a bez zápisu mimo svou složku, pokud to dovednost výslovně nepotřebuje. Na Windows navíc s limitem paměti." },

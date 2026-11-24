@@ -7,6 +7,7 @@ PICK: the AI must get the right tool with the message (any of the names; the sel
 from __future__ import annotations
 
 INSTANT: list[tuple[str, str]] = [
+    ("přepni na Ollamu", "brain_switch"), ("použij Claude Sonnet", "brain_switch"), ("přepni model na qwen3:8b", "brain_switch"),
     ("hlasitost na 30", "volume"), ("nastav hlasitost na 75", "volume"), ("zvuk na 10 procent", "volume"),
     ("dej hlasitost na 100", "volume"), ("hlasitěji", "volume"), ("potichu", "volume"), ("ztlum", "volume"),
     ("ztlum zvuk", "volume"), ("vypni zvuk", "volume"), ("zapni zvuk", "volume"), ("zesil", "volume"),
@@ -44,6 +45,7 @@ NOT_INSTANT: list[str] = [
 ]
 
 PICK: list[tuple[str, tuple[str, ...]]] = [
+    ("tohle není text té písničky, dej jiný", ("lyrics_wrong",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar
     ("napiš e-mail Pavlovi, že schůzka se přesouvá", ("compose_email", "email_send", "draft_message")),
     ("přečti mi nové e-maily", ("email_inbox", "email_read", "inbox_overview")),

@@ -3,7 +3,7 @@
 | Integrace | Stav | Jak se připojuje | Kde jsou tajemství | Omezení |
 |---|---|---|---|---|
 | AI poskytovatelé (Claude, OpenAI, Gemini, Groq, OmniRoute, kompatibilní API) | funkční | Nastavení → Mozek | trezor OS | limity a cena podle poskytovatele; řetěz s náhradou |
-| Claude přes oficiální SDK (3.14) | funkční | Nastavení → Mozek → Claude (adresa api.anthropic.com) | trezor OS | cache promptu, přemýšlení podle obtížnosti; jiné adresy jdou přes OpenAI-kompatibilní rozhraní |
+| Claude přes oficiální SDK (3.14) | funkční | Nastavení → Mozek → Kdo odpovídá → Claude (klíč sk-ant- z console.anthropic.com) | trezor OS | modely Opus 5.5 / Sonnet 5.5 / Haiku 5.5 / Fable 5.2 přepínatelné v JARVISovi; placené podle tokenů; předplatné Claude Pro/Max klíč nedává |
 | Místní modely (Ollama, LM Studio) | funkční, volitelné | Nastavení → Mozek | — | stažení jen ručně; výkon podle GPU |
 | Claude Code CLI | funkční | háčky Claude Code → notch/telefon (claude_bridge.py) | — | jen podporovaným rozhraním, bez obcházení limitů |
 | MCP servery | funkční | Nastavení → Integrace | trezor OS | nástroje MCP spadají pod oprávnění Internet |

@@ -68,6 +68,7 @@ CLIENT_TYPES = [
     "widgets_get", "widget_delete", "mochi_level_get",
     "access_log_get",
     "stats_preview_get",
+    "brain_tiles_get", "brain_models_get", "brain_use",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -98,6 +99,7 @@ SERVER_TYPES = [
     "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
     "access_log",
     "stats_preview",
+    "brain_tiles", "brain_models", "brain_used",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -109,7 +111,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
               "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
-                 "save_attachment", "send_to_phone"}
+                 "save_attachment", "send_to_phone", "lyrics_wrong"}
 LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "local_tune", "memory_import", "diagnostics_export",
@@ -1823,12 +1825,11 @@ class Connection:
             if pid not in provs:
                 await self.send("notify", title="AI", body="Tuhle AI v nastavení nemám.", url="", target="dashboard")
             else:
-                chain = [pid] + [x for x in (rt.cfg.brain.chain or list(provs)) if x != pid]
-                chain += [x for x in provs if x not in chain]
-                patch: dict = {"brain": {"chain": chain}}
-                if not provs[pid].enabled:
-                    patch["brain"]["providers"] = [{**p.model_dump(), "enabled": True} if p.id == pid else p.model_dump() for p in rt.cfg.brain.providers]
-                rt.update_config(patch)                  # → settings_changed: the logos repaint, the chat shows the AI
+                from .. import brainpick
+
+                res = brainpick.use(rt, pid, str(m.get("model") or ""))   # 3.14 also lifts "Jen offline" / turns local AI on
+                for note in res["notes"]:
+                    await self.send("notify", title="AI", body=note, url="", target="dashboard")
                 rt.bus.publish("brain_picked", id=pid, name=provs[pid].id)
                 if (provs[pid].preset or pid) in ("ollama", "lmstudio"):
                     self.spawn(rt.local.warm(provs[pid].model or None))   # loaded now, so the first answer is quick

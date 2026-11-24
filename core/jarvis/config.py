@@ -86,6 +86,7 @@ class Brain(BaseModel):
     verify_answers: bool = True    # 3.14 claims the read web pages do not support are marked under the answer (26)
     second_opinion: bool = True    # 3.14 money / health / law / deleting: weigh it twice, ask other AIs (30)
     private_local: bool = True     # 3.14 passwords, health, bank details → only the AI on this PC, when it runs (32)
+    only_primary: bool = False     # 3.14 "Jen tento mozek": only the brain you picked answers (no backup AIs)
 
 
 class Voice(BaseModel):

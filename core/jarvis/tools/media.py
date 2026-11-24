@@ -55,3 +55,12 @@ async def media_seek(ctx, seconds: Annotated[float, "kam přetočit, sekundy od 
         st.update(position=float(seconds), at=time.time())
         ctx.bus.publish("media", **st)
     return ToolResult(True, f"Přetočeno na {int(seconds) // 60}:{int(seconds) % 60:02d}")
+
+
+@tool("lyrics_wrong", "Text písně v notchi nepatří k písni, která hraje (jiná píseň nebo jiná verze): JARVIS ho zahodí, už ho "
+      "pro tuhle píseň neukáže a hned zkusí jiný. Na „to není ten text“, „špatný text“, „jiný text“.", category="média")
+async def lyrics_wrong(ctx) -> ToolResult:
+    from .. import nowplaying
+
+    r = await nowplaying.mark_wrong(ctx)
+    return ToolResult(bool(r["ok"]), r["message"])

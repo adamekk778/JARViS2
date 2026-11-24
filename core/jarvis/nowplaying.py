@@ -94,7 +94,8 @@ def _word_stamps(body: str, offset: float) -> list[dict]:
 
 def parse_lrc(text: str) -> list[dict]:
     """LRC ("[01:02.50] line") → [{"t": seconds, "text": line}] sorted by time; a line with two stamps appears twice."""
-    out, offset = [], 0.0
+    out: list[dict] = []
+    offset = 0.0
     for raw in (text or "").splitlines():
         m = re.match(r"\[offset:\s*([+-]?\d+)\]", raw.strip(), re.I)
         if m:
@@ -107,11 +108,11 @@ def parse_lrc(text: str) -> list[dict]:
         words = _word_stamps(body, offset)                  # "enhanced" LRC: a time for every word – exact karaoke
         line = re.sub(r"\s+", " ", _WTS.sub("", body)).strip()
         for mm, ss in stamps:
-            item = {"t": round(max(0.0, int(mm) * 60 + float(ss.replace(":", ".")) - offset), 2), "text": line}
+            item: dict = {"t": round(max(0.0, int(mm) * 60 + float(ss.replace(":", ".")) - offset), 2), "text": line}
             if words and len(stamps) == 1:
                 item["words"] = words
             out.append(item)
-    out.sort(key=lambda x: x["t"])
+    out.sort(key=lambda x: float(x["t"]))
     return out
 
 
@@ -147,6 +148,51 @@ def main_artist(artist: str) -> str:
     return re.split(r"\s*(?:,|;|&| feat\.? | ft\.? | featuring | x | X | with | a )\s*", artist or "", maxsplit=1)[0].strip()
 
 
+# 3.14 the notch showed a different song's words: a search result is only used when it IS this song – the same title,
+# the same artist, and (for words timed to the singing) the same length within a few seconds (a live or radio version
+# has other timings: then the words are shown without timing rather than running out of step).
+DUR_TOLERANCE = 6.0
+
+
+def _title_key(x: str) -> str:
+    return _norm(clean_title(x or ""))
+
+
+def same_title(a: str, b: str) -> bool:
+    ka, kb = _title_key(a), _title_key(b)
+    return bool(ka) and ka == kb
+
+
+def same_artist(a: str, b: str) -> bool:
+    """"The Kid LAROI, Ty Dolla $ign" ~ "The Kid LAROI"; "The Weeknd" is NOT "The Beatles" (no word overlap tricks)."""
+    def names(x: str) -> set[str]:
+        parts = re.split(r"\s*(?:,|;|&|/| feat\.? | ft\.? | featuring | x | with | a )\s*", x or "", flags=re.I)
+        return {n for n in (_norm(p) for p in parts) if n}
+    na, nb = names(a), names(b)
+    if not na or not nb:
+        return False
+    if na & nb:
+        return True
+    ja, jb = _norm(a).replace(" ", ""), _norm(b).replace(" ", "")      # "AC/DC" vs "ACDC", "Imagine Dragons" vs "ImagineDragons"
+    return bool(ja) and ja == jb
+
+
+def _length_ok(item: dict, duration: float) -> bool:
+    d = float(item.get("duration") or 0)
+    return not duration or not d or abs(d - duration) <= DUR_TOLERANCE
+
+
+def fits(item: dict, song: str, artist: str, duration: float = 0) -> bool:
+    """Is this LRCLIB result the song that is playing?"""
+    if not isinstance(item, dict) or not same_title(song, str(item.get("trackName") or item.get("name") or "")):
+        return False
+    who = str(item.get("artistName") or "")
+    if artist and who:
+        return same_artist(artist, who)
+    # no artist on one side: only the length can tell it apart – it has to be known and close
+    return bool(duration and item.get("duration")) and _length_ok(item, duration)
+
+
 def _queries(song: str, artist: str) -> list[dict]:
     """The searches to try, most exact first (no repeats)."""
     out: list[dict] = []
@@ -166,10 +212,11 @@ class Lyrics:
         self.cache: OrderedDict = OrderedDict()
         self.size = cache_size
 
-    async def get(self, title: str, artist: str, album: str = "", duration: float = 0) -> dict:
-        """{"lines": [{t, text}], "synced": bool, "plain": str} – empty lines when nothing was found."""
+    async def get(self, title: str, artist: str, album: str = "", duration: float = 0, skip: tuple = ()) -> dict:
+        """{"lines": [{t, text}], "synced": bool, "plain": str} – empty lines when nothing was found.
+        `skip`: LRCLIB ids you marked as the wrong text for this song (3.14 "Jiný text")."""
         song, singer = split_artist(title, artist)
-        key = (song.lower(), singer.lower())
+        key = (song.lower(), singer.lower(), tuple(sorted(skip)))
         if not song:
             return {"lines": [], "synced": False, "plain": ""}
         if key in self.cache:
@@ -178,7 +225,7 @@ class Lyrics:
         res = {"lines": [], "synced": False, "plain": ""}
         if not os.environ.get("JARVIS_NO_NET") or self.transport is not None:
             try:
-                res = await self._fetch(song, singer, album, duration)
+                res = await self._fetch(song, singer, album, duration, skip)
                 NET["lyrics"] = ""
             except Exception as e:  # noqa: BLE001
                 log.info("lyrics %s – %s: %s", singer, song, e)
@@ -189,34 +236,50 @@ class Lyrics:
             self.cache.popitem(last=False)
         return res
 
-    async def _fetch(self, song: str, artist: str, album: str, duration: float) -> dict:
-
+    async def _fetch(self, song: str, artist: str, album: str, duration: float, skip: tuple = ()) -> dict:
+        cands: list[dict] = []
         async with _client(self.transport) as c:
-            item = None
             params = {"track_name": song, "artist_name": artist}
             if album:
                 params["album_name"] = album
             if duration:
                 params["duration"] = str(int(round(duration)))
-            r = await c.get(f"{LRCLIB}/get", params=params)
-            if r.status_code == 200:
-                item = r.json()
+            if artist:
+                r = await c.get(f"{LRCLIB}/get", params=params)
+                if r.status_code == 200 and isinstance(r.json(), dict) and r.json().get("id") not in skip:
+                    cands.append(r.json())
             # 3.12 Spotify names every artist of a song ("The Kid LAROI, Ty Dolla $ign"): the lyrics database knows it
             # by the main one – so after the full name, the main artist alone, then a plain search of song + artist
             for q in _queries(song, artist):
-                if item and item.get("syncedLyrics"):
+                if any(fits(x, song, artist, duration) and x.get("syncedLyrics") and _length_ok(x, duration) for x in cands):
                     break
                 r = await c.get(f"{LRCLIB}/search", params=q)
                 if r.status_code != 200:
                     continue
-                found = [x for x in r.json() or [] if isinstance(x, dict)]
-                if duration:
-                    found.sort(key=lambda x: abs(float(x.get("duration") or 0) - duration))
-                item = next((x for x in found if x.get("syncedLyrics")), item or (found[0] if found else None))
-        if not item:
-            return {"lines": [], "synced": False, "plain": ""}
-        lines = parse_lrc(item.get("syncedLyrics") or "")
-        return {"lines": lines, "synced": bool(lines), "plain": (item.get("plainLyrics") or "")[:6000]}
+                cands += [x for x in r.json() or [] if isinstance(x, dict) and (not skip or x.get("id") not in skip)]
+        return pick(cands, song, artist, duration)
+
+
+def pick(cands: list[dict], song: str, artist: str, duration: float) -> dict:
+    """The best result that is really this song: timed words of the same length first; timed words of another
+    length only as plain text (their timing would run out of step); otherwise plain text; otherwise nothing."""
+    good = [x for x in cands if fits(x, song, artist, duration)]
+    if not artist and len({_norm(str(x.get("artistName") or "")) for x in good}) > 1 and not duration:
+        good = []                                   # the same title by several artists and nothing to tell which one
+    if duration:
+        good.sort(key=lambda x: abs(float(x.get("duration") or 0) - duration))
+    timed = next((x for x in good if x.get("syncedLyrics") and _length_ok(x, duration)), None)
+    if timed:
+        lines = parse_lrc(timed.get("syncedLyrics") or "")
+        if lines:
+            return {"lines": lines, "synced": True, "plain": (timed.get("plainLyrics") or "")[:6000], "src_id": timed.get("id")}
+    for x in good:
+        plain = (x.get("plainLyrics") or "").strip()
+        if not plain and x.get("syncedLyrics"):
+            plain = "\n".join(ln["text"] for ln in parse_lrc(x["syncedLyrics"]))
+        if plain:
+            return {"lines": [], "synced": False, "plain": plain[:6000], "src_id": x.get("id")}
+    return {"lines": [], "synced": False, "plain": ""}
 
 
 # ---- 3.12 the album cover from the internet, when Windows does not hand the player's picture over -------------------
@@ -331,10 +394,27 @@ def refresh(rt) -> None:
     bg(publish_lyrics(rt, snap))
 
 
-async def publish_lyrics(rt, snap: dict) -> None:
-    """New song playing → look its lyrics up and send them to the notch (once per song)."""
+def _playing_now(rt, snap: dict) -> bool:
+    cur = rt.media_state or {}
+    return cur.get("title") == snap.get("title") and (cur.get("artist") or "") == (snap.get("artist") or "")
+
+
+async def publish_lyrics(rt, snap: dict, settle: float = 0.0) -> None:
+    """New song playing → look its lyrics up and send them to the notch (once per song).
+
+    3.14 only the newest lookup may show its words: when a song starts, Windows often says the new title with the
+    old artist or length for a moment, and that lookup (another song's words) used to finish last and win. `settle`
+    waits that moment out and takes the song as it is then."""
     if not getattr(rt.cfg.notch, "lyrics", True):
         return
+    gen = getattr(rt, "_lyrics_gen", 0) + 1
+    rt._lyrics_gen = gen
+    if settle:
+        await asyncio.sleep(settle)
+        cur = rt.media_state or {}
+        if gen != rt._lyrics_gen or cur.get("title") != snap.get("title"):
+            return                               # another song (or the same one again, newer) took over
+        snap = {**snap, **{k: cur[k] for k in ("artist", "album", "duration") if cur.get(k)}}
     if rt.cfg.brain.offline_only:           # nothing goes to the internet – and the music tab says so (with a way out)
         if snap.get("title"):
             rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": False, "lines": [],
@@ -347,24 +427,76 @@ async def publish_lyrics(rt, snap: dict) -> None:
     lib = getattr(rt, "lyrics", None)
     if lib is None:
         lib = rt.lyrics = Lyrics()
-    res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0))
+    skip = wrong_ids(rt, snap.get("title", ""), snap.get("artist", ""))
+    kw = {"skip": skip} if skip else {}
+    res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0), **kw)
     for wait in (10, 30, 90):                    # no internet for a moment (or blocked): try again while the song plays
         if not res.get("error"):
             break
         await asyncio.sleep(wait)
-        if (rt.media_state or {}).get("title") != snap.get("title"):
+        if gen != rt._lyrics_gen or not _playing_now(rt, snap):
             return
-        res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0))
-    if (rt.media_state or {}).get("title") != snap.get("title"):
-        return                                   # the song changed meanwhile
+        res = await lib.get(snap.get("title", ""), snap.get("artist", ""), snap.get("album", ""), float(snap.get("duration") or 0), **kw)
+    if gen != rt._lyrics_gen or not _playing_now(rt, snap):
+        return                                   # the song changed meanwhile (or a newer lookup runs)
     rt.lyrics_state = {"title": snap.get("title", ""), "artist": snap.get("artist", ""), "synced": res["synced"],
                        "lines": res["lines"][:400], "plain": "" if res["synced"] else (res.get("plain") or "")[:6000],
-                       "reason": str(res.get("error") or "")[:160]}
+                       "reason": str(res.get("error") or "")[:160], "src_id": res.get("src_id")}
     rt.bus.publish("lyrics", **rt.lyrics_state)
     if res["synced"] and res["lines"] and getattr(rt.cfg.notch, "lyrics_translate", True) and not looks_czech(res["lines"]):
         from .background import bg
 
-        bg(translate_lyrics(rt, snap.get("title", ""), res["lines"][:400]))
+        bg(translate_lyrics(rt, snap.get("title", ""), res["lines"][:400], snap.get("artist", "")))
+
+
+# ---- 3.14 "Jiný text": you say the words are not this song's – that text is never shown for it again, and the next
+# best one (or none) is looked up at once
+WRONG_KEY = "lyrics_wrong"
+
+
+def _song_key(title: str, artist: str) -> str:
+    return f"{_norm(artist or '')}|{_title_key(title or '')}"
+
+
+def _wrong_all(rt) -> dict:
+    import json
+
+    rt.db.conn.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)")
+    r = rt.db.one("SELECT v FROM kv WHERE k=?", (WRONG_KEY,))
+    try:
+        data = json.loads(r["v"]) if r else {}
+    except (ValueError, TypeError):
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def wrong_ids(rt, title: str, artist: str) -> tuple:
+    try:
+        return tuple(_wrong_all(rt).get(_song_key(title, artist), []))
+    except Exception:  # noqa: BLE001 – no database (a test context): nothing marked
+        return ()
+
+
+async def mark_wrong(rt) -> dict:
+    """The lyrics shown now are not this song's: remember it and look again."""
+    import json
+
+    st = getattr(rt, "lyrics_state", {}) or {}
+    snap = dict(getattr(rt, "media_state", {}) or {})
+    if not st or not snap.get("title") or st.get("title") != snap.get("title") or not st.get("src_id"):
+        return {"ok": False, "message": "Teď neukazuju žádný text písně."}
+    data = _wrong_all(rt)
+    k = _song_key(snap["title"], snap.get("artist", ""))
+    data[k] = sorted(set(data.get(k, [])) | {st["src_id"]})[-20:]
+    if len(data) > 500:
+        for old in list(data)[: len(data) - 500]:
+            data.pop(old, None)
+    rt.db.exec("INSERT OR REPLACE INTO kv VALUES (?, ?)", (WRONG_KEY, json.dumps(data)))
+    rt.lyrics_state = {}
+    await publish_lyrics(rt, snap)
+    now = getattr(rt, "lyrics_state", {}) or {}
+    found = bool(now.get("lines") or now.get("plain"))
+    return {"ok": True, "message": "Zkouším jiný text." if found else "Tenhle text už neukážu – jiný jsem pro tuhle píseň nenašel."}
 
 
 # ---- 3.12 překlad textu: a small Czech line under the sung one (the AI, once per song, remembered)
@@ -377,11 +509,11 @@ def looks_czech(lines: list[dict]) -> bool:
     return bool(texts) and sum(1 for t in texts if _CZ.search(t)) >= max(1, len(texts) // 6)
 
 
-async def translate_lyrics(rt, title: str, lines: list[dict]) -> list[str]:
+async def translate_lyrics(rt, title: str, lines: list[dict], artist: str = "") -> list[str]:
     """One AI call per song: every line → Czech, the same count and order (an empty line stays empty)."""
     import json
 
-    key = f"{title}|{len(lines)}"
+    key = f"{artist}|{title}|{len(lines)}|{lines[0].get('text', '') if lines else ''}"
     if key in _TR:
         tr = _TR[key]
     else:
@@ -402,7 +534,8 @@ async def translate_lyrics(rt, title: str, lines: list[dict]) -> list[str]:
         while len(_TR) > 40:
             _TR.popitem(last=False)
     st = getattr(rt, "lyrics_state", {}) or {}
-    if st.get("title") == title and (rt.media_state or {}).get("title") == title:
+    if st.get("title") == title and (st.get("artist") or "") == (artist or st.get("artist") or "") and \
+            (rt.media_state or {}).get("title") == title:
         rt.lyrics_state = {**st, "tr": tr}
         rt.bus.publish("lyrics", **rt.lyrics_state)
     return tr

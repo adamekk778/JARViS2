@@ -188,3 +188,41 @@ async def skill_fix_apply(ctx, name: Annotated[str, "název dovednosti"]) -> Too
         return ToolResult(False, str(e))
     return ToolResult(True, f"Dovednost {name} je opravená a znovu načtená ({', '.join(res['tools'])}). Původní verze je v "
                       "záloze.", data=res)
+
+
+# ---------- 3.14 the brain picked in one step (Claude, Ollama, …) ----------
+@tool("brain_switch", "Přepne, která AI (mozek) JARVISovi odpovídá, a případně její model: Claude (Anthropic), Ollama v tomhle "
+      "PC, Groq, Gemini, OpenAI, OpenRouter. Na „přepni na Ollamu“, „použij Claude Sonnet“, „přepni model na qwen3:8b“, "
+      "„jaký teď používáš model“ (bez parametrů jen řekne, co odpovídá teď).", category="mozek")
+async def brain_switch(ctx, brain: Annotated[str, "anthropic | ollama | groq | gemini | openai | openrouter | omniroute | lmstudio "
+                                                  "(prázdné = jen změnit model té, co odpovídá teď)"] = "",
+                       model: Annotated[str, "model, např. claude-sonnet-5-5 nebo qwen3:8b (prázdné = nechat)"] = "",
+                       only: Annotated[bool | None, "true = jen tahle AI, žádné záložní; false = ostatní jako záloha"] = None) -> ToolResult:
+    from .. import brainpick
+
+    if not brain and not model and only is None:
+        cur = brainpick.current(ctx)
+        if not cur["id"]:
+            return ToolResult(False, "Teď nemám žádnou AI – vlož API klíč v Nastavení → Mozek nebo spusť Ollamu.")
+        return ToolResult(True, f"Teď odpovídá {cur['label']} (model {cur['model']}).", data=cur)
+    key = (brain or "").strip().lower()
+    key = brainpick.preset_from_words(key) or key or brainpick.current(ctx)["id"]
+    if not key:
+        return ToolResult(False, "Nevím, na kterou AI přepnout – řekni třeba „přepni na Ollamu“ nebo „použij Claude“.")
+    if model and brainpick.find(ctx, key) and (brainpick.find(ctx, key).preset == "ollama" or key == "ollama"):
+        try:
+            have = await brainpick.models(ctx, key)
+        except ValueError:
+            have = {"models": []}
+        names = [m["id"] for m in have.get("models", [])]
+        if names and model not in names:
+            near = next((n for n in names if n.split(":")[0] == model.split(":")[0] or n.startswith(model)), "")
+            if not near:
+                return ToolResult(False, f"Model {model} v Ollamě nemám. Mám: {', '.join(names[:8])}.", data={"models": names})
+            model = near
+    try:
+        res = brainpick.use(ctx, key, model, only)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    line = f"Hotovo, odpovídá {res['label']}" + (f" s modelem {res['model']}" if res["model"] else "") + "."
+    return ToolResult(True, " ".join([line, *res["notes"]]), data=res)

@@ -44,6 +44,7 @@ export const CLIENT_TYPES = [
   "widgets_get", "widget_delete", "mochi_level_get",
   "access_log_get",
   "stats_preview_get",
+  "brain_tiles_get", "brain_models_get", "brain_use",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -74,6 +75,7 @@ export const SERVER_TYPES = [
   "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
   "access_log",
   "stats_preview",
+  "brain_tiles", "brain_models", "brain_used",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

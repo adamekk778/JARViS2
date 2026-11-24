@@ -1282,7 +1282,7 @@ function lyrPos(): number {
   return p < 0 ? p : p + lyricShift(media.title, media.artist);
 }
 function lyricsOn(): boolean {
-  return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && songPos() >= 0
+  return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && lyr.artist === String(media.artist || "") && songPos() >= 0
     && lyrPos() >= lyr.lines[0].t - 1.5 && lyrPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
 }
 let cfgLyrics = true;

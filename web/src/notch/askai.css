@@ -115,3 +115,9 @@ html[data-nstyle="dynamic"] .p-head:has(.home-date.bar) .p-tabs button { padding
 .aa-chips:has(.aa-chip.on) .aa-chip:not(.on) { opacity: .62; filter: saturate(.7); }
 .aa-chip.on { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 85%, #fff), 0 0 14px color-mix(in srgb, var(--c) 55%, transparent); opacity: 1; }
 .aa-chip { transition: transform .18s ease, opacity .2s ease, box-shadow .2s ease, filter .2s ease; }
+
+/* 3.14 the model of the AI answering now, switchable in the sheet */
+.aa-model-sel { margin-top: 2px; max-width: 100%; padding: 3px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06); color: inherit; font: 12px var(--mono, ui-monospace, monospace); }
+.aa-model-sel:focus-visible { outline: 2px solid var(--tint, #64d2ff); outline-offset: 1px; }
+.aa-model-sel option { color: #111; }

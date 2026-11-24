@@ -49,7 +49,7 @@
 .sidebar > .btn { justify-content: flex-start; }
 .sidebar > .btn i { color: var(--accent); }
 .side-title { font: 700 10.5px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 10px 10px 0; }
-.chat-wrap { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.chat-wrap { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .chat-wrap > .chat { flex: 1; min-height: 0; }
 .chat-head { display: flex; align-items: center; gap: 8px; height: 52px; flex: none; padding: 0 14px 0 20px; border-bottom: 1px solid var(--edge); }
 .chat-head-title { font: 700 15px var(--font); margin-right: 6px; }

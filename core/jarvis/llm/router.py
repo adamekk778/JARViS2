@@ -133,7 +133,10 @@ class Router:
                                      "Mozek, nebo spusť AI v tomhle PC (Ollama).")
             elif not enabled:
                 errors["mozek"] = "není nastavená žádná AI – vlož API klíč v Nastavení → Mozek (Groq nebo Gemini jsou zdarma)."
-        if light and not only and getattr(self.brain, "save_limits", True) and self.local_ready is not None:
+        if not only and getattr(self.brain, "only_primary", False):
+            cands = cands[:1]                      # 3.14 "Jen tento mozek": the brain you picked, no backups
+        if light and not only and not getattr(self.brain, "only_primary", False) and getattr(self.brain, "save_limits", True) \
+                and self.local_ready is not None:
             try:
                 ready = await self.local_ready()
             except Exception:  # noqa: BLE001

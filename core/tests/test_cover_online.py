@@ -115,7 +115,9 @@ def test_lyrics_found_by_the_main_artist_when_spotify_names_them_all():
         if req.url.path.endswith("/get"):
             return httpx.Response(404, json={})
         if req.url.params.get("artist_name") == "The Kid LAROI":
-            return httpx.Response(200, json=[{"syncedLyrics": "[00:12.00] I can't sleep\n[00:15.50] nights like this", "plainLyrics": "x"}])
+            # LRCLIB always names the song and the artist of a result (3.14: a result is only used when it is this song)
+            return httpx.Response(200, json=[{"trackName": "NIGHTS LIKE THIS", "artistName": "The Kid LAROI",
+                                              "syncedLyrics": "[00:12.00] I can't sleep\n[00:15.50] nights like this", "plainLyrics": "x"}])
         return httpx.Response(200, json=[])
 
     lib = nowplaying.Lyrics(transport=httpx.MockTransport(handler))

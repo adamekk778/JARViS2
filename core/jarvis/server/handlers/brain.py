@@ -62,3 +62,39 @@ async def offline_pack_test(c, m: dict) -> None:
     from ... import offlinepack
 
     await c.send("offline_pack_test_result", **(await offlinepack.test(c.rt)))
+
+
+# ---------- 3.14 the brain in one click: Claude, Ollama, … and its models ----------
+@handles("brain_tiles_get")
+async def brain_tiles_get(c, m: dict) -> None:
+    from ... import brainpick
+
+    await c.send("brain_tiles", tiles=brainpick.tiles(c.rt), current=brainpick.current(c.rt))
+
+
+@handles("brain_models_get", slow=True)
+async def brain_models_get(c, m: dict) -> None:
+    from ... import brainpick
+
+    try:
+        out = await brainpick.models(c.rt, str(m.get("key", "")))
+    except ValueError as e:
+        await c.send("brain_models", key=str(m.get("key", "")), models=[], current="", error=str(e))
+        return
+    await c.send("brain_models", key=str(m.get("key", "")), **out)
+
+
+@handles("brain_use")
+async def brain_use(c, m: dict) -> None:
+    from ... import brainpick
+
+    only = m.get("only")
+    try:
+        res = brainpick.use(c.rt, str(m.get("key", "")), str(m.get("model", "") or ""), bool(only) if only is not None else None)
+    except ValueError as e:
+        await c.send("error", message=str(e))
+        return
+    await c.send("brain_used", **res)
+    await c.send("brain_tiles", tiles=brainpick.tiles(c.rt), current=brainpick.current(c.rt))
+    if res["preset"] in ("ollama", "lmstudio") and getattr(c.rt, "local", None) is not None:
+        c.spawn(c.rt.local.warm(res["model"] or None))       # loaded now, so the first answer is quick

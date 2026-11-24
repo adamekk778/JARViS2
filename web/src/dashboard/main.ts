@@ -6,6 +6,7 @@ import { loadLook, loadPhoto, onLookChange } from "../shared/lookstore";
 import { captionBar, focusBanner } from "../shared/viz";
 import { helpMode } from "../shared/help";
 import { ChatView, conversationList } from "../shared/chat";
+import { createBrainPicker } from "../shared/brainpicker";
 import { Blob } from "../character/blob";
 import { h, icon, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
@@ -42,7 +43,23 @@ const chat = new ChatView(client);
 
 const face = new Blob({ size: 34 });
 face.setMood("offline");
-const brainChip = h("span", { class: "chip brain-chip", title: "Aktuální AI mozek" }, icon("brain"), "připojuji…");
+const brainChip = h("button", { type: "button", class: "chip brain-chip as-btn", title: "Která AI odpovídá – klikni a přepni AI nebo model",
+  "aria-haspopup": "dialog", "aria-expanded": "false" }, icon("brain"), h("span", {}, "připojuji…"));
+// 3.14 a click on the AI chip: switch the AI (Claude, Ollama, …) and its model right in the chat
+const chatPicker = createBrainPicker(client, { compact: true });
+const brainPop = h("div", { class: "bp-pop", role: "dialog", "aria-label": "Která AI odpovídá", hidden: true },
+  h("h3", {}, "Která AI odpovídá"), chatPicker.el);
+const closePop = () => { brainPop.hidden = true; brainChip.setAttribute("aria-expanded", "false"); };
+brainChip.onclick = (e) => {
+  e.stopPropagation();
+  const open = brainPop.hidden;
+  brainPop.hidden = !open;
+  brainChip.setAttribute("aria-expanded", String(open));
+  if (open) chatPicker.refresh();
+};
+brainPop.addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => { if (!brainPop.hidden) closePop(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !brainPop.hidden) { closePop(); brainChip.focus(); } });
 const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslech (Hey Jarvis)", "aria-label": "Zapnout nebo vypnout poslech", onclick: () => client.send("voice_toggle") }, icon("microphone"));
 const stopBtn = stopButton(client);
 stopBtn.hidden = true;
@@ -103,7 +120,7 @@ const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
   h("div", { class: "chat-wrap" },
     h("header", { class: "chat-head" }, h("span", { class: "chat-head-title" }, "Chat"), brainChip, h("span", { class: "grow" }), stopBtn, voiceBtn, fullBtn),
-    missingModelCard(client), chat.el));
+    brainPop, missingModelCard(client), chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
@@ -234,6 +251,7 @@ client.on("mood", (m) => {
 client.on("stopped", () => toast("Zastaveno.", "ok"));
 client.on("level", (m) => face.setLevel(m.rms || 0));
 client.on("brain", (m) => (brainChip.lastChild!.textContent = `${m.provider} · ${m.model}`));
+client.on("brain_used", (m: any) => (brainChip.lastChild!.textContent = `${m.id} · ${m.model}`));   // 3.14 switched in the picker
 client.on("voice_status", (m) => { voiceBtn.classList.toggle("on", !!m.listening); voiceBtn.hidden = !m.available; });
 client.on("notify", (m) => toast(`${m.title}: ${m.body}`, "info", 6000));
 client.connect();

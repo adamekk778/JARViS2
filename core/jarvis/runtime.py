@@ -480,10 +480,11 @@ class Runtime:
 
             skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill / automation = a new version
         if was_local and not self.cfg.brain.local_enabled:
+            co = self.local.unload()
             try:
-                bg(self.local.unload())
-            except RuntimeError:
-                pass
+                bg(co)
+            except RuntimeError:                   # no event loop (a test, the first start): nothing is loaded anyway
+                co.close()
         if self.persist_config:
             config_mod.save(self.cfg)
         self.router.update(self.cfg.brain)

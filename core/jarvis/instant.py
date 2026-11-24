@@ -96,6 +96,22 @@ def plan(text: str) -> Plan | None:
         return Plan([("weather", {})], kind="weather")
     if re.fullmatch(r"(?:udelej |vyfot\w* |zachyt\w* )?(?:screenshot|snimek obrazovky|screen)", t):
         return Plan([("screenshot", {})], say=lambda c: "Hotovo, snímek je v chatu." if c and c[0]["ok"] else c[0]["summary"], kind="screenshot")
+    # ---- 3.14 the brain: "přepni na Ollamu", "použij Claude Sonnet", "přepni model na qwen3:8b" – works even when
+    # the AI answering now does not (that is when you want to switch)
+    m = re.fullmatch(r"(?:prepni|prepnout|pouzij|pouzivej|zmen|vyber)\s+(?:(mozek|model|ai|umelou inteligenci)\s+)?(?:na |do )?(.{2,40})", t)
+    if m:
+        from . import brainpick
+
+        target = m.group(2)
+        brain = brainpick.preset_from_words(target)
+        if brain:
+            model = brainpick.claude_model_from_words(target) if brain == "anthropic" else ""
+            if brain == "ollama":
+                rest = re.sub(r"\b(ollam\w*|olam\w*|lokaln\w*|offline)\b", " ", target).split()
+                model = rest[0] if rest and re.search(r"[:\d]", rest[0]) else ""
+            return Plan([("brain_switch", {"brain": brain, **({"model": model} if model else {})})], kind="brain")
+        if m.group(1) == "model" and re.fullmatch(r"[\w.:/-]{2,60}", target):
+            return Plan([("brain_switch", {"model": target})], kind="brain")
     # ---- apps: open, close
     m = re.fullmatch(r"(?:otevri|spust|zapni aplikaci|nastartuj)\s+(.{2,40})", t)
     if m and not re.search(r"\b(soubor\w*|slozk\w*|web\w*|strank\w*|dokument\w*|posledni|email\w*|mail\w*|fotk\w*|obrazek|pdf)\b", m.group(1)):

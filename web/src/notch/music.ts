@@ -13,7 +13,7 @@ const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.fl
 
 export function createMusicView(ctx: Ctx) {
   let media: any = {};
-  let lyr: { title: string; synced: boolean; lines: Line[]; plain: string; reason?: string; tr?: string[] } = { title: "", synced: false, lines: [], plain: "" };
+  let lyr: { title: string; artist?: string; synced: boolean; lines: Line[]; plain: string; reason?: string; tr?: string[] } = { title: "", synced: false, lines: [], plain: "" };
   let visible = false, raf = 0, cur = -2, dragging = false, art = "";
 
   const bg = h("img", { class: "mu-bg", alt: "", "aria-hidden": "true" }) as HTMLImageElement;
@@ -41,7 +41,10 @@ export function createMusicView(ctx: Ctx) {
   const sync = h("div", { class: "mu-sync", role: "group", "aria-label": "Posun textu" },
     h("button", { type: "button", title: "Text jde pozadu – posunout dřív", onclick: () => nudge(0.25) }, icon("rewind", "ph-fill"), "Text pozadu"),
     shiftVal,
-    h("button", { type: "button", title: "Text jde napřed – posunout později", onclick: () => nudge(-0.25) }, "Text napřed", icon("fast-forward", "ph-fill")));
+    h("button", { type: "button", title: "Text jde napřed – posunout později", onclick: () => nudge(-0.25) }, "Text napřed", icon("fast-forward", "ph-fill")),
+    // 3.14 the words belong to another song (or version): never show this text for it again, try another one
+    h("button", { type: "button", class: "mu-wrong", title: "Tohle není text téhle písně – zkusit jiný", onclick: () => ctx.quick("lyrics_wrong") },
+      icon("swap", "ph-fill"), "Jiný text"));
   const lyrBox = h("div", { class: "mu-lyrics" }, lyrList);
   const lyrWrap = h("div", { class: "mu-lyr-wrap" }, lyrBox, sync);       // outside the faded edges of the lyrics
   const back = h("button", { class: "mu-back", type: "button", title: "Zpět", "aria-label": "Zpět na hlavní obrazovku", onclick: () => ctx.back() }, icon("caret-left"));
@@ -105,7 +108,8 @@ export function createMusicView(ctx: Ctx) {
   function buildLyrics() {
     cur = -2;
     lyrList.style.transform = "";
-    const same = lyr.title && media?.title && lyr.title === media.title;
+    // 3.14 the same title is not enough (two songs called "Stay"): the artist has to match too
+    const same = lyr.title && media?.title && lyr.title === media.title && (lyr.artist ?? "") === String(media.artist || "");
     el.classList.toggle("no-lyrics", !(same && (lyr.lines.length || lyr.plain)));
     if (!media?.title) { lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("music-notes-simple"), h("strong", {}, "Nic nehraje"), h("span", {}, "Pusť si hudbu – text uvidíš tady."))); return; }
     if (!ctx.lyricsOn()) { lyrList.replaceChildren(h("div", { class: "mu-empty" }, icon("text-aa"), h("strong", {}, "Texty jsou vypnuté"), h("span", {}, "Zapneš je v Nastavení → Notch → Texty písní."))); return; }
@@ -228,7 +232,7 @@ export function createMusicView(ctx: Ctx) {
       cur = -2;
     },
     setLyrics(m: any) {
-      lyr = { title: String(m?.title || ""), synced: !!m?.synced, lines: Array.isArray(m?.lines) ? m.lines : [], plain: String(m?.plain || ""),
+      lyr = { title: String(m?.title || ""), artist: String(m?.artist || ""), synced: !!m?.synced, lines: Array.isArray(m?.lines) ? m.lines : [], plain: String(m?.plain || ""),
         reason: m?.reason ? String(m.reason) : "", tr: Array.isArray(m?.tr) ? m.tr.map(String) : [] };
       buildLyrics();
     },

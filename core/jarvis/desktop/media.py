@@ -360,7 +360,7 @@ async def watch(rt, interval: float = 2.0) -> None:
                 rt.bus.publish("media", **snap)
                 if new_song and snap.get("title"):
                     rt.lyrics_state = {}
-                    bg(nowplaying.publish_lyrics(rt, snap))
+                    bg(nowplaying.publish_lyrics(rt, snap, settle=1.2))   # 3.14 let the artist / length settle
             prev = snap
             fails = 0
             nap = min(1.0, interval) if snap.get("playing") else interval     # a new song shows within a second

@@ -6,6 +6,7 @@ import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
 import { OUTFIT_LABEL, OUTFITS, UNLOCK_LEVEL } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
+import { createBrainPicker } from "../shared/brainpicker";
 import { createBrainsPanel } from "../shared/brainsui";
 
 export type Section =
@@ -113,6 +114,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let query = "";
   const extra: Record<string, any> = {};
   const brainsPanel = createBrainsPanel(client);         // 3.12 Přehled AI – keeps itself up to date
+  const brainPicker = createBrainPicker(client);         // 3.14 Kdo odpovídá – a click on Claude / Ollama / … and its models
 
   const set = (path: string, value: unknown) => {
     if (!local) return toast("Nastavení jde měnit jen přímo na PC.", "error");
@@ -400,6 +402,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       qk.onkeydown = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); sendKey(); } };
       const first = ordered.find((p) => p.enabled);
       return [
+        (() => { brainPicker.refresh(); return h("div", { class: "card bp-card" }, h("h2", {}, "Kdo odpovídá"),
+          h("p", { class: "help" }, "Klikni na AI a od teď odpovídá ona. Pod ní přepneš model – u Ollamy ty, které máš stažené v PC, u Claude Opus, Sonnet, Haiku nebo Fable."),
+          brainPicker.el); })(),
         h("div", { class: "card qk-card" },
           h("h2", {}, "Mozek – stačí API klíč"),
           h("p", { class: "help" }, "Vlož klíč a je hotovo: JARVIS pozná, od koho je, sám nastaví vše ostatní a hned ho vyzkouší. Zdarma klíč dostaneš na console.groq.com (Groq) nebo aistudio.google.com (Gemini)."),

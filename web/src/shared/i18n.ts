@@ -122,6 +122,14 @@ const EN: Record<string, string> = {
   "Zdarma přes Groq nebo Gemini, přímo z telefonu": "Free via Groq or Gemini, right from the phone",
   "192.168.1.20:8765 TOKEN nebo odkaz z PC": "192.168.1.20:8765 TOKEN or the link from the PC",
   "Token už neplatí. Spáruj telefon znovu.": "The token is no longer valid. Pair the phone again.",
+  // 3.14 who answers
+  "Jiný text": "Other lyrics", "Text pozadu": "Lyrics late", "Text napřed": "Lyrics early", "Kdo odpovídá": "Who answers", "Která AI odpovídá": "Which AI answers", "Jen tento mozek": "Only this brain",
+  "odpovídá": "answering", "záloha": "backup", "chybí klíč": "key missing", "přidat": "add", "v tomhle PC": "on this PC",
+  "Načítám modely…": "Loading models…", "Model": "Model",
+  "Ostatní AI se nepoužijí ani jako záloha.": "No other AI is used, not even as a backup.",
+  "Když tahle AI nepůjde, zkusí JARVIS další v pořadí.": "If this AI fails, JARVIS tries the next one in line.",
+  "Klikni na AI a od teď odpovídá ona. Pod ní přepneš model – u Ollamy ty, které máš stažené v PC, u Claude Opus, Sonnet, Haiku nebo Fable.":
+    "Click an AI and it answers from now on. Below it you switch the model – for Ollama the ones downloaded on this PC, for Claude Opus, Sonnet, Haiku or Fable.",
   "O tobě": "About you", "Osobnost": "Personality", "Styl": "Style", "Tvoje jméno": "Your name",
   "Jak tě má oslovovat": "How to address you", "Domovské město": "Home city", "Pro počasí": "For the weather",
   "V jakém jazyce JARVIS odpovídá. English přepne do angličtiny i aplikaci.":
