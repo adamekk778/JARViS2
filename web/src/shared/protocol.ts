@@ -50,6 +50,7 @@ export const CLIENT_TYPES = [
   "persona_set",
   "node_add", "node_remove",
   "edith_ask",
+  "emergency", "emergency_cancel",
 ] as const;
 
 export const SERVER_TYPES = [

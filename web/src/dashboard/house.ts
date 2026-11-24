@@ -67,6 +67,22 @@ export function houseCard(client: JarvisClient) {
       sw("Následuj mě", "Upozornění zazní tam, kde jsi – v místnosti se satelitem.", home.follow_me !== false, (v) => set({ follow_me: v })),
       h("h3", {}, "Hlasové satelity v místnostech"),
       h("p", { class: "help" }, "Řekni JARVISovi „jak připojím satelit v kuchyni“ – dá ti adresu pro Home Assistant (integrace Ollama)."),
+      h("h3", {}, "Kamery a zvonek"),
+      field("Frigate", home.frigate_url || "", "http://frigate.local:5000", (v) => set({ frigate_url: v }),
+        "Rozpoznání osob na kamerách domu – v noci a když nejsi doma hlásí každou osobu i s fotkou."),
+      field("Zóny i přes den", (home.camera_zones || []).join(", "), "vchod, zahrada",
+        (v) => set({ camera_zones: v.split(",").map((x) => x.trim()).filter(Boolean) })),
+      field("Zvonek", home.doorbell_entity || "", "binary_sensor.zvonek", (v) => set({ doorbell_entity: v })),
+      field("Kamera u dveří", home.door_camera || "", "camera.vchod", (v) => set({ door_camera: v }), "Její obraz přijde s „Někdo zvoní“."),
+      h("h3", {}, "Zvuky domu"),
+      (() => {
+        const sel = h("select", { class: "input", "aria-label": "Hlídání zvuků" },
+          ...([["off", "Vypnuto"], ["away", "Jen když nejsem doma"], ["always", "Pořád"]] as const).map(([v, l]) =>
+            h("option", { value: v, selected: (home.sound_watch || "off") === v }, l))) as HTMLSelectElement;
+        sel.onchange = () => set({ sound_watch: sel.value });
+        return h("label", { class: "pe-row" }, h("span", {}, "Kouřový hlásič a rány"), sel,
+          h("small", { class: "help" }, "Mikrofon PC poslouchá jen tyhle zvuky; nic se nenahrává."));
+      })(),
       h("h3", {}, "Moje počítače"),
       nodes());
   }

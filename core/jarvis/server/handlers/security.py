@@ -38,3 +38,23 @@ async def node_remove(c, m: dict) -> None:
     from ... import nodes
 
     nodes.remove(c.rt, str(m.get("name", "")))
+
+
+@handles("emergency")
+async def emergency_start(c, m: dict) -> None:
+    """3.14 the SOS button on the phone (with its position, when the phone shared it)."""
+    from ... import safety
+
+    where = ""
+    lat, lon = m.get("lat"), m.get("lon")
+    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+        where = f"https://maps.google.com/?q={lat:.5f},{lon:.5f}"
+    r = await safety.emergency(c.rt).start(str(m.get("reason") or "SOS z telefonu")[:120], where, wait=20)
+    await c.send("notify", title="SOS", body=r["message"], url="", target="mobile")
+
+
+@handles("emergency_cancel")
+async def emergency_cancel(c, m: dict) -> None:
+    from ... import safety
+
+    safety.emergency(c.rt).cancel()

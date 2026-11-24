@@ -594,6 +594,10 @@ class HomeCfg(BaseModel):
     satellite_key: str = ""         # the secret part of the address for Home Assistant voice satellites (made on first use)
     nodes: list[dict] = Field(default_factory=list)           # 3.14 other JARVIS PCs: {name, url, token, mac}
     sound_watch: Literal["off", "away", "always"] = "off"   # 3.14 smoke alarm / a crash heard by the PC's microphone → phone
+    frigate_url: str = ""           # 3.14 Frigate NVR (person detection on the house cameras), e.g. http://frigate.local:5000
+    camera_zones: list[str] = Field(default_factory=list)    # Frigate zones watched also by day (e.g. "vchod", "zahrada")
+    doorbell_entity: str = ""       # binary_sensor of the doorbell in Home Assistant
+    door_camera: str = ""           # camera.* at the door (its picture comes with "Někdo zvoní")
 
 
 class LimitsCfg(BaseModel):
@@ -616,6 +620,10 @@ class LimitsCfg(BaseModel):
 class PrivacyCfg(BaseModel):
     private_mode: bool = False         # nothing new is written to the history or memory
     guest_mode: bool = False           # 3.14 someone else at the PC: nothing private in answers, notices, aloud (109)
+    kids_mode: bool = False            # 3.14 a child at the PC: kind language, no shopping / locks / deleting / installing (41)
+    guard_photo: bool = False          # 3.14 Hlídat PC: a webcam photo of whoever uses the PC while you are away (38)
+    emergency_contacts: list[dict] = Field(default_factory=list)   # 3.14 [{name, phone}] for the emergency protocol (39)
+    security_weekly: bool = True       # 3.14 the weekly security briefing (Sunday evening) (40)
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
     mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
     mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)

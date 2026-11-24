@@ -52,7 +52,10 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("jak připojím hlasový satelit v kuchyni", ("satellite_setup",)),
     ("co teď letí nad námi", ("sky_overhead",)), ("kde je teď ISS", ("sky_overhead",)),
     ("kdo sedí u počítače", ("who_is_here",)), ("nauč se můj obličej", ("face_enroll", "faces_setup")),
-    ("sleduj se mnou obrazovku a pomáhej mi", ("screen_buddy",)), ("hlídej zvuky doma, když nebudu doma", ("sound_watch",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
+    ("sleduj se mnou obrazovku a pomáhej mi", ("screen_buddy",)), ("hlídej zvuky doma, když nebudu doma", ("sound_watch",)),
+    ("jarvisi pomoc, upadl jsem", ("emergency_help",)), ("jsem v pořádku, to byl omyl", ("emergency_ok",)),
+    ("je doma všechno v bezpečí, udělej bezpečnostní přehled", ("security_briefing",)),
+    ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar
     ("napiš e-mail Pavlovi, že schůzka se přesouvá", ("compose_email", "email_send", "draft_message")),

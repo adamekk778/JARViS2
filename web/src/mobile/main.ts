@@ -824,7 +824,22 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     localStorage.setItem("jarvis.notify", notif.checked ? "1" : "0");
     if (notif.checked) await native.askNotifyPermission();
   };
+  // 3.14 návrh 39: SOS – hold for a second (no accidental taps); the position goes along only if the phone allows it
+  let sosTimer = 0;
+  const sendSos = () => {
+    native.haptic();
+    const go = (lat?: number, lon?: number) => c.send("emergency", { reason: "SOS z telefonu", lat, lon });
+    if (!navigator.geolocation) { go(); return; }
+    navigator.geolocation.getCurrentPosition((pos) => go(pos.coords.latitude, pos.coords.longitude), () => go(), { timeout: 6000, maximumAge: 60000 });
+    toast("SOS odesláno – JARVIS se zeptá, jestli jsi v pořádku.", "info", 5000);
+  };
+  const sos = h("button", { class: "btn danger m-sos", type: "button", "aria-label": "SOS – podrž 1 sekundu",
+    onpointerdown: () => { sosTimer = window.setTimeout(sendSos, 1000); },
+    onpointerup: () => window.clearTimeout(sosTimer), onpointerleave: () => window.clearTimeout(sosTimer) }, icon("siren", "ph-fill"), "SOS (podrž)");
   return h("section", { class: "m-view m-more", hidden: true },
+    h("div", { class: "card" }, h("h2", {}, "Nouze"),
+      h("p", { class: "help" }, "Podrž SOS 1 sekundu: JARVIS se zeptá, jestli jsi v pořádku, a když neodpovíš, napíše tvým nouzovým kontaktům i s polohou."),
+      sos, h("button", { class: "btn", type: "button", onclick: () => c.send("emergency_cancel") }, icon("check-circle"), "Jsem v pořádku")),
     h("div", { class: "card" }, h("h2", {}, "Připojení"),
       h("div", { class: "kv" }, h("span", {}, "PC"), h("b", { class: "mono" }, ep.base.replace("http://", ""))),
       h("div", { class: "kv" }, h("span", {}, "Známé adresy"), h("b", { class: "mono" }, p.hosts.join(", "))),

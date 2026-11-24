@@ -333,6 +333,11 @@ class Agent:
         if shield.guest_on(rt):                     # 3.14 návrh 109: a guest at the PC – nothing about you
             facts = []
             extra = (extra + "\n\n" if extra else "") + shield.GUEST_RULE
+        from . import safety
+
+        if safety.kids_on(rt):                      # 3.14 návrh 41: a child at the PC
+            facts = []
+            extra = (extra + "\n\n" if extra else "") + safety.KIDS_RULE
         from . import persona
 
         try:                                        # 3.14 návrhy 15, 16: humour that knows when; a voice nobody knows
@@ -443,10 +448,12 @@ class Agent:
             raise BudgetExceeded(budget)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
-        from . import shield
+        from . import safety, shield
 
         if spec is None or call.name in disabled:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
+        elif (kid_why := safety.kids_blocks(rt, call.name, call.arguments)):     # 3.14 návrh 41: a child at the PC
+            res = tools.ToolResult(False, kid_why)
         elif shield.guest_on(rt) and call.name in shield.GUEST_BLOCKED:
             res = tools.ToolResult(False, "V režimu host osobní data (e-maily, zprávy, paměť, kalendář) neukazuji.")
         else:

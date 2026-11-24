@@ -27,6 +27,20 @@ export function buildSecurity(client: JarvisClient) {
   };
 
   const statsBox = h("pre", { class: "sec-pre", "data-no-tr": "", hidden: true });
+  // 3.14 nouzové kontakty: who gets a text when you do not answer "Jsi v pořádku?"
+  const contactsRow = (list: { name: string; phone: string }[]) => {
+    const name = h("input", { class: "input", placeholder: "Jméno", "aria-label": "Jméno kontaktu" }) as HTMLInputElement;
+    const phone = h("input", { class: "input", placeholder: "+420 …", "aria-label": "Telefon kontaktu", inputmode: "tel" }) as HTMLInputElement;
+    return h("div", { class: "row-text sec-contacts" }, h("strong", {}, "Nouzové kontakty"),
+      h("span", { class: "help" }, "Komu JARVIS napíše SMS (z tvého telefonu) i s polohou, když na nouzovou otázku neodpovíš."),
+      ...list.map((x, i) => h("div", { class: "row" }, h("span", {}, `${x.name} · ${x.phone}`),
+        h("button", { class: "icon-btn sm", type: "button", "aria-label": `Odebrat ${x.name}`,
+          onclick: () => set({ privacy: { emergency_contacts: list.filter((_, k) => k !== i) } }) }, icon("trash")))),
+      h("div", { class: "house-add" }, name, phone, h("button", { class: "btn sm", type: "button", onclick: () => {
+        if (!name.value.trim() || !/[\d+]{6,}/.test(phone.value.replace(/\s/g, ""))) { toast("Vyplň jméno a telefon"); return; }
+        set({ privacy: { emergency_contacts: [...list, { name: name.value.trim(), phone: phone.value.replace(/\s/g, "") }] } });
+      } }, icon("plus"), "Přidat")));
+  };
   const statsUrl = (val: string) => {
     const inp = h("input", { class: "input", value: val, placeholder: "https://… (prázdné = nic se neposílá)", "aria-label": "Adresa pro statistiky" }) as HTMLInputElement;
     inp.onchange = () => {
@@ -74,6 +88,14 @@ export function buildSecurity(client: JarvisClient) {
       sw("Anonymní statistiky", "Jednou týdně: verze, které vestavěné nástroje se používají a jak často selhávají, rychlost AI a hlasu. Nikdy nic z toho, co říkáš, píšeš nebo máš v souborech.",
         () => !!P.share_stats, (v) => set({ privacy: { share_stats: v } })),
       statsUrl(P.stats_url || ""),
+      // 3.14 ochrana a nouze
+      sw("Dětský režim", "U PC je dítě: laskavá řeč, nic nevhodného, žádné nákupy, mazání, instalace, zámky ani alarm.",
+        () => !!P.kids_mode, (v) => set({ privacy: { kids_mode: v } })),
+      sw("Fotka při hlídání PC", "Když někdo použije PC, zatímco ho JARVIS hlídá, vyfotí ho webkamera a fotka přijde do chatu v telefonu.",
+        () => !!P.guard_photo, (v) => set({ privacy: { guard_photo: v } })),
+      sw("Týdenní bezpečnostní brífink", "V neděli večer: neznámá zařízení v síti, neúspěšná přihlášení, úniky e-mailů.",
+        () => P.security_weekly !== false, (v) => set({ privacy: { security_weekly: v } })),
+      contactsRow(P.emergency_contacts || []),
       h("div", { class: "row" }, h("span", { class: "help" }, "Přesně tohle by se poslalo:"),
         h("button", { class: "btn sm", type: "button", onclick: () => client.send("stats_preview_get") }, icon("eye"), "Ukázat")),
       statsBox);

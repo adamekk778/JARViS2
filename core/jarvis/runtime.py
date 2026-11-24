@@ -290,6 +290,10 @@ class Runtime:
         from . import eyes
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(eyes.sounds(self).run()))  # 3.14 sounds of the house (opt-in)
+        from . import safety
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.cameras(self).run()))   # 3.14 cameras, doorbell
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.weekly(self)))         # 3.14 security briefing
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
@@ -537,6 +541,15 @@ class Runtime:
                 else:
                     self.submit(self.agent.handle(text, [], "chat"))
             return None
+        if act == "emergency_ok":                 # 3.14 návrh 39: "Jsem v pořádku" under the emergency question
+            from . import safety
+
+            safety.emergency(self).cancel()
+            return True, "Dobře, ruším nouzový protokol."
+        if act == "dial":                         # 3.14 "Volat 112" – the phone dials only because you tapped it
+            num = str(args.get("number") or "")[:20]
+            ok = bool(num) and self.phone_push("dial", who=num)
+            return ok, f"Telefon vytáčí {num}." if ok else "Telefon teď není připojený – vytoč to prosím sám."
         if act == "device_revoke":                # 3.14 návrh 111: "Odvolat" under "a new device paired"
             from . import mobileplus
 

@@ -107,6 +107,13 @@ class Guard:
             sent = False
         ev["sent"] = bool(sent)
         self.rt.bus.publish("guard", **self.status())    # the open phone app shows it at once
+        from . import safety                             # 3.14 návrh 38: a webcam photo of who it is (opt-in)
+        from .background import bg
+
+        try:
+            bg(safety.guard_photo(self.rt, body))
+        except RuntimeError:
+            pass
 
     async def loop(self) -> None:
         while True:

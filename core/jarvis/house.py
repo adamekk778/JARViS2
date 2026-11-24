@@ -133,7 +133,7 @@ class House:
             return None
         try:
             hm = getattr(self.rt, "home", None) or home.Home(self.rt)
-            st = next((e for e in await hm.states() if e.get("entity_id") == ent), None)
+            st = next((e for e in await hm.states() if (e.get("id") or e.get("entity_id")) == ent), None)
         except Exception:  # noqa: BLE001
             return None
         return None if st is None else st.get("state") == "home"

@@ -74,6 +74,7 @@ CLIENT_TYPES = [
     "persona_set",
     "node_add", "node_remove",
     "edith_ask",
+    "emergency", "emergency_cancel",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
