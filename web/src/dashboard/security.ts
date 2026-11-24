@@ -95,6 +95,8 @@ export function buildSecurity(client: JarvisClient) {
         () => !!P.guard_photo, (v) => set({ privacy: { guard_photo: v } })),
       sw("Týdenní bezpečnostní brífink", "V neděli večer: neznámá zařízení v síti, neúspěšná přihlášení, úniky e-mailů.",
         () => P.security_weekly !== false, (v) => set({ privacy: { security_weekly: v } })),
+      sw("Paměť života", "Šifrovaný deník tvých dní u PC (aplikace a okna s časem, tvoje poznámky) – jen v tomhle PC, klíč v trezoru Windows. Hesla, bankovnictví a anonymní okna se nezapisují. Pak se můžeš zeptat „co jsem dělal minulé úterý“.",
+        () => !!P.life_log, (v) => set({ privacy: { life_log: v } })),
       contactsRow(P.emergency_contacts || []),
       h("div", { class: "row" }, h("span", { class: "help" }, "Přesně tohle by se poslalo:"),
         h("button", { class: "btn sm", type: "button", onclick: () => client.send("stats_preview_get") }, icon("eye"), "Ukázat")),

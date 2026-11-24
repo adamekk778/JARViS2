@@ -83,6 +83,10 @@ export function houseCard(client: JarvisClient) {
         return h("label", { class: "pe-row" }, h("span", {}, "Kouřový hlásič a rány"), sel,
           h("small", { class: "help" }, "Mikrofon PC poslouchá jen tyhle zvuky; nic se nenahrává."));
       })(),
+      h("h3", {}, "Robotický vysavač"),
+      field("Místnosti", Object.entries(home.vacuum_rooms || {}).map(([k, v]) => `${k}: ${(v as number[]).join(", ")}`).join("; "),
+        "Kuchyň: 16, 17; Obývák: 18", (v) => set({ vacuum_rooms: parseRooms(v) }),
+        "Čísla segmentů z aplikace vysavače (Roborock / Xiaomi) – pak „ukliď kuchyň“ uklidí jen ji."),
       h("h3", {}, "Moje počítače"),
       nodes());
   }
@@ -92,4 +96,15 @@ export function houseCard(client: JarvisClient) {
   client.on("settings_changed", (m: any) => sync(m.settings));
   paint();
   return box;
+}
+
+/** "Kuchyň: 16, 17; Obývák: 18" → { Kuchyň: [16, 17], Obývák: [18] } */
+export function parseRooms(text: string): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  for (const part of text.split(";")) {
+    const [name, nums] = part.split(":");
+    const ids = (nums || "").split(/[,\s]+/).map((n) => parseInt(n, 10)).filter((n) => Number.isFinite(n) && n >= 0);
+    if (name?.trim() && ids.length) out[name.trim()] = ids;
+  }
+  return out;
 }

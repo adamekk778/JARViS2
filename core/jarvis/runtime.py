@@ -301,6 +301,10 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
         self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
+        from . import lifelog, quests
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(quests.loop(self)))           # 3.14 missions over days
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on

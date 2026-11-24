@@ -606,6 +606,7 @@ class HomeCfg(BaseModel):
     car: dict[str, str] = Field(default_factory=dict)        # 3.14 the car's entities: battery, fuel, range, location, lock,
                                                              # climate, charging, odometer (+ name); found by car_setup
     travel_buffer_min: int = 120    # 3.14 be at the airport this long before a flight (a train: 10 minutes)
+    vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
 
 
 class LimitsCfg(BaseModel):
@@ -635,6 +636,8 @@ class PrivacyCfg(BaseModel):
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
     mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
     mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)
+    life_log: bool = False             # 3.14 Paměť života: an encrypted, local diary of your days at the PC (53) – only on your yes
+    life_log_days: int = 90            # …kept this many days
     share_stats: bool = False          # 3.14 návrh 117: anonymous weekly statistics – only when switched on
     stats_url: str = ""                # where they go (HTTPS); empty = nothing is ever sent
 

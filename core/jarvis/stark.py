@@ -160,6 +160,16 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
         except Exception as e:
             log.debug("briefing mail: %s", e)
 
+    try:                                  # 3.14 návrh 52: what JARVIS learned last night
+        from . import nightlearn
+
+        line = nightlearn.morning_line(rt)
+        if line:
+            parts.append(line)
+            data["learned"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing learned: %s", e)
+
     try:                                  # 3.14 návrh 47: today's flight / train and when to leave
         from . import travel
 

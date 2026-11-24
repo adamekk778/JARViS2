@@ -124,6 +124,12 @@ class NightCare:
                          "disks": disks, "disks_bad": [d["name"] for d in bad], "updates": len(upd.get("updates") or []),
                          "reboot": bool(upd.get("reboot")), "updates_error": upd.get("error") or ""}
             self._save()
+            try:                                   # 3.14 návrh 52: learn from the day's mistakes while the PC sleeps
+                from . import nightlearn
+
+                await nightlearn.run(self.rt)
+            except Exception as e:  # noqa: BLE001
+                log.debug("nightlearn: %s", e)
             if bad:
                 self.rt.notify("Disk hlásí problém", f"Windows hlásí u disku {', '.join(d['name'] for d in bad)} stav "
                                f"{bad[0]['health']}. Zálohuj si důležité soubory.", speak=False)
