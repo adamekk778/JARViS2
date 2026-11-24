@@ -640,7 +640,7 @@ class DesktopHost:
         if not text.strip():
             self.rt.notify("Schránka je prázdná", "Nejdřív zkopíruj nějaký text.", speak=False)
             return
-        self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat"))
+        self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat", untrusted=True))   # 3.17 not your words
         self.open_chat("chat")
 
     def _toggle_subs(self) -> None:

@@ -189,7 +189,9 @@ class Agent:
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
                      record_user: bool = True, extra_system: str = "", lang: str = "", task_id: str | None = None,
-                     ai: str = "") -> str:
+                     ai: str = "", untrusted: bool = False) -> str:
+        """untrusted = the message carries text you did not write (the clipboard, a selection): no reflexes, nothing
+        learnt, and the AI asks before steps that change something (3.17, trust.foreign_needs_ask)."""
         rt = self.rt
         self._task_hint = task_id           # a queued / interrupted mission this request carries on
         if self._lock.locked() and rt.tasks.current and rt.tasks.current["status"] == "paused":
@@ -220,6 +222,7 @@ class Agent:
                 if rule:
                     extra_system = (extra_system + "\n" if extra_system else "") + rule
                 self._lang = lang if lang in ("cs", "en") else "cs"
+                self._foreign_turn = bool(untrusted)
                 return await self._handle(text, attachments or [], source, record_user, extra_system)
             finally:
                 self.busy = False
@@ -408,10 +411,11 @@ class Agent:
             msgs.append({"role": "user", "content": text})
         return msgs, need_vision
 
-    async def _ask_confirm(self, call: ToolCall, second: bool = False, timeout: float | None = None, phone: bool = False) -> bool:
+    async def _ask_confirm(self, call: ToolCall, second: bool = False, timeout: float | None = None, phone: bool = False,
+                           why: str = "") -> bool:
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
-        desc = describe_call(call.name, call.arguments)
+        desc = describe_call(call.name, call.arguments) + (f" ({why})" if why else "")
         if second:
             desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
         spec = tools.REGISTRY.get(call.name)
@@ -652,8 +656,19 @@ class Agent:
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
 
-    async def _run_call(self, call: ToolCall, tool_cards: list[dict], attachments: list[str]) -> dict:
+    def _foreign_ask(self, name: str, offered: bool) -> bool:
+        """3.17 (návrh 15) foreign text is in this task and the AI chose a step that changes something → ask first."""
+        from . import trust
+
+        return bool(getattr(self, "_untrusted_seen", False)) and \
+            trust.foreign_needs_ask(tools.REGISTRY.get(name), offered, getattr(self, "_own_words", ""))
+
+    async def _run_call(self, call: ToolCall, tool_cards: list[dict], attachments: list[str],
+                        ai_offered: bool | None = None) -> dict:
+        """ai_offered: None = not the AI's choice (an everyday command, a reflex, a protocol step); else whether the
+        tool was sent with your words (False = the AI reached it itself through use_tool or by its name)."""
         rt = self.rt
+        chose_after_foreign = ai_offered is not None and bool(getattr(self, "_untrusted_seen", False))
         await rt.tasks.checkpoint()
         if rt.tasks.current is None:
             rt.tasks.begin(self._goal, rt.memory.current_conversation, self._task_hint)
@@ -676,17 +691,17 @@ class Agent:
             from . import trust
 
             dangerous = tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt)
+            foreign = ai_offered is not None and self._foreign_ask(call.name, ai_offered)
             vid = getattr(rt, "voiceid", None)
             owner_block = bool(dangerous and getattr(self, "_source_now", "") == "voice"
                                and getattr(rt.cfg.voice, "owner_only", True) and vid is not None and not vid.owner_ok())
             if owner_block:                            # 3.14 návrh 38: a risky action by voice only in the owner's voice
                 approved = False
-            elif dangerous and \
-                    not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False)):
+            elif foreign or (dangerous and not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False))):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:
-                    approved = await self._ask_confirm(call)
+                    approved = await self._ask_confirm(call, **({"why": "po přečtení cizího textu"} if foreign and not dangerous else {}))
                     if approved and _needs_second(call, getattr(rt.cfg, "limits", None)):
                         approved = await self._ask_confirm(call, second=True)
                 finally:
@@ -783,7 +798,7 @@ class Agent:
             pass
         tool_cards.append(card)
         calls_now = getattr(self, "_turn_calls", None)
-        if calls_now is not None:                  # 3.16 what worked for these words (tool memory)
+        if calls_now is not None and not chose_after_foreign:   # 3.16 what worked for these words (3.17 not what foreign text led to)
             calls_now.append((call.name, dict(call.arguments or {}), bool(res.ok)))
         return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": res.for_llm()}
 
@@ -798,7 +813,10 @@ class Agent:
         self._goal = text or "(příloha)"
         self._source_now = source
         self._sources = []
-        self._untrusted_seen = False            # 3.13 full trust asks again after e-mails / web pages were read
+        foreign = bool(getattr(self, "_foreign_turn", False))
+        # 3.13 full trust asks again after e-mails / web pages were read; 3.17 a picture or pasted text counts from the start
+        self._untrusted_seen = foreign or bool(attachments)
+        self._own_words = "" if foreign else (text or "")
         rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
         status = "done"
         from . import brainplus                # 3.14 Mozek+: corrections, traits, think twice, private, preface, check
@@ -841,11 +859,11 @@ class Agent:
                 quick = un["text"]                         # "pokračuj" → the rest of what he was saying, no AI
             else:
                 extra = (extra + "\n\n" if extra else "") + f"Uživatel tě přerušil a neslyšel konec tvé předchozí odpovědi: „{un['text'][:400]}“."
-        phrase = None if attachments else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
+        phrase = None if attachments or foreign else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
         if phrase is not None:                             # 3.14 návrh 48: "jdu spát" → your own routine, no AI
             rt.automations.fire(phrase, {"text": text or ""}, reason="phrase", force=True)
             quick = f"Spouštím {phrase.name}."
-        if quick is None and not attachments and not self._only and getattr(rt.cfg.agent, "instant", True):
+        if quick is None and not attachments and not foreign and not self._only and getattr(rt.cfg.agent, "instant", True):
             from . import instant
 
             p = instant.plan(text)
@@ -862,7 +880,7 @@ class Agent:
                 if quick is None:
                     tool_cards.clear()
         reflexed = False
-        if quick is None and not attachments and not self._only and record_user:
+        if quick is None and not attachments and not foreign and not self._only and record_user:
             try:                                   # 3.16 the same words went well twice: do it at once, no AI
                 rx = toolmind.reflex(rt, text or "", self._allowed_names())
             except Exception as e:  # noqa: BLE001
@@ -874,7 +892,7 @@ class Agent:
                 ok = bool(tool_cards and tool_cards[-1].get("ok"))
                 quick = said if ok else (tool_cards[-1].get("summary") if tool_cards else None) or None
                 reflexed = quick is not None
-        if quick is None and not attachments and not self._only and record_user and not self._ASKS.search(text or ""):
+        if quick is None and not attachments and not foreign and not self._only and record_user and not self._ASKS.search(text or ""):
             from . import reflexmodel
 
             if reflexmodel.enabled(rt):            # 3.16 the small model on this PC decides a clear command at once
@@ -928,6 +946,7 @@ class Agent:
                     speech.preface(line)
             asyncio.get_running_loop().create_task(_say_first())
         offered = {sc.get("function", sc).get("name") for sc in schemas}
+        from_words = set(offered)                  # 3.17 sent with your words (not reached by the AI later on)
         calls: list[ToolCall] | None = None
         rnd = 0
         try:
@@ -995,15 +1014,17 @@ class Agent:
                         continue
                     run_calls.append(ToolCall(id=c.id, name=u.name, arguments=u.args))
                 safe = [c for c in run_calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
-                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
+                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))
+                    and not self._foreign_ask(c.name, c.name in from_words)]
                 ack = self._ack_later(speech) if speech is not None and not speech.spoke and run_calls else None
                 try:
                     if len(safe) > 1:
-                        outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
+                        outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts, ai_offered=c.name in from_words)
+                                                      for c in safe))
                         results.update({c.id: o for c, o in zip(safe, outs)})
                     for c in run_calls:
                         if c.id not in results:
-                            results[c.id] = await self._run_call(c, tool_cards, out_atts)
+                            results[c.id] = await self._run_call(c, tool_cards, out_atts, ai_offered=c.name in from_words)
                 finally:
                     if ack is not None:
                         ack.cancel()
@@ -1087,7 +1108,8 @@ class Agent:
                     attachments=[rt.public_attachment(a) for a in out_atts])
         lat.finish(tools=len(tool_cards), instant=quick is not None, catalog=bool(getattr(rt.router, "catalog_used", False)),
                    status=status, reflex=reflexed, **self._turn_stats)
-        if status == "done" and record_user and not reflexed and not private and not getattr(rt, "speedcheck_running", False):
+        if status == "done" and record_user and not reflexed and not private and not foreign and \
+                not getattr(rt, "speedcheck_running", False):
             try:
                 toolmind.learn(rt, text or "", self._turn_calls, full_text)
             except Exception as e:  # noqa: BLE001
