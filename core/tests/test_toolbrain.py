@@ -25,7 +25,12 @@ def test_catalog_has_every_tool_once_and_stays_the_same():
         assert f"\n{n}(" in cat
     assert "\nuse_tool(" not in cat and "\nfind_tools(" not in cat
     assert cat == tc.catalog(tools.REGISTRY, set(names))                       # the same text → the cache holds
-    assert len(cat) < 90_000 and cat.count("\n") > len(names) * 0.95
+    assert len(cat) < 90_000
+    lines = cat.splitlines()
+    for n in names - {"use_tool", "find_tools"}:                               # every tool is there – alone or in its family
+        fam, _, rest = n.partition("_")
+        assert any(x.startswith(n + "(") for x in lines) or \
+            any(x.startswith(fam + "_*:") and (" " + rest + "(" in x or ": " + rest + "(" in x) for x in lines), n
     assert "\nweather(" not in tc.catalog(tools.REGISTRY, names - {"weather"})  # switched off = not offered
 
 

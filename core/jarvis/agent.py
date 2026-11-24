@@ -723,6 +723,31 @@ class Agent:
                 ok = bool(tool_cards and tool_cards[-1].get("ok"))
                 quick = said if ok else (tool_cards[-1].get("summary") if tool_cards else None) or None
                 reflexed = quick is not None
+        if quick is None and not attachments and not self._only and record_user and not self._ASKS.search(text or ""):
+            from . import reflexmodel
+
+            if reflexmodel.enabled(rt):            # 3.16 the small model on this PC decides a clear command at once
+                self._tool_schemas(text)
+
+                def ok_tool(name: str, args: dict) -> bool:
+                    spec = tools.REGISTRY.get(name)
+                    t = rt.cfg.tools
+                    return bool(spec) and (name in self.DONE_TOOLS or spec.category in self.DONE_CATS) and \
+                        not tools.is_dangerous(spec, args, t.always_confirm, t.trusted, rt)
+                try:
+                    pick = await reflexmodel.route(rt, text or "", list(getattr(self, "_picked", [])), ok_tool)
+                except Exception as e:  # noqa: BLE001
+                    log.debug("reflex model: %s", e)
+                    pick = None
+                if pick:
+                    await self._run_call(ToolCall(id="m0", name=pick[0], arguments=dict(pick[1])), tool_cards, out_atts)
+                    card = tool_cards[-1] if tool_cards else {}
+                    if card.get("ok") and card.get("summary"):
+                        said = str(card["summary"]).strip()
+                        quick = said if said.endswith((".", "!", "?", "…")) else said + "."
+                        self._turn_stats["reflex_model"] = 1
+                    else:
+                        tool_cards.clear()
         msgs: list[dict] = []
         need_vision = False
         schemas: list[dict] = []

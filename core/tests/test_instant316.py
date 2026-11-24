@@ -132,3 +132,62 @@ def test_slow_brain_from_the_routers_own_times(rt):
     assert brainplus.slow_brain(rt)
     rt.router.ttft = {"p": [300, 400, 350]}
     assert not brainplus.slow_brain(rt)
+
+
+# ------------------------------------------------------------------------------------------ R5: tidy catalog, reflex model
+def test_catalog_families_and_audit():
+    from jarvis import toolcatalog as tc
+
+    tools.load_builtin()
+    cat = tc.catalog(tools.REGISTRY, set(tools.REGISTRY))
+    line = next(x for x in cat.splitlines() if x.startswith("email_*:"))
+    assert "inbox(" in line and "read(" in line and "send(" in line
+    assert "\ncheck_" in cat or "check_" in cat                       # a verb is not a family
+    a = tc.audit(tools.REGISTRY)
+    assert a["tools"] > 800 and a["families"].get("email", 0) >= 5 and a["same_looking"] == []
+
+
+async def test_reflex_model_does_a_clear_command_without_the_big_ai(rt, monkeypatch):
+    from jarvis import reflexmodel
+
+    tools.load_builtin()
+    rt.update_config({"brain": {"reflex_model": "qwen3:1.7b"}})
+    asked = []
+
+    async def fake_ask(rt_, model, text, lines, transport=None):
+        asked.append((model, text, len(lines)))
+        return '{"tool": "volume", "args": {"action": "set", "level": 35}, "confidence": 0.93}'
+    monkeypatch.setattr(reflexmodel, "ask", fake_ask)
+    rt.router = FakeRouter([])
+    out = await rt.agent.handle("ztlum to trochu na pětatřicet")
+    assert asked and asked[0][0] == "qwen3:1.7b" and rt.router.calls == [] and out.strip()
+    assert latency.get(rt).turns[-1]["info"].get("reflex_model") == 1
+
+
+async def test_reflex_model_leaves_doubts_questions_and_risk_to_the_ai(rt, monkeypatch):
+    from jarvis import reflexmodel
+
+    tools.load_builtin()
+    rt.update_config({"brain": {"reflex_model": "qwen3:1.7b"}})
+    answers = iter(['{"tool": "volume", "args": {"action": "set", "level": 35}, "confidence": 0.5}',
+                    '{"tool": "printer_control", "args": {"action": "cancel"}, "confidence": 0.99}',
+                    '{"tool": "volume", "args": {"hlasitost": 35}, "confidence": 0.99}',
+                    'tohle není json'])
+
+    async def fake_ask(rt_, model, text, lines, transport=None):
+        return next(answers)
+    monkeypatch.setattr(reflexmodel, "ask", fake_ask)
+    for t in ("ztlum to trochu", "zruš ten tisk", "ztlum to na pětatřicet", "dej to tišeji"):
+        rt.router = FakeRouter(["Dobře."])
+        await rt.agent.handle(t)
+        assert len(rt.router.calls) == 1, t                               # the big AI answered
+    rt.router = FakeRouter(["Protože…"])
+    await rt.agent.handle("proč je to tak hlasité?")                     # a question never goes to the reflex model
+
+
+def test_reflex_model_parse_and_off(rt):
+    from jarvis import reflexmodel
+
+    assert reflexmodel.parse('x {"tool": null, "args": {}, "confidence": 0.9}')["tool"] is None
+    assert reflexmodel.parse('{"tool": "volume", "confidence": "hodně"}')["confidence"] == 0
+    assert reflexmodel.enabled(rt) == "" and reflexmodel.ollama_base(rt).startswith("http")

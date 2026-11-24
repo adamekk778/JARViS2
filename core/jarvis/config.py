@@ -93,6 +93,9 @@ class Brain(BaseModel):
     # 3.16 nástroje v hlavě: the whole tool catalog for an AI with a big context and a prompt cache (auto = Claude,
     # OpenAI, Gemini, DeepSeek, Mistral; on = every cloud AI; off = the small set + find_tools as before)
     tool_catalog: Literal["auto", "on", "off"] = "auto"
+    # 3.16 místní reflexní model: a small Ollama model (e.g. qwen3:1.7b) decides clear commands before the big AI ("" = off)
+    reflex_model: str = ""
+    reflex_min_conf: float = 0.85
 
 
 class Voice(BaseModel):

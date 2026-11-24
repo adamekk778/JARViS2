@@ -53,12 +53,17 @@ def catalog(registry: dict, allowed: set[str]) -> str:
     if key in _cache:
         return _cache[key]
     groups: dict[str, list[str]] = {}
-    for n in names:
-        spec = registry[n]
-        groups.setdefault(spec.category or "obecné", []).append(signature(n, spec.schema()))
+    for cat, members in families(registry, names).items():
+        for fam, ns in members:
+            if fam:                                     # 3.16 (návrh 15) a family on one line: email_* inbox | read | …
+                parts = [signature(n, registry[n].schema(), 40)[len(fam) + 1:] for n in ns]
+                groups.setdefault(cat, []).append(f"{fam}_*: " + " | ".join(parts))
+            else:
+                groups.setdefault(cat, []).append(signature(ns[0], registry[ns[0]].schema()))
     lines = ["## Všechny tvoje nástroje",
              "Každý nástroj z tohoto seznamu můžeš použít hned: ty, které nemáš mezi nástroji, zavolej přes use_tool "
-             "(name = jméno, args = parametry jako objekt). Nic nehledej, vyber podle seznamu. ? = nepovinný parametr."]
+             "(name = jméno, args = parametry jako objekt). Nic nehledej, vyber podle seznamu. ? = nepovinný parametr. "
+             "Řádek „email_*: inbox(…) | read(…)“ je rodina nástrojů email_inbox, email_read…"]
     for cat in sorted(groups):
         lines.append(f"### {cat}")
         lines += groups[cat]
@@ -67,6 +72,53 @@ def catalog(registry: dict, allowed: set[str]) -> str:
         _cache.clear()
     _cache[key] = text
     return text
+
+
+VERBS = {"check", "find", "compare", "save", "get", "set", "make", "show", "open", "close", "run", "add", "list_"}
+
+
+def families(registry: dict, names: list[str]) -> dict[str, list[tuple[str, list[str]]]]:
+    """Per category: (family prefix, its tools) for 3+ tools named "<subject>_…" in one area, else ("", [tool])."""
+    by_cat: dict[str, list[str]] = {}
+    for n in names:
+        by_cat.setdefault(registry[n].category or "obecné", []).append(n)
+    out: dict[str, list[tuple[str, list[str]]]] = {}
+    for cat, ns in by_cat.items():
+        pref: dict[str, list[str]] = {}
+        for n in ns:
+            if "_" in n:
+                pref.setdefault(n.split("_", 1)[0], []).append(n)
+        fams = {p: m for p, m in pref.items() if len(m) >= 3 and p not in VERBS}
+        done: set[str] = set()
+        rows: list[tuple[str, list[str]]] = []
+        for n in sorted(ns):
+            if n in done:
+                continue
+            p = n.split("_", 1)[0] if "_" in n else ""
+            if p in fams:
+                rows.append((p, sorted(fams[p])))
+                done.update(fams[p])
+            else:
+                rows.append(("", [n]))
+                done.add(n)
+        out[cat] = rows
+    return out
+
+
+def audit(registry: dict) -> dict:
+    """Tools that may do the same thing (similar names and descriptions) + the families – for a tidy-up."""
+    import difflib
+
+    names = sorted(registry)
+    pairs = []
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            if a in b or b in a or difflib.SequenceMatcher(None, a, b).ratio() > 0.86:
+                r = difflib.SequenceMatcher(None, registry[a].description[:160], registry[b].description[:160]).ratio()
+                if r > 0.8:
+                    pairs.append({"a": a, "b": b, "similar": round(r, 2)})
+    fams = {f: len(ns) for rows in families(registry, names).values() for f, ns in rows if f}
+    return {"tools": len(names), "families": fams, "same_looking": pairs}
 
 
 def hint(registry: dict, names: list[str]) -> str:
