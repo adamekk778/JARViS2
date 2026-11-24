@@ -4,6 +4,17 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.17": [
+    { icon: "waveform", title: "Hlas hraje hned", line: "První věta začne znít, ještě než je celá vyrobená (Edge a ElevenLabs), a JARVIS se k AI zeptá už při váhavé pauze – nástroje ale spustí až na tvoje skutečně dořečená slova. Živý přepis při mluvení a čekání na konec věty podle tvého tempa." },
+    { icon: "magic-wand", title: "Průvodce rychlostí", line: "Diagnostika → Změřit rychlost změří odpověď u tebe doma a Průvodce rychlostí doporučí nejrychlejší nastavení pro tvoje PC – každé jedním klikem. Claude si drží pokyny a nástroje v hodinové cache a Diagnostika ukazuje, kolik to ušetřilo." },
+    { icon: "cube", title: "3D díl z jakéhokoli popisu", line: "„Navrhni držák na kolo na zeď“, „vázu 12 cm“ – AI navrhne tvar, JARVIS ho zkontroluje, ukáže v HUD a dá STL i OpenSCAD. Upravuje se slovy („o 2 cm vyšší“) a „vrať to“ jako u šablon." },
+    { icon: "hand-pointing", title: "Gesta prsty", line: "Štípnutí a pohyb nahoru/dolů přibližuje, otevřená dlaň otáčí 3D model nebo glóbus, pěst ho rozloží. Model ruky se stáhne až na tvoje kliknutí (Vzhled → Gesta prsty) a obraz z kamery neopustí PC." },
+    { icon: "list-checks", title: "Co se JARVIS naučil", line: "Nastavení → Co se JARVIS naučil: všechny reflexy a vzory („pusť … na YouTube“) – můžeš je zakázat nebo smazat. Po každé aktualizaci si JARVIS offline vyzkouší tvoje obvyklé povely a řekne, kdyby některý šel jinak." },
+    { icon: "shield-check", title: "Cizí text nic neřídí", line: "Když JARVIS přečte e-mail, web, soubor, obrázek nebo schránku, smí dál bez ptaní jen číst. Než udělá něco, co mění (psaní, klávesy, odkaz, paměť…), zeptá se – i s plnou důvěrou – pokud jsi o to sám neřekl." },
+    { icon: "printer", title: "Bambu napřímo a STEP v HUD", line: "Tiskárna Bambu Lab po síti bez Home Assistantu: stav, pauza, poslání .3mf k tisku a kamera P1/A1 (Nastavení → Integrace → Dílna). STEP soubory ukáže HUD i bez FreeCADu." },
+    { icon: "package", title: "Zásilky PPL a DPD živě", line: "DPD se sleduje samo, PPL po zadání přístupu od PPL v Propojení. „Kde mám balík?“ řekne, kde co je." },
+    { icon: "watch", title: "JARVIS na hodinkách", line: "„Dej mi JARVISe na hodinky“ – na hodinkách Wear OS (přes telefon) se objeví „Zeptej se JARVISe“ s hotovými otázkami. Odpovíš hlasem a odpověď přijde zpátky na hodinky." },
+  ],
   "3.16": [
     { icon: "books", title: "Všechny nástroje v hlavě", line: "JARVIS má teď u velkých AI (Claude, OpenAI, Gemini…) seznam všech svých ~900 nástrojů najednou a zavolá kterýkoli jedním krokem – nic nehledá. Pokyny i seznam si AI drží v paměti (cache), takže první slovo přijde dřív a je to levnější." },
     { icon: "lightning", title: "Reflexy a paměť nástrojů", line: "Co se ti dvakrát povedlo stejnými slovy („pusť lo-fi“), příště udělá hned bez AI. Pamatuje si, co na jaká slova fungovalo, vybírá nástroje podle významu věty, podle aplikace na popředí i podle toho, co v tuhle hodinu děláš." },

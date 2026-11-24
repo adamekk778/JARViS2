@@ -30,7 +30,10 @@
 | Twilio – AI sekretářka a volání za tebe (3.14) | volitelné, placené | E-mail a telefon → Twilio + veřejná HTTPS adresa | trezor OS (token) | ověřuje podpis Twilia; hovory se vždy představí jako AI; přesměrování u operátora (**61*…#) |
 | AeroDataBox (3.14) | volitelné | Propojení → Cesty a zásilky | trezor OS | zpoždění, terminál, gate; bezplatný plán na RapidAPI |
 | OpenSky, RainViewer, OSRM, Nominatim (3.14) | funkční | bez účtu | — | veřejné služby s limity (letadla, radar, trasa, geokódování) |
-| Česká pošta / Balíkovna (3.14) | funkční | bez účtu | — | veřejné sledování zásilek; PPL, DPD, GLS jen odkazem |
+| Česká pošta / Balíkovna (3.14) | funkční | bez účtu | — | veřejné sledování zásilek |
+| DPD (3.17) | funkční (neověřeno živě) | bez účtu | — | veřejné sledování DPD; ze sandboxu nedostupné, testováno se simulovanou odpovědí |
+| PPL (3.17) | volitelné | Propojení → PPL | trezor OS | oficiální CPL API, Client ID a secret od obchodního zástupce PPL; bez nich odkaz |
+| GLS | odkaz | — | — | otevřené sledování GLS zrušilo (API jen po registraci) |
 | Spotová cena elektřiny (3.14) | funkční | bez účtu (spotovaelektrina.cz) | — | ceny OTE za MWh, dnes a zítra |
 | Have I Been Pwned (3.14) | volitelné | Bezpečí a soukromí | trezor OS | placený klíč; bez něj brífink úniky nekontroluje |
 | VB-Cable (tlumočník, 3.14) | volitelné | nainstalovaný ovladač VB-Audio Cable | — | jen Windows |
@@ -39,6 +42,9 @@
 | OctoPrint (3.15) | volitelné | Integrace → Dílna – 3D tiskárna | trezor OS (klíč API „printer“) | stav, pauza, pokračovat, zrušit, nahrání a tisk, snímek z /webcam; neověřeno na skutečné tiskárně |
 | Klipper / Moonraker (3.15) | volitelné | Integrace → Dílna – 3D tiskárna (adresa :7125) | trezor OS (volitelný klíč) | print_stats, pause/resume/cancel, upload s tiskem, kamera ze /server/webcams |
 | Bambu Lab přes Home Assistant (3.15) | volitelné | integrace ha-bambulab v HA + Dílna | trezor OS (token HA) | stav, pauza, stop, kamera; soubor k tisku jen z Bambu Studia |
+| Bambu Lab napřímo (3.17) | volitelné | Integrace → Dílna → Bambu Lab napřímo (LAN) | trezor OS (přístupový kód) | MQTT s TLS 8883, FTPS 990, kamera P1/A1 6000; certifikát tiskárny připnutý při prvním spojení |
+| Wear OS hodinky (3.17) | volitelné | spárovaný Android telefon | — | „Zeptej se JARVISe“ jako tichá notifikace s hotovými otázkami; odpověď hlasem z hodinek |
+| occt-import-js (3.17) | vestavěné | — | — | STEP v HUD bez FreeCADu; LGPL-2.1, viz docs/THIRD_PARTY.md |
 | PrusaSlicer (3.15) | volitelné | nainstalovaný + profil .ini v Nastavení | — | STL / 3MF → G-code před tiskem |
 | OpenSCAD (3.15) | volitelné | nainstalovaný | — | přesné STL z text → CAD; bez něj náhled ze sítě JARVISe |
 | FreeCAD (3.15) | volitelné | nainstalovaný (freecadcmd) | — | STEP → OBJ s díly pro HUD |

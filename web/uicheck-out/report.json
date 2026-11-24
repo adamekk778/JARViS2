@@ -1,0 +1,162 @@
+[
+ {
+  "page": "dashboard",
+  "size": "1280x800",
+  "screenshot": "uicheck-out/dashboard-1280x800.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": 0,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS",
+  "nodes": 2613,
+  "english": true
+ },
+ {
+  "page": "dashboard",
+  "size": "1920x1080",
+  "screenshot": "uicheck-out/dashboard-1920x1080.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": 0,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS",
+  "nodes": 2613,
+  "english": true
+ },
+ {
+  "page": "chat",
+  "size": "1280x800",
+  "screenshot": "uicheck-out/chat-1280x800.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -1280,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS Chat",
+  "nodes": 591,
+  "english": true
+ },
+ {
+  "page": "chat",
+  "size": "900x700",
+  "screenshot": "uicheck-out/chat-900x700.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -900,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS Chat",
+  "nodes": 591,
+  "english": true
+ },
+ {
+  "page": "hud",
+  "size": "1920x1080",
+  "screenshot": "uicheck-out/hud-1920x1080.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -1920,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS HUD",
+  "nodes": 249,
+  "english": true
+ },
+ {
+  "page": "notch",
+  "size": "1000x410",
+  "screenshot": "uicheck-out/notch-1000x410.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -1000,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS Notch",
+  "nodes": 446,
+  "english": true
+ },
+ {
+  "page": "mobile",
+  "size": "390x844",
+  "screenshot": "uicheck-out/mobile-390x844.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": 0,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS",
+  "nodes": 102,
+  "english": true
+ },
+ {
+  "page": "mobile",
+  "size": "412x915",
+  "screenshot": "uicheck-out/mobile-412x915.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": 0,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS",
+  "nodes": 102,
+  "english": true
+ },
+ {
+  "page": "karaoke",
+  "size": "1920x1080",
+  "screenshot": "uicheck-out/karaoke-1920x1080.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -1920,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS Karaoke",
+  "nodes": 35,
+  "english": true
+ },
+ {
+  "page": "karaoke",
+  "size": "390x844",
+  "screenshot": "uicheck-out/karaoke-390x844.png",
+  "problems": [],
+  "a11y": {
+   "critical": [],
+   "serious": 0
+  },
+  "overflowX": -390,
+  "clipped": 0,
+  "notchOk": true,
+  "title": "JARVIS Karaoke",
+  "nodes": 35,
+  "english": true
+ }
+]

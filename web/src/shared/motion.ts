@@ -134,7 +134,11 @@ export function spring(from: number, to: number, on: (v: number) => void, o: Spr
 export function transition(change: () => void): void {
   const d = document as any;
   if (current === "off" || typeof d.startViewTransition !== "function") { change(); return; }
-  try { d.startViewTransition(change); } catch { change(); }
+  try {
+    const vt = d.startViewTransition(change);
+    // an aborted transition (another one started, the page left) rejects these – nothing is wrong, the change ran
+    for (const pr of [vt?.ready, vt?.finished, vt?.updateCallbackDone]) pr?.catch?.(() => {});
+  } catch { change(); }
 }
 
 // ------------------------------------------------------------------ wiring

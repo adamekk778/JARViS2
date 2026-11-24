@@ -61,7 +61,7 @@ def problem(rt: Any) -> str:
     if not serial(rt):
         return "chybí sériové číslo tiskárny"
     if not secrets.get("printer"):
-        return "chybí přístupový kód (Nastavení → Dílna → Přístupový kód)"
+        return "chybí přístupový kód (Nastavení → Integrace → Dílna → Přístupový kód)"
     return ""
 
 
@@ -81,7 +81,7 @@ def pin_verdict(pinned: str, der: bytes | None) -> tuple[bool, str, str]:
     fp = hashlib.sha256(der).hexdigest()
     if not pinned or hmac.compare_digest(pinned.lower(), fp):
         return True, fp, ""
-    return False, fp, ("certifikát tiskárny se změnil – jestli jsi tiskárnu měnil nebo resetoval, smaž v Nastavení → Dílna "
+    return False, fp, ("certifikát tiskárny se změnil – jestli jsi tiskárnu měnil nebo resetoval, smaž v Nastavení → Integrace → Dílna "
                        "otisk certifikátu; jinak se na síti vydává za tiskárnu jiné zařízení")
 
 

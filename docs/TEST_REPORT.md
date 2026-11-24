@@ -56,6 +56,24 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
     a animace hovoru v Androidu, skutečná 3D tiskárna (OctoPrint / Klipper / Bambu), OpenSCAD, FreeCAD a PrusaSlicer
     (volání napsaná podle dokumentace, testovaná se simulovaným spuštěním), gesta se skutečnou webkamerou.
 
+- **3.17 (6 balíků, 20 návrhů): 2034 testů prošlo, 24 přeskočeno** (Linux). Nové `tests/test_smart317.py` (vzorové
+  reflexy, přehled a mazání naučeného, kontrola tvých povelů po aktualizaci, CAD z popisu: kontrola stromu, objem
+  a uzavřená síť, návrh a úprava s druhým pokusem, model ruky jen celý stažený a jen z tohoto PC, hodnoty gest),
+  `test_safe317.py` (cizí text: čtení volně, změny s dotazem i s plnou důvěrou, `use_tool` mimo nabídnuté nástroje,
+  obrázek a schránka jako cizí text, nic se nenaučí; pravidlo shodné s Režimem jen pro čtení pro každý nástroj),
+  `test_bambu317.py` (simulovaná tiskárna přes **skutečné TLS**: MQTT stav, příkazy, kamera, připnutí certifikátu –
+  jinému zařízení přístupový kód nikdy neodejde, špatný kód, nahrání .3mf a start tisku), `test_parcels317.py`
+  (DPD a PPL se simulovanými odpověďmi, token PPL se drží, bez přístupu jen odkaz), `test_watch317.py` (hodinky)
+  a webové `handgest.test.ts` (čtení prstů) a `stepload.test.ts` (skutečný OpenCascade ve WebAssembly převede ukázkovou
+  kostku 10 mm a sestavu na 18 dílů). Navíc:
+  - evals 424 (86 okamžitých povelů), 100 %; `ruff`, `mypy` (95 souborů), ESLint, `tsc`, `vite build` bez chyb,
+  - `python -m jarvis.uicheck` česky i anglicky bez chyb; okno „Co je nového 3.17“, karta „Co se JARVIS naučil“,
+    přepínač Gesta prsty a nastavení Bambu napřímo ověřené v prohlížeči (bez chyb stránky),
+  - Java v Android aplikaci prošla jen kontrolou syntaxe (`javac` bez Android SDK); APK sestaví CI.
+  - **Neověřeno ve skutečnosti:** tiskárna Bambu (jen simulace protokolu), DPD a PPL živě (služby byly ze sandboxu
+    nedostupné, PPL navíc potřebuje firemní přístup), gesta se skutečnou kamerou, hodinky Wear OS, rychlost na tvém PC
+    (ukáže Diagnostika → Změřit rychlost).
+
 - **3.16 „Odpověď hned“ (7 balíků, 24 návrhů): 1961 testů prošlo, 20 přeskočeno** (Linux). Nové `tests/test_toolbrain.py`
   (katalog s každým nástrojem, neměnná část pokynů stejná pro hlas i chat, `use_tool` s opravou a kontrolou parametrů,
   přesný popis a druhý pokus po chybě, potvrzení u rizikové akce, router posílá katalog jen velké AI, cache u Clauda,

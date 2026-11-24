@@ -32,6 +32,26 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.17 – rychlost doma, chytřejší, bezpečnější, integrace (20 návrhů v 6 balících)
+Hotovo v kódu s testy: Windows testy a Android emulátor v CI, měření rychlosti doma; hlas po kouscích, dotaz na AI
+s předstihem při váhavé pauze (nástroje až po dořečení), průběžný přepis malým modelem, hodinová cache Clauda s úsporou
+v Diagnostice, tvoje tempo, průvodce rychlostí; CAD z popisu (strom tvarů s kontrolou), gesta prsty (MediaPipe),
+testy z tvých povelů, přehled a mazání reflexů, vzorové reflexy; cizí text v úkolu už neřídí kroky, které něco mění
+(i `use_tool`), kontrola nových rychlých cest; Bambu napřímo (MQTT + FTPS + kamera P1/A1, připnutý certifikát),
+STEP v prohlížeči (occt-import-js, LGPL), DPD a PPL živě, otázky z hodinek Wear OS přes notifikace telefonu.
+
+Co nejde nebo zatím není:
+- **Aplikace pro iPhone** – nativní build potřebuje Mac s Xcode a placený účet Apple Developer; v tomhle prostředí ji
+  nejde sestavit ani podepsat. Zůstává webová aplikace v Safari (mikrofon v Safari jen přes HTTPS).
+- **Samostatná aplikace pro Wear OS** (dlaždice, vlastní obrazovka) – otázky z hodinek jdou přes notifikace telefonu,
+  které Wear OS zobrazuje; vlastní modul hodinek by potřeboval Android SDK a hodinky k vyzkoušení.
+- **GLS živě** – GLS zrušilo otevřené sledování (vyžaduje registraci API); JARVIS drží odkaz.
+- **PPL** – oficiální API dává PPL jen firemním zákazníkům (Client ID od obchodního zástupce); bez něj odkaz.
+- **Kamera Bambu X1** (RTSP) – záměrně ne: přístupový kód by šel bez kontroly certifikátu; použij adresu snímku.
+- **Neověřeno na skutečném zařízení:** tiskárna Bambu (protokol testovaný proti simulované tiskárně přes skutečné
+  TLS), DPD a PPL (odpovědi podle veřejných popisů – ze sandboxu byly služby nedostupné), gesta prsty se skutečnou
+  kamerou, hodinky Wear OS, změny v Android aplikaci (Java prošla jen kontrolou syntaxe; APK sestaví CI).
+
 ## 3.16 – „Odpověď hned“ a nástroje v hlavě (24 návrhů v 7 balících)
 Hotovo v kódu s testy: katalog všech nástrojů v cache + `use_tool` (kontrola a oprava parametrů), pokyny rozdělené pro
 cache, pevná sada nástrojů pro velkou AI, měření časů kroků a trefy nástroje; paměť nástrojů, reflexy, příklady

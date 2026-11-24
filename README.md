@@ -51,6 +51,20 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.17 – Rychlost doma, chytřejší dílna, bezpečnější nástroje
+
+- **Rychlost:** první věta hraje po kouscích, ještě než je celá vyrobená; při váhavé pauze se JARVIS zeptá AI
+  s předstihem (nástroje spustí až na dořečená slova); živý přepis malým modelem; čekání na konec věty podle tvého
+  tempa; Claude s hodinovou cache a úsporou v Diagnostice; **Změřit rychlost** u tebe doma a **Průvodce rychlostí**.
+- **Chytřejší:** 3D díl z jakéhokoli popisu (AI navrhne, JARVIS zkontroluje), gesta prsty (štípnutí = zoom, dlaň =
+  otáčení, pěst = rozložit), vzorové reflexy („pusť {cokoli} na YouTube“), přehled a mazání naučeného a kontrola
+  tvých obvyklých povelů po každé aktualizaci.
+- **Bezpečnost:** po přečtení cizího textu (e-mail, web, soubor, obrázek, schránka) smí AI bez ptaní jen číst; co
+  mění, potvrdíš – i s plnou důvěrou.
+- **Integrace:** Bambu Lab napřímo po síti (MQTT/FTPS, ověřený certifikát tiskárny), STEP v HUD i bez FreeCADu,
+  zásilky DPD a PPL živě, „JARVIS na hodinkách“ Wear OS přes telefon.
+- **Ověřování:** Windows testy a Android emulátor v CI.
+
 ## Novinky ve verzi 3.16 – Odpověď hned a nástroje v hlavě
 
 - **Nástroje v hlavě:** velká AI (Claude, OpenAI, Gemini, DeepSeek, Mistral) má seznam všech ~900 nástrojů najednou
