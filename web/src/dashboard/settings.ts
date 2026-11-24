@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/tool_catalog/, "books"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -426,6 +426,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet."),
           select("brain.tool_catalog", "Všechny nástroje v hlavě", [["auto", "Automaticky (Claude, OpenAI, Gemini, DeepSeek, Mistral)"], ["on", "U každé AI z internetu"], ["off", "Vypnuto (hledá nástroje jako dřív)"]],
             "JARVIS dostane seznam všech svých nástrojů najednou (AI si ho podrží v paměti a nehledá je) a zavolá kterýkoli z nich jedním krokem. Malé modely v PC a Groq zdarma dostanou dál menší sadu."),
+          sw("agent.reflexes", "Reflexy", "Co jsi řekl stejnými slovy aspoň dvakrát a povedlo se (třeba „pusť lo-fi“), JARVIS příště udělá hned, bez AI. Jen neškodné věci; „ne, to ne“ reflex zruší."),
           sw("brain.save_limits", "Šetřit limity zdarma", "Práci na pozadí (shrnutí dlouhých konverzací) udělá AI v tomhle PC, když máš zapnutou offline zálohu. Na tvoje otázky dál odpovídají rychlé AI z internetu."),
           h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
         worldCard(),

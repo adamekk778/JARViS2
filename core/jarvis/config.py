@@ -674,6 +674,7 @@ class HealthCfg(BaseModel):
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
+    reflexes: bool = True  # 3.16 the same words that went well twice with the same harmless action: done at once, no AI
 
 
 class Permissions(BaseModel):
@@ -801,7 +802,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
     "multitask.parallel", "multitask.watch_every_s",
-    "workshop.watch", "workshop.watch_every_min", "workshop.on_failure",
+    "workshop.watch", "workshop.watch_every_min", "workshop.on_failure", "agent.reflexes", "brain.tool_catalog",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 

@@ -431,8 +431,16 @@ class Agent:
         b = self.rt.cfg.brain
         first = next((p for i in (b.chain or []) for p in b.providers if p.id == i and p.enabled), None)
         local = first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and not self._only
-        names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []),
+        allowed = self._allowed_names()
+        names = sel.pick(tools.REGISTRY, allowed, text or "", getattr(self, "_recent_tools", []),
                          extra=6 if local else sel.MAX_EXTRA)
+        try:                                       # 3.16 what worked before, by meaning, the app in front, habits
+            from . import toolmind
+
+            more = [n for n in toolmind.suggest(self.rt, tools.REGISTRY, allowed, text or "") if n not in names]
+            names = names[:-1] + more[: 3 if local else 6] + names[-1:] if names and names[-1] == sel.FIND else names + more[:6]
+        except Exception as e:  # noqa: BLE001 – the memory must never stop an answer
+            log.debug("tool memory: %s", e)
         self._picked = names
         return [tools.REGISTRY[n].schema() for n in names]
 
@@ -445,8 +453,19 @@ class Agent:
         allowed = self._allowed_names()
         steady = [n for n in sel.CORE if n in allowed] + ([tc.USE] if tc.USE in tools.REGISTRY else [])
         picked = [n for n in getattr(self, "_picked", []) if n not in steady and n != sel.FIND]
+        extra = []
+        try:                                       # 3.16 how it went before + which app is in front
+            from . import toolmind
+
+            extra.append(toolmind.examples_hint(self.rt, self._goal or ""))
+            app, areas = toolmind.screen_areas(self.rt)
+            if app:
+                extra.append(f"Na popředí je {app}" + (f" (oblast: {', '.join(areas)})." if areas else "."))
+        except Exception as e:  # noqa: BLE001
+            log.debug("tool memory hint: %s", e)
+        hint = "\n\n".join(x for x in [tc.hint(tools.REGISTRY, picked), *extra] if x)
         return tc.Pack(catalog=tc.catalog(tools.REGISTRY, allowed), tools=[tools.REGISTRY[n].schema() for n in steady],
-                       hint=tc.hint(tools.REGISTRY, picked), names=set(steady))
+                       hint=hint, names=set(steady))
 
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
@@ -575,6 +594,9 @@ class Agent:
         except Exception:  # noqa: BLE001
             pass
         tool_cards.append(card)
+        calls_now = getattr(self, "_turn_calls", None)
+        if calls_now is not None:                  # 3.16 what worked for these words (tool memory)
+            calls_now.append((call.name, dict(call.arguments or {}), bool(res.ok)))
         return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": res.for_llm()}
 
     async def _handle(self, text: str, attachments: list[str], source: str, record_user: bool, extra: str) -> str:
@@ -614,6 +636,13 @@ class Agent:
         out_atts: list[str] = []
         used_now: list[str] = []
         self._turn_stats = {"use_tool": 0, "use_tool_errors": 0, "find_tools": 0}
+        self._turn_calls: list[tuple[str, dict, bool]] = []
+        from . import toolmind
+        if correction_of is not None:              # 3.16 "ne, to ne": what was done for those words is not a reflex
+            try:
+                toolmind.punish(rt, correction_of[0])
+            except Exception as e:  # noqa: BLE001
+                log.debug("tool memory: %s", e)
         cancelled = False
         quick = None                                       # 3.13 an everyday command: done at once, no AI in between
         phrase = None if attachments else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
@@ -636,6 +665,19 @@ class Agent:
                     quick = None
                 if quick is None:
                     tool_cards.clear()
+        reflexed = False
+        if quick is None and not attachments and not self._only and record_user:
+            try:                                   # 3.16 the same words went well twice: do it at once, no AI
+                rx = toolmind.reflex(rt, text or "", self._allowed_names())
+            except Exception as e:  # noqa: BLE001
+                log.debug("reflex: %s", e)
+                rx = None
+            if rx:
+                name, args, said = rx
+                await self._run_call(ToolCall(id="r0", name=name, arguments=dict(args)), tool_cards, out_atts)
+                ok = bool(tool_cards and tool_cards[-1].get("ok"))
+                quick = said if ok else (tool_cards[-1].get("summary") if tool_cards else None) or None
+                reflexed = quick is not None
         msgs: list[dict] = []
         need_vision = False
         schemas: list[dict] = []
@@ -826,7 +868,12 @@ class Agent:
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
         lat.finish(tools=len(tool_cards), instant=quick is not None, catalog=bool(getattr(rt.router, "catalog_used", False)),
-                   status=status, **self._turn_stats)
+                   status=status, reflex=reflexed, **self._turn_stats)
+        if status == "done" and record_user and not reflexed and not private:
+            try:
+                toolmind.learn(rt, text or "", self._turn_calls, full_text)
+            except Exception as e:  # noqa: BLE001
+                log.debug("tool memory: %s", e)
         if speech is not None:                      # spoken as it was written; anything added at the end too
             if cancelled:
                 speech.cancel()

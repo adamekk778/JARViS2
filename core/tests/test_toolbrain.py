@@ -191,3 +191,113 @@ async def test_diagnostics_show_latency(rt):
     await rt.agent.handle("ahoj")
     snap = diagnostics.snapshot(rt)
     assert snap["latency"]["n"] >= 1 and "first_token" in snap["latency"]["stages"]
+
+
+# ------------------------------------------------------------------------------------------ R2: tool memory
+async def test_memory_turns_a_repeated_request_into_a_reflex(rt):
+    from jarvis import toolmind
+
+    _all()
+    rt.router = FakeRouter([[("media_control", {"action": "next"})], "Další skladba.",
+                            [("media_control", {"action": "next"})], "Další skladba."])
+    await rt.agent.handle("dej tam tu další písničku, Jarvisi")
+    assert toolmind.reflex(rt, "dej tam tu další písničku", rt.agent._allowed_names()) is None    # once is not enough
+    await rt.agent.handle("dej tam tu další písničku")
+    rx = toolmind.reflex(rt, "Dej tam tu další písničku!", rt.agent._allowed_names())
+    assert rx == ("media_control", {"action": "next"}, "Další skladba.")
+    calls_before = len(rt.router.calls)
+    q = rt.bus.subscribe()
+    out = await rt.agent.handle("dej tam tu další písničku")
+    assert out.strip() == "Další skladba." and len(rt.router.calls) == calls_before            # no AI at all
+    assert any(e["type"] == "tool_start" and e["name"] == "media_control" for e in drain(q))
+    assert latency.get(rt).turns[-1]["info"]["reflex"] is True
+    toolmind.punish(rt, "dej tam tu další písničku")                                           # "ne, to ne"
+    assert toolmind.reflex(rt, "dej tam tu další písničku", rt.agent._allowed_names()) is None
+
+
+def test_no_reflex_for_answers_with_numbers_risky_tools_or_secrets(rt):
+    from jarvis import toolmind
+
+    _all()
+    allowed = {n for n in tools.REGISTRY}
+    for _ in range(3):
+        toolmind.learn(rt, "jaké je počasí", [("weather", {}, True)], "Venku je 5 °C a zataženo.")
+        toolmind.learn(rt, "zruš tisk", [("printer_control", {"action": "cancel"}, True)], "Zrušeno.")
+        toolmind.learn(rt, "moje heslo k bance je 1234", [("remember", {"text": "x"}, True)], "Uloženo.")
+    assert toolmind.reflex(rt, "jaké je počasí", allowed) is None           # the moment's numbers
+    assert toolmind.reflex(rt, "zruš tisk", allowed) is None               # it would ask first
+    assert rt.db.one("SELECT COUNT(*) AS n FROM tool_memory WHERE phrase LIKE '%heslo%'")["n"] == 0
+    rt.update_config({"agent": {"reflexes": False}})
+    toolmind.learn(rt, "ztlum to", [("volume", {"action": "down"}, True)], "Ztlumeno.")
+    toolmind.learn(rt, "ztlum to", [("volume", {"action": "down"}, True)], "Ztlumeno.")
+    assert toolmind.reflex(rt, "ztlum to", allowed) is None
+
+
+def test_examples_from_earlier_requests(rt):
+    from jarvis import toolmind
+
+    toolmind.learn(rt, "pusť lo-fi na YouTube", [("youtube_play", {"query": "lo-fi"}, True)], "Pouštím lo-fi.")
+    ex = toolmind.examples(rt, "pusť mi lo-fi hudbu na YouTube")
+    assert ex and ex[0]["tool"] == "youtube_play" and ex[0]["args"] == {"query": "lo-fi"}
+    assert "youtube_play" in toolmind.examples_hint(rt, "pusť lo-fi na YouTube")
+    assert toolmind.examples(rt, "kolik stojí bitcoin") == []
+
+
+def test_screen_and_habits(rt):
+    from jarvis import toolmind
+
+    _all()
+    rt.platform.front_app = "Visual Studio Code"
+    app, areas = toolmind.screen_areas(rt)
+    assert app == "Visual Studio Code" and "programování" in areas
+    found = toolmind.screen_tools(rt, tools.REGISTRY, "ukaž git log a stav")
+    assert found and all(tools.REGISTRY[n].category in areas for n in found)
+    rt.platform.front_app = "Poznámkový blok"
+    assert toolmind.screen_tools(rt, tools.REGISTRY, "ukaž git log") == []
+    import time as _t
+
+    h = _t.localtime().tm_hour
+    toolmind._db(rt)
+    for _ in range(3):
+        rt.db.exec("INSERT INTO tool_uses (tool, hour, ts) VALUES (?,?,?)", ("briefing", h, _t.time()))
+    assert toolmind.habits(rt) == ["briefing"]
+
+
+def test_meaning_search_with_a_fake_model(rt, monkeypatch, tmp_path):
+    import numpy as np
+
+    from jarvis import embedder, toolmind
+
+    reg = {n: tools.REGISTRY[n] for n in ("weather", "printer_control", "youtube_play")}
+    vecs = {"weather": [1, 0, 0], "printer_control": [0, 1, 0], "youtube_play": [0, 0, 1]}
+
+    def encode(texts, kind="passage", batch=16):
+        out = []
+        for t in texts:
+            if kind == "query":
+                out.append([0.05, 0.99, 0.0] if "tisk" in t else [0.0, 0.0, 1.0])
+            else:
+                out.append(next(v for k, v in vecs.items() if t.startswith(k.replace("_", " "))))
+        return out
+    monkeypatch.setattr(embedder, "ready", lambda: True)
+    monkeypatch.setattr(embedder, "encode", encode)
+    sem = toolmind.Semantic()
+    assert sem.build(reg, tmp_path)
+    assert sem.search("jak jde tisk") == ["printer_control"]
+    assert list(tmp_path.glob("toolvec-*.npy"))
+    again = toolmind.Semantic()
+    monkeypatch.setattr(embedder, "encode", lambda texts, kind="passage", batch=16: (_ for _ in ()).throw(AssertionError) if kind == "passage" else encode(texts, kind))
+    assert again.build(reg, tmp_path) and again.search("pusť hudbu") == ["youtube_play"]   # vectors from disk
+    assert isinstance(again.mat, np.ndarray)
+
+
+async def test_suggestions_reach_the_message(rt):
+    from jarvis import toolmind
+
+    _all()
+    toolmind.learn(rt, "vymodeluj mi držák na polici", [("cad_part", {"action": "create"}, True)], "Hotovo.")
+    rt.router = FakeRouter(["Dobře."])
+    await rt.agent.handle("vymodeluj mi držák na polici")
+    assert "cad_part" in rt.agent._picked
+    pack = rt.router.calls[0]["catalog"]
+    assert "Takhle se ti to dřív povedlo" in pack.hint and "cad_part" in pack.hint
