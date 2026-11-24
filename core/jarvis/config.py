@@ -645,6 +645,11 @@ class WorkshopCfg(BaseModel):
     bambu_model: Literal["auto", "x1", "p1", "a1"] = "auto"   # the camera: P1 / A1 directly, X1 through the camera URL
     bambu_ams: bool = False         # print with the AMS (multi-colour) when a .3mf is sent
     bambu_pin: str = ""             # the printer certificate's SHA-256, remembered at the first connection (clear = re-pair)
+    orca_settings: str = ""         # 3.18 STL → Bambu: OrcaSlicer / Bambu Studio printer + process profile (.json;.json)
+    orca_filament: str = ""         # …and the filament profile (.json)
+    bed_mm: list[float] = Field(default_factory=list)   # the bed (x, y, z mm); empty = by the printer model
+    timelapse: bool = True          # 3.18 a picture every couple of minutes → a time-lapse video when the print is done
+    timelapse_every_min: int = 2
 
 
 class LimitsCfg(BaseModel):

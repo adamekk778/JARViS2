@@ -505,7 +505,7 @@ def export(rt, part: dict) -> dict:
 
 def describe(part: dict) -> str:
     if part["template"] == "free":
-        lo, hi = tree_bounds(part["params"]["tree"])
+        lo, hi = tree_bounds(expand(part["params"]["tree"]))
         sz = hi - lo
         return f"{part['name']} – vlastní tvar {sz[0]:.0f}×{sz[1]:.0f}×{sz[2]:.0f} mm, verze {part['version']}"
     tpl = TEMPLATES[part["template"]]
@@ -523,10 +523,38 @@ FREE_PROMPT = (
     "(osa z, střed podstavy na „at“); {\"sphere\": {\"r\": poloměr}, \"at\": [x, y, z]}; "
     "{\"union\": [UZLY]}, {\"difference\": [základ, odečítané…]}, {\"intersection\": [UZLY]} – i skupiny mohou mít "
     "„at“ a „rotate“ (ve stupních, jako OpenSCAD: nejdřív x, pak y, pak z). Díry: difference s válcem o 1 mm delším. "
-    "Rozměry rozumné (do 300 mm), stěny aspoň 1,2 mm.")
+    "Rozměry rozumné (do 300 mm), stěny aspoň 1,2 mm. "
+    "Navíc: box může mít \"round\": poloměr zaoblení hran; {\"hole\": {\"screw\": \"M3\", \"kind\": \"clear|tap|insert\", "
+    "\"h\": hloubka}, \"at\": [...]} je díra pro šroub (clear = volně projde, tap = šroub se zařízne, insert = zalisovací "
+    "matice) – použij ji v difference; {\"array\": {\"of\": UZEL, \"n\": [nx, ny], \"step\": [dx, dy]}} opakuje uzel do "
+    "mřížky; {\"text\": {\"text\": \"ABC\", \"size\": výška písmen, \"depth\": tloušťka}, \"at\": [...]} je vystouplý "
+    "nápis (velká písmena a číslice, do 12 znaků); kterýkoli uzel může mít \"color\": \"#rrggbb\" (vícebarevný tisk).")
 EDIT_PROMPT = ("Uprav tento 3D díl podle pokynu a odpověz JEN celým novým JSON ve stejném tvaru (name + tree). "
                "Měň jen to, co pokyn říká.")
 MAX_NODES, MAX_DEPTH, MAX_MM = 200, 12, 1000.0
+MAX_EXPANDED = 600                 # 3.18 after holes / arrays / text become plain shapes
+# 3.18 screw holes for 3D prints (mm): clear = the screw passes, tap = it cuts its own thread, insert = a heat-set nut
+HOLES = {"M2": (2.4, 1.7, 3.2), "M2.5": (2.9, 2.2, 3.6), "M3": (3.4, 2.6, 4.0), "M4": (4.5, 3.4, 5.6),
+         "M5": (5.5, 4.3, 6.4), "M6": (6.6, 5.1, 8.0), "M8": (8.6, 6.9, 10.0)}
+HOLE_KIND = {"clear": 0, "tap": 1, "insert": 2}
+MAX_TEXT = 12
+# 3.18 a 5×7 font for raised text (rows top → bottom, 5 bits, the left pixel is the highest bit)
+FONT = {
+    "A": (14, 17, 17, 31, 17, 17, 17), "B": (30, 17, 17, 30, 17, 17, 30), "C": (14, 17, 16, 16, 16, 17, 14),
+    "D": (30, 17, 17, 17, 17, 17, 30), "E": (31, 16, 16, 30, 16, 16, 31), "F": (31, 16, 16, 30, 16, 16, 16),
+    "G": (14, 17, 16, 23, 17, 17, 15), "H": (17, 17, 17, 31, 17, 17, 17), "I": (14, 4, 4, 4, 4, 4, 14),
+    "J": (7, 2, 2, 2, 2, 18, 12), "K": (17, 18, 20, 24, 20, 18, 17), "L": (16, 16, 16, 16, 16, 16, 31),
+    "M": (17, 27, 21, 21, 17, 17, 17), "N": (17, 17, 25, 21, 19, 17, 17), "O": (14, 17, 17, 17, 17, 17, 14),
+    "P": (30, 17, 17, 30, 16, 16, 16), "Q": (14, 17, 17, 17, 21, 18, 13), "R": (30, 17, 17, 30, 20, 18, 17),
+    "S": (15, 16, 16, 14, 1, 1, 30), "T": (31, 4, 4, 4, 4, 4, 4), "U": (17, 17, 17, 17, 17, 17, 14),
+    "V": (17, 17, 17, 17, 17, 10, 4), "W": (17, 17, 17, 21, 21, 21, 10), "X": (17, 17, 10, 4, 10, 17, 17),
+    "Y": (17, 17, 17, 10, 4, 4, 4), "Z": (31, 1, 2, 4, 8, 16, 31),
+    "0": (14, 17, 19, 21, 25, 17, 14), "1": (4, 12, 4, 4, 4, 4, 14), "2": (14, 17, 1, 2, 4, 8, 31),
+    "3": (31, 2, 4, 2, 1, 17, 14), "4": (2, 6, 10, 18, 31, 2, 2), "5": (31, 16, 30, 1, 1, 17, 14),
+    "6": (6, 8, 16, 30, 17, 17, 14), "7": (31, 1, 2, 4, 8, 8, 8), "8": (14, 17, 17, 14, 17, 17, 14),
+    "9": (14, 17, 17, 15, 1, 2, 12), "-": (0, 0, 0, 31, 0, 0, 0), ".": (0, 0, 0, 0, 0, 12, 12), " ": (0,) * 7,
+    ":": (0, 12, 12, 0, 12, 12, 0), "+": (0, 4, 4, 31, 4, 4, 0), "/": (1, 1, 2, 4, 8, 16, 16),
+}
 
 
 def _rot(r: list | None) -> np.ndarray:
@@ -554,8 +582,43 @@ def check_tree(node: Any, depth: int = 0, count: list | None = None) -> str:
         return "„at“ musí být [x, y, z]"
     if "rotate" in node and not nums(node["rotate"], 3):
         return "„rotate“ musí být [rx, ry, rz]"
+    if "color" in node and not (isinstance(node["color"], str) and re.fullmatch(r"#[0-9a-fA-F]{6}", node["color"])):
+        return "„color“ musí být #rrggbb"
     if "box" in node:
-        return "" if nums(node["box"], 3, positive=True) else "„box“ musí být tři kladné rozměry"
+        if not nums(node["box"], 3, positive=True):
+            return "„box“ musí být tři kladné rozměry"
+        r = node.get("round", 0)
+        if not isinstance(r, (int, float)) or r < 0 or r * 2 >= min(node["box"]):
+            return "„round“ musí být menší než polovina nejmenšího rozměru"
+        return ""
+    if "hole" in node:
+        hspec = node["hole"]
+        if not isinstance(hspec, dict):
+            return "„hole“ musí být objekt"
+        if hspec.get("d") is None and (hspec.get("screw") not in HOLES or hspec.get("kind", "clear") not in HOLE_KIND):
+            return f"„hole“ potřebuje screw ({', '.join(HOLES)}) a kind (clear / tap / insert), nebo průměr d"
+        return "" if nums([hspec.get("h", 0)] + ([hspec["d"]] if hspec.get("d") is not None else []),
+                          2 if hspec.get("d") is not None else 1, positive=True) else "„hole“ potřebuje kladnou hloubku h"
+    if "array" in node:
+        a = node["array"]
+        if not isinstance(a, dict) or "of" not in a:
+            return "„array“ potřebuje „of“"
+        n = list(a.get("n") or [1])
+        st = list(a.get("step") or [0])
+        if not (1 <= len(n) <= 3 and len(st) == len(n) and all(isinstance(x, int) and 1 <= x <= 50 for x in n)
+                and nums(st + [0] * (3 - len(st)), 3)):
+            return "„array“ potřebuje n (1–50 v každém směru) a step stejné délky"
+        if int(np.prod(n)) > 100:
+            return "„array“ by měl víc než 100 kopií"
+        return check_tree(a["of"], depth + 1, count)
+    if "text" in node:
+        t = node["text"]
+        txt = str((t or {}).get("text", "")) if isinstance(t, dict) else ""
+        if not txt.strip() or len(txt) > MAX_TEXT:
+            return f"„text“ potřebuje 1–{MAX_TEXT} znaků"
+        if any(ch not in FONT for ch in fold(txt).upper()):
+            return "„text“ umí jen písmena bez háčků, číslice a - . : + /"
+        return "" if nums([t.get("size", 0), t.get("depth", 0)], 2, positive=True) else "„text“ potřebuje kladné size a depth"
     if "cylinder" in node:
         c = node["cylinder"]
         ok = isinstance(c, dict) and nums([c.get("r", 0), c.get("h", 0)], 2, positive=True) and \
@@ -577,6 +640,62 @@ def check_tree(node: Any, depth: int = 0, count: list | None = None) -> str:
     return "neznámý uzel (umím box, cylinder, sphere, union, difference, intersection)"
 
 
+def _place(src: dict, node: dict) -> dict:
+    for k in ("at", "rotate", "color"):
+        if k in src:
+            node[k] = src[k]
+    return node
+
+
+def text_boxes(text: str, size: float, depth: float) -> list[dict]:
+    """Raised text from the 5×7 font: one box per run of pixels in a row (left to right, baseline at y = 0)."""
+    px = size / 7
+    out: list[dict] = []
+    for i, ch in enumerate(fold(text).upper()):
+        rows = FONT.get(ch, FONT[" "])
+        for r, bits in enumerate(rows):
+            c = 0
+            while c < 5:
+                if bits >> (4 - c) & 1:
+                    start = c
+                    while c < 5 and bits >> (4 - c) & 1:
+                        c += 1
+                    out.append({"box": [px * (c - start), px, depth], "at": [(i * 6 + start) * px, (6 - r) * px, 0]})
+                else:
+                    c += 1
+    return out
+
+
+def expand(node: dict) -> dict:
+    """3.18 holes, arrays and text → plain boxes / cylinders / unions (what the mesh and OpenSCAD draw)."""
+    if "hole" in node:
+        h = node["hole"]
+        d = float(h["d"]) if h.get("d") is not None else HOLES[h["screw"]][HOLE_KIND[h.get("kind", "clear")]]
+        return _place(node, {"cylinder": {"r": d / 2, "h": float(h["h"])}})
+    if "array" in node:
+        a = node["array"]
+        n = (list(a.get("n") or [1]) + [1, 1])[:3]
+        st = (list(a.get("step") or [0]) + [0, 0])[:3]
+        of = expand(a["of"])
+        kids = [{"union": [of], "at": [i * st[0], j * st[1], k * st[2]]}
+                for i in range(n[0]) for j in range(n[1]) for k in range(n[2])]
+        return _place(node, {"union": kids})
+    if "text" in node:
+        t = node["text"]
+        return _place(node, {"union": text_boxes(str(t["text"]), float(t["size"]), float(t["depth"]))})
+    for op in ("union", "difference", "intersection"):
+        if op in node:
+            out = {k: v for k, v in node.items() if k != op}
+            out[op] = [expand(k) for k in node[op]]
+            return out
+    return node
+
+
+def count_nodes(node: dict) -> int:
+    kids: list = next((node[op] for op in ("union", "difference", "intersection") if op in node), [])
+    return 1 + sum(count_nodes(k) for k in kids)
+
+
 def _local(node: dict, P: np.ndarray) -> np.ndarray:
     at = np.array(node.get("at") or [0, 0, 0], dtype=np.float32)
     Q = P - at
@@ -589,8 +708,9 @@ def tree_sdf(node: dict, P: np.ndarray) -> np.ndarray:
     Q = _local(node, P)
     if "box" in node:
         size = np.array(node["box"], dtype=np.float32)
-        q = np.abs(Q - size / 2) - size / 2
-        return np.linalg.norm(np.maximum(q, 0), axis=-1) + np.minimum(q.max(axis=-1), 0)
+        rr = float(node.get("round", 0) or 0)                 # 3.18 rounded edges
+        q = np.abs(Q - size / 2) - (size / 2 - rr)
+        return np.linalg.norm(np.maximum(q, 0), axis=-1) + np.minimum(q.max(axis=-1), 0) - rr
     if "cylinder" in node:
         c = node["cylinder"]
         r1, h = float(c["r"]), float(c["h"])
@@ -613,7 +733,21 @@ def tree_sdf(node: dict, P: np.ndarray) -> np.ndarray:
     if "sphere" in node:
         return np.linalg.norm(Q, axis=-1) - float(node["sphere"]["r"])
     if "union" in node:
-        return np.minimum.reduce([tree_sdf(k, Q) for k in node["union"]])
+        kids = node["union"]
+        if len(kids) <= 8:
+            return np.minimum.reduce([tree_sdf(k, Q) for k in kids])
+        # 3.18 many children (text, arrays): each one only near its own bounds – far away the point is simply outside
+        lo_all, hi_all = tree_bounds({"union": kids})
+        margin = 0.05 * float(np.max(hi_all - lo_all)) + 1.0
+        d = np.full(Q.shape[:-1], margin, dtype=np.float64)
+        flat_q = Q.reshape(-1, 3)
+        flat_d = d.reshape(-1)
+        for k in kids:
+            lo, hi = tree_bounds(k)
+            m = np.all((flat_q >= lo - margin) & (flat_q <= hi + margin), axis=1)
+            if m.any():
+                flat_d[m] = np.minimum(flat_d[m], tree_sdf(k, flat_q[m]))
+        return d
     if "intersection" in node:
         return np.maximum.reduce([tree_sdf(k, Q) for k in node["intersection"]])
     kids = node["difference"]
@@ -659,6 +793,10 @@ def tree_scad(node: dict, ind: str = "") -> str:
         head += f"rotate([{r[0]:g},{r[1]:g},{r[2]:g}]) "
     if "box" in node:
         b = node["box"]
+        rr = float(node.get("round", 0) or 0)
+        if rr > 0:                                            # 3.18 rounded edges: a smaller cube grown by a sphere
+            return (f"{ind}{head}translate([{rr:g},{rr:g},{rr:g}]) minkowski() {{ cube([{b[0] - 2 * rr:g},{b[1] - 2 * rr:g},"
+                    f"{b[2] - 2 * rr:g}]); sphere(r={rr:g}, $fn=24); }}")
         return f"{ind}{head}cube([{b[0]:g},{b[1]:g},{b[2]:g}]);"
     if "cylinder" in node:
         c = node["cylinder"]
@@ -686,6 +824,8 @@ def parse_free(text: str) -> tuple[str, dict]:
     why = check_tree(tree)
     if why:
         raise ValueError(why)
+    if count_nodes(expand(tree)) > MAX_EXPANDED:
+        raise ValueError("díl je moc složitý (moc děr, kopií nebo písmen)")
     return str(d.get("name") or "Díl")[:60], tree
 
 
@@ -701,7 +841,7 @@ async def design(rt: Any, description: str, previous: dict | None = None, change
         out = str(await rt.router.complete(msgs) or "")
         try:
             name, tree = parse_free(out)
-            lo, hi = tree_bounds(tree)
+            lo, hi = tree_bounds(expand(tree))
             if np.any(hi - lo <= 0) or np.any(hi - lo > MAX_MM):
                 raise ValueError("rozměry dílu nedávají smysl")
             return name, tree
@@ -714,7 +854,7 @@ async def design(rt: Any, description: str, previous: dict | None = None, change
 
 def free_files(part: dict) -> dict:
     """export() for a free-form part: the exact .scad from the tree, the mesh made here (or by OpenSCAD)."""
-    tree = part["params"]["tree"]
+    tree = expand(part["params"]["tree"])
     out = paths.sub("workshop") / "cad"
     out.mkdir(parents=True, exist_ok=True)
     base = out / f"{slug(part['name'])}-v{part['version']}"
@@ -726,6 +866,50 @@ def free_files(part: dict) -> dict:
     if not exact:
         stl_p.write_bytes(stl_bytes(verts, faces, part["name"]))
     vol = abs(volume(verts, faces)) / 1000
-    return {"scad": str(scad_p), "stl": str(stl_p), "exact": exact, "step_mm": round(step, 2),
+    mf_p = base.with_suffix(".3mf")                          # 3.18 for Bambu / Orca / Prusa, colours as separate objects
+    kids = tree.get("union") if isinstance(tree.get("union"), list) else None
+    if kids and any("color" in k for k in kids) and len(kids) <= 16:
+        objs = []
+        for i, k in enumerate(kids):
+            klo, khi = tree_bounds(k)
+            v, f, _ = mesh([], fn=lambda P, k=k: tree_sdf(k, P), box=(klo, khi))
+            objs.append((v, f, f"{part['name']} {i + 1}", k.get("color")))
+    else:
+        objs = [(verts, faces, part["name"], tree.get("color"))]
+    mf_p.write_bytes(threemf_bytes(objs))
+    return {"scad": str(scad_p), "stl": str(stl_p), "3mf": str(mf_p), "exact": exact, "step_mm": round(step, 2),
             "size_mm": [round(float(x), 1) for x in (hi - lo)], "volume_cm3": round(vol, 1),
             "grams_pla": round(vol * 1.24, 1), "triangles": int(len(faces)), "closed": bool(len(faces))}
+
+
+def threemf_bytes(objects: list[tuple[np.ndarray, np.ndarray, str, str | None]]) -> bytes:
+    """3.18 a 3MF (the slicers' own format): every object with its name, a colour as a base material when given."""
+    import io
+    import zipfile
+    from xml.sax.saxutils import quoteattr
+
+    colors = sorted({c for *_, c in objects if c})
+    mats = ("<basematerials id=\"1\">" + "".join(f"<base name=\"barva {i + 1}\" displaycolor=\"{c.upper()}FF\"/>"
+                                                 for i, c in enumerate(colors)) + "</basematerials>") if colors else ""
+    res, items = [], []
+    for n, (v, f, name, color) in enumerate(objects, start=2):
+        mat = f' pid="1" pindex="{colors.index(color)}"' if color else ""
+        vs = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>' for x, y, z in np.asarray(v, dtype=float))
+        ts = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in np.asarray(f, dtype=int))
+        res.append(f'<object id="{n}" name={quoteattr(name)} type="model"{mat}><mesh><vertices>{vs}</vertices>'
+                   f"<triangles>{ts}</triangles></mesh></object>")
+        items.append(f'<item objectid="{n}"/>')
+    model = ('<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" xml:lang="cs-CZ" '
+             'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><resources>' + mats + "".join(res)
+             + "</resources><build>" + "".join(items) + "</build></model>")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/'
+                   'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.'
+                   'relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-'
+                   '3dmodel+xml"/></Types>')
+        z.writestr("_rels/.rels", '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/'
+                   'package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.'
+                   'microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>')
+        z.writestr("3D/3dmodel.model", model)
+    return buf.getvalue()

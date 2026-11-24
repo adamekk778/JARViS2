@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from .. import paths
 from .base import ToolResult, tool
@@ -39,8 +39,10 @@ async def _publish_part(ctx, part: dict, summary: str) -> ToolResult:
     text = (f"{summary} Rozměry {s[0]:g}×{s[1]:g}×{s[2]:g} mm, asi {files['volume_cm3']:g} cm³ (≈ {files['grams_pla']:g} g PLA), "
             f"verze {part['version']}.{note}")
     atts = await _attach(ctx, Path(files["scad"]), "text/plain") + await _attach(ctx, Path(files["stl"]), "model/stl")
+    if files.get("3mf"):                               # 3.18 for Bambu / Orca (colours as separate objects)
+        atts += await _attach(ctx, Path(files["3mf"]), "model/3mf")
     return ToolResult(True, text, data={"part": part["name"], "template": part["template"], "params": part["params"],
-                                        "version": part["version"], **{k: v for k, v in files.items() if k not in ("scad", "stl")}},
+                                        "version": part["version"], **{k: v for k, v in files.items() if k not in ("scad", "stl", "3mf")}},
                       attachments=atts)
 
 
@@ -152,10 +154,20 @@ def _printer_danger(a: dict) -> bool:
     return str(a.get("action") or "").lower() in ("cancel", "print")
 
 
+def _print_details(a: dict, ctx: Any = None) -> list[str]:
+    """3.18 the pre-print check right in the confirmation: fits the bed? supports? filament and time."""
+    if str(a.get("action") or "").lower() != "print" or not a.get("file") or ctx is None:
+        return []
+    from .. import printcheck
+
+    res = printcheck.check_file(ctx, Path(str(a["file"])).expanduser())
+    return printcheck.lines(res) if res else []
+
+
 @tool("printer_control", "3D tiskárna (OctoPrint, Klipper/Moonraker, Bambu přes Home Assistant): stav tisku (%, zbývá, teploty), "
       "pauza, pokračovat, zrušit, poslat soubor k tisku (G-code; STL / 3MF nejdřív nakrájí PrusaSlicer s tvým profilem), "
       "fotka z kamery, kontrola tisku AI (špagety, odlepení). Zrušení a nový tisk se vždy ptají.",
-      category="dílna", perm="home", danger_if=_printer_danger)
+      category="dílna", perm="home", danger_if=_printer_danger, details=_print_details)
 async def printer_control(ctx, action: Annotated[str, "status / pause / resume / cancel / print / snapshot / check"] = "status",
                           file: Annotated[str, "soubor k tisku (.gcode, .stl, .3mf) – jen u print"] = "") -> ToolResult:
     import asyncio
@@ -194,7 +206,21 @@ async def printer_control(ctx, action: Annotated[str, "status / pause / resume /
         src = Path(file).expanduser()
         if not src.exists():
             return ToolResult(False, f"Soubor {file or '(žádný)'} nenajdu.")
-        direct = c.printer == "bambu_lan" and src.suffix.lower() == ".3mf"     # 3.17 a sliced .3mf goes to Bambu as it is
+        from .. import printcheck
+
+        try:                                       # 3.18 a part that does not fit is never sent
+            chk = await asyncio.to_thread(printcheck.check_file, ctx, src)
+        except ValueError as e:
+            return ToolResult(False, f"Model nejde přečíst: {e}.")
+        if chk and not chk["fits"]:
+            return ToolResult(False, f"{src.name} se nevejde na podložku ({' × '.join(f'{x:g}' for x in chk['size_mm'])} mm"
+                                     f"{', otočením by se vešel' if chk['turn_fits'] else ''}). Netisknu.", data=chk)
+        direct = c.printer == "bambu_lan" and src.suffix.lower() == ".3mf" and chk is None   # a sliced .3mf as it is
+        if c.printer == "bambu_lan" and src.suffix.lower() in (".stl", ".3mf") and not direct:
+            sliced, err = await asyncio.to_thread(printer3d.slice_for_bambu, src, c.orca_settings, c.orca_filament)
+            if not sliced:                         # 3.18 STL → OrcaSlicer / Bambu Studio → the sliced .gcode.3mf
+                return ToolResult(False, f"Nejdřív to musím nakrájet pro Bambu, ale {err}.")
+            src, direct = sliced, True
         if src.suffix.lower() in (".stl", ".3mf", ".obj") and not direct:
             gcode, err = await asyncio.to_thread(printer3d.slice_model, src, c.slicer_profile)
             if not gcode:
@@ -211,7 +237,9 @@ async def printer_control(ctx, action: Annotated[str, "status / pause / resume /
             workbench.log_active(ctx, "print", f"Tisk spuštěn: {src.name}")
         except Exception:  # noqa: BLE001
             pass
-        return ToolResult(True, f"Posláno na {name} a tisk startuje: {src.name}. Budu ho hlídat kamerou.")
+        tips = [w for w in (chk or {}).get("warnings", []) if not w.startswith("nevejde")]
+        return ToolResult(True, f"Posláno na {name} a tisk startuje: {src.name}. Budu ho hlídat kamerou."
+                                + (f" Pozor: {'; '.join(tips)}." if tips else ""), data=chk)
     return ToolResult(False, "Umím status, pause, resume, cancel, print, snapshot a check.")
 
 

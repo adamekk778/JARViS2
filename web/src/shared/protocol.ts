@@ -106,6 +106,7 @@ export const SERVER_TYPES = [
   "toolmem", "mine_check",
   "hands",
   "foreign_log",
+  "printer_done",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

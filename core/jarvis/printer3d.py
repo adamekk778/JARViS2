@@ -244,6 +244,47 @@ def slicer() -> str | None:
     return None
 
 
+def orca() -> str | None:
+    """3.18 OrcaSlicer or Bambu Studio (both slice for Bambu printers and save a sliced .gcode.3mf)."""
+    for name in ("orca-slicer", "OrcaSlicer", "orcaslicer", "bambu-studio", "BambuStudio"):
+        found = shutil.which(name)
+        if found:
+            return found
+    for p in (r"C:\Program Files\OrcaSlicer\orca-slicer.exe", r"C:\Program Files\Bambu Studio\bambu-studio.exe"):
+        if Path(p).exists():
+            return p
+    return None
+
+
+def slice_for_bambu(model: Path, settings: str, filament: str, runner=subprocess.run) -> tuple[Path | None, str]:
+    """STL or an unsliced 3MF → a sliced .gcode.3mf for Bambu (OrcaSlicer / Bambu Studio command line). A project 3MF
+    carries its own settings; an STL needs your exported printer + process profile and the filament profile."""
+    exe = orca()
+    if not exe:
+        return None, "není nainstalovaný OrcaSlicer ani Bambu Studio (oba zdarma)"
+    profs = [x for x in (settings or "").split(";") if x.strip()]
+    if model.suffix.lower() == ".stl" and (not profs or not all(Path(x).exists() for x in profs) or not Path(filament or "").exists()):
+        return None, ("chybí profily pro OrcaSlicer (Nastavení → Integrace → Dílna: tiskárna + proces a filament, .json "
+                      "vyexportované z OrcaSliceru)")
+    outdir = model.parent / "jarvis-slice"
+    outdir.mkdir(exist_ok=True)
+    name = model.stem.removesuffix(".gcode") + ".gcode.3mf"
+    cmd = [exe, "--slice", "0", "--outputdir", str(outdir), "--export-3mf", name]
+    if profs:
+        cmd += ["--load-settings", ";".join(profs)]
+    if filament and Path(filament).exists():
+        cmd += ["--load-filaments", filament]
+    cmd.append(str(model))
+    try:
+        r = runner(cmd, capture_output=True, text=True, timeout=900)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, str(e)[:160]
+    out = outdir / name
+    if r.returncode != 0 or not out.exists():
+        return None, (r.stderr or r.stdout or "slicer selhal")[-300:]
+    return out, ""
+
+
 def slice_model(model: Path, profile: str, runner=subprocess.run) -> tuple[Path | None, str]:
     """STL / 3MF → G-code with PrusaSlicer and your printer's profile (.ini exported from PrusaSlicer)."""
     exe = slicer()
@@ -341,8 +382,7 @@ class Watch:
         rt.bus.publish("printer", **s, name=cfg(rt).printer_name)
         name = cfg(rt).printer_name or "Tiskárna"
         if prev == "printing" and s["state"] == "done":
-            rt.notify(name, f"Tisk {s.get('file') or ''} je hotový.".replace("  ", " "), target="all")
-            self._log("print", f"Vytištěno: {s.get('file')}")
+            await self.finished(s, name)
         if prev in ("printing", "paused") and s["state"] == "error":
             rt.notify(name, "Tiskárna hlásí chybu – podívej se na ni.", target="all", urgent=True)
         if s["state"] != "printing":
@@ -351,13 +391,49 @@ class Watch:
         if cfg(rt).watch and now - self.last_look >= max(1, cfg(rt).watch_every_min) * 60:
             self.last_look = now
             await self.look(s)
+        elif getattr(cfg(rt), "timelapse", True) and now - getattr(self, "last_frame", 0.0) >= max(1, cfg(rt).timelapse_every_min) * 60:
+            self.last_frame = now                      # 3.18 a picture for the time-lapse (no AI look)
+            jpg = await snapshot(rt)
+            if jpg:
+                self._frame(s, jpg)
         return s
+
+    def _frame(self, s: dict, jpg: bytes) -> None:
+        if getattr(cfg(self.rt), "timelapse", True):
+            from . import timelapse
+
+            try:
+                timelapse.add_frame(s.get("file") or "tisk", jpg)
+            except OSError as e:
+                log.debug("timelapse: %s", e)
+
+    async def finished(self, s: dict, name: str) -> None:
+        """3.18 a print is done: the last picture and the time-lapse into the journal, "hotovo" to the phone."""
+        rt = self.rt
+        job = s.get("file") or "tisk"
+        video = photo = None
+        try:
+            jpg = await snapshot(rt)
+            if jpg:
+                self._frame(s, jpg)
+                photo = self._save_photo(jpg)
+            if getattr(cfg(rt), "timelapse", True):
+                from . import timelapse
+
+                video = await asyncio.to_thread(timelapse.build, job)
+        except Exception as e:  # noqa: BLE001
+            log.debug("print done: %s", e)
+        extra = " Fotka" + (" a časosběrné video jsou" if video else " je") + " v deníku dílny." if photo or video else ""
+        rt.notify(name, f"Tisk {job} je hotový.{extra}".replace("  ", " "), target="all")
+        self._log("print", f"Vytištěno: {job}" + (f" (časosběr: {video.name})" if video else ""), photo)
+        rt.bus.publish("printer_done", file=job, photo=str(photo or ""), video=str(video or ""))
 
     async def look(self, s: dict) -> dict | None:
         rt = self.rt
         jpg = await snapshot(rt)
         if not jpg:
             return None
+        self._frame(s, jpg)                            # 3.18 the AI's picture goes into the time-lapse too
         try:
             v = await judge(rt, jpg)
         except Exception as e:  # noqa: BLE001

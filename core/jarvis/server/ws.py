@@ -130,6 +130,7 @@ SERVER_TYPES = [
     "toolmem", "mine_check",
     "hands",
     "foreign_log",
+    "printer_done",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
