@@ -97,4 +97,4 @@ check_untyped_defs = false
 # the typed core first; more modules join the list as they get annotated
 files = ["jarvis/llm", "jarvis/evals", "jarvis/quality.py", "jarvis/redact.py", "jarvis/events.py", "jarvis/brainplus.py",
          "jarvis/offlinepack.py", "jarvis/server/handlers", "jarvis/voice/voiceid.py", "jarvis/voice/style.py",
-         "jarvis/embedder.py", "jarvis/memplus.py", "jarvis/proactiveplus.py", "jarvis/notchplus.py"]
+         "jarvis/embedder.py", "jarvis/memplus.py", "jarvis/proactiveplus.py", "jarvis/notchplus.py", "jarvis/pcplus.py"]

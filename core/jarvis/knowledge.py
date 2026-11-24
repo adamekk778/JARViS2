@@ -202,6 +202,12 @@ class Knowledge:
             raise ValueError(f"Projekt „{name}“ neznám.")
         self.rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('project_current', ?)", (p["name"],))
         self.rt.db.exec("UPDATE projects SET updated=? WHERE id=?", (time.time(), p["id"]))
+        try:                                       # 3.14 návrh 90: the project's own window layout comes back
+            from .pcplus import restore_for_project
+
+            restore_for_project(self.rt, p["name"])
+        except Exception:  # noqa: BLE001
+            pass
         return p
 
     def project_prompt(self) -> str:
