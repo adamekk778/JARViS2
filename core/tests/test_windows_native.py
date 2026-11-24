@@ -44,9 +44,11 @@ def test_effect_window_is_click_through_on_top_and_out_of_screenshots(rt):
         aff = ctypes.c_uint(0)
         if hasattr(u, "GetWindowDisplayAffinity") and u.GetWindowDisplayAffinity(ctypes.c_void_p(hwnd), ctypes.byref(aff)):
             assert aff.value in (0x11, 0x1)                                     # excluded from capture (or monitor-only)
-        rect = (ctypes.c_long * 4)()
-        u.GetWindowRect(ctypes.c_void_p(hwnd), ctypes.byref(rect))
-        assert (rect[2] - rect[0], rect[3] - rect[1]) == (220, 220) and (rect[0], rect[1]) == (100, 100)
+        from ctypes import wintypes
+
+        rect = wintypes.RECT()                  # JARVIS declares GetWindowRect(HWND, LPRECT) for the whole process
+        u.GetWindowRect(wintypes.HWND(hwnd), ctypes.byref(rect))
+        assert (rect.right - rect.left, rect.bottom - rect.top) == (220, 220) and (rect.left, rect.top) == (100, 100)
     finally:
         ctypes.windll.user32.DestroyWindow(ctypes.c_void_p(hwnd))
     assert not ctypes.windll.user32.IsWindow(ctypes.c_void_p(hwnd))
