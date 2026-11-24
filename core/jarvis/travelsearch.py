@@ -204,9 +204,9 @@ def rank(offers: list[dict], c: dict, p: dict | None = None, center: tuple[float
         if o is cheapest:
             why.append("nejlevnější")
         if o is top and o.get("rating"):
-            why.append(f"nejlépe hodnocený ({float(o['rating']):g}/10)")
+            why.append(f"nejlépe hodnocený ({_cz(o['rating'])}/10)")
         if near is o and o.get("km") is not None:
-            why.append(f"nejblíž ({o['km']:g} km)")
+            why.append(f"nejblíž ({_cz(o['km'])} km)")
         if o.get("refundable"):
             why.append("zrušení zdarma" + (f" do {fmt_when(o['free_cancel_until'])}" if o.get("free_cancel_until") else ""))
         if o.get("pay_at_property"):
@@ -215,6 +215,11 @@ def rank(offers: list[dict], c: dict, p: dict | None = None, center: tuple[float
             why.append("se snídaní")
         o["why"] = ", ".join(why) or "dobrý poměr ceny a hodnocení"
     return best
+
+
+def _cz(v: Any) -> str:
+    """8.7 → "8,7" (Czech decimals, also for reading aloud)."""
+    return f"{float(v):g}".replace(".", ",")
 
 
 def fmt_when(iso: str) -> str:
@@ -232,9 +237,9 @@ def line(o: dict) -> str:
                          + (f" ({lg['stops']}× přestup)" if lg["stops"] else " (přímý)") for lg in o.get("legs") or [])
         return f"{o['n']}) {o['name']}: {legs} – {money}" + (" – lze vrátit" if o.get("refundable") else "")
     stars = f" {'★' * int(o['stars'])}" if o.get("stars") else ""
-    rating = f", {float(o['rating']):g}/10" if o.get("rating") else ""
+    rating = f", {_cz(o['rating'])}/10" if o.get("rating") else ""
     return (f"{o['n']}) {o['name']}{stars}{rating} – {money} celkem ({o['nights']} n.)"
-            + (f", {o['km']:g} km" if o.get("km") is not None else "") + f" – {o.get('why', '')}")
+            + (f", {_cz(o['km'])} km" if o.get("km") is not None else "") + f" – {o.get('why', '')}")
 
 
 # ------------------------------------------------------------------------------------------ without a key: the site itself
