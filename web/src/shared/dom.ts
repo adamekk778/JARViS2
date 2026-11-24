@@ -91,3 +91,17 @@ export async function copyText(text: string, done = "Zkopírováno"): Promise<bo
   if (done) toast(ok ? done : "Kopírování se nepovedlo – označ text a stiskni Ctrl+C", ok ? "ok" : "error", 1800);
   return ok;
 }
+
+/** 3.15 Mega animace (návrh 28): a holographic shimmer of placeholder lines instead of "Načítám…" (screen readers still hear it). */
+export function loading(lines = 3): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "holo-skel";
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-label", "Načítám…");
+  for (let i = 0; i < Math.max(1, lines); i++) {
+    const b = document.createElement("i");
+    b.style.setProperty("--w", `${[92, 74, 58, 83, 66][i % 5]}%`);
+    el.append(b);
+  }
+  return el;
+}

@@ -520,7 +520,13 @@ class Agent:
                         rt.bus.publish("jarvis_changes", items=list(rt.recent_changes)[-12:])
                     except Exception as e:  # noqa: BLE001
                         log.debug("change diff: %s", e)
-                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
+                try:                                           # 3.15 a live picture under some results (weather, flights…)
+                    from .livecards import card as live_card
+
+                    live = live_card(call.name, res.ok, res.data)
+                except Exception:  # noqa: BLE001
+                    live = None
+                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview, live=live)
                 if call.name != "update_plan":
                     ms = int((time.monotonic() - t0) * 1000)
                     rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary, ms)
@@ -540,6 +546,14 @@ class Agent:
         card = {"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok, "summary": res.summary}
         if res.preview:
             card["preview"] = res.preview
+        try:
+            from .livecards import card as live_card
+
+            lc = live_card(call.name, res.ok, res.data)
+            if lc:
+                card["live"] = lc
+        except Exception:  # noqa: BLE001
+            pass
         tool_cards.append(card)
         return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": res.for_llm()}
 

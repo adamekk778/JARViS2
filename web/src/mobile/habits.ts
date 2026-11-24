@@ -1,7 +1,7 @@
 // 3.12 Návyky a zdraví on the phone: the day's ring up top, every habit a big tile for the thumb, a calendar of the
 // month (all habits as a heat map, or one habit day by day), insights, the meals and the editor. Works without the PC
 // too: ticks are kept on the phone and sent the moment the PC is back. A buzz on every tick, a little party at 100 %.
-import { h, icon, toast } from "../shared/dom";
+import { h, icon, loading, toast } from "../shared/dom";
 import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, weekPlanner, type HabitItem, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 import { gymView, type GymSnap } from "../shared/gymui";
@@ -136,7 +136,7 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
         if (g && t) g.scrollLeft = Math.max(0, t.offsetLeft - g.clientWidth * 0.6);
       });
     } else if (tab === "tasks") {
-      body.replaceChildren(s.plan ? weekPlanner(online(), s, (w) => { week = w; ask(); }) : h("p", { class: "hb-empty" }, "Načítám…"));
+      body.replaceChildren(s.plan ? weekPlanner(online(), s, (w) => { week = w; ask(); }) : loading());
       requestAnimationFrame(() => (body.querySelector(".hb-day.today") as HTMLElement | null)?.scrollIntoView({ inline: "center", block: "nearest" }));
     } else if (tab === "gym") {
       body.replaceChildren(c.status === "open" ? gymView(online(), gym) : h("p", { class: "hb-empty" }, "Gym deník jde, když je PC připojené."));

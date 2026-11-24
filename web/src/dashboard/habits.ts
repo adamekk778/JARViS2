@@ -1,7 +1,7 @@
 // 3.12 Návyky a zdraví over the whole screen, laid out like the habit trackers people love: Dnes (tick everything,
 // the meals), Návyky (the month grid with its trend line), Úkoly (the week planner), Cíle (goals) and Přehled
 // (consistency, this week, the leaderboard, streaks); the gear opens Upravit (your own habits, the reminder).
-import { h, icon } from "../shared/dom";
+import { h, icon, loading } from "../shared/dom";
 import { bodyCard, editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, trackerHead, weekPlanner, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 import { gymView, type GymSnap } from "../shared/gymui";
@@ -32,7 +32,7 @@ export function buildHabits(client: JarvisClient) {
   const ask = () => client.send("habits_get", { month: month || undefined, week });
 
   function paint() {
-    if (!snap) { body.replaceChildren(h("p", { class: "hb-empty" }, "Načítám…")); return; }
+    if (!snap) { body.replaceChildren(loading()); return; }
     const s = snap;
     if (tab === "today") {
       const t = s.today;
@@ -52,7 +52,7 @@ export function buildHabits(client: JarvisClient) {
       body.replaceChildren(h("div", { class: "hb-card" }, monthGrid(client, s, (id) => { month = id; ask(); }),
         h("p", { class: "hbp-hint" }, "Klikni na kroužek a opravíš den zpětně. Tečka = ten den návyk neplánuješ.")));
     } else if (tab === "tasks") {
-      body.replaceChildren(s.plan ? weekPlanner(client, s, (w) => { week = w; ask(); }) : h("p", { class: "hb-empty" }, "Načítám…"));
+      body.replaceChildren(s.plan ? weekPlanner(client, s, (w) => { week = w; ask(); }) : loading());
     } else if (tab === "gym") {
       body.replaceChildren(gymView(client, gym));
     } else if (tab === "goals") {

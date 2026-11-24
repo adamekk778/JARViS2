@@ -31,7 +31,11 @@ export function openEdith(c: JarvisClient) {
   const liveBtn = h("button", { type: "button", class: "ed-live", "aria-pressed": "false", onclick: () => toggleLive() }, icon("broadcast"), "Živě");
   const shutter = h("button", { type: "button", class: "ed-shutter", "aria-label": "Zeptat se na tenhle obraz", onclick: () => ask() });
   const close = h("button", { type: "button", class: "ed-close", "aria-label": "Zavřít EDITH", onclick: () => end() }, icon("x"));
-  const el = h("div", { class: "ed", role: "dialog", "aria-label": "EDITH – kamera" }, video,
+  // 3.15 EDITH in augmented reality: a scan line sweeps while it looks, then the things it talks about get brackets
+  // and labels pinned right over the live picture
+  const ar = h("div", { class: "ed-ar", "aria-hidden": "true" });
+  const scan = h("i", { class: "ed-scan", hidden: true });
+  const el = h("div", { class: "ed", role: "dialog", "aria-label": "EDITH – kamera" }, video, ar, scan,
     h("div", { class: "ed-top" }, h("strong", {}, "EDITH"), liveBtn, close),
     h("div", { class: "ed-bottom" }, answer, question, chips, shutter));
   document.body.append(el);
@@ -61,6 +65,8 @@ export function openEdith(c: JarvisClient) {
     busy = true;
     reqId = Math.random().toString(36).slice(2, 9);
     answer.textContent = "Dívám se…";
+    scan.hidden = false;
+    ar.replaceChildren();
     native.haptic();
     c.send("edith_ask", { id: reqId, image: frame(), mode, question: question.value.trim() });
   }
@@ -71,11 +77,27 @@ export function openEdith(c: JarvisClient) {
     window.clearInterval(timer);
     if (live) timer = window.setInterval(() => { if (!busy && changed()) ask(); }, 4000);
   }
+  /** Normalised boxes (0–1 of the frame) → the screen, where the video is scaled to cover the whole view. */
+  function drawObjects(objs: { label: string; box: number[] }[]) {
+    ar.replaceChildren();
+    const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+    const cw = el.clientWidth, ch = el.clientHeight;
+    const k = Math.max(cw / vw, ch / vh), dw = vw * k, dh = vh * k, ox = (cw - dw) / 2, oy = (ch - dh) / 2;
+    objs.forEach((o, i) => {
+      const [x0, y0, x1, y1] = o.box;
+      const box = h("div", { class: "ed-box", style: { left: `${ox + x0 * dw}px`, top: `${oy + y0 * dh}px`, width: `${(x1 - x0) * dw}px`,
+        height: `${(y1 - y0) * dh}px`, "--i": String(i) } }, h("span", { class: "ed-tag" }, o.label));
+      ar.append(box);
+    });
+    if (objs.length) native.haptic();
+  }
   const off = c.on("edith_answer", (m: any) => {
     if (m.id && m.id !== reqId) return;
     busy = false;
+    scan.hidden = true;
     if (m.error) { answer.textContent = `Nejde to: ${m.error}`; return; }
     answer.textContent = m.text || "…";
+    if (Array.isArray(m.objects)) drawObjects(m.objects);
     if (m.text) say(m.text);
   });
   function end() {

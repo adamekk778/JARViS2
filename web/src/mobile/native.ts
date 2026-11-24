@@ -59,7 +59,7 @@ export const native = {
   },
 
   /** OMEGA 136 / 722: the texts the home-screen widget shows. */
-  widget(o: { status: string; task: string; pins: string; habits?: string; song?: string; online?: boolean }) {
+  widget(o: { status: string; task: string; pins: string; habits?: string; song?: string; online?: boolean; busy?: boolean; progress?: number }) {
     if (isNative) JarvisPhone.widget(o).catch(() => {});
   },
 

@@ -1,5 +1,7 @@
 package cz.adamekk.jarvis;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.app.Notification;
@@ -23,6 +25,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -102,6 +106,13 @@ public class CallActivity extends Activity {
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] { 0xFF04121F, 0xFF02060C });
         root.setBackground(bg);
 
+        // 3.15 Mega animace: the glowing core with two dashed rings turning around it (like the HUD's reactor)
+        FrameLayout stage = new FrameLayout(this);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(dp(230), dp(230));
+        sp.bottomMargin = dp(26);
+        root.addView(stage, sp);
+        ring(stage, dp(222), dp(2), 0xAA8FE3FF, dp(16), dp(10), 9000, false);
+        ring(stage, dp(196), dp(3), 0x668FE3FF, dp(44), dp(24), 6000, true);
         orb = new View(this);
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
@@ -109,9 +120,7 @@ public class CallActivity extends Activity {
         g.setGradientRadius(dp(80));
         g.setColors(new int[] { 0xFFFFFFFF, 0xFF8FE3FF, 0xFF2E8FD0, 0x00000000 });
         orb.setBackground(g);
-        LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(dp(160), dp(160));
-        op.bottomMargin = dp(36);
-        root.addView(orb, op);
+        stage.addView(orb, new FrameLayout.LayoutParams(dp(160), dp(160), Gravity.CENTER));
         orb.animate().scaleX(1.12f).scaleY(1.12f).setDuration(900).setInterpolator(new AccelerateDecelerateInterpolator())
                 .withEndAction(this::pulse).start();
 
@@ -130,6 +139,25 @@ public class CallActivity extends Activity {
         root.addView(buttons, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         showRingingButtons();
         setContentView(root);
+    }
+
+    private final java.util.List<ObjectAnimator> rings = new java.util.ArrayList<>();
+
+    /** A dashed ring around the core that keeps turning (stopped in onDestroy). */
+    private void ring(FrameLayout stage, int size, int stroke, int color, int dash, int gap, long ms, boolean reverse) {
+        View r = new View(this);
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.OVAL);
+        d.setColor(0x00000000);
+        d.setStroke(stroke, color, dash, gap);
+        r.setBackground(d);
+        stage.addView(r, new FrameLayout.LayoutParams(size, size, Gravity.CENTER));
+        ObjectAnimator a = ObjectAnimator.ofFloat(r, "rotation", 0f, reverse ? -360f : 360f);
+        a.setDuration(ms);
+        a.setRepeatCount(ValueAnimator.INFINITE);
+        a.setInterpolator(new LinearInterpolator());
+        a.start();
+        rings.add(a);
     }
 
     private void pulse() {
@@ -234,6 +262,8 @@ public class CallActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        for (ObjectAnimator a : rings) a.cancel();
+        rings.clear();
         stopRinging();
         if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
         super.onDestroy();

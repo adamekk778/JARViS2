@@ -116,6 +116,7 @@ SERVER_TYPES = [
     "world_map", "hud_map",
     "fx_pause",
     "hud_cmd",
+    "emergency_state",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

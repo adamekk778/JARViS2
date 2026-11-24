@@ -1,6 +1,7 @@
 import "./chat.css";
 import "./taskcard.css";
 import { copyText, fmtSize, fmtTime, h, icon, KIND_ICON, toast, TOOL_ICON } from "./dom";
+import { liveCard } from "./livecards";
 import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, SourceRef, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
@@ -51,7 +52,7 @@ export class ChatView {
   private pendingBox: HTMLElement;
   private statusLine: HTMLElement;
   private pending: Pending[] = [];
-  private live: { el: HTMLElement; body: HTMLElement; tools: HTMLElement; text: string; raf?: number } | null = null;
+  private live: { el: HTMLElement; body: HTMLElement; tools: HTMLElement; text: string; raf?: number; shown?: number } | null = null;
   private liveTools = new Map<string, HTMLElement>();
   private state: AgentState = "idle";
   private recorder = new Recorder();
@@ -244,7 +245,11 @@ export class ChatView {
 
   private toolsEl(tools: ToolCard[] = []): HTMLElement {
     const box = h("div", { class: "tools" });
-    for (const t of tools) box.append(this.toolChip(t.name, t.label, t.ok ? "ok" : "fail", t.summary));
+    for (const t of tools) {
+      box.append(this.toolChip(t.name, t.label, t.ok ? "ok" : "fail", t.summary));
+      const lc = liveCard(t.live);                    // 3.15 a live picture under the result
+      if (lc) box.append(lc);
+    }
     const seen = new Set<string>();
     for (const t of [...tools].reverse()) {   // one preview per site: the newest version
       if (!t.preview || seen.has(sitePath(t.preview))) continue;
@@ -366,6 +371,10 @@ export class ChatView {
       l.raf = requestAnimationFrame(() => {
         l.raf = undefined;
         l.body.innerHTML = renderMarkdown(l.text) + '<span class="caret"></span>';
+        // 3.15 the newest words "materialise" (a glow that fades into the text) – from the high effects tier
+        const fresh = l.text.length - (l.shown || 0);
+        l.shown = l.text.length;
+        if (fresh > 0 && document.documentElement.dataset.fx && ["ultra", "high"].includes(document.documentElement.dataset.fx)) glowTail(l.body, fresh);
         this.scrollBottom();
       });
     }
@@ -386,6 +395,8 @@ export class ChatView {
     const fresh = this.toolChip(chip.dataset.name || "", label, m.ok ? "ok" : "fail", m.summary);
     chip.replaceWith(fresh);
     this.liveTools.set(m.id, fresh);
+    const lc = liveCard((m as any).live);
+    if (lc) { fresh.after(lc); this.scrollBottom(); }
     if (m.preview && this.live) {
       this.live.tools.querySelectorAll<HTMLElement>(".site-prev").forEach((p) => p.dataset.site === sitePath(m.preview) && p.remove());
       this.live.tools.append(sitePreview(this.client, m.preview, label));
@@ -631,4 +642,23 @@ export function conversationList(client: JarvisClient, onPick?: () => void): HTM
   client.on("history", (m) => { if (!m.prepend && m.conversation !== current) { current = m.conversation; client.send("conversations_get"); } });
   client.on("assistant_done", () => client.send("conversations_get"));
   return list;
+}
+
+/** Wrap the last `count` characters of the rendered text in a glowing span (walking the text nodes backwards). */
+function glowTail(root: HTMLElement, count: number): void {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n as Text);
+  let left = Math.min(count, 400);
+  for (let i = nodes.length - 1; i >= 0 && left > 0; i--) {
+    const t = nodes[i];
+    if (!t.data.trim() || t.parentElement?.closest("pre, code, .caret")) { left -= t.data.length; continue; }
+    const take = Math.min(left, t.data.length);
+    const tail = t.splitText(t.data.length - take);
+    const span = document.createElement("span");
+    span.className = "mat";
+    tail.replaceWith(span);
+    span.append(tail);
+    left -= take;
+  }
 }

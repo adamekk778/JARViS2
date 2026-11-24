@@ -27,6 +27,11 @@ export function applyPower(battery: boolean) {
 }
 initMotion();                         // 3.15 the effects tier + one animation clock for the page
 
+export const MOTIFS: Record<string, { accent: string; label: string }> = {
+  stark: { accent: "#4fc3ff", label: "Stark – modrá" }, mark: { accent: "#ff4d3d", label: "Mark – červená a zlatá" },
+  friday: { accent: "#b48cff", label: "FRIDAY – fialová" }, stealth: { accent: "#9aa4b2", label: "Stealth – grafit" },
+};
+
 export function applyAppearance(s: any) {
   const a = s?.appearance;
   if (!a) return;
@@ -34,9 +39,13 @@ export function applyAppearance(s: any) {
   // the notch is a black hardware-like cut-out: it keeps the dark tokens in the light theme too
   root.dataset.theme = a.theme === "light" && !root.classList.contains("notch-doc") ? "light" : "dark";
   root.dataset.glass = a.theme === "glass" ? "1" : "0";            // 3.12 liquid glass (frosted panels over an aurora)
-  if (a.accent) {
-    root.style.setProperty("--accent", a.accent);
-    root.style.setProperty("--accent-ink", inkFor(a.accent));
+  // 3.15 motifs: Stark (blue), Mark (red and gold), FRIDAY (violet), Stealth (graphite) – or your own accent colour
+  const motif = MOTIFS[a.motif as string];
+  root.dataset.motif = motif ? String(a.motif) : "vlastni";
+  const accent = motif?.accent || a.accent;
+  if (accent) {
+    root.style.setProperty("--accent", accent);
+    root.style.setProperty("--accent-ink", inkFor(accent));
   }
   motionPref = a.animations || "full";
   applyMotion();

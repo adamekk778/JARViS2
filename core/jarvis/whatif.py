@@ -106,6 +106,8 @@ def chart_svg(series: list[tuple[str, list[tuple[float, float]]]], title: str, x
         return (f"{v / 1e6:.1f} mil." if a >= 1e6 else f"{v / 1e3:.0f} tis." if a >= 1e4 else f"{v:.0f}").replace(".", ",").replace(",0 ", " ")
 
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" font-family="Segoe UI, sans-serif">',
+           '<style>.l{stroke-dasharray:1;stroke-dashoffset:1;animation:d 1.4s cubic-bezier(.3,.8,.2,1) forwards}'
+           '@keyframes d{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.l{animation:none;stroke-dashoffset:0}}</style>',
            f'<rect width="{w}" height="{h}" rx="14" fill="#0d1117"/>',
            f'<text x="{pad_l}" y="28" fill="#e6edf3" font-size="16" font-weight="600">{escape(title)}</text>']
     v = y0
@@ -123,7 +125,7 @@ def chart_svg(series: list[tuple[str, list[tuple[float, float]]]], title: str, x
     for i, (label, pts) in enumerate(series):
         col = COLORS[i % len(COLORS)]
         d = " ".join(f"{'M' if j == 0 else 'L'}{X(x):.1f},{Y(y):.1f}" for j, (x, y) in enumerate(pts))
-        out.append(f'<path d="{d}" fill="none" stroke="{col}" stroke-width="2.5" stroke-linejoin="round"/>')
+        out.append(f'<path class="l" pathLength="1" d="{d}" fill="none" stroke="{col}" stroke-width="2.5" stroke-linejoin="round"/>')   # draws itself in
         out.append(f'<rect x="{w - pad_r - 220}" y="{40 + i * 20}" width="12" height="12" rx="3" fill="{col}"/>'
                    f'<text x="{w - pad_r - 202}" y="{50 + i * 20}" fill="#e6edf3" font-size="12">{escape(label)}</text>')
     out.append("</svg>")

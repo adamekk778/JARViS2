@@ -363,6 +363,8 @@ public class JarvisPhonePlugin extends Plugin {
         if (call.hasOption("habits")) e.putString("habits", call.getString("habits", ""));
         if (call.hasOption("song")) e.putString("song", call.getString("song", ""));
         if (call.getBoolean("online", false)) e.putString("wake_state", "");      // the PC answers: the button is fresh again
+        e.putBoolean("busy", call.getBoolean("busy", false));                   // 3.15 the spinner while JARVIS works
+        e.putInt("progress", call.getInt("progress", -1));                      // 3.15 the running task's progress (-1 = none)
         e.apply();
         JarvisWidget.refresh(getContext());
         call.resolve();

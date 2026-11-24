@@ -1,3 +1,4 @@
+import { transition } from "../shared/motion";
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./shell.css";
@@ -157,6 +158,9 @@ const settingsBtn: HTMLButtonElement = h("button", { type: "button", class: "sid
   icon("gear-six"), h("span", {}, "Nastavení"));
 const SETTINGS_VIEWS: View[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"];
 function go(v: View) {
+  transition(() => goNow(v));                // 3.15 a page change glides (the browser's view transition)
+}
+function goNow(v: View) {
   [...nav.querySelectorAll("button"), settingsBtn].forEach((b) => b.classList.toggle("active", b.dataset.view === v || (b.dataset.view === "general" && SETTINGS_VIEWS.includes(v))));
   const page = pages[v as Page];
   chatView.hidden = v !== "chat";

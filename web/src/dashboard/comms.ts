@@ -1,7 +1,7 @@
 // Dashboard → E-mail a kalendář (3.4): connect a mailbox with an app password (it goes to the Windows keyring),
 // who counts as important, how JARVIS announces new mail; calendars from an iCal address; what is coming up.
 import { hero, HEROES } from "../shared/hero";
-import { fmtTime, h, icon, toast } from "../shared/dom";
+import { fmtTime, h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 
 export function buildComms(client: JarvisClient) {
@@ -65,7 +65,7 @@ export function buildComms(client: JarvisClient) {
   // ---------- calendar ----------
   const icsList = h("div", { class: "group" });
   const icsInput = h("input", { class: "input", placeholder: "https://calendar.google.com/calendar/ical/…/basic.ics", "aria-label": "Adresa kalendáře" }) as HTMLInputElement;
-  const upcoming = h("div", { class: "comms-events" }, h("p", { class: "help" }, "Načítám…"));
+  const upcoming = h("div", { class: "comms-events" }, loading());
   function renderIcs() {
     const urls: string[] = settings?.calendar?.ics_urls || [];
     icsList.replaceChildren(...urls.map((u, i) => h("div", { class: "row" },

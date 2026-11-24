@@ -2,7 +2,7 @@
 // temporary permissions, the private mode, retention, what JARVIS stores, the microphone log, exports, the encrypted
 // backup and the complete reset. Everything that loosens safety is only here, never by voice.
 import { hero, HEROES } from "../shared/hero";
-import { fmtSize, h, icon, toast } from "../shared/dom";
+import { fmtSize, h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 
 const PERM_LABEL: Record<string, string> = {
@@ -189,7 +189,7 @@ export function buildSecurity(client: JarvisClient) {
   renderGrants({});
 
   // 3.14 návrhy 107, 109: what JARVIS looked at / touched today, and the guest mode
-  const accessBox = h("div", { class: "card sec-card" }, h("p", { class: "muted" }, "Načítám…"));
+  const accessBox = h("div", { class: "card sec-card" }, loading());
   const KIND_ICON: Record<string, string> = { screen: "monitor", input: "cursor-click", camera: "camera", clipboard: "clipboard-text", injection: "warning" };
   client.on("access_log", (m: any) => {
     const rows: any[] = m.rows || [];

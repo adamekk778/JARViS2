@@ -111,3 +111,28 @@
 .ob-entry p { margin: 3px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 .ob-entry-ico { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; background: var(--accent); color: var(--accent-ink, #fff); }
 @media (max-width: 640px) { .ob-entry { flex-wrap: wrap; } .ob-entry .btn { width: 100%; justify-content: center; } }
+
+/* 3.15 the first meeting */
+.obi { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 22px; cursor: pointer;
+  background: radial-gradient(60% 60% at 50% 45%, #0b1d30, #02060b 75%); transition: opacity .55s; }
+.obi.out { opacity: 0; pointer-events: none; }
+.obi small { opacity: .45; font-size: 12px; }
+.obi-text { margin: 0; min-height: 1.5em; font: 600 clamp(20px, 2.6vw, 34px) / 1.3 var(--font, system-ui); color: #e6f6ff; text-align: center;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent, #4f8dff) 60%, transparent); }
+.obi-core { position: relative; width: 180px; height: 180px; }
+.obi-core i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent, #4f8dff) 70%, white);
+  border-left-color: transparent; border-bottom-color: transparent; animation: obiSpin 2.4s linear infinite, obiIn 1s cubic-bezier(.2, .9, .2, 1) both; }
+.obi-core i:nth-child(2) { inset: 18px; animation-duration: 1.7s, 1s; animation-direction: reverse, normal; animation-delay: 0s, .15s; }
+.obi-core i:nth-child(3) { inset: 36px; animation-duration: 3.1s, 1s; animation-delay: 0s, .3s; border-style: dashed; }
+.obi-core b { position: absolute; inset: 62px; border-radius: 50%; background: radial-gradient(#fff, color-mix(in srgb, var(--accent, #4f8dff) 70%, white) 40%, transparent 72%);
+  box-shadow: 0 0 40px var(--accent, #4f8dff); animation: obiPulse 1.8s ease-in-out infinite, obiIn .9s ease both .4s; }
+@keyframes obiSpin { to { transform: rotate(360deg); } }
+@keyframes obiIn { from { opacity: 0; transform: scale(.3); } }
+@keyframes obiPulse { 50% { transform: scale(1.12); box-shadow: 0 0 70px var(--accent, #4f8dff); } }
+.ob-card.ob-wait { opacity: 0; }
+.ob-card.ob-rise { animation: obRise .7s cubic-bezier(.2, .9, .2, 1) both; }
+@keyframes obRise { from { opacity: 0; transform: translateY(30px) scale(.96); filter: blur(4px); } }
+.ob-body.ob-in-fwd { animation: obFwd .38s cubic-bezier(.2, .9, .2, 1) both; }
+.ob-body.ob-in-back { animation: obBack .38s cubic-bezier(.2, .9, .2, 1) both; }
+@keyframes obFwd { from { opacity: 0; transform: translateX(28px); } }
+@keyframes obBack { from { opacity: 0; transform: translateX(-28px); } }

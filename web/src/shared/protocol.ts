@@ -92,6 +92,7 @@ export const SERVER_TYPES = [
   "world_map", "hud_map",
   "fx_pause",
   "hud_cmd",
+  "emergency_state",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -118,6 +119,7 @@ export interface ToolCard {
   ok: boolean;
   summary: string;
   preview?: string;
+  live?: any;            // 3.15 a live picture under the result (weather, a flight, parcels…)
 }
 
 export interface Message {

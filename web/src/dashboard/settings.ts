@@ -2,7 +2,7 @@ import { openOnboarding } from "./onboarding";
 import { openPhoneMirror } from "./phonemirror";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
-import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
+import { copyText, h, icon, loading, toast, TOOL_ICON } from "../shared/dom";
 import { OUTFIT_LABEL, OUTFITS, UNLOCK_LEVEL } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -558,6 +558,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["auto", "Na baterii omezené"], ["reduced", "Omezené"]]),
+        select("appearance.motif", "Motiv", [["vlastni", "Vlastní barva"], ["stark", "Stark – modrá"], ["mark", "Mark – červená a zlatá"],
+          ["friday", "FRIDAY – fialová"], ["stealth", "Stealth – grafit"]]),
         select("appearance.fx_quality", "Kvalita efektů", [["auto", "Automaticky (podle grafiky a baterie)"], ["ultra", "Ultra – 3D a částice"],
           ["high", "Vysoká"], ["eco", "Úsporná"], ["off", "Bez efektů"]]),
         select("appearance.density", "Velikost rozhraní", [["auto", "Automaticky podle okna"], ["compact", "Kompaktní"], ["comfortable", "Běžná"], ["large", "Velká"]],
@@ -759,7 +761,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               h("div", { class: "btn-row" },
                 h("button", { class: "btn", type: "button", onclick: () => copyText(p.url, "Odkaz zkopírován") }, icon("link"), "Kopírovat odkaz"),
                 h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Vygenerovat nový token? Všechny telefony se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový token"))))
-            : h("p", { class: "help" }, "Načítám…")),
+            : loading()),
         card("Spárovaná zařízení", "Každý telefon má vlastní klíč – ztracený odpojíš sám, ostatní zůstanou spárované.",
           ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" },
             h("div", { class: "row-text" }, h("strong", {}, icon("device-mobile"), " ", d.name || "Telefon"),
@@ -1052,7 +1054,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   function linkCard() {
     const L = extra.link;
     if (!extra.linkAsked) { extra.linkAsked = true; client.send("link_get"); }
-    if (!L) return card("JARVIS Link – telefon odkudkoli", null, h("p", { class: "help" }, "Načítám…"));
+    if (!L) return card("JARVIS Link – telefon odkudkoli", null, loading());
     const send = (o: Record<string, unknown>) => { extra.linkBusy = true; client.send("link_set", o); render(); };
     const toggle = (on: boolean, title: string, desc: string, onChange: (v: boolean) => void) => {
       const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
@@ -1193,7 +1195,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   function voiceId() {
     const v = extra.voiceid;
     if (!extra.voiceidAsked) { extra.voiceidAsked = true; client.send("voiceid_get"); }
-    if (!v) return card("Kdo mluví", null, h("p", { class: "help" }, "Načítám…"));
+    if (!v) return card("Kdo mluví", null, loading());
     const name = h("input", { class: "input", placeholder: "Jméno (např. Adam)", "aria-label": "Jméno" }) as HTMLInputElement;
     const owner = h("input", { type: "checkbox", checked: !v.owner }) as HTMLInputElement;
     const word = h("input", { class: "input", placeholder: "Slovo, např. Jarvisi", value: v.wake_word || "", "aria-label": "Vlastní slovo" }) as HTMLInputElement;

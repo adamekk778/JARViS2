@@ -3,7 +3,7 @@
 // a key shows the key field right in its tile. The same picker is in Nastavení → Mozek and behind the AI chip in the chat.
 import "./brainpicker.css";
 import { brandEl, brandOf } from "./brands";
-import { h, icon, toast } from "./dom";
+import { h, icon, loading, toast } from "./dom";
 import type { JarvisClient } from "./ws";
 
 type Tile = { preset: string; id: string; label: string; local: boolean; added: boolean; enabled: boolean; model: string;
@@ -28,7 +28,7 @@ export function createBrainPicker(client: JarvisClient, opts: { compact?: boolea
   let pull: { name: string; key: string; pct: number; status: string; error?: string } | null = null;
   let asked = "";
   let mine = 0;                                         // this picker asked for the change: only it shows the notes
-  const el = h("div", { class: `bp ${opts.compact ? "compact" : ""}` }, h("p", { class: "bp-wait" }, "Načítám…"));
+  const el = h("div", { class: `bp ${opts.compact ? "compact" : ""}` }, loading());
 
   const keyRow = (t: Tile) => {
     const inp = h("input", { class: "input", type: "password", autocomplete: "off", placeholder: t.preset === "anthropic" ? "sk-ant-…" : "API klíč",

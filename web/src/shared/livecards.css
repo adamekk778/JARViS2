@@ -1,0 +1,76 @@
+/* 3.15 live cards under tool results in the chat */
+.lc { position: relative; overflow: hidden; margin: 8px 0 2px; padding: 12px 14px; border-radius: 14px; max-width: 420px;
+  border: 1px solid color-mix(in srgb, var(--accent, #4f8dff) 30%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent, #4f8dff) 14%, transparent), rgb(0 0 0 / .12));
+  animation: lcIn .5s cubic-bezier(.2, .9, .2, 1) both; }
+@keyframes lcIn { from { opacity: 0; transform: translateY(8px) scale(.98); filter: blur(3px); } }
+.lc strong { display: block; font-size: 15px; }
+.lc span { font-size: 12.5px; opacity: .75; }
+
+/* weather */
+.lc-weather { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; min-height: 86px; }
+.lc-weather .lc-main { position: relative; z-index: 1; }
+.lc-weather .lc-main strong { font-size: 34px; line-height: 1; font-weight: 700; }
+.lc-sky { position: absolute; inset: 0; pointer-events: none; }
+.lc-sky.rain i, .lc-sky.storm i { position: absolute; top: -20px; left: var(--x); width: 1.5px; height: 14px; border-radius: 2px;
+  background: linear-gradient(transparent, rgb(150 200 255 / .8)); animation: lcRain var(--s) linear var(--d) infinite; }
+.lc-sky.snow i { position: absolute; top: -10px; left: var(--x); width: 5px; height: 5px; border-radius: 50%; background: #fff; opacity: .85;
+  animation: lcSnow calc(var(--s) * 4) linear var(--d) infinite; }
+@keyframes lcRain { to { transform: translate(-10px, 130px); } }
+@keyframes lcSnow { 0% { transform: translate(0, 0); } 50% { transform: translate(8px, 60px); } 100% { transform: translate(-4px, 130px); } }
+.lc-sky.storm { animation: lcFlash 5s infinite; }
+@keyframes lcFlash { 0%, 92%, 96%, 100% { background: transparent; } 93%, 95% { background: rgb(255 255 255 / .18); } }
+.lc-sun { position: absolute; right: 18px; top: 10px; width: 34px; height: 34px; border-radius: 50%; background: #ffd166;
+  box-shadow: 0 0 22px #ffd166, 0 0 50px rgb(255 209 102 / .5); animation: lcSun 4s ease-in-out infinite; }
+@keyframes lcSun { 50% { box-shadow: 0 0 30px #ffd166, 0 0 70px rgb(255 209 102 / .6); transform: scale(1.06); } }
+.lc-cloud { position: absolute; top: 8px; left: -60px; width: 70px; height: 22px; border-radius: 999px; background: rgb(255 255 255 / .16);
+  animation: lcCloud 14s linear infinite; }
+.lc-cloud.c2 { top: 26px; width: 50px; animation-duration: 20s; animation-delay: -8s; }
+@keyframes lcCloud { to { transform: translateX(520px); } }
+.lc-days { position: relative; z-index: 1; display: flex; align-items: flex-end; gap: 5px; height: 46px; }
+.lc-days i { width: 9px; height: var(--h); border-radius: 4px; background: color-mix(in srgb, var(--accent, #4f8dff) 70%, white);
+  animation: lcBar .7s cubic-bezier(.2, .9, .2, 1) calc(var(--i) * .08s) both; transform-origin: bottom; }
+.lc-days i.wet { background: #7cc4ff; }
+@keyframes lcBar { from { transform: scaleY(0); } }
+
+/* a trip on its route */
+.lc-route { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.lc-end { font-size: 13px !important; opacity: .9 !important; }
+.lc-track { position: relative; height: 2px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent, #4f8dff) 60%, transparent) 0 6px, transparent 6px 11px); }
+.lc-vehicle { position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%); font-size: 20px; color: var(--accent, #4f8dff);
+  filter: drop-shadow(0 0 6px var(--accent, #4f8dff)); animation: lcFly 4.5s ease-in-out infinite; }
+.lc-route.flight .lc-vehicle i { transform: rotate(45deg); display: inline-block; }
+@keyframes lcFly { 0% { left: 0; } 50% { left: 100%; } 50.01% { left: 0; opacity: 0; } 55% { opacity: 1; } 100% { left: 100%; } }
+.lc-route.flying .lc-vehicle { animation-duration: 2.6s; }
+.lc-no { grid-column: 1 / 4; justify-self: center; font: 700 12px/1 ui-monospace, monospace; letter-spacing: .12em; opacity: .7; }
+
+/* parcels */
+.lc-parcels { display: grid; gap: 8px; }
+.lc-parcel { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 10px; }
+.lc-path { position: relative; height: 2px; background: rgb(255 255 255 / .15); border-radius: 2px; }
+.lc-path i { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 18px; color: var(--accent, #4f8dff); animation: lcTruck 3.5s ease-in-out infinite; }
+.lc-parcel.ready .lc-path i { left: 92%; animation: lcBounce 1.2s ease-in-out infinite; color: #ffd166; }
+.lc-parcel.done .lc-path i { left: 100%; animation: none; color: #3ddc97; }
+.lc-parcel.ready .lc-path, .lc-parcel.done .lc-path { background: color-mix(in srgb, var(--accent, #4f8dff) 60%, transparent); }
+@keyframes lcTruck { from { left: 0; } to { left: 70%; } }
+@keyframes lcBounce { 50% { transform: translate(-50%, -80%); } }
+
+/* music */
+.lc-music { display: flex; align-items: center; gap: 12px; }
+.lc-eq { display: flex; align-items: center; gap: 3px; height: 34px; }
+.lc-eq i { width: 4px; height: 100%; border-radius: 3px; background: var(--accent, #4f8dff); transform-origin: center;
+  animation: lcEq .9s ease-in-out calc(var(--i) * -.13s) infinite alternate; }
+@keyframes lcEq { from { transform: scaleY(.15); } to { transform: scaleY(1); } }
+
+/* body */
+.lc-body { display: flex; align-items: center; gap: 12px; }
+.lc-ecg { width: 110px; height: 30px; flex: none; }
+.lc-ecg path { fill: none; stroke: #3ddc97; stroke-width: 2; stroke-dasharray: .25 .75; animation: lcEcg 1.6s linear infinite;
+  filter: drop-shadow(0 0 4px #3ddc97); }
+.lc-body.normal .lc-ecg path { stroke: #f5b942; filter: drop-shadow(0 0 4px #f5b942); }
+.lc-body.easy .lc-ecg path { stroke: #ff6b6b; filter: drop-shadow(0 0 4px #ff6b6b); }
+@keyframes lcEcg { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+html[data-fx="off"] .lc, html[data-fx="off"] .lc * { animation: none !important; }
+html[data-fx="eco"] .lc-sky i:nth-child(n + 8) { display: none; }
+html[data-fx-paused="1"] .lc * { animation-play-state: paused !important; }

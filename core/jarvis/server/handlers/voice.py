@@ -98,8 +98,8 @@ async def edith_ask(c, m: dict) -> None:
     from ... import eyes
 
     try:
-        text = await eyes.edith(c.rt, str(m.get("image", "")), str(m.get("mode", "see")), str(m.get("question", "")))
+        text, objects = await eyes.edith_ar(c.rt, str(m.get("image", "")), str(m.get("mode", "see")), str(m.get("question", "")))
     except Exception as e:  # noqa: BLE001
         await c.send("edith_answer", id=m.get("id", ""), error=str(e)[:200], text="")
         return
-    await c.send("edith_answer", id=m.get("id", ""), text=text, mode=str(m.get("mode", "see")))
+    await c.send("edith_answer", id=m.get("id", ""), text=text, mode=str(m.get("mode", "see")), objects=objects)

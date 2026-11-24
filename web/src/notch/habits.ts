@@ -2,7 +2,7 @@
 // left; on the right DNES with the date and the week's bars, then a card per habit in its own colour – its icon, how
 // far it is today (a tap ticks it, − / + for sleep and water), its streak and this week as dots. One button opens the
 // whole tracker.
-import { h, icon } from "../shared/dom";
+import { h, icon, loading } from "../shared/dom";
 import { ring, safeColor, type HabitItem, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 
@@ -86,7 +86,7 @@ export function createHabitsView(client: JarvisClient, openFull: () => void) {
   };
 
   function paint() {
-    if (!snap) { right.replaceChildren(h("p", { class: "hb-empty" }, "Načítám…")); return; }
+    if (!snap) { right.replaceChildren(loading()); return; }
     const s = snap, t = s.today;
     const [, m, d] = s.date.split("-").map(Number);
     const left_ = t.due - t.done;

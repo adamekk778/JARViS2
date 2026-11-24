@@ -1,6 +1,6 @@
 // Diagnostika (spec §8): what JARVIS itself costs, child processes, AI latency, voice, redacted log.
 import { hero, HEROES } from "../shared/hero";
-import { h, icon, toast } from "../shared/dom";
+import { h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import { openTrial } from "../shared/trial";
 
@@ -75,7 +75,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   });
 
   // 3.14 Zdraví JARVISe (návrhy 12, 13, 16, 17, 20): failing tools, AI speed, voice delay, versions, battery
-  const health = h("div", { class: "card qh" }, h("p", { class: "help" }, "Načítám…"));
+  const health = h("div", { class: "card qh" }, loading());
   const pct = (x: number) => `${Math.round(x * 1000) / 10} %`;
   client.on("quality", (m: any) => {
     const v = m.voice || {};
@@ -119,7 +119,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   });
 
   // 3.14 Úplně offline (návrh 31): speech recognition, AI and voice on this PC – sizes first, one click, then a test
-  const offline = h("div", { class: "card qh" }, h("p", { class: "help" }, "Načítám…"));
+  const offline = h("div", { class: "card qh" }, loading());
   const offlineLog = h("p", { class: "help" });
   client.on("offline_pack_progress", (m: any) => { offlineLog.textContent = m.text; });
   client.on("offline_pack", (m: any) => {

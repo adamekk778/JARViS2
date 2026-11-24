@@ -22,7 +22,10 @@ import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 import { habitsGlance, habitsView } from "./habits";
 import { createAgentsView } from "../shared/agentsview";
+import { hapticTouch, sosScreen, splash } from "./cinema";
 import "./polish.css";              // 3.13 the phone in the same airy look as the PC (loaded last)
+splash();                           // 3.15 the reactor powers up when the app opens
+hapticTouch();                      // 3.15 a light tap under the finger on the main buttons
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -299,12 +302,13 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     paintStatus();
   });
   photoRequests(c, asksBox, () => show("chat"));
+  sosScreen(c);                     // 3.15 the SOS countdown full screen
 
   // OMEGA 136 / 722: the home-screen widget follows what JARVIS does, the mission and the pins
   const MOOD_TEXT: Record<string, string> = { idle: "Připraven", listening: "Poslouchá…", thinking: "Přemýšlí…", working: "Pracuje…",
     speaking: "Mluví…", waiting: "Čeká na potvrzení", error: "Něco se nepovedlo", offline: "PC je nedostupné", sleeping: "Odpočívá",
     success: "Hotovo", joy: "Připraven", notify: "Má pro tebe zprávu", focus: "Režim soustředění", dancing: "Hraje hudba", limit: "Limit AI" };
-  const widget = { status: "", task: "", pins: "", habits: "", song: "", online: false };
+  const widget = { status: "", task: "", pins: "", habits: "", song: "", online: false, busy: false, progress: -1 };   // 3.15 busy spinner + progress
   let widgetTimer = 0;
   const pushWidget = (o: Partial<typeof widget>) => {
     Object.assign(widget, o);
@@ -323,7 +327,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     const left = m.items.filter((i: any) => i.due && !i.done).map((i: any) => i.name);
     pushWidget({ habits: !t.due ? "Návyky: dnes volno" : left.length ? `Návyky ${t.done} z ${t.due} · zbývá ${left.slice(0, 3).join(", ")}` : `Návyky ${t.done} z ${t.due} – všechno hotovo 🔥`, online: true });
   });
-  c.on("task_update", (m) => pushWidget({ task: taskText(m.task) }));
+  const taskPct = (t: any) => (t && t.total && ["running", "paused", "waiting"].includes(t.status) ? Math.round((t.done / t.total) * 100) : -1);
+  c.on("task_update", (m) => pushWidget({ task: taskText(m.task), progress: taskPct(m.task) }));
   c.onStatus((s) => { if (s !== "open") pushWidget({ status: MOOD_TEXT.offline }); });
 
   // OMEGA 734: on a low battery the app goes quiet – no animations, no haptics, no live audio level from the PC
@@ -348,7 +353,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   });
   c.on("welcome", (m) => {
     if (m.guest) { app.replaceChildren(guestView(c, m.guest)); return; }     // OMEGA 727: a temporary guest pairing
-    pushWidget({ status: MOOD_TEXT[m.mood?.mood] || "Připraven", task: taskText(m.task), pins: pinsText(m.pins) });
+    pushWidget({ status: MOOD_TEXT[m.mood?.mood] || "Připraven", task: taskText(m.task), pins: pinsText(m.pins), progress: taskPct(m.task),
+      busy: ["thinking", "working", "listening", "speaking"].includes(m.mood?.mood) });
     asks = m.claude_pending || [];
     paintAsks();
     applyAppearance(m.settings);
@@ -362,7 +368,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   });
   c.on("settings_changed", (m) => { applyAppearance(m.settings); if (native.lowPower) document.documentElement.dataset.motion = "reduced"; });
   c.on("mood", (m) => {
-    pushWidget({ status: MOOD_TEXT[m.mood] || "Připraven" });
+    pushWidget({ status: MOOD_TEXT[m.mood] || "Připraven", busy: ["thinking", "working", "listening", "speaking"].includes(m.mood) });
     face.setMood(m.mood, m);
     stop.hidden = !["listening", "thinking", "working", "speaking", "waiting"].includes(m.mood);
   });

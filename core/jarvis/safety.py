@@ -179,6 +179,8 @@ class Emergency:
         self.rt.phone_push("notify", title="Jsi v pořádku?", body=f"JARVIS: {reason}. Ťukni, jestli jsi v pořádku.",
                            actions=[{"label": "Jsem v pořádku", "action": "emergency_ok", "args": {}}])
         self.pending = asyncio.get_running_loop().create_task(self._countdown(wait))
+        # 3.15 the phone shows the countdown full screen (red rings, "Jsem v pořádku")
+        self.rt.bus.publish("emergency_state", active=True, until=time.time() + wait, reason=reason, sent=[])
         return {"ok": True, "message": f"Nouzový protokol: čekám {int(wait)} s, jestli jsi v pořádku."}
 
     def cancel(self) -> bool:
@@ -192,6 +194,7 @@ class Emergency:
         try:
             await asyncio.wait_for(self.ok_event.wait(), wait)
             self.rt.notify("Nouzový protokol", "Dobře, ruším. Jsem rád, že jsi v pořádku.", speak=True, urgent=True)
+            self.rt.bus.publish("emergency_state", active=False, until=0, reason="", sent=[])
             return
         except asyncio.TimeoutError:
             pass
@@ -214,6 +217,7 @@ class Emergency:
             if ok:
                 sent.append(c.get("name") or c["phone"])
         self.last["sent"] = sent
+        self.rt.bus.publish("emergency_state", active=False, until=0, reason=self.last.get("reason", ""), sent=sent, alerted=True)
         self.rt.notify("Nouzový protokol", ("Napsal jsem: " + ", ".join(sent)) if sent else
                        "Nemám komu napsat – nastav nouzové kontakty (Nastavení → Bezpečí) a telefon s JARVISem.",
                        speak=True, urgent=True, actions=[{"label": "Volat 112", "action": "dial", "args": {"number": "112"}}])
