@@ -97,6 +97,7 @@ class Brain(BaseModel):
     reflex_model: str = ""
     reflex_min_conf: float = 0.85
     claude_cache_ttl: Literal["5m", "1h"] = "1h"   # 3.17 how long Claude keeps the instructions + catalog cached
+    cache_warm: bool = True                # 3.18 "Hey Jarvis" after a long pause writes Claude's cache again first
 
 
 class Voice(BaseModel):
@@ -129,6 +130,7 @@ class Voice(BaseModel):
     stream_voice: bool = True       # 3.17 Edge / ElevenLabs: the first sentence plays while it is still being made
     adaptive_pace: bool = True      # 3.17 the end-of-sentence wait follows your own pauses in the middle of sentences
     live_partial: bool = True       # 3.17 the words appear while you speak (a tiny model when yours is slow; local only)
+    live_window: bool = True        # 3.18 the live text reads only the new audio each time (constant cost)
     speculate: bool = True          # 3.17 at an unsure pause the AI starts on the words so far (used only if they stay)
     backchannel: bool = False       # 3.16 a quiet "mhm" in a long live conversation pause (only with echo cancellation)
     vocabulary: bool = True         # 3.16 your names, projects, rooms and apps go to the speech recognizer

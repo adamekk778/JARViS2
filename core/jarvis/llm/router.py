@@ -104,6 +104,7 @@ class Router:
         self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
         self.on_switch: Callable[[dict, str], None] | None = None  # "Groq ran out → carrying on with Gemini"
         self.catalog_used = False                                  # 3.16 the last answer had the whole tool catalog
+        self.claude_at = 0.0                                       # 3.18 the last request to Claude (its cache)
         self.cache_stats: dict[str, dict] = {}                      # 3.17 provider → tokens from / into the prompt cache
         from .quota import Quota
 
@@ -133,6 +134,25 @@ class Router:
             except Exception as e:  # noqa: BLE001
                 log.debug("prewarm %s: %s", pcfg.id, e)
         return done
+
+    async def warm_cache(self, messages: list[dict], tools: list[dict] | None, catalog: Any = None) -> dict | None:
+        """3.18 write Claude's cache again (the first Claude in the chain), exactly as a real request would send it."""
+        for pcfg in self.providers():
+            if pcfg.preset != "anthropic":
+                continue
+            if self.gate and self.gate(pcfg):
+                return None
+            prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if not hasattr(prov, "warm_cache"):
+                return None
+            send_msgs, send_tools = messages, tools
+            if catalog is not None and tools is not None and tc.wants_catalog(
+                    pcfg.preset, getattr(self.brain, "tool_catalog", "auto"), limited=bool(self._limit_of(pcfg, prov.model))):
+                send_msgs, send_tools = catalog.apply(messages), catalog.tools
+            res = await prov.warm_cache(send_msgs, send_tools)
+            self.claude_at = time.time()
+            return res
+        return None
 
     def providers(self) -> list[ProviderCfg]:
         by_id = {p.id: p for p in self.brain.providers if p.enabled}
@@ -238,6 +258,8 @@ class Router:
                         first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
                         self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
                         started = True
+                        if pcfg.preset == "anthropic":
+                            self.claude_at = time.time()      # 3.18 when Claude's cache was last written / read
                         self.last_used = (pcfg.id, model or prov.model)
                         if errors and self.on_switch:          # an earlier provider failed: say who carries on
                             try:

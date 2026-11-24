@@ -165,6 +165,7 @@ class Speculator:
         self.base = base_silence
         self.early_s, self.longer_s = early_s, max(longer_s, base_silence)
         self.live, self.live_ok = live, live_ok
+        self.live_every = LIVE_EVERY_S         # 3.18 faster updates with the sliding window (constant cost)
         self.max_spec = max_spec
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="stt-early")
         self.fut: concurrent.futures.Future | None = None
@@ -223,7 +224,7 @@ class Speculator:
         if self.live is None or (self.live_ok is not None and not self.live_ok()):
             return
         now = time.monotonic()
-        if now - self.last_live < LIVE_EVERY_S or (self.live_fut is not None and not self.live_fut.done()):
+        if now - self.last_live < self.live_every or (self.live_fut is not None and not self.live_fut.done()):
             return
         self.last_live = now
         snap = bytes(audio)
@@ -252,3 +253,45 @@ class Speculator:
 
     def close(self) -> None:
         self.pool.shutdown(wait=False, cancel_futures=True)
+
+
+class LiveWindow:
+    """3.18 Rychlejší živý přepis (návrh 11): the live text no longer re-reads everything you said from the start
+    (slower the longer you talk). Only the audio after the last confirmed word is transcribed; a word two passes in a
+    row agree on is confirmed and its audio is not read again – every update costs about the same."""
+    MIN_WINDOW_S = 2.5          # confirm words only once the window is this long (short tails stay open)
+    MAX_WINDOW_S = 12.0         # a window this long: confirm what the last pass had, whatever comes
+
+    def __init__(self, words: Callable[[Any], list[dict]], sr: int = 16000):
+        self.words = words      # float32 audio → [{"word", "start", "end"}] (times from the start of that audio)
+        self.sr = sr
+        self.committed: list[str] = []
+        self.offset = 0         # bytes of 16-bit audio already confirmed
+        self.prev: list[dict] = []
+
+    @staticmethod
+    def _key(w: dict) -> str:
+        return re.sub(r"[^\w]", "", str(w.get("word", "")).lower())
+
+    def update(self, pcm: bytes) -> str:
+        import numpy as np
+
+        tail = pcm[self.offset:]
+        if len(tail) < self.sr // 5 * 2:
+            return " ".join(self.committed)
+        audio = np.frombuffer(tail[: len(tail) // 2 * 2], dtype=np.int16).astype(np.float32) / 32768.0
+        words = [w for w in self.words(audio) if str(w.get("word", "")).strip()]
+        window_s = len(audio) / self.sr
+        k = 0
+        while k < min(len(words), len(self.prev)) and self._key(words[k]) == self._key(self.prev[k]):
+            k += 1
+        if window_s >= self.MAX_WINDOW_S and words:
+            k = max(k, len(words) - 1)                    # keep the window bounded
+        if k and window_s >= self.MIN_WINDOW_S:
+            done = words[:k]
+            end = float(done[-1]["end"])
+            self.committed += [str(w["word"]).strip() for w in done]
+            self.offset += int(end * self.sr) * 2
+            words = [{**w, "start": float(w["start"]) - end, "end": float(w["end"]) - end} for w in words[k:]]
+        self.prev = words
+        return " ".join(self.committed + [str(w["word"]).strip() for w in words]).strip()

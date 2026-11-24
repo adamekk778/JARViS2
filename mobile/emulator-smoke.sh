@@ -12,7 +12,9 @@ adb shell am start -W -n "$PKG/.MainActivity"
 sleep 10
 adb shell pidof "$PKG" >/dev/null || { echo "the app is not running after start"; exit 1; }
 adb exec-out screencap -p > "$OUT/main.png"
-adb shell dumpsys appwidget | grep -q "$PKG/.JarvisWidget" || { echo "the widget is not offered"; exit 1; }
+# dumpsys prints the provider with its full class name (cz.adamekk.jarvis/cz.adamekk.jarvis.JarvisWidget)
+adb shell dumpsys appwidget | grep -qE "$PKG/(\.|$PKG\.)JarvisWidget" \
+  || adb shell dumpsys package "$PKG" | grep -q "JarvisWidget" || { echo "the widget is not offered"; exit 1; }
 adb shell am start -W -n "$PKG/.VoiceActivity" || true
 sleep 3
 adb exec-out screencap -p > "$OUT/voice.png"

@@ -10,6 +10,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const sys = h("div", { class: "diag-stats" });
   const fx = h("div", { class: "diag-stats" });
   const speed = h("div", { class: "diag-stats" });
+  const longRun = h("div", { class: "diag-stats" });
   // 3.17 Změřit rychlost: typical read-only requests + the voice there and back, on this PC with this AI
   const sc = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Projde 20 běžných dotazů, které nic nemění (čas, počasí, kalendář, výpočty…), a hlas tam a zpět. Trvá asi minutu; dotazy jdou na tvou AI jako obvykle, výsledek zůstane v počítači."));
   const scBtn = h("button", { class: "btn primary", type: "button", onclick: () => { scBtn.disabled = true; client.send("speedcheck_run" as any, { voice: true }); } }, icon("gauge"), "Změřit rychlost") as HTMLButtonElement;
@@ -84,6 +85,25 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     if (L.n) cells.push(stat("Odpovědí bez AI (okamžité)", `${L.instant || 0} z ${L.n}`), stat("S katalogem nástrojů", `${L.catalog || 0} z ${L.n}`));
     for (const c of (m.cache || []) as any[]) cells.push(stat(`Z cache – ${c.provider}`, `${c.from_cache_pct} %`, c.requests >= 5 && c.from_cache_pct < 40));
     speed.replaceChildren(...(L.n ? cells : [h("p", { class: "help" }, "Zatím žádné odpovědi – po pár otázkách tu uvidíš, kolik trvá každý krok.")]));
+    // 3.18 the long run: memory over the last day (a sparkline) and whether it keeps growing
+    const R = m.resources || {};
+    if (!R.n) longRun.replaceChildren(h("p", { class: "help" }, "Za pár minut tu bude paměť a procesor JARVISe za poslední den (každých 5 minut)."));
+    else {
+      const pts: number[][] = R.points || [];
+      const lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1]), lo + 1);
+      const W = 320, H = 48;
+      const path = pts.map((p, i) => `${i ? "L" : "M"}${(i / Math.max(1, pts.length - 1) * W).toFixed(1)},${(H - (p[1] - lo) / (hi - lo) * (H - 4) - 2).toFixed(1)}`).join(" ");
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("class", "spark"); svg.setAttribute("aria-label", "Paměť JARVISe za poslední den");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("d", path); line.setAttribute("fill", "none"); line.setAttribute("stroke", "currentColor"); line.setAttribute("stroke-width", "1.5");
+      svg.append(line);
+      longRun.replaceChildren(
+        stat("Paměť teď", `${Math.round(R.rss_now)} MB`), stat("Za den", `${Math.round(R.rss_min)}–${Math.round(R.rss_max)} MB`),
+        stat("Roste o", `${Math.round(R.grow_mb_day)} MB / den`, !!R.leak), stat("Procesor průměrně", `${R.cpu_avg} %`),
+        stat("Vlákna · soubory", `${R.threads} · ${R.files}`), h("div", { class: "spark-wrap" }, svg,
+          h("p", { class: "help" }, R.leak ? "Paměť den co den roste – restart pomůže; pošli prosím Export, ať se najde příčina." : `Posledních ${R.hours} h, vzorek každých 5 minut.`)));
+    }
   });
   client.on("system", (m) => {
     const gpu = m.gpu ? `${m.gpu.name}${m.gpu.util != null ? ` · ${m.gpu.util} %` : ""}` : "n/a";
@@ -208,6 +228,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Úplně offline"), offline,
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
+    h("p", { class: "group-label" }, "Dlouhý běh (poslední den)"), longRun,
     h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
     h("div", { class: "btn-row" }, scBtn), sc,
     h("p", { class: "group-label" }, "Průvodce rychlostí"), wiz,

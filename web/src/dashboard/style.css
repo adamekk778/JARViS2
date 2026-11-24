@@ -660,3 +660,7 @@ html[data-density="large"] body { zoom: 1.15; }
 .voice-mode:fullscreen .vm-answer { font-size: clamp(22px, 2.6vw, 38px); max-width: 1100px; text-align: center; line-height: 1.45; }
 .voice-mode:fullscreen .vm-reactor { width: min(70vh, 760px); }
 html[data-fx="off"] .vm-answer .vm-w { animation: none; }
+
+/* 3.18 Diagnostika → Dlouhý běh: JARVIS's memory over the last day */
+.spark-wrap { grid-column: 1 / -1; color: var(--accent, #2ee6ff); }
+.spark-wrap .spark { width: 100%; max-width: 520px; height: 56px; display: block; }

@@ -508,6 +508,18 @@ class VoiceLoop:
             tr = self._partial = Transcriber(self.rt.cfg.voice.model_copy(update={"stt_model": "tiny", "stt_provider": "local"}))
         return tr.transcribe(self.clean_utterance(pcm, np), SR)
 
+    def _live_words(self, small: bool):
+        """3.18 the words with their times for the live window: the tiny model, or your own one on a fast PC."""
+        def words(audio) -> list[dict]:
+            if small:
+                tr = getattr(self, "_partial", None)
+                if tr is None:
+                    tr = self._partial = Transcriber(self.rt.cfg.voice.model_copy(update={"stt_model": "tiny",
+                                                                                        "stt_provider": "local"}))
+                return tr.words(audio)
+            return self.transcriber.words(audio)
+        return words
+
     def _speculator(self, ep, np):
         """3.16 the early transcription at pauses (+ the live text in the notch when speech recognition is fast)."""
         if not getattr(self.rt.cfg.voice, "smart_endpoint", True):
@@ -521,11 +533,19 @@ class VoiceLoop:
         fast = 0 < getattr(self, "_stt_s", 9.0) < 0.45
         small = local and not fast and getattr(self.rt.cfg.voice, "live_partial", True) \
             and getattr(self.rt.cfg.voice, "stt_download_ok", False)       # 3.17 the live text by a tiny model
+        window = None
+        if local and (fast or small) and getattr(self.rt.cfg.voice, "live_window", True):
+            from .fastear import LiveWindow                  # 3.18 only the new audio is read each time
+
+            window = LiveWindow(self._live_words(small))
         sp = Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
                         live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
                         live_ok=lambda: local and (fast or small),
                         max_spec=3 if local else 2,
-                        live_transcribe=(lambda b: self._partial_stt(b, np)) if small else None)
+                        live_transcribe=window.update if window is not None else
+                        ((lambda b: self._partial_stt(b, np)) if small else None))
+        if window is not None:
+            sp.live_every = 0.5 if fast else 0.8
         sp.on_pause = pace(self.rt).record
         loop = getattr(self.rt, "loop", None)
         agent = getattr(self.rt, "agent", None)
@@ -567,6 +587,9 @@ class VoiceLoop:
             return
         try:
             asyncio.run_coroutine_threadsafe(self.rt.router.prewarm(), loop)
+            agent = getattr(self.rt, "agent", None)
+            if agent is not None and hasattr(agent, "warm_cache"):        # 3.18 Claude's cache too, while you speak
+                asyncio.run_coroutine_threadsafe(agent.warm_cache(), loop)
             if not getattr(self, "_phrases_ready", False):     # 3.16 "Moment, pane." etc. ready to be heard at once
                 self._phrases_ready = True
                 asyncio.run_coroutine_threadsafe(self.speaker.prepare_phrases(), loop)

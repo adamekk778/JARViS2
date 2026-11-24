@@ -59,7 +59,15 @@ class SpeechStream:
         self.played = 0
         self._player = asyncio.get_running_loop().create_task(self._play_all())
 
+    def progress(self, line: str) -> None:
+        """3.18 a short "počasí mám, ještě kalendář" while the tools still work – only before the answer itself."""
+        if getattr(self, "answer_started", False) or self.rt.speaker is None or not line.strip():
+            return
+        self._queue(line)
+
     def feed(self, delta: str) -> None:
+        if delta.strip():
+            self.answer_started = True
         self.fed += delta
         if self.rt.speaker is None or (self.rt.speaker._stop.is_set() and self.spoke):
             return

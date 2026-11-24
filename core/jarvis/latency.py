@@ -22,6 +22,10 @@ class Latency:
     def __init__(self, keep: int = 60):
         self.turns: deque[dict] = deque(maxlen=keep)
         self.cur: dict | None = None
+        self.notes: deque[dict] = deque(maxlen=30)      # 3.18 side events (Claude's cache warmed again…)
+
+    def note(self, kind: str, data: Any = None) -> None:
+        self.notes.append({"kind": kind, "data": data, "ts": time.time()})
 
     def begin(self, source: str, t0: float | None = None) -> None:
         """A new answer starts (voice: at the end of speech)."""
@@ -68,6 +72,9 @@ class Latency:
         out["instant"] = len(inst)
         cat = [t for t in self.turns if t["info"].get("catalog")]
         out["catalog"] = len(cat)
+        warms = [n for n in self.notes if n["kind"] == "cache_warm"]
+        if warms:
+            out["cache_warms"] = len(warms)
         return out
 
 

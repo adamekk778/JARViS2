@@ -125,7 +125,8 @@ def snapshot(rt: Any) -> dict:
     ttft = {k: [round(x) for x in v] for k, v in getattr(rt.router, "ttft", {}).items()}
     return {"cpu_pct": cpu, "ram_mb": round(ram, 1), "threads": threads, "children": children,
             "loop_lag_ms": round(float(getattr(rt, "diag_lag_ms", 0.0)), 1), "ttft": ttft, "voice": voice,
-            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt), "cache": cache_stats(rt)}
+            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt), "cache": cache_stats(rt),
+            "resources": _resources(rt)}
 
 
 def cache_stats(rt: Any) -> list[dict]:
@@ -137,6 +138,16 @@ def cache_stats(rt: Any) -> list[dict]:
             out.append({"provider": pid, "requests": c["requests"], "from_cache_pct": round(100 * c["cache_read"] / total),
                         "written_pct": round(100 * c["cache_write"] / total), "tokens": total})
     return out
+
+
+def _resources(rt: Any) -> dict:
+    """3.18 the long run: memory and CPU over the last day, and whether it keeps growing."""
+    from . import resmon
+
+    try:
+        return resmon.summary(rt)
+    except Exception as e:  # noqa: BLE001
+        return {"n": 0, "error": str(e)[:120]}
 
 
 def _latency(rt: Any) -> dict:

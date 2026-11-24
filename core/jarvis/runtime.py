@@ -301,6 +301,9 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
         self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
+        from . import resmon
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(resmon.loop(self)))           # 3.18 the long run
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop

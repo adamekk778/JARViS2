@@ -262,6 +262,20 @@ class Claude:
             log.debug("claude prewarm: %s", e)
             return False
 
+    async def warm_cache(self, messages: list[dict], tools: list[dict] | None) -> dict:
+        """3.18 the cached part (tools + the fixed instructions + the catalog) written again with a 1-token request,
+        so the real question after a long pause does not pay for (or wait on) writing it. Returns the cache usage."""
+        p = self.params(messages, tools)
+        p["max_tokens"] = 1
+        p.pop("thinking", None)                 # tools + system stay cached whatever the thinking setting is
+        p.pop("output_config", None)
+        p.pop("fallbacks", None)
+        p["betas"] = [b for b in p.get("betas", []) if b != BETAS_FALLBACK]
+        msg = await self.client().beta.messages.create(**p)
+        u = getattr(msg, "usage", None)
+        return {"read": int(getattr(u, "cache_read_input_tokens", 0) or 0),
+                "written": int(getattr(u, "cache_creation_input_tokens", 0) or 0)}
+
     def params(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> dict:
         system, msgs = convert(messages)
         tl = convert_tools(tools)
