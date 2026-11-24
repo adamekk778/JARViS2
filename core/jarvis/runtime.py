@@ -287,6 +287,9 @@ class Runtime:
         except Exception as e:  # noqa: BLE001
             log.debug("house scenes: %s", e)
         self._sys_tasks.append(asyncio.get_running_loop().create_task(house.of(self).run()))   # 3.14 home / away, welcome
+        from . import eyes
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(eyes.sounds(self).run()))  # 3.14 sounds of the house (opt-in)
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on

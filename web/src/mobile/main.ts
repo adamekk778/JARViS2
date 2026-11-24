@@ -6,6 +6,7 @@ import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
 import "../shared/i18n";
+import { openEdith } from "./edith";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
 import { approvalsCard, permissionsWizard } from "./agents";
@@ -213,6 +214,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("button", { class: "icon-btn", type: "button", "aria-label": "Konverzace", onclick: openDrawer }, icon("list")),
     h("div", { class: "m-title" }, orb, h("div", {}, h("strong", {}, "JARVIS"), status)),
     stop,
+    h("button", { class: "icon-btn", type: "button", "aria-label": "EDITH – kamera s JARVISem", title: "EDITH: co vidím, přečti, přelož",
+      onclick: () => openEdith(c) }, icon("aperture")),          // 3.14 návrh 6
     h("button", { class: "icon-btn", type: "button", "aria-label": "Nová konverzace", onclick: () => c.send("new_chat") }, icon("note-pencil")));
 
   const habits = habitsView(c);                                        // 3.12 Návyky a zdraví

@@ -49,7 +49,10 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("tohle není text té písničky, dej jiný", ("lyrics_wrong",)), ("řekni do kuchyně, že večeře je hotová", ("house_announce",)),
     ("kdy je dneska nejlevnější elektřina", ("electricity_prices",)), ("pusť pračku v nejlevnější hodinu do rána", ("energy_plan",)),
     ("zapni herní PC", ("node_wake",)), ("zeptej se notebooku, kolik má baterie", ("node_ask",)),
-    ("jak připojím hlasový satelit v kuchyni", ("satellite_setup",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
+    ("jak připojím hlasový satelit v kuchyni", ("satellite_setup",)),
+    ("co teď letí nad námi", ("sky_overhead",)), ("kde je teď ISS", ("sky_overhead",)),
+    ("kdo sedí u počítače", ("who_is_here",)), ("nauč se můj obličej", ("face_enroll", "faces_setup")),
+    ("sleduj se mnou obrazovku a pomáhej mi", ("screen_buddy",)), ("hlídej zvuky doma, když nebudu doma", ("sound_watch",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar
     ("napiš e-mail Pavlovi, že schůzka se přesouvá", ("compose_email", "email_send", "draft_message")),

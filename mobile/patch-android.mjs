@@ -7,6 +7,7 @@ let m = readFileSync(manifestPath, "utf8");
 const perms = [
   "android.permission.INTERNET",
   "android.permission.RECORD_AUDIO",
+  "android.permission.CAMERA",            // 3.14 EDITH: the live camera (asked the first time EDITH opens)
   "android.permission.MODIFY_AUDIO_SETTINGS",
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.VIBRATE",

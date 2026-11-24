@@ -593,6 +593,7 @@ class HomeCfg(BaseModel):
     follow_me: bool = True          # spoken notices go where you are (a room with a satellite)
     satellite_key: str = ""         # the secret part of the address for Home Assistant voice satellites (made on first use)
     nodes: list[dict] = Field(default_factory=list)           # 3.14 other JARVIS PCs: {name, url, token, mac}
+    sound_watch: Literal["off", "away", "always"] = "off"   # 3.14 smoke alarm / a crash heard by the PC's microphone → phone
 
 
 class LimitsCfg(BaseModel):

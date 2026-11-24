@@ -90,3 +90,16 @@ async def persona_set(c, m: dict) -> None:
         persona.switch(c.rt, str(m.get("name", "")), voice=bool(m.get("voice", True)))
     except ValueError as e:
         await c.send("error", message=str(e))
+
+
+@handles("edith_ask", slow=True)
+async def edith_ask(c, m: dict) -> None:
+    """3.14 EDITH: a frame from the phone's camera and what to do with it → the answer for the phone."""
+    from ... import eyes
+
+    try:
+        text = await eyes.edith(c.rt, str(m.get("image", "")), str(m.get("mode", "see")), str(m.get("question", "")))
+    except Exception as e:  # noqa: BLE001
+        await c.send("edith_answer", id=m.get("id", ""), error=str(e)[:200], text="")
+        return
+    await c.send("edith_answer", id=m.get("id", ""), text=text, mode=str(m.get("mode", "see")))

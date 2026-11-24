@@ -73,6 +73,7 @@ CLIENT_TYPES = [
     "lyrics_get",
     "persona_set",
     "node_add", "node_remove",
+    "edith_ask",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -108,6 +109,7 @@ SERVER_TYPES = [
     "live_talk",
     "interpreter",
     "house",
+    "edith_answer", "screen_buddy",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

@@ -35,6 +35,8 @@ def _db(rt: Any):
 
 
 def kind_for(tool: str, perm: str) -> str:
+    if perm == "camera":                       # 3.14 the PC's / phone's camera used directly (EDITH, look-to-talk, faces)
+        return "camera"
     if tool in CLIPBOARD_TOOLS:
         return "clipboard"
     if tool in CAMERA_TOOLS:
