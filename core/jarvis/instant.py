@@ -133,6 +133,12 @@ def plan(text: str) -> Plan | None:
             return Plan([("brain_switch", {"brain": brain, **({"model": model} if model else {})})], kind="brain")
         if m.group(1) == "model" and re.fullmatch(r"[\w.:/-]{2,60}", target):
             return Plan([("brain_switch", {"model": target})], kind="brain")
+    # ---- 3.16 everyday commands with a slot (lists, lights, the printer, the model, the HUD, YouTube, prices…)
+    from . import quickcmd
+
+    q = quickcmd.plan(text)
+    if q:
+        return Plan(q[0], fallback=True, kind=q[1])
     # ---- apps: open, close
     m = re.fullmatch(r"(?:otevri|spust|zapni aplikaci|nastartuj)\s+(.{2,40})", t)
     if m and not re.search(r"\b(soubor\w*|slozk\w*|web\w*|strank\w*|dokument\w*|posledni|email\w*|mail\w*|fotk\w*|obrazek|pdf)\b", m.group(1)):

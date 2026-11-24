@@ -116,9 +116,55 @@ class Speaker:
         v = self.rt.cfg.voice
         return (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
 
+    PHRASE_MAX = 48            # 3.16 short phrases ("Moment, pane.", "Hotovo.") are kept ready – heard at once
+    COMMON = ("Moment, {a}.", "Hned to bude, {a}.", "Pracuji na tom, {a}.", "Hotovo.", "Další.", "Předchozí.",
+              "Rozumím, {a}.", "Ano, {a}?")
+
+    def _phrase_key(self, text: str, lang: str) -> tuple | None:
+        if len(text) > self.PHRASE_MAX:
+            return None
+        v = self.rt.cfg.voice
+        try:
+            from .style import prosody
+
+            pros = tuple(prosody(self.rt, v))
+        except Exception:  # noqa: BLE001
+            pros = ()
+        return (text, lang, v.tts_engine, v.tts_voice, v.tts_voice_en, v.piper_voice, v.piper_custom, v.eleven_voice_id,
+                v.effect, pros)
+
+    async def prepare_phrases(self) -> int:
+        """Make the common short phrases ready in the background (not with ElevenLabs – it would cost credits)."""
+        if self.rt.cfg.voice.tts_engine == "elevenlabs":
+            return 0
+        a = (self.rt.cfg.general.address_as or "pane").strip()
+        n = 0
+        for t in self.COMMON:
+            try:
+                await self.synth(t.format(a=a))
+                n += 1
+            except Exception as e:  # noqa: BLE001
+                log.debug("phrase %s: %s", t, e)
+                break
+        return n
+
     async def synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
         """The chosen engine (Edge, Piper incl. an own voice, ElevenLabs), then the others as a fallback, and the
         studio effect on top. `override` = unsaved studio settings for a preview."""
+        key = None if override else self._phrase_key(text.strip(), lang)
+        cache = getattr(self, "_phrases", None)
+        if cache is None:
+            cache = self._phrases = {}
+        if key is not None and key in cache:
+            return cache[key]
+        out = await self._synth(text, lang, override)
+        if key is not None:
+            if len(cache) > 64:
+                cache.pop(next(iter(cache)))
+            cache[key] = out
+        return out
+
+    async def _synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
         v = self.rt.cfg.voice.model_copy(update=override) if override else self.rt.cfg.voice
         edge_voice, piper_voice = (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
         spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")

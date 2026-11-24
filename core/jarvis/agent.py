@@ -444,6 +444,45 @@ class Agent:
         self._picked = names
         return [tools.REGISTRY[n].schema() for n in names]
 
+    # 3.16 (návrh 5) the tools whose own words are the whole answer ("Hlasitost 40 %", "Pouštím …", "Tisk pozastaven.")
+    DONE_CATS = {"média", "aplikace", "okna", "domácnost", "čas", "nastavení", "hlas", "mozek"}
+    DONE_TOOLS = {"list_add", "list_done", "hud_control", "show_hud", "model_explode", "run_protocol", "send_to_phone", "remember",
+                  "printer_control", "model_view"}
+    _ASKS = re.compile(r"\?|\b(proč|proc|jak to|vysvětli|vysvetli|shrň|shrn|porovnej|co si myslíš|co si myslis|poraď|porad|"
+                       r"navrhni|napiš|napis|kolik|kdy|kde|který|ktery|jaký|jaky|jaká|jaka)\b", re.I)
+
+    ACKS = ("Moment, {a}.", "Hned to bude, {a}.", "Pracuji na tom, {a}.")
+    ACK_AFTER_S = 1.2
+
+    def _ack_later(self, speech) -> asyncio.Task:
+        """3.16 (návrh 7) the tools take a while and nothing was said yet: one short word, so you know he is on it."""
+        async def go() -> None:
+            await asyncio.sleep(self.ACK_AFTER_S)
+            if not speech.spoke:
+                self._acks = getattr(self, "_acks", -1) + 1
+                a = (self.rt.cfg.general.address_as or "pane").strip()
+                speech.preface(self.ACKS[self._acks % len(self.ACKS)].format(a=a))
+        return asyncio.get_running_loop().create_task(go())
+
+    def _done_by_tools(self, text: str, said: str, run: list, cards: list[dict]) -> str:
+        """The tools' own words when they are the whole answer (else '' → the AI answers as usual)."""
+        if said.strip() or not run or len(run) > 3 or self.rt.cfg.agent.mode or not getattr(self.rt.cfg.agent, "instant", True):
+            return ""
+        if self._ASKS.search(text or ""):
+            return ""                              # a question wants the AI's own answer
+        mine = cards[-len(run):] if len(cards) >= len(run) else []
+        if len(mine) != len(run) or not all(c.get("ok") for c in mine):
+            return ""
+        for c in run:
+            spec = tools.REGISTRY.get(c.name)
+            if spec is None or not (c.name in self.DONE_TOOLS or spec.category in self.DONE_CATS):
+                return ""
+        parts = [str(c.get("summary") or "").strip() for c in mine]
+        if not all(parts) or sum(len(p) for p in parts) > 240 or any("\n" in p for p in parts):
+            return ""
+        out = " ".join(p if p.endswith((".", "!", "?", "…")) else p + "." for p in parts)
+        return out
+
     def _tool_pack(self):
         """3.16 the whole catalog + the steady tool set for an AI with a prompt cache (the router decides per AI)."""
         from . import toolcatalog as tc
@@ -540,7 +579,13 @@ class Agent:
                         before = await asyncio.to_thread(_read, str(_resolve((call.arguments or {}).get("path", ""))))
                     except Exception:  # noqa: BLE001
                         before = None
-                res = await tools.call(call.name, call.arguments, rt)
+                from . import prefetch                    # 3.16 fetched in the background a moment ago: at once
+
+                pf = prefetch.get(rt)
+                res = pf.get(call.name, call.arguments)
+                if res is None:
+                    res = await tools.call(call.name, call.arguments, rt)
+                    pf.put(call.name, call.arguments, res)
                 if call.name in UNTRUSTED_OUTPUT:
                     self._untrusted_seen = True
                 if before is not None and res.ok:
@@ -792,18 +837,32 @@ class Agent:
                     run_calls.append(ToolCall(id=c.id, name=u.name, arguments=u.args))
                 safe = [c for c in run_calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
                     tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
-                if len(safe) > 1:
-                    outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
-                    results.update({c.id: o for c, o in zip(safe, outs)})
-                for c in run_calls:
-                    if c.id not in results:
-                        results[c.id] = await self._run_call(c, tool_cards, out_atts)
+                ack = self._ack_later(speech) if speech is not None and not speech.spoke and run_calls else None
+                try:
+                    if len(safe) > 1:
+                        outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
+                        results.update({c.id: o for c, o in zip(safe, outs)})
+                    for c in run_calls:
+                        if c.id not in results:
+                            results[c.id] = await self._run_call(c, tool_cards, out_atts)
+                finally:
+                    if ack is not None:
+                        ack.cancel()
                 for c in calls:                          # the answer goes back under the name the AI called
                     results[c.id]["name"] = c.name
                 msgs += [results[c.id] for c in calls]
                 used_now += [c.name for c in run_calls if c.name != sel.FIND]
                 if any(c.name == sel.FIND for c in calls):
                     self._turn_stats["find_tools"] += 1
+                done_text = self._done_by_tools(text or "", round_text, run_calls, tool_cards) if rnd == 0 else ""
+                if done_text:                            # 3.16 the tool already said it all: no second AI round
+                    full_text += done_text
+                    bus.publish("assistant_delta", text=done_text)
+                    if speech:
+                        speech.feed(done_text)
+                    self._turn_stats["skipped_round"] = 1
+                    calls = None
+                    break
                 for c in calls:                          # the AI asked for more tools → they go with the next step
                     if c.name == sel.FIND:
                         for n in sel.search(tools.REGISTRY, str((c.arguments or {}).get("query", "")), 24):

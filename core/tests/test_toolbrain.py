@@ -198,17 +198,16 @@ async def test_memory_turns_a_repeated_request_into_a_reflex(rt):
     from jarvis import toolmind
 
     _all()
-    rt.router = FakeRouter([[("media_control", {"action": "next"})], "Další skladba.",
-                            [("media_control", {"action": "next"})], "Další skladba."])
+    rt.router = FakeRouter([[("media_control", {"action": "next"})], [("media_control", {"action": "next"})]])
     await rt.agent.handle("dej tam tu další písničku, Jarvisi")
     assert toolmind.reflex(rt, "dej tam tu další písničku", rt.agent._allowed_names()) is None    # once is not enough
     await rt.agent.handle("dej tam tu další písničku")
     rx = toolmind.reflex(rt, "Dej tam tu další písničku!", rt.agent._allowed_names())
-    assert rx == ("media_control", {"action": "next"}, "Další skladba.")
+    assert rx == ("media_control", {"action": "next"}, "Další.")             # the tool's own words (no 2nd AI round)
     calls_before = len(rt.router.calls)
     q = rt.bus.subscribe()
     out = await rt.agent.handle("dej tam tu další písničku")
-    assert out.strip() == "Další skladba." and len(rt.router.calls) == calls_before            # no AI at all
+    assert out.strip() == "Další." and len(rt.router.calls) == calls_before                   # no AI at all
     assert any(e["type"] == "tool_start" and e["name"] == "media_control" for e in drain(q))
     assert latency.get(rt).turns[-1]["info"]["reflex"] is True
     toolmind.punish(rt, "dej tam tu další písničku")                                           # "ne, to ne"

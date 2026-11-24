@@ -282,6 +282,11 @@ def slow_brain(rt) -> bool:
         for m in quality.model_latency(rt):
             if m["provider"] == first and m.get("answers", 0) >= 3:
                 return m["median_ms"] > SLOW_MS
+        seen = list(getattr(rt.router, "ttft", {}).get(first, []))      # 3.16 the router's own first-word times
+        if len(seen) >= 3:
+            import statistics
+
+            return statistics.median(seen) > SLOW_MS
     except Exception:  # noqa: BLE001
         return False
     return False

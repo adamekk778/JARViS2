@@ -307,6 +307,9 @@ class Runtime:
         from . import printer3d
 
         self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
+        from . import prefetch
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(prefetch.get(self).run()))    # 3.16 answers ready ahead
         from . import lifelog, quests
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)

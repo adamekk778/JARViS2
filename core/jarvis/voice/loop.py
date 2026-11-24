@@ -520,6 +520,9 @@ class VoiceLoop:
             return
         try:
             asyncio.run_coroutine_threadsafe(self.rt.router.prewarm(), loop)
+            if not getattr(self, "_phrases_ready", False):     # 3.16 "Moment, pane." etc. ready to be heard at once
+                self._phrases_ready = True
+                asyncio.run_coroutine_threadsafe(self.speaker.prepare_phrases(), loop)
         except Exception as e:  # noqa: BLE001
             log.debug("prewarm: %s", e)
 

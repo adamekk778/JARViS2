@@ -677,6 +677,7 @@ class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
     reflexes: bool = True  # 3.16 the same words that went well twice with the same harmless action: done at once, no AI
+    prefetch: bool = True  # 3.16 the weather, today's calendar and the news fetched ahead while you are at the PC
 
 
 class Permissions(BaseModel):

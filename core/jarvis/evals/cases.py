@@ -7,6 +7,13 @@ PICK: the AI must get the right tool with the message (any of the names; the sel
 from __future__ import annotations
 
 INSTANT: list[tuple[str, str]] = [
+    ("přidej mléko a chleba na nákup", "list_add"), ("co mám koupit?", "list_show"), ("koupil jsem mléko", "list_done"),
+    ("rozsviť v kuchyni", "home_control"), ("zhasni lampu", "home_control"), ("zapni scénu kino", "home_scene"),
+    ("pozastav tisk", "printer_control"), ("jak je na tom tisk?", "printer_control"), ("rozlož model", "model_explode"),
+    ("otoč model doleva", "model_explode"), ("ukaž glóbus", "hud_control"), ("schovej panely", "hud_control"),
+    ("pusť lo-fi beats na YouTube", "youtube_play"), ("najdi můj telefon", "find_phone"), ("kolik stojí bitcoin?", "price"),
+    ("kolik je 50 eur", "exchange_rate"), ("jaké je počasí v Brně?", "weather"), ("brífink", "briefing"),
+    ("spusť protokol Vítej doma", "run_protocol"), ("co mi chybí na meteostanici?", "workshop_project"),
     ("co to hraje", "now_playing_info"), ("kdo to zpívá", "now_playing_info"), ("pusť karaoke", "karaoke_open"),
     ("přepni na Ollamu", "brain_switch"), ("použij Claude Sonnet", "brain_switch"), ("přepni model na qwen3:8b", "brain_switch"),
     ("hlasitost na 30", "volume"), ("nastav hlasitost na 75", "volume"), ("zvuk na 10 procent", "volume"),
@@ -32,7 +39,7 @@ INSTANT: list[tuple[str, str]] = [
 ]
 
 NOT_INSTANT: list[str] = [
-    "pozastav tisk", "zastav tisk", "otoč model doleva",
+    "zastav tisk",
     "otevři poslední stažený soubor", "otevři složku dokumenty", "otevři web seznam.cz", "otevři ten pdf dokument",
     "zavři všechna okna", "zavři zbytečné aplikace", "zavři tuhle záložku", "zavři počítač",
     "napiš e-mail šéfovi, že zítra nepřijdu", "co mám zítra v kalendáři a jaké bude počasí v Brně",
