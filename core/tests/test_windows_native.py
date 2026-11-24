@@ -78,9 +78,7 @@ def test_live_wallpaper_layer_behind_the_icons(rt):
     hwnd = fx._window(200, 120)
     try:
         assert winutil.attach_to_desktop(hwnd, 0, 0, 200, 120)
-        u = ctypes.windll.user32
-        u.GetParent.restype = ctypes.c_void_p
-        assert int(u.GetParent(ctypes.c_void_p(hwnd)) or 0) == int(layer)
+        assert winutil.parent_of(hwnd) == int(layer)            # its real parent (GetParent gives a pop-up's owner)
     finally:
         ctypes.windll.user32.DestroyWindow(ctypes.c_void_p(hwnd))
         winutil.refresh_wallpaper()

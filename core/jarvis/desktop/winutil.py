@@ -397,10 +397,24 @@ def attach_to_desktop(hwnd: int, x: int, y: int, w: int, h: int) -> bool:
     if not layer:
         return False
     u = ctypes.windll.user32
+    u.SetParent.restype = ctypes.c_void_p
+    u.SetParent.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
     u.SetParent(ctypes.c_void_p(hwnd), ctypes.c_void_p(layer))
+    if parent_of(hwnd) != int(layer):          # Explorer refused (or the layer went away): not behind the icons
+        return False
     vx, vy = u.GetSystemMetrics(76), u.GetSystemMetrics(77)                     # SM_XVIRTUALSCREEN / SM_YVIRTUALSCREEN
     u.SetWindowPos(ctypes.c_void_p(hwnd), None, int(x - vx), int(y - vy), int(w), int(h), 0x0010 | 0x0004)   # NOACTIVATE | NOZORDER
     return True
+
+
+def parent_of(hwnd: int) -> int:
+    """The window's real parent (GetAncestor GA_PARENT – GetParent gives a pop-up window's owner instead)."""
+    if not IS_WIN or not hwnd:
+        return 0
+    u = ctypes.windll.user32
+    u.GetAncestor.restype = ctypes.c_void_p
+    u.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+    return int(u.GetAncestor(ctypes.c_void_p(hwnd), 1) or 0)
 
 
 def refresh_wallpaper() -> None:
