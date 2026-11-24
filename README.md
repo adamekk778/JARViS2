@@ -51,6 +51,21 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.16 – Odpověď hned a nástroje v hlavě
+
+- **Nástroje v hlavě:** velká AI (Claude, OpenAI, Gemini, DeepSeek, Mistral) má seznam všech ~900 nástrojů najednou
+  v cache a zavolá kterýkoli jedním krokem (`use_tool`), bez hledání. Pokyny jsou rozdělené na neměnnou část (v cache)
+  a „Aktuální situaci“, takže první slovo přijde dřív. Malé modely (Ollama, Groq zdarma) mají dál menší sadu.
+- **Paměť nástrojů a reflexy:** co na jaká slova fungovalo, výběr nástrojů podle významu (místní model e5-small),
+  podle aplikace na popředí a podle zvyků; stejná slova dvakrát úspěšně → příště bez AI.
+- **Rychlý poslech:** přepis při každé pauze, hotová věta končí po 0,25 s, rozdělaná počká; tvoje slova pro
+  rozpoznávání; „Hey Jarvis“ předehřeje spojení k AI; spojení k AI i k ElevenLabs zůstává otevřené.
+- **Odpověď hned:** desítky povelů s údaji bez AI („přidej mléko na nákup“, „rozsviť v kuchyni“, „pozastav tisk“,
+  „počasí v Brně“), bez druhého kola AI, když nástroj řekl vše, „Moment, pane.“ u delší práce, připravené fráze
+  a počasí / kalendář / zprávy dopředu.
+- **Rozhovor:** „ne, tu modrou“ uprostřed práce, „pokračuj“ po přerušení, Piper bez opakovaného načítání, volitelně
+  ElevenLabs Flash a tiché „mhm“; volitelný místní reflexní model; v Diagnostice časy kroků a trefa nástroje napoprvé.
+
 ## Novinky ve verzi 3.15 – Mega animace a dílna
 
 - **Pohyb všude:** Nastavení → Vzhled → Kvalita efektů (Ultra / Vysoká / Úsporná / Vypnuto, Automaticky podle grafiky);

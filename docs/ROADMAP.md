@@ -32,6 +32,24 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.16 – „Odpověď hned“ a nástroje v hlavě (24 návrhů v 7 balících)
+Hotovo v kódu s testy: katalog všech nástrojů v cache + `use_tool` (kontrola a oprava parametrů), pokyny rozdělené pro
+cache, pevná sada nástrojů pro velkou AI, měření časů kroků a trefy nástroje; paměť nástrojů, reflexy, příklady
+z historie, výběr podle významu, podle aplikace a zvyků; přepis při pauze, chytrý konec věty, živý přepis, tvoje
+slova, udržovaná spojení a předehřátí; povely s údaji bez AI, bez druhého kola AI, slovo při delší práci, připravené
+fráze, rychlá první věta podle změřených časů, odpovědi dopředu; rodiny nástrojů v katalogu a audit; místní reflexní
+model; oprava za běhu, „pokračuj“, rychlejší Piper / ElevenLabs, tiché „mhm“.
+
+Co nejde nebo zatím není:
+- **AI se nespouští na nedokončené větě** – start s předstihem je přepis a rozhodnutí o konci věty; spustit AI (a tím
+  i nástroje) na půlce věty by mohlo udělat něco, co jsi nechtěl.
+- **Slučování nástrojů** – audit nenašel skutečné duplicity (podobná jména jsou doplňkové akce), takže se nic
+  neslučovalo; katalog jen seskupuje rodiny (úspora ~5 %).
+- **Streamování zvuku po kouscích uvnitř věty** (Edge / ElevenLabs) – hlas pořád hraje po větách; zrychlení je
+  v udržovaném spojení, kratším prvním kousku, připravených frázích a modelu Flash.
+- **Skutečné časy** (o kolik je to rychlejší na tvém PC a s tvou AI) se v kontejneru změřit nedají – ukáže je
+  Diagnostika → Rychlost odpovědí po pár desítkách otázek.
+
 ## 3.15 – „Mega animace“ a dílna (45 návrhů v 8 balících)
 Hotovo v kódu s testy: základ pohybu (úrovně kvality podle grafiky, hlídání FPS, pauza ve hře a na baterii, zvukový
 design), Stark HUD ve 3D (reaktor, start, glóbus, paralaxa, telemetrie, orbit nástrojů, ovládání hlasem, Holo),

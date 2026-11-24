@@ -4,6 +4,14 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.16": [
+    { icon: "books", title: "Všechny nástroje v hlavě", line: "JARVIS má teď u velkých AI (Claude, OpenAI, Gemini…) seznam všech svých ~900 nástrojů najednou a zavolá kterýkoli jedním krokem – nic nehledá. Pokyny i seznam si AI drží v paměti (cache), takže první slovo přijde dřív a je to levnější." },
+    { icon: "lightning", title: "Reflexy a paměť nástrojů", line: "Co se ti dvakrát povedlo stejnými slovy („pusť lo-fi“), příště udělá hned bez AI. Pamatuje si, co na jaká slova fungovalo, vybírá nástroje podle významu věty, podle aplikace na popředí i podle toho, co v tuhle hodinu děláš." },
+    { icon: "microphone", title: "Odpověď hned, jak domluvíš", line: "Při každé pauze si slova hned zapíše: hotová věta končí po čtvrt sekundě, rozdělaná počká. „Hey Jarvis“ předem otevře spojení k AI, rozpoznávání zná tvoje jména, projekty a místnosti a spojení k AI zůstává otevřené." },
+    { icon: "rocket-launch", title: "Stovky povelů bez AI", line: "„Přidej mléko a chleba na nákup“, „rozsviť v kuchyni“, „pozastav tisk“, „rozlož model“, „počasí v Brně“, „kolik stojí bitcoin“ a další jdou hned. Když nástroj sám řekne celou odpověď, druhé kolo AI se vynechá. Počasí, kalendář a zprávy má připravené dopředu." },
+    { icon: "chat-teardrop-dots", title: "Rozhovor jako s člověkem", line: "„Ne, tu modrou“ během práce zastaví rozdělané a udělá to správně. Když mu skočíš do řeči, „pokračuj“ dořekne zbytek. U delší práce hned řekne „Moment, pane.“ Hlas Piper a ElevenLabs začne mluvit rychleji." },
+    { icon: "cpu", title: "Reflexní model v PC", line: "Volitelně malý model v Ollamě (Nastavení → Mozek → Reflexní model) rozhodne jasné povely ještě před velkou AI. Diagnostika ukazuje, kolik trvá každý krok odpovědi a jak často JARVIS trefí nástroj napoprvé." },
+  ],
   "3.15": [
     { icon: "sparkle", title: "Mega animace všude", line: "Nastavení → Vzhled → Kvalita efektů: Ultra, Vysoká, Úsporná nebo Vypnuto (Automaticky podle grafiky). Ve hře nebo na baterii se animace samy ztiší a ukazatel FPS v Diagnostice hlídá plynulost. Nový zvukový design a barevná schémata Stark, Mark, Friday a Stealth." },
     { icon: "atom", title: "Stark HUD ve 3D", line: "Reaktor je skutečné 3D s částicemi, start HUD jako ve filmu, 3D glóbus s oblouky cest, paralaxa, panely s telemetrií a nástroje kroužící kolem reaktoru. Ovládáš ho hlasem („přibliž mapu“, „schovej panely“) i rozložením Holo, kdy prosvítá plocha." },

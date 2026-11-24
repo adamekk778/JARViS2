@@ -56,6 +56,22 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
     a animace hovoru v Androidu, skutečná 3D tiskárna (OctoPrint / Klipper / Bambu), OpenSCAD, FreeCAD a PrusaSlicer
     (volání napsaná podle dokumentace, testovaná se simulovaným spuštěním), gesta se skutečnou webkamerou.
 
+- **3.16 „Odpověď hned“ (7 balíků, 24 návrhů): 1961 testů prošlo, 20 přeskočeno** (Linux). Nové `tests/test_toolbrain.py`
+  (katalog s každým nástrojem, neměnná část pokynů stejná pro hlas i chat, `use_tool` s opravou a kontrolou parametrů,
+  přesný popis a druhý pokus po chybě, potvrzení u rizikové akce, router posílá katalog jen velké AI, cache u Clauda,
+  měření kroků; paměť nástrojů, reflex bez volání AI, oprava „ne, to ne“, žádný reflex u čísel / rizika / tajemství,
+  příklady, obrazovka, zvyky, vyhledávání podle významu s falešným modelem), `test_fastear.py` (přepis při pauze,
+  konec hotové / rozdělané věty, starý odhad po dalších slovech, slovník, udržovaná spojení, předehřátí),
+  `test_instant316.py` (povely s háčky, co jde k AI, bez druhého kola AI, „Moment, pane.“, fráze z paměti, odpovědi
+  dopředu, rodiny a audit, reflexní model) a `test_talk316.py` (oprava za běhu, „pokračuj“, co uživatel neslyšel,
+  Piper načtený jednou, ElevenLabs Flash, „mhm“). Navíc:
+  - evals 419 (86 okamžitých povelů), 100 %; `ruff`, `mypy` (85 souborů), ESLint, `tsc`, `vite build` bez chyb,
+  - `python -m jarvis.uicheck` česky i anglicky bez chyb; Diagnostika s blokem „Rychlost odpovědí“ a okno
+    „Co je nového 3.16“ ověřené v prohlížeči.
+  - **Neměřeno ve skutečnosti:** o kolik je odpověď rychlejší s tvou AI, mikrofonem a sítí – to ukáže Diagnostika →
+    Rychlost odpovědí po pár desítkách otázek; místní model e5-small a reflexní model v Ollamě testované jen s
+    falešnými odpověďmi.
+
 ## Ruční / vizuální ověření (Playwright proti skutečnému serveru)
 - Úkoly → **Zkontrolovat PC**: mise doběhla, 5/5 kritérií zelených, artefakt „Report o stavu PC“ s otiskem,
   11 důkazů, audit akcí. **Uložit jako dovednost** → schválení → protokol „Kontrola PC“ v1 → Stark → Verze ukazuje v1.
