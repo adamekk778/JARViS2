@@ -124,6 +124,8 @@ class Voice(BaseModel):
     silence_seconds: float = 0.6     # 3.13 the answer starts sooner after you stop talking (was 0.8)
     silence_rev: int = 1            # fresh configs are already migrated (a saved 0 would undo your own 0.8 s later)
     smart_endpoint: bool = True     # 3.16 the words are written down at each pause; a finished sentence ends at once
+    low_latency: bool = False       # 3.16 ElevenLabs: the fastest model (Flash) – the first word sooner, a little less rich
+    backchannel: bool = False       # 3.16 a quiet "mhm" in a long live conversation pause (only with echo cancellation)
     vocabulary: bool = True         # 3.16 your names, projects, rooms and apps go to the speech recognizer
     followup: bool = False          # after an answer, listen 6 s more without the wake word
     game_quiet: bool = True         # 3.13 Herní režim: while a game runs, announcements wait and come as one line afterwards

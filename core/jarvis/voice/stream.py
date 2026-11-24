@@ -15,7 +15,7 @@ FIRST_MIN = 12          # the first piece may be short – it is what makes the 
 NEXT_MIN = 60           # later pieces: a sentence or two together (fewer, smoother joins)
 _END = re.compile(r"[.!?…:](?=\s)|\n\s*\n|\n(?=[-*•\d])")
 _CLAUSE = re.compile(r"[,;–—](?=\s)")
-CLAUSE_MIN = 28         # 3.14 a first clause this long may be spoken before its sentence ends
+CLAUSE_MIN = 18         # 3.14 a first clause this long may be spoken before its sentence ends (3.16: 28 → 18)
 
 
 def cut(buf: str, first: bool) -> tuple[str, str]:
@@ -55,6 +55,8 @@ class SpeechStream:
         self.spoke = False
         self._jobs: asyncio.Queue = asyncio.Queue()
         self.turn: dict | None = None    # 3.16 latency: the answer whose first sound this is
+        self.queued: list[str] = []      # 3.16 every piece given to the voice, and how many were really heard
+        self.played = 0
         self._player = asyncio.get_running_loop().create_task(self._play_all())
 
     def feed(self, delta: str) -> None:
@@ -81,6 +83,7 @@ class SpeechStream:
             return
         self.first = False
         self.spoke = True
+        self.queued.append(text)
         # synthesis starts now, in parallel with whatever is playing (no gap between sentences)
         self._jobs.put_nowait((text, asyncio.get_running_loop().create_task(self.rt.speaker.synth(text, self.lang))))
 
@@ -134,9 +137,17 @@ class SpeechStream:
                         self.rt.bus.publish("caption", who="jarvis", lines=caption_timing(caption_chunks(text)))
                     try:
                         await asyncio.to_thread(sp._play, audio)
+                        if not sp._stop.is_set():
+                            self.played += 1
                     except Exception as e:  # noqa: BLE001
                         log.warning("playback failed: %s", e)
             finally:
+                if sp._stop.is_set() and self.played < len(self.queued):   # talked over: keep the rest for "pokračuj"
+                    import time as _t
+
+                    rest = " ".join(self.queued[self.played:] + ([self.buf.strip()] if self.buf.strip() else [])).strip()
+                    if rest:
+                        self.rt.unspoken = {"text": rest, "ts": _t.time()}
                 if started:
                     if ducker:
                         ducker.release()

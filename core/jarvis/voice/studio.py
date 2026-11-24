@@ -142,10 +142,12 @@ async def eleven_synth(text: str, key: str, voice_id: str, model: str, transport
         raise RuntimeError("v Hlasové dílně vyber hlas z ElevenLabs")
     if not re.fullmatch(r"[A-Za-z0-9]{8,64}", voice_id):
         raise RuntimeError("neplatné ID hlasu ElevenLabs")
-    async with httpx.AsyncClient(verify=tlsctx.context(), transport=transport, timeout=60) as c:
+    from ..llm import pool
+
+    async with pool.client(transport, 60, tlsctx.context()) as c:          # 3.16 a kept connection (no TLS per sentence)
         r = await c.post(f"{ELEVEN_API}/text-to-speech/{voice_id}", params={"output_format": "mp3_44100_128"},
                          headers={"xi-api-key": key, "accept": "audio/mpeg"},
-                         json={"text": text, "model_id": model or "eleven_multilingual_v2"})
+                         json={"text": text, "model_id": model or "eleven_multilingual_v2"}, timeout=60)
     if r.status_code in (400, 404) and "voice" in r.text.lower() and not _added and any(f["id"] == voice_id for f in FEATURED):
         new_id = await eleven_add_shared(key, voice_id, transport)      # first time: the library voice into your account
         return await eleven_synth(text, key, new_id, model, transport, _added=True)

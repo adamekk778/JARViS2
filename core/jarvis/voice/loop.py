@@ -424,6 +424,8 @@ class VoiceLoop:
             result = ep.feed(speaking)
             if result is None and spec is not None:
                 result = spec.step(ep, audio, speaking)
+                if result is None and live:
+                    self._maybe_backchannel(ep, spec, speaking)
             n += 1
             if n % 2 == 0:
                 a = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
@@ -508,6 +510,28 @@ class VoiceLoop:
                           live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
                           live_ok=lambda: local and 0 < getattr(self, "_stt_s", 9.0) < 0.45,
                           max_spec=3 if local else 2)
+
+    BACKCHANNEL_AFTER_S = 6.0                             # this much talking since the last "mhm"
+
+    def _maybe_backchannel(self, ep, spec, speaking: bool) -> bool:
+        """3.16 (návrh 23) a long live conversation, you pause mid-thought (the words so far are unfinished): "mhm"."""
+        v = self.rt.cfg.voice
+        if not (getattr(v, "backchannel", False) and getattr(v, "echo_cancel", True)):
+            return False
+        now = time.monotonic()
+        if speaking:
+            if not getattr(self, "_bc_talk_from", 0):
+                self._bc_talk_from = now
+            return False
+        talked = now - (getattr(self, "_bc_talk_from", 0) or now)
+        if spec.decided is not False or not (0.35 <= ep.quiet < 0.6) or talked < self.BACKCHANNEL_AFTER_S:
+            return False
+        self._bc_talk_from = 0
+        loop = getattr(self.rt, "loop", None)
+        if loop is None:
+            return False
+        asyncio.run_coroutine_threadsafe(self.speaker.backchannel(), loop)
+        return True
 
     def prewarm(self) -> None:
         """3.16 "Hey Jarvis" heard: open the connection to the AI (and the local model) in the background."""

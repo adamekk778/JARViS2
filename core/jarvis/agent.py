@@ -165,6 +165,12 @@ def _stored_to_llm(m: dict) -> dict:
     return {"role": "assistant" if m["role"] == "assistant" else "user", "content": text}
 
 
+MIDRUN = re.compile(r"^\s*(?:jarvis\w*[ ,]+)?(?:ne+\b|počkej|pockej|vlastně|vlastne|myslel jsem|myslela jsem|ale ne\b|"
+                    r"spíš|spis\b|oprava\b)", re.I)
+CONTINUE = re.compile(r"^(?:jarvis\w*[ ,]+)?(?:pokračuj|pokracuj|dokonči(?: to| větu)?|dokonci(?: to| vetu)?|mluv dál|mluv dal|"
+                      r"co jsi chtěl říct|co jsi chtel rict|a dál|a dal|dál|dal)\s*[.!?…]*$", re.I)
+
+
 class Agent:
     def __init__(self, rt: Any):
         self.rt = rt
@@ -190,6 +196,14 @@ class Agent:
             msg = "Úkol je pozastavený – nejdřív ho nech pokračovat, nebo ho zruš (Úkoly nebo STOP)."
             rt.bus.publish("error", message=msg)
             return msg
+        if self.busy and self._task is not None and not self._task.done() and record_user and MIDRUN.match(text or ""):
+            # 3.16 (návrh 21) "ne, tu modrou" while he still works: stop that, and do it right with what was already done
+            done = [str(c.get("label") or c.get("name")) for c in getattr(self, "_live_cards", []) if c.get("ok")]
+            note = (f"Uživatel tě právě přerušil opravou. Původní požadavek: „{self._goal}“."
+                    + (f" Už hotové kroky: {'; '.join(done)[:400]}." if done else "")
+                    + " Splň ho podle opravy; co je hotové špatně, oprav nebo vrať, pokud to jde.")
+            extra_system = (extra_system + "\n" if extra_system else "") + note
+            self.stop()
         gen = self._gen
         async with self._lock:
             if gen != self._gen:  # STOP was pressed while this request waited → drop it
@@ -678,6 +692,7 @@ class Agent:
             extra = (extra + "\n" if extra else "") + trust.RULE
         full_text = ""
         tool_cards: list[dict] = []
+        self._live_cards = tool_cards               # 3.16 what is done so far (a correction mid-way sees it)
         out_atts: list[str] = []
         used_now: list[str] = []
         self._turn_stats = {"use_tool": 0, "use_tool_errors": 0, "find_tools": 0}
@@ -690,6 +705,13 @@ class Agent:
                 log.debug("tool memory: %s", e)
         cancelled = False
         quick = None                                       # 3.13 an everyday command: done at once, no AI in between
+        un = getattr(rt, "unspoken", None)                 # 3.16 (návrh 23) you talked over him a moment ago
+        if un and time.time() - un.get("ts", 0) < 120 and not attachments:
+            rt.unspoken = None
+            if CONTINUE.match((text or "").strip()):
+                quick = un["text"]                         # "pokračuj" → the rest of what he was saying, no AI
+            else:
+                extra = (extra + "\n\n" if extra else "") + f"Uživatel tě přerušil a neslyšel konec tvé předchozí odpovědi: „{un['text'][:400]}“."
         phrase = None if attachments else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
         if phrase is not None:                             # 3.14 návrh 48: "jdu spát" → your own routine, no AI
             rt.automations.fire(phrase, {"text": text or ""}, reason="phrase", force=True)

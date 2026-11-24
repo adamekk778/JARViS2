@@ -59,6 +59,9 @@ def windows_synth(text: str, lang: str = "cs") -> bytes:
     return data
 
 
+_PIPER: dict = {}
+
+
 def piper_synth(text: str, voice_name: str, custom: bool = False) -> bytes:
     if not re.fullmatch(r"[\w.-]{1,80}", voice_name) or voice_name.startswith("."):
         raise RuntimeError("neplatný název hlasu")
@@ -73,7 +76,13 @@ def piper_synth(text: str, voice_name: str, custom: bool = False) -> bytes:
         from piper.download_voices import download_voice
 
         download_voice(voice_name, d)
-    voice = PiperVoice.load(str(model))
+    key = str(model)
+    voice = _PIPER.get(key)
+    if voice is None:                              # 3.16 loaded once, not for every sentence (0.3–1.5 s each time)
+        voice = PiperVoice.load(key)
+        if len(_PIPER) >= 2:
+            _PIPER.pop(next(iter(_PIPER)))
+        _PIPER[key] = voice
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
         voice.synthesize_wav(text, w)
@@ -181,7 +190,8 @@ class Speaker:
                     from .. import secrets
                     from .studio import eleven_synth
 
-                    audio, mime = await eleven_synth(spoken, secrets.get("elevenlabs"), v.eleven_voice_id, v.eleven_model), "audio/mpeg"
+                    model = "eleven_flash_v2_5" if getattr(v, "low_latency", False) else v.eleven_model   # 3.16 ~75 ms model
+                    audio, mime = await eleven_synth(spoken, secrets.get("elevenlabs"), v.eleven_voice_id, model), "audio/mpeg"
                 elif eng == "windows":
                     audio, mime = await asyncio.to_thread(windows_synth, spoken, lang), "audio/wav"
                 elif eng == "piper":
@@ -203,6 +213,16 @@ class Speaker:
             pcm, sr = await asyncio.to_thread(decode_to_pcm, audio)
             audio, mime = encode_wav(await asyncio.to_thread(apply_effect, pcm, sr, v.effect), sr), "audio/wav"
         return audio, mime
+
+    async def backchannel(self) -> bool:
+        """3.16 a quiet "mhm" while you think aloud (live conversation): played beside the microphone, never waits."""
+        try:
+            audio, _ = await self.synth("Mhm.")
+        except Exception as e:  # noqa: BLE001
+            log.debug("backchannel: %s", e)
+            return False
+        threading.Thread(target=self._play, args=(audio,), daemon=True, name="mhm").start()
+        return True
 
     def stop(self) -> None:
         self._stop.set()
