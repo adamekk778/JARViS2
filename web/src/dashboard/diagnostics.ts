@@ -8,6 +8,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   let timer = 0;
   const stats = h("div", { class: "diag-stats" });
   const sys = h("div", { class: "diag-stats" });
+  const fx = h("div", { class: "diag-stats" });
   const kids = h("div", {});
   const ttft = h("div", {});
   const log = h("pre", { class: "diag-log" });
@@ -24,6 +25,12 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
       h("span", { class: "help" }, `průměr ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)} ms · posledních ${v.length}`)))
       : [h("p", { class: "help" }, "Zatím žádné odpovědi.")]));
     log.textContent = (m.log_tail || []).slice(-60).join("\n");
+    // 3.15 each JARVIS window's frame rate and effects tier
+    const NAMES: Record<string, string> = { hud: "Stark HUD", notch: "Notch", dashboard: "Aplikace", fullchat: "Chat", mobile: "Telefon",
+      karaoke: "Karaoke", overlay: "Efekty na ploše", wallpaper: "Živá tapeta" };
+    const TIERS: Record<string, string> = { ultra: "Ultra", high: "Vysoká", eco: "Úsporná", off: "bez efektů" };
+    fx.replaceChildren(...((m.fx || []) as any[]).map((f) => stat(`${NAMES[f.page] || f.page} – ${TIERS[f.tier] || "?"}`, `${f.fps} FPS`, f.fps < 45)));
+    if (!(m.fx || []).length) fx.replaceChildren(h("p", { class: "help" }, "Otevři HUD nebo notch – do půl minuty tu uvidíš jejich snímky za sekundu."));
   });
   client.on("system", (m) => {
     const gpu = m.gpu ? `${m.gpu.name}${m.gpu.util != null ? ` · ${m.gpu.util} %` : ""}` : "n/a";
@@ -148,6 +155,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Úplně offline"), offline,
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
+    h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),
       h("div", {}, h("p", { class: "group-label" }, "Rychlost AI (do prvního slova)"), h("div", { class: "card" }, ttft))),

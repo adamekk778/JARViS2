@@ -506,6 +506,7 @@ class DesktopHost:
         return bool(subs and subs.on)
 
     def _fullscreen_watch(self) -> None:
+        fx_paused = False
         while not self._quitting:
             time.sleep(1.5)
             try:
@@ -513,6 +514,13 @@ class DesktopHost:
                 self.no_backdrop()
             except Exception as e:
                 log.debug("heal_region: %s", e)
+            try:                      # 3.15 a game / video over the whole screen (not JARVIS's own HUD): effects stop
+                game = winutil.foreground_is_fullscreen() and winutil.foreground_pid() != os.getpid()
+                if game != fx_paused:
+                    fx_paused = game
+                    self.rt.bus.publish_threadsafe("fx_pause", on=game)
+            except Exception as e:
+                log.debug("fx pause: %s", e)
             if not self.notch or self._hidden_manual:
                 continue
             try:

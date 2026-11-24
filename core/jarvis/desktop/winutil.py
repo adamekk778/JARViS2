@@ -96,6 +96,18 @@ def foreground_is_fullscreen() -> bool:
     return rect.left <= m.left and rect.top <= m.top and rect.right >= m.right and rect.bottom >= m.bottom
 
 
+def foreground_pid() -> int:
+    """The process that owns the active window (0 when unknown)."""
+    if not IS_WIN:
+        return 0
+    from ctypes import wintypes
+
+    u = ctypes.windll.user32
+    pid = wintypes.DWORD(0)
+    u.GetWindowThreadProcessId(u.GetForegroundWindow(), ctypes.byref(pid))
+    return int(pid.value)
+
+
 def make_topmost(hwnd: int) -> None:
     """Put a window on top of the top-most band again (without focusing, moving or resizing it)."""
     if not IS_WIN or not hwnd:

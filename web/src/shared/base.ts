@@ -6,6 +6,7 @@ import "@phosphor-icons/web/fill";
 import "highlight.js/styles/github-dark.css";
 import "./theme.css";
 import "./glass.css";
+import { configureMotion, initMotion } from "./motion";
 
 // OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
 let motionPref = "full";
@@ -17,11 +18,14 @@ function applyMotion() {
 export function applyLoad(heavy: boolean) {
   heavyLoad = !!heavy;
   applyMotion();
+  configureMotion({ heavy: heavyLoad });
 }
 export function applyPower(battery: boolean) {
   onBattery = !!battery;
   applyMotion();
+  configureMotion({ battery: onBattery });
 }
+initMotion();                         // 3.15 the effects tier + one animation clock for the page
 
 export function applyAppearance(s: any) {
   const a = s?.appearance;
@@ -36,6 +40,7 @@ export function applyAppearance(s: any) {
   }
   motionPref = a.animations || "full";
   applyMotion();
+  configureMotion({ quality: a.fx_quality || "auto", animations: a.animations });
   root.dataset.contrast = a.high_contrast ? "high" : "normal";                  // 3.14 návrh 68
   const scale = Math.max(1, Math.min(1.6, Number(a.font_scale) || 1));
   if (!root.classList.contains("notch-doc")) (root.style as any).zoom = scale === 1 ? "" : String(scale);

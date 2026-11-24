@@ -125,7 +125,15 @@ def snapshot(rt: Any) -> dict:
     ttft = {k: [round(x) for x in v] for k, v in getattr(rt.router, "ttft", {}).items()}
     return {"cpu_pct": cpu, "ram_mb": round(ram, 1), "threads": threads, "children": children,
             "loop_lag_ms": round(float(getattr(rt, "diag_lag_ms", 0.0)), 1), "ttft": ttft, "voice": voice,
-            "log_tail": _log_tail()}
+            "log_tail": _log_tail(), "fx": fx_stats(rt)}
+
+
+def fx_stats(rt: Any, now: float | None = None) -> list[dict]:
+    """3.15 each window's frame rate and effects tier (reported every 30 s; older than 2 minutes = closed)."""
+    import time
+
+    now = time.time() if now is None else now
+    return [{"page": k, **v} for k, v in sorted((getattr(rt, "_fx", None) or {}).items()) if now - v.get("t", 0) < 120]
 
 
 def export_zip(rt: Any) -> Path:
