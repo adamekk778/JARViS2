@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/gesture_fingers/, "hand-pointing"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/agent\.prefetch/, "clock-countdown"], [/reflex_model/, "lightning-a"], [/claude_cache_ttl/, "hourglass"], [/smart_endpoint/, "timer"], [/low_latency/, "rocket-launch"], [/stream_voice/, "waveform"], [/speculate/, "fast-forward"], [/adaptive_pace/, "metronome"], [/live_partial/, "text-aa"], [/backchannel/, "chat-teardrop-dots"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/gesture_fingers/, "hand-pointing"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/agent\.prefetch/, "clock-countdown"], [/reflex_model/, "lightning-a"], [/claude_cache_ttl/, "hourglass"], [/smart_endpoint/, "timer"], [/low_latency/, "rocket-launch"], [/stream_voice/, "waveform"], [/speculate/, "fast-forward"], [/adaptive_pace/, "metronome"], [/live_partial/, "text-aa"], [/backchannel/, "chat-teardrop-dots"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"], [/bambu_serial/, "barcode"], [/bambu_model/, "printer"], [/bambu_ams/, "palette"], [/bambu_pin/, "fingerprint"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -798,14 +798,23 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           const key = h("input", { class: "input", type: "password", autocomplete: "off", placeholder: "API klíč tiskárny (OctoPrint / Moonraker)" }) as HTMLInputElement;
           key.onchange = () => { client.send("secret_set", { name: "printer", value: key.value.trim() }); key.value = ""; toast("Klíč tiskárny uložen do Správce pověření Windows", "ok"); };
           const on = getPath(S, "workshop.printer") !== "off";
+          const lan = getPath(S, "workshop.printer") === "bambu_lan";
+          if (lan) key.placeholder = "Přístupový kód z obrazovky tiskárny";
           return card("Dílna – 3D tiskárna", "JARVIS ukáže stav tisku v HUD a notchi, pozastaví ho hlasem a během tisku se každých pár minut podívá kamerou "
             + "(AI s obrazem): špagety, odlepený výtisk nebo koule plastu → pozastaví tisk a pošle upozornění do telefonu.",
-            select("workshop.printer", "Tiskárna", [["off", "Žádná"], ["octoprint", "OctoPrint"], ["moonraker", "Klipper (Mainsail / Fluidd)"], ["bambu_ha", "Bambu Lab přes Home Assistant"]]),
+            select("workshop.printer", "Tiskárna", [["off", "Žádná"], ["octoprint", "OctoPrint"], ["moonraker", "Klipper (Mainsail / Fluidd)"], ["bambu_ha", "Bambu Lab přes Home Assistant"], ["bambu_lan", "Bambu Lab napřímo (LAN)"]]),
             ...(on ? [
-              h("div", { class: "grid2" }, text("workshop.printer_url", "Adresa", "Např. http://octopi.local nebo http://mainsail.local:7125 (Bambu: prázdné)"),
+              h("div", { class: "grid2" }, text("workshop.printer_url", "Adresa", lan ? "IP adresa tiskárny (na tiskárně: Nastavení → Síť)" : "Např. http://octopi.local nebo http://mainsail.local:7125 (Bambu přes HA: prázdné)"),
                 text("workshop.printer_name", "Jméno", "Jak jí JARVIS říká")),
-              h("div", { class: "grid2" }, field("Klíč API", key, "OctoPrint: Nastavení → Application Keys; Moonraker většinou žádný"),
+              h("div", { class: "grid2" }, field(lan ? "Přístupový kód" : "Klíč API", key, lan ? "Na tiskárně: Nastavení → Síť → LAN režim (8 znaků). Uloží se do Správce pověření Windows."
+                : "OctoPrint: Nastavení → Application Keys; Moonraker většinou žádný"),
                 text("workshop.camera_url", "Kamera (snímek)", "Prázdné = kamera tiskárny; jinak adresa JPEG snímku")),
+              ...(lan ? [
+                h("div", { class: "grid2" }, text("workshop.bambu_serial", "Sériové číslo", "Na tiskárně: Nastavení → Zařízení (např. 01P00A123456789)"),
+                  select("workshop.bambu_model", "Model (kvůli kameře)", [["auto", "Zjistit sám"], ["p1", "P1P / P1S"], ["a1", "A1 / A1 mini"], ["x1", "X1 / X1C / X1E (kamera přes adresu snímku)"]])),
+                sw("workshop.bambu_ams", "Tisknout s AMS", "Barevný tisk z AMS, když pošleš .3mf"),
+                text("workshop.bambu_pin", "Otisk certifikátu tiskárny", "Zapamatuje se při prvním spojení; JARVIS pak jiné zařízení odmítne. Smaž ho jen po výměně nebo resetu tiskárny."),
+              ] : []),
               ...(getPath(S, "workshop.printer") === "bambu_ha" ? [text("workshop.ha_prefix", "Předpona entit v Home Assistantu", "Např. p1s_01p00a123456789 – prázdné = první nalezená tiskárna")] : []),
               sw("workshop.watch", "Hlídat tisk kamerou", "Fotka jde jen do tvé AI (jako u „podívej se“), nic se neukládá, kromě fotky selhání do deníku projektu."),
               h("div", { class: "grid2" }, select("workshop.on_failure", "Když se tisk kazí", [["pause", "Pozastavit"], ["notify", "Jen dát vědět"]]),

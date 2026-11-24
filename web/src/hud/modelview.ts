@@ -1,5 +1,5 @@
-// 3.15 Dílna (návrh C1): the 3D model as a hologram in the HUD – STL, OBJ, GLB, 3MF (STEP comes already converted by
-// FreeCAD on the PC). It turns slowly on a lit ring; drag to turn, scroll to zoom; "rozlož model" (or the slider, or a
+// 3.15 Dílna (návrh C1): the 3D model as a hologram in the HUD – STL, OBJ, GLB, 3MF and STEP (converted by FreeCAD on
+// the PC when it is installed, else 3.17 read right here by stepload.ts). It turns slowly on a lit ring; drag to turn, scroll to zoom; "rozlož model" (or the slider, or a
 // wave of the hand) pulls the parts apart along the line from the centre – an exploded view. An STL with one mesh is
 // split into its separate pieces (a box and its lid are two parts).
 import type * as THREE_NS from "three";
@@ -117,6 +117,11 @@ async function makeViewer(host: HTMLElement, client: JarvisClient, onInfo: (t: s
       const g = await new ThreeMFLoader().loadAsync(url);
       g.rotation.x = -Math.PI / 2;
       return g;
+    }
+    if (f === "step") {
+      onInfo("Čtu STEP (OpenCascade)…");
+      const { readStep } = await import("./stepload");
+      return readStep(THREE, url);
     }
     const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
     return (await new GLTFLoader().loadAsync(url)).scene;

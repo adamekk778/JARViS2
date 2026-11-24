@@ -631,8 +631,8 @@ class HomeCfg(BaseModel):
 
 class WorkshopCfg(BaseModel):
     """3.15 Dílna: the 3D printer and the failed-print watch (the printer's API key is in the keyring as "printer")."""
-    printer: Literal["off", "octoprint", "moonraker", "bambu_ha"] = "off"
-    printer_url: str = ""           # http://octopi.local, http://mainsail.local:7125 (Bambu: through Home Assistant)
+    printer: Literal["off", "octoprint", "moonraker", "bambu_ha", "bambu_lan"] = "off"
+    printer_url: str = ""           # http://octopi.local, http://mainsail.local:7125; Bambu napřímo: the printer's IP
     printer_name: str = "Tiskárna"
     ha_prefix: str = ""             # Bambu in Home Assistant: the entities' prefix (empty = the first printer found)
     camera_url: str = ""            # a snapshot URL (empty = the printer's own camera)
@@ -640,6 +640,10 @@ class WorkshopCfg(BaseModel):
     watch_every_min: int = 3
     on_failure: Literal["pause", "notify"] = "pause"
     slicer_profile: str = ""        # PrusaSlicer .ini of your printer (STL → G-code before printing)
+    bambu_serial: str = ""          # 3.17 Bambu napřímo: the serial number (Settings on the printer → Device); code in keyring
+    bambu_model: Literal["auto", "x1", "p1", "a1"] = "auto"   # the camera: P1 / A1 directly, X1 through the camera URL
+    bambu_ams: bool = False         # print with the AMS (multi-colour) when a .3mf is sent
+    bambu_pin: str = ""             # the printer certificate's SHA-256, remembered at the first connection (clear = re-pair)
 
 
 class LimitsCfg(BaseModel):

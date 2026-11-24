@@ -8,6 +8,7 @@ jde rozložit.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import re
 import shutil
@@ -17,8 +18,10 @@ from pathlib import Path
 
 from . import paths
 
+log = logging.getLogger("jarvis.models3d")
+
 FORMATS = {".stl": "stl", ".obj": "obj", ".glb": "glb", ".3mf": "3mf", ".step": "step", ".stp": "step"}
-NAME_OK = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}\.(stl|obj|glb|3mf)$")
+NAME_OK = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}\.(stl|obj|glb|3mf|step)$")
 MAX_MB = 200
 
 FREECAD_SCRIPT = r'''
@@ -102,14 +105,18 @@ def add(src: Path, title: str = "") -> dict:
         return {"error": f"Model má přes {MAX_MB} MB – to by HUD nezvládl plynule."}
     h = hashlib.sha1(src.read_bytes()).hexdigest()
     stem = title or src.stem
-    if fmt == "step":
+    if fmt == "step" and freecad():                  # FreeCAD on the PC: exact, every body its own part
         name = safe_name(stem, h, "obj")
         dst = models_dir() / name
+        err = "" if dst.exists() else step_to_obj(src, dst)
+        if not err:
+            return {"name": name, "url": f"/api/workshop/model/{name}", "format": "obj", "title": title or src.stem}
+        log.info("FreeCAD STEP → OBJ: %s (the HUD reads it itself)", err)
+    if fmt == "step":                                # 3.17 no FreeCAD: the HUD reads the STEP itself (occt-import-js)
+        name = safe_name(stem, h, "step")
+        dst = models_dir() / name
         if not dst.exists():
-            err = step_to_obj(src, dst)
-            if err:
-                return {"error": err}
-        fmt = "obj"
+            shutil.copy2(src, dst)
     else:
         name = safe_name(stem, h, fmt)
         dst = models_dir() / name

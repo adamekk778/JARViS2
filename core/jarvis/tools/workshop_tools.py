@@ -121,7 +121,7 @@ async def cad_part(ctx, action: Annotated[str, "create / design / edit / undo / 
 
 
 @tool("model_view", "Ukáže 3D model (STL, OBJ, GLB, 3MF, STEP) v HUD jako hologram: točí se, jde přiblížit gesty i hlasem a "
-      "rozložit na díly (rozložený pohled sestavy). STEP převede FreeCAD, pokud je nainstalovaný.", category="dílna", perm="files_read")
+      "rozložit na díly (rozložený pohled sestavy). STEP převede FreeCAD, jinak ho HUD přečte sám.", category="dílna", perm="files_read")
 async def model_view(ctx, path: Annotated[str, "cesta k souboru modelu"], explode: Annotated[bool, "rovnou rozložit na díly"] = False) -> ToolResult:
     import asyncio
 
@@ -194,12 +194,13 @@ async def printer_control(ctx, action: Annotated[str, "status / pause / resume /
         src = Path(file).expanduser()
         if not src.exists():
             return ToolResult(False, f"Soubor {file or '(žádný)'} nenajdu.")
-        if src.suffix.lower() in (".stl", ".3mf", ".obj"):
+        direct = c.printer == "bambu_lan" and src.suffix.lower() == ".3mf"     # 3.17 a sliced .3mf goes to Bambu as it is
+        if src.suffix.lower() in (".stl", ".3mf", ".obj") and not direct:
             gcode, err = await asyncio.to_thread(printer3d.slice_model, src, c.slicer_profile)
             if not gcode:
                 return ToolResult(False, f"Nejdřív to musím nakrájet na G-code, ale {err}.")
             src = gcode
-        if src.suffix.lower() not in (".gcode", ".bgcode", ".gco", ".g"):
+        if src.suffix.lower() not in (".gcode", ".bgcode", ".gco", ".g") and not direct:
             return ToolResult(False, "Tisknout jde G-code (nebo STL / 3MF, které nakrájím).")
         err = await printer3d.upload_and_print(ctx, src)
         if err:

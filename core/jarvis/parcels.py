@@ -2,7 +2,8 @@
 
 A "shipped" e-mail from a shop or a carrier → the tracking number and the carrier, kept here. Česká pošta (and
 Balíkovna) tell where the parcel is through their public tracking (no key needed); Zásilkovna too when you have its
-API password in Propojení. For the others JARVIS keeps the tracking link. Every 30 minutes the open parcels are
+API password in Propojení. 3.17: DPD through its public tracking, PPL through its official API (with the Client ID from
+PPL in Propojení). GLS closed its open tracking (an API needs a registration), so for GLS JARVIS keeps the link. Every 30 minutes the open parcels are
 checked; "připraveno k vyzvednutí" / "doručeno" comes as a notice. "Kde mám balík?" lists them.
 """
 from __future__ import annotations
@@ -144,6 +145,29 @@ def cpost_status(data: Any) -> tuple[str, str]:
     return f"{s.get('text', '').strip()}{where}", str(s.get("date") or "")
 
 
+def dpd_status(data: Any) -> tuple[str, str]:
+    """(text, date) of the newest scan in DPD's public tracking answer; ("", "") when it does not know the parcel."""
+    try:
+        info = data["parcellifecycleResponse"]["parcelLifeCycleData"] or {}
+    except (KeyError, TypeError):
+        return "", ""
+
+    def first(d: Any) -> str:
+        c = (d or {}).get("content") if isinstance(d, dict) else None
+        return str(c[0]).strip() if isinstance(c, list) and c else ""
+    scans = [s for s in ((info.get("scanInfo") or {}).get("scan") or []) if isinstance(s, dict)]
+    if scans:
+        s = max(scans, key=lambda x: str(x.get("date") or ""))
+        where = ((s.get("scanData") or {}).get("location") or "").strip()
+        text = first(s.get("scanDescription"))
+        if text:
+            return text + (f" ({where})" if where else ""), str(s.get("date") or "")[:16].replace("T", " ")
+    cur = next((x for x in info.get("statusInfo") or [] if isinstance(x, dict) and x.get("isCurrentStatus")), None)
+    if cur:
+        return (str(cur.get("label") or "").strip() or first(cur.get("description"))), str(cur.get("date") or "")
+    return "", ""
+
+
 async def track(rt: Any, p: dict) -> tuple[str, str]:
     """(status text, date) from the carrier, or ("", "") when it cannot tell (then the link is the way)."""
     if p["carrier"] == "cpost":
@@ -151,6 +175,19 @@ async def track(rt: Any, p: dict) -> tuple[str, str]:
             r = await c.get("https://b2c.cpost.cz/services/ParcelHistory/getDataAsJson",
                             params={"idParcel": p["number"], "language": "cs"}, timeout=15)
         return cpost_status(r.json()) if r.status_code == 200 else ("", "")
+    if p["carrier"] == "dpd":                       # 3.17 DPD's public tracking (the same the DPD page uses)
+        number = re.sub(r"\D", "", p["number"])
+        async with rt.http() as c:
+            r = await c.get(f"https://tracking.dpd.de/rest/plc/cs_CZ/{number}", timeout=15)
+        return dpd_status(r.json()) if r.status_code == 200 else ("", "")
+    if p["carrier"] == "ppl":                       # 3.17 PPL's official API, when its Client ID is in Propojení
+        from . import connectors
+
+        if connectors.configured("ppl"):
+            from .connectors import ppl
+
+            return ppl.status_of(await ppl.shipment(re.sub(r"\D", "", p["number"])))
+        return "", ""
     if p["carrier"] == "zasilkovna":
         from . import connectors
 

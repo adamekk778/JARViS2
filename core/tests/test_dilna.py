@@ -110,14 +110,15 @@ def test_model_library_only_serves_its_own_files(tmp_path):
     assert "error" in models3d.add(tmp_path / "x.txt")
 
 
-def test_step_needs_freecad_and_converts_with_it(tmp_path, monkeypatch):
+def test_step_with_freecad_or_read_by_the_hud(tmp_path, monkeypatch):
     import functools
     from pathlib import Path
 
     step = tmp_path / "sestava.step"
     step.write_text("ISO-10303-21;")
-    monkeypatch.setattr(models3d, "freecad", lambda: None)
-    assert "FreeCAD" in models3d.add(step)["error"]
+    monkeypatch.setattr(models3d, "freecad", lambda: None)            # 3.17 no FreeCAD: the HUD reads the STEP itself
+    info = models3d.add(step)
+    assert info["format"] == "step" and info["name"].endswith(".step") and models3d.path_of(info["name"])
     monkeypatch.setattr(models3d, "freecad", lambda: "/usr/bin/freecadcmd")
     seen = {}
 

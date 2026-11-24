@@ -40,6 +40,7 @@ public final class JarvisLink {
     static final String CH_CALL = "jarvis_call_v1";
     static final String CH_LINK = "jarvis_link_v1";
     static final String CH_ACTION = "jarvis_action_v1";
+    static final String CH_QUIET = "jarvis_quiet_v1";    // 3.17 "Zeptej se JARVISe" for the watch: shown without a sound
     static final int NOTIF_LINK = 7001;
     static final int NOTIF_CALL = 7002;
 
@@ -248,7 +249,7 @@ public final class JarvisLink {
                     JSONArray acts = cmd.optJSONArray("actions");
                     // 3.14 every notice gets "Odpovědět" (typed in the notification); its own buttons stay in front
                     noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open,
-                            acts == null ? new JSONArray() : acts);
+                            acts == null ? new JSONArray() : acts, cmd.optBoolean("quiet", false), cmd.optJSONArray("quick"));
                     return "shown";
                 }
                 case "widget": {                // 3.14 návrh 9: the widget kept fresh by this service, the app may be closed
@@ -339,6 +340,10 @@ public final class JarvisLink {
         NotificationChannel act = new NotificationChannel(CH_ACTION, "Akce od JARVISe", NotificationManager.IMPORTANCE_HIGH);
         act.setDescription("Volání a zprávy, které JARVIS připravil");
         nm.createNotificationChannel(act);
+        NotificationChannel quiet = new NotificationChannel(CH_QUIET, "Zeptej se z hodinek", NotificationManager.IMPORTANCE_LOW);
+        quiet.setDescription("Tichá zpráva, na kterou odpovíš hlasem z telefonu nebo z hodinek Wear OS");
+        quiet.setShowBadge(false);
+        nm.createNotificationChannel(quiet);
     }
 
     static int piFlags() {
@@ -361,11 +366,17 @@ public final class JarvisLink {
 
     /** 3.13 a notice from the PC with its buttons: a tap goes back to the PC as the same button in the notch would. */
     static void noticeWithButtons(Context c, String title, String text, Intent target, JSONArray acts) {
+        noticeWithButtons(c, title, text, target, acts, false, null);
+    }
+
+    /** quiet = 3.17 without a sound (the "Zeptej se JARVISe" entry for the watch); quick = ready questions to tap or say. */
+    static void noticeWithButtons(Context c, String title, String text, Intent target, JSONArray acts, boolean quiet, JSONArray quick) {
         channels(c);
         int nid = (int) (System.currentTimeMillis() & 0xfffff);
         PendingIntent pi = PendingIntent.getActivity(c, nid, target, piFlags());
-        Notification.Builder b = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
-                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true);
+        Notification.Builder b = builder(c, quiet ? CH_QUIET : CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true)
+                .setOnlyAlertOnce(quiet);
         if (Build.VERSION.SDK_INT >= 28) {        // 3.14 a message from "JARVIS": Android Auto and watches read it and offer a reply
             try {
                 android.app.Person jarvis = new android.app.Person.Builder().setName("JARVIS").setKey("jarvis").build();
@@ -384,7 +395,7 @@ public final class JarvisLink {
             b.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_send),
                     a.optString("label", "Ok"), ap).build());
         }
-        addReply(c, b, nid);
+        addReply(c, b, nid, quick);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(nid, b.build());
     }
@@ -393,9 +404,21 @@ public final class JarvisLink {
 
     /** 3.14 návrh 97: "Odpovědět" under every notice from the PC – typed right in the notification, sent to JARVIS. */
     static void addReply(Context c, Notification.Builder b, int nid) {
+        addReply(c, b, nid, null);
+    }
+
+    /** choices: 3.17 ready answers a watch shows as buttons (and the phone as chips); speaking or typing still works. */
+    static void addReply(Context c, Notification.Builder b, int nid, JSONArray choices) {
         if (Build.VERSION.SDK_INT < 24) return;
         try {
-            android.app.RemoteInput ri = new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš JARVISovi…").build();
+            android.app.RemoteInput.Builder rb = new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš JARVISovi…");
+            if (choices != null && choices.length() > 0) {
+                int n = Math.min(choices.length(), 5);
+                CharSequence[] cs = new CharSequence[n];
+                for (int k = 0; k < n; k++) cs[k] = choices.optString(k, "");
+                rb.setChoices(cs);
+            }
+            android.app.RemoteInput ri = rb.build();
             Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", "ask").putExtra("notice_args", "{}")
                     .putExtra("reply", true).putExtra("nid", nid);
             int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);

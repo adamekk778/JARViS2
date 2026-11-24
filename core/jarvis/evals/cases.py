@@ -86,6 +86,9 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("vzlétni s dronem", ("drone",)), ("obleť místnost dronem a přistaň", ("drone",)),
     ("přibliž mapu", ("hud_control",)), ("ukaž zeměkouli ve 3D", ("hud_control",)), ("schovej panely v HUD", ("hud_control",)),
     ("přepni HUD na prezentaci", ("hud_control",)),
+    ("dej mi JARVISe na hodinky", ("watch_ask",)), ("chci se ptát z hodinek", ("watch_ask",)),           # 3.17
+    ("kde je můj balík od PPL", ("ppl_status", "parcels_list")), ("pošli ten 3mf na bambu a vytiskni", ("printer_control",)),
+    ("navrhni držák na kolo na zeď", ("cad_part",)),
     ("navrhni L-držák 40 mm široký na šrouby M4", ("cad_part",)), ("udělej krabičku 60 × 40 × 25 mm na Arduino", ("cad_part",)),
     ("udělej ho o 5 mm širší", ("cad_part",)), ("stěna 3 mm", ("cad_part",)), ("ukaž moje díly", ("cad_part",)),
     ("ukaž model C:/dilna/drzak.stl", ("model_view",)), ("rozlož model", ("model_explode",)), ("otoč model doleva", ("model_explode",)),

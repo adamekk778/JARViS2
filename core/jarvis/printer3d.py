@@ -1,8 +1,9 @@
 """3.15 Dílna – 3D tiskárna (návrh C3): stav, pauza / pokračovat / zrušit, poslat soubor k tisku, fotka z kamery a hlídání
 nepovedeného tisku.
 
-Tiskárny: OctoPrint (REST, klíč X-Api-Key), Klipper přes Moonraker (Mainsail / Fluidd) a Bambu Lab přes Home Assistant
-(integrace ha-bambulab: senzory průběhu, tlačítka pauza / pokračovat / stop, kamera). Klíč tiskárny je v klíčence
+Tiskárny: OctoPrint (REST, klíč X-Api-Key), Klipper přes Moonraker (Mainsail / Fluidd), Bambu Lab přes Home Assistant
+(integrace ha-bambulab: senzory průběhu, tlačítka pauza / pokračovat / stop, kamera) a 3.17 Bambu Lab napřímo po síti
+(bambu.py: MQTT + FTPS + kamera P1/A1, přístupový kód v klíčence). Klíč tiskárny je v klíčence
 ("printer"), nikdy v nastavení.
 
 Hlídání: během tisku se JARVIS každých pár minut podívá kamerou (AI s obrazem) – špagety, odlepený výtisk, nalepená
@@ -128,6 +129,10 @@ async def status(rt, client: httpx.AsyncClient | None = None) -> dict:
     if not configured(rt):
         return {"state": "offline", "why": "není nastavená"}
     try:
+        if c.printer == "bambu_lan":
+            from . import bambu
+
+            return await bambu.status(rt)
         if c.printer == "bambu_ha":
             return from_bambu(_bambu_entities(await rt.home.states(fresh=True), c.ha_prefix))
         own = client is None
@@ -171,6 +176,10 @@ async def command(rt, action: str, client: httpx.AsyncClient | None = None) -> s
     if action not in ("pause", "resume", "cancel"):
         return "neznámý příkaz"
     try:
+        if c.printer == "bambu_lan":
+            from . import bambu
+
+            return await bambu.command(rt, action)
         if c.printer == "bambu_ha":
             ent = _bambu_entities(await rt.home.states(fresh=True), c.ha_prefix)
             btn = {"pause": "button.pause_printing", "resume": "button.resume_printing", "cancel": "button.stop_printing"}[action]
@@ -197,8 +206,15 @@ async def command(rt, action: str, client: httpx.AsyncClient | None = None) -> s
 async def upload_and_print(rt, path: Path, start: bool = True, client: httpx.AsyncClient | None = None) -> str:
     """A G-code file → the printer (and start it). '' on success."""
     c = cfg(rt)
+    if c.printer == "bambu_lan":
+        from . import bambu
+
+        try:
+            return await bambu.upload_and_print(rt, path, start)
+        except Exception as e:  # noqa: BLE001
+            return str(e)[:160]
     if c.printer == "bambu_ha":
-        return "Bambu přes Home Assistant neumí přijmout soubor – pošli ho z Bambu Studia (otevřu ho tam)"
+        return "Bambu přes Home Assistant neumí přijmout soubor – pošli ho z Bambu Studia (otevřu ho tam), nebo přepni na Bambu napřímo"
     own = client is None
     cl = client or httpx.AsyncClient(timeout=120)
     try:
@@ -248,6 +264,10 @@ def slice_model(model: Path, profile: str, runner=subprocess.run) -> tuple[Path 
 async def snapshot(rt, client: httpx.AsyncClient | None = None) -> bytes | None:
     """A JPEG from the printer's camera (or the camera URL in Settings)."""
     c = cfg(rt)
+    if c.printer == "bambu_lan" and not c.camera_url:
+        from . import bambu
+
+        return await bambu.snapshot(rt)
     own = client is None
     cl = client or httpx.AsyncClient(timeout=10, follow_redirects=True)
     try:
