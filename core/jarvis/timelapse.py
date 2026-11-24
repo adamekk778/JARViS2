@@ -36,7 +36,9 @@ def add_frame(job: str, jpg: bytes) -> int:
         for f in frames[1::2]:
             f.unlink(missing_ok=True)
         frames = sorted(d.glob("f-*.jpg"))
-    (d / f"f-{time.time():.3f}.jpg").write_bytes(jpg)
+    # numbered, not timed: two pictures in the same millisecond (a fast PC, a coarse Windows clock) never overwrite
+    last = max((int(m.group(1)) for f in frames if (m := re.match(r"f-(\d+)\.jpg$", f.name))), default=0)
+    (d / f"f-{last + 1:07d}.jpg").write_bytes(jpg)
     return len(frames) + 1
 
 
@@ -51,9 +53,10 @@ def build(job: str, fps: int = 12) -> Path | None:
     import av
 
     out = d.parent / f"{d.name}-{time.strftime('%Y%m%d-%H%M')}.mp4"
-    first = Image.open(frames[0])
+    with Image.open(frames[0]) as first:         # closed again: Windows cannot delete a file that is still open
+        fw, fh = first.size
     w = WIDTH
-    h = int(first.height * w / first.width) // 2 * 2
+    h = int(fh * w / fw) // 2 * 2
     codec = "libx264" if "libx264" in av.codecs_available else "mpeg4"
     with av.open(str(out), "w") as box:
         st: Any = box.add_stream(codec, rate=fps)

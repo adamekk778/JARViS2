@@ -18,7 +18,13 @@ adb shell dumpsys appwidget | grep -qE "$PKG/(\.|$PKG\.)JarvisWidget" \
 adb shell am start -W -n "$PKG/.VoiceActivity" || true
 sleep 3
 adb exec-out screencap -p > "$OUT/voice.png"
-adb shell dumpsys package "$PKG" | grep -q "CallActivity" || { echo "the call screen is missing"; exit 1; }
+# the call screen has no intent filter, so dumpsys does not list it: look in the installed APK's manifest instead
+# (binary XML keeps class names in UTF-16)
+python3 - mobile/JARVIS.apk <<'PY' || { echo "the call screen is missing"; exit 1; }
+import sys, zipfile
+m = zipfile.ZipFile(sys.argv[1]).read("AndroidManifest.xml")
+sys.exit(0 if "CallActivity".encode("utf-16-le") in m or b"CallActivity" in m else 1)
+PY
 adb shell input keyevent KEYCODE_HOME
 sleep 2
 adb exec-out screencap -p > "$OUT/home.png"
