@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/workshop\.printer$/, "printer"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -570,7 +570,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         select("appearance.input_mode", "Ovládání", [["auto", "Automaticky (podle zařízení)"], ["mouse", "Myš a klávesnice"], ["touch", "Dotyk – větší tlačítka"], ["voice", "Hlas – velké tlačítko mikrofonu"]],
           "Automaticky: na dotykové obrazovce se tlačítka zvětší, jakmile se jí dotkneš. Mikrofon se sám nikdy nezapne."),
         sw("appearance.captions", "Živé titulky", "Velké titulky toho, co JARVIS říká a co od tebe slyšel – i bez zvuku."),
-        sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
+        sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Když je otevřený Stark HUD, ovládají gesta jeho: otočení 3D modelu nebo glóbu, přiblížení, rozložení modelu, přepínání rozložení. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
         sw("stark.attention_aware", "Nerušit při soustředění", "Při schůzce v kalendáři nebo hře přes celou obrazovku nedůležitá upozornění počkají a přijdou potom najednou. Budíky a časovače vždy hned.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),
@@ -748,6 +748,26 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               k.onchange = () => { client.send("secret_set", { name: id, value: k.value.trim() }); k.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok"); };
               return field(label, k, help);
             })),
+        // 3.15 Dílna: the 3D printer (its key goes to Windows Credential Manager) and the AI watching the print
+        (() => {
+          const key = h("input", { class: "input", type: "password", autocomplete: "off", placeholder: "API klíč tiskárny (OctoPrint / Moonraker)" }) as HTMLInputElement;
+          key.onchange = () => { client.send("secret_set", { name: "printer", value: key.value.trim() }); key.value = ""; toast("Klíč tiskárny uložen do Správce pověření Windows", "ok"); };
+          const on = getPath(S, "workshop.printer") !== "off";
+          return card("Dílna – 3D tiskárna", "JARVIS ukáže stav tisku v HUD a notchi, pozastaví ho hlasem a během tisku se každých pár minut podívá kamerou "
+            + "(AI s obrazem): špagety, odlepený výtisk nebo koule plastu → pozastaví tisk a pošle upozornění do telefonu.",
+            select("workshop.printer", "Tiskárna", [["off", "Žádná"], ["octoprint", "OctoPrint"], ["moonraker", "Klipper (Mainsail / Fluidd)"], ["bambu_ha", "Bambu Lab přes Home Assistant"]]),
+            ...(on ? [
+              h("div", { class: "grid2" }, text("workshop.printer_url", "Adresa", "Např. http://octopi.local nebo http://mainsail.local:7125 (Bambu: prázdné)"),
+                text("workshop.printer_name", "Jméno", "Jak jí JARVIS říká")),
+              h("div", { class: "grid2" }, field("Klíč API", key, "OctoPrint: Nastavení → Application Keys; Moonraker většinou žádný"),
+                text("workshop.camera_url", "Kamera (snímek)", "Prázdné = kamera tiskárny; jinak adresa JPEG snímku")),
+              getPath(S, "workshop.printer") === "bambu_ha" ? text("workshop.ha_prefix", "Předpona entit v Home Assistantu", "Např. p1s_01p00a123456789 – prázdné = první nalezená tiskárna") : h("span"),
+              sw("workshop.watch", "Hlídat tisk kamerou", "Fotka jde jen do tvé AI (jako u „podívej se“), nic se neukládá, kromě fotky selhání do deníku projektu."),
+              h("div", { class: "grid2" }, select("workshop.on_failure", "Když se tisk kazí", [["pause", "Pozastavit"], ["notify", "Jen dát vědět"]]),
+                range("workshop.watch_every_min", "Dívat se každých", 1, 15, 1, (v) => `${v} min`)),
+              text("workshop.slicer_profile", "Profil PrusaSliceru (.ini)", "Aby JARVIS mohl STL sám nakrájet a poslat k tisku (PrusaSlicer → Soubor → Exportovat konfiguraci)"),
+            ] : []));
+        })(),
       ];
     },
 

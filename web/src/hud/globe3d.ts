@@ -10,7 +10,7 @@ export type GlobeData = {
   trips: { text: string; kind: string; points: { code: string; name: string; lat: number; lon: number }[] }[];
   planes: { lat: number; lon: number; callsign: string; alt_m?: number }[];
 };
-export type Globe = { update(d: GlobeData): void; radar(host: string, path: string | null): void; zoom(by: number): void; focus(lat: number, lon: number): void; dispose(): void };
+export type Globe = { update(d: GlobeData): void; radar(host: string, path: string | null): void; zoom(by: number): void; turn(deg: number): void; focus(lat: number, lon: number): void; dispose(): void };
 
 const R = 2;
 
@@ -251,6 +251,11 @@ export async function mountGlobe(host: HTMLElement): Promise<Globe | null> {
       }
     },
     zoom,
+    turn(deg) {                                     // 3.15 a hand gesture: the globe turns by this much (a spring)
+      const from = rotY;
+      idleAt = performance.now();
+      void spring(0, 1, (k) => { rotY = from + (deg * Math.PI / 180) * k; }, { stiffness: 70, damping: 14 });
+    },
     focus(lat, lon) {
       const ty = -(lon * Math.PI) / 180, tx = (lat * Math.PI) / 180 * 0.9;
       const fy = rotY, fx = rotX;

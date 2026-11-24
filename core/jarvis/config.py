@@ -613,6 +613,19 @@ class HomeCfg(BaseModel):
     vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
 
 
+class WorkshopCfg(BaseModel):
+    """3.15 Dílna: the 3D printer and the failed-print watch (the printer's API key is in the keyring as "printer")."""
+    printer: Literal["off", "octoprint", "moonraker", "bambu_ha"] = "off"
+    printer_url: str = ""           # http://octopi.local, http://mainsail.local:7125 (Bambu: through Home Assistant)
+    printer_name: str = "Tiskárna"
+    ha_prefix: str = ""             # Bambu in Home Assistant: the entities' prefix (empty = the first printer found)
+    camera_url: str = ""            # a snapshot URL (empty = the printer's own camera)
+    watch: bool = True              # look at a running print with the AI every few minutes
+    watch_every_min: int = 3
+    on_failure: Literal["pause", "notify"] = "pause"
+    slicer_profile: str = ""        # PrusaSlicer .ini of your printer (STL → G-code before printing)
+
+
 class LimitsCfg(BaseModel):
     """OMEGA §5: what JARVIS may spend and change."""
     read_only: bool = False            # nothing that changes the PC, files, accounts or the home (only looking/reading)
@@ -698,6 +711,7 @@ class Config(BaseModel):
     multitask: MultitaskCfg = Field(default_factory=MultitaskCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
+    workshop: WorkshopCfg = Field(default_factory=WorkshopCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
@@ -784,6 +798,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
     "multitask.parallel", "multitask.watch_every_s",
+    "workshop.watch", "workshop.watch_every_min", "workshop.on_failure",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 

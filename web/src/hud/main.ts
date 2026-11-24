@@ -12,6 +12,7 @@ import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { kioskMode } from "./kiosk";
 import { worldMap } from "./worldmap";
+import { modelViewer } from "./modelview";
 import { at, onTier } from "../shared/motion";
 import { mountReactor3d } from "./reactor3d";
 import { mountGlobe } from "./globe3d";
@@ -191,13 +192,30 @@ const bottom = h("div", { class: "bottom" }, protoRow,
 
 const alertBox = h("div", { class: "alert", hidden: true });
 const wmap = worldMap(client);                 // 3.14 radar, home, the car, trips, planes
+const mview = modelViewer(client, play);       // 3.15 Dílna: the 3D model as a hologram
+// 3.15 the 3D printer while it prints: a thin bar with the per cent and the time left
+const printBar = h("div", { class: "printbar", hidden: true, role: "status" },
+  icon("printer"), h("span", { class: "pb-name" }), h("i", { class: "pb-track" }, h("b", {})), h("span", { class: "pb-text" }));
+client.on("printer" as any, (m: any) => {
+  const on = m.state === "printing" || m.state === "paused";
+  printBar.hidden = !on;
+  if (!on) return;
+  printBar.classList.toggle("paused", m.state === "paused");
+  (printBar.querySelector(".pb-name") as HTMLElement).textContent = (m.name || "Tisk").toUpperCase();
+  (printBar.querySelector(".pb-track b") as HTMLElement).style.transform = `scaleX(${Math.max(0, Math.min(100, Number(m.progress) || 0)) / 100})`;
+  const left = Number(m.left_s) || 0, mins = Math.round(left / 60);
+  const t = left ? (mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`) : "";
+  (printBar.querySelector(".pb-text") as HTMLElement).textContent =
+    `${Math.round(Number(m.progress) || 0)} %${t ? " · zbývá " + t : ""}${m.state === "paused" ? " · POZASTAVENO" : ""}`;
+});
+client.on("printer_look" as any, (m: any) => { if (!m.ok) log(`Tisk: ${m.kind} – ${m.why}`.slice(0, 90), "bad"); });
 const briefBox = h("div", { class: "brief", hidden: true });
 const closeBtn = h("button", { class: "close", type: "button", title: "Zavřít HUD (Esc)", "aria-label": "Zavřít HUD", onclick: () => closeHud() }, icon("x"));
 const left = h("div", { class: "col left" }, sysPanel, logPanel);
 const right = h("div", { class: "col right" }, planPanel, mediaPanel);
 const root = h("div", { class: "hud booting" },
   h("div", { class: "grid" }), h("div", { class: "scan" }), h("div", { class: "vignette" }),
-  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, wmap.el, closeBtn,
+  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, wmap.el, mview.el, printBar, closeBtn,
   h("i", { class: "br b1" }), h("i", { class: "br b2" }), h("i", { class: "br b3" }), h("i", { class: "br b4" }));
 document.getElementById("hud")!.append(root);
 // 3.15 the screensaver of the wall display: the globe turning slowly with the time, until someone comes
@@ -392,7 +410,28 @@ client.on("hud_cmd" as any, (m: any) => {
   else if (a === "systems") setLayout("full");
   else if (a === "hide_panels" || a === "show_panels") root.classList.toggle("panels-off", a === "hide_panels");
   else if (a === "close") closeHud();
+  else if (a.startsWith("model_")) mview.command(a);
+  else if (a === "gesture") gesture(String(m.gesture || ""));
 });
+// 3.15 hand gestures (the notch's camera sends them here while the HUD is on screen): the open model first, then the map
+// / globe, else the layouts – left / right = previous / next layout, up = the map, down = close it, a wave = panels on / off
+function gesture(g: string) {
+  if (mview.isOpen && mview.gesture(g)) return;
+  if (!wmap.el.hidden) {
+    const act = ({ left: "turn_left", right: "turn_right", up: "zoom_in", down: "zoom_out", wave: "close_map" } as Record<string, string>)[g];
+    if (act) wmap.command(act);
+    return;
+  }
+  const i = LAYOUTS.findIndex(([k]) => k === root.dataset.layout);
+  if (g === "left" || g === "right") setLayout(LAYOUTS[(i + (g === "right" ? 1 : LAYOUTS.length - 1)) % LAYOUTS.length][0]);
+  else if (g === "up") void wmap.open();
+  else if (g === "wave") root.classList.toggle("panels-off");
+  play("holo");
+}
+// the HUD on screen → the camera's gestures steer it (and back to the music when it goes away)
+const presence = () => client.send("hud_presence" as any, { visible: document.visibilityState === "visible" && !root.classList.contains("closing") });
+document.addEventListener("visibilitychange", presence);
+client.onStatus((s) => { if (s === "open") presence(); });
 client.on("notify", (m) => log(`${m.title}: ${m.body}`.slice(0, 90)));
 client.on("briefing", (m) => { showBriefing(m.text); log("Ranní brífink"); });
 client.on("error", (m) => log(m.message, "bad"));
@@ -421,10 +460,13 @@ function open() {
   clockT = window.setInterval(tickClock, 1000);
   slow = window.setInterval(() => refresh(true), 10 * 60 * 1000);
   refresh(true);
+  client.send("printer_get" as any, {});
+  presence();
   setTimeout(() => input.focus(), 400);
 }
 function close() {
   clearInterval(poll); clearInterval(clockT); clearInterval(slow);
+  client.send("hud_presence" as any, { visible: false });
   briefBox.hidden = true;
 }
 (window as any).__hud = {

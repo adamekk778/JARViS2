@@ -137,6 +137,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Bez náhledu")
         return FileResponse(p)
 
+    # 3.15 Dílna: a 3D model for the HUD's viewer (only files the model library put into its own folder)
+    @app.get("/api/workshop/model/{name}")
+    async def workshop_model(name: str, request: Request):
+        from .. import models3d
+
+        require_auth(request)
+        p = models3d.path_of(name)
+        if not p:
+            raise HTTPException(404, "Model nenalezen")
+        return FileResponse(p, media_type="application/octet-stream", headers={"X-Content-Type-Options": "nosniff",
+                                                                              "Cache-Control": "private, max-age=3600"})
+
     # OMEGA 717: the speed of the home network between the phone and this PC (paired devices only)
     @app.get("/api/speedtest")
     async def speedtest_down(request: Request, mb: int = 20):

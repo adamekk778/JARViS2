@@ -304,6 +304,9 @@ class Runtime:
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
+        from . import printer3d
+
+        self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
         from . import lifelog, quests
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)
@@ -577,6 +580,13 @@ class Runtime:
 
                 return True, f"Dobře, {KIND_LABEL.get(kind, kind)} už posílat nebudu (zapneš v Nastavení → Obecné)."
             return None
+        if act == "printer":                      # 3.15 "Pokračovat" / "Zrušit tisk" under the failed-print notice
+            from . import printer3d
+
+            a = str(args.get("action") or "")
+            err = await printer3d.command(self, a)
+            done = {"resume": "Tisk pokračuje.", "pause": "Tisk je pozastavený.", "cancel": "Tisk je zrušený."}.get(a, "Hotovo.")
+            return not err, done if not err else f"Tiskárna: {err}"
         if act == "water_done":                   # 3.14 "Vypito" under the water reminder
             from . import body
 

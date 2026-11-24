@@ -32,6 +32,7 @@ INSTANT: list[tuple[str, str]] = [
 ]
 
 NOT_INSTANT: list[str] = [
+    "pozastav tisk", "zastav tisk", "otoč model doleva",
     "otevři poslední stažený soubor", "otevři složku dokumenty", "otevři web seznam.cz", "otevři ten pdf dokument",
     "zavři všechna okna", "zavři zbytečné aplikace", "zavři tuhle záložku", "zavři počítač",
     "napiš e-mail šéfovi, že zítra nepřijdu", "co mám zítra v kalendáři a jaké bude počasí v Brně",
@@ -78,6 +79,15 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("vzlétni s dronem", ("drone",)), ("obleť místnost dronem a přistaň", ("drone",)),
     ("přibliž mapu", ("hud_control",)), ("ukaž zeměkouli ve 3D", ("hud_control",)), ("schovej panely v HUD", ("hud_control",)),
     ("přepni HUD na prezentaci", ("hud_control",)),
+    ("navrhni L-držák 40 mm široký na šrouby M4", ("cad_part",)), ("udělej krabičku 60 × 40 × 25 mm na Arduino", ("cad_part",)),
+    ("udělej ho o 5 mm širší", ("cad_part",)), ("stěna 3 mm", ("cad_part",)), ("ukaž moje díly", ("cad_part",)),
+    ("ukaž model C:/dilna/drzak.stl", ("model_view",)), ("rozlož model", ("model_explode",)), ("otoč model doleva", ("model_explode",)),
+    ("jak je na tom 3D tisk", ("printer_control",)), ("pozastav tisk", ("printer_control",)), ("kolik zbývá do konce tisku", ("printer_control",)),
+    ("pošli kryt.gcode na tiskárnu", ("printer_control",)), ("založ projekt meteostanice", ("workshop_project",)),
+    ("zapiš do projektu, že pájení je hotové", ("workshop_project",)), ("co mi chybí na meteostanici", ("workshop_project",)),
+    ("vydrží polička z ocelového profilu 20 mm, metr dlouhá, s 30 kg uprostřed", ("simulate",)),
+    ("jak se zahřeje hliníková deska 100 × 60 s regulátorem 3 W", ("simulate",)),
+    ("simuluj obvod V1 vcc 0 5; R1 vcc out 10k; R2 out 0 4k7", ("simulate",)), ("nabíjení kondenzátoru 100 µF přes 10k", ("simulate",)),
     ("zapni holo plochu", ("hud_control",)), ("zapni živou tapetu s glóbusem", ("update_setting",)),
     ("dej kvalitu efektů na ultra", ("update_setting",)), ("přepni barvy na Mark", ("update_setting",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),

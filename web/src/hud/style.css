@@ -31,7 +31,7 @@ html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 
 .b1 { top: 14px; left: 14px; border-right: 0; border-bottom: 0; } .b2 { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
 .b3 { bottom: 14px; left: 14px; border-right: 0; border-top: 0; } .b4 { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
 
-.hud > *:not(.grid):not(.scan):not(.vignette):not(.br):not(.close):not(.alert):not(.brief):not(.wm):not(.boot-seq):not(.proto-run):not(.screensaver):not(.telemetry):not(.layouts) { position: relative; z-index: 1; }
+.hud > *:not(.grid):not(.scan):not(.vignette):not(.br):not(.close):not(.alert):not(.brief):not(.wm):not(.boot-seq):not(.proto-run):not(.screensaver):not(.telemetry):not(.layouts):not(.mv):not(.printbar) { position: relative; z-index: 1; }
 .corner.tl { grid-column: 1; grid-row: 1; }
 .corner.tr { grid-column: 3; grid-row: 1; text-align: right; }
 .col.left { grid-column: 1; grid-row: 2; }
@@ -355,3 +355,34 @@ html[data-fx-paused="1"] .hud * { animation-play-state: paused !important; }
 .hud[data-layout="holo"] .centre { opacity: 0; pointer-events: none; }
 .hud[data-layout="holo"] .panel { background: rgb(2 14 24 / .62); box-shadow: 0 0 30px var(--holo-dim); }
 .hud[data-layout="holo"] .bottom { opacity: .9; }
+
+/* 3.15 Dílna: the 3D model as a hologram, and the printer's bar */
+.mv { position: absolute; inset: 5vh 5vw; z-index: 42; display: grid; grid-template-rows: auto 1fr auto; gap: 8px; padding: 12px;
+  background: radial-gradient(80% 70% at 50% 55%, rgba(8, 38, 56, .97), rgba(2, 9, 14, .985)); border: 1px solid rgba(127, 227, 255, .4);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-radius: 16px; box-shadow: 0 0 50px rgba(79, 195, 255, .2), inset 0 0 40px rgba(127, 227, 255, .07); animation: mvIn .5s cubic-bezier(.2, .9, .2, 1) both; }
+.mv[hidden] { display: none; }
+.mv-head { display: flex; align-items: center; gap: 10px; letter-spacing: .18em; color: #7fe3ff; font-family: Orbitron, sans-serif; font-size: 13px; }
+.mv-title { font-family: Rajdhani, sans-serif; letter-spacing: .06em; color: #e6fbff; font-size: 15px; }
+.mv-tools { margin-left: auto; display: flex; gap: 6px; }
+.mv-stage { position: relative; min-height: 260px; border-radius: 12px; overflow: hidden; cursor: grab;
+  background: repeating-linear-gradient(0deg, rgba(127, 227, 255, .035) 0 1px, transparent 1px 4px); }
+.mv-stage:active { cursor: grabbing; }
+.mv-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mv-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font: 500 14px Rajdhani, sans-serif; color: rgba(230, 251, 255, .85); }
+.mv-info { font-variant-numeric: tabular-nums; }
+.mv-explode { display: inline-flex; align-items: center; gap: 8px; letter-spacing: .08em; color: #7fe3ff; }
+.mv-slider { width: 180px; accent-color: #4fc3ff; }
+.mv-hint { margin-left: auto; opacity: .55; font-size: 13px; }
+@keyframes mvIn { from { opacity: 0; transform: scale(.96); filter: blur(6px); } }
+.printbar { position: absolute; left: 50%; bottom: 112px; z-index: 6; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px; border-radius: 999px; background: rgba(2, 14, 22, .8); border: 1px solid rgba(127, 227, 255, .35);
+  font: 600 13px Rajdhani, sans-serif; letter-spacing: .1em; color: #cdefff; }
+.printbar[hidden] { display: none; }
+.printbar .pb-track { position: relative; width: 160px; height: 5px; border-radius: 3px; background: rgba(127, 227, 255, .15); overflow: hidden; }
+.printbar .pb-track b { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, #4fc3ff, #9fe6ff);
+  box-shadow: 0 0 10px #4fc3ff; transition: transform .8s cubic-bezier(.2, .9, .2, 1); }
+.printbar.paused .pb-track b { background: #f5b942; box-shadow: 0 0 10px #f5b942; }
+.printbar .pb-text { font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+html[data-fx="off"] .mv { animation: none; }
+@media (max-width: 700px) { .mv-hint { display: none; } .mv { inset: 2vh 2vw; } }

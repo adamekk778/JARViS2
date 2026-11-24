@@ -112,6 +112,27 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\b(priblizi?|oddali?|zvetsi|zmensi)\w*\b.*\b(map\w*|globus\w*|zem\w*)\b|\b(globus|zemekouli|3d map\w*)\b|"
      r"\b(schovej|skryj|ukaz|vrat)\w*\b.*\bpanel\w*\b|\b(hud|holo)\w*\b.*\b(minimal\w*|soustredeni|prezentac\w*|rozlozeni)\b",
      ("hud_control", "world_map")),
+    # 3.15 Dílna (sekce C)
+    (r"\b(navrhni|nakresli|vymodeluj|namodeluj|udelej|vytvor|navrhnes)\w*\b.*\b(krabick\w*|krabic\w*|drzak\w*|uhelnik\w*|desk\w* s (dir|otvor)\w*|"
+     r"sloupek|sloupk\w*|hacek|hack\w*|knoflik\w*|3d model\w*|dil\w* (na|pro) (3d )?tisk|pouzdr\w*)|\b(cad|text na cad)\b|"
+     r"\bo \d+(?:[.,]\d+)? ?(mm|cm|%|procent)\w* (sirs|uzs|delsi|kratsi|vyss|nizs|tluss|silnejs|tenc|vets|mens)\w*|"
+     r"\b(sten\w*|dir\w*|der) (na )?\d+(?:[.,]\d+)? ?mm\b|\bna srouby m\d|\b(moje|vsechny) dily\b|\bpredchozi verz\w* dilu\b",
+     ("cad_part",)),
+    (r"\b(ukaz|otevri|zobraz|nacti)\w*\b.*\b(model\w*|stl|step|stp|3mf|glb|sestav\w*)\b(?!.*\b(jazykov|ai|umel)\w*)",
+     ("model_view", "model_explode")),
+    (r"\b(rozloz|sloz)\w* (ten |tu )?(model|sestav\w*|dil\w*)\b|\brozlozen\w* pohled\b|\b(otoc|toc)\w* model\w*\b",
+     ("model_explode",)),
+    (r"\b3d tisk\w*|\btiskarn\w*\b.*\b(3d|tisk\w*|tryska|podlozk\w*|filament\w*)|\b(stav|prubeh) tisku\b|"
+     r"\b(pozastav|zastav|zrus|pokracuj|obnov)\w* (v )?tisk\w*\b|\bjak (je|jde) (na tom )?tisk\b|\bkolik zbyva\b.*\btisk\w*|"
+     r"\b(spaget\w*|odlepil\w*)\b|\b(posli|dej)\b.*\bna tiskarn\w*|\bkamer\w* (na |u )?tiskarn\w*",
+     ("printer_control",)),
+    (r"\b(zaloz|novy|nov\w*) projekt\w*\b|\bdo projektu\b|\bdenik\w* (projekt\w*|dilny)\b|\bco mi chybi (na|do|k)\b|"
+     r"\bdily (na|do|pro|k) \w+|\b(muj|moje|vsechny) projekt\w*\b|\b(stav|verz\w*) projekt\w*\b|\bkusovnik projekt\w*",
+     ("workshop_project",)),
+    (r"\b(simul\w*|spocitej|vydrzi|unese|ohne)\b.*\b(nosnik\w*|tyc\w*|polic\w*|profil\w*|trubk\w*|traverz\w*)|\bprohyb\w*|"
+     r"\bteplot\w* (desk\w*|na desce|chladic\w*)|\b(jak|kolik) se (to )?zahrej\w*|\b(simul\w*|spocitej|vyres)\w* (obvod|zapojeni)\w*|"
+     r"\bnapeti v uzl\w*|\bnabijeni kondenzator\w*|\bcasov\w* konstant\w*|\bnabeh proudu\b",
+     ("simulate",)),
     (r"\b(co ses|co jsi se|cos) (v noci |dnes |vcera )?(naucil|naucila)\b|\bnocni uceni\b|\bprojdi (dnesni |svoje )?chyby\b",
      ("night_learn",)),
     (r"\bco jsem (delal|delala|resil|resila|dela)\b|\bna cem jsem (pracoval|delal)\w*\b", ("life_day",)),

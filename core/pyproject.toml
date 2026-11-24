@@ -103,4 +103,4 @@ files = ["jarvis/llm", "jarvis/evals", "jarvis/quality.py", "jarvis/redact.py", 
          "jarvis/persona.py", "jarvis/house.py", "jarvis/energy.py", "jarvis/nodes.py", "jarvis/eyes.py", "jarvis/safety.py", "jarvis/body.py",
          "jarvis/car.py", "jarvis/travel.py", "jarvis/parcels.py",
          "jarvis/callagent.py", "jarvis/chatdigest.py", "jarvis/server/callroutes.py",
-         "jarvis/nightlearn.py", "jarvis/lifelog.py", "jarvis/quests.py", "jarvis/whatif.py", "jarvis/robots.py", "jarvis/fxrender.py", "jarvis/overlayfx.py", "jarvis/livecards.py"]
+         "jarvis/nightlearn.py", "jarvis/lifelog.py", "jarvis/quests.py", "jarvis/whatif.py", "jarvis/robots.py", "jarvis/fxrender.py", "jarvis/overlayfx.py", "jarvis/livecards.py", "jarvis/cad.py", "jarvis/sims.py", "jarvis/printer3d.py", "jarvis/workbench.py", "jarvis/models3d.py"]

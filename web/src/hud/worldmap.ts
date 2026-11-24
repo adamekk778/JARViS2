@@ -152,6 +152,10 @@ export function worldMap(client: JarvisClient) {
     else if (action === "globe" && !threeD) { threeD = true; toggle(dimBtn, true); void setView(); }
     else if (action === "flat" && threeD) { threeD = false; toggle(dimBtn, false); void setView(); }
     else if (action === "radar_play" && !timer) { play(); toggle(playBtn, true); }
+    else if (action === "turn_left" || action === "turn_right") {          // 3.15 gestures: turn the globe / pan the map
+      if (threeD) globe?.turn(action === "turn_left" ? -40 : 40);
+      else map?.panBy([action === "turn_left" ? -260 : 260, 0]);
+    }
     else if (action === "close_map") close();
   }
   client.on("hud_map" as any, () => { open().catch(() => {}); });

@@ -1213,6 +1213,7 @@ const team = new Map<string, { icon: string; name: string; since: number }>();  
 let mtAgents = { running: 0, verdict: "", tone: "" };                      // 3.14 multitasking agents at work
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
+const HUD_GESTURE: Record<Gesture, string> = { left: "doleva", right: "doprava", up: "přiblížit", down: "oddálit", wave: "rozložit / panely" };
 let nudge: { app: string; until: number } | null = null;
 // 3.12 headphones / speakers / charger connected: a short iPhone-like island with an icon and the battery
 let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number; thumb?: string; fly?: boolean } | null = null;
@@ -1227,8 +1228,19 @@ const GESTURE_ACTION: Record<Gesture, [string, any]> = {
   left: ["media_control", { action: "previous" }], right: ["media_control", { action: "next" }],
   up: ["volume", { action: "up" }], down: ["volume", { action: "down" }], wave: ["media_control", { action: "play_pause" }],
 };
+// 3.15 while the Stark HUD is on screen, the gestures steer it (turn the model / the globe, zoom, layouts) – not the music
+let hudOnScreen = false, gestureToHud = false;
+client.on("hud_presence" as any, (m: any) => { hudOnScreen = !!m.on; });
 const gestureCam = new GestureCam({
   onGesture: (g) => {
+    gestureToHud = hudOnScreen;
+    if (hudOnScreen) {
+      client.send("hud_gesture" as any, { g });
+      lastGesture = { g, until: Date.now() + 1300 };
+      updateActivity();
+      window.setTimeout(updateActivity, 1400);
+      return;
+    }
     const [action, args] = workshop.on && g !== "up" && g !== "down"
       ? ["workshop_step", { move: g === "right" ? "next" : g === "left" ? "prev" : "repeat" }] : GESTURE_ACTION[g];
     client.send("quick_action", { action, args });
@@ -1628,7 +1640,7 @@ function islandActivity(t: any) {
     r = [h("span", { class: "n-sw-n" }, shareWait.count === 1 ? "1 soubor" : shareWait.count < 5 ? `${shareWait.count} soubory` : `${shareWait.count} souborů`)];
   } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
-    l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
+    l = [icon("hand-waving", "ph-fill"), h("span", {}, gestureToHud ? `HUD · ${HUD_GESTURE[lastGesture.g]}` : GESTURE_LABEL[lastGesture.g])];
   } else if (workshop.on && workshop.total) {
     kind = "workshop";
     l = [icon("wrench", "ph-fill"), h("span", {}, `Krok ${workshop.step}/${workshop.total}`)];
