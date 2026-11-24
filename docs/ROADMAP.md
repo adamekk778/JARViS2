@@ -32,6 +32,30 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.18 – cesty a rezervace po potvrzení + 18 vylepšení (37 návrhů v 6 balících)
+Hotovo v kódu s testy: samotest integrací v Diagnostice, odkaz s daty po cizím textu se ptá, záznam cizího textu
+v Bezpečí, Šifrovat i doma; STL na Bambu přes OrcaSlicer, kontrola před tiskem, bohatší CAD (díry, text, zaoblení,
+3MF), fotka a časosběr hotového tisku; rychlejší živý přepis, teplá cache Clauda, průběžné hlášení, rozdělený agent,
+hlídání paměti a CPU při dlouhém běhu; GLS s klíčem, „vyzvedni do“, Web Push pro iPhone, aplikace Wear OS s dlaždicí.
+Cesty: kritéria z popisu (AI + kontrola), srovnání 3–5 nabídek s důvody, „jako minule“, celá cesta, LiteAPI a Duffel
+(hotely, lety), prohlížeč se zastavením před platbou, přednost zrušení zdarma a platby na hotelu, pojistky (dvakrát,
+přesná částka z vlastního hledání, telefon s otiskem, limit, měsíční rozpočet, nikdy po cizím textu, nová kontrola
+ceny těsně před platbou), kalendář / Cesty / složka cesty, připomínky, hlídání zlevnění, zrušení a změna, zpráva
+hotelu, náklady pro účetní, hlídání cen, vstupenky, útrata.
+
+Co nejde nebo zatím není:
+- **Test na tvém PC přes Remote Control (A3)** – k téhle cloudové relaci nebyl připojený žádný počítač, takže na
+  skutečném Windows u tebe se nic nespouštělo; Windows v CI ano.
+- **Ostré rezervace** – LiteAPI i Duffel jsou testované jen se simulovanými odpověďmi podle jejich dokumentace; první
+  rezervaci zkus se zkušebním klíčem (`sand_…`, `duffel_test_…`). U Duffel letenek zatím jen jeden cestující (víc lidí
+  přes prohlížeč); u Duffel hotelů nevíme dopředu podmínky zrušení, takže se nehlídá jejich zlevnění.
+- **Platba kartou přímo z JARVISe** – záměrně ne: JARVIS číslo karty nevidí; platí LiteAPI (karta v tvém účtu) nebo
+  zůstatek Duffelu, jinak prohlížeč se zastavením před platbou.
+- **E-mail hotelu sám od sebe** – adresu hotelu poskytovatelé nedávají; JARVIS napíše koncept a pošle ho po potvrzení
+  na adresu, kterou mu řekneš.
+- **Neověřeno na skutečném zařízení:** aplikace Wear OS (sestaví ji CI, na hodinkách nevyzkoušená), Web Push na
+  iPhonu, GLS živě (bez klíče API vrací 403), OrcaSlicer s Bambu tiskárnou, časosběr se skutečnou kamerou.
+
 ## 3.17 – rychlost doma, chytřejší, bezpečnější, integrace (20 návrhů v 6 balících)
 Hotovo v kódu s testy: Windows testy a Android emulátor v CI, měření rychlosti doma; hlas po kouscích, dotaz na AI
 s předstihem při váhavé pauze (nástroje až po dořečení), průběžný přepis malým modelem, hodinová cache Clauda s úsporou

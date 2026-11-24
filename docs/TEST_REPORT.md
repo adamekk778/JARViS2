@@ -56,6 +56,23 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
     a animace hovoru v Androidu, skutečná 3D tiskárna (OctoPrint / Klipper / Bambu), OpenSCAD, FreeCAD a PrusaSlicer
     (volání napsaná podle dokumentace, testovaná se simulovaným spuštěním), gesta se skutečnou webkamerou.
 
+- **3.18 (6 balíků, 37 návrhů): 2099 testů prošlo, 24 přeskočeno** (Linux). Nové `tests/test_travel318.py` (26 testů: kritéria z popisu
+  a jejich kontrola, pořadí nabídek s důvody, „jako minule“, hledání přes LiteAPI a Duffel se simulovanými odpověďmi
+  podle jejich dokumentace, rezervace s novou kontrolou ceny těsně před platbou – posunutá cena nic nezaplatí, limit,
+  měsíční rozpočet a chybějící údaje platbu zastaví, špatná částka se ani nezeptá, cizí text rezervaci nespustí,
+  vždy dvakrát i s plnou důvěrou, potvrzení ukazuje skutečnou nabídku a jde na telefon, prohlížeč se před Zaplatit
+  zastaví; zrušení, letenka Duffel s objednávkou ze zůstatku a zrušením, hotel Duffel se sazbou, kterou jsi viděl;
+  připomínky jen jednou, pas, zlevnění zarezervovaného hotelu, hlídání cen, útrata, stránka Cesty jen v PC, údaje
+  cestujícího se neposílají do telefonu), `test_secure318.py`, `test_dilna318.py`, `test_speed318.py`, `test_phone318.py`.
+  Navíc:
+  - evals 438 (86 okamžitých povelů, 14 nových cestovních), 100 %; `ruff`, `mypy` (110 souborů), ESLint, `tsc`,
+    `vite build` bez chyb; `python -m jarvis.uicheck` bez chyb včetně nové stránky Cesty,
+  - opravené chyby z CI: snímky časosběru se na rychlém stroji přepsaly (stejná milisekunda) a na Windows zůstal
+    otevřený první snímek; kontrola obrazovky hovoru v emulátoru hledala na špatném místě,
+  - **Neověřeno ve skutečnosti:** ostré rezervace u LiteAPI a Duffel (jen simulované odpovědi), aplikace Wear OS na
+    hodinkách (sestavuje ji CI), Web Push na iPhonu, GLS s klíčem, OrcaSlicer s Bambu, test na tvém PC přes Remote
+    Control (žádný počítač nebyl připojený).
+
 - **3.17 (6 balíků, 20 návrhů): 2034 testů prošlo, 24 přeskočeno** (Linux). Nové `tests/test_smart317.py` (vzorové
   reflexy, přehled a mazání naučeného, kontrola tvých povelů po aktualizaci, CAD z popisu: kontrola stromu, objem
   a uzavřená síť, návrh a úprava s druhým pokusem, model ruky jen celý stažený a jen z tohoto PC, hodnoty gest),

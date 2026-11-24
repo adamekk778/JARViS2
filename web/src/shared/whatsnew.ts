@@ -4,6 +4,14 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.18": [
+    { icon: "airplane-tilt", title: "Hotely a letenky podle popisu", line: "„Řím, 3 noci od pátku, do 150 € za noc, blízko centra, se snídaní“ – JARVIS ukáže 3–5 nabídek vedle sebe s důvodem, cenou celkem a podmínkami zrušení a pamatuje si, co jsi bral minule. „Beru dvojku“ ji zarezervuje. Hotely přes LiteAPI, letenky a hotely přes Duffel; bez klíče otevře Booking.com, Airbnb nebo Google Flights s vyplněným hledáním." },
+    { icon: "shield-check", title: "Platí se až po tvém potvrzení", line: "Každá rezervace se ptá dvakrát (podruhé s přesnou částkou), na telefonu s otiskem prstu. Těsně před platbou JARVIS ověří cenu znovu – když se změní, nic nezaplatí. Limit na rezervaci, měsíční rozpočet a nikdy na pokyn e-mailu nebo stránky. Prohlížeč se před tlačítkem Zaplatit vždycky zastaví." },
+    { icon: "suitcase-rolling", title: "Cesta se o sebe postará", line: "Po rezervaci: kalendář, stránka Cesty, potvrzení ve složce cesty, služební cesta do tabulky pro účetní. Připomene konec zrušení zdarma, check-in, počasí v cíli, co sbalit a pas. Hlídá, jestli hotel nezlevnil, a „dej vědět, až bude Řím pod 4 000 Kč“." },
+    { icon: "package", title: "Zásilky, hodinky, iPhone", line: "GLS živě s klíčem, „vyzvedni do čtvrtka“ u balíků na výdejně. Aplikace pro hodinky Wear OS s dlaždicí a spárováním kódem. Upozornění i na iPhone (webová aplikace na ploše, Web Push)." },
+    { icon: "printer", title: "Dílna: STL rovnou na Bambu", line: "STL se nakrájí OrcaSlicerem a pošle na Bambu, před tiskem kontrola (vejde se? podpěry? čas a filament), bohatší díly z popisu a po tisku fotka a časosběrné video." },
+    { icon: "lightning", title: "Rychlejší a bezpečnější", line: "Rychlejší živý přepis, Claude s teplou cache, průběžné hlášení při delší práci. Odkaz, který by vynesl tvoje data, se nejdřív zeptá; Bezpečí ukazuje, co zkoušel cizí text; volba Šifrovat i doma a kontrola všech integrací v Diagnostice." },
+  ],
   "3.17": [
     { icon: "waveform", title: "Hlas hraje hned", line: "První věta začne znít, ještě než je celá vyrobená (Edge a ElevenLabs), a JARVIS se k AI zeptá už při váhavé pauze – nástroje ale spustí až na tvoje skutečně dořečená slova. Živý přepis při mluvení a čekání na konec věty podle tvého tempa." },
     { icon: "magic-wand", title: "Průvodce rychlostí", line: "Diagnostika → Změřit rychlost změří odpověď u tebe doma a Průvodce rychlostí doporučí nejrychlejší nastavení pro tvoje PC – každé jedním klikem. Claude si drží pokyny a nástroje v hodinové cache a Diagnostika ukazuje, kolik to ušetřilo." },

@@ -17,6 +17,16 @@ až na tvůj pokyn.
   (nebo `npm link` na vlastní build) a `npm run build`; JARVIS používá jen veřejnou funkci `ReadStepFile`
   (`web/src/hud/stepload.ts`).
 
+## AndroidX Wear Tiles, ProtoLayout a Guava (Apache-2.0) – aplikace pro hodinky (3.18)
+
+- `androidx.wear.tiles:tiles` **1.4.1**, `androidx.wear.protolayout` **1.2.1** a Guava (pevně v `mobile/wear/app/build.gradle`).
+- Licence: Apache License 2.0 – <https://developer.android.com/jetpack/androidx> a <https://github.com/google/guava>.
+
+## OrcaSlicer (AGPL-3.0) – krájení pro Bambu (3.18)
+
+- JARVIS OrcaSlicer nepřibaluje: jen spustí program, který si sám nainstaluješ, jako samostatný proces z příkazové
+  řádky (`core/jarvis/printer3d.py`, `slice_for_bambu`). Zdroj: <https://github.com/SoftFever/OrcaSlicer>.
+
 ## MediaPipe Tasks Vision + Hand Landmarker (Apache-2.0) – gesta prsty (3.17)
 
 - `@mediapipe/tasks-vision` **1.2.3** (npm) a model `hand_landmarker.task` (float16, verze 1).

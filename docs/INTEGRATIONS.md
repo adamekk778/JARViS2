@@ -45,6 +45,13 @@
 | Bambu Lab napřímo (3.17) | volitelné | Integrace → Dílna → Bambu Lab napřímo (LAN) | trezor OS (přístupový kód) | MQTT s TLS 8883, FTPS 990, kamera P1/A1 6000; certifikát tiskárny připnutý při prvním spojení |
 | Wear OS hodinky (3.17) | volitelné | spárovaný Android telefon | — | „Zeptej se JARVISe“ jako tichá notifikace s hotovými otázkami; odpověď hlasem z hodinek |
 | occt-import-js (3.17) | vestavěné | — | — | STEP v HUD bez FreeCADu; LGPL-2.1, viz docs/THIRD_PARTY.md |
+| LiteAPI – hotely (3.18) | volitelné | Propojení → LiteAPI | trezor OS (klíč API) | hledání, prebook s kontrolou ceny, rezervace; platí karta v účtu LiteAPI nebo peněženka; `sand_` = zkušební; neověřeno ostře |
+| Duffel – letenky a hotely (3.18) | volitelné | Propojení → Duffel | trezor OS (token) | offer requests, kontrola nabídky, objednávka ze zůstatku, zrušení; Stays: search → quote → booking; neověřeno ostře |
+| Booking.com, Airbnb, Google Flights, GetYourGuide (3.18) | bez účtu | prohlížeč JARVISe | — | vyplněné hledání; JARVIS se před platbou vždy zastaví a zeptá |
+| GLS (3.18) | volitelné | Propojení → GLS | trezor OS (klíč API) | Track & Trace API s klíčem; bez klíče odkaz |
+| Web Push pro iPhone (3.18) | volitelné | webová aplikace na ploše (iOS 16.4+) přes HTTPS (Tailscale / Cloudflare) | klíč VAPID v trezoru OS | šifrování RFC 8291; viz docs/IPHONE.md; neověřeno na iPhonu |
+| Wear OS aplikace (3.18) | volitelné | Nastavení → Telefon → Spárovat hodinky (kód 6 číslic) | vlastní klíč zařízení | dlaždice se stavem, otázka hlasem; sestavuje CI, neověřeno na hodinkách |
+| OrcaSlicer (3.18) | volitelné | nainstalovaný + profil a filament v Dílně | — | STL → nakrájený 3MF pro Bambu napřímo |
 | PrusaSlicer (3.15) | volitelné | nainstalovaný + profil .ini v Nastavení | — | STL / 3MF → G-code před tiskem |
 | OpenSCAD (3.15) | volitelné | nainstalovaný | — | přesné STL z text → CAD; bez něj náhled ze sítě JARVISe |
 | FreeCAD (3.15) | volitelné | nainstalovaný (freecadcmd) | — | STEP → OBJ s díly pro HUD |

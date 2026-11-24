@@ -51,6 +51,29 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.18 – Cesty: hotely a letenky po tvém potvrzení
+
+- **Cesty podle popisu:** „Řím, 3 noci od pátku, do 150 € za noc, blízko centra, se snídaní“ → 3–5 nabídek vedle
+  sebe (karta v chatu) s důvodem, cenou celkem a podmínkami zrušení; „jako minule“ podle toho, co sis vybral dřív.
+  Hotely přes **LiteAPI**, letenky a hotely přes **Duffel**, celá cesta (let + hotel), vstupenky přes GetYourGuide;
+  bez klíče JARVIS otevře Booking.com, Airbnb nebo Google Flights s vyplněným hledáním.
+- **Platí se až po tvém potvrzení:** rezervace a zrušení se ptají vždy dvakrát (podruhé s přesnou částkou, kterou
+  JARVIS vezme z vlastního hledání, ne ze slov AI), na telefon s otiskem prstu; těsně před platbou se cena ověří znovu
+  a jiná cena nebo podmínky platbu zastaví; limit na rezervaci a měsíční rozpočet; e-mail ani stránka rezervaci
+  nespustí; prohlížeč se před tlačítkem Zaplatit / Rezervovat vždy zastaví (i s plnou důvěrou). JARVIS nikdy nevidí
+  číslo karty – platí LiteAPI (karta v tvém účtu) nebo zůstatek u Duffelu.
+- **Po rezervaci:** kalendář, stránka **Cesty**, let do Mých cest (zpoždění, gate, kdy vyrazit), potvrzení do
+  Dokumenty → JARVIS → Cesty, služební cesta do `naklady.csv`; připomínky (konec zrušení zdarma, check-in, počasí,
+  co sbalit, platnost pasu), hlídání zlevnění zarezervovaného hotelu, hlídání cen („pod 4 000 Kč“), změna termínu,
+  zpráva hotelu (koncept) a útrata za cesty. Údaje cestujícího zůstávají jen v PC (do telefonu ani do diagnostiky).
+- **Dílna:** STL na Bambu přes OrcaSlicer, kontrola před tiskem (vejde se, převisy, čas, filament), bohatší díly
+  z popisu (díry, text, zaoblené krabičky, 3MF) a po tisku fotka s časosběrným videem.
+- **Telefon a zásilky:** GLS živě s klíčem, „vyzvedni do čtvrtka“, aplikace pro hodinky Wear OS (dlaždice, párování
+  kódem), upozornění pro iPhone přes Web Push (docs/IPHONE.md).
+- **Rychlost a bezpečí:** rychlejší živý přepis, teplá cache Clauda, průběžné hlášení při delší práci, rozdělený
+  agent, hlídání dlouhého běhu; odkaz s tvými daty se po cizím textu zeptá, záznam „Co zkoušel cizí text“, Šifrovat
+  i doma, samotest integrací v Diagnostice.
+
 ## Novinky ve verzi 3.17 – Rychlost doma, chytřejší dílna, bezpečnější nástroje
 
 - **Rychlost:** první věta hraje po kouscích, ještě než je celá vyrobená; při váhavé pauze se JARVIS zeptá AI
