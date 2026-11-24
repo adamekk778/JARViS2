@@ -82,6 +82,7 @@ CLIENT_TYPES = [
     "speedwizard_get", "speedwizard_apply",
     "toolmem_get", "toolmem_forget", "mine_check",
     "hands_status", "hands_download",
+    "foreign_log_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -128,6 +129,7 @@ SERVER_TYPES = [
     "speedwizard",
     "toolmem", "mine_check",
     "hands",
+    "foreign_log",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -523,6 +525,8 @@ class Connection:
             patch["enabled"] = bool(m["enabled"])
         if "upnp" in m:
             patch["upnp"] = bool(m["upnp"])
+        if "encrypt_home" in m:                  # 3.18 the phone uses the encrypted link at home too
+            patch["encrypt_home"] = bool(m["encrypt_home"])
         if "public_host" in m:
             patch["public_host"] = str(m["public_host"] or "").strip()[:200]
         if "relay_host" in m:

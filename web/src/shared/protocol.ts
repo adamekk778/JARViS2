@@ -58,6 +58,7 @@ export const CLIENT_TYPES = [
   "speedwizard_get", "speedwizard_apply",
   "toolmem_get", "toolmem_forget", "mine_check",
   "hands_status", "hands_download",
+  "foreign_log_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -104,6 +105,7 @@ export const SERVER_TYPES = [
   "speedwizard",
   "toolmem", "mine_check",
   "hands",
+  "foreign_log",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

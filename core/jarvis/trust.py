@@ -92,3 +92,62 @@ def foreign_needs_ask(spec: Any, offered: bool, words: str = "") -> bool:
 
         return not re.search(NAMED_BY.get(spec.name, _INPUT_VERBS), _fold(words))
     return False
+
+
+# ------------------------------------------------------------------------------------------ 3.18 a link that carries data out
+URL_KEYS = ("url", "link", "href", "address", "uri", "page")
+_SECRETISH = (
+    (r"[\w.+-]+@[\w-]+\.[\w.-]+", "e-mail"),
+    (r"(?:\+?\d[\s-]?){9,}", "telefon nebo číslo"),
+    (r"[A-Za-z0-9_\-]{28,}", "klíč nebo token"),
+)
+
+
+def link_leak(args: dict, words: str = "") -> str:
+    """Foreign text is in the task: '' when the link in these arguments is harmless, else why it could carry your data
+    away (an address you did not name that sends a long query, an e-mail, a number or a key to its server)."""
+    import re
+    from urllib.parse import unquote, urlsplit
+
+    for k in URL_KEYS:
+        v = (args or {}).get(k)
+        if not isinstance(v, str) or "://" not in v and not v.startswith("www."):
+            continue
+        u = urlsplit(v if "://" in v else "https://" + v)
+        host = (u.hostname or "").lower()
+        if not host:
+            continue
+        mine = _fold(words)
+        base = ".".join(host.split(".")[-2:])
+        if base and base in mine:
+            continue                                   # you named the site yourself
+        carried = unquote(u.query + " " + u.fragment + " " + "/".join(u.path.split("/")[2:]))
+        for rx, what in _SECRETISH:
+            if re.search(rx, carried):
+                return f"odkaz na {host} by odeslal {what}"
+        if len(carried.strip()) > 60:
+            return f"odkaz na {host} nese dlouhá data"
+    return ""
+
+
+# ------------------------------------------------------------------------------------------ 3.18 what foreign text tried
+FOREIGN_SQL = """CREATE TABLE IF NOT EXISTS foreign_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, source TEXT, tool TEXT,
+                 what TEXT, why TEXT, approved INTEGER)"""
+
+
+def log_foreign(rt: Any, source: str, tool: str, what: str, why: str, approved: bool) -> None:
+    """Every step foreign text led to that needed your answer – Bezpečí a soukromí shows them (the last 200)."""
+    import time
+
+    try:
+        rt.db.exec(FOREIGN_SQL)
+        rt.db.exec("INSERT INTO foreign_log (ts, source, tool, what, why, approved) VALUES (?,?,?,?,?,?)",
+                   (time.time(), source[:60], tool[:60], what[:200], why[:200], int(bool(approved))))
+        rt.db.exec("DELETE FROM foreign_log WHERE id NOT IN (SELECT id FROM foreign_log ORDER BY id DESC LIMIT 200)")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def foreign_list(rt: Any, limit: int = 50) -> list[dict]:
+    rt.db.exec(FOREIGN_SQL)
+    return [dict(r) for r in rt.db.all("SELECT * FROM foreign_log ORDER BY id DESC LIMIT ?", (limit,))]

@@ -472,6 +472,12 @@ async def run(rt: Any, tester) -> list[dict]:
     except asyncio.TimeoutError:
         results.append(_r("lan", "Domácí síť", None, "Kontrola sítě nestihla doběhnout."))
     results += [wake(rt), notch(rt), phone(rt)]        # 3.13 "Hey Jarvis", the notch and the phone too
+    try:                                               # 3.18 the printer, gestures, parcels, STEP, travel booking
+        from . import integrationcheck
+
+        results += await asyncio.wait_for(integrationcheck.run(rt), 60)
+    except Exception as e:  # noqa: BLE001
+        results.append(_r("integrations", "Integrace", None, f"Kontrola integrací nedoběhla: {str(e)[:120]}"))
     for r in results:                                  # into the log, so a diagnostics export carries them
         (log.warning if r["ok"] is False else log.info)("kontrola %s: %s – %s", r["key"], "OK" if r["ok"] else "CHYBA", r["detail"])
     return results

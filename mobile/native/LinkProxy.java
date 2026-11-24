@@ -54,6 +54,12 @@ final class LinkProxy {
 
     static boolean configured(Context c) { return info(c) != null; }
 
+    /** 3.18 "Šifrovat i doma": every request goes through the encrypted, pinned link – at home too. */
+    static boolean always(Context c) {
+        JSONObject o = info(c);
+        return o != null && o.optBoolean("always", false);
+    }
+
     /** Start listening on 127.0.0.1 (once per app process). */
     static synchronized boolean start(Context c) {
         if (server != null && !server.isClosed()) return true;

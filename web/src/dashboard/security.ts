@@ -204,6 +204,20 @@ export function buildSecurity(client: JarvisClient) {
         new Date(r.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }), " · ", r.tool), h("span", { class: "muted" }, r.what || ""))));
   });
 
+  // 3.18 Co zkoušel cizí text: steps an e-mail, a web page, a file, a picture or the clipboard led to – and your answer
+  const foreignBox = h("div", { class: "card sec-card" });
+  const SRC: Record<string, string> = { clipboard: "schránka", attachment: "příloha", email_read: "e-mail", email_inbox: "e-maily",
+    email_search: "e-maily", web_read: "web", web_search: "web", google_search: "web", browser_read: "web", phone_messages: "zprávy",
+    read_text_file: "soubor", read_attachment: "příloha", clipboard_get: "schránka", ui_read: "obrazovka", selected_text: "označený text" };
+  client.on("foreign_log", (m: any) => {
+    const items: any[] = m.items || [];
+    foreignBox.replaceChildren(
+      h("p", { class: "help" }, "Když JARVIS přečte cizí text a ten by ho chtěl dostat ke kroku, který něco mění (psaní, klávesy, odkaz s daty, paměť…), JARVIS se nejdřív zeptal. Tady je, co to bylo a jak jsi odpověděl."),
+      items.length ? h("ul", { class: "sec-list" }, ...items.map((x) => h("li", {},
+        h("span", {}, `${new Date(x.ts * 1000).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })} · ${SRC[x.source] || x.source || "cizí text"} → ${x.what}`),
+        h("span", { class: x.approved ? "muted" : "sec-ok" }, x.approved ? `povoleno (${x.why})` : `zamítnuto (${x.why})`))))
+        : h("p", { class: "muted" }, "Zatím nic – žádný cizí text se nepokusil o krok, který by něco měnil."));
+  });
   const el = h("section", { class: "tasks-view security-view" },
     hero(HEROES.security, "Bezpečí a soukromí", "Co JARVIS smí, kolik smí utratit, co si pamatuje – a jak to všechno vypnout, vyexportovat nebo smazat.", [
       h("button", { class: "btn", type: "button", onclick: refresh }, icon("arrow-clockwise"), "Obnovit")]),
@@ -214,8 +228,9 @@ export function buildSecurity(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Co JARVIS ukládá"), invBox,
     h("h2", { class: "group-label" }, "Mikrofon a kamera"), micBox,
     h("h2", { class: "group-label" }, "Co JARVIS dnes viděl a čeho se dotkl"), accessBox,
+    h("h2", { class: "group-label" }, "Co zkoušel cizí text"), foreignBox,
     h("h2", { class: "group-label" }, "Export, záloha, smazání"), dataBox);
-  return { el, show: () => { refresh(); client.send("access_log_get"); } };
+  return { el, show: () => { refresh(); client.send("access_log_get"); client.send("foreign_log_get"); } };
 }
 
 // 3.14 the security briefing's leak check: the user's own Have I Been Pwned key (kept in the Windows vault)

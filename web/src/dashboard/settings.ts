@@ -1161,6 +1161,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       toggle(!!L.enabled, "Zapnout JARVIS Link", `Šifrovaný port ${L.port} na tomhle PC (jen pro spárované telefony).`, (v) => send({ enabled: v })),
       h("p", { class: "help", style: { margin: "6px 0" } }, h("b", {}, statusLine)),
       L.enabled ? toggle(!!L.upnp, "Otevřít port na routeru sám (UPnP)", routerText[r.state || "off"] || "", (v) => send({ upnp: v })) : null,
+      L.enabled ? toggle(!!L.encrypt_home, "Šifrovat i doma", "Telefon posílá všechno přes šifrované spojení s ověřeným otiskem PC i na domácí Wi-Fi – nikdo v síti (cizí zařízení, napadený router) nic nepřečte. Nepatrně pomalejší.", (v) => send({ encrypt_home: v })) : null,
       L.enabled && L.ipv6?.length ? h("p", { class: "help" }, `IPv6 (přímo, když ho má i operátor telefonu): ${L.ipv6.join(", ")}`) : null,
       L.enabled ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní relay (funguje vždy)"),
         h("span", {}, ag ? (ag.connected ? `✓ Připojeno k ${L.relay_host} – PC čeká na telefon.` : `Nepřipojeno${ag.error ? `: ${ag.error}` : ""}.`)

@@ -60,7 +60,7 @@ public final class JarvisLink {
     /** The address to use right now: home, or the JARVIS Link tunnel while home does not answer. */
     static String liveBase(Context c) {
         String base = base(c);
-        boolean viaLink = base.startsWith(LinkProxy.base())
+        boolean viaLink = base.startsWith(LinkProxy.base()) || LinkProxy.always(c)
                 || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil);
         return viaLink && LinkProxy.start(c) ? LinkProxy.base() : base;
     }
@@ -69,7 +69,7 @@ public final class JarvisLink {
         String base = base(c);
         if (base.isEmpty()) throw new IllegalStateException("not paired");
         boolean viaLink = base.startsWith(LinkProxy.base());
-        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (!viaLink && (LinkProxy.always(c) || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil))) viaLink = true;
         if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), method, path, body, timeoutMs, 15000);
         try {
             return http(c, base, method, path, body, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);
@@ -89,7 +89,7 @@ public final class JarvisLink {
         String base = base(c);
         if (base.isEmpty()) throw new IllegalStateException("not paired");
         boolean viaLink = base.startsWith(LinkProxy.base());
-        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (!viaLink && (LinkProxy.always(c) || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil))) viaLink = true;
         if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), "POST", path, body, type, timeoutMs, 15000);
         try {
             return http(c, base, "POST", path, body, type, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);

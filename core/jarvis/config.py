@@ -555,6 +555,7 @@ class LinkCfg(BaseModel):
     enabled: bool = False
     port: int = 8766             # the encrypted (TLS) port on this PC
     upnp: bool = True            # ask the router to open the port (UPnP)
+    encrypt_home: bool = False   # 3.18 the phone uses the encrypted link at home too (not only when away)
     public_port: int = 0         # the port on the router (0 = the same as `port`)
     public_host: str = ""        # a name or address for the home (DDNS / a port forwarded by hand) – optional
     relay_host: str = ""         # your relay server (IP or name); its access key is in the keyring

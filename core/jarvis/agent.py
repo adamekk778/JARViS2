@@ -668,6 +668,8 @@ class Agent:
         """ai_offered: None = not the AI's choice (an everyday command, a reflex, a protocol step); else whether the
         tool was sent with your words (False = the AI reached it itself through use_tool or by its name)."""
         rt = self.rt
+        from . import trust
+
         chose_after_foreign = ai_offered is not None and bool(getattr(self, "_untrusted_seen", False))
         await rt.tasks.checkpoint()
         if rt.tasks.current is None:
@@ -688,10 +690,13 @@ class Agent:
             res = tools.ToolResult(False, "V režimu host osobní data (e-maily, zprávy, paměť, kalendář) neukazuji.")
         else:
             approved = True
-            from . import trust
-
             dangerous = tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt)
             foreign = ai_offered is not None and self._foreign_ask(call.name, ai_offered)
+            why = "po přečtení cizího textu" if foreign and not dangerous else ""
+            if ai_offered is not None and not foreign and getattr(self, "_untrusted_seen", False):
+                leak = trust.link_leak(call.arguments or {}, getattr(self, "_own_words", ""))   # 3.18 data out in a link
+                if leak:
+                    foreign, why = True, leak
             vid = getattr(rt, "voiceid", None)
             owner_block = bool(dangerous and getattr(self, "_source_now", "") == "voice"
                                and getattr(rt.cfg.voice, "owner_only", True) and vid is not None and not vid.owner_ok())
@@ -701,11 +706,14 @@ class Agent:
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:
-                    approved = await self._ask_confirm(call, **({"why": "po přečtení cizího textu"} if foreign and not dangerous else {}))
+                    approved = await self._ask_confirm(call, **({"why": why} if why else {}))
                     if approved and _needs_second(call, getattr(rt.cfg, "limits", None)):
                         approved = await self._ask_confirm(call, second=True)
                 finally:
                     rt.tasks.set_waiting(False)
+                if foreign:                        # 3.18 Bezpečí: what foreign text led to, and your answer
+                    trust.log_foreign(rt, getattr(self, "_foreign_from", ""), call.name,
+                                      describe_call(call.name, call.arguments), why or "cizí text", approved)
             if owner_block:
                 res = tools.ToolResult(False, "Tohle hlasem udělám jen na pokyn majitele (jeho hlas jsem nepoznal). Ať to "
                                               "řekne sám, nebo ať to napíše v chatu. NEPROVEDENO.")
@@ -745,6 +753,8 @@ class Agent:
                     res = await tools.call(call.name, call.arguments, rt)
                     pf.put(call.name, call.arguments, res)
                 if call.name in UNTRUSTED_OUTPUT:
+                    if not self._untrusted_seen:
+                        self._foreign_from = call.name     # 3.18 where the foreign text came from
                     self._untrusted_seen = True
                 if before is not None and res.ok:
                     try:
@@ -816,6 +826,7 @@ class Agent:
         foreign = bool(getattr(self, "_foreign_turn", False))
         # 3.13 full trust asks again after e-mails / web pages were read; 3.17 a picture or pasted text counts from the start
         self._untrusted_seen = foreign or bool(attachments)
+        self._foreign_from = "clipboard" if foreign else "attachment" if attachments else ""
         self._own_words = "" if foreign else (text or "")
         rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
         status = "done"
