@@ -22,6 +22,19 @@
 | PresentMon (FPS ve hrách, 3.14) | volitelné | nainstalovaný PresentMon | — | bez něj se FPS neměří |
 | winget (3.14) | připraveno | manifesty v příloze každého vydání | — | zařazení do katalogu = ruční PR do microsoft/winget-pkgs (docs/WINGET.md) |
 | Webová stránka (GitHub Pages, 3.14) | připraveno | `site/` + workflow `pages.yml` | — | správce zapne Pages: Settings → Pages → GitHub Actions |
+| Hlasové satelity a reproduktory (3.14) | funkční s HA | Home Assistant → integrace Ollama → adresa z „nastav satelit“ | klíč v adrese (jen domácí síť) | ESP32-S3 / HA Voice PE; hlášení přes media_player |
+| Frigate NVR (3.14) | volitelné | Domov → Kamery → adresa Frigate | — | osoby na kamerách, zóny; zvonek přes binary_sensor v HA |
+| Auto přes Home Assistant (3.14) | funkční s HA | „najdi auto v Home Assistantu“ | trezor OS (token HA) | integrace výrobce (MySkoda, VW, Tesla, BMW, Kia…) nebo OBD přes ESPHome/Torque; odemčení s potvrzením |
+| Vysavač a sekačka (3.14) | funkční s HA | domény vacuum / lawn_mower v HA | trezor OS (token HA) | úklid místnosti jen se segmenty (Roborock/Xiaomi); sekačka s potvrzením |
+| Health Connect (3.14) | funkční (Android) | aplikace v telefonu → Návyky → Propojit | jen v PC | kroky, spánek, klidový tep, variabilita, kyslík; hodinky musí do Health Connect zapisovat |
+| Twilio – AI sekretářka a volání za tebe (3.14) | volitelné, placené | E-mail a telefon → Twilio + veřejná HTTPS adresa | trezor OS (token) | ověřuje podpis Twilia; hovory se vždy představí jako AI; přesměrování u operátora (**61*…#) |
+| AeroDataBox (3.14) | volitelné | Propojení → Cesty a zásilky | trezor OS | zpoždění, terminál, gate; bezplatný plán na RapidAPI |
+| OpenSky, RainViewer, OSRM, Nominatim (3.14) | funkční | bez účtu | — | veřejné služby s limity (letadla, radar, trasa, geokódování) |
+| Česká pošta / Balíkovna (3.14) | funkční | bez účtu | — | veřejné sledování zásilek; PPL, DPD, GLS jen odkazem |
+| Spotová cena elektřiny (3.14) | funkční | bez účtu (spotovaelektrina.cz) | — | ceny OTE za MWh, dnes a zítra |
+| Have I Been Pwned (3.14) | volitelné | Bezpečí a soukromí | trezor OS | placený klíč; bez něj brífink úniky nekontroluje |
+| VB-Cable (tlumočník, 3.14) | volitelné | nainstalovaný ovladač VB-Audio Cable | — | jen Windows |
+| DJI Tello (3.14) | volitelné | PC na Wi-Fi dronu | — | limity: 1,5 m, 1 m na pohyb, 2 min, baterie > 25 %; neověřeno na dronu |
 | Anonymní statistiky (3.14) | vypnuté | Bezpečí a soukromí → Anonymní statistiky + adresa serveru | — | jen se souhlasem; sběrný server `packaging/stats-worker` (Cloudflare Worker) |
 
 Kontrola funkčnosti: Nastavení → Mozek (test poskytovatele), E-mail a telefon (stav účtů a spojení s telefonem),

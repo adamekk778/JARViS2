@@ -95,6 +95,7 @@ export function buildSecurity(client: JarvisClient) {
         () => !!P.guard_photo, (v) => set({ privacy: { guard_photo: v } })),
       sw("Týdenní bezpečnostní brífink", "V neděli večer: neznámá zařízení v síti, neúspěšná přihlášení, úniky e-mailů.",
         () => P.security_weekly !== false, (v) => set({ privacy: { security_weekly: v } })),
+      hibpRow(client),
       sw("Paměť života", "Šifrovaný deník tvých dní u PC (aplikace a okna s časem, tvoje poznámky) – jen v tomhle PC, klíč v trezoru Windows. Hesla, bankovnictví a anonymní okna se nezapisují. Pak se můžeš zeptat „co jsem dělal minulé úterý“.",
         () => !!P.life_log, (v) => set({ privacy: { life_log: v } })),
       contactsRow(P.emergency_contacts || []),
@@ -215,4 +216,19 @@ export function buildSecurity(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Co JARVIS dnes viděl a čeho se dotkl"), accessBox,
     h("h2", { class: "group-label" }, "Export, záloha, smazání"), dataBox);
   return { el, show: () => { refresh(); client.send("access_log_get"); } };
+}
+
+// 3.14 the security briefing's leak check: the user's own Have I Been Pwned key (kept in the Windows vault)
+function hibpRow(client: JarvisClient): HTMLElement {
+  const inp = h("input", { class: "input", type: "password", placeholder: "Klíč Have I Been Pwned (nepovinné)", "aria-label": "Klíč Have I Been Pwned", autocomplete: "off" }) as HTMLInputElement;
+  return h("div", { class: "row" },
+    h("div", { class: "row-text" }, h("strong", {}, "Úniky e-mailů v brífinku"),
+      h("span", { class: "help" }, "S vlastním klíčem z haveibeenpwned.com/API/Key brífink zkontroluje, jestli tvoje e-mailové adresy nejsou v nových únicích dat. Klíč zůstane v trezoru Windows.")),
+    inp, h("button", { class: "btn sm", type: "button", onclick: () => {
+      const v = inp.value.trim();
+      if (!v) return;
+      client.send("secret_set", { name: "hibp", value: v });
+      inp.value = "";
+      toast("Klíč uložen", "ok");
+    } }, icon("floppy-disk"), "Uložit"));
 }

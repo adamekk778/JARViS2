@@ -67,6 +67,25 @@ Velká vlna vylepšení (118 návrhů, rozdělených do 11 oblastí). Nejdůlež
 - **Dosah:** anglické rozhraní (Nastavení → Obecné → Jazyk → English), winget, webová stránka projektu (`site/`),
   anonymní statistiky jen se souhlasem (ve výchozím stavu vypnuté), šablony pro hlášení chyb a nápadů.
 
+### JARVIS jako z filmu (3.14, návrhy 1–58 kromě dílny)
+
+- **Hlas a osobnost:** živý rozhovor bez „Hey Jarvis“ (když se díváš do kamery), druhá osobnost FRIDAY, humor podle
+  situace, tlumočník do Discordu / Teams přes VB-Cable.
+- **Celý dům:** hlasové satelity v místnostech (Home Assistant), hlášení do reproduktorů, „následuj mě“, uvítání doma,
+  scény jedním slovem, nástěnný HUD na tabletu, víc PC jako jeden JARVIS, nonstop server v Dockeru (`docs/SERVER.md`),
+  nejlevnější hodiny elektřiny.
+- **Oči a uši:** EDITH v telefonu (kamera: co vidím, přečti, přelož, změř), kdo je doma, zvuky domu, pomocník na
+  obrazovce, letadla a ISS nad domem.
+- **Bezpečnost:** kamery Frigate, zvonek s fotkou, fotka při hlídání PC, SOS s polohou, týdenní brífink, dětský režim.
+- **Zdraví:** spánek a tep z hodinek (Health Connect), ranní „stav systémů“, pitný režim, dlouhý den, spánek, držení těla.
+- **Auto, cesty, svět:** auto přes Home Assistant („připrav auto na 7:30“), lety a vlaky z e-mailů a kdy vyrazit,
+  zásilky, mapa světa s radarem v HUD.
+- **Telefon:** AI sekretářka a volání za tebe (Twilio, vždy se představí jako AI), shrnutí chatů z oznámení.
+- **Mozek:** noční učení, šifrovaná Paměť života (jen po zapnutí), mise na dny, „co když“ s grafem.
+- **Roboti:** vysavač a sekačka přes Home Assistant, dron DJI Tello s pevnými bezpečnostními limity.
+
+Co je k tomu potřeba (hardware, účty, nastavení) a co zatím nejde, je v `docs/ROADMAP.md` a `docs/INTEGRATIONS.md`.
+
 ## Ruční test po instalaci
 
 - [ ] „Hey Jarvis, pusť na YouTube trailer na Avengers“ → rozevře se notch, JARVIS odpoví a pustí video.

@@ -32,6 +32,32 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.14 – „JARVIS jako z filmu“ (58 návrhů, bez sekce C – dílna)
+Hotovo v kódu s testy (simulovaná zařízení a služby): hlas a osobnost (živý rozhovor, bez „Hey Jarvis“ přes kameru,
+FRIDAY, humor, tlumočník), celý dům (satelity, reproduktory, následuj mě, uvítání, scény, kiosk, víc PC, Docker server,
+spotová elektřina), oči a uši (EDITH, obličeje, zvuky, pomocník na obrazovce, letadla), bezpečnost (Frigate, zvonek,
+fotka při hlídání, SOS, brífink, dětský režim), zdraví (Health Connect, stav systémů, hlídání u PC), auto přes Home
+Assistant, cestovní režim, zásilky, mapa světa v HUD, AI sekretářka a volání za tebe (Twilio), shrnutí chatů, noční
+učení, Paměť života, mise na dny, „co když“, vysavač, sekačka a dron Tello.
+
+Co je potřeba od uživatele: webkamera (bez „Hey Jarvis“, obličeje, držení těla), VB-Cable (tlumočník), Home Assistant
+(satelity, reproduktory, auto, vysavač, sekačka, zvonek), Frigate (kamery), Twilio + veřejná HTTPS adresa (sekretářka,
+volání), klíč AeroDataBox (zpoždění a gate letů), klíč HIBP (úniky e-mailů v brífinku), nouzové kontakty (SOS),
+hodinky zapisující do Health Connect, DJI Tello a PC na jeho Wi-Fi, Docker (nonstop server).
+
+Co z „filmu“ nejde nebo zatím není:
+- **Sekce C – dílna** (3D model v HUD, gesta, text → CAD, 3D tisk, elektronika, deník projektu, simulace) – vynechaná
+  na přání.
+- **Vlastní aplikace pro Wear OS** – hodinky dál odpovídají přes oznámení telefonu (RemoteInput); samostatnou aplikaci
+  pro hodinky tady nejde sestavit ani vyzkoušet.
+- **Garmin / Fitbit napřímo** – jen přes Health Connect (aplikace Garmin Connect a Fitbit do něj zapisují).
+- **OBD adaptér napřímo** – přes Home Assistant (ESPHome / Torque Pro), ne přímo z PC.
+- **Zpoždění vlaků** – veřejné API Českých drah / RegioJetu chybí; JARVIS zná jízdní řád z jízdenky.
+- **Stav zásilek PPL, DPD, GLS** – jen odkaz na sledování (jejich veřejná API tady nešlo ověřit); Česká pošta a
+  Balíkovna živě, Zásilkovna s API heslem.
+- **Nic z toho nebylo vyzkoušené na skutečném hardwaru** (kamera, satelity, Frigate, Twilio, auto, vysavač, dron,
+  hodinky) – jen s jejich simulací v testech.
+
 ## Android vs. iPhone
 | Schopnost | Android (dnes) | iPhone |
 |---|---|---|

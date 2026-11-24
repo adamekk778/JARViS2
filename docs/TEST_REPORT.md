@@ -26,6 +26,18 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
   - omezené prostředí ověřené na Linuxu (výpočty a soubory ve vlastní složce projdou; zápis mimo, mazání, programy
     a síť zablokované; 127.0.0.1 není „síť“). Windows Job Object ověří CI na windows-latest.
 
+- **3.14 „JARVIS jako z filmu“ (8 balíků): 1860 testů prošlo, 20 přeskočeno** (Linux). Nové `tests/test_voice_persona.py`,
+  `test_house.py`, `test_eyes.py`, `test_safety.py`, `test_body.py`, `test_travel.py`, `test_callagent.py`, `test_mind.py`
+  – všechna zařízení a služby simulované (Home Assistant, Frigate, Twilio s ověřením podpisu, AeroDataBox, Česká pošta,
+  OSRM, Health Connect data, dron Tello přes falešné UDP spojení). Navíc:
+  - evals 371 zkušebních požadavků, 100 % (brána v CI),
+  - `ruff`, `mypy` (67 souborů včetně všech nových modulů), ESLint, `tsc`, `vite build` bez chyb,
+  - `python -m jarvis.uicheck` česky i anglicky: 10 stránek × velikosti bez chyb,
+  - mapa světa v HUD ověřená v prohlížeči (Playwright): skutečné dlaždice OpenStreetMap a živý radar RainViewer,
+  - veřejné API České pošty ověřené živým dotazem; DPD, GLS a OpenSky odsud nedostupné (jen simulace).
+  - **Neověřeno na skutečném hardwaru:** webkamera, VB-Cable, satelity, Frigate, Twilio, auto, vysavač, sekačka,
+    dron, hodinky, Docker na Raspberry Pi.
+
 ## Ruční / vizuální ověření (Playwright proti skutečnému serveru)
 - Úkoly → **Zkontrolovat PC**: mise doběhla, 5/5 kritérií zelených, artefakt „Report o stavu PC“ s otiskem,
   11 důkazů, audit akcí. **Uložit jako dovednost** → schválení → protokol „Kontrola PC“ v1 → Stark → Verze ukazuje v1.
