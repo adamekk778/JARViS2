@@ -59,6 +59,8 @@ export const CLIENT_TYPES = [
   "toolmem_get", "toolmem_forget", "mine_check",
   "hands_status", "hands_download",
   "foreign_log_get",
+  "webpush_key", "webpush_subscribe", "webpush_test",
+  "watch_pair_start",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -107,6 +109,8 @@ export const SERVER_TYPES = [
   "hands",
   "foreign_log",
   "printer_done",
+  "webpush",
+  "watch_pair",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -1,0 +1,29 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "cz.adamekk.jarvis.wear"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "cz.adamekk.jarvis.wear"
+        minSdk 30
+        targetSdk 34
+        versionCode 318
+        versionName "3.18"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildTypes {
+        release { minifyEnabled false }
+    }
+}
+
+dependencies {
+    implementation "androidx.wear.tiles:tiles:1.4.1"
+    implementation "androidx.wear.protolayout:protolayout:1.2.1"
+    implementation "com.google.guava:guava:33.3.1-android"
+}

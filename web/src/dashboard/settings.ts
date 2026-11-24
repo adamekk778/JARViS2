@@ -833,6 +833,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       if (!p) client.send("pairing_get");
       return [
         phoneNetCard(),
+        watchCard(),
         card("Spárovat telefon", "1) Nainstaluj JARVIS.apk do telefonu. 2) V aplikaci klepni na Naskenovat QR. 3) Hotovo.",
           p ? h("div", { class: "qr" }, h("div", { class: "qr-img", html: p.qr_svg }),
             h("div", { style: { display: "grid", gap: "10px" } },
@@ -1128,6 +1129,18 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         ? `Uloženo ${pb.count} souborů (${size(pb.bytes)})${pb.last ? `, naposledy ${new Date(pb.last * 1000).toLocaleString("cs-CZ")}` : ""}.`
         : "Zatím nic nepřišlo.") : null,
       h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("photo_backup_open") }, icon("folder-open"), "Otevřít složku")));
+  }
+
+  /** 3.18 Hodinky Wear OS: a 6-digit code (5 minutes, once) for the JARVIS app on the watch. */
+  function watchCard() {
+    const box = h("div", {});
+    const show = (m: any) => box.replaceChildren(
+      h("p", { class: "wn-code mono", style: { fontSize: "2rem", letterSpacing: "0.3em", margin: "6px 0" } }, m.code),
+      h("p", { class: "help" }, `Na hodinkách v aplikaci JARVIS zadej adresu ${(m.hosts || [])[0] || "tohoto PC"}:${m.port} a tenhle kód. Platí 5 minut, jen jednou.`));
+    client.on("watch_pair", show);
+    return card("Hodinky Wear OS", "Aplikace JARVIS na hodinkách: zeptáš se hlasem přímo z hodinek a dlaždice ukazuje stav (tisk, balíky…). "
+      + "APK pro hodinky je v GitHub Actions jako JARVIS-wear (nainstaluješ přes ADB nebo Wear Installer).",
+      h("button", { class: "btn", type: "button", disabled: !local, onclick: () => client.send("watch_pair_start") }, icon("watch"), "Spárovat hodinky"), box);
   }
 
   /** 3.12 JARVIS Link – our own Tailscale: the phone reaches this PC from anywhere (Wi-Fi or mobile data). */

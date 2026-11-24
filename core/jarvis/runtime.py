@@ -678,6 +678,14 @@ class Runtime:
         self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind)
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
+        if (target == "mobile" or (target == "all" and self.user_away())) and getattr(self, "loop", None) is not None:
+            from . import webpush                        # 3.18 the iPhone (the web app on its home screen)
+
+            try:
+                if webpush.subscriptions(self):
+                    self.call_soon(lambda: self.loop.create_task(webpush.send(self, title, body)))
+            except Exception as e:  # noqa: BLE001
+                log.debug("web push: %s", e)
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
 

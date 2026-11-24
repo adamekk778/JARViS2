@@ -3,7 +3,8 @@
 A "shipped" e-mail from a shop or a carrier → the tracking number and the carrier, kept here. Česká pošta (and
 Balíkovna) tell where the parcel is through their public tracking (no key needed); Zásilkovna too when you have its
 API password in Propojení. 3.17: DPD through its public tracking, PPL through its official API (with the Client ID from
-PPL in Propojení). GLS closed its open tracking (an API needs a registration), so for GLS JARVIS keeps the link. Every 30 minutes the open parcels are
+PPL in Propojení). GLS closed its open tracking: with its API key (3.18, Propojení → GLS) it is live too, else the link.
+3.18: a parcel waiting at a pickup point – "vyzvedni do čtvrtka" the day before it goes back. Every 30 minutes the open parcels are
 checked; "připraveno k vyzvednutí" / "doručeno" comes as a notice. "Kde mám balík?" lists them.
 """
 from __future__ import annotations
@@ -36,7 +37,24 @@ READY_WORDS = ("připraven", "k vyzvednutí", "uložen", "ready for pick", "ček
 def _db(rt: Any) -> Any:
     rt.db.exec("CREATE TABLE IF NOT EXISTS parcels (id INTEGER PRIMARY KEY AUTOINCREMENT, carrier TEXT, number TEXT UNIQUE, "
                "shop TEXT, source TEXT, status TEXT, status_at TEXT, state TEXT, added REAL, checked REAL)")
+    cols = {r["name"] for r in rt.db.all("PRAGMA table_info(parcels)")}
+    if "pickup_until" not in cols:                 # 3.18 the last day at the pickup point, and whether it was said
+        rt.db.exec("ALTER TABLE parcels ADD COLUMN pickup_until TEXT DEFAULT ''")
+        rt.db.exec("ALTER TABLE parcels ADD COLUMN reminded INTEGER DEFAULT 0")
     return rt.db
+
+
+_DATE = re.compile(r"\b(?:do|until)\s+(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})")
+
+
+def pickup_until(text: str, stored_until: str = "") -> str:
+    """The last pickup day as YYYY-MM-DD: Zásilkovna's storedUntil, or "uložena do 28.11.2026" in the text."""
+    if stored_until:
+        m = re.match(r"(\d{4}-\d{2}-\d{2})", stored_until)
+        if m:
+            return m.group(1)
+    m = _DATE.search(text or "")
+    return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}" if m else ""
 
 
 def subject_hit(subject: str) -> bool:
@@ -188,6 +206,14 @@ async def track(rt: Any, p: dict) -> tuple[str, str]:
 
             return ppl.status_of(await ppl.shipment(re.sub(r"\D", "", p["number"])))
         return "", ""
+    if p["carrier"] == "gls":                       # 3.18 GLS with its API key
+        from . import connectors
+
+        if connectors.configured("gls"):
+            from .connectors import gls
+
+            return gls.status_of(await gls.track(re.sub(r"\W", "", p["number"])))
+        return "", ""
     if p["carrier"] == "zasilkovna":
         from . import connectors
 
@@ -195,6 +221,9 @@ async def track(rt: Any, p: dict) -> tuple[str, str]:
             from .connectors import zasilkovna as z
 
             rec = z._record(await z.rest("packetStatus", packetId=z.packet_id(p["number"])))
+            until = pickup_until("", str(rec.get("storedUntil") or ""))
+            if until:
+                _db(rt).exec("UPDATE parcels SET pickup_until=? WHERE number=?", (until, p["number"]))
             return str(rec.get("statusText") or rec.get("codeText") or ""), str(rec.get("dateTime", ""))[:16].replace("T", " ")
     return "", ""
 
@@ -213,12 +242,42 @@ async def refresh(rt: Any, notify: bool = True) -> list[dict]:
             continue
         st = state_of(text)
         _db(rt).exec("UPDATE parcels SET status=?, status_at=?, state=? WHERE id=?", (text, when, st, p["id"]))
+        until = pickup_until(text)
+        if until:
+            _db(rt).exec("UPDATE parcels SET pickup_until=? WHERE id=?", (until, p["id"]))
         p.update(status=text, status_at=when, state=st)
         changed.append(p)
         if notify and st in ("ready", "done"):
             what = f"Balík{' z ' + p['shop'] if p['shop'] else ''} ({p['carrier_name']})"
             rt.notify("Zásilka", f"{what}: {text}.", target="all", speak=st == "ready")
     return changed
+
+
+DAYS = ("v pondělí", "v úterý", "ve středu", "ve čtvrtek", "v pátek", "v sobotu", "v neděli")
+
+
+def remind_pickups(rt: Any, now: float | None = None) -> list[str]:
+    """3.18 a parcel at a pickup point whose last day is tomorrow (or today): one reminder, with the day."""
+    import datetime as dt
+
+    today = dt.date.fromtimestamp(now or time.time())
+    said = []
+    for p in listing(rt):
+        if p["state"] != "ready" or not p.get("pickup_until") or p.get("reminded"):
+            continue
+        try:
+            last = dt.date.fromisoformat(p["pickup_until"])
+        except ValueError:
+            continue
+        left = (last - today).days
+        if 0 <= left <= 1:
+            when = "dnes" if left == 0 else "zítra"
+            what = f"Balík{' z ' + p['shop'] if p['shop'] else ''} ({p['carrier_name']})"
+            text = f"{what} čeká na výdejně jen do {when} ({DAYS[last.weekday()]} {last.day}. {last.month}.) – pak se vrací."
+            rt.notify("Vyzvedni balík", text, target="all", speak=True)
+            _db(rt).exec("UPDATE parcels SET reminded=1 WHERE id=?", (p["id"],))
+            said.append(text)
+    return said
 
 
 def summary(rt: Any) -> str:
@@ -237,6 +296,7 @@ async def loop(rt: Any) -> None:
     while True:
         try:
             await refresh(rt)
+            remind_pickups(rt)
             _db(rt).exec("DELETE FROM parcels WHERE state='done' AND added<?", (time.time() - 30 * 86400,))
         except Exception as e:  # noqa: BLE001
             log.debug("parcels: %s", e)

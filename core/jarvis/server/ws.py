@@ -83,6 +83,8 @@ CLIENT_TYPES = [
     "toolmem_get", "toolmem_forget", "mine_check",
     "hands_status", "hands_download",
     "foreign_log_get",
+    "webpush_key", "webpush_subscribe", "webpush_test",
+    "watch_pair_start",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -131,6 +133,8 @@ SERVER_TYPES = [
     "hands",
     "foreign_log",
     "printer_done",
+    "webpush",
+    "watch_pair",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

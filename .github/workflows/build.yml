@@ -523,6 +523,23 @@ jobs:
           key: apk-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
+  wear:                           # 3.18 JARVIS for Wear OS watches – its own small project, its own APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.11.1" }
+      - run: gradle -p mobile/wear assembleDebug --no-daemon --stacktrace
+      - run: cp mobile/wear/app/build/outputs/apk/debug/app-debug.apk JARVIS-wear.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-wear
+          path: JARVIS-wear.apk
+          retention-days: 30
+
   android-ui:                     # 3.17 the APK in a real emulator: starts, stays up, widget offered, no crash
     needs: [android]
     runs-on: ubuntu-latest

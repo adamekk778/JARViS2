@@ -383,6 +383,41 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             rt.phone.on_device(kind, bool(body.get("on")), str(body.get("name") or ""))
         return {"ok": True}
 
+    # 3.18 Hodinky Wear OS: pair with the 6-digit code from the PC, then ask by voice and show a status on the tile
+    @app.post("/api/watch/pair")
+    async def watch_pair(request: Request):
+        from .. import watchpair
+
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        token, why = watchpair.redeem(rt, str((body or {}).get("code") or ""), str((body or {}).get("name") or "Hodinky"))
+        if not token:
+            raise HTTPException(403, why)
+        return {"ok": True, "token": token, "name": "JARVIS"}
+
+    @app.post("/api/watch/ask")
+    async def watch_ask(request: Request):
+        require_auth(request)
+        body = await request.json()
+        text = str(body.get("text") or "").strip()[:500]
+        if not text:
+            raise HTTPException(400, "Prázdná otázka")
+        try:
+            answer = await asyncio.wait_for(rt.agent.handle(text, [], "watch", extra_system=(
+                "Odpovídáš na malém displeji hodinek: nejvýš dvě krátké věty, bez tabulek a seznamů.")), 90)
+        except asyncio.TimeoutError:
+            answer = "Pořád na tom pracuji – odpověď najdeš v telefonu nebo na PC."
+        return {"ok": True, "answer": str(answer or "Hotovo.").strip()[:1500]}
+
+    @app.get("/api/watch/status")
+    async def watch_status(request: Request):
+        from .. import watchpair
+
+        require_auth(request)
+        return watchpair.status(rt)
+
     @app.post("/api/phone/notice_action")
     async def phone_notice_action(request: Request):
         """3.13 a button tapped in a JARVIS notification on the phone ("+5 min", "Za 10 min")."""

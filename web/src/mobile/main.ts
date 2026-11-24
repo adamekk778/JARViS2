@@ -857,6 +857,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Notifikace z PC"), h("span", {}, "Časovače, připomínky, odpovědi na pozadí")),
         h("label", { class: "switch" }, notif, h("span"))),
       phoneCard(c),
+      native.isNative ? "" : webPushRow(c),
       backupCard(),
       native.phone.available ? morningCard(c) : "",
       native.phone.available ? mirrorCard() : "",
@@ -870,6 +871,36 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     h("div", { class: "card" }, h("h2", {}, "O aplikaci"), h("p", { class: "help" }, "JARVIS 2 · nastavení najdeš na PC v okně JARVIS.")));
 }
 
+
+/** 3.18 iPhone (and any browser): JARVIS's notices as notifications – the web app from the home screen, Web Push. */
+function webPushRow(c: JarvisClient): HTMLElement {
+  const note = h("span", {}, "Na iPhonu: Sdílet → Přidat na plochu, otevřít JARVIS z plochy a zapnout tady. Potřebuje HTTPS adresu (docs/IPHONE.md).");
+  const btn = h("button", { class: "btn", type: "button" }, icon("bell-ringing"), "Zapnout") as HTMLButtonElement;
+  const test = h("button", { class: "btn ghost", type: "button", hidden: true, onclick: () => c.send("webpush_test") }, "Vyzkoušet") as HTMLButtonElement;
+  const can = "serviceWorker" in navigator && "PushManager" in window && window.isSecureContext;
+  if (!can) { btn.disabled = true; note.textContent = window.isSecureContext ? "Tenhle prohlížeč upozornění neumí. Na iPhonu: přidej JARVIS na plochu (iOS 16.4+) a otevři ho odtamtud."
+    : "Upozornění v prohlížeči potřebují zabezpečenou adresu (HTTPS) – viz docs/IPHONE.md."; }
+  let key = "";
+  c.on("webpush", (m: any) => {
+    if (m.key) key = m.key;
+    if (m.ok === true) { note.textContent = "Zapnuto – upozornění z PC přijdou sem."; test.hidden = false; }
+    if (m.ok === false) toast(m.error || "Nepovedlo se", "error");
+    if (m.tested != null) toast(m.tested ? "Upozornění odesláno" : "Nic nedorazilo – zkus to zapnout znovu", m.tested ? "ok" : "error");
+  });
+  if (can) c.send("webpush_key");
+  btn.onclick = async () => {
+    try {
+      if (await Notification.requestPermission() !== "granted") { toast("Upozornění nejsou povolená", "error"); return; }
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      await navigator.serviceWorker.ready;
+      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), (ch) => ch.charCodeAt(0));
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw });
+      c.send("webpush_subscribe", { subscription: sub.toJSON(), label: /iPhone|iPad/.test(navigator.userAgent) ? "iPhone" : "Prohlížeč" });
+    } catch (e: any) { toast(`Nepovedlo se: ${e?.message || e}`, "error"); }
+  };
+  return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Upozornění v tomhle prohlížeči"), note),
+    h("div", { class: "btn-row" }, btn, test));
+}
 
 /** OMEGA P9.08: the PC screen, live, while sharing is switched on on the PC (it asks there first). */
 function screenCard(c: JarvisClient, ep: { base: string; token: string }): HTMLElement {
