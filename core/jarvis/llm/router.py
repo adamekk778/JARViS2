@@ -109,6 +109,28 @@ class Router:
     def update(self, brain: Brain) -> None:
         self.brain = brain
 
+    async def prewarm(self, n: int = 2) -> list[str]:
+        """3.16 "Hey Jarvis": open the connection to the first AIs now (and load the PC's own model), so the answer
+        does not wait for TCP + TLS (or for the model to load) after you finish speaking."""
+        from . import pool
+        from .openai_compat import _tls
+
+        done: list[str] = []
+        for pcfg in self.providers()[:n]:
+            try:
+                prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+                if hasattr(prov, "warm") and pcfg.preset != "ollama":
+                    ok = await prov.warm()
+                elif pcfg.preset == "ollama":
+                    ok = await pool.warm(getattr(prov, "base_url", ""), trust_env=False)
+                else:
+                    ok = await pool.warm(getattr(prov, "base_url", ""), _tls())
+                if ok:
+                    done.append(pcfg.id)
+            except Exception as e:  # noqa: BLE001
+                log.debug("prewarm %s: %s", pcfg.id, e)
+        return done
+
     def providers(self) -> list[ProviderCfg]:
         by_id = {p.id: p for p in self.brain.providers if p.enabled}
         order = [by_id[i] for i in self.brain.chain if i in by_id]

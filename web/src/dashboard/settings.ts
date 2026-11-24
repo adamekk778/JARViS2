@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/smart_endpoint/, "timer"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -449,6 +449,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
         range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
+        sw("voice.smart_endpoint", "Chytrý konec věty", "Při každé pauze si JARVIS hned zapíše, co jsi řekl: hotová věta („pusť hudbu“) skončí už po čtvrt sekundě, rozdělaná („napiš mámě, že…“) počká déle. S rychlým rozpoznáním řeči vidíš v notchi, co říkáš, už během mluvení."),
+        sw("voice.vocabulary", "Tvoje slova v rozpoznávání", "Tvoje jméno, slovník z Diktování, projekty, 3D díly, místnosti a zařízení z Home Assistantu a aplikace jdou rozpoznávání řeči – míň přeslechnutých jmen."),
         sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“."),
         sw("voice.look_to_talk", "Mluv bez „Hey Jarvis“", "Když jsi u PC sám a díváš se na obrazovku, stačí mluvit. Používá webkameru (jen v tomhle PC, nic se neukládá); vypnuté = kamera se nezapne."),
         sw("voice.barge_in", "Skočit JARVISovi do řeči", "Když JARVIS mluví a ty začneš mluvit, hned zmlkne a poslouchá tě (jeho vlastní hlas si z mikrofonu odečte)."),

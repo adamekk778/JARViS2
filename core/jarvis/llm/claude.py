@@ -194,6 +194,9 @@ def _dump(block: Any) -> dict:
     return dict(block) if isinstance(block, dict) else {}
 
 
+_KEPT: dict[tuple, Any] = {}
+
+
 class Claude:
     """A provider with the same surface as OpenAICompat (stream, list_models, model, max_tokens, on_headers)."""
 
@@ -221,10 +224,31 @@ class Claude:
                 import anthropic
             except ImportError as e:            # pragma: no cover – shipped with JARVIS; a dev setup without it
                 raise ProviderError("chybí knihovna anthropic (pip install anthropic)", status=None, retryable=False) from e
-            http = anthropic.DefaultAsyncHttpxClient(verify=_tls())
-            self._client = anthropic.AsyncAnthropic(api_key=self.api_key or None, base_url=self._root(), http_client=http,
-                                                    timeout=self.timeout, max_retries=1)
+            import asyncio
+
+            try:                                   # 3.16 one kept client (and connection) per event loop and key
+                loop_id = id(asyncio.get_running_loop())
+            except RuntimeError:
+                loop_id = 0
+            key = (loop_id, self.api_key, self._root(), self.timeout)
+            kept = _KEPT.get(key)
+            if kept is None:
+                http = anthropic.DefaultAsyncHttpxClient(verify=_tls())
+                kept = anthropic.AsyncAnthropic(api_key=self.api_key or None, base_url=self._root(), http_client=http,
+                                                timeout=self.timeout, max_retries=1)
+                if loop_id:
+                    _KEPT[key] = kept
+            self._client = kept
         return self._client
+
+    async def warm(self) -> bool:
+        """Open the connection now (Hey Jarvis): a small HEAD on the API root, the answer does not matter."""
+        try:
+            await self.client()._client.head(self._root() + "/v1/models", timeout=4)
+            return True
+        except Exception as e:  # noqa: BLE001
+            log.debug("claude prewarm: %s", e)
+            return False
 
     def params(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> dict:
         system, msgs = convert(messages)

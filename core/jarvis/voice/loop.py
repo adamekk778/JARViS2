@@ -1,6 +1,7 @@
 """The always-on voice loop: wake word → listen → transcribe → agent → speak."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import queue
 import threading
@@ -303,6 +304,7 @@ class VoiceLoop:
             if triggered:
                 self._ptt.clear()
                 self.transcriber.prefetch()              # the model loads while the command is being spoken
+                self.prewarm()                           # 3.16 the AI's connection opens while you speak
                 if self.speaker.speaking:
                     self.speaker.stop()  # barge-in
                 cooldown = time.time() + 2.0
@@ -409,6 +411,7 @@ class VoiceLoop:
         result = None if result == "done" else result
         n = 0
         self._cancel_capture = False
+        spec = self._speculator(ep, np)                   # 3.16 written down at each pause, finished sentences end early
         while result is None:
             if self._cancel_capture:
                 break
@@ -417,12 +420,17 @@ class VoiceLoop:
             except queue.Empty:
                 break
             audio += frame
-            result = ep.feed(self._is_speech(frame, vad, np))
+            speaking = self._is_speech(frame, vad, np)
+            result = ep.feed(speaking)
+            if result is None and spec is not None:
+                result = spec.step(ep, audio, speaking)
             n += 1
             if n % 2 == 0:
                 a = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
                 bus.publish_threadsafe("level", rms=round(float(np.sqrt(np.mean(a ** 2))), 3))
         self.listening = False
+        if result != "done" and spec is not None:
+            spec.close()
         if result != "done":
             if self.followup_active and getattr(self.rt, "live_talk", False):   # 3.14 a long silence ends the conversation
                 self.rt.live_talk = False
@@ -445,7 +453,10 @@ class VoiceLoop:
             except Exception as e:  # noqa: BLE001
                 log.debug("voice id: %s", e)
         try:
-            text = self.transcriber.transcribe(self.clean_utterance(bytes(audio), np), SR)
+            early = spec.result_for(len(audio)) if spec is not None else None
+            if spec is not None:
+                spec.close()
+            text = early if early is not None else self._stt(bytes(audio), np)
         except Exception as e:
             log.warning("stt failed: %s", e)
             bus.publish_threadsafe("error", message=f"Rozpoznávání řeči selhalo: {e}")
@@ -470,6 +481,47 @@ class VoiceLoop:
             bus.publish_threadsafe("state", state="idle")
             return
         self.handle_transcript(text, getattr(self.transcriber, "last_language", "cs"))
+
+    def _stt(self, pcm: bytes, np) -> str:
+        """The words, with the names the recognizer should expect (3.16 tvoje slova); the time it took is remembered."""
+        from .fastear import vocabulary
+
+        try:
+            vocab = vocabulary(self.rt) if getattr(self.rt.cfg.voice, "vocabulary", True) else ""
+        except Exception:  # noqa: BLE001
+            vocab = ""
+        t0 = time.monotonic()
+        text = self.transcriber.transcribe(self.clean_utterance(pcm, np), SR, prompt=vocab)
+        took = time.monotonic() - t0
+        self._stt_s = took if not getattr(self, "_stt_s", 0) else 0.7 * self._stt_s + 0.3 * took
+        return text
+
+    def _speculator(self, ep, np):
+        """3.16 the early transcription at pauses (+ the live text in the notch when speech recognition is fast)."""
+        if not getattr(self.rt.cfg.voice, "smart_endpoint", True):
+            return None
+        from .fastear import Speculator
+
+        bus = self.rt.bus
+        local = self.transcriber.provider() == "local"
+        return Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
+                          live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
+                          live_ok=lambda: local and 0 < getattr(self, "_stt_s", 9.0) < 0.45,
+                          max_spec=3 if local else 2)
+
+    def prewarm(self) -> None:
+        """3.16 "Hey Jarvis" heard: open the connection to the AI (and the local model) in the background."""
+        last = getattr(self, "_prewarmed", 0.0)
+        if time.monotonic() - last < 45:                   # a connection stays open ~2 minutes
+            return
+        self._prewarmed = time.monotonic()
+        loop = getattr(self.rt, "loop", None)
+        if loop is None:
+            return
+        try:
+            asyncio.run_coroutine_threadsafe(self.rt.router.prewarm(), loop)
+        except Exception as e:  # noqa: BLE001
+            log.debug("prewarm: %s", e)
 
     def handle_transcript(self, text: str, lang: str = "cs") -> None:
         """What to do with a finished utterance: answer a pending confirmation, end a follow-up, or ask the agent."""

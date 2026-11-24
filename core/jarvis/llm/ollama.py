@@ -6,6 +6,8 @@ from typing import AsyncIterator
 
 import httpx
 
+from . import pool
+
 from .base import Chunk, ProviderError, ToolCall
 
 
@@ -67,8 +69,8 @@ class Ollama:
             body["tools"] = tools
         calls: list[ToolCall] = []
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout, trust_env=False) as client:
-                async with client.stream("POST", f"{self.base_url}/api/chat", json=body) as r:
+            async with pool.client(self._transport, self._timeout, True, trust_env=False) as client:   # 3.16 kept
+                async with client.stream("POST", f"{self.base_url}/api/chat", json=body, timeout=self._timeout) as r:
                     if r.status_code >= 400:
                         text = (await r.aread()).decode("utf-8", "replace")[:500]
                         raise ProviderError(f"HTTP {r.status_code}: {text}", status=r.status_code)
