@@ -46,7 +46,8 @@ Co nejde nebo zatím není:
 - **Koupě jízdenky RegioJet přímo z JARVISe** – veřejné API je jen pro vyhledávání; koupě na jejich webu v prohlížeči
   JARVISe se zastavením před platbou. ČD, Leo Express a FlixBus nemají veřejné API – IDOS.
 - **Vstupní podmínky** – shrnutí pro krátké turistické cesty občanů ČR; pravidla se mění, proto vždy odkaz na MZV.
-- **Stravné** – sazby nastavuješ ty (mění je vyhláška každý rok); výchozí tuzemské jsou z roku 2025.
+- **Stravné** – výchozí sazby 2026 (tuzemsko vyhl. 573/2025 Sb., zahraničí vyhl. 489/2025 Sb. pro 20 nejčastějších zemí);
+  každý rok je mění nová vyhláška, další země doplníš sám.
 - **Odkaz na cestu mimo domov** – jen s veřejnou HTTPS adresou (Tailscale / Cloudflare), jinak funguje jen doma.
 - **Neověřeno ostře:** RegioJet živě odpovídal z tohoto prostředí, ale v testech je simulovaný; e-maily z Booking.com
   a Airbnb jen se simulovanými texty; ČNB testována simulovanou odpovědí.

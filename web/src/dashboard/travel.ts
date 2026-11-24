@@ -129,7 +129,7 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
       "aria-label": ["Stravné 5–12 h", "Stravné 12–18 h", "Stravné nad 18 h"][i] }) as HTMLInputElement);
     inputs.forEach((inp) => { inp.onchange = () => set({ per_diem_cz: inputs.map((x) => Math.max(0, +x.value || 0)) }); });
     return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Stravné v tuzemsku (Kč)"),
-      h("span", { class: "help" }, "5–12 h / 12–18 h / nad 18 h. Mění se vyhláškou každý rok – drž je aktuální; zahraniční sazby řekni v chatu.")),
+      h("span", { class: "help" }, "5–12 h / 12–18 h / nad 18 h – výchozí jsou sazby 2026 (vyhl. 573/2025 Sb.). Mění se každý rok; zahraniční pro 20 zemí jsou podle vyhl. 489/2025 Sb., další řekni v chatu.")),
       h("div", { class: "house-add" }, ...inputs));
   };
   const renderSettings = () => {

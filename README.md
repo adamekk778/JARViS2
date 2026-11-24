@@ -62,7 +62,8 @@ Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvr
 - **Peníze tento měsíc** (Bezpečí): AI, cesty, předplatné a platby přes JARVISe s každým krokem a tvou odpovědí.
 - **Cesty 2:** spolucestující (údaje jen v PC, letenky pro víc lidí), vlaky a autobusy RegioJet živě (ČD a další přes
   IDOS), vstupní podmínky pro občany ČR s odkazem na MZV, ubytování z potvrzovacích e-mailů, cestovní karta do
-  telefonu offline, zpožděný let → zpráva hotelu po tvém ano, stravné podle zákoníku práce, zkušební rezervace
+  telefonu offline, zpožděný let → zpráva hotelu po tvém ano (adresa hotelu z potvrzení), stravné podle zákoníku práce
+  se sazbami 2026, hlídání zlevnění i u hotelů přes Duffel, zkušební rezervace
   jedním kliknutím (jen se zkušebním klíčem), odkaz na cestu pro rodinu (bez ceny a čísla rezervace, vyprší).
 - **Hodinky:** dlaždice ukáže nejbližší cestu a čekající platbu (schvaluje se jen v telefonu s otiskem).
 - **Ověřování:** testy na Windows v CI běží ve dvou souběžných částech; novější akce GitHubu; opravená varování.

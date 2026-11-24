@@ -56,7 +56,7 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
     a animace hovoru v Androidu, skutečná 3D tiskárna (OctoPrint / Klipper / Bambu), OpenSCAD, FreeCAD a PrusaSlicer
     (volání napsaná podle dokumentace, testovaná se simulovaným spuštěním), gesta se skutečnou webkamerou.
 
-- **3.19 (4 dávky, 17 návrhů): 2127 testů prošlo, 24 přeskočeno** (Linux). Nové `tests/test_money319.py` (kurz ČNB:
+- **3.19 (4 dávky, 17 návrhů + doplňky): 2130 testů prošlo, 24 přeskočeno** (Linux). Nové `tests/test_money319.py` (kurz ČNB:
   použití, uložení pro offline a co se o něm řekne; limity s kurzem ČNB; co je platba – rezervace, vrácení, nákup na
   obrazovce, tlačítko v prohlížeči podle skutečného textu; vždy dvakrát a nikdy s plnou důvěrou; vrácení peněz se ptá
   dvakrát a zapíše se; cizí text vrácení nespustí; nákup na obrazovce dvakrát; návrhy agentů na platbu ne hromadně

@@ -241,12 +241,14 @@ async def test_trip_card_for_the_phone(rt):
 # ------------------------------------------------------------------------------------------ 8 per diem
 def test_per_diem_by_the_labour_code(rt):
     one = tripcare.per_diem(rt, "2026-12-01T06:00", "2026-12-01T20:00")                              # 14 h at home
-    assert one["total"] == 212 and one["days"][0]["hours"] == 14
-    assert tripcare.per_diem(rt, "2026-12-01T06:00", "2026-12-01T20:00", meals=1)["total"] == 138    # −35 % for a meal
+    assert one["total"] == 236 and one["days"][0]["hours"] == 14                                     # rates 2026 (573/2025 Sb.)
+    assert tripcare.per_diem(rt, "2026-12-01T06:00", "2026-12-01T20:00", meals=1)["total"] == 153    # −35 % for a meal
     two = tripcare.per_diem(rt, "2026-12-01T06:00", "2026-12-02T22:00")                              # 18 h + 22 h
-    assert [d["amount"] for d in two["days"]] == [212, 333] and two["total"] == 545
+    assert [d["amount"] for d in two["days"]] == [236, 370] and two["total"] == 606
     assert tripcare.per_diem(rt, "2026-12-01T08:00", "2026-12-01T12:00")["total"] == 0               # under 5 h
-    assert not tripcare.per_diem(rt, "2026-12-01T08:00", "2026-12-01T20:00", "DE")["ok"]            # no rate for abroad yet
+    us = tripcare.per_diem(rt, "2026-12-01T08:00", "2026-12-01T22:00", "US")                         # 489/2025 Sb.: 70 USD
+    assert us["total"] == 70 and us["currency"] == "USD"
+    assert not tripcare.per_diem(rt, "2026-12-01T08:00", "2026-12-01T20:00", "JP")["ok"]            # not in the table: ask
     rt.update_config({"booking": {"per_diem_abroad": {"DE": 45}, "per_diem_abroad_currency": {"DE": "EUR"}}})
     de = tripcare.per_diem(rt, "2026-12-01T08:00", "2026-12-01T18:00", "DE")                         # 10 h abroad → 2/3
     assert de["total"] == 30 and de["currency"] == "EUR"
@@ -256,5 +258,49 @@ def test_per_diem_by_the_labour_code(rt):
 async def test_travel_allowance_tool_writes_for_the_accountant(rt):
     tools.load_builtin()
     r = await tools.call("travel_allowance", {"start": "2026-12-01T06:00", "end": "2026-12-01T20:00"}, rt)
-    assert r.ok and "212" in r.summary
+    assert r.ok and "236" in r.summary
     assert "stravné" in (tripcare.travel_dir() / "naklady.csv").read_text(encoding="utf-8-sig")
+
+
+# ------------------------------------------------------------------------------------------ after 3.19: the hotel's address, Duffel prices
+def test_hotel_email_only_the_hotels_own():
+    assert tripcare.hotel_email("Recepce@HotelAlfama.pt") == "recepce@hotelalfama.pt"
+    for bad in ("noreply@booking.com", "x@guest.booking.com", "host@airbnb.com", "not an email", "a@b", "<script>@x.cz"):
+        assert tripcare.hotel_email(bad) == "", bad
+
+
+async def test_message_to_the_hotel_uses_its_address(rt, monkeypatch):
+    mails = [{"id": "m3", "subject": "Booking confirmation – Casa Azul", "from": "reservas@casaazul.pt",
+              "text": "Your booking at Casa Azul guesthouse, Porto. Check-in 2099-03-12, check-out 2099-03-15. Ref CA-1."}]
+    rt.mail = SimpleNamespace(account=lambda *a: _Acc(mails))
+    monkeypatch.setattr(rt.cfg.mail, "accounts", [object()])
+    rt.router = FakeRouter([json.dumps({"is_hotel_booking": True, "name": "Casa Azul", "city": "Porto", "country": "PT",
+                                        "checkin": "2099-03-12", "checkout": "2099-03-15", "confirmation": "CA-1",
+                                        "hotel_email": "reservas@casaazul.pt"}),
+                            "Subject: Late arrival\nDear Casa Azul, I will arrive around 23:00. Kind regards"])
+    rt.notify = lambda *a, **k: None
+    await tripcare.scan_hotel_mail(rt)
+    tools.load_builtin()
+    r = await tools.call("hotel_message", {"booking_ref": "Casa Azul", "request": "přijedu ve 23 hodin"}, rt)
+    assert r.ok and r.data["to"] == "reservas@casaazul.pt" and "až po tvém potvrzení" in r.summary
+    assert tools.is_dangerous(tools.REGISTRY["email_send"], {"to": r.data["to"]})        # sending still asks
+
+
+async def test_duffel_hotel_got_cheaper(rt, monkeypatch):
+    connectors.load()
+    monkeypatch.setattr(secrets, "get", lambda k: "duffel_test_abc" if k == connectors.skey("duffel", "access_token") else "")
+    _hotel(rt, "2099-01-01", provider="duffel", ref="bok_9", free_cancel_until="2098-12-30T12:00",
+           data=json.dumps({"offer": {"hotel_id": "acc_1", "lat": 38.7, "lon": -9.1, "criteria": {"adults": 2}}}))
+    seen = []
+
+    def handler(req: httpx.Request):
+        body = json.loads(req.content or b"{}")["data"]
+        seen.append(body)
+        return httpx.Response(200, json={"data": {"results": [
+            {"accommodation": {"id": "acc_1"}, "cheapest_rate_total_amount": "260.00", "cheapest_rate_currency": "EUR"},
+            {"accommodation": {"id": "acc_2"}, "cheapest_rate_total_amount": "100.00", "cheapest_rate_currency": "EUR"}]}})
+    told = []
+    rt.notify = lambda title, body, **kw: told.append(body)
+    said = await tripcare.price_watch(rt, transport=httpx.MockTransport(handler))
+    assert said and "o 40 EUR levnější" in said[0]                     # 300 → 260 at the same hotel (not the other one)
+    assert seen[0]["free_cancellation_only"] is True and len(seen[0]["guests"]) == 2

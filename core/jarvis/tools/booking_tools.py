@@ -382,8 +382,13 @@ async def hotel_message(ctx, booking_ref: Annotated[str, "která rezervace"],
                                     f"{b['end'][:10]}, jméno {g.first_name} {g.last_name}. Požadavek: {request[:500]}"}]) or "").strip()
     subject, _, body = text.partition("\n")
     subject = subject.replace("Subject:", "").strip() or f"Reservation {b['ref']}"
-    return ToolResult(True, f"Koncept pro {b['name']}:\nPředmět: {subject}\n{body.strip()}\nMám ho poslat? (Adresu hotelu najdeš "
-                            "v potvrzení – řekni mi ji.)", data={"subject": subject, "body": body.strip(), "booking": b})
+    from ..tripcare import hotel_email
+
+    to = hotel_email(str(data.get("hotel_email") or ""))
+    where = (f"Mám ho poslat na {to} (adresa hotelu z potvrzení)? Pošle se až po tvém potvrzení." if to else
+             "Mám ho poslat? Adresu hotelu najdeš v potvrzení – řekni mi ji.")
+    return ToolResult(True, f"Koncept pro {b['name']}:\nPředmět: {subject}\n{body.strip()}\n{where}",
+                      data={"subject": subject, "body": body.strip(), "booking": b, "to": to})
 
 
 # ------------------------------------------------------------------------------------------ the whole trip, tickets, watches, spend

@@ -632,6 +632,13 @@ class HomeCfg(BaseModel):
     vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
 
 
+# 3.19 základní sazby zahraničního stravného 2026 (vyhláška č. 489/2025 Sb., příloha) for the most common countries
+PER_DIEM_ABROAD_2026: dict[str, float] = {
+    "DE": 50, "AT": 45, "SK": 40, "PL": 50, "HU": 50, "IT": 55, "FR": 50, "ES": 50, "HR": 50, "GB": 45, "US": 70, "NL": 50,
+    "BE": 50, "CH": 75, "PT": 45, "GR": 40, "SI": 40, "DK": 65, "SE": 65, "IE": 55}
+PER_DIEM_ABROAD_CUR_2026: dict[str, str] = {c: "EUR" for c in PER_DIEM_ABROAD_2026} | {"GB": "GBP", "US": "USD", "CH": "CHF"}
+
+
 class Companion(BaseModel):
     """3.19 someone you travel with (their details stay on this PC, like yours)."""
     first_name: str = ""
@@ -664,9 +671,11 @@ class BookingCfg(BaseModel):
     reminders: bool = True                 # free cancellation ends, check-in, weather, packing
     price_watch: bool = True               # a booked hotel that you can cancel for free got cheaper → tell me
     companions: list[Companion] = Field(default_factory=list)       # 3.19 who you travel with
-    per_diem_cz: list[float] = Field(default_factory=lambda: [140.0, 212.0, 333.0])   # Kč: 5–12 h, 12–18 h, nad 18 h
-    per_diem_abroad: dict[str, float] = Field(default_factory=dict)   # země (ISO-2) → základní sazba v její měně
-    per_diem_abroad_currency: dict[str, str] = Field(default_factory=dict)
+    # stravné 2026: tuzemsko vyhl. 573/2025 Sb. (soukromá sféra, minimum), zahraničí vyhl. 489/2025 Sb. – a decree
+    # changes them every year, keep them current (Cesty → Údaje a limity)
+    per_diem_cz: list[float] = Field(default_factory=lambda: [155.0, 236.0, 370.0])   # Kč: 5–12 h, 12–18 h, nad 18 h
+    per_diem_abroad: dict[str, float] = Field(default_factory=lambda: dict(PER_DIEM_ABROAD_2026))  # země → základní sazba
+    per_diem_abroad_currency: dict[str, str] = Field(default_factory=lambda: dict(PER_DIEM_ABROAD_CUR_2026))
     entry_warnings: bool = True            # passport / visa / ETA for the destination when searching
 
 
