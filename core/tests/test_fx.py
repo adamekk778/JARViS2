@@ -178,3 +178,90 @@ async def test_sos_state_for_the_phone(rt):
 
     await asyncio.sleep(0.05)
     assert events[-1][1]["active"] is False
+
+
+def test_desktop_effect_frames():
+    from jarvis import fxrender
+
+    for frame in (fxrender.reticle("#ff4d3d", "Uložit"), fxrender.osd("volume", 64), fxrender.welcome("Vítejte zpět, pane"),
+                  fxrender.scanline(800), fxrender.dot()):
+        mid = frame(0.5)
+        assert mid.mode == "RGBA" and fxrender.is_visible(mid)
+        assert mid.getpixel((0, 0))[3] < 40                     # the corners stay see-through
+    assert not fxrender.is_visible(fxrender.osd("volume", 50)(1.0))    # faded out at the end
+    assert fxrender.rgb("#abc") == (170, 187, 204) and fxrender.rgb("nonsense") == (79, 195, 255)
+
+
+def test_desktop_effect_mapping(rt):
+    from jarvis.desktop import fxwin
+
+    rt.update_config({"appearance": {"motif": "mark"}})
+    assert fxwin.accent(rt) == "#ff4d3d"
+    e = fxwin.effect_for(rt, "click", {"x": 500, "y": 300, "label": "OK"})
+    assert (e.w, e.h, e.cx, e.cy) == (220, 220, 500, 300) and e.frames() == 42
+    scan = fxwin.effect_for(rt, "scan", {})
+    assert scan.move is not None and scan.move(0.0)[1] < scan.move(1.0)[1]          # the beam travels down
+    assert fxwin.effect_for(rt, "nothing", {}) is None
+
+
+def test_overlay_hooks_only_while_jarvis_works(rt):
+    from jarvis import overlayfx
+
+    events, shown = [], []
+    rt.bus.publish_threadsafe = lambda t, **d: events.append((t, d))
+    rt.on_overlay_fx = lambda kind, data: shown.append(kind)
+
+    class P:
+        def click(self, x, y, button="left", double=False):
+            return ("clicked", x, y)
+
+        def move(self, x, y):
+            return ("moved", x, y)
+
+        def screenshot(self):
+            return b"png"
+
+    rt.platform = P()
+    assert overlayfx.Hooks(rt).install() and not overlayfx.Hooks(rt).install()     # once
+    rt.agent.busy = False
+    assert rt.platform.click(10, 20) == ("clicked", 10, 20) and events == []         # your own clicks: nothing
+    rt.agent.busy = True
+    rt.platform.click(10, 20)
+    rt.platform.screenshot()
+    rt.platform.screenshot()                                                          # a second scan within 20 s: no
+    assert [d["kind"] for _, d in events] == ["click", "scan"] and shown == ["click", "scan"]
+    rt.update_config({"appearance": {"desktop_fx": False}})
+    rt.platform.click(1, 2)
+    assert len(events) == 2
+
+
+def test_osd_and_welcome_back(rt):
+    from jarvis import overlayfx
+
+    events = []
+    rt.bus.publish_threadsafe = lambda t, **d: events.append(d)
+    assert overlayfx.after_tool(rt, "volume", {"level": 40}, True, 40, "Hlasitost 40 %")
+    assert events[-1] == {"kind": "osd", "what": "volume", "value": 40.0, "text": ""}
+    assert overlayfx.after_tool(rt, "media_control", {"action": "next"}, True, None, "Další") and events[-1]["text"] == "Další"
+    assert not overlayfx.after_tool(rt, "open_app", {}, True, None)
+    w = overlayfx.UnlockWatch(rt)
+    assert not w.step(True, 1000.0)                    # locked
+    assert w.step(False, 1001.0) and "Vítejte zpět" in events[-1]["text"]
+    assert not w.step(True, 1002.0) and not w.step(False, 1003.0)                    # not again within 10 minutes
+    assert w.step(True, 2000.0) is False and w.step(False, 2001.0)
+
+
+async def test_wallpaper_page_and_holo_layout(rt):
+    from fastapi.testclient import TestClient
+
+    from jarvis import tools
+    from jarvis.server.app import create_app
+
+    client = TestClient(create_app(rt, manage_runtime=False))
+    assert client.get("/wallpaper").status_code in (200, 503)           # 503 only when the web UI is not built
+    sent = []
+    rt.bus.publish = lambda t, **d: sent.append((t, d))
+    r = await tools.call("hud_control", {"action": "holo"}, rt)
+    assert r.ok and any(t == "hud_cmd" and d.get("action") == "holo" for t, d in sent)
+    r = await tools.call("update_setting", {"key": "appearance.live_wallpaper", "value": "globe"}, rt)
+    assert r.ok and rt.cfg.appearance.live_wallpaper == "globe"

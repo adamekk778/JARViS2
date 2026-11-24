@@ -23,7 +23,7 @@ export class JarvisClient {
   status: ConnStatus = "closed";
   local = false;
 
-  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud" | "karaoke" | "overlay" | "wallpaper", private name = "") {}
+  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud" | "karaoke" | "wallpaper", private name = "") {}
 
   // 3.15 the frame rate and the effects tier of this window, for Diagnostika (every 30 s, only while it animates)
   private fxTimer = 0;

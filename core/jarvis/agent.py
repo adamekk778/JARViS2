@@ -527,6 +527,12 @@ class Agent:
                 except Exception:  # noqa: BLE001
                     live = None
                 rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview, live=live)
+                try:                                           # 3.15 volume / brightness / media → the display on the desktop
+                    from .overlayfx import after_tool
+
+                    after_tool(rt, call.name, call.arguments or {}, res.ok, res.data, res.summary)
+                except Exception:  # noqa: BLE001
+                    pass
                 if call.name != "update_plan":
                     ms = int((time.monotonic() - t0) * 1000)
                     rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary, ms)

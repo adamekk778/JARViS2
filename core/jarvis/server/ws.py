@@ -117,6 +117,7 @@ SERVER_TYPES = [
     "fx_pause",
     "hud_cmd",
     "emergency_state",
+    "overlay_fx",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

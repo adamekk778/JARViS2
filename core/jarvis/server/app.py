@@ -251,6 +251,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     callroutes.register(app, rt)             # 3.14 AI sekretářka + calls for you (Twilio webhooks, signed)
 
+    @app.get("/wallpaper")
+    async def wallpaper():                  # 3.15 the live wallpaper behind the desktop icons
+        return page("wallpaper.html")
+
     @app.get("/karaoke")
     async def karaoke():                    # 3.14 the song's words big, over the whole screen (PC window or a TV browser)
         return page("karaoke.html")

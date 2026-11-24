@@ -1,0 +1,20 @@
+/* 3.15 the live wallpaper */
+html.wallpaper-doc, html.wallpaper-doc body { margin: 0; height: 100%; overflow: hidden; user-select: none;
+  background: radial-gradient(80% 70% at 50% 42%, #0a1e33 0%, #040b14 55%, #010307 100%); }
+#wp { position: fixed; inset: 0; --holo: var(--accent, #4fc3ff); color: #dff6ff; }
+.wp-stage { position: absolute; left: 50%; top: 44%; width: min(62vh, 680px); aspect-ratio: 1; translate: -50% -50%; }
+#wp[data-kind="globe"] .wp-stage { width: min(84vh, 980px); }
+.wp-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wp-stage .rx3d { inset: 0; width: 100%; height: 100%; }
+.wp-time { position: absolute; left: 50%; bottom: 9vh; translate: -50% 0; text-align: center; }
+.wp-clock { font: 600 clamp(48px, 7vw, 120px)/1 "Orbitron Variable", sans-serif; letter-spacing: .06em; color: #e6f8ff;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--holo) 50%, transparent); }
+.wp-date { margin-top: 10px; font: 600 14px "Orbitron Variable", sans-serif; letter-spacing: .35em; color: var(--holo); }
+.wp-still { position: absolute; left: 50%; top: 44%; width: min(46vh, 480px); aspect-ratio: 1; translate: -50% -50%; }
+.wp-still[hidden] { display: none; }
+.wp-still i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--holo) 70%, transparent);
+  border-left-color: transparent; border-bottom-color: transparent; }
+.wp-still i:nth-child(2) { inset: 12%; border-style: dashed; }
+.wp-still i:nth-child(3) { inset: 26%; }
+.wp-still b { position: absolute; inset: 38%; border-radius: 50%; background: radial-gradient(#fff, var(--holo) 45%, transparent 72%);
+  box-shadow: 0 0 60px var(--holo); }

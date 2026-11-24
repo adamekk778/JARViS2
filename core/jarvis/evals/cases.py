@@ -78,6 +78,8 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("vzlétni s dronem", ("drone",)), ("obleť místnost dronem a přistaň", ("drone",)),
     ("přibliž mapu", ("hud_control",)), ("ukaž zeměkouli ve 3D", ("hud_control",)), ("schovej panely v HUD", ("hud_control",)),
     ("přepni HUD na prezentaci", ("hud_control",)),
+    ("zapni holo plochu", ("hud_control",)), ("zapni živou tapetu s glóbusem", ("update_setting",)),
+    ("dej kvalitu efektů na ultra", ("update_setting",)), ("přepni barvy na Mark", ("update_setting",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar

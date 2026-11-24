@@ -205,6 +205,8 @@ class Appearance(BaseModel):
     animations: Literal["full", "reduced", "auto"] = "full"   # auto = reduced on battery (OMEGA 240 / 764)
     fx_quality: Literal["auto", "ultra", "high", "eco", "off"] = "auto"   # 3.15 effects: auto = by the graphics card, battery, fps
     motif: Literal["vlastni", "stark", "mark", "friday", "stealth"] = "vlastni"   # 3.15 colour motifs for the whole app
+    desktop_fx: bool = True             # 3.15 effects over the desktop: scan, target reticle, volume display, "Vítejte zpět"
+    live_wallpaper: Literal["off", "reactor", "globe"] = "off"   # 3.15 the reactor / globe behind the desktop icons (Windows)
     sounds: bool = True        # subtle interface sounds in the notch
     sound_volume: int = 30     # 0–100
     spatial_sounds: bool = True   # OMEGA 102 / 761: sounds come from where things happen (phone right, notch centre…)
@@ -770,7 +772,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
     "voice.speak_mode", "voice.stt_language", "voice.followup", "voice.game_quiet", "voice.barge_in", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
-    "appearance.theme", "appearance.accent", "appearance.animations", "appearance.fx_quality", "appearance.motif",
+    "appearance.theme", "appearance.accent", "appearance.animations", "appearance.fx_quality", "appearance.motif", "appearance.desktop_fx", "appearance.live_wallpaper",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",
     "dictation.enabled", "dictation.cleanup",

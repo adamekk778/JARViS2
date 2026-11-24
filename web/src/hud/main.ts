@@ -288,7 +288,7 @@ const plain = (md: string) => md.replace(/```[\s\S]*?```/g, " [kód] ").replace(
 let answer = "";
 
 // OMEGA 756: layouts – everything, just the essentials, focus (no log, no media), presentation (nothing personal)
-const LAYOUTS: [string, string][] = [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace"]];
+const LAYOUTS: [string, string][] = [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace"], ["holo", "Holo"]];
 const layoutBar = h("div", { class: "layouts", role: "radiogroup", "aria-label": "Rozložení HUD" });
 root.append(layoutBar);
 function setLayout(name: string) {
@@ -388,7 +388,7 @@ client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); r
 client.on("hud_cmd" as any, (m: any) => {
   const a = String(m.action || "");
   if (["map", "globe", "flat", "zoom_in", "zoom_out", "radar_play", "close_map"].includes(a)) wmap.command(a === "map" ? "open" : a);
-  else if (["full", "minimal", "focus", "presentation"].includes(a)) setLayout(a);
+  else if (["full", "minimal", "focus", "presentation", "holo"].includes(a)) setLayout(a);
   else if (a === "systems") setLayout("full");
   else if (a === "hide_panels" || a === "show_panels") root.classList.toggle("panels-off", a === "hide_panels");
   else if (a === "close") closeHud();

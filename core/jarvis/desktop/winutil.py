@@ -356,3 +356,58 @@ def window_rect(hwnd: int) -> tuple[int, int, int, int] | None:
     if not ctypes.windll.user32.GetWindowRect(ctypes.c_void_p(hwnd), ctypes.byref(r)):
         return None
     return (r.left, r.top, r.right - r.left, r.bottom - r.top)
+
+
+# ---------------------------------------------------------------------------------------------- 3.15 the live wallpaper
+def desktop_layer() -> int:
+    """The window between the wallpaper and the desktop icons (Progman's WorkerW), made on request; 0 when not found."""
+    if not IS_WIN:
+        return 0
+    from ctypes import wintypes
+
+    u = ctypes.windll.user32
+    u.FindWindowW.restype = ctypes.c_void_p
+    u.FindWindowExW.restype = ctypes.c_void_p
+    u.FindWindowExW.argtypes = [ctypes.c_void_p, ctypes.c_void_p, wintypes.LPCWSTR, wintypes.LPCWSTR]
+    progman = u.FindWindowW("Progman", None)
+    if not progman:
+        return 0
+    res = ctypes.c_size_t()
+    u.SendMessageTimeoutW(ctypes.c_void_p(progman), 0x052C, 0xD, 0x1, 0, 1000, ctypes.byref(res))   # ask Explorer for the layer
+    u.SendMessageTimeoutW(ctypes.c_void_p(progman), 0x052C, 0, 0, 0, 1000, ctypes.byref(res))
+    found = ctypes.c_void_p(0)
+    WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def each(h, _lp):
+        if u.FindWindowExW(ctypes.c_void_p(h), None, "SHELLDLL_DefView", None):
+            found.value = u.FindWindowExW(None, ctypes.c_void_p(h), "WorkerW", None)   # the WorkerW right after the icons
+        return True
+
+    u.EnumWindows(WNDENUMPROC(each), 0)
+    if not found.value:                     # Windows 11 24H2+: the layer is a child of Progman itself
+        found.value = u.FindWindowExW(ctypes.c_void_p(progman), None, "WorkerW", None)
+    return int(found.value or 0)
+
+
+def attach_to_desktop(hwnd: int, x: int, y: int, w: int, h: int) -> bool:
+    """Put a window behind the desktop icons, covering one monitor (coordinates relative to the virtual screen)."""
+    if not IS_WIN or not hwnd:
+        return False
+    layer = desktop_layer()
+    if not layer:
+        return False
+    u = ctypes.windll.user32
+    u.SetParent(ctypes.c_void_p(hwnd), ctypes.c_void_p(layer))
+    vx, vy = u.GetSystemMetrics(76), u.GetSystemMetrics(77)                     # SM_XVIRTUALSCREEN / SM_YVIRTUALSCREEN
+    u.SetWindowPos(ctypes.c_void_p(hwnd), None, int(x - vx), int(y - vy), int(w), int(h), 0x0010 | 0x0004)   # NOACTIVATE | NOZORDER
+    return True
+
+
+def refresh_wallpaper() -> None:
+    """Explorer repaints the normal wallpaper (after the live one is gone)."""
+    if not IS_WIN:
+        return
+    u = ctypes.windll.user32
+    buf = ctypes.create_unicode_buffer(520)
+    if u.SystemParametersInfoW(0x0073, 520, buf, 0):                            # SPI_GETDESKWALLPAPER
+        u.SystemParametersInfoW(0x0014, 0, buf, 0x02)                           # SPI_SETDESKWALLPAPER, SPIF_SENDCHANGE

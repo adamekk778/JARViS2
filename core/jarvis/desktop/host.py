@@ -96,6 +96,15 @@ class DesktopHost:
         self.karaoke = None   # 3.14 the full-screen karaoke window, created on first use
         self.hud_visible = False
         self.hud_alpha = False
+        self.wallpaper = None             # 3.15 the live wallpaper window (behind the desktop icons)
+        self._wallpaper_kind = "off"
+        try:                              # 3.15 effects over the desktop: native click-through windows
+            from .fxwin import FxWin
+
+            self.fx = FxWin(rt)
+            rt.on_overlay_fx = self.fx.handle
+        except Exception as e:  # noqa: BLE001
+            log.debug("fx windows: %s", e)
         self._anchor_win = None
         rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
         rt.on_game_tip = self.peek_over_game  # 3.13 a game tip: the notch shows itself over the game for a moment
@@ -284,6 +293,39 @@ class DesktopHost:
         except Exception as e:
             log.warning("per-pixel alpha unavailable: %s", e)
         return False
+
+    # ---------- 3.15 the live wallpaper ----------
+    def _set_wallpaper(self, kind: str) -> None:
+        import webview
+
+        self._wallpaper_kind = kind
+        if kind == "off" or not winutil.IS_WIN:
+            if self.wallpaper is not None:
+                try:
+                    self.wallpaper.destroy()
+                except Exception:
+                    pass
+                self.wallpaper = None
+                winutil.refresh_wallpaper()
+            return
+        if self.wallpaper is not None:
+            self.wallpaper.load_url(f"{self.base}/wallpaper?kind={kind}")
+            return
+        from . import platforms
+
+        mons = platforms.monitors()
+        i = self.rt.cfg.notch.monitor
+        mon = mons[i if 0 <= i < len(mons) else 0][0]
+        self.wallpaper = webview.create_window("JARVIS Wallpaper", f"{self.base}/wallpaper?kind={kind}", frameless=True, easy_drag=False,
+                                               resizable=False, shadow=False, focus=False, background_color="#02060c")
+        self.wallpaper.events.loaded.wait(15)
+        hwnd = winutil.window_handle(self.wallpaper, "JARVIS Wallpaper")
+        if not winutil.attach_to_desktop(hwnd, mon.x, mon.y, mon.w, mon.h):
+            log.warning("wallpaper: the desktop layer was not found – live wallpaper off")
+            self.wallpaper.destroy()
+            self.wallpaper = None
+        else:
+            winutil.hide_from_taskbar("JARVIS Wallpaper")
 
     # ---------- 3.2 Stark HUD: a holographic overlay over the whole screen ----------
     def toggle_hud(self, show: bool | None = None) -> None:
@@ -514,6 +556,12 @@ class DesktopHost:
                 self.no_backdrop()
             except Exception as e:
                 log.debug("heal_region: %s", e)
+            try:                      # 3.15 the live wallpaper follows the setting (on / off / reactor / globe)
+                want = getattr(self.rt.cfg.appearance, "live_wallpaper", "off")
+                if want != self._wallpaper_kind:
+                    self._set_wallpaper(want)
+            except Exception as e:
+                log.debug("wallpaper: %s", e)
             try:                      # 3.15 a game / video over the whole screen (not JARVIS's own HUD): effects stop
                 game = winutil.foreground_is_fullscreen() and winutil.foreground_pid() != os.getpid()
                 if game != fx_paused:
@@ -664,6 +712,11 @@ class DesktopHost:
 
     def quit(self, *_):
         self._quitting = True
+        if self.wallpaper is not None:
+            try:
+                self._set_wallpaper("off")
+            except Exception:
+                pass
         try:
             if self.tray:
                 self.tray.stop()

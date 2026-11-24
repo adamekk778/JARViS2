@@ -49,7 +49,7 @@ async def show_hud(ctx, close: bool = False) -> ToolResult:
 
 HUD_ACTIONS = {"map": "mapa světa", "globe": "3D glóbus", "flat": "plochá mapa", "zoom_in": "přiblížení", "zoom_out": "oddálení",
                "radar_play": "přehrání radaru", "close_map": "zavření mapy", "full": "plné rozložení", "minimal": "minimální rozložení",
-               "focus": "rozložení Soustředění", "presentation": "rozložení Prezentace", "hide_panels": "schované panely",
+               "focus": "rozložení Soustředění", "presentation": "rozložení Prezentace", "holo": "holo-plocha (plocha prosvítá)", "hide_panels": "schované panely",
                "show_panels": "panely zpět", "systems": "systémy", "close": "zavření HUD"}
 
 
@@ -57,7 +57,7 @@ HUD_ACTIONS = {"map": "mapa světa", "globe": "3D glóbus", "flat": "plochá map
       "rozložení (plné, minimální, soustředění, prezentace), schovat / ukázat panely, zavřít HUD. HUD se sám otevře.",
       category="systém", perm="apps")
 async def hud_control(ctx, action: Annotated[str, "map / globe / flat / zoom_in / zoom_out / radar_play / close_map / full / minimal / "
-                                                  "focus / presentation / hide_panels / show_panels / systems / close"]) -> ToolResult:
+                                                  "focus / presentation / holo / hide_panels / show_panels / systems / close"]) -> ToolResult:
     a = (action or "").strip().lower()
     if a not in HUD_ACTIONS:
         return ToolResult(False, "To HUD neumí. Umí: " + ", ".join(HUD_ACTIONS.values()) + ".")

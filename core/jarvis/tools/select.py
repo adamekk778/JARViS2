@@ -106,6 +106,9 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\bjsem v poradku\b|\bto byl omyl\b", ("emergency_ok",)),
     (r"\b(bezpecnostn\w* (prehled|brifink)|unik\w* (hesel|dat|e-?mail\w*))", ("security_briefing",)),
     (r"\bdetsk\w* rezim\w*\b", ("kids_mode",)),
+    (r"\bholo\w*\b.*\bploch\w*\b|\bholo ?ploch\w*\b", ("hud_control",)),
+    (r"\b(ziv\w* tapet\w*|tapet\w* (s |se )?(reaktor\w*|globus\w*))\b|\b(efekt\w*) na ploch\w*\b|\b(kvalit\w*) (efekt\w*|animac\w*)\b|"
+     r"\b(motiv\w*|schema|barv\w*) (na )?(mark|friday|stealth|stark)\b", ("update_setting",)),
     (r"\b(priblizi?|oddali?|zvetsi|zmensi)\w*\b.*\b(map\w*|globus\w*|zem\w*)\b|\b(globus|zemekouli|3d map\w*)\b|"
      r"\b(schovej|skryj|ukaz|vrat)\w*\b.*\bpanel\w*\b|\b(hud|holo)\w*\b.*\b(minimal\w*|soustredeni|prezentac\w*|rozlozeni)\b",
      ("hud_control", "world_map")),

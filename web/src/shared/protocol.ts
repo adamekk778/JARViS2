@@ -93,6 +93,7 @@ export const SERVER_TYPES = [
   "fx_pause",
   "hud_cmd",
   "emergency_state",
+  "overlay_fx",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
