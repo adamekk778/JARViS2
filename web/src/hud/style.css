@@ -218,3 +218,7 @@ html.alpha .hud { background: radial-gradient(120% 100% at 50% 45%, rgb(3 16 30 
 .hud[data-layout="focus"] .col.left, .hud[data-layout="focus"] .col.right > :last-child, .hud[data-layout="focus"] .protocols { display: none; }
 .hud[data-layout="presentation"] .col, .hud[data-layout="presentation"] .greet, .hud[data-layout="presentation"] .you,
 .hud[data-layout="presentation"] .answer, .hud[data-layout="presentation"] .protocols, .hud[data-layout="presentation"] .brief { display: none; }
+
+/* 3.14 the wall display: no PC-window controls */
+html.kiosk .close { display: none; }
+html.kiosk, html.kiosk body { cursor: none; }

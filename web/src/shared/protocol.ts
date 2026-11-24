@@ -48,6 +48,7 @@ export const CLIENT_TYPES = [
   "brain_split",
   "lyrics_get",
   "persona_set",
+  "node_add", "node_remove",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -82,6 +83,7 @@ export const SERVER_TYPES = [
   "lyrics_autoshift",
   "live_talk",
   "interpreter",
+  "house",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

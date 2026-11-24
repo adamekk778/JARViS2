@@ -583,6 +583,16 @@ class AutomationsCfg(BaseModel):
 class HomeCfg(BaseModel):
     """3.5 smart home through Home Assistant (the long-lived access token is in the keyring)."""
     url: str = ""                   # http://homeassistant.local:8123
+    # 3.14 JARVIS v celém domě
+    speakers: list[str] = Field(default_factory=list)          # media_player entities for "the whole house"
+    room_speakers: dict[str, str] = Field(default_factory=dict)  # room name → media_player entity
+    tts_entity: str = ""            # Home Assistant's own TTS (tts.*) instead of JARVIS's voice (empty = JARVIS's voice)
+    person_entity: str = ""         # person.* in Home Assistant for home / away (empty = by your phone on the Wi-Fi)
+    welcome: bool = True            # back home after a while → "Vítejte doma, pane…"
+    welcome_protocol: bool = True   # …and the "Vítej doma" protocol
+    follow_me: bool = True          # spoken notices go where you are (a room with a satellite)
+    satellite_key: str = ""         # the secret part of the address for Home Assistant voice satellites (made on first use)
+    nodes: list[dict] = Field(default_factory=list)           # 3.14 other JARVIS PCs: {name, url, token, mac}
 
 
 class LimitsCfg(BaseModel):

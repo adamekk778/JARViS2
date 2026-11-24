@@ -32,6 +32,9 @@ def resource_dir() -> Path:
 
 
 def web_dist() -> Path:
+    env = os.environ.get("JARVIS_WEB_DIST")          # 3.14 the server image keeps the UI next to the installed core
+    if env and Path(env).exists():
+        return Path(env)
     for cand in (resource_dir() / "web" / "dist", resource_dir() / "web_dist"):
         if cand.exists():
             return cand

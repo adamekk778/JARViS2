@@ -640,3 +640,9 @@ html[data-density="large"] body { zoom: 1.15; }
 /* 3.14 návrh 117: what the anonymous statistics would send */
 .sec-pre { max-height: 260px; overflow: auto; margin: 0; padding: 12px; border-radius: 10px; background: var(--panel-2, rgba(255,255,255,.04));
   font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+
+/* 3.14 JARVIS v celém domě */
+.house-card { display: grid; gap: 10px; }
+.house-card h3 { margin: 8px 0 0; font-size: 14px; }
+.house-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.house-add .input { flex: 1 1 160px; min-width: 0; }

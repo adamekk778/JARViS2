@@ -280,6 +280,13 @@ class Runtime:
         self._started = True
         if self.look_watcher.wanted():
             self.look_watcher.start()
+        from . import house
+
+        try:
+            house.ensure_scenes(self)                                # 3.14 Vítej doma / Kino / Odchod / Spánek
+        except Exception as e:  # noqa: BLE001
+            log.debug("house scenes: %s", e)
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(house.of(self).run()))   # 3.14 home / away, welcome
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
@@ -578,6 +585,20 @@ class Runtime:
                 await asyncio.to_thread(self.platform.open_path, str(p))
         return None
 
+    def _follow_me(self, title: str, body: str, target: str) -> None:
+        """3.14 Následuj mě: you are in a room with a satellite (not at the PC) → the notice is said there too."""
+        h = getattr(self, "house", None)
+        if target != "all" or h is None or not getattr(self.cfg.home, "follow_me", True):
+            return
+        w = h.where()
+        if w.startswith("room:"):
+            from . import house
+
+            try:
+                bg(house.announce(self, body or title, w[5:]))
+            except RuntimeError:
+                pass
+
     def mobile_clients(self) -> int:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
@@ -606,6 +627,7 @@ class Runtime:
                 pass
         if speak:
             self.speak(body)
+            self._follow_me(title, body, target)
         try:
             self.platform.notify(title, body)
         except Exception:

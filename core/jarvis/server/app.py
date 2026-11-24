@@ -244,6 +244,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     async def hud():
         return page("hud.html")
 
+    from . import houseroutes
+
+    houseroutes.register(app, rt)            # 3.14 house speakers + Home Assistant voice satellites
+
     @app.get("/karaoke")
     async def karaoke():                    # 3.14 the song's words big, over the whole screen (PC window or a TV browser)
         return page("karaoke.html")

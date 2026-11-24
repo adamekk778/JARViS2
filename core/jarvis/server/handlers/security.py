@@ -20,3 +20,21 @@ async def stats_preview_get(c, m: dict) -> None:
 
     data = await asyncio.to_thread(stats.payload, c.rt)
     await c.send("stats_preview", data=data, on=bool(c.rt.cfg.privacy.share_stats), url=c.rt.cfg.privacy.stats_url)
+
+
+# ---------- 3.14 other PCs (nodes): the pairing key goes to the keyring, never into the settings ----------
+@handles("node_add", local_only=True)
+async def node_add(c, m: dict) -> None:
+    from ... import nodes
+
+    try:
+        nodes.add(c.rt, str(m.get("name", "")), str(m.get("url", "")), str(m.get("token", "")), str(m.get("mac", "")))
+    except ValueError as e:
+        await c.send("error", message=str(e))
+
+
+@handles("node_remove", local_only=True)
+async def node_remove(c, m: dict) -> None:
+    from ... import nodes
+
+    nodes.remove(c.rt, str(m.get("name", "")))

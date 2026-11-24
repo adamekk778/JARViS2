@@ -10,8 +10,13 @@ import "./style.css";
 import { h, icon } from "../shared/dom";
 import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
+import { kioskMode } from "./kiosk";
 
-const client = new JarvisClient(localEndpoint(), "hud", "PC");
+// 3.14 on a tablet / TV on the home network: ?token=<the phone's key> (kiosk=1: the wall display, see kiosk.ts)
+const hudEp = localEndpoint();
+const hudToken = new URLSearchParams(location.search).get("token");
+if (hudToken) hudEp.token = hudToken;
+const client = new JarvisClient(hudEp, "hud", "PC");
 const api = () => (window as any).pywebview?.api;
 const SVG = "http://www.w3.org/2000/svg";
 const svg = (tag: string, attrs: Record<string, string | number> = {}, ...kids: Element[]) => {
@@ -185,6 +190,7 @@ const root = h("div", { class: "hud booting" },
   topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, closeBtn,
   h("i", { class: "br b1" }), h("i", { class: "br b2" }), h("i", { class: "br b3" }), h("i", { class: "br b4" }));
 document.getElementById("hud")!.append(root);
+kioskMode(root);                       // 3.14 the wall display (only with ?kiosk=1)
 
 // ---------------------------------------------------------------- behaviour
 function quick(action: string, args: any = {}) { client.send("quick_action", { action, args }); }

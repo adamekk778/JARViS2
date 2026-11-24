@@ -72,6 +72,7 @@ CLIENT_TYPES = [
     "brain_split",
     "lyrics_get",
     "persona_set",
+    "node_add", "node_remove",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -106,6 +107,7 @@ SERVER_TYPES = [
     "lyrics_autoshift",
     "live_talk",
     "interpreter",
+    "house",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

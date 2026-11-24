@@ -1,3 +1,4 @@
+import { houseCard } from "./house";
 // Dashboard → Domov (3.5): the smart home (Home Assistant), shared lists (shopping, to-dos…) and the home network.
 import { hero, HEROES } from "../shared/hero";
 import { h, icon, toast } from "../shared/dom";
@@ -158,6 +159,7 @@ export function buildHome(client: JarvisClient) {
   const el = h("section", { class: "tasks-view home-view" },
     hero(HEROES.home, "Domov", "Chytrá domácnost, společné seznamy a tvoje síť – jako JARVIS v Starkově vile.", []),
     h("h2", { class: "group-label" }, "Chytrá domácnost"), homeBox,
+    h("h2", { class: "group-label" }, "JARVIS v celém domě"), houseCard(client),
     h("h2", { class: "group-label" }, "Seznamy"), listBox,
     h("h2", { class: "group-label" }, "Síť"), netBox);
   return { el };
