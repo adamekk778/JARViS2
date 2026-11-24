@@ -245,3 +245,41 @@ async def brain_split(ctx, on: Annotated[bool, "zapnout (true) / vypnout (false)
     if not res["easy"] or not res["hard"]:
         return ToolResult(False, "Řekni, která AI má dělat lehké otázky a která těžké úkoly (např. Ollama a Claude).", data=res)
     return ToolResult(True, " ".join([f"Hotovo: lehké otázky dělá {res['easy']}, těžké úkoly {res['hard']}.", *res["notes"]]), data=res)
+
+
+# ---------- 3.14 voice & personality (návrhy 3, 13–18) ----------
+@tool("persona_switch", "Přepne osobnost i hlas: JARVIS (klidný mužský hlas, britský v angličtině) nebo FRIDAY (pohotová, ženský "
+      "hlas, irský v angličtině). Na „přepni na FRIDAY“, „chci zpátky JARVISe“.", category="hlas")
+async def persona_switch(ctx, name: Annotated[str, "jarvis | friday"]) -> ToolResult:
+    from .. import persona
+
+    key = persona.from_words(name) or name.strip().lower()
+    try:
+        res = persona.switch(ctx, key)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    return ToolResult(True, "Tady FRIDAY. Co pro tebe můžu udělat, šéfe?" if key == "friday" else "JARVIS je zpátky, pane.", data=res)
+
+
+@tool("live_conversation", "Živý rozhovor: JARVIS po každé odpovědi dál poslouchá bez „Hey Jarvis“, dokud neřekneš „díky, to je "
+      "vše“ nebo chvíli nemluvíš. Na „pojďme si povídat“, „povídej si se mnou“.", category="hlas")
+async def live_conversation(ctx, on: bool = True) -> ToolResult:
+    ctx.live_talk = bool(on)
+    ctx.bus.publish("live_talk", on=bool(on))
+    return ToolResult(True, "Jsem tu, povídejme si. Až budeš chtít skončit, řekni díky, to je vše." if on else "Dobře, končíme.")
+
+
+@tool("interpreter", "Tlumočník v hovoru (Discord, Teams, Zoom): mluvíš česky a ostatní tě slyší v angličtině (nebo jiném jazyce) "
+      "přes virtuální mikrofon VB-Cable; co říkají oni, slyšíš česky. Na „tlumoč do angličtiny“, „vypni tlumočení“.",
+      category="hlas", perm="input")
+async def interpreter_tool(ctx, on: bool = True, lang: Annotated[str, "en | de | sk | pl | fr | es | it | uk"] = "en") -> ToolResult:
+    from .. import interpreter
+
+    it = interpreter.of(ctx)
+    if not on:
+        return ToolResult(True, it.stop()["message"])
+    try:
+        r = it.start(lang)
+    except Exception as e:  # noqa: BLE001 – no sound devices here
+        return ToolResult(False, f"Tlumočení nejde spustit: {e}")
+    return ToolResult(bool(r["ok"]), r["message"])

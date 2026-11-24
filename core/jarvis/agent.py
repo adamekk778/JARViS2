@@ -333,6 +333,21 @@ class Agent:
         if shield.guest_on(rt):                     # 3.14 návrh 109: a guest at the PC – nothing about you
             facts = []
             extra = (extra + "\n\n" if extra else "") + shield.GUEST_RULE
+        from . import persona
+
+        try:                                        # 3.14 návrhy 15, 16: humour that knows when; a voice nobody knows
+            stranger = persona.speaker_line(rt) if voice else ""
+            if stranger and not shield.guest_on(rt):
+                facts = []
+                extra = (extra + "\n\n" if extra else "") + stranger
+            fun = persona.humour_line(rt, text)
+            if fun:
+                extra = (extra + "\n\n" if extra else "") + fun
+            prev = [m for m in rt.memory.recent(4) if m.get("role") == "assistant"]
+            if prev:
+                persona.note_reaction(rt, text, str(prev[-1].get("text") or prev[-1].get("content") or ""))
+        except Exception as e:  # noqa: BLE001 – never in the way of an answer
+            log.debug("persona: %s", e)
         proj = know.project_prompt() if know else ""
         vm = getattr(rt, "voice_mood", None)          # OMEGA P3.12: only when switched on, only fresh, only a hint
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
@@ -611,8 +626,8 @@ class Agent:
                 tier_kw["prefer"] = pref
                 if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
                     tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
-        if (tier == "strong" and speech is not None and quick is None and getattr(rt.cfg.brain, "quick_preface", True)
-                and not private):
+        if ((tier == "strong" or (tier == "normal" and brainplus.slow_brain(rt))) and speech is not None and quick is None
+                and getattr(rt.cfg.brain, "quick_preface", True) and not private):
             async def _say_first() -> None:            # 3.14 návrh 23: one sentence at once while the main model thinks
                 line = await brainplus.preface(rt, text or "")
                 if line and not speech.spoke:

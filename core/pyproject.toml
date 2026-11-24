@@ -54,6 +54,7 @@ desktop = [
   "soundcard>=0.4.6; sys_platform == 'win32'",
   "onnxruntime>=1.17",       # 3.14 search by meaning inside JARVIS (embedder.py)
   "tokenizers>=0.19",
+  "opencv-python-headless>=4.9,<5",   # 3.14 webcam features, all opt-in (4.x: the built-in face finder; 5.x moved it out)
 ]
 voice = [
   "sounddevice>=0.4.6",

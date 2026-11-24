@@ -55,7 +55,7 @@ class General(BaseModel):
     user_name: str = ""
     address_as: str = "pane"
     language: str = "cs"
-    personality: Literal["jarvis", "friend", "brief", "custom"] = "jarvis"
+    personality: Literal["jarvis", "friday", "friend", "brief", "custom"] = "jarvis"
     custom_prompt: str = ""
     autostart: bool = True
     city: str = "Praha"
@@ -133,6 +133,9 @@ class Voice(BaseModel):
     pronounce: list["Replacement"] = Field(default_factory=list)   # 3.14 how to say names / abbreviations (43)
     custom_wake: bool = False       # 3.14 your own wake word (recorded in Nastavení → Hlas), next to "Hey Jarvis" (37)
     owner_only: bool = True         # 3.14 a voice profile of the owner exists → risky actions by voice only in that voice (38)
+    look_to_talk: bool = False      # 3.14 alone at the PC and looking at the screen → just talk, no wake word (camera, opt-in)
+    camera_index: int = 0           # 3.14 which camera (0 = the first one)
+    interpreter_out: str = ""       # 3.14 tlumočník: the virtual microphone device (e.g. "CABLE Input") for your translated voice
 
 
 class NotchWidget(BaseModel):

@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 FIRST_MIN = 12          # the first piece may be short – it is what makes the answer feel instant
 NEXT_MIN = 60           # later pieces: a sentence or two together (fewer, smoother joins)
 _END = re.compile(r"[.!?…:](?=\s)|\n\s*\n|\n(?=[-*•\d])")
+_CLAUSE = re.compile(r"[,;–—](?=\s)")
+CLAUSE_MIN = 28         # 3.14 a first clause this long may be spoken before its sentence ends
 
 
 def cut(buf: str, first: bool) -> tuple[str, str]:
@@ -27,6 +29,11 @@ def cut(buf: str, first: bool) -> tuple[str, str]:
         if end >= need:
             best = end
             break
+    if best < 0 and first and buf.count("```") % 2 == 0:
+        # 3.14 the first sound sooner: no sentence end yet, but a long clause is written → say it already
+        m = next((m for m in _CLAUSE.finditer(buf) if CLAUSE_MIN <= m.end() <= 110), None)
+        if m:
+            best = m.end()
     if best < 0:
         return "", buf
     return buf[:best], buf[best:]

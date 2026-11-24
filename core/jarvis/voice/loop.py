@@ -15,6 +15,8 @@ log = logging.getLogger(__name__)
 SR = 16000
 FRAME = 1280  # 80 ms, what openWakeWord expects
 FOLLOWUP_S = 6.0
+LIVE_S = 12.0           # 3.14 živý rozhovor: this long to start the next sentence before the conversation rests
+LOOK_SPEECH_S = 0.24    # 3.14 mluv bez Hey Jarvis: this much speech while you look at the screen = talking to JARVIS
 END_PHRASES = ("to je vse", "to je vsechno", "diky to je vse", "dekuji to je vse", "stop", "konec", "that's all",
                "thats all", "that is all", "thank you that's all")
 
@@ -119,7 +121,8 @@ class VoiceLoop:
         # the phone, the greeting after start-up, a reminder) is just said; the microphone does not open after it.
         if reply_to not in ("voice",):
             return
-        if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False)) and not self.paused:
+        if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False) or getattr(self.rt, "live_talk", False)) \
+                and not self.paused:
             self.followup_active = True
             self._ptt.set()
 
@@ -246,6 +249,18 @@ class VoiceLoop:
             return True
         return False
 
+    def _look_talk(self, frame: bytes, vad, np) -> bool:
+        """3.14 Mluv bez „Hey Jarvis“: one person looks at the screen (the camera says so) and starts talking."""
+        lw = getattr(self.rt, "look_watcher", None)
+        if lw is None or not getattr(self.rt.cfg.voice, "look_to_talk", False) or self.speaker.speaking or not lw.ok():
+            self._look_n = 0
+            return False
+        self._look_n = (getattr(self, "_look_n", 0) + 1) if self._is_speech(frame, vad, np) else 0
+        if self._look_n * FRAME / SR >= LOOK_SPEECH_S:
+            self._look_n = 0
+            return True
+        return False
+
     def _listen_forever(self, ww, vad, np) -> None:
         cooldown = 0.0
         while not self._restart.is_set():
@@ -269,6 +284,9 @@ class VoiceLoop:
                     heard, _dist = vid.wake.check(np.frombuffer(utt, dtype=np.int16).astype(np.float32) / 32768.0)
                     if heard:
                         triggered = True
+            if frame is not None and not triggered and time.time() > cooldown and self._look_talk(frame, vad, np):
+                triggered = True                          # 3.14 you looked at the screen and spoke
+                self._preroll = list(self._recent)[-8:]   # the start of the sentence is already said: keep it
             if frame is not None and not triggered and self._talk_over(frame, vad, np):
                 triggered = True                          # 3.13 you started talking over JARVIS
                 self.rt.bus.publish_threadsafe("barge_in")
@@ -378,11 +396,17 @@ class VoiceLoop:
         self._beep(np)
         while not self._q.empty():  # drop audio from before the trigger
             self._q.get_nowait()
+        live = bool(getattr(self.rt, "live_talk", False))
         ep = Endpointer(FRAME / SR, self.rt.cfg.voice.silence_seconds,
-                        no_speech_s=FOLLOWUP_S if self.followup_active else 6.0)
-        bus.publish_threadsafe("state", state="listening", followup=self.followup_active)
+                        no_speech_s=(LIVE_S if live else FOLLOWUP_S) if self.followup_active else 6.0)
+        bus.publish_threadsafe("state", state="listening", followup=self.followup_active, live=live)
         audio = bytearray()
         result = None
+        pre, self._preroll = getattr(self, "_preroll", None), None
+        for f in pre or []:                       # 3.14 the words said before JARVIS knew you meant it
+            audio += f
+            result = ep.feed(self._is_speech(f, vad, np))
+        result = None if result == "done" else result
         n = 0
         self._cancel_capture = False
         while result is None:
@@ -400,6 +424,9 @@ class VoiceLoop:
                 bus.publish_threadsafe("level", rms=round(float(np.sqrt(np.mean(a ** 2))), 3))
         self.listening = False
         if result != "done":
+            if self.followup_active and getattr(self.rt, "live_talk", False):   # 3.14 a long silence ends the conversation
+                self.rt.live_talk = False
+                bus.publish_threadsafe("live_talk", on=False)
             self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
@@ -451,6 +478,9 @@ class VoiceLoop:
                 return
         if is_end_phrase(text):
             self.followup_active = False
+            if getattr(self.rt, "live_talk", False):     # 3.14 the end of a live conversation
+                self.rt.live_talk = False
+                self.rt.bus.publish_threadsafe("live_talk", on=False)
             self.rt.bus.publish_threadsafe("state", state="idle")
             return
         self.rt.submit(self.rt.agent.handle(text, [], "voice", lang=lang))

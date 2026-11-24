@@ -79,3 +79,14 @@ async def voiceid_reset(c, m: dict) -> None:
     """Throw away the recordings not saved yet."""
     c.rt.voiceid.pending = {}
     await c.send("voiceid", **_state(c))
+
+
+@handles("persona_set", local_only=True)
+async def persona_set(c, m: dict) -> None:
+    """3.14 JARVIS / FRIDAY from the settings: the personality and its voice together."""
+    from ... import persona
+
+    try:
+        persona.switch(c.rt, str(m.get("name", "")), voice=bool(m.get("voice", True)))
+    except ValueError as e:
+        await c.send("error", message=str(e))

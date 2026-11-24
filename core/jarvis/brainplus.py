@@ -263,3 +263,25 @@ def local_provider(rt: Any) -> str:
         if p.enabled and PRESETS.get(p.preset, {}).get("local") and rt.cfg.brain.local_enabled:
             return p.id
     return ""
+
+
+
+SLOW_MS = 1500
+
+
+def slow_brain(rt) -> bool:
+    """3.14 (návrh 56): the AI answering first usually needs over 1.5 s to its first word → say one quick sentence
+    first (also for everyday questions, not only hard ones)."""
+    try:
+        from . import quality
+
+        provs = rt.router.providers()
+        if not provs:
+            return False
+        first = provs[0].id
+        for m in quality.model_latency(rt):
+            if m["provider"] == first and m.get("answers", 0) >= 3:
+                return m["median_ms"] > SLOW_MS
+    except Exception:  # noqa: BLE001
+        return False
+    return False

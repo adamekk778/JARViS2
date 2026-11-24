@@ -96,6 +96,22 @@ def plan(text: str) -> Plan | None:
         return Plan([("weather", {})], kind="weather")
     if re.fullmatch(r"(?:udelej |vyfot\w* |zachyt\w* )?(?:screenshot|snimek obrazovky|screen)", t):
         return Plan([("screenshot", {})], say=lambda c: "Hotovo, snímek je v chatu." if c and c[0]["ok"] else c[0]["summary"], kind="screenshot")
+    # ---- 3.14 voice & personality
+    full = " ".join(re.sub(r"[^\w\s:%]", " ", "".join(c for c in unicodedata.normalize("NFKD", (text or "").lower())
+                                                       if not unicodedata.combining(c))).split())
+    if re.fullmatch(r"(?:prepni|prepnout|zmen|chci|vrat)\s+(?:se\s+)?(?:(?:na|zpatky|zpet)\s+)+(?:j|dz)arvis\w*", full):
+        return Plan([("persona_switch", {"name": "jarvis"})], kind="voice")      # "Jarvis" is a polite word elsewhere
+    m = re.fullmatch(r"(?:prepni|prepnout|zmen|chci)\s+(?:se\s+)?(?:na |zpatky |zpet )*(fr[ae]j?d[ae]j\w*|friday\w*|jarvis\w*|dzarvis\w*)", t)
+    if m:
+        return Plan([("persona_switch", {"name": "friday" if m.group(1).startswith("fr") else "jarvis"})], kind="voice")
+    if re.fullmatch(r"(?:pojdme si |budeme si |chci si )?povid(?:at|ej|ejme)(?: si)?(?: se mnou)?|zivy rozhovor", t):
+        return Plan([("live_conversation", {"on": True})], kind="voice")
+    m = re.fullmatch(r"(?:tlumoc|prekladej)(?: me| muj hlas)?(?: do| v)? (anglictin\w*|nemcin\w*|slovenstin\w*|polstin\w*|francouzstin\w*|spanelstin\w*|italstin\w*|ukrajinstin\w*)", t)
+    if m:
+        code = {"ang": "en", "nem": "de", "slo": "sk", "pol": "pl", "fra": "fr", "spa": "es", "ita": "it", "ukr": "uk"}[m.group(1)[:3]]
+        return Plan([("interpreter", {"on": True, "lang": code})], kind="voice")
+    if re.fullmatch(r"(?:vypni|ukonci|zastav|konec)\s+(?:tlumoceni|prekladani)", t):
+        return Plan([("interpreter", {"on": False})], kind="voice")
     # ---- 3.14 music: what is playing, karaoke
     if re.fullmatch(r"(?:co (?:to )?(?:ted )?hraje|co je to za (?:pisnick\w*|pisen|song|skladb\w*)|jaka je to pisnick\w*|kdo to zpiva|co to je za pisnick\w*)", t):
         return Plan([("now_playing_info", {})], kind="music")

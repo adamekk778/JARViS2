@@ -287,7 +287,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           select("general.language", "Jazyk", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "English"], ["de", "Deutsch"]],
             "V jakém jazyce JARVIS odpovídá. English přepne do angličtiny i aplikaci."))),
       card("Osobnost", null,
-        select("general.personality", "Styl", [["jarvis", "J.A.R.V.I.S. (zdvořilý, suchý humor)"], ["friend", "Kamarád (tyká, uvolněný)"], ["brief", "Stručný (jen fakta)"], ["custom", "Vlastní prompt"]], "", () => setTimeout(render, 150)),
+        select("general.personality", "Styl", [["jarvis", "J.A.R.V.I.S. (zdvořilý, suchý humor)"], ["friday", "F.R.I.D.A.Y. (pohotová, ženský hlas)"], ["friend", "Kamarád (tyká, uvolněný)"], ["brief", "Stručný (jen fakta)"], ["custom", "Vlastní prompt"]], "",
+          (v) => { if (v === "jarvis" || v === "friday") client.send("persona_set", { name: v }); setTimeout(render, 150); }),
         S.general.personality === "custom" ? (() => {
           const ta = h("textarea", { class: "input", rows: 6 }, S.general.custom_prompt) as HTMLTextAreaElement;
           ta.onchange = () => set("general.custom_prompt", ta.value);
@@ -446,6 +447,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
         range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
         sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“."),
+        sw("voice.look_to_talk", "Mluv bez „Hey Jarvis“", "Když jsi u PC sám a díváš se na obrazovku, stačí mluvit. Používá webkameru (jen v tomhle PC, nic se neukládá); vypnuté = kamera se nezapne."),
         sw("voice.barge_in", "Skočit JARVISovi do řeči", "Když JARVIS mluví a ty začneš mluvit, hned zmlkne a poslouchá tě (jeho vlastní hlas si z mikrofonu odečte)."),
         sw("games.tips", "Tipy do her v notchi", "JARVIS pozná, co hraješ, a občas (každých pár minut) ukáže v notchi krátký tip ke hře. Nejlépe vidět v režimu hry „Okno bez okrajů“."),
         range("games.tips_every", "Tip jednou za", 2, 30, 1, (v) => `${v} min`),

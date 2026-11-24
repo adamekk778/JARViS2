@@ -73,6 +73,11 @@ class Runtime:
         self.lyrics_state: dict = {}     # 3.12: synced lyrics of the song playing (for the notch)
         self.ui_hook = None           # desktop host: show window (second launch)
         self.voice_mode = False       # dashboard voice mode is open → follow-up listening on
+        self._started = False
+        self.live_talk = False        # 3.14 živý rozhovor: "pojďme si povídat" until "díky, to je vše" or a long silence
+        from .webcam import LookWatcher
+
+        self.look_watcher = LookWatcher(self)    # 3.14 mluv bez „Hey Jarvis“ (camera, opt-in)
         from .mood import MoodEngine
 
         self.mood = MoodEngine(self)
@@ -272,6 +277,9 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
+        self._started = True
+        if self.look_watcher.wanted():
+            self.look_watcher.start()
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
@@ -485,6 +493,8 @@ class Runtime:
                 bg(co)
             except RuntimeError:                   # no event loop (a test, the first start): nothing is loaded anyway
                 co.close()
+        if "voice" in patch and self._started:            # 3.14 the camera watcher follows its switch
+            (self.look_watcher.start if self.look_watcher.wanted() else self.look_watcher.stop)()
         if self.persist_config:
             config_mod.save(self.cfg)
         self.router.update(self.cfg.brain)
