@@ -399,7 +399,9 @@ class VoiceLoop:
         while not self._q.empty():  # drop audio from before the trigger
             self._q.get_nowait()
         live = bool(getattr(self.rt, "live_talk", False))
-        ep = Endpointer(FRAME / SR, self.rt.cfg.voice.silence_seconds,
+        from .fastear import pace
+
+        ep = Endpointer(FRAME / SR, pace(self.rt).silence(self.rt.cfg.voice.silence_seconds),     # 3.17 your tempo
                         no_speech_s=(LIVE_S if live else FOLLOWUP_S) if self.followup_active else 6.0)
         bus.publish_threadsafe("state", state="listening", followup=self.followup_active, live=live)
         audio = bytearray()
@@ -498,6 +500,14 @@ class VoiceLoop:
         self._stt_s = took if not getattr(self, "_stt_s", 0) else 0.7 * self._stt_s + 0.3 * took
         return text
 
+    def _partial_stt(self, pcm: bytes, np) -> str:
+        """3.17 the live text while you speak: Whisper "tiny" (~75 MB, quick on any PC); the final words still come
+        from your own model."""
+        tr = getattr(self, "_partial", None)
+        if tr is None:
+            tr = self._partial = Transcriber(self.rt.cfg.voice.model_copy(update={"stt_model": "tiny", "stt_provider": "local"}))
+        return tr.transcribe(self.clean_utterance(pcm, np), SR)
+
     def _speculator(self, ep, np):
         """3.16 the early transcription at pauses (+ the live text in the notch when speech recognition is fast)."""
         if not getattr(self.rt.cfg.voice, "smart_endpoint", True):
@@ -505,11 +515,24 @@ class VoiceLoop:
         from .fastear import Speculator
 
         bus = self.rt.bus
+        from .fastear import pace
+
         local = self.transcriber.provider() == "local"
-        return Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
-                          live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
-                          live_ok=lambda: local and 0 < getattr(self, "_stt_s", 9.0) < 0.45,
-                          max_spec=3 if local else 2)
+        fast = 0 < getattr(self, "_stt_s", 9.0) < 0.45
+        small = local and not fast and getattr(self.rt.cfg.voice, "live_partial", True) \
+            and getattr(self.rt.cfg.voice, "stt_download_ok", False)       # 3.17 the live text by a tiny model
+        sp = Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
+                        live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
+                        live_ok=lambda: local and (fast or small),
+                        max_spec=3 if local else 2,
+                        live_transcribe=(lambda b: self._partial_stt(b, np)) if small else None)
+        sp.on_pause = pace(self.rt).record
+        loop = getattr(self.rt, "loop", None)
+        agent = getattr(self.rt, "agent", None)
+        if loop is not None and agent is not None and getattr(self.rt.cfg.voice, "speculate", True):
+            sp.on_unsure = lambda t: asyncio.run_coroutine_threadsafe(agent.speculate(t), loop)
+            sp.on_stale = lambda: loop.call_soon_threadsafe(agent.cancel_spec)
+        return sp
 
     BACKCHANNEL_AFTER_S = 6.0                             # this much talking since the last "mhm"
 

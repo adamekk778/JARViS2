@@ -157,12 +157,23 @@ def convert_tools(tools: list[dict] | None) -> list[dict]:
     return out
 
 
-def mark_cache(tools: list[dict], system: list[dict], messages: list[dict]) -> None:
+def mark_cache(tools: list[dict], system: list[dict], messages: list[dict], ttl: str = "5m") -> None:
     """Up to three cache breakpoints (the API takes four): after the run of everyday tools JARVIS always sends first
     and in the same order (the part of the tools that does not change between messages), after the system prompt,
-    and on the newest message block (the conversation so far)."""
+    and on the newest message block (the conversation so far).
+    3.17 ttl "1h": the unchanging instructions + catalog stay cached for an hour (you ask again after 20 minutes and it
+    is still there). Longer entries must come before shorter ones, so with the split instructions the tools need no
+    mark of their own (the instructions' mark covers them) and the conversation's mark keeps 5 minutes."""
     from ..tools.select import CORE
 
+    if ttl == "1h" and len(system) > 1:
+        system[0]["cache_control"] = {"type": "ephemeral", "ttl": "1h"}
+        for msg in reversed(messages):
+            blocks = [b for b in msg["content"] if b.get("type") in ("text", "tool_result", "image", "tool_use")]
+            if blocks:
+                blocks[-1]["cache_control"] = {"type": "ephemeral"}
+                break
+        return
     core = set(CORE)
     last_core = -1
     for i, t in enumerate(tools):
@@ -210,6 +221,7 @@ class Claude:
         self.timeout = timeout
         self.on_headers = None
         self.effort: str | None = None        # set per request by the router (difficulty)
+        self.cache_ttl = "5m"                 # 3.17 "1h" keeps the instructions + catalog for an hour
         self.last_usage: dict = {}
         self.last_stop: str = ""
         self._client = client
@@ -253,7 +265,7 @@ class Claude:
     def params(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> dict:
         system, msgs = convert(messages)
         tl = convert_tools(tools)
-        mark_cache(tl, system, msgs)
+        mark_cache(tl, system, msgs, self.cache_ttl)
         use = model or self.model
         p: dict = {"model": use, "max_tokens": self.max_tokens, "messages": msgs,
                    "thinking": {"type": "adaptive", "block_binding": {"prefix_mismatch_behavior": "drop_block"}}}

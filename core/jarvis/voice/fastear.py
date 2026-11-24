@@ -104,13 +104,63 @@ def vocabulary(rt: Any, max_chars: int = 600) -> str:
     return _VOCAB["text"]
 
 
+class Pace:
+    """3.17 Tvoje tempo (návrh 8): how long YOU pause in the middle of a sentence. Someone who thinks between words
+    gets a longer wait before JARVIS takes the sentence as finished; someone who speaks in one go a shorter one.
+    From 20 pauses on: the wait = your longer pauses (90th percentile) + 0.15 s, between 0.45 and 1.1 s."""
+    KEY = "voice_pace"
+
+    def __init__(self, rt: Any):
+        self.rt = rt
+        self.pauses: list[float] = []
+        try:
+            row = rt.db.one("SELECT v FROM kv WHERE k=?", (self.KEY,))
+            if row:
+                import json
+
+                self.pauses = [float(x) for x in json.loads(row["v"])][-200:]
+        except Exception:  # noqa: BLE001
+            self.pauses = []
+
+    def record(self, pause_s: float) -> None:
+        if 0.12 <= pause_s <= 2.5:
+            self.pauses = (self.pauses + [round(pause_s, 2)])[-200:]
+            if len(self.pauses) % 5 == 0:
+                self.save()
+
+    def save(self) -> None:
+        import json
+
+        try:
+            self.rt.db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)")
+            self.rt.db.exec("INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)", (self.KEY, json.dumps(self.pauses)))
+        except Exception as e:  # noqa: BLE001
+            log.debug("pace: %s", e)
+
+    def silence(self, default: float) -> float:
+        if len(self.pauses) < 20 or not getattr(self.rt.cfg.voice, "adaptive_pace", True):
+            return default
+        p = sorted(self.pauses)
+        p90 = p[min(len(p) - 1, int(len(p) * 0.9))]
+        return round(max(0.45, min(1.1, p90 + 0.15)), 2)
+
+
+def pace(rt: Any) -> Pace:
+    p = getattr(rt, "voice_pace", None)
+    if p is None:
+        p = rt.voice_pace = Pace(rt)
+    return p
+
+
 class Speculator:
     """Writes down the words at each pause, in the background; ends early on a finished sentence; waits on an open one."""
 
     def __init__(self, transcribe: Callable[[bytes], str], frame_bytes: int, base_silence: float, *,
                  early_s: float = EARLY_S, longer_s: float = LONGER_S, live: Callable[[str], None] | None = None,
-                 live_ok: Callable[[], bool] | None = None, max_spec: int = MAX_SPEC):
+                 live_ok: Callable[[], bool] | None = None, max_spec: int = MAX_SPEC,
+                 live_transcribe: Callable[[bytes], str] | None = None):
         self.transcribe = transcribe
+        self.live_transcribe = live_transcribe or transcribe     # 3.17 a small fast model just for the live text
         self.frame_bytes = frame_bytes
         self.base = base_silence
         self.early_s, self.longer_s = early_s, max(longer_s, base_silence)
@@ -125,16 +175,27 @@ class Speculator:
         self.live_fut: concurrent.futures.Future | None = None
         self.last_live = 0.0
         self.decided: bool | None = None
+        self.judged = False                # the early words were looked at (once per pause)
+        self.on_pause: Callable[[float], None] | None = None    # 3.17 a pause you went on after (your tempo)
+        self.on_unsure: Callable[[str], None] | None = None     # 3.17 the words so far at an unsure pause (ask ahead)
+        self.on_stale: Callable[[], None] | None = None         # …and you went on speaking (drop that)
+        self._quiet_before = 0.0
 
     def step(self, ep: Any, audio: bytearray, is_speech: bool) -> str | None:
         """After each frame: 'done' to end now, else None (may make the endpointer wait longer)."""
         if is_speech:
+            if self._quiet_before > 0 and self.speech_end > 0 and self.on_pause is not None:
+                self.on_pause(self._quiet_before)            # you paused this long and went on
+            self._quiet_before = 0.0
             self.speech_end = len(audio)
             if self.fut is not None and self.fut_len < self.speech_end:     # you went on: that guess is old
-                self.fut, self.text, self.decided = None, None, None
+                if self.decided is None and self.text and self.on_stale is not None:
+                    self.on_stale()
+                self.fut, self.text, self.decided, self.judged = None, None, None, False
                 ep.silence_s = self.base
             self._live(audio)
             return None
+        self._quiet_before = ep.quiet
         if not ep.heard or ep.quiet + 1e-6 < self.early_s:
             return None
         if self.fut is None and self.n_spec < self.max_spec and self.speech_end > 0:
@@ -142,7 +203,8 @@ class Speculator:
             self.fut_len = self.speech_end
             snap = bytes(audio[: self.speech_end])
             self.fut = self.pool.submit(self.transcribe, snap)
-        if self.fut is not None and self.fut.done() and self.decided is None:
+        if self.fut is not None and self.fut.done() and not self.judged:
+            self.judged = True
             try:
                 self.text = self.fut.result()
             except Exception as e:  # noqa: BLE001
@@ -153,6 +215,8 @@ class Speculator:
                 ep.silence_s = self.longer_s                    # an open sentence: give the speaker time
             elif self.decided is True:
                 return "done"
+            elif self.text and self.on_unsure is not None:     # unsure: the AI may start while we still wait
+                self.on_unsure(self.text)
         return None
 
     def _live(self, audio: bytearray) -> None:
@@ -166,7 +230,7 @@ class Speculator:
 
         def go() -> None:
             try:
-                t = self.transcribe(snap)
+                t = self.live_transcribe(snap)
                 if t and self.live:
                     self.live(t)
             except Exception as e:  # noqa: BLE001

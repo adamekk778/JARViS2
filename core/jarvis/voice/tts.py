@@ -157,6 +157,63 @@ class Speaker:
                 break
         return n
 
+    def has_phrase(self, text: str, lang: str = "cs") -> bool:
+        key = self._phrase_key(text.strip(), lang)
+        return key is not None and key in (getattr(self, "_phrases", None) or {})
+
+    def can_stream(self) -> bool:
+        """3.17 the sentence can play while it is being made (Edge / ElevenLabs, no studio effect, PyAV there)."""
+        from .streamplay import STREAM_ENGINES
+
+        v = self.rt.cfg.voice
+        if v.tts_engine not in STREAM_ENGINES or v.effect != "none" or not getattr(v, "stream_voice", True):
+            return False
+        try:
+            import av  # noqa: F401
+
+            return True
+        except ImportError:
+            return False
+
+    async def stream_and_play(self, text: str, lang: str = "cs") -> bool:
+        """3.17 make and play one sentence at the same time; False = nothing played (then the usual way)."""
+        import queue as _q
+
+        from .streamplay import edge_chunks, eleven_chunks, play_queue
+        from .style import gain, pronounce, prosody
+
+        v = self.rt.cfg.voice
+        spoken = strip_markdown(text)[:3000]
+        if not spoken.strip():
+            return False
+        if lang != "en":
+            spoken = pronounce(self.rt.cfg, spoken)
+        q: _q.Queue = _q.Queue()
+        g = 1.0
+        if v.tts_engine == "elevenlabs":
+            from .. import secrets
+
+            model = "eleven_flash_v2_5" if getattr(v, "low_latency", False) else v.eleven_model
+            gen = eleven_chunks(spoken, secrets.get("elevenlabs"), v.eleven_voice_id, model)
+            g = gain(self.rt)
+        else:
+            e_rate, e_pitch, e_vol = prosody(self.rt, v)
+            gen = edge_chunks(spoken, v.tts_voice_en if lang == "en" else v.tts_voice, e_rate, e_pitch, e_vol)
+        player = asyncio.get_running_loop().run_in_executor(None, play_queue, self, q, self.rt, g)
+        try:
+            async for part in gen:
+                q.put(part)
+                if self._stop.is_set():
+                    break
+        except Exception as e:  # noqa: BLE001 – the service failed: the usual way takes over (if nothing played)
+            log.info("streamed voice failed: %s", e)
+        q.put(None)
+        try:
+            return bool(await player)
+        except Exception as e:  # noqa: BLE001
+            log.info("streamed playback failed: %s", e)
+            return False
+
     async def synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
         """The chosen engine (Edge, Piper incl. an own voice, ElevenLabs), then the others as a fallback, and the
         studio effect on top. `override` = unsaved studio settings for a preview."""

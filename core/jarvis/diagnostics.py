@@ -125,7 +125,18 @@ def snapshot(rt: Any) -> dict:
     ttft = {k: [round(x) for x in v] for k, v in getattr(rt.router, "ttft", {}).items()}
     return {"cpu_pct": cpu, "ram_mb": round(ram, 1), "threads": threads, "children": children,
             "loop_lag_ms": round(float(getattr(rt, "diag_lag_ms", 0.0)), 1), "ttft": ttft, "voice": voice,
-            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt)}
+            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt), "cache": cache_stats(rt)}
+
+
+def cache_stats(rt: Any) -> list[dict]:
+    """3.17 how much of what was sent came from the AI's prompt cache (cheaper and faster), per provider."""
+    out = []
+    for pid, c in (getattr(rt.router, "cache_stats", {}) or {}).items():
+        total = c["in"] + c["cache_read"] + c["cache_write"]
+        if total:
+            out.append({"provider": pid, "requests": c["requests"], "from_cache_pct": round(100 * c["cache_read"] / total),
+                        "written_pct": round(100 * c["cache_write"] / total), "tokens": total})
+    return out
 
 
 def _latency(rt: Any) -> dict:

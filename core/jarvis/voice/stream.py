@@ -84,8 +84,18 @@ class SpeechStream:
         self.first = False
         self.spoke = True
         self.queued.append(text)
+        sp = self.rt.speaker
+        if len(self.queued) == 1 and hasattr(sp, "can_stream") and sp.can_stream() and not sp.has_phrase(text, self.lang):
+            self._jobs.put_nowait((text, None))     # 3.17 the first sentence plays while it is being made
+            return
         # synthesis starts now, in parallel with whatever is playing (no gap between sentences)
-        self._jobs.put_nowait((text, asyncio.get_running_loop().create_task(self.rt.speaker.synth(text, self.lang))))
+        self._jobs.put_nowait((text, asyncio.get_running_loop().create_task(sp.synth(text, self.lang))))
+
+    def _first_sound(self) -> None:
+        if self.turn is not None and "first_audio" not in self.turn["marks"]:
+            import time as _t
+
+            self.turn["marks"]["first_audio"] = round((_t.monotonic() - self.turn["t0"]) * 1000)
 
     async def finish(self) -> None:
         """The answer is complete: say what is left, then wait until everything has been said."""
@@ -114,8 +124,24 @@ class SpeechStream:
                         break
                     text, synth = job
                     if sp._stop.is_set():            # "Stop" / talked over: drop the rest
-                        synth.cancel()
+                        if synth is not None:
+                            synth.cancel()
                         continue
+                    if synth is None:                # 3.17 made and played at the same time
+                        if not started:
+                            started = True
+                            sp.on_first_sound = self._first_sound     # measured when the first block really plays
+                            sp.speaking = True
+                            self.rt.bus.publish("state", state="speaking")
+                            if ducker:
+                                ducker.acquire()
+                        ok = await sp.stream_and_play(text, self.lang)
+                        sp.on_first_sound = None
+                        if ok:
+                            if not sp._stop.is_set():
+                                self.played += 1
+                            continue
+                        synth = asyncio.get_running_loop().create_task(sp.synth(text, self.lang))   # the usual way
                     try:
                         audio, _mime = await synth
                     except Exception as e:  # noqa: BLE001
@@ -123,10 +149,7 @@ class SpeechStream:
                         continue
                     if not started:
                         started = True
-                        if self.turn is not None and "first_audio" not in self.turn["marks"]:
-                            import time as _t
-
-                            self.turn["marks"]["first_audio"] = round((_t.monotonic() - self.turn["t0"]) * 1000)
+                        self._first_sound()
                         sp.speaking = True
                         self.rt.bus.publish("state", state="speaking")
                         if ducker:

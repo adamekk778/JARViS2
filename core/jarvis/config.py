@@ -96,6 +96,7 @@ class Brain(BaseModel):
     # 3.16 místní reflexní model: a small Ollama model (e.g. qwen3:1.7b) decides clear commands before the big AI ("" = off)
     reflex_model: str = ""
     reflex_min_conf: float = 0.85
+    claude_cache_ttl: Literal["5m", "1h"] = "1h"   # 3.17 how long Claude keeps the instructions + catalog cached
 
 
 class Voice(BaseModel):
@@ -125,6 +126,10 @@ class Voice(BaseModel):
     silence_rev: int = 1            # fresh configs are already migrated (a saved 0 would undo your own 0.8 s later)
     smart_endpoint: bool = True     # 3.16 the words are written down at each pause; a finished sentence ends at once
     low_latency: bool = False       # 3.16 ElevenLabs: the fastest model (Flash) – the first word sooner, a little less rich
+    stream_voice: bool = True       # 3.17 Edge / ElevenLabs: the first sentence plays while it is still being made
+    adaptive_pace: bool = True      # 3.17 the end-of-sentence wait follows your own pauses in the middle of sentences
+    live_partial: bool = True       # 3.17 the words appear while you speak (a tiny model when yours is slow; local only)
+    speculate: bool = True          # 3.17 at an unsure pause the AI starts on the words so far (used only if they stay)
     backchannel: bool = False       # 3.16 a quiet "mhm" in a long live conversation pause (only with echo cancellation)
     vocabulary: bool = True         # 3.16 your names, projects, rooms and apps go to the speech recognizer
     followup: bool = False          # after an answer, listen 6 s more without the wake word

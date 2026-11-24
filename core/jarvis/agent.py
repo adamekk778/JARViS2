@@ -364,7 +364,7 @@ class Agent:
             if fun:
                 extra = (extra + "\n\n" if extra else "") + fun
             prev = [m for m in rt.memory.recent(4) if m.get("role") == "assistant"]
-            if prev:
+            if prev and not getattr(self, "_speculating", False):
                 persona.note_reaction(rt, text, str(prev[-1].get("text") or prev[-1].get("content") or ""))
         except Exception as e:  # noqa: BLE001 – never in the way of an answer
             log.debug("persona: %s", e)
@@ -519,6 +519,135 @@ class Agent:
         hint = "\n\n".join(x for x in [tc.hint(tools.REGISTRY, picked), *extra] if x)
         return tc.Pack(catalog=tc.catalog(tools.REGISTRY, allowed), tools=[tools.REGISTRY[n].schema() for n in steady],
                        hint=hint, names=set(steady))
+
+    # ---------- 3.17 (návrh 5) the AI asked before the end of your sentence (voice) ----------
+    SPEC_FRESH_S = 20.0
+
+    async def speculate(self, text: str) -> bool:
+        """At an unsure pause: start the AI on the words so far. Nothing runs (no tool, nothing said) until the final
+        words are the same – then the turn takes over the answer already on its way; else it is dropped."""
+        rt = self.rt
+        if self.busy or not getattr(rt.cfg.voice, "speculate", True) or not (text or "").strip():
+            return False
+        from . import instant, toolmind
+
+        if instant.plan(text) is not None or MIDRUN.match(text) or CONTINUE.match(text):
+            return False
+        try:
+            if toolmind.reflex(rt, text, self._allowed_names()):
+                return False
+        except Exception:  # noqa: BLE001
+            pass
+        self.cancel_spec()
+        self._speculating = True
+        self._goal = text
+        try:
+            msgs, need_vision = await self._build_messages(text, [], True, "")
+            schemas = self._tool_schemas(text)
+            pack = self._tool_pack()
+            _tier, tier_kw, private = await self._routing(text, [])
+        finally:
+            self._speculating = False
+        if private or need_vision:
+            return False                               # passwords, health…: never ahead of time
+        spec = {"key": toolmind.norm(text), "msgs": msgs, "schemas": schemas, "pack": pack, "tier_kw": tier_kw,
+                "picked": list(getattr(self, "_picked", [])), "chunks": [], "done": False, "error": None,
+                "event": asyncio.Event(), "ts": time.monotonic(), "catalog_used": False}
+        spec["task"] = asyncio.get_running_loop().create_task(self._spec_run(spec))
+        self._spec = spec
+        return True
+
+    async def _spec_run(self, spec: dict) -> None:
+        rt = self.rt
+        try:
+            async for ch in rt.router.stream(spec["msgs"], spec["schemas"], need_vision=False, catalog=spec["pack"],
+                                             **spec["tier_kw"]):
+                spec["chunks"].append(ch)
+                spec["event"].set()
+            spec["catalog_used"] = bool(getattr(rt.router, "catalog_used", False))
+        except asyncio.CancelledError:
+            spec["error"] = asyncio.CancelledError()
+        except Exception as e:  # noqa: BLE001
+            spec["error"] = e
+        finally:
+            spec["done"] = True
+            spec["event"].set()
+
+    def cancel_spec(self) -> None:
+        spec, self._spec = getattr(self, "_spec", None), None
+        if spec and not spec["done"]:
+            spec["task"].cancel()
+
+    def _take_spec(self, text: str, attachments: list, extra: str, voice: bool) -> dict | None:
+        """The speculative request, when it is for exactly these words (else it is dropped)."""
+        from . import toolmind
+
+        spec, self._spec = getattr(self, "_spec", None), None
+        if not spec:
+            return None
+        ok = (voice and not attachments and not extra and toolmind.norm(text) == spec["key"]
+              and time.monotonic() - spec["ts"] < self.SPEC_FRESH_S
+              and not (spec["done"] and spec["error"] is not None and not spec["chunks"]))
+        if not ok:
+            if not spec["done"]:
+                spec["task"].cancel()
+            return None
+        return spec
+
+    async def _replay(self, spec: dict):
+        """The chunks of the speculative answer: those already here at once, then the rest as it comes."""
+        i = 0
+        while True:
+            if i < len(spec["chunks"]):
+                yield spec["chunks"][i]
+                i += 1
+                continue
+            if spec["done"]:
+                break
+            spec["event"].clear()
+            if i < len(spec["chunks"]) or spec["done"]:
+                continue
+            await spec["event"].wait()
+        err = spec["error"]
+        if err is not None and not isinstance(err, asyncio.CancelledError) and not spec["chunks"]:
+            raise err
+        self.rt.router.catalog_used = spec.get("catalog_used", False)
+
+    async def _routing(self, text: str, attachments: list) -> tuple[str, dict, bool]:
+        """Which AI and how deeply (tier, router keywords, private = only the AI on this PC)."""
+        from . import brainplus
+        from .llm import difficulty                        # 3.14 návrh 4: the model tier and the depth of thinking
+
+        rt = self.rt
+
+        tier = difficulty.classify(text or "", attachments=len(attachments or []), agent_mode=bool(rt.cfg.agent.mode),
+                                   mission=bool(getattr(self, "_task_hint", None)))
+        self.tier = tier
+        tier_kw: dict = {"effort": difficulty.EFFORT[tier]}
+        if tier == "fast" and not self._only:
+            tier_kw["fast"] = True
+        private = False
+        if not self._only and getattr(rt.cfg.brain, "private_local", True) and brainplus.sensitive(text or ""):
+            lid = brainplus.local_provider(rt)        # 3.14 návrh 32: passwords, health, bank → the AI on this PC
+            ready = False
+            if lid and rt.router.local_ready is not None:
+                try:
+                    ready = await rt.router.local_ready()
+                except Exception:  # noqa: BLE001
+                    ready = False
+            if lid and ready:
+                tier_kw["only"] = lid
+                tier_kw.pop("fast", None)
+                private = True
+        if not self._only and not private:
+            from . import brainpick
+
+            pref = await brainpick.split_for(rt, tier)     # 3.14 chytré rozdělení: easy → e.g. Ollama, hard → e.g. Claude
+            if pref:
+                tier_kw["prefer"] = pref
+                if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
+                    tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
+        return tier, tier_kw, private
 
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
@@ -774,42 +903,23 @@ class Agent:
         need_vision = False
         schemas: list[dict] = []
         pack = None
+        spec_used = None
         if quick is None:
-            msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
-            schemas = self._tool_schemas(text)
-            pack = self._tool_pack()
+            spec_used = self._take_spec(text or "", attachments, extra, voice)
+            if spec_used is not None:                      # 3.17 the AI was already asked before you finished
+                msgs, schemas, pack = spec_used["msgs"], spec_used["schemas"], spec_used["pack"]
+                self._picked = spec_used["picked"]
+                self._turn_stats["speculative"] = 1
+            else:
+                msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
+                schemas = self._tool_schemas(text)
+                pack = self._tool_pack()
         speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
         if speech is not None:
             speech.turn = lat.cur                          # 3.16 the first sound is measured on this answer
-        from .llm import difficulty                        # 3.14 návrh 4: the model tier and the depth of thinking
-
-        tier = difficulty.classify(text or "", attachments=len(attachments or []), agent_mode=bool(rt.cfg.agent.mode),
-                                   mission=bool(getattr(self, "_task_hint", None)))
-        self.tier = tier
-        tier_kw: dict = {"effort": difficulty.EFFORT[tier]}
-        if tier == "fast" and not self._only:
-            tier_kw["fast"] = True
-        private = False
-        if not self._only and getattr(rt.cfg.brain, "private_local", True) and brainplus.sensitive(text or ""):
-            lid = brainplus.local_provider(rt)        # 3.14 návrh 32: passwords, health, bank → the AI on this PC
-            ready = False
-            if lid and rt.router.local_ready is not None:
-                try:
-                    ready = await rt.router.local_ready()
-                except Exception:  # noqa: BLE001
-                    ready = False
-            if lid and ready:
-                tier_kw["only"] = lid
-                tier_kw.pop("fast", None)
-                private = True
-        if not self._only and not private:
-            from . import brainpick
-
-            pref = await brainpick.split_for(rt, tier)     # 3.14 chytré rozdělení: easy → e.g. Ollama, hard → e.g. Claude
-            if pref:
-                tier_kw["prefer"] = pref
-                if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
-                    tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
+        tier, tier_kw, private = await self._routing(text or "", attachments)
+        if spec_used is not None:                          # 3.17 the request that already started before the end
+            tier_kw = dict(spec_used["tier_kw"])
         if ((tier == "strong" or (tier == "normal" and brainplus.slow_brain(rt))) and speech is not None and quick is None
                 and getattr(rt.cfg.brain, "quick_preface", True) and not private):
             async def _say_first() -> None:            # 3.14 návrh 23: one sentence at once while the main model thinks
@@ -835,8 +945,10 @@ class Agent:
                 use_tools = schemas if rnd < rounds else None
                 shown = 0                                  # 3.13 how much of round_text is on the screen already
                 rt.router.catalog_used = False
-                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw, catalog=pack,
-                                                 **({"only": self._only} if self._only else {})):
+                source_stream = self._replay(spec_used) if (rnd == 0 and spec_used is not None) else \
+                    rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw, catalog=pack,
+                                     **({"only": self._only} if self._only else {}))
+                async for ch in source_stream:
                     if ch.text or ch.tool_calls:
                         lat.mark("first_token")
                     if ch.text:

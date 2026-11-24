@@ -40,7 +40,9 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
     if p.preset == "anthropic" and "api.anthropic.com" in (base or "api.anthropic.com"):
         from .claude import Claude          # 3.14 Anthropic's own API: prompt caching, effort, thinking, fallbacks
 
-        return Claude(p.id, base, model, api_key, max_tokens=brain.max_tokens)
+        prov = Claude(p.id, base, model, api_key, max_tokens=brain.max_tokens)
+        prov.cache_ttl = getattr(brain, "claude_cache_ttl", "1h")
+        return prov
     return OpenAICompat(p.id, base, model, api_key, temperature=brain.temperature,
                         max_tokens=brain.max_tokens, transport=transport)
 
@@ -102,6 +104,7 @@ class Router:
         self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
         self.on_switch: Callable[[dict, str], None] | None = None  # "Groq ran out → carrying on with Gemini"
         self.catalog_used = False                                  # 3.16 the last answer had the whole tool catalog
+        self.cache_stats: dict[str, dict] = {}                      # 3.17 provider → tokens from / into the prompt cache
         from .quota import Quota
 
         self.quota = Quota()
@@ -247,6 +250,12 @@ class Router:
                             out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
                             yield ch
                         self.last_errors = errors
+                        lu = getattr(prov, "last_usage", None)
+                        if isinstance(lu, dict) and ("cache_read" in lu or "cache_write" in lu):   # 3.17 cache in Diagnostika
+                            cs = self.cache_stats.setdefault(pcfg.id, {"in": 0, "cache_read": 0, "cache_write": 0, "requests": 0})
+                            for k in ("in", "cache_read", "cache_write"):
+                                cs[k] += int(lu.get(k, 0) or 0)
+                            cs["requests"] += 1
                         sink = USAGE_SINK.get()
                         if sink is not None:
                             sink.append((pcfg.id, model or prov.model, sum(len(str(m.get("content") or "")) for m in msgs), out))

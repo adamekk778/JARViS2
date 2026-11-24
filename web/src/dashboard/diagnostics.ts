@@ -14,6 +14,19 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const sc = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Projde 20 běžných dotazů, které nic nemění (čas, počasí, kalendář, výpočty…), a hlas tam a zpět. Trvá asi minutu; dotazy jdou na tvou AI jako obvykle, výsledek zůstane v počítači."));
   const scBtn = h("button", { class: "btn primary", type: "button", onclick: () => { scBtn.disabled = true; client.send("speedcheck_run" as any, { voice: true }); } }, icon("gauge"), "Změřit rychlost") as HTMLButtonElement;
   const ms = (v: any) => (v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(1).replace(".", ",")} s` : `${v} ms`);
+  // 3.17 Průvodce rychlostí: what this PC can do faster, each with one button
+  const wiz = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Načítám doporučení…"));
+  client.on("speedwizard" as any, (m: any) => {
+    if (m.text) toast(m.text, m.ok ? "ok" : "error");
+    const items: any[] = m.items || [];
+    wiz.replaceChildren(...(items.length ? items.map((r) => h("div", { class: `sc-item ${r.done ? "ok" : "na"}` },
+      icon(r.done ? "check-circle" : "lightning", "ph-fill"),
+      h("div", { class: "sc-text" }, h("strong", {}, r.title), h("span", {}, r.why),
+        r.done ? null : h("button", { class: "btn primary sm", type: "button", onclick: (e: Event) => {
+          (e.currentTarget as HTMLButtonElement).disabled = true;
+          client.send("speedwizard_apply" as any, { id: r.id });
+        } }, r.pull ? `Stáhnout a zapnout (${r.pull})` : "Zapnout")))) : [h("p", { class: "help" }, "Všechno je nastavené na nejrychlejší.")]));
+  });
   client.on("speedcheck" as any, (m: any) => {
     if (m.running) { sc.replaceChildren(h("p", { class: "help" }, `Měřím… ${m.done || 0} z ${m.total || 20}${m.last ? ` · „${m.last.text}“ ${ms(m.last.total_ms)} (${m.last.how})` : ""}`)); return; }
     scBtn.disabled = false;
@@ -59,6 +72,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     ];
     if (L.first_try != null) cells.push(stat("Nástroj trefen napoprvé", `${L.first_try} %`, L.first_try < 85));
     if (L.n) cells.push(stat("Odpovědí bez AI (okamžité)", `${L.instant || 0} z ${L.n}`), stat("S katalogem nástrojů", `${L.catalog || 0} z ${L.n}`));
+    for (const c of (m.cache || []) as any[]) cells.push(stat(`Z cache – ${c.provider}`, `${c.from_cache_pct} %`, c.requests >= 5 && c.from_cache_pct < 40));
     speed.replaceChildren(...(L.n ? cells : [h("p", { class: "help" }, "Zatím žádné odpovědi – po pár otázkách tu uvidíš, kolik trvá každý krok.")]));
   });
   client.on("system", (m) => {
@@ -186,6 +200,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Počítač"), sys,
     h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
     h("div", { class: "btn-row" }, scBtn), sc,
+    h("p", { class: "group-label" }, "Průvodce rychlostí"), wiz,
     h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),
@@ -193,7 +208,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Log (bez hesel a klíčů)"), h("div", { class: "card" }, log));
   return {
     el,
-    show() { tick(); client.send("quality_get"); client.send("offline_pack_get"); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
+    show() { tick(); client.send("quality_get"); client.send("offline_pack_get"); client.send("speedwizard_get" as any); client.send("speedcheck_get" as any); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
     hide() { window.clearInterval(timer); },
   };
 }
