@@ -137,6 +137,19 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Bez náhledu")
         return FileResponse(p)
 
+    # 3.17 the hand model for finger gestures (downloaded on a click, checked) – only for windows on this PC
+    @app.get("/api/hands/{name}")
+    async def hands_file(name: str, request: Request):
+        from .. import handmodel
+
+        if not is_local(request):
+            raise HTTPException(403, "Jen v tomto PC")
+        p = handmodel.path_of(name)
+        if not p:
+            raise HTTPException(404, "Model ruky není stažený")
+        mt = "application/wasm" if name.endswith(".wasm") else "text/javascript" if name.endswith(".js") else "application/octet-stream"
+        return FileResponse(p, media_type=mt, headers={"Cache-Control": "private, max-age=86400"})
+
     # 3.15 Dílna: a 3D model for the HUD's viewer (only files the model library put into its own folder)
     @app.get("/api/workshop/model/{name}")
     async def workshop_model(name: str, request: Request):

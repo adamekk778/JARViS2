@@ -56,6 +56,8 @@ export const CLIENT_TYPES = [
   "hud_presence", "hud_gesture", "printer_get",
   "speedcheck_run", "speedcheck_get",
   "speedwizard_get", "speedwizard_apply",
+  "toolmem_get", "toolmem_forget", "mine_check",
+  "hands_status", "hands_download",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -100,6 +102,8 @@ export const SERVER_TYPES = [
   "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
   "speedcheck",
   "speedwizard",
+  "toolmem", "mine_check",
+  "hands",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

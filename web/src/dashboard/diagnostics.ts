@@ -14,6 +14,16 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const sc = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Projde 20 běžných dotazů, které nic nemění (čas, počasí, kalendář, výpočty…), a hlas tam a zpět. Trvá asi minutu; dotazy jdou na tvou AI jako obvykle, výsledek zůstane v počítači."));
   const scBtn = h("button", { class: "btn primary", type: "button", onclick: () => { scBtn.disabled = true; client.send("speedcheck_run" as any, { voice: true }); } }, icon("gauge"), "Změřit rychlost") as HTMLButtonElement;
   const ms = (v: any) => (v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(1).replace(".", ",")} s` : `${v} ms`);
+  // 3.17 Moje povely: what you asked and what worked, checked again (also once after every update)
+  const mine = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Ověří, že tvoje obvyklé povely pořád vedou ke stejnému nástroji (offline, nic se nespouští)."));
+  client.on("mine_check" as any, (m: any) => {
+    const failed: any[] = m.failed || [];
+    mine.replaceChildren(h("p", { class: `sc-sum ${failed.length ? "bad" : "ok"}` },
+      m.checked ? `${m.ok} z ${m.checked} povelů vede ke stejnému nástroji.` : "Zatím žádné naučené povely."),
+      ...failed.slice(0, 30).map((f) => h("div", { class: "sc-item bad" }, icon("x-circle", "ph-fill"),
+        h("div", { class: "sc-text" }, h("strong", {}, `„${f.phrase}“ → ${f.tool}`), h("span", {}, f.got)))));
+  });
+  const mineBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("mine_check" as any, {}) }, icon("list-checks"), "Zkontrolovat moje povely");
   // 3.17 Průvodce rychlostí: what this PC can do faster, each with one button
   const wiz = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Načítám doporučení…"));
   client.on("speedwizard" as any, (m: any) => {
@@ -201,6 +211,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
     h("div", { class: "btn-row" }, scBtn), sc,
     h("p", { class: "group-label" }, "Průvodce rychlostí"), wiz,
+    h("p", { class: "group-label" }, "Moje povely"), h("div", { class: "btn-row" }, mineBtn), mine,
     h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),

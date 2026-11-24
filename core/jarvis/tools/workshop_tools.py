@@ -47,8 +47,9 @@ async def _publish_part(ctx, part: dict, summary: str) -> ToolResult:
 @tool("cad_part", "Text → 3D model (CAD) s úpravami hlasem: navrhne díl podle popisu (krabička, L-držák, deska s dírami, distanční "
       "sloupek, háček, knoflík) s rozměry z věty, ukáže ho v HUD jako hologram a dá OpenSCAD + STL k tisku. Pak jde měnit slovy: "
       "„o 5 mm širší“, „stěna 3 mm“, „díry na M4“, „6 děr“, „o 10 % větší“, „bez víka“; „vrať to“ = předchozí verze. "
-      "Akce: create / edit / undo / show / list / history.", category="dílna")
-async def cad_part(ctx, action: Annotated[str, "create / edit / undo / show / list / history"] = "create",
+      "Cokoli jiného (váza, držák na kolo, figurka…) navrhne AI z popisu a dá se stejně upravovat. "
+      "Akce: create / design / edit / undo / show / list / history.", category="dílna")
+async def cad_part(ctx, action: Annotated[str, "create / design / edit / undo / show / list / history"] = "create",
                    description: Annotated[str, "popis dílu nebo změny česky, např. „L-držák 40 mm široký na šrouby M4“ / „o 5 mm vyšší“"] = "",
                    name: Annotated[str, "jméno dílu (prázdné = ten poslední)"] = "",
                    template: Annotated[str, "box / bracket / plate / spacer / hook / knob (prázdné = podle popisu)"] = "",
@@ -61,6 +62,13 @@ async def cad_part(ctx, action: Annotated[str, "create / edit / undo / show / li
         if not ps:
             return ToolResult(True, "Zatím žádné díly. Řekni třeba „navrhni krabičku 60 × 40 × 25 mm“.")
         return ToolResult(True, "Díly: " + "; ".join(cad.describe(p) for p in ps[:10]) + ".", data={"parts": ps[:30]})
+    if a == "design" or (a == "create" and not template.strip() and cad.match_template(description) is None and description.strip()):
+        try:                                       # 3.17 any shape from the words: the AI designs, JARVIS checks and makes it
+            nm, tree = await cad.design(ctx, description)
+        except ValueError as e:
+            return ToolResult(False, f"Tenhle díl se mi nepodařilo navrhnout: {e}. Zkus ho popsat jinak nebo jednodušeji.")
+        part = cad.save(ctx, name.strip() or nm, "free", {"tree": tree}, "navrženo z popisu: " + description[:200], project)
+        return await _publish_part(ctx, part, f"Navrhl jsem „{part['name']}“ podle popisu.")
     if a == "create":
         tpl = template.strip().lower() if template.strip().lower() in cad.TEMPLATES else cad.guess_template(description)
         params = dict(cad.TEMPLATES[tpl]["params"])
@@ -91,6 +99,13 @@ async def cad_part(ctx, action: Annotated[str, "create / edit / undo / show / li
         return await _publish_part(ctx, back, f"Vráceno: {cad.describe(back)}.")
     if a == "show":
         return await _publish_part(ctx, part, f"{cad.describe(part)}.")
+    if a == "edit" and part["template"] == "free":
+        try:                                       # 3.17 a free-form part: the AI changes its own tree
+            nm, tree = await cad.design(ctx, "", {"name": part["name"], "tree": part["params"]["tree"]}, description)
+        except ValueError as e:
+            return ToolResult(False, f"Tuhle změnu se nepodařilo udělat: {e}. Díl jsem nechal, jak byl.")
+        new = cad.save(ctx, part["name"], "free", {"tree": tree}, description[:200])
+        return await _publish_part(ctx, new, f"Upraveno: {description.strip()[:80]}.")
     if a == "edit":
         params, changes = cad.parse_edit(description, part["template"], part["params"])
         if not changes:

@@ -310,6 +310,16 @@ class Runtime:
         from . import prefetch
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(prefetch.get(self).run()))    # 3.16 answers ready ahead
+
+        async def _mine_after_update() -> None:                       # 3.17 your own requests checked after an update
+            await asyncio.sleep(60)
+            try:
+                from .evals import mine
+
+                await asyncio.to_thread(mine.after_update, self)
+            except Exception as e:  # noqa: BLE001
+                log.debug("mine check: %s", e)
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(_mine_after_update()))
         from . import lifelog, quests
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)

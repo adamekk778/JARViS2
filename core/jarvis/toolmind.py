@@ -27,7 +27,10 @@ log = logging.getLogger("jarvis.toolmind")
 
 SQL = """CREATE TABLE IF NOT EXISTS tool_memory (phrase TEXT, tool TEXT, args TEXT, answer TEXT, ok INTEGER DEFAULT 0,
            bad INTEGER DEFAULT 0, last REAL, PRIMARY KEY (phrase, tool, args));
-         CREATE TABLE IF NOT EXISTS tool_uses (tool TEXT, hour INTEGER, ts REAL);"""
+         CREATE TABLE IF NOT EXISTS tool_uses (tool TEXT, hour INTEGER, ts REAL);
+         CREATE TABLE IF NOT EXISTS tool_patterns (pattern TEXT, tool TEXT, args TEXT, answer TEXT, slot_values TEXT,
+           ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, last REAL, PRIMARY KEY (pattern, tool, args));"""
+SLOT = "{x}"
 REFLEX_MIN = 2
 APP_AREAS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"visual studio|\bcode\b|vscode|pycharm|intellij|cursor|rider|terminal|powershell|git", ("programování", "kód")),
@@ -86,6 +89,11 @@ def learn(rt, text: str, calls: list[tuple[str, dict, bool]], answer: str) -> in
             db.exec("UPDATE tool_memory SET ok=ok+1, last=?, answer=? WHERE phrase=? AND tool=? AND args=?",
                     (now, (answer or "").strip()[:200] if one else "", key, name, a))
             db.exec("INSERT INTO tool_uses (tool, hour, ts) VALUES (?,?,?)", (name, time.localtime(now).tm_hour, now))
+            if one:
+                try:
+                    learn_pattern(rt, text, name, args or {}, (answer or "").strip())
+                except Exception as e:  # noqa: BLE001
+                    log.debug("pattern: %s", e)
         else:
             db.exec("UPDATE tool_memory SET bad=bad+1, last=? WHERE phrase=? AND tool=? AND args=?", (now, key, name, a))
         n += 1
@@ -95,7 +103,131 @@ def learn(rt, text: str, calls: list[tuple[str, dict, bool]], answer: str) -> in
 def punish(rt, text: str) -> int:
     """"Ne, to ne" after an answer: what was done for those words does not become (or stays) a reflex."""
     cur = _db(rt).exec("UPDATE tool_memory SET bad=bad+1 WHERE phrase=?", (norm(text),))
-    return int(getattr(cur, "rowcount", 0) or 0)
+    n = int(getattr(cur, "rowcount", 0) or 0)
+    for r in _db(rt).all("SELECT pattern, tool, args FROM tool_patterns"):
+        if _match_pattern(r["pattern"], text) is not None:
+            _db(rt).exec("UPDATE tool_patterns SET bad=bad+1 WHERE pattern=? AND tool=? AND args=?", (r["pattern"], r["tool"], r["args"]))
+            n += 1
+    return n
+
+
+# ------------------------------------------------------------------------------------------ 3.17 pattern reflexes
+def _fold(text: str) -> str:
+    from .quickcmd import fold_keep
+
+    return fold_keep(text or "")
+
+
+def _plain(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s{}]", " ", _fold(text))).strip()
+
+
+def learn_pattern(rt, text: str, name: str, args: dict, answer: str) -> bool:
+    """"pusť lo-fi na YouTube" → youtube_play {query: lo-fi}: the words with the value as a slot ("pusť {x} na youtube"),
+    the arguments and the answer with the same slot. A pattern becomes a reflex after two different values went well."""
+    words = _plain(text)
+    for k, v in (args or {}).items():
+        if not isinstance(v, str) or len(v.strip()) < 2:
+            continue
+        fv = _plain(v)
+        if not fv or f" {fv} " not in f" {words} ":
+            continue
+        pattern = f" {words} ".replace(f" {fv} ", f" {SLOT} ", 1).strip()
+        if pattern == SLOT or len(pattern.replace(SLOT, "").split()) < 1:
+            return False
+        tpl_args = {kk: (SLOT if kk == k else vv) for kk, vv in args.items()}
+        a = json.dumps(tpl_args, ensure_ascii=False, sort_keys=True)[:400]
+        ans = answer or ""
+        idx = _fold(ans).find(_fold(v.strip()))
+        ans_tpl = (ans[:idx] + SLOT + ans[idx + len(v.strip()):]) if idx >= 0 else ans
+        db = _db(rt)
+        row = db.one("SELECT slot_values FROM tool_patterns WHERE pattern=? AND tool=? AND args=?", (pattern, name, a))
+        vals = set(json.loads(row["slot_values"])) if row else set()
+        vals.add(fv)
+        if row:
+            db.exec("UPDATE tool_patterns SET ok=ok+1, slot_values=?, answer=?, last=? WHERE pattern=? AND tool=? AND args=?",
+                    (json.dumps(sorted(vals)[:50], ensure_ascii=False), ans_tpl[:200], time.time(), pattern, name, a))
+        else:
+            db.exec("INSERT INTO tool_patterns (pattern, tool, args, answer, slot_values, ok, bad, last) VALUES (?,?,?,?,?,1,0,?)",
+                    (pattern, name, a, ans_tpl[:200], json.dumps(sorted(vals), ensure_ascii=False), time.time()))
+        return True
+    return False
+
+
+def _match_pattern(pattern: str, text: str) -> str | None:
+    """The slot's value as you said it (accents kept), or None."""
+    left, _, right = pattern.partition(SLOT)
+
+    def words(part: str) -> str:
+        toks = [re.escape(t) for t in part.split()]
+        return r"\W+".join(toks)
+    pre = r"^\W*(?:(?:jarvis\w*|prosim\w*|hej|hey)\W+)*"
+    post = r"\W*(?:(?:prosim\w*|dik\w*|jarvis\w*)\W*)?$"
+    rx = pre + (words(left) + r"\W+" if left.strip() else "") + r"(?P<x>.+?)" + \
+        (r"\W+" + words(right) if right.strip() else "") + post
+    folded = _fold(text)
+    m = re.match(rx, folded)
+    if not m:
+        return None
+    a, b = m.span("x")
+    return text[a:b].strip(" ,.!?") or None
+
+
+def pattern_reflex(rt, text: str, allowed: set[str]) -> tuple[str, dict, str] | None:
+    from . import tools
+
+    for r in _db(rt).all("SELECT * FROM tool_patterns WHERE ok >= ? AND bad = 0 ORDER BY ok DESC", (REFLEX_MIN,)):
+        if len(json.loads(r["slot_values"] or "[]")) < 2:
+            continue                                   # one value is not yet a pattern
+        val = _match_pattern(r["pattern"], text)
+        if not val:
+            continue
+        tpl = (r["answer"] or "").strip()
+        if not tpl or len(tpl) > 140 or re.search(r"\d", tpl.replace(SLOT, "")):
+            continue
+        spec = tools.REGISTRY.get(r["tool"])
+        if spec is None or r["tool"] not in allowed:
+            continue
+        args = {k: (val if v == SLOT else v) for k, v in json.loads(r["args"] or "{}").items()}
+        t = rt.cfg.tools
+        if tools.is_dangerous(spec, args, t.always_confirm, t.trusted, rt):
+            continue
+        return r["tool"], args, tpl.replace(SLOT, val)
+    return None
+
+
+# ------------------------------------------------------------------------------------------ 3.17 what JARVIS learnt (Settings)
+def memory_list(rt, limit: int = 300) -> list[dict]:
+    db = _db(rt)
+    out = []
+    for r in db.all("SELECT * FROM tool_memory ORDER BY last DESC LIMIT ?", (limit,)):
+        out.append({"kind": "phrase", "phrase": r["phrase"], "tool": r["tool"], "args": json.loads(r["args"] or "{}"),
+                    "answer": r["answer"], "ok": r["ok"], "bad": r["bad"], "last": r["last"],
+                    "reflex": r["ok"] >= REFLEX_MIN and r["bad"] == 0 and bool(r["answer"]) and not re.search(r"\d", r["answer"] or "")})
+    for r in db.all("SELECT * FROM tool_patterns ORDER BY last DESC LIMIT ?", (limit,)):
+        vals = json.loads(r["slot_values"] or "[]")
+        out.append({"kind": "pattern", "phrase": r["pattern"].replace(SLOT, "…"), "pattern": r["pattern"], "tool": r["tool"],
+                    "args": json.loads(r["args"] or "{}"), "answer": r["answer"], "ok": r["ok"], "bad": r["bad"],
+                    "last": r["last"], "values": vals[:8], "reflex": r["ok"] >= REFLEX_MIN and r["bad"] == 0 and len(vals) >= 2})
+    return out
+
+
+def memory_forget(rt, phrase: str = "", tool: str = "", block: bool = False, everything: bool = False) -> int:
+    """Forget one thing (or block it from becoming a reflex), or everything."""
+    db = _db(rt)
+    if everything:
+        n = len(memory_list(rt, 100000))
+        db.exec("DELETE FROM tool_memory")
+        db.exec("DELETE FROM tool_patterns")
+        return n
+    n = 0
+    for table, col in (("tool_memory", "phrase"), ("tool_patterns", "pattern")):
+        if block:
+            cur = db.exec(f"UPDATE {table} SET bad=99 WHERE {col}=? AND tool=?", (phrase, tool))
+        else:
+            cur = db.exec(f"DELETE FROM {table} WHERE {col}=? AND tool=?", (phrase, tool))
+        n += int(getattr(cur, "rowcount", 0) or 0)
+    return n
 
 
 def reflex(rt, text: str, allowed: set[str]) -> tuple[str, dict, str] | None:
@@ -106,8 +238,10 @@ def reflex(rt, text: str, allowed: set[str]) -> tuple[str, dict, str] | None:
 
     rows = _db(rt).all("SELECT tool, args, answer, ok, bad FROM tool_memory WHERE phrase=? ORDER BY ok DESC", (norm(text),))
     good = [r for r in rows if r["ok"] >= REFLEX_MIN and r["bad"] == 0]
-    if len(good) != 1 or any(r["bad"] for r in rows):
+    if any(r["bad"] for r in rows):
         return None
+    if len(good) != 1:
+        return pattern_reflex(rt, text, allowed) if not rows else None     # 3.17 "pusť {x} na YouTube"
     r = good[0]
     ans = (r["answer"] or "").strip()
     if not ans or len(ans) > 140 or re.search(r"\d", ans):        # an answer with numbers depends on the moment

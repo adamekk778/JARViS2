@@ -234,13 +234,22 @@ export function modelViewer(client: JarvisClient, sound: (name: "whoosh" | "clos
     else return false;
     return true;
   }
+  /** 3.17 a finger gesture with a value ("rotate:12", "zoom:1.15", "fist") while the model is open. */
+  function fine(kind: string, value: number): boolean {
+    if (el.hidden || !viewer) return false;
+    if (kind === "rotate") viewer.turn(value);
+    else if (kind === "zoom" && value > 0) viewer.zoom(1 / value);
+    else return false;
+    return true;
+  }
   /** A hand gesture while the model is open (true = used). */
   function gesture(g: string): boolean {
+    if (g === "fist") return command(exploded ? "model_collapse" : "model_explode");
     const map: Record<string, string> = { left: "model_rotate_left", right: "model_rotate_right", up: "model_zoom_in", down: "model_zoom_out",
                                           wave: exploded ? "model_collapse" : "model_explode" };
     return command(map[g] || "");
   }
   client.on("hud_model" as any, (m: any) => { void open(m as ModelMsg); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.hidden) { e.stopPropagation(); close(); } }, true);
-  return { el, open, close, command, gesture, get isOpen() { return !el.hidden; } };
+  return { el, open, close, command, gesture, fine, get isOpen() { return !el.hidden; } };
 }

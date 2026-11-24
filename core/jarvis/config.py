@@ -216,6 +216,7 @@ class Appearance(BaseModel):
     high_contrast: bool = False         # 3.14 stronger borders and text for weaker eyes (68)
     font_scale: float = 1.0             # 3.14 the whole interface larger (1.0–1.6) (68)
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
+    gesture_fingers: bool = True        # 3.17 with the hand model downloaded: fingers (pinch, turn, fist) instead of hand motion
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced", "auto"] = "full"   # auto = reduced on battery (OMEGA 240 / 764)
     fx_quality: Literal["auto", "ultra", "high", "eco", "off"] = "auto"   # 3.15 effects: auto = by the graphics card, battery, fps

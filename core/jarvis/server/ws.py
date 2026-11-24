@@ -80,6 +80,8 @@ CLIENT_TYPES = [
     "hud_presence", "hud_gesture", "printer_get",
     "speedcheck_run", "speedcheck_get",
     "speedwizard_get", "speedwizard_apply",
+    "toolmem_get", "toolmem_forget", "mine_check",
+    "hands_status", "hands_download",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -124,6 +126,8 @@ SERVER_TYPES = [
     "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
     "speedcheck",
     "speedwizard",
+    "toolmem", "mine_check",
+    "hands",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

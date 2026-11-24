@@ -24,6 +24,7 @@ import { notchOutline, regionSender, roundRect } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
+import { FingerCam, type FingerEvent } from "../shared/handgest";
 import { at, spring } from "../shared/motion";
 
 /* Notch modes (spec §4):
@@ -1250,7 +1251,51 @@ const gestureCam = new GestureCam({
   },
   onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
 });
-function syncGestures(on: boolean) { if (on && !gestureCam.on) void gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop(); }
+// 3.17 finger gestures (the hand model, once downloaded): pinch = zoom, open hand sideways = turn, fist = take apart
+let handsReady = false, fingersWanted = true, gesturesWanted = false, fingerAcc = 0, fingerVolAt = 0;
+function showGesture(g: Gesture) {
+  lastGesture = { g, until: Date.now() + 1300 };
+  updateActivity();
+  window.setTimeout(updateActivity, 1400);
+}
+function onFinger(e: FingerEvent) {
+  gestureToHud = hudOnScreen;
+  const shown: Gesture = e.type === "rotate" ? (e.deg > 0 ? "right" : "left") : e.type === "zoom" ? (e.factor > 1 ? "up" : "down") : "wave";
+  if (hudOnScreen) {
+    client.send("hud_gesture" as any, { g: e.type === "fist" ? "fist" : e.type === "rotate" ? `rotate:${e.deg}` : `zoom:${e.factor}` });
+    showGesture(shown);
+    return;
+  }
+  if (e.type === "fist") client.send("quick_action", { action: "media_control", args: { action: "play_pause" } });
+  else if (e.type === "rotate") {
+    fingerAcc += e.deg;
+    if (Math.abs(fingerAcc) < 60) return;                   // a real swipe of the open hand, not a wobble
+    client.send("quick_action", { action: "media_control", args: { action: fingerAcc > 0 ? "next" : "previous" } });
+    fingerAcc = 0;
+  } else {
+    if (Date.now() - fingerVolAt < 500) return;
+    fingerVolAt = Date.now();
+    client.send("quick_action", { action: "volume", args: { action: e.factor > 1 ? "up" : "down" } });
+  }
+  showGesture(shown);
+}
+const fingerCam = new FingerCam({
+  base: client.plainUrl("/api/hands"), onEvent: onFinger,
+  onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
+});
+client.on("hands" as any, (m: any) => { if (typeof m.ready === "boolean") { handsReady = m.ready; syncGestures(gesturesWanted); } });
+client.send("hands_status" as any, {});
+function syncGestures(on: boolean) {
+  gesturesWanted = on;
+  const fingers = on && fingersWanted && handsReady;
+  if (fingers) {
+    if (gestureCam.on) gestureCam.stop();
+    if (!fingerCam.on) void fingerCam.start();
+    return;
+  }
+  if (fingerCam.on) fingerCam.stop();
+  if (on && !gestureCam.on) void gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop();
+}
 client.on("agent_activity", (m) => {
   if (m.state === "start") team.set(m.key, { icon: m.icon || "robot", name: m.name, since: team.get(m.key)?.since || Date.now() });
   if (m.state === "done") team.delete(m.key);
@@ -1917,6 +1962,7 @@ client.on("welcome", (m) => {
   task = m.task || null;
   takeNotchSettings(m.settings?.notch);
   setStyle(m.settings?.notch?.style);
+  fingersWanted = m.settings?.appearance?.gesture_fingers !== false;
   syncGestures(!!m.settings?.appearance?.gestures);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }

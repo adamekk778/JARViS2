@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/agent\.prefetch/, "clock-countdown"], [/reflex_model/, "lightning-a"], [/claude_cache_ttl/, "hourglass"], [/smart_endpoint/, "timer"], [/low_latency/, "rocket-launch"], [/stream_voice/, "waveform"], [/speculate/, "fast-forward"], [/adaptive_pace/, "metronome"], [/live_partial/, "text-aa"], [/backchannel/, "chat-teardrop-dots"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/gesture_fingers/, "hand-pointing"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/agent\.prefetch/, "clock-countdown"], [/reflex_model/, "lightning-a"], [/claude_cache_ttl/, "hourglass"], [/smart_endpoint/, "timer"], [/low_latency/, "rocket-launch"], [/stream_voice/, "waveform"], [/speculate/, "fast-forward"], [/adaptive_pace/, "metronome"], [/live_partial/, "text-aa"], [/backchannel/, "chat-teardrop-dots"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -279,6 +279,35 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   const signed = (v: number, unit: string) => `${v >= 0 ? "+" : ""}${v}${unit}`;
 
   // ----- sections -----
+  // 3.17 Co se JARVIS naučil: the words that worked for a tool, the patterns ("pusť … na YouTube"), the reflexes –
+  // each can be forgotten or kept from ever being done without the AI
+  client.on("toolmem" as any, (m: any) => { extra.toolmem = m.items || []; if (current === "brain") render(); });
+  const learntCard = () => {
+    if (!extra.toolmemAsked) { extra.toolmemAsked = true; client.send("toolmem_get" as any, {}); }
+    const items: any[] = extra.toolmem || [];
+    const forget = (r: any, block = false) => client.send("toolmem_forget" as any, { phrase: r.kind === "pattern" ? r.pattern : r.phrase, tool: r.tool, block });
+    const rows = items.slice(0, 80).map((r) => h("div", { class: "row" },
+      h("div", { class: "row-text" }, h("strong", {}, `„${r.phrase}“ → ${r.tool}`),
+        h("span", {}, `${r.reflex ? "⚡ reflex (bez AI)" : "pomáhá výběru nástrojů"} · povedlo se ${r.ok}×${r.bad ? `, chyba ${r.bad}×` : ""}${r.values ? ` · např. ${r.values.slice(0, 3).join(", ")}` : ""}`)),
+      h("div", { class: "btn-row" },
+        r.reflex ? h("button", { class: "btn sm", type: "button", title: "Už nikdy bez AI", onclick: () => forget(r, true) }, icon("hand"), "Ne reflex") : null,
+        h("button", { class: "icon-btn sm", type: "button", "aria-label": "Zapomenout", title: "Zapomenout", onclick: () => forget(r) }, icon("trash")))));
+    return card("Co se JARVIS naučil", "Které nástroje fungovaly na tvoje slova. Co se dvakrát povedlo stejně, dělá JARVIS jako reflex hned bez AI (jen neškodné věci). Všechno zůstává jen v tomto PC.",
+      ...(rows.length ? rows : [h("p", { class: "help" }, "Zatím nic – JARVIS se učí z toho, co mu říkáš.")]),
+      ...(items.length ? [h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Opravdu zapomenout všechno, co se JARVIS o nástrojích naučil?")) client.send("toolmem_forget" as any, { all: true }); } }, icon("trash"), "Zapomenout vše"))] : []));
+  };
+  // 3.17 finger gestures: the hand model is downloaded only on this click (~22 MB, checked)
+  client.on("hands" as any, (m: any) => { extra.hands = m; if (current === "appearance") render(); });
+  const handsRow = () => {
+    if (!extra.handsAsked) { extra.handsAsked = true; client.send("hands_status" as any, {}); }
+    const st = extra.hands || {};
+    const btn = st.ready ? h("span", { class: "help" }, "Model ruky je stažený.")
+      : st.progress != null ? h("span", { class: "help" }, `Stahuji… ${Math.round(st.progress * 100)} %`)
+      : h("button", { class: "btn", type: "button", onclick: () => client.send("hands_download" as any, {}) }, icon("download-simple"), `Stáhnout model ruky (${st.size_mb || 22} MB)`);
+    return h("div", { class: "grid2" },
+      sw("appearance.gesture_fingers", "Gesta prsty", "S modelem ruky: štípnutí palce a ukazováčku a posun nahoru / dolů přiblíží, otevřená dlaň do strany otáčí 3D model či glóbus, pěst model rozloží (bez HUD: pěst = play/pauza, máchnutí = další skladba, štípnutí = hlasitost). Model běží v počítači, obraz nikam nejde."),
+      h("div", { class: "row" }, btn, st.error ? h("span", { class: "help" }, st.error) : null));
+  };
   const sections: Record<Section, () => Node[]> = {
     general: () => [
       card("O tobě", null,
@@ -438,6 +467,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("p", { class: "help" }, "Bezplatné AI mají limit dotazů za minutu – při 4–8 to běží plynule, víc má smysl s placeným klíčem. Ostatní agenti se střídají."),
           range("multitask.watch_every_s", "Sledující agent se dívá jednou za", 5, 120, 5, (v) => `${v} s`),
           monitorCheckRow()),
+        learntCard(),
       ];
     },
 
@@ -585,6 +615,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           "Automaticky: na dotykové obrazovce se tlačítka zvětší, jakmile se jí dotkneš. Mikrofon se sám nikdy nezapne."),
         sw("appearance.captions", "Živé titulky", "Velké titulky toho, co JARVIS říká a co od tebe slyšel – i bez zvuku."),
         sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Když je otevřený Stark HUD, ovládají gesta jeho: otočení 3D modelu nebo glóbu, přiblížení, rozložení modelu, přepínání rozložení. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
+        handsRow(),
         sw("stark.attention_aware", "Nerušit při soustředění", "Při schůzce v kalendáři nebo hře přes celou obrazovku nedůležitá upozornění počkají a přijdou potom najednou. Budíky a časovače vždy hned.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),

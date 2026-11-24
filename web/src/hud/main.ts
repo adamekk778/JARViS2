@@ -416,6 +416,15 @@ client.on("hud_cmd" as any, (m: any) => {
 // 3.15 hand gestures (the notch's camera sends them here while the HUD is on screen): the open model first, then the map
 // / globe, else the layouts – left / right = previous / next layout, up = the map, down = close it, a wave = panels on / off
 function gesture(g: string) {
+  const fineG = /^(rotate|zoom):(-?[\d.]+)$/.exec(g);           // 3.17 finger gestures carry how much
+  if (fineG) {
+    const v = Number(fineG[2]);
+    if (mview.isOpen && mview.fine(fineG[1], v)) return;
+    if (!wmap.el.hidden) { wmap.command(fineG[1] === "rotate" ? (v > 0 ? "turn_right" : "turn_left") : v > 1 ? "zoom_in" : "zoom_out"); return; }
+    if (fineG[1] === "rotate" && Math.abs(v) >= 20) gesture(v > 0 ? "right" : "left");
+    return;
+  }
+  if (g === "fist" && !mview.isOpen) { root.classList.toggle("panels-off"); return; }
   if (mview.isOpen && mview.gesture(g)) return;
   if (!wmap.el.hidden) {
     const act = ({ left: "turn_left", right: "turn_right", up: "zoom_in", down: "zoom_out", wave: "close_map" } as Record<string, string>)[g];

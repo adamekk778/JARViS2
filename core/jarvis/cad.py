@@ -53,12 +53,22 @@ def fold(s: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFKD", s.lower()) if not unicodedata.combining(c))
 
 
-def guess_template(text: str) -> str:
+# 3.17 "držák na kolo / telefon / sluchátka" is a holder for a thing, not the L-bracket: the AI designs it
+_HOLDER_FOR = re.compile(r"\bdrzak\w*\s+(?:na|pro)\s+(?!polic|zed|sten|sroub|regal|desk|konzol)\w{3,}")
+
+
+def match_template(text: str) -> str | None:
     t = fold(text)
     for key, tpl in TEMPLATES.items():
         if any(w in t for w in tpl["words"]):
+            if key == "bracket" and _HOLDER_FOR.search(t) and not re.search(r"\bl[- ]?drzak|uhelnik|bracket", t):
+                continue
             return key
-    return "box"
+    return None
+
+
+def guess_template(text: str) -> str:
+    return match_template(text) or "box"
 
 
 def _box(x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, cut: bool = False) -> Prim:
@@ -280,10 +290,12 @@ def bounds(prims: list[Prim]) -> tuple[np.ndarray, np.ndarray]:
     return lo, hi
 
 
-def mesh(prims: list[Prim], max_cells: int = 2_500_000, min_step: float = 0.25, feature: float = 0) -> tuple[np.ndarray, np.ndarray, float]:
+def mesh(prims: list[Prim], max_cells: int = 2_500_000, min_step: float = 0.25, feature: float = 0,
+         fn: Any = None, box: tuple[np.ndarray, np.ndarray] | None = None) -> tuple[np.ndarray, np.ndarray, float]:
     """Surface nets: vertices (N×3) and triangles (M×3 indices) of the part, and the grid step in mm (feature = the
-    thinnest wall, which a hollow shape does not show in its primitives)."""
-    lo, hi = bounds(prims)
+    thinnest wall, which a hollow shape does not show in its primitives). 3.17: `fn` (points → signed distance) and
+    `box` (its bounds) instead of the primitives, for a free-form part."""
+    lo, hi = box if box is not None else bounds(prims)
     size = hi - lo
     feats = [pr["r"] * 2 for pr in prims if pr["kind"] == "cyl"] + \
             [float(min(np.array(pr["max"]) - np.array(pr["min"]))) for pr in prims if pr["kind"] == "box"]
@@ -293,7 +305,7 @@ def mesh(prims: list[Prim], max_cells: int = 2_500_000, min_step: float = 0.25, 
     lo, hi = lo - 2 * step, hi + 2 * step
     axes = [np.arange(lo[i], hi[i] + step, step, dtype=np.float32) for i in range(3)]
     X, Y, Z = np.meshgrid(*axes, indexing="ij")
-    F = sdf(prims, np.stack([X, Y, Z], axis=-1)).astype(np.float32)
+    F = (fn if fn is not None else (lambda P: sdf(prims, P)))(np.stack([X, Y, Z], axis=-1)).astype(np.float32)
     inside = F < 0
     nx, ny, nz = F.shape
     corners = [(i, j, k) for i in (0, 1) for j in (0, 1) for k in (0, 1)]
@@ -471,6 +483,8 @@ def undo(rt, name: str) -> dict | None:
 
 def export(rt, part: dict) -> dict:
     """The part's files: .scad (exact), .stl (exact via OpenSCAD when installed, else the preview mesh) and the numbers."""
+    if part["template"] == "free":
+        return free_files(part)
     tpl, params = part["template"], part["params"]
     prims = build(tpl, params)
     out = paths.sub("workshop") / "cad"
@@ -490,7 +504,228 @@ def export(rt, part: dict) -> dict:
 
 
 def describe(part: dict) -> str:
+    if part["template"] == "free":
+        lo, hi = tree_bounds(part["params"]["tree"])
+        sz = hi - lo
+        return f"{part['name']} – vlastní tvar {sz[0]:.0f}×{sz[1]:.0f}×{sz[2]:.0f} mm, verze {part['version']}"
     tpl = TEMPLATES[part["template"]]
     ps = ", ".join(f"{PARAM_LABEL.get(k, k)} {v:g}{'' if k in ('holes', 'grip', 'lid') else ' mm'}"
                    for k, v in part["params"].items() if not (k == "lid" and v >= 0.5))
     return f"{part['name']} – {tpl['label']}, verze {part['version']}: {ps}"
+
+
+# ------------------------------------------------------------------------------------------ 3.17 a part from any description
+FREE_PROMPT = (
+    "Navrhni 3D díl pro 3D tisk podle popisu. Odpověz JEN JSON: {\"name\": \"krátký název\", \"tree\": UZEL}. "
+    "Jednotky mm, díl stojí na z = 0. UZEL je jeden z: "
+    "{\"box\": [šířka, hloubka, výška], \"at\": [x, y, z], \"rotate\": [rx, ry, rz]} (roh na „at“); "
+    "{\"cylinder\": {\"r\": poloměr, \"h\": výška, \"r2\": horní poloměr pro kužel (nepovinné)}, \"at\": [x, y, z], \"rotate\": [...]} "
+    "(osa z, střed podstavy na „at“); {\"sphere\": {\"r\": poloměr}, \"at\": [x, y, z]}; "
+    "{\"union\": [UZLY]}, {\"difference\": [základ, odečítané…]}, {\"intersection\": [UZLY]} – i skupiny mohou mít "
+    "„at“ a „rotate“ (ve stupních, jako OpenSCAD: nejdřív x, pak y, pak z). Díry: difference s válcem o 1 mm delším. "
+    "Rozměry rozumné (do 300 mm), stěny aspoň 1,2 mm.")
+EDIT_PROMPT = ("Uprav tento 3D díl podle pokynu a odpověz JEN celým novým JSON ve stejném tvaru (name + tree). "
+               "Měň jen to, co pokyn říká.")
+MAX_NODES, MAX_DEPTH, MAX_MM = 200, 12, 1000.0
+
+
+def _rot(r: list | None) -> np.ndarray:
+    rx, ry, rz = (np.radians(float(x)) for x in (list(r or [0, 0, 0]) + [0, 0, 0])[:3])
+    cx, sx, cy, sy, cz, sz = np.cos(rx), np.sin(rx), np.cos(ry), np.sin(ry), np.cos(rz), np.sin(rz)
+    Rx = np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
+    Ry = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+    Rz = np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
+    return (Rz @ Ry @ Rx).astype(np.float32)
+
+
+def check_tree(node: Any, depth: int = 0, count: list | None = None) -> str:
+    """'' when the tree is a part JARVIS can make, else what is wrong."""
+    count = count if count is not None else [0]
+    count[0] += 1
+    if count[0] > MAX_NODES or depth > MAX_DEPTH:
+        return "díl je moc složitý"
+    if not isinstance(node, dict):
+        return "uzel musí být objekt"
+
+    def nums(v: Any, n: int, positive: bool = False) -> bool:
+        return (isinstance(v, list) and len(v) == n and all(isinstance(x, (int, float)) and np.isfinite(x) and abs(x) <= MAX_MM
+                                                              and (x > 0 if positive else True) for x in v))
+    if "at" in node and not nums(node["at"], 3):
+        return "„at“ musí být [x, y, z]"
+    if "rotate" in node and not nums(node["rotate"], 3):
+        return "„rotate“ musí být [rx, ry, rz]"
+    if "box" in node:
+        return "" if nums(node["box"], 3, positive=True) else "„box“ musí být tři kladné rozměry"
+    if "cylinder" in node:
+        c = node["cylinder"]
+        ok = isinstance(c, dict) and nums([c.get("r", 0), c.get("h", 0)], 2, positive=True) and \
+            (c.get("r2") is None or (isinstance(c.get("r2"), (int, float)) and 0 <= c["r2"] <= MAX_MM))
+        return "" if ok else "„cylinder“ potřebuje kladné r a h"
+    if "sphere" in node:
+        c = node["sphere"]
+        return "" if isinstance(c, dict) and nums([c.get("r", 0)], 1, positive=True) else "„sphere“ potřebuje kladné r"
+    for op in ("union", "difference", "intersection"):
+        if op in node:
+            kids = node[op]
+            if not isinstance(kids, list) or not kids:
+                return f"„{op}“ potřebuje seznam uzlů"
+            for k in kids:
+                why = check_tree(k, depth + 1, count)
+                if why:
+                    return why
+            return ""
+    return "neznámý uzel (umím box, cylinder, sphere, union, difference, intersection)"
+
+
+def _local(node: dict, P: np.ndarray) -> np.ndarray:
+    at = np.array(node.get("at") or [0, 0, 0], dtype=np.float32)
+    Q = P - at
+    if node.get("rotate"):
+        Q = Q @ _rot(node["rotate"])            # row vectors: (R^T q)^T = q^T R
+    return Q
+
+
+def tree_sdf(node: dict, P: np.ndarray) -> np.ndarray:
+    Q = _local(node, P)
+    if "box" in node:
+        size = np.array(node["box"], dtype=np.float32)
+        q = np.abs(Q - size / 2) - size / 2
+        return np.linalg.norm(np.maximum(q, 0), axis=-1) + np.minimum(q.max(axis=-1), 0)
+    if "cylinder" in node:
+        c = node["cylinder"]
+        r1, h = float(c["r"]), float(c["h"])
+        r2 = float(c.get("r2", r1) if c.get("r2") is not None else r1)
+        hh = h / 2
+        z = Q[..., 2] - hh
+        rad = np.sqrt(Q[..., 0] ** 2 + Q[..., 1] ** 2)
+        if abs(r1 - r2) < 1e-6:
+            q = np.stack([rad - r1, np.abs(z) - hh], axis=-1)
+            return np.linalg.norm(np.maximum(q, 0), axis=-1) + np.minimum(q.max(axis=-1), 0)
+        # a capped cone (exact distance, Í. Quílez)
+        k1 = np.array([r2, hh], dtype=np.float32)
+        k2 = np.array([r2 - r1, 2 * hh], dtype=np.float32)
+        ca = np.stack([rad - np.minimum(rad, np.where(z < 0, r1, r2)), np.abs(z) - hh], axis=-1)
+        qv = np.stack([rad, z], axis=-1)
+        t = np.clip(((k1 - qv) @ k2) / float(k2 @ k2), 0, 1)
+        cb = qv - k1 + k2 * t[..., None]
+        s = np.where((cb[..., 0] < 0) & (ca[..., 1] < 0), -1.0, 1.0)
+        return s * np.sqrt(np.minimum((ca ** 2).sum(-1), (cb ** 2).sum(-1)))
+    if "sphere" in node:
+        return np.linalg.norm(Q, axis=-1) - float(node["sphere"]["r"])
+    if "union" in node:
+        return np.minimum.reduce([tree_sdf(k, Q) for k in node["union"]])
+    if "intersection" in node:
+        return np.maximum.reduce([tree_sdf(k, Q) for k in node["intersection"]])
+    kids = node["difference"]
+    d = tree_sdf(kids[0], Q)
+    if len(kids) > 1:
+        d = np.maximum(d, -np.minimum.reduce([tree_sdf(k, Q) for k in kids[1:]]))
+    return d
+
+
+def tree_bounds(node: dict) -> tuple[np.ndarray, np.ndarray]:
+    if "box" in node:
+        lo, hi = np.zeros(3), np.array(node["box"], dtype=float)
+    elif "cylinder" in node:
+        c = node["cylinder"]
+        r = max(float(c["r"]), float(c.get("r2") or 0))
+        lo, hi = np.array([-r, -r, 0.0]), np.array([r, r, float(c["h"])])
+    elif "sphere" in node:
+        r = float(node["sphere"]["r"])
+        lo, hi = -np.full(3, r), np.full(3, r)
+    else:
+        op = next(k for k in ("union", "difference", "intersection") if k in node)
+        boxes = [tree_bounds(k) for k in node[op]]
+        if op == "difference":
+            lo, hi = boxes[0]
+        elif op == "intersection":
+            lo, hi = np.max([b[0] for b in boxes], axis=0), np.min([b[1] for b in boxes], axis=0)
+        else:
+            lo, hi = np.min([b[0] for b in boxes], axis=0), np.max([b[1] for b in boxes], axis=0)
+    corners = np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
+    if node.get("rotate"):
+        corners = corners @ _rot(node["rotate"]).T
+    corners = corners + np.array(node.get("at") or [0, 0, 0], dtype=float)
+    return corners.min(axis=0), corners.max(axis=0)
+
+
+def tree_scad(node: dict, ind: str = "") -> str:
+    head = ""
+    if node.get("at"):
+        a = node["at"]
+        head += f"translate([{a[0]:g},{a[1]:g},{a[2]:g}]) "
+    if node.get("rotate"):
+        r = node["rotate"]
+        head += f"rotate([{r[0]:g},{r[1]:g},{r[2]:g}]) "
+    if "box" in node:
+        b = node["box"]
+        return f"{ind}{head}cube([{b[0]:g},{b[1]:g},{b[2]:g}]);"
+    if "cylinder" in node:
+        c = node["cylinder"]
+        r2 = c.get("r2", c["r"]) if c.get("r2") is not None else c["r"]
+        return f"{ind}{head}cylinder(h={c['h']:g}, r1={c['r']:g}, r2={r2:g}, $fn=96);"
+    if "sphere" in node:
+        return f"{ind}{head}sphere(r={node['sphere']['r']:g}, $fn=64);"
+    op = next(k for k in ("union", "difference", "intersection") if k in node)
+    inner = "\n".join(tree_scad(k, ind + "  ") for k in node[op])
+    return f"{ind}{head}{op}() {{\n{inner}\n{ind}}}"
+
+
+def parse_free(text: str) -> tuple[str, dict]:
+    """The AI's answer → (name, tree); raises ValueError with what is wrong."""
+    import re
+
+    m = re.search(r"\{.*\}", text or "", re.S)
+    if not m:
+        raise ValueError("AI neposlala JSON")
+    try:
+        d = json.loads(m.group(0))
+    except ValueError as e:
+        raise ValueError(f"JSON nejde přečíst: {e}") from None
+    tree = d.get("tree", d)
+    why = check_tree(tree)
+    if why:
+        raise ValueError(why)
+    return str(d.get("name") or "Díl")[:60], tree
+
+
+async def design(rt: Any, description: str, previous: dict | None = None, change: str = "") -> tuple[str, dict]:
+    """The AI designs (or changes) the part; one more try when its first answer is not a valid part."""
+    if previous is None:
+        msgs = [{"role": "system", "content": FREE_PROMPT}, {"role": "user", "content": description[:1500]}]
+    else:
+        msgs = [{"role": "system", "content": FREE_PROMPT + " " + EDIT_PROMPT},
+                {"role": "user", "content": json.dumps(previous, ensure_ascii=False)[:6000] + "\n\nPokyn: " + change[:600]}]
+    last = ""
+    for _ in range(2):
+        out = str(await rt.router.complete(msgs) or "")
+        try:
+            name, tree = parse_free(out)
+            lo, hi = tree_bounds(tree)
+            if np.any(hi - lo <= 0) or np.any(hi - lo > MAX_MM):
+                raise ValueError("rozměry dílu nedávají smysl")
+            return name, tree
+        except ValueError as e:
+            last = str(e)
+            msgs += [{"role": "assistant", "content": out[:4000]},
+                     {"role": "user", "content": f"Tohle nejde: {last}. Pošli opravený JSON."}]
+    raise ValueError(last or "AI díl nenavrhla")
+
+
+def free_files(part: dict) -> dict:
+    """export() for a free-form part: the exact .scad from the tree, the mesh made here (or by OpenSCAD)."""
+    tree = part["params"]["tree"]
+    out = paths.sub("workshop") / "cad"
+    out.mkdir(parents=True, exist_ok=True)
+    base = out / f"{slug(part['name'])}-v{part['version']}"
+    scad_p, stl_p = base.with_suffix(".scad"), base.with_suffix(".stl")
+    scad_p.write_text(f"// {part['name']} – navrhl JARVIS z popisu, verze {part['version']}\n" + tree_scad(tree) + "\n", encoding="utf-8")
+    lo, hi = tree_bounds(tree)
+    verts, faces, step = mesh([], fn=lambda P: tree_sdf(tree, P), box=(lo, hi))
+    exact = render_exact(scad_p, stl_p)
+    if not exact:
+        stl_p.write_bytes(stl_bytes(verts, faces, part["name"]))
+    vol = abs(volume(verts, faces)) / 1000
+    return {"scad": str(scad_p), "stl": str(stl_p), "exact": exact, "step_mm": round(step, 2),
+            "size_mm": [round(float(x), 1) for x in (hi - lo)], "volume_cm3": round(vol, 1),
+            "grams_pla": round(vol * 1.24, 1), "triangles": int(len(faces)), "closed": bool(len(faces))}
