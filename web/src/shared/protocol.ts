@@ -91,6 +91,7 @@ export const SERVER_TYPES = [
   "edith_answer", "screen_buddy",
   "world_map", "hud_map",
   "fx_pause",
+  "hud_cmd",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -70,8 +70,24 @@ async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = ""
 
 def start_protocol(rt, proto) -> None:
     """From a button, the HUD or a voice tool: runs after whatever JARVIS is doing now (it waits for the agent)."""
-    rt.bus.publish("protocol", id=proto.id, name=proto.name, icon=proto.icon)
+    rt.bus.publish("protocol", id=proto.id, name=proto.name, icon=proto.icon, steps=protocol_labels(proto))
     bg(run_protocol(rt, proto))
+
+
+def protocol_labels(proto) -> list[str]:
+    """3.15 the steps as short labels for the HUD's protocol animation (lit one by one as the tools finish)."""
+    from . import tools
+
+    out = []
+    for st in proto.steps:
+        if st.tool:
+            spec = tools.REGISTRY.get(st.tool)
+            out.append((getattr(spec, "description", "") or st.tool).split(":")[0].split("(")[0].strip()[:40] or st.tool)
+        elif st.ask:
+            out.append(st.ask.strip()[:40])
+        elif st.say:
+            out.append("„" + st.say.strip()[:36] + "“")
+    return out[:12]
 
 
 # ---------------------------------------------------------------------------------------------- briefing

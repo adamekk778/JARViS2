@@ -12,6 +12,10 @@ import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { kioskMode } from "./kiosk";
 import { worldMap } from "./worldmap";
+import { at, onTier } from "../shared/motion";
+import { mountReactor3d } from "./reactor3d";
+import { mountGlobe } from "./globe3d";
+import { bootSequence, netScale, parallax, protocolRun, redAlert, screensaver, telemetry, toolOrbit, trace } from "./hudfx";
 
 // 3.14 on a tablet / TV on the home network: ?token=<the phone's key> (kiosk=1: the wall display, see kiosk.ts)
 const hudEp = localEndpoint();
@@ -133,9 +137,12 @@ const gCpu = gauge("CPU"), gRam = gauge("RAM"), gDisk = gauge("DISK"), gBat = ga
 const cpuSpark = spark();
 const netEl = h("div", { class: "kv" });
 const upEl = h("div", { class: "kv" });
+const trGpu = trace("GPU", "var(--holo-2)"), trNet = trace("SÍŤ ↓", "#7fffd4");      // 3.15 live telemetry curves
 const sysPanel = panel("SYSTÉMY", "cpu", 0,
   h("div", { class: "gauges" }, gCpu.el, gRam.el, gDisk.el, gBat.el),
-  h("div", { class: "spark-wrap" }, h("span", { class: "tiny" }, "ZATÍŽENÍ CPU · 90 s"), cpuSpark.el), netEl, upEl);
+  h("div", { class: "spark-wrap" }, h("span", { class: "tiny" }, "ZATÍŽENÍ CPU · 90 s"), cpuSpark.el),
+  h("div", { class: "traces" }, trGpu.el, trNet.el), netEl, upEl);
+let lastSys: number[] = [0, 0, 0];
 
 const logList = h("ol", { class: "log" });
 const logPanel = panel("ZÁZNAM", "list-dashes", 2, logList);
@@ -193,7 +200,21 @@ const root = h("div", { class: "hud booting" },
   topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, wmap.el, closeBtn,
   h("i", { class: "br b1" }), h("i", { class: "br b2" }), h("i", { class: "br b3" }), h("i", { class: "br b4" }));
 document.getElementById("hud")!.append(root);
-kioskMode(root);                       // 3.14 the wall display (only with ?kiosk=1)
+// 3.15 the screensaver of the wall display: the globe turning slowly with the time, until someone comes
+const saver = screensaver(root, (gh) => mountGlobe(gh));
+kioskMode(root, saver);                // 3.14 the wall display (only with ?kiosk=1)
+root.append(telemetry(() => lastSys));
+parallax(root);
+const orbit = toolOrbit(rx);
+const proto = protocolRun(root);
+let rx3d: (() => void) | null = null;
+function ensure3d() {
+  if (rx3d || !at("high")) return;
+  rx3d = () => {};                     // mounting
+  mountReactor3d(rx, () => ({ mood: root.dataset.mood || "idle", level: lvl })).then((d) => { rx3d = d; }).catch(() => { rx3d = null; });
+}
+onTier((t) => { if (t === "high" || t === "ultra") ensure3d(); else rx3d = null; });
+root.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest?.(".hbtn, .proto, .layouts button")) play("holo"); });
 
 // ---------------------------------------------------------------- behaviour
 function quick(action: string, args: any = {}) { client.send("quick_action", { action, args }); }
@@ -256,6 +277,7 @@ function showAlert(title: string, text: string) {
 
 function showBriefing(text: string) {
   briefBox.hidden = false;
+  play("whoosh");
   const body = h("p", {});
   briefBox.replaceChildren(h("header", {}, icon("sun-horizon"), h("span", {}, "RANNÍ BRÍFINK"),
     h("button", { class: "hbtn sm", type: "button", "aria-label": "Zavřít brífink", onclick: () => (briefBox.hidden = true) }, icon("x"))), body);
@@ -284,6 +306,7 @@ client.on("welcome", (m) => {
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   name = m.settings?.general?.address_as || m.settings?.general?.user_name || "pane";
+  bootInfo = { ai: String(m.settings?.brain?.chain?.[0] || ""), voice: m.settings?.voice?.enabled !== false, online: true, name };
   renderProtocols(m.settings?.stark?.protocols);
   timers = (m.timers || []).map((t: any) => ({ ...t }));
   setMedia(m.media || {});
@@ -293,6 +316,10 @@ client.on("welcome", (m) => {
 client.on("settings_changed", (m) => { setLayout(m.settings?.stark?.hud_layout); applyAppearance(m.settings); renderProtocols(m.settings?.stark?.protocols); });
 client.on("system", (s) => {
   gCpu.set(s.cpu_percent); cpuSpark.push(s.cpu_percent || 0);
+  const gu = s.gpu?.util;
+  trGpu.push(gu ?? 0, gu == null ? "–" : `${Math.round(gu)} %`);
+  trNet.push(netScale(s.net_down_kbps || 0), fmtRate(s.net_down_kbps));
+  lastSys = [s.cpu_percent || 0, s.ram_percent || 0, s.net_down_kbps || 0];
   gRam.set(s.ram_percent, `${Math.round(s.ram_percent)}%`);
   gDisk.set(s.disk_percent);
   if (s.battery_percent == null) gBat.set(100, "AC"); else gBat.set(s.battery_percent, `${s.battery_percent}%`);
@@ -345,15 +372,27 @@ client.on("assistant_delta", (m) => { answer += m.text; answerEl.textContent = p
 client.on("assistant_done", (m) => { answer = m.text || answer; answerEl.textContent = plain(answer).slice(0, 420); });
 client.on("tool_start", (m) => {
   chipsEl.append(h("span", { class: "chip run", "data-id": m.id }, (m.label || m.name).replace(/^[^\p{L}\p{N}]+/u, "")));
+  orbit.start(String(m.id), m.label || m.name);
 });
 client.on("tool_end", (m) => {
+  orbit.end(String(m.id), !!m.ok);
+  if (proto.active()) proto.step();
   const c = chipsEl.querySelector(`[data-id="${m.id}"]`);
   c?.classList.remove("run"); c?.classList.add(m.ok ? "ok" : "fail");
   if (c) log(`${c.textContent}${m.summary ? " – " + m.summary : ""}`.slice(0, 90), m.ok ? "" : "bad");
 });
-client.on("protocol", (m) => { log(`Protokol ${m.name} spuštěn`, "lp"); play("wake"); });
+client.on("protocol", (m) => { log(`Protokol ${m.name} spuštěn`, "lp"); void proto.start(m.name || "", m.icon || "", (m as any).steps || []); });
 client.on("automation", (m) => log(`Automatizace ${m.name}: ${m.why}`, "lp"));
-client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); });
+client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); redAlert(root); });
+// 3.15 the HUD by voice: "přibliž mapu", "ukaž glóbus", "schovej panely", "minimální rozložení"…
+client.on("hud_cmd" as any, (m: any) => {
+  const a = String(m.action || "");
+  if (["map", "globe", "flat", "zoom_in", "zoom_out", "radar_play", "close_map"].includes(a)) wmap.command(a === "map" ? "open" : a);
+  else if (["full", "minimal", "focus", "presentation"].includes(a)) setLayout(a);
+  else if (a === "systems") setLayout("full");
+  else if (a === "hide_panels" || a === "show_panels") root.classList.toggle("panels-off", a === "hide_panels");
+  else if (a === "close") closeHud();
+});
 client.on("notify", (m) => log(`${m.title}: ${m.body}`.slice(0, 90)));
 client.on("briefing", (m) => { showBriefing(m.text); log("Ranní brífink"); });
 client.on("error", (m) => log(m.message, "bad"));
@@ -365,6 +404,7 @@ function refresh(all = false) {
   client.send("system_get");
   if (all) { client.send("weather_get"); client.send("jobs_get"); client.send("timers_get"); }
 }
+let bootInfo = { ai: "", voice: true, online: false, name: "" };
 function open() {
   root.classList.remove("closing");
   root.classList.add("booting");
@@ -372,7 +412,9 @@ function open() {
   setTimeout(() => root.classList.remove("booting"), 1900);
   typeText(moodEl, "INICIALIZACE SYSTÉMŮ…", 60);
   setTimeout(() => setMood(root.dataset.mood || "idle"), 1500);
-  play("boot");
+  ensure3d();
+  if (at("high")) void bootSequence(root, { ...bootInfo, online: client.status === "open" });   // 3.15 the cinematic start
+  else play("boot");
   tickClock();
   clearInterval(poll); clearInterval(clockT); clearInterval(slow);
   poll = window.setInterval(() => refresh(), 1500);

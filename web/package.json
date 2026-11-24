@@ -30,12 +30,15 @@
     "leaflet": "1.9.4",
     "marked": "^18.1.1",
     "simple-icons": "16.36.0",
-    "three": "0.187.0"
+    "three": "0.187.0",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/leaflet": "1.9.20",
     "@types/three": "0.187.0",
+    "@types/topojson-client": "3.1.5",
     "eslint": "^10.15.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.73.0",

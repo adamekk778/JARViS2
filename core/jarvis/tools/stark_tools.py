@@ -45,3 +45,24 @@ async def show_hud(ctx, close: bool = False) -> ToolResult:
         return ToolResult(False, "HUD jde otevřít jen v aplikaci na PC.")
     ctx.ui_hook("hud-close" if close else "hud")
     return ToolResult(True, "HUD zavřen." if close else "Zobrazuji HUD.")
+
+
+HUD_ACTIONS = {"map": "mapa světa", "globe": "3D glóbus", "flat": "plochá mapa", "zoom_in": "přiblížení", "zoom_out": "oddálení",
+               "radar_play": "přehrání radaru", "close_map": "zavření mapy", "full": "plné rozložení", "minimal": "minimální rozložení",
+               "focus": "rozložení Soustředění", "presentation": "rozložení Prezentace", "hide_panels": "schované panely",
+               "show_panels": "panely zpět", "systems": "systémy", "close": "zavření HUD"}
+
+
+@tool("hud_control", "Ovládá Stark HUD hlasem: mapa světa / 3D glóbus / plochá mapa, přiblížit, oddálit, pustit radar, zavřít mapu, "
+      "rozložení (plné, minimální, soustředění, prezentace), schovat / ukázat panely, zavřít HUD. HUD se sám otevře.",
+      category="systém", perm="apps")
+async def hud_control(ctx, action: Annotated[str, "map / globe / flat / zoom_in / zoom_out / radar_play / close_map / full / minimal / "
+                                                  "focus / presentation / hide_panels / show_panels / systems / close"]) -> ToolResult:
+    a = (action or "").strip().lower()
+    if a not in HUD_ACTIONS:
+        return ToolResult(False, "To HUD neumí. Umí: " + ", ".join(HUD_ACTIONS.values()) + ".")
+    if ctx.ui_hook:
+        ctx.ui_hook("hud-close" if a == "close" else "hud")
+    if a != "close":
+        ctx.bus.publish("hud_cmd", action=a)
+    return ToolResult(True, f"HUD: {HUD_ACTIONS[a]}.")

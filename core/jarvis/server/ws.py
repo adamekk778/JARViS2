@@ -115,6 +115,7 @@ SERVER_TYPES = [
     "edith_answer", "screen_buddy",
     "world_map", "hud_map",
     "fx_pause",
+    "hud_cmd",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

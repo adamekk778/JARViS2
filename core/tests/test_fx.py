@@ -51,3 +51,28 @@ def test_web_unit_tests():
     r = subprocess.run(["node", "--experimental-strip-types", "--no-warnings", "--test", *files], cwd=WEB,
                        capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-2000:]
+
+
+async def test_hud_voice_commands(rt):
+    from jarvis import tools
+
+    tools.load_builtin()
+    hooks, events = [], []
+    rt.ui_hook = hooks.append
+    rt.bus.publish = lambda t, **d: events.append((t, d))
+    r = await tools.call("hud_control", {"action": "zoom_in"}, rt)
+    assert r.ok and hooks == ["hud"] and events[-1] == ("hud_cmd", {"action": "zoom_in"})
+    r = await tools.call("hud_control", {"action": "close"}, rt)
+    assert r.ok and hooks[-1] == "hud-close" and events[-1][1]["action"] == "zoom_in"     # closing sends no command
+    r = await tools.call("hud_control", {"action": "selfdestruct"}, rt)
+    assert not r.ok
+
+
+def test_protocol_event_carries_the_steps(rt):
+    from jarvis import stark
+    from jarvis.config import Protocol, ProtocolStep
+
+    p = Protocol(id="kino", name="Kino", steps=[ProtocolStep(tool="media_control", args={"action": "play_pause"}),
+                                                ProtocolStep(say="Užijte si film, pane."), ProtocolStep(ask="ztlum světla v obýváku")])
+    labels = stark.protocol_labels(p)
+    assert len(labels) == 3 and labels[1].startswith("„Užijte si film") and labels[2] == "ztlum světla v obýváku"

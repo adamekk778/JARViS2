@@ -3,10 +3,13 @@
 // The screen stays awake (Wake Lock), dims at night, and with motion=1 the tablet's own camera only checks whether
 // something moves in front of it (a few tiny frames compared, nothing stored or sent): nobody around for 5 minutes →
 // dimmed to a glow; someone walks by → full brightness again. The close button is hidden (it is not a PC window).
+// 3.15: while nobody is around, a screensaver – the 3D globe turning slowly with the time – instead of a dark screen.
 
 const DIM_AFTER_MS = 5 * 60 * 1000;
 
-export function kioskMode(root: HTMLElement): boolean {
+type Saver = { show(): Promise<void> | void; hide(): void };
+
+export function kioskMode(root: HTMLElement, saver?: Saver): boolean {
   const q = new URLSearchParams(location.search);
   if (q.get("kiosk") !== "1") return false;
   document.documentElement.classList.add("kiosk");
@@ -16,6 +19,11 @@ export function kioskMode(root: HTMLElement): boolean {
     const night = h >= 23 || h < 6;
     const idle = Date.now() - lastMotion > DIM_AFTER_MS;
     root.style.transition = "filter 1.2s ease";
+    if (saver) {
+      if (idle) void saver.show(); else saver.hide();
+      root.style.filter = idle ? (night ? "brightness(.25)" : "brightness(.6)") : night ? "brightness(.45)" : "";
+      return;
+    }
     root.style.filter = idle ? "brightness(.12)" : night ? "brightness(.45)" : "";
   };
   // keep the screen on

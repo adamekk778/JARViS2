@@ -76,6 +76,8 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("spočítej hypotéku 4 miliony na 5 procent na 30 let", ("what_if",)),
     ("ukliď kuchyň", ("vacuum_control",)), ("pošli vysavač domů", ("vacuum_control",)), ("posekej trávník", ("mower_control",)),
     ("vzlétni s dronem", ("drone",)), ("obleť místnost dronem a přistaň", ("drone",)),
+    ("přibliž mapu", ("hud_control",)), ("ukaž zeměkouli ve 3D", ("hud_control",)), ("schovej panely v HUD", ("hud_control",)),
+    ("přepni HUD na prezentaci", ("hud_control",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar
