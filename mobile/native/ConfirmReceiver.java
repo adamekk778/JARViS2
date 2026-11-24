@@ -19,7 +19,14 @@ public class ConfirmReceiver extends BroadcastReceiver {
         final String act = i.getStringExtra("notice_action");
         if (act != null) {                       // 3.13 a button of a notice from the PC ("+5 min", "Za 10 min")
             if ("dismiss".equals(act)) return;
-            final String args = i.getStringExtra("notice_args");
+            String a0 = i.getStringExtra("notice_args");
+            if (i.getBooleanExtra("reply", false) && android.os.Build.VERSION.SDK_INT >= 24) {   // 3.14 "Odpovědět"
+                android.os.Bundle in = android.app.RemoteInput.getResultsFromIntent(i);
+                CharSequence typed = in == null ? null : in.getCharSequence(JarvisLink.REPLY_KEY);
+                if (typed == null || typed.toString().trim().isEmpty()) return;
+                try { a0 = new JSONObject().put("text", typed.toString().trim()).toString(); } catch (Exception e) { return; }
+            }
+            final String args = a0;
             final PendingResult pr = goAsync();
             new Thread(() -> {
                 try {

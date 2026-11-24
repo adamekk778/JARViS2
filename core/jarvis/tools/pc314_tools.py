@@ -169,3 +169,13 @@ async def game_fps(ctx, exe: Annotated[str, "proces hry"] = "", on: bool = True)
         return ToolResult(False, "Řekni, jaká hra (název procesu).")
     r = fw.start(exe)
     return ToolResult(r["ok"], r["message"])
+
+
+@tool("dynamic_lock", "Dynamický zámek Windows: PC se samo zamkne, když od něj odejdeš se spárovaným telefonem (Bluetooth). "
+      "on=true zapne a otevře spárování Bluetooth.", danger=True, category="zabezpečení", perm="system",
+      details=lambda a: ["Zapne Dynamický zámek Windows (EnableGoodbye)." if a.get("on", True) else "Vypne Dynamický zámek Windows."])
+async def dynamic_lock(ctx, on: bool = True) -> ToolResult:
+    from .. import phoneplus
+
+    r = await asyncio.to_thread(phoneplus.dynamic_lock, on)
+    return ToolResult(r["ok"], r["message"])

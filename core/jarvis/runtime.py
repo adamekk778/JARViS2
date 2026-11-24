@@ -501,10 +501,17 @@ class Runtime:
     async def notice_action(self, act: str, args: dict) -> tuple[bool, str] | None:
         """3.13 a button of a notice – from the notch or from the phone's notification (the same buttons)."""
         args = args if isinstance(args, dict) else {}
-        if act == "ask":                          # 3.14 a proactive notice's button: say it to JARVIS
+        if act == "ask":                          # 3.14 a proactive notice's button / "Odpovědět" on the phone
             text = str(args.get("text") or "")[:300]
             if text:
-                self.submit(self.agent.handle(text, [], "chat"))
+                if args.get("from_phone"):
+                    async def answer_to_phone() -> None:     # the answer goes back to where the question was typed
+                        out = await self.agent.handle(text, [], "mobile")
+                        if out:
+                            self.phone_push("notify", title="JARVIS", body=str(out).strip()[:400])
+                    self.submit(answer_to_phone())
+                else:
+                    self.submit(self.agent.handle(text, [], "chat"))
             return None
         if act == "mute_kind":                    # 3.14 "Nezajímá mě" under a proactive notice
             kind = str(args.get("kind") or "")[:30]

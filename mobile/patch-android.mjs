@@ -133,6 +133,9 @@ const widget = `
         </receiver>
 `;
 if (!m.includes(".JarvisWidget")) m = m.replace("</application>", widget + "    </application>");
+// 3.14 Android Auto: JARVIS's notices are messages the car reads aloud, "Odpovědět" by voice
+if (!m.includes("com.google.android.gms.car.application")) m = m.replace("</application>",
+  '        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />\n    </application>');
 const queries = `
     <queries>
         <package android:name="com.whatsapp" />

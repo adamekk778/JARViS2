@@ -89,6 +89,7 @@ class TaskManager:
             self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES (?,?,?,?,?,?,?)",
                          (self._id, conv_id, goal[:500], "running", time.time(), None, ""))
         self._publish(force=True)
+        self._widget(force=True)
         return self._id
 
     # ---------- 3.7 queue, deadlines, budget ----------
@@ -141,6 +142,15 @@ class TaskManager:
             if spent >= cap:
                 return f"Rozpočet mise vyčerpán: AI stála {spent:.2f} {limits.currency} (limit {cap:g})."
         return ""
+
+    def _widget(self, force: bool = False) -> None:
+        """3.14 návrh 9: the phone's widget learns a mission started / ended (through its background connection)."""
+        try:
+            from .phoneplus import push_widget
+
+            push_widget(self.rt, force)
+        except Exception:  # noqa: BLE001
+            pass
 
     def _spent(self) -> float:
         usage = getattr(self.rt, "usage", None)
@@ -239,6 +249,7 @@ class TaskManager:
             except Exception:  # noqa: BLE001 – an offer must never break finishing a mission
                 pass
         self._id = None
+        self._widget(force=True)
         self._running.set()
 
     # ---------- pause / resume ----------

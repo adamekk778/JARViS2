@@ -246,11 +246,18 @@ public final class JarvisLink {
                 case "notify": {                // 3.12 you are away from the PC: what matters comes here
                     Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     JSONArray acts = cmd.optJSONArray("actions");
-                    if (acts != null && acts.length() > 0) {        // 3.13 with its buttons ("+5 min", "Za 10 min")
-                        noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open, acts);
-                    } else {
-                        actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
+                    // 3.14 every notice gets "Odpovědět" (typed in the notification); its own buttons stay in front
+                    noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open,
+                            acts == null ? new JSONArray() : acts);
+                    return "shown";
+                }
+                case "widget": {                // 3.14 návrh 9: the widget kept fresh by this service, the app may be closed
+                    android.content.SharedPreferences.Editor e = JarvisWidget.prefs(c).edit();
+                    for (String k : new String[]{"status", "task", "song", "habits", "biz"}) {
+                        if (cmd.has(k)) e.putString(k, cmd.optString(k, ""));
                     }
+                    e.apply();
+                    JarvisWidget.refresh(c);
                     return "shown";
                 }
                 case "mirror_ask": {             // 3.12 the PC wants to show this phone's screen: you allow it here
@@ -359,6 +366,14 @@ public final class JarvisLink {
         PendingIntent pi = PendingIntent.getActivity(c, nid, target, piFlags());
         Notification.Builder b = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
                 .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true);
+        if (Build.VERSION.SDK_INT >= 28) {        // 3.14 a message from "JARVIS": Android Auto and watches read it and offer a reply
+            try {
+                android.app.Person jarvis = new android.app.Person.Builder().setName("JARVIS").setKey("jarvis").build();
+                android.app.Person me = new android.app.Person.Builder().setName("Já").setKey("me").build();
+                b.setStyle(new Notification.MessagingStyle(me).setConversationTitle(title)
+                        .addMessage(text, System.currentTimeMillis(), jarvis));
+            } catch (Exception ignored) { }
+        }
         for (int k = 0; k < acts.length() && k < 3; k++) {
             JSONObject a = acts.optJSONObject(k);
             if (a == null) continue;
@@ -369,8 +384,27 @@ public final class JarvisLink {
             b.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_send),
                     a.optString("label", "Ok"), ap).build());
         }
+        addReply(c, b, nid);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(nid, b.build());
+    }
+
+    static final String REPLY_KEY = "jarvis_reply";
+
+    /** 3.14 návrh 97: "Odpovědět" under every notice from the PC – typed right in the notification, sent to JARVIS. */
+    static void addReply(Context c, Notification.Builder b, int nid) {
+        if (Build.VERSION.SDK_INT < 24) return;
+        try {
+            android.app.RemoteInput ri = new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš JARVISovi…").build();
+            Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", "ask").putExtra("notice_args", "{}")
+                    .putExtra("reply", true).putExtra("nid", nid);
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+            PendingIntent pi = PendingIntent.getBroadcast(c, nid * 4 + 3, i, flags);
+            Notification.Action.Builder ab = new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_edit),
+                    "Odpovědět", pi).addRemoteInput(ri);
+            if (Build.VERSION.SDK_INT >= 28) ab.setSemanticAction(Notification.Action.SEMANTIC_ACTION_REPLY);
+            b.addAction(ab.build());
+        } catch (Exception ignored) { }
     }
 
     /** 3.12 Ranní souhrn: the whole text in the notice and "Přehrát" (JARVIS's voice in the visible JARVIS window). */

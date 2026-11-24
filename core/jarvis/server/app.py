@@ -349,9 +349,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         require_auth(request)
         body = await request.json()
         act = str(body.get("action") or "")
-        if act not in ("break_snooze", "timer_more", "game_tip"):
+        if act not in ("break_snooze", "timer_more", "game_tip", "ask", "mute_kind"):     # 3.14 "Odpovědět", "Nezajímá mě"
             raise HTTPException(400, "Neznámá akce")
-        res = await rt.notice_action(act, body.get("args") or {})
+        args = body.get("args") if isinstance(body.get("args"), dict) else {}
+        res = await rt.notice_action(act, {**args, "from_phone": True})
         return {"ok": True if res is None else res[0], "message": "" if res is None else res[1]}
 
     @app.post("/api/phone/ack")
