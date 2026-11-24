@@ -12,6 +12,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable
 import httpx
 
 from ..config import Brain, ProviderCfg
+from .. import toolcatalog as tc
 from . import budget as bud
 from .base import AllProvidersFailed, Chunk, ProviderError
 from .ollama import Ollama
@@ -100,6 +101,7 @@ class Router:
         self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
         self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
         self.on_switch: Callable[[dict, str], None] | None = None  # "Groq ran out → carrying on with Gemini"
+        self.catalog_used = False                                  # 3.16 the last answer had the whole tool catalog
         from .quota import Quota
 
         self.quota = Quota()
@@ -120,7 +122,7 @@ class Router:
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
                      model: str | None = None, light: bool = False, effort: str | None = None,
-                     prefer: str | None = None) -> AsyncIterator[Chunk]:
+                     prefer: str | None = None, catalog: Any = None) -> AsyncIterator[Chunk]:
         """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
         background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
         the free cloud limits are kept for what you ask."""
@@ -187,7 +189,12 @@ class Router:
                     started = False
                     send_msgs, send_tools = msgs, use_tools
                     limit = self._limit_of(pcfg, model or prov.model)
-                    if limit:                    # a small per-minute limit (Groq): make the request fit it
+                    # 3.16 a big AI with a prompt cache gets the whole catalog + the steady tool set (nothing to search)
+                    if catalog is not None and use_tools is not None and tc.wants_catalog(
+                            pcfg.preset, getattr(self.brain, "tool_catalog", "auto"), limited=bool(limit)):
+                        send_msgs, send_tools = catalog.apply(msgs), catalog.tools
+                        self.catalog_used = True
+                    elif limit:                  # a small per-minute limit (Groq): make the request fit it
                         send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
                         need = bud.estimate(send_msgs, send_tools) + prov.max_tokens
                         if need > limit and not want_model:          # still too big → a model with a bigger limit

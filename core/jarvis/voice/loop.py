@@ -434,6 +434,9 @@ class VoiceLoop:
         from .style import mark_end
 
         mark_end(self.rt)                                  # 3.14 návrh 1: from here to JARVIS's first sound
+        from .. import latency
+
+        latency.get(self.rt).begin("voice")                # 3.16 the steps of this answer are measured from here
         bus.publish_threadsafe("state", state="thinking")
         vid = getattr(self.rt, "voiceid", None)
         if vid is not None:                                # 3.14 who spoke (household, owner) and whether whispered
@@ -454,6 +457,7 @@ class VoiceLoop:
             bus.publish_threadsafe("state", state="idle")
             return
         bus.publish_threadsafe("transcript", text=text, final=True)
+        latency.get(self.rt).mark("stt")
         if getattr(self.rt.cfg.voice, "emotion", False) and text.strip():
             try:                                       # OMEGA P3.12: tone of voice vs the user's own usual voice
                 from ..sysplus import update_voice_mood

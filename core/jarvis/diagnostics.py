@@ -125,7 +125,16 @@ def snapshot(rt: Any) -> dict:
     ttft = {k: [round(x) for x in v] for k, v in getattr(rt.router, "ttft", {}).items()}
     return {"cpu_pct": cpu, "ram_mb": round(ram, 1), "threads": threads, "children": children,
             "loop_lag_ms": round(float(getattr(rt, "diag_lag_ms", 0.0)), 1), "ttft": ttft, "voice": voice,
-            "log_tail": _log_tail(), "fx": fx_stats(rt)}
+            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt)}
+
+
+def _latency(rt: Any) -> dict:
+    from . import latency
+
+    try:
+        return latency.get(rt).stats()
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def fx_stats(rt: Any, now: float | None = None) -> list[dict]:

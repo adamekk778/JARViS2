@@ -125,7 +125,24 @@ def convert(messages: list[dict]) -> tuple[list[dict], list[dict]]:
             push("user", [{"type": "tool_result", "tool_use_id": m.get("tool_call_id") or "call", "content": text or "(prázdné)"}])
     if out and out[0]["role"] != "user":            # the API wants the user first
         out.insert(0, {"role": "user", "content": [{"type": "text", "text": "(pokračování)"}]})
-    return system, out
+    return split_static(system), out
+
+
+def split_static(system: list[dict]) -> list[dict]:
+    """3.16 the instructions in two blocks: what never changes (rules + the tool catalog – cached) and what changes
+    with every message (time, memory, mood, the hint for this message) after it."""
+    from ..toolcatalog import DYN
+
+    out: list[dict] = []
+    for b in system:
+        t = b.get("text") if b.get("type") == "text" else None
+        if t and DYN in t and not out:
+            static, dyn = t.split(DYN, 1)
+            out.append({"type": "text", "text": static})
+            out.append({"type": "text", "text": DYN.lstrip("\n") + dyn})
+        else:
+            out.append(b)
+    return out
 
 
 def convert_tools(tools: list[dict] | None) -> list[dict]:
@@ -157,8 +174,8 @@ def mark_cache(tools: list[dict], system: list[dict], messages: list[dict]) -> N
         tools[last_core]["cache_control"] = {"type": "ephemeral"}
     elif tools:
         tools[-1]["cache_control"] = {"type": "ephemeral"}
-    if system:
-        system[-1]["cache_control"] = {"type": "ephemeral"}
+    if system:                                      # the unchanging part (+ the catalog) when the instructions are split
+        system[0 if len(system) > 1 else -1]["cache_control"] = {"type": "ephemeral"}
     for msg in reversed(messages):
         blocks = [b for b in msg["content"] if b.get("type") in ("text", "tool_result", "image", "tool_use")]
         if blocks:

@@ -90,6 +90,9 @@ class Brain(BaseModel):
     split: bool = False            # 3.14 chytré rozdělení: easy questions → split_easy, hard tasks → split_hard
     split_easy: str = ""           # a provider id (e.g. "ollama" – free, on this PC)
     split_hard: str = ""           # a provider id (e.g. "anthropic" – the strongest)
+    # 3.16 nástroje v hlavě: the whole tool catalog for an AI with a big context and a prompt cache (auto = Claude,
+    # OpenAI, Gemini, DeepSeek, Mistral; on = every cloud AI; off = the small set + find_tools as before)
+    tool_catalog: Literal["auto", "on", "off"] = "auto"
 
 
 class Voice(BaseModel):

@@ -54,6 +54,7 @@ class SpeechStream:
         self.first = True
         self.spoke = False
         self._jobs: asyncio.Queue = asyncio.Queue()
+        self.turn: dict | None = None    # 3.16 latency: the answer whose first sound this is
         self._player = asyncio.get_running_loop().create_task(self._play_all())
 
     def feed(self, delta: str) -> None:
@@ -119,6 +120,10 @@ class SpeechStream:
                         continue
                     if not started:
                         started = True
+                        if self.turn is not None and "first_audio" not in self.turn["marks"]:
+                            import time as _t
+
+                            self.turn["marks"]["first_audio"] = round((_t.monotonic() - self.turn["t0"]) * 1000)
                         sp.speaking = True
                         self.rt.bus.publish("state", state="speaking")
                         if ducker:

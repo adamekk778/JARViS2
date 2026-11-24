@@ -21,9 +21,9 @@ Pravidla:
 - Odpovídej v jazyce uživatele (výchozí čeština). Buď stručný, ale užitečný.
 - Máš nástroje a SKUTEČNĚ ovládáš uživatelův Windows počítač. Když uživatel chce akci (pustit hudbu/video, otevřít
   aplikaci, změnit hlasitost, najít soubor, …), rovnou zavolej nástroj — neptej se zbytečně a nevymlouvej se.
-- U sebe máš jen nástroje, které se hodí k této zprávě. Když potřebuješ jiný (JARVIS jich má stovky), zavolej
-  find_tools s popisem, co chceš udělat – nalezené nástroje pak rovnou použij. Nikdy neříkej, že něco neumíš, dokud
-  jsi nezkusil find_tools.
+- JARVIS má stovky nástrojů. Když máš katalog „Všechny tvoje nástroje“, vyber z něj a zavolej ho rovnou přes use_tool
+  (nic nehledej). Bez katalogu máš u sebe jen nástroje k této zprávě – pro jiný zavolej find_tools s popisem, co chceš
+  udělat, a nalezené nástroje rovnou použij. Nikdy neříkej, že něco neumíš, dokud jsi to takhle nezkusil.
 - Máš přístup k internetu a Googlu – NIKDY netvrď, že nemůžeš na internet nebo že tvoje znalosti končí nějakým
   datem. Na aktuální informace (výsledky, ceny, kurzy, kdo/kdy/co se stalo, fakta, která se mění) použij google_ask
   (Google se zdroji) nebo web_search / web_read, počasí přes weather. Na „co je nového / co se děje / zprávy“
@@ -35,7 +35,7 @@ Pravidla:
   Hotové sestavy: multitask_preset (obchodni_stul, vyzkum, hra_fronta, porovnani). Pokyn běžícímu agentovi: multitask_tell.
   Agenti na čas („každé ráno v 8 …“): multitask_schedule. „Zkušebně / nanečisto / bez peněz“ obchodování: paper=true
   (stav účtu paper_portfolio). Ověření, že JARVIS míří na monitory správně: monitor_check.
-- Když něco neumíš žádným nástrojem: přes find_tools si vyžádej run_python, ovládání prohlížeče (browser_*),
+- Když něco neumíš žádným nástrojem: přes katalog (use_tool) nebo find_tools použij run_python, ovládání prohlížeče (browser_*),
   ovládání počítače (computer_use) nebo si vytvoř novou dovednost (create_skill). Uživatel chce, abys uměl úplně všechno.
 - Když chce web, stránku, prezentaci v prohlížeči nebo malou webovou aplikaci/hru, postav ji nástrojem make_website:
   kompletní, moderní a opravdu hezký design (responzivní, česky, vlastní CSS, jemné animace), ne jen kód do chatu.
@@ -83,6 +83,9 @@ VOICE_RULE = ("Tato zpráva přišla HLASEM a odpověď se bude číst nahlas: o
               "bez odkazů a emoji.")
 
 
+from .toolcatalog import DYN  # noqa: E402
+
+
 def build_system_prompt(cfg: Config, facts: list[str], voice: bool = False, extra: str = "") -> str:
     g = cfg.general
     if g.personality == "custom" and g.custom_prompt.strip():
@@ -90,8 +93,9 @@ def build_system_prompt(cfg: Config, facts: list[str], voice: bool = False, extr
     else:
         persona = PERSONALITIES.get(g.personality, PERSONALITIES["jarvis"]).format(address=g.address_as or "pane")
     now = dt.datetime.now()
-    lines = [persona, RULES.format(voice_rule=VOICE_RULE if voice else "")]
-    ctx = [f"Teď je {DAYS[now.weekday()]} {now:%d. %m. %Y, %H:%M}.",
+    lines = [persona, RULES.format(voice_rule="")]    # 3.16 the same every time (the AI's prompt cache keeps it)
+    ctx = [VOICE_RULE] if voice else []
+    ctx += [f"Teď je {DAYS[now.weekday()]} {now:%d. %m. %Y, %H:%M}.",
            f"Počítač: {platform.system()} {platform.release()}.",
            f"Domovské město uživatele: {g.city}."]
     if g.user_name:
@@ -103,7 +107,7 @@ def build_system_prompt(cfg: Config, facts: list[str], voice: bool = False, extr
     else:
         ctx.append("E-mail zatím připojený není: na „napiš e-mail“ použij compose_email (koncept v poště) a řekni, že "
                    "e-mail jde připojit v okně JARVIS → E-mail a kalendář.")
-    lines.append(" ".join(ctx))
+    lines.append(DYN.strip("\n") + "\n" + " ".join(ctx))   # what changes with each message comes after this heading
     if facts:
         lines.append("Co víš o uživateli (paměť):\n" + "\n".join(f"- {f}" for f in facts[:60]))
     if extra:

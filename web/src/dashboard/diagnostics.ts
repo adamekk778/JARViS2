@@ -9,6 +9,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const stats = h("div", { class: "diag-stats" });
   const sys = h("div", { class: "diag-stats" });
   const fx = h("div", { class: "diag-stats" });
+  const speed = h("div", { class: "diag-stats" });
   const kids = h("div", {});
   const ttft = h("div", {});
   const log = h("pre", { class: "diag-log" });
@@ -31,6 +32,19 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     const TIERS: Record<string, string> = { ultra: "Ultra", high: "Vysoká", eco: "Úsporná", off: "bez efektů" };
     fx.replaceChildren(...((m.fx || []) as any[]).map((f) => stat(`${NAMES[f.page] || f.page} – ${TIERS[f.tier] || "?"}`, `${f.fps} FPS`, f.fps < 45)));
     if (!(m.fx || []).length) fx.replaceChildren(h("p", { class: "help" }, "Otevři HUD nebo notch – do půl minuty tu uvidíš jejich snímky za sekundu."));
+    // 3.16 how fast JARVIS answers: each step (median of the last answers) and how often the tool was there at once
+    const L = m.latency || {};
+    const v = L.voice || {}, all = L.stages || {};
+    const ms = (x: any) => (x ? (x.median >= 1000 ? `${(x.median / 1000).toFixed(1).replace(".", ",")} s` : `${x.median} ms`) : "–");
+    const cells = [
+      stat("Přepis řeči (hlas)", ms(v.stt), (v.stt?.median || 0) > 1200),
+      stat("První slovo AI (hlas)", ms(v.first_token), (v.first_token?.median || 0) > 2500),
+      stat("První zvuk (hlas)", ms(v.first_audio), (v.first_audio?.median || 0) > 3000),
+      stat("První slovo AI (psaní)", ms(all.first_token), (all.first_token?.median || 0) > 2500),
+    ];
+    if (L.first_try != null) cells.push(stat("Nástroj trefen napoprvé", `${L.first_try} %`, L.first_try < 85));
+    if (L.n) cells.push(stat("Odpovědí bez AI (okamžité)", `${L.instant || 0} z ${L.n}`), stat("S katalogem nástrojů", `${L.catalog || 0} z ${L.n}`));
+    speed.replaceChildren(...(L.n ? cells : [h("p", { class: "help" }, "Zatím žádné odpovědi – po pár otázkách tu uvidíš, kolik trvá každý krok.")]));
   });
   client.on("system", (m) => {
     const gpu = m.gpu ? `${m.gpu.name}${m.gpu.util != null ? ` · ${m.gpu.util} %` : ""}` : "n/a";
@@ -155,6 +169,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Úplně offline"), offline,
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
+    h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
     h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),

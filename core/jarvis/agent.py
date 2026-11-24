@@ -9,6 +9,7 @@ import uuid
 from typing import Any
 
 from . import tools
+from . import toolcatalog as tc
 from .llm.base import AllProvidersFailed, ProviderError, ToolCall
 from .prompt import build_system_prompt
 from .tools import select as sel
@@ -432,7 +433,20 @@ class Agent:
         local = first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and not self._only
         names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []),
                          extra=6 if local else sel.MAX_EXTRA)
+        self._picked = names
         return [tools.REGISTRY[n].schema() for n in names]
+
+    def _tool_pack(self):
+        """3.16 the whole catalog + the steady tool set for an AI with a prompt cache (the router decides per AI)."""
+        from . import toolcatalog as tc
+
+        if getattr(self.rt.cfg.brain, "tool_catalog", "auto") == "off" or self._only:
+            return None
+        allowed = self._allowed_names()
+        steady = [n for n in sel.CORE if n in allowed] + ([tc.USE] if tc.USE in tools.REGISTRY else [])
+        picked = [n for n in getattr(self, "_picked", []) if n not in steady and n != sel.FIND]
+        return tc.Pack(catalog=tc.catalog(tools.REGISTRY, allowed), tools=[tools.REGISTRY[n].schema() for n in steady],
+                       hint=tc.hint(tools.REGISTRY, picked), names=set(steady))
 
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
@@ -567,6 +581,10 @@ class Agent:
         rt = self.rt
         bus = rt.bus
         voice = source in ("voice", "mobile_voice", "headset")      # spoken: short answers without tables or code
+        from . import latency                  # 3.16 how long each step takes (Diagnostika)
+
+        lat = latency.get(rt)
+        lat.agent_start(source)
         self._goal = text or "(příloha)"
         self._source_now = source
         self._sources = []
@@ -595,6 +613,7 @@ class Agent:
         tool_cards: list[dict] = []
         out_atts: list[str] = []
         used_now: list[str] = []
+        self._turn_stats = {"use_tool": 0, "use_tool_errors": 0, "find_tools": 0}
         cancelled = False
         quick = None                                       # 3.13 an everyday command: done at once, no AI in between
         phrase = None if attachments else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
@@ -620,10 +639,14 @@ class Agent:
         msgs: list[dict] = []
         need_vision = False
         schemas: list[dict] = []
+        pack = None
         if quick is None:
             msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
             schemas = self._tool_schemas(text)
+            pack = self._tool_pack()
         speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+        if speech is not None:
+            speech.turn = lat.cur                          # 3.16 the first sound is measured on this answer
         from .llm import difficulty                        # 3.14 návrh 4: the model tier and the depth of thinking
 
         tier = difficulty.classify(text or "", attachments=len(attachments or []), agent_mode=bool(rt.cfg.agent.mode),
@@ -677,8 +700,11 @@ class Agent:
                 calls: list[ToolCall] | None = None
                 use_tools = schemas if rnd < rounds else None
                 shown = 0                                  # 3.13 how much of round_text is on the screen already
-                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw,
+                rt.router.catalog_used = False
+                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw, catalog=pack,
                                                  **({"only": self._only} if self._only else {})):
+                    if ch.text or ch.tool_calls:
+                        lat.mark("first_token")
                     if ch.text:
                         round_text += ch.text
                         if not only_dots(round_text):      # "..." alone (some models send it between steps) is not shown
@@ -706,17 +732,36 @@ class Agent:
                 if rnd >= rounds:
                     break
                 msgs.append({"role": "assistant", "content": round_text or None, "tool_calls": [c.as_message() for c in calls]})
-                safe = [c for c in calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
-                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
                 results: dict[str, dict] = {}
+                run_calls = []                           # 3.16 use_tool → the real tool (its own confirmation and card)
+                for c in calls:
+                    if c.name != tc.USE:
+                        run_calls.append(c)
+                        continue
+                    u = tc.unwrap(tools.REGISTRY, self._allowed_names(), c.arguments)
+                    self._turn_stats["use_tool"] += 1
+                    if u.error:
+                        self._turn_stats["use_tool_errors"] += 1
+                        results[c.id] = {"role": "tool", "tool_call_id": c.id, "name": c.name, "content": u.error}
+                        if u.name in tools.REGISTRY and u.name not in offered:   # its exact description for the next step
+                            schemas.append(tools.REGISTRY[u.name].schema())
+                            offered.add(u.name)
+                        continue
+                    run_calls.append(ToolCall(id=c.id, name=u.name, arguments=u.args))
+                safe = [c for c in run_calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
+                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
                 if len(safe) > 1:
                     outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
                     results.update({c.id: o for c, o in zip(safe, outs)})
-                for c in calls:
+                for c in run_calls:
                     if c.id not in results:
                         results[c.id] = await self._run_call(c, tool_cards, out_atts)
+                for c in calls:                          # the answer goes back under the name the AI called
+                    results[c.id]["name"] = c.name
                 msgs += [results[c.id] for c in calls]
-                used_now += [c.name for c in calls if c.name != sel.FIND]
+                used_now += [c.name for c in run_calls if c.name != sel.FIND]
+                if any(c.name == sel.FIND for c in calls):
+                    self._turn_stats["find_tools"] += 1
                 for c in calls:                          # the AI asked for more tools → they go with the next step
                     if c.name == sel.FIND:
                         for n in sel.search(tools.REGISTRY, str((c.arguments or {}).get("query", "")), 24):
@@ -780,6 +825,8 @@ class Agent:
                                          "tier": getattr(self, "tier", ""), **({"private": True} if private else {})})
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
+        lat.finish(tools=len(tool_cards), instant=quick is not None, catalog=bool(getattr(rt.router, "catalog_used", False)),
+                   status=status, **self._turn_stats)
         if speech is not None:                      # spoken as it was written; anything added at the end too
             if cancelled:
                 speech.cancel()
