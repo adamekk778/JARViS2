@@ -289,8 +289,10 @@ def _flight(o: dict) -> dict:
                      "flight": f"{(seg[0].get('marketing_carrier') or {}).get('iata_code', '')}{seg[0].get('marketing_carrier_flight_number', '')}"})
     cond = o.get("conditions") or {}
     ref = cond.get("refund_before_departure") or {}
+    last = ((sl[-1].get("segments") or [{}])[-1].get("destination") or {}) if sl else {}
+    first_out = ((sl[0].get("segments") or [{}])[-1].get("destination") or {}) if sl else {}
     return {"provider": "duffel", "kind": "flight", "offer_id": o.get("id"), "name": (o.get("owner") or {}).get("name") or "",
-            "legs": legs, "refundable": bool(ref.get("allowed")), "total": float(o.get("total_amount") or 0),
+            "country": str((first_out or last).get("iata_country_code") or ""), "legs": legs, "refundable": bool(ref.get("allowed")), "total": float(o.get("total_amount") or 0),
             "currency": str(o.get("total_currency") or ""), "expires": o.get("expires_at"),
             "passengers": [p.get("id") for p in o.get("passengers") or []]}
 
@@ -299,8 +301,8 @@ async def flight_search(rt: Any, c: dict, transport: Any = None) -> list[dict]:
     slices = [{"origin": c["origin"], "destination": c["destination"], "departure_date": c["date"]}]
     if c.get("return_date"):
         slices.append({"origin": c["destination"], "destination": c["origin"], "departure_date": c["return_date"]})
-    body = {"slices": slices, "passengers": [{"type": "adult"}] * int(c.get("adults") or 1),
-            "cabin_class": c.get("cabin") or "economy"}
+    body = {"slices": slices, "passengers": [{"type": "adult"}] * int(c.get("adults") or 1)
+            + [{"age": int(a)} for a in c.get("children") or []], "cabin_class": c.get("cabin") or "economy"}
     if c.get("direct"):
         body["max_connections"] = 0
     d = await _duffel("POST", "/air/offer_requests", body, params={"return_offers": "true", "supplier_timeout": 20000},
@@ -317,13 +319,16 @@ async def flight_recheck(rt: Any, off: dict, transport: Any = None) -> dict:
 
 async def flight_book(rt: Any, off: dict, pre: dict, guest: dict, transport: Any = None) -> dict:
     pids = pre.get("passengers") or off.get("passengers") or []
-    if len(pids) != 1:
-        raise BookingError("Letenky pro víc cestujících zatím rezervuji jen přes prohlížeč.")
-    if not guest.get("born_on"):
-        raise BookingError("Pro letenku chybí datum narození (Cesty → Údaje a limity).")
-    pax = [{"id": pids[0], "given_name": guest["first"], "family_name": guest["last"], "born_on": guest["born_on"],
-            "title": guest.get("title") or "mr", "gender": guest.get("gender") or "m", "email": guest["email"],
-            "phone_number": guest["phone"]}]
+    people = travellers(rt, guest, len(pids), (off.get("criteria") or {}).get("with") or [])
+    if len(people) < len(pids):
+        raise BookingError(f"letí {len(pids)} lidí, ale ve Spolucestujících jich mám jen {len(people) - 1} – doplň je (Cesty → "
+                           "Spolucestující) nebo řekni jejich jména")
+    missing = [p["first"] or "?" for p in people[:len(pids)] if not p.get("born_on")]
+    if missing:
+        raise BookingError("pro letenku chybí datum narození: " + ", ".join(missing) + " (Cesty → Údaje a limity)")
+    pax = [{"id": pid, "given_name": p["first"], "family_name": p["last"], "born_on": p["born_on"],
+            "title": p.get("title") or "mr", "gender": p.get("gender") or "m", "email": guest["email"],
+            "phone_number": guest["phone"]} for pid, p in zip(pids, people)]
     d = await _duffel("POST", "/air/orders", {"selected_offers": [pre["ref"]], "passengers": pax,
                                               "payments": [{"type": "balance", "amount": f"{pre['total']:.2f}", "currency": pre["currency"]}]},
                       transport=transport, timeout=120)
@@ -364,7 +369,8 @@ def to_czk(amount: float, currency: str) -> float:
 def spent_this_month(rt: Any, now: float | None = None) -> float:
     t = time.localtime(now or time.time())
     since = time.mktime((t.tm_year, t.tm_mon, 1, 0, 0, 0, 0, 0, -1))
-    rows = _db(rt).all("SELECT total, currency FROM bookings WHERE created >= ? AND status != 'cancelled' AND sandbox = 0", (since,))
+    rows = _db(rt).all("SELECT total, currency FROM bookings WHERE created >= ? AND status != 'cancelled' AND sandbox = 0 "
+                       "AND provider != 'email'", (since,))                  # bookings made elsewhere are not JARVIS' budget
     return sum(to_czk(r["total"], r["currency"]) for r in rows)
 
 
@@ -387,6 +393,26 @@ def guest(rt: Any) -> tuple[dict, str]:
     missing = [k for k, n in (("first", "jméno"), ("last", "příjmení"), ("email", "e-mail"), ("phone", "telefon")) if not g[k]]
     return g, ("chybí " + ", ".join(n for k, n in (("first", "jméno"), ("last", "příjmení"), ("email", "e-mail"), ("phone", "telefon"))
                                    if k in missing) + " (Cesty → Údaje a limity)") if missing else ""
+
+
+def travellers(rt: Any, me: dict, count: int, names: list[str] | None = None) -> list[dict]:
+    """3.19 who travels: you first, then the companions you named ("s Janou"), then the others in your list."""
+    import unicodedata
+
+    def fold(s: str) -> str:
+        return "".join(ch for ch in unicodedata.normalize("NFKD", (s or "").lower()) if not unicodedata.combining(ch))
+    comp = [{"first": c.first_name.strip(), "last": c.last_name.strip(), "born_on": c.born_on.strip(), "title": c.title,
+             "gender": c.gender} for c in getattr(cfg(rt), "companions", []) or [] if c.first_name.strip()]
+    def stem(n: str) -> str:                                   # Jana / Janou / Janě / Janu → "jan"; Petr / Petrem → "petr"
+        f = fold(n).strip()
+        for end in ("ovi", "ou", "em", "e", "u", "a", "y", "i"):
+            if len(f) > len(end) + 2 and f.endswith(end):
+                return f[: -len(end)]
+        return f
+    wanted = [stem(n) for n in names or [] if n.strip()]
+    named = [c for c in comp if stem(c["first"]) in wanted]
+    rest = [c for c in comp if c not in named]
+    return ([me] + named + rest)[:max(1, count)]
 
 
 def price_changed(before: float, cur_before: str, after: float, cur_after: str) -> bool:
@@ -514,6 +540,8 @@ def find_booking(rt: Any, key: Any) -> dict | None:
 
 
 async def cancel(rt: Any, b: dict, cancellation_id: str = "", transport: Any = None) -> dict:
+    if b["provider"] == "email":
+        raise BookingError("tuhle rezervaci jsi udělal jinde – zruš ji tam (odkaz bývá v potvrzovacím e-mailu)")
     if b["kind"] == "flight":
         if not cancellation_id:
             raise BookingError("u letenky nejdřív zjisti podmínky zrušení (booking_cancel_check)")

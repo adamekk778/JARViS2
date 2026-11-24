@@ -632,6 +632,16 @@ class HomeCfg(BaseModel):
     vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
 
 
+class Companion(BaseModel):
+    """3.19 someone you travel with (their details stay on this PC, like yours)."""
+    first_name: str = ""
+    last_name: str = ""
+    born_on: str = ""                      # YYYY-MM-DD (flights; a child's age for hotels)
+    title: Literal["mr", "ms", "mrs", "miss", "dr"] = "mr"
+    gender: Literal["m", "f"] = "m"
+    relation: str = ""                     # partner, dítě, kolega… (only for you)
+
+
 class BookingCfg(BaseModel):
     """3.18 Cesty a rezervace: hotels and flights by your description, booked and paid only after your confirmation.
     The keys are in the keyring (Propojení → LiteAPI / Duffel); the traveller's details stay on this PC."""
@@ -653,6 +663,11 @@ class BookingCfg(BaseModel):
     passport_until: str = ""               # YYYY-MM-DD: warns when it runs out too soon for a trip
     reminders: bool = True                 # free cancellation ends, check-in, weather, packing
     price_watch: bool = True               # a booked hotel that you can cancel for free got cheaper → tell me
+    companions: list[Companion] = Field(default_factory=list)       # 3.19 who you travel with
+    per_diem_cz: list[float] = Field(default_factory=lambda: [140.0, 212.0, 333.0])   # Kč: 5–12 h, 12–18 h, nad 18 h
+    per_diem_abroad: dict[str, float] = Field(default_factory=dict)   # země (ISO-2) → základní sazba v její měně
+    per_diem_abroad_currency: dict[str, str] = Field(default_factory=dict)
+    entry_warnings: bool = True            # passport / visa / ETA for the destination when searching
 
 
 class WorkshopCfg(BaseModel):
@@ -916,7 +931,8 @@ def dotted_to_patch(key: str, value: Any) -> dict:
 
 
 # 3.18 the traveller's details (for bookings) stay on this PC: not sent to the phone or another device
-PC_ONLY_KEYS = [("booking", k) for k in ("first_name", "last_name", "email", "phone", "born_on", "passport_until", "gender", "title")]
+PC_ONLY_KEYS = [("booking", k) for k in ("first_name", "last_name", "email", "phone", "born_on", "passport_until", "gender", "title",
+                                         "companions")]
 
 
 def public_dump(cfg: Config, local: bool = True) -> dict:

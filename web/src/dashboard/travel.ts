@@ -80,7 +80,7 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
     bookingsBox.replaceChildren(rows.length
       ? h("ul", { class: "sec-list" }, ...rows.map((b) => h("li", {},
         h("span", {}, icon(b.kind === "flight" ? "airplane-tilt" : "bed"), ` ${b.name} · ${day(b.start)} – ${day(b.end)} · ${money(b.total, b.currency)}`,
-          b.sandbox ? h("i", { class: "muted" }, " (zkušební)") : null),
+          b.sandbox ? h("i", { class: "muted" }, " (zkušební)") : null, b.provider === "email" ? h("i", { class: "muted" }, " (z e-mailu)") : null),
         h("span", { class: "row-actions" },
           b.status === "cancelled" ? h("span", { class: "muted" }, "zrušeno")
             : h("span", { class: b.free_cancel_until ? "sec-ok" : "muted" }, b.free_cancel_until ? `zrušení zdarma do ${day(b.free_cancel_until)}` : b.refundable ? "vratná" : "nevratná"),
@@ -107,6 +107,31 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
       h("p", { class: "help" }, "Služební cesty se zapisují i do Dokumenty → JARVIS → Cesty → naklady.csv (pro účetní); potvrzení každé cesty je ve složce té cesty.")));
   });
 
+  // 3.19 who you travel with (flights need everyone's date of birth); kept on this PC only
+  const companions = () => {
+    const list: any[] = s.booking?.companions || [];
+    const first = h("input", { class: "input", placeholder: "Jméno", "aria-label": "Jméno spolucestujícího" }) as HTMLInputElement;
+    const last = h("input", { class: "input", placeholder: "Příjmení", "aria-label": "Příjmení spolucestujícího" }) as HTMLInputElement;
+    const born = h("input", { class: "input", type: "date", "aria-label": "Datum narození spolucestujícího" }) as HTMLInputElement;
+    const rel = h("input", { class: "input", placeholder: "partner, dítě, kolega…", "aria-label": "Vztah" }) as HTMLInputElement;
+    return h("div", { class: "row-text" },
+      h("span", { class: "help" }, "„Najdi letenky pro mě a Janu“ – JARVIS vezme jejich údaje odsud. U letenek je potřeba datum narození každého."),
+      ...list.map((c, i) => h("div", { class: "row" }, h("span", {}, `${c.first_name} ${c.last_name}`.trim() + (c.relation ? ` · ${c.relation}` : "") + (c.born_on ? ` · ${c.born_on}` : " · chybí datum narození")),
+        h("button", { class: "icon-btn sm", type: "button", "aria-label": `Odebrat ${c.first_name}`, onclick: () => set({ companions: list.filter((_, k) => k !== i) }) }, icon("trash")))),
+      h("div", { class: "house-add" }, first, last, born, rel, h("button", { class: "btn sm", type: "button", onclick: () => {
+        if (!first.value.trim()) { toast("Vyplň aspoň jméno"); return; }
+        set({ companions: [...list, { first_name: first.value.trim(), last_name: last.value.trim(), born_on: born.value, relation: rel.value.trim() }] });
+      } }, icon("plus"), "Přidat")));
+  };
+  const perDiem = () => {
+    const vals: number[] = s.booking?.per_diem_cz || [140, 212, 333];
+    const inputs = [0, 1, 2].map((i) => h("input", { class: "input sm", type: "number", min: 0, step: 1, value: vals[i] ?? 0,
+      "aria-label": ["Stravné 5–12 h", "Stravné 12–18 h", "Stravné nad 18 h"][i] }) as HTMLInputElement);
+    inputs.forEach((inp) => { inp.onchange = () => set({ per_diem_cz: inputs.map((x) => Math.max(0, +x.value || 0)) }); });
+    return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Stravné v tuzemsku (Kč)"),
+      h("span", { class: "help" }, "5–12 h / 12–18 h / nad 18 h. Mění se vyhláškou každý rok – drž je aktuální; zahraniční sazby řekni v chatu.")),
+      h("div", { class: "house-add" }, ...inputs));
+  };
   const renderSettings = () => {
     settingsBox.replaceChildren(
       field("Limit na jednu rezervaci (Kč)", "max_per_booking", { type: "number", min: 0, help: "Dražší rezervaci JARVIS neudělá (0 = bez limitu)." }),
@@ -124,9 +149,12 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
       pick("Oslovení (letenky)", "title", [["mr", "Pan (Mr)"], ["ms", "Paní (Ms)"], ["mrs", "Paní (Mrs)"], ["miss", "Slečna (Miss)"], ["dr", "Dr."]]),
       pick("Pohlaví (letenky)", "gender", [["m", "Muž"], ["f", "Žena"]]),
       field("Pas platí do", "passport_until", { type: "date", help: "Upozorním, když by pas na cestu nestačil (mnoho zemí chce 6 měsíců po návratu)." }),
+      h("h3", { class: "group-label" }, "Spolucestující (zůstávají jen na tomhle PC)"), companions(),
       h("h3", { class: "group-label" }, "Po rezervaci"),
       sw("Připomínky", "Konec zrušení zdarma (den a 3 hodiny předem), online check-in, počasí v cíli, co sbalit.", "reminders"),
-      sw("Hlídat, jestli hotel nezlevnil", "U rezervací se zrušením zdarma: o 5 % levněji → dám vědět.", "price_watch"));
+      sw("Hlídat, jestli hotel nezlevnil", "U rezervací se zrušením zdarma: o 5 % levněji → dám vědět.", "price_watch"),
+      sw("Vstupní podmínky", "Při hledání mimo EU řeknu, jestli stačí občanka, nebo je potřeba pas, vízum, ESTA, UK ETA…", "entry_warnings"),
+      perDiem());
   };
   const sync = (st: any) => { s = st || {}; renderSettings(); };
   client.on("welcome", (m) => sync(m.settings));

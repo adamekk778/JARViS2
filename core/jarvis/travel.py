@@ -448,6 +448,10 @@ class Watch:
                         said.append(f"{k}:{t['number']}")
                         self.rt.notify("Let " + t["number"], ("Zpoždění: " if k == "delay_min" else "Změna gate: ") + describe(t) + ".",
                                        target="all", speak=True)
+                        if k == "delay_min":            # 3.19 a hotel waits that evening: offer to tell it
+                            from . import tripcare
+
+                            await tripcare.on_delay(self.rt, t)
                 except Exception as e:  # noqa: BLE001
                     log.debug("flight check: %s", e)
             if (tid, "leave") not in self.told and t["dep"] > now:

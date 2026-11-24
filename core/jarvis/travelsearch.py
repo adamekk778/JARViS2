@@ -22,7 +22,8 @@ PROMPT = (
     '"max_per_night": číslo nebo null, "currency": "EUR|CZK|…", "min_rating": 0-10 nebo null, "stars": 1-5 nebo null, '
     '"near": "kam blízko (centrum, pláž, …) nebo \\"\\"", "must": ["snídaně", "parkování", "zrušení zdarma", "wifi", '
     '"bazén", "tichý pokoj", …], "origin": "IATA odkud (lety)", "destination": "IATA kam (lety)", "date": "YYYY-MM-DD", '
-    '"return_date": "YYYY-MM-DD nebo \\"\\"", "direct": false, "like_last_time": false}}. '
+    '"return_date": "YYYY-MM-DD nebo \\"\\"", "direct": false, "like_last_time": false, '
+    '"with": ["křestní jména spolucestujících, jak je uživatel řekl"]}}. '
     'Neznámé nech prázdné ("" nebo null), nic nevymýšlej. „Od pátku na 3 noci“ = nejbližší pátek a +3 dny.')
 WEEKDAYS = ("pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle")
 MUST_WORDS = {"snídaně": ("snidan", "breakfast"), "parkování": ("parkov", "parking"), "zrušení zdarma": ("zruseni zdarma", "free cancel"),
@@ -79,6 +80,7 @@ def clean(raw: dict, today: dt.date | None = None) -> tuple[dict, list[str]]:
     c["date"], c["return_date"] = _date(raw.get("date")), _date(raw.get("return_date"))
     c["direct"] = bool(raw.get("direct"))
     c["like_last_time"] = bool(raw.get("like_last_time"))
+    c["with"] = [str(n).strip()[:30] for n in (raw.get("with") or []) if str(n).strip()][:8]
     missing: list[str] = []
     if c["kind"] in ("hotel", "trip"):
         missing += [n for k, n in (("city", "kam (město)"), ("checkin", "od kdy"), ("checkout", "do kdy")) if not c[k]]

@@ -76,7 +76,8 @@ def _with_dates(offers: list[dict], c: dict) -> list[dict]:
         o.setdefault("checkout", c.get("checkout", ""))
         if not o.get("city"):
             o["city"] = c.get("city", "")
-        o["criteria"] = {k: c.get(k) for k in ("city", "checkin", "checkout", "adults", "rooms", "must", "currency")}
+        o["criteria"] = {k: c.get(k) for k in ("city", "country", "checkin", "checkout", "adults", "children", "rooms", "must",
+                                                "currency", "with")}
     return offers
 
 
@@ -118,7 +119,11 @@ async def hotel_search(ctx, description: Annotated[str, "popis vlastními slovy 
     booking.remember(ctx, _with_dates(best, c))
     lines = [travelsearch.line(o) for o in best]
     test = " (zkušební klíč – nic se nezaplatí)" if prov == "liteapi" and booking.sandbox() else ""
-    return ToolResult(True, f"{_criteria_line(c)}{test}:\n" + "\n".join(lines) + "\nKterou chceš? Řekni číslo.",
+    from .. import entryreq
+
+    entry = entryreq.warn(ctx, c.get("country") or "")
+    return ToolResult(True, f"{_criteria_line(c)}{test}:\n" + "\n".join(lines) + "\nKterou chceš? Řekni číslo."
+                      + (f"\n{entry}" if entry else ""),
                       data={"criteria": c, "offers": best, "card": _card(best, c.get("city", ""))})
 
 
@@ -166,8 +171,12 @@ async def flight_search(ctx, description: Annotated[str, "popis vlastními slovy
         o.setdefault("checkin", c["date"])
         o.setdefault("checkout", c.get("return_date") or c["date"])
         o["city"] = c["destination"]
+        o["criteria"] = {k: c.get(k) for k in ("origin", "destination", "date", "return_date", "adults", "children", "with")}
     booking.remember(ctx, best)
-    return ToolResult(True, "\n".join(travelsearch.line(o) for o in best) + "\nKterý chceš? Řekni číslo.",
+    from .. import entryreq
+
+    entry = entryreq.warn(ctx, best[0].get("country") or "")
+    return ToolResult(True, "\n".join(travelsearch.line(o) for o in best) + "\nKterý chceš? Řekni číslo." + (f"\n{entry}" if entry else ""),
                       data={"criteria": c, "offers": best, "card": _card(best, f"{c['origin']} → {c['destination']}")})
 
 
@@ -281,6 +290,10 @@ async def booking_cancel_check(ctx, booking_ref: Annotated[str, "číslo z booki
     b = booking.find_booking(ctx, booking_ref)
     if not b:
         return ToolResult(False, "Takovou rezervaci nenacházím (booking_list ukáže všechny).")
+    if b["provider"] == "email":
+        free = f" Zdarma jde zrušit do {travelsearch.fmt_when(b['free_cancel_until'])}." if b.get("free_cancel_until") else ""
+        return ToolResult(True, f"{b['name']} jsi rezervoval jinde (mám ji z e-mailu) – zrušíš ji tam, kde jsi ji udělal.{free}",
+                          data={"booking": b})
     if b["kind"] == "flight":
         try:
             q = await booking.flight_cancel_quote(ctx, b["ref"])
@@ -462,3 +475,123 @@ async def travel_spend(ctx, year: Annotated[int, "rok (0 = letos)"] = 0) -> Tool
     months = ", ".join(f"{int(m)}. {v:,.0f} Kč".replace(",", " ") for m, v in s["by_month"].items())
     biz = f", z toho služebně {s['business_czk']:,.0f} Kč".replace(",", " ") if s["business_czk"] else ""
     return ToolResult(True, f"Cesty {s['year']}: celkem {s['total_czk']:,.0f} Kč{biz} ({months}).".replace(",", " "), data=s)
+
+
+# ------------------------------------------------------------------------------------------ 3.19 Cesty 2
+@tool("train_search", "Vlak nebo autobus („vlakem z Prahy do Brna v pátek ráno“): RegioJet živě s cenou a volnými místy, "
+      "koupě na jeho webu v prohlížeči JARVISe (před platbou se zastaví); ČD, Leo Express a další přes IDOS.",
+      category="cesty", perm="network")
+async def train_search(ctx, src: Annotated[str, "odkud (město)"], dst: Annotated[str, "kam (město)"],
+                       date: Annotated[str, "den YYYY-MM-DD (prázdné = dnes)"] = "",
+                       after: Annotated[str, "od kolika hodin HH:MM (prázdné = celý den)"] = "") -> ToolResult:
+    from .. import bridges, groundtravel
+
+    day = (date or dt.date.today().isoformat())[:10]
+    try:
+        dt.date.fromisoformat(day)
+    except ValueError:
+        return ToolResult(False, "Den zadej jako RRRR-MM-DD.")
+    try:
+        r = await groundtravel.search(src, dst, day)
+    except Exception as e:  # noqa: BLE001
+        r = {"error": f"RegioJet teď neodpovídá ({str(e)[:80]})"}
+    idos = bridges.idos_link(src, dst, dt.datetime.fromisoformat(f"{day}T{(after or '06:00')[:5]}"), "", "vlakyautobusy")
+    if r.get("error"):
+        return ToolResult(True, f"{r['error']} Ostatní dopravce (ČD, Leo Express…) najdeš v IDOS: {idos}", data={"idos": idos})
+    routes = [x for x in r["routes"] if not after or x["dep"][11:16] >= after[:5]][:6]
+    if not routes:
+        return ToolResult(True, f"RegioJet {r['from']} → {r['to']} {day}{' po ' + after if after else ''} nic nejede. IDOS: {idos}",
+                          data={"idos": idos, **r})
+    return ToolResult(True, f"RegioJet {r['from']} → {r['to']} {day}:\n" + "\n".join(groundtravel.line(x) for x in routes)
+                      + f"\nKoupit: řekni a otevřu RegioJet (před zaplacením se zastavím). ČD a další: {idos}",
+                      data={**r, "routes": routes, "idos": idos})
+
+
+@tool("entry_requirements", "Co potřebuju do země (pas, občanka, vízum, UK ETA, ESTA, eTA…) jako občan ČR – shrnutí s odkazem "
+      "na MZV k ověření.", category="cesty", perm="network")
+async def entry_requirements(ctx, country: Annotated[str, "země jako ISO-2 kód (GB, US, TR…)"]) -> ToolResult:
+    from .. import entryreq
+
+    r = entryreq.check(country)
+    if r["known"] and r.get("ok_with_id") and not r["line"]:
+        return ToolResult(True, "V EU a Schengenu ti stačí platný občanský průkaz.", data=r)
+    return ToolResult(True, r["line"] or "Řekni zemi.", data=r)
+
+
+@tool("trip_pack", "Cestovní karta do telefonu, která funguje i bez internetu: kde, kdy, číslo rezervace, adresa s mapou, "
+      "storno podmínky, lety a tísňová čísla.", category="cesty", perm="files_write")
+async def trip_pack(ctx, booking_ref: Annotated[str, "která rezervace (číslo, hotel nebo město)"]) -> ToolResult:
+    from .. import booking, tripcare
+
+    b = booking.find_booking(ctx, booking_ref)
+    if not b:
+        return ToolResult(False, "Takovou rezervaci nenacházím.")
+    p = tripcare.trip_card(ctx, b)
+    att = []
+    store = getattr(ctx, "store", None)
+    if store is not None:
+        try:
+            att = [(await store.save_path(p, "text/html")).id]
+        except Exception:  # noqa: BLE001
+            att = []
+    ctx.phone_push("notify", title="Cestovní karta", body=f"{b['name']}: karta je v chatu JARVISe – stáhni si ji, funguje i offline.")
+    return ToolResult(True, f"Cestovní karta pro {b['name']} je hotová (i ve složce cesty) – v telefonu ji stáhni z chatu.",
+                      data={"path": str(p)}, attachments=att)
+
+
+@tool("travel_allowance", "Cestovní náhrady (stravné) za služební cestu podle zákoníku práce: po dnech, se zkrácením za jídla "
+      "zdarma; zapíše je i do tabulky pro účetní.", category="cesty", perm="files_write")
+async def travel_allowance(ctx, start: Annotated[str, "začátek YYYY-MM-DDTHH:MM"], end: Annotated[str, "konec YYYY-MM-DDTHH:MM"],
+                           country: Annotated[str, "země ISO-2 (CZ = tuzemsko)"] = "CZ",
+                           meals: Annotated[int, "kolik jídel denně bylo zdarma (snídaně v hotelu = 1)"] = 0,
+                           save: Annotated[bool, "zapsat do naklady.csv"] = True) -> ToolResult:
+    import csv
+
+    from .. import tripcare
+
+    r = tripcare.per_diem(ctx, start, end, country, meals)
+    if not r["ok"]:
+        return ToolResult(False, r["why"].capitalize() + ".")
+    days = "; ".join(f"{d['day'][8:10]}. {d['day'][5:7]}. {d['hours']:g} h → {d['amount']:g}".replace(".0 ", " ") for d in r["days"])
+    if save:
+        p = tripcare.travel_dir() / "naklady.csv"
+        new = not p.exists()
+        with open(p, "a", newline="", encoding="utf-8-sig") as f:
+            w = csv.writer(f, delimiter=";")
+            if new:
+                w.writerow(["datum", "co", "kde", "od", "do", "castka", "mena", "cislo"])
+            w.writerow([dt.date.today().isoformat(), "stravné", r["country"], start, end, f"{r['total']:.2f}".replace(".", ","),
+                        r["currency"], ""])
+    return ToolResult(True, f"Stravné celkem {r['total']:g} {r['currency']} ({days}). Sazby si hlídej podle aktuální vyhlášky."
+                      + (" Zapsáno do naklady.csv." if save else ""), data=r)
+
+
+@tool("travel_companions", "Spolucestující (partner, děti, kolegové) pro rezervace – jméno, příjmení, datum narození. "
+      "action = list / add / remove. Údaje zůstávají jen v tomhle PC.", category="cesty", perm="files_write")
+async def travel_companions(ctx, action: Annotated[str, "list / add / remove"] = "list", first_name: str = "", last_name: str = "",
+                            born_on: Annotated[str, "YYYY-MM-DD"] = "", relation: str = "",
+                            gender: Annotated[str, "m / f"] = "m") -> ToolResult:
+    comp = [c.model_dump() for c in ctx.cfg.booking.companions]
+    a = (action or "list").lower()
+    if a == "add":
+        if not first_name.strip():
+            return ToolResult(False, "Řekni aspoň křestní jméno.")
+        if born_on:
+            try:
+                dt.date.fromisoformat(born_on[:10])
+            except ValueError:
+                return ToolResult(False, "Datum narození zadej jako RRRR-MM-DD.")
+        comp = [c for c in comp if c["first_name"].lower() != first_name.strip().lower()] + [{
+            "first_name": first_name.strip(), "last_name": last_name.strip(), "born_on": born_on[:10], "relation": relation.strip(),
+            "gender": "f" if gender.lower().startswith(("f", "z", "ž")) else "m",
+            "title": "ms" if gender.lower().startswith(("f", "z", "ž")) else "mr"}]
+        ctx.update_config({"booking": {"companions": comp}})
+        return ToolResult(True, f"Zapsáno: {first_name} {last_name}".strip() + ". Údaje zůstávají jen v PC.")
+    if a == "remove":
+        left = [c for c in comp if c["first_name"].lower() != first_name.strip().lower()]
+        ctx.update_config({"booking": {"companions": left}})
+        return ToolResult(len(left) < len(comp), "Odebráno." if len(left) < len(comp) else "Takového spolucestujícího nemám.")
+    if not comp:
+        return ToolResult(True, "Spolucestující nemám – řekni „přidej spolucestující Janu Novákovou, narozená 1990-05-01“.")
+    return ToolResult(True, "; ".join(f"{c['first_name']} {c['last_name']}".strip() + (f" ({c['relation']})" if c["relation"] else "")
+                                      + ("" if c["born_on"] else " – chybí datum narození") for c in comp), data={"companions": comp})

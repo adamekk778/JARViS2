@@ -169,6 +169,14 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\b(hlidej|sleduj|pridej)\w*\b.*\b(balik\w*|zasilk\w*)\b", ("parcel_add", "parcels_list")),
     (r"\b(nehlidej|prestan hlidat|smaz|odeber)\w*\b.*\b(balik\w*|zasilk\w*)\b", ("parcel_remove",)),
     (r"\b(balik\w*|zasilk\w*|dopravc\w*|packet\w*)\b", ("parcels_list", "parcel_add")),
+    # 3.19 Cesty 2
+    (r"\b(vlak\w*|vlakem|autobus\w*|regiojet\w*|jizdenk\w*|leo express)\b.*\b(z|do|na)\b|\b(z|do)\b.*\b(vlakem|autobusem)\b",
+     ("train_search", "transit_connection")),
+    (r"\b(viz\w*|vizum|pas\b|pasu|obcank\w*|esta|eta|etias|vstupni podminky)\b.*\b(do|na)\b|\bco (potrebuju|potrebuji) do\b",
+     ("entry_requirements",)),
+    (r"\bcestovni kart\w*|\b(rezervac\w*|cest\w*|hotel\w*)\b.*\b(do telefonu|offline)\b", ("trip_pack",)),
+    (r"\b(stravne|stravneho|cestovni nahrad\w*|diet\w*)\b", ("travel_allowance",)),
+    (r"\bspolucestujic\w*", ("travel_companions",)),
     # 3.18 Cesty: hledat, porovnat, rezervovat (a platit) až po potvrzení
     (r"\b(hotel\w*|ubytovan\w*|penzion\w*|apartman\w*|airbnb|booking)\b", ("hotel_search", "travel_offers", "booking_list")),
     (r"\b(letenk\w*|letet|odlet\w* z|let z|lety z|letadlem)\b.*\b(do|na|z)\b|\bnajdi\b.*\blet\w*\b", ("flight_search", "travel_offers")),
