@@ -161,7 +161,8 @@ export function createAgentsView(client: JarvisClient, opts: { compact?: boolean
             onclick: () => { if (!live2) return; tellTo = tellTo?.worker === w.id ? null : { session: s.id, worker: w.id, name: w.name }; paint(); } },
             h("span", { class: "agv-ico" }, icon(KIND_ICON[w.kind] || "robot")),
             h("div", { class: "agv-txt" },
-              h("b", {}, String(w.name), w.monitor ? h("i", {}, ` · M${w.monitor}`) : null),
+              h("b", {}, String(w.name), w.monitor ? h("i", {}, ` · M${w.monitor}`) : null,
+                (w.areas || []).length ? h("i", { title: "Smí jen tyto oblasti oprávnění" }, ` · jen ${(w.areas as string[]).join(", ")}`) : null),
               h("span", {}, w.verdict ? `${w.verdict}${w.last && w.last !== w.verdict ? " · " + w.last : ""}` : String(w.last || STATE[w.state] || ""))),
             live2 ? h("button", { class: "agv-x", type: "button", title: "Zastavit tohohle agenta",
               onclick: (e: Event) => { e.stopPropagation(); client.send("multitask_stop", { session: s.id, worker: w.id }); } }, icon("x"))

@@ -14,6 +14,8 @@ Rules that hold for every agent:
 - Money is always asked first: buying, selling, paying, betting, a trade – the usual confirmation card (also in Plná
   důvěra). No answer in time = no.
 - The same permissions, read-only mode and allowed apps as JARVIS itself; dangerous tools ask as usual.
+- 3.14 (návrh 112): each agent can be narrowed further to its own permission areas (`areas`, e.g. ["network"] for a
+  researcher that must not touch files) – it then never even sees a tool outside them.
 - How many agents ask the AI at the same moment is limited (Nastavení → Mozek → Multitasking): free AI tiers have
   per-minute limits, so 100 agents run in waves rather than all in one second.
 - Agents leave short notes on a shared board; the others see the latest ones (as data, not orders).
@@ -78,6 +80,7 @@ class Worker:
     started: float = 0.0
     ended: float = 0.0
     series: list = field(default_factory=list)      # a watcher's values over time: [ts, number, verdict]
+    areas: list = field(default_factory=list)       # 3.14: permission areas only this agent may use ([] = as JARVIS)
     orders: list = field(default_factory=list)      # what the user told this agent while it works
     seen_orders: int = 0
     task_obj: Any = field(default=None, repr=False)
@@ -142,8 +145,33 @@ def normalize(workers: list[dict], limit: int = MAX_AGENTS) -> list[Worker]:
         if kind == "watch" and not minutes:
             minutes = 30
         out.append(Worker(id=uuid.uuid4().hex[:8], name=_clean_name(w.get("name", ""), i), kind=kind,
-                          task=str(w["task"]).strip()[:1500], monitor=mon, app=str(w.get("app") or "")[:60], minutes=minutes))
+                          task=str(w["task"]).strip()[:1500], monitor=mon, app=str(w.get("app") or "")[:60], minutes=minutes,
+                          areas=clean_areas(w.get("areas"))))
     return out
+
+
+def clean_areas(raw: Any) -> list[str]:
+    """3.14: the permission areas an agent asked for, only known ones (Czech labels work too)."""
+    from .permissions import PERMS
+
+    if isinstance(raw, str):
+        raw = [x for x in re.split(r"[,;\s]+", raw) if x]
+    if not isinstance(raw, list):
+        return []
+    by_label = {v.lower(): k for k, v in PERMS.items()}
+    out: list[str] = []
+    for a in raw:
+        k = str(a).strip().lower()
+        k = k if k in PERMS else by_label.get(k, "")
+        if k and k not in out:
+            out.append(k)
+    return out
+
+
+def fits_areas(spec: Any, areas: list[str]) -> bool:
+    from .permissions import required
+
+    return not areas or all(p in areas for p in required(spec))
 
 
 RATE_WORDS = ("429", "rate limit", "rate_limit", "too many requests", "quota", "limit u všech", "resource exhausted")
@@ -541,7 +569,8 @@ class Multitask:
         allowed = {n for n in rt.agent._allowed_names() if n not in NOT_FOR_WORKERS}
         from .permissions import perm_of
 
-        allowed = {n for n in allowed if perm_of(tools.REGISTRY[n]) != "input" and not n.startswith("browser_")}
+        allowed = {n for n in allowed if perm_of(tools.REGISTRY[n]) != "input" and not n.startswith("browser_")
+                   and fits_areas(tools.REGISTRY[n], w.areas)}
         names = [n for n in sel.pick(tools.REGISTRY, allowed, w.task, extra=10) if n in allowed]
         schemas = [tools.REGISTRY[n].schema() for n in names]
         sys_text = f"{WORK_RULES}\n\nTvoje role: {w.name}.\nCíl celé skupiny agentů: {s.goal}"
@@ -591,6 +620,8 @@ class Multitask:
     async def _screen(self, s: Session, w: Worker) -> None:
         from .tools.computer_use import ANTI_CHEAT, GAME_RULES, MAX_STEPS, anti_cheat_note, run_computer_task
 
+        if w.areas and not {"input", "screen"} <= set(w.areas):
+            raise PermissionError("tenhle agent nemá oprávnění na myš, klávesnici a obrazovku")
         rt = self.rt
         game = bool(w.app) and any(g in w.app.lower() for g in ANTI_CHEAT)
 
@@ -625,6 +656,8 @@ class Multitask:
             w.state = "failed"
 
     async def _watch(self, s: Session, w: Worker) -> None:
+        if w.areas and "screen" not in w.areas:
+            raise PermissionError("tenhle agent nemá oprávnění na obrazovku")
         from .tools.computer_use import _shrink, parse_action
 
         rt = self.rt

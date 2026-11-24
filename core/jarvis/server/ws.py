@@ -66,6 +66,7 @@ CLIENT_TYPES = [
     "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
     "notice_feedback", "proactive_get",
     "widgets_get", "widget_delete", "mochi_level_get",
+    "access_log_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -94,6 +95,7 @@ SERVER_TYPES = [
     "memory_cleanup", "memory_import", "data_encrypt_result",
     "proactive",
     "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
+    "access_log",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

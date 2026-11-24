@@ -86,6 +86,8 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\b(tramvaj\w*|autobus\w*|metr[oa]\w*|mhd|odjezd\w*|spoj\w*|vlak\w*|jede\b)", ("transit_departures", "transit_connection")),
     (r"\bnajdi\b.*\b(soubor\w*|dokument\w*|faktur\w*|fotk\w*|pdf|slozk\w*)\b", ("find_file", "windows_search")),
     (r"\b(prejmenuj|prejmenovat)\w*\b", ("rename_files", "smart_rename")),
+    (r"\b(oprav\w*|nefung\w*|spadl\w*|pada\w*)\b.*\b(dovednost\w*|skill\w*)\b|\b(dovednost\w*|skill\w*)\b.*\b(nefung\w*|spadl\w*|pada\w*)",
+     ("skill_fix", "list_skills")),
     (r"\b(nainstaluj|nainstalovat|instaluj|stahni a nainstaluj)\b", ("app_search", "app_install")),
     (r"\b(odinstaluj|odinstalovat|odeber program|smaz program)\w*", ("app_uninstall",)),
     (r"\b(sluzb\w*)\b.*\b(vypni|zapni|automatick\w*|rucn\w*|zakaz\w*|vrat\w*)\b|\b(vypni|zakaz)\w* sluzb\w*", ("service_start_type", "service_revert")),

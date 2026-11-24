@@ -35,7 +35,7 @@ export function buildSecurity(client: JarvisClient) {
   const dataBox = h("div", { class: "card sec-card" });
 
   function renderSettings() {
-    const L = s.limits || {}, P = s.privacy || {};
+    const L = s.limits || {}, P = s.privacy || {}, T = s.tools || {};
     const allow = h("input", { class: "input", value: (L.app_allowlist || []).join(", "), placeholder: "prázdné = kdekoli, např. Poznámkový blok, Chrome",
       "aria-label": "Povolené aplikace" }) as HTMLInputElement;
     allow.onchange = () => set({ limits: { app_allowlist: allow.value.split(",").map((x) => x.trim()).filter(Boolean) } });
@@ -47,7 +47,12 @@ export function buildSecurity(client: JarvisClient) {
       num("Mise: nejvýš akcí", "Kolik kroků smí jedna mise udělat, než ji JARVIS zastaví.", L.mission_max_actions ?? 60, 1, 1000, (v) => set({ limits: { mission_max_actions: v } })),
       num("Mise: nejdéle minut", "Jak dlouho smí jedna mise běžet.", L.mission_max_minutes ?? 30, 1, 1440, (v) => set({ limits: { mission_max_minutes: v } })),
       h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Myš a klávesnice jen v aplikacích"),
-        h("span", { class: "help" }, "Když tu něco napíšeš, JARVIS bude klikat a psát jen v těchto aplikacích.")), allow));
+        h("span", { class: "help" }, "Když tu něco napíšeš, JARVIS bude klikat a psát jen v těchto aplikacích.")), allow),
+      // 3.14 návrh 10: the fenced Python
+      sw("Omezené prostředí pro kód", "Python, který JARVIS spouští (výpočty, grafy), nesmí spouštět programy, zapisovat mimo svou složku ani použít víc než 2 GB paměti.",
+        () => T.sandbox_code !== false, (v) => set({ tools: { sandbox_code: v } })),
+      sw("Kód smí na internet", "Jen když kód potřebuje stahovat data sám. Jinak stahují nástroje JARVISe (bezpečnější).",
+        () => !!T.sandbox_network, (v) => set({ tools: { sandbox_network: v } })));
     privacyBox.replaceChildren(
       sw("Soukromý režim", "Nová konverzace se drží jen v paměti a nic se nezapíše na disk (ani fakta). Po vypnutí zmizí.",
         () => !!P.private_mode, (v) => set({ privacy: { private_mode: v } })),
@@ -139,6 +144,22 @@ export function buildSecurity(client: JarvisClient) {
   client.on("settings_changed", (m) => sync(m.settings));
   renderGrants({});
 
+  // 3.14 návrhy 107, 109: what JARVIS looked at / touched today, and the guest mode
+  const accessBox = h("div", { class: "card sec-card" }, h("p", { class: "muted" }, "Načítám…"));
+  const KIND_ICON: Record<string, string> = { screen: "monitor", input: "cursor-click", camera: "camera", clipboard: "clipboard-text", injection: "warning" };
+  client.on("access_log", (m: any) => {
+    const rows: any[] = m.rows || [];
+    accessBox.replaceChildren(
+      h("div", { class: "row" }, h("span", {}, m.guest ? "Režim host je zapnutý – nic osobního se neukazuje." : "Režim host (u PC sedí někdo jiný)"),
+        h("button", { class: `btn ${m.guest ? "primary" : ""} sm`, type: "button", onclick: () => {
+          client.send("settings_set", { patch: { privacy: { guest_mode: !m.guest } } }); window.setTimeout(() => client.send("access_log_get"), 300);
+        } }, icon(m.guest ? "user-minus" : "user-plus"), m.guest ? "Vypnout" : "Zapnout")),
+      h("p", { class: "help" }, rows.length ? `Dnes: ${Object.entries(m.counts || {}).map(([k, n]) => `${({ screen: "obrazovka", input: "ovládání", camera: "kamera", clipboard: "schránka", injection: "podezřelé texty" } as any)[k] || k} ${n}×`).join(", ")}.`
+        : "Dnes JARVIS na obrazovku, schránku ani ovládání nesáhl."),
+      ...rows.slice(0, 30).map((r) => h("div", { class: "row" }, h("span", {}, icon(KIND_ICON[r.kind] || "eye"), " ",
+        new Date(r.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }), " · ", r.tool), h("span", { class: "muted" }, r.what || ""))));
+  });
+
   const el = h("section", { class: "tasks-view security-view" },
     hero(HEROES.security, "Bezpečí a soukromí", "Co JARVIS smí, kolik smí utratit, co si pamatuje – a jak to všechno vypnout, vyexportovat nebo smazat.", [
       h("button", { class: "btn", type: "button", onclick: refresh }, icon("arrow-clockwise"), "Obnovit")]),
@@ -148,6 +169,7 @@ export function buildSecurity(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Soukromí"), privacyBox,
     h("h2", { class: "group-label" }, "Co JARVIS ukládá"), invBox,
     h("h2", { class: "group-label" }, "Mikrofon a kamera"), micBox,
+    h("h2", { class: "group-label" }, "Co JARVIS dnes viděl a čeho se dotkl"), accessBox,
     h("h2", { class: "group-label" }, "Export, záloha, smazání"), dataBox);
-  return { el, show: refresh };
+  return { el, show: () => { refresh(); client.send("access_log_get"); } };
 }

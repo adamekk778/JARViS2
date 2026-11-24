@@ -125,7 +125,7 @@ class MicLog:
         since = time.time() - days * 86400
         rows = self.rt.db.all("SELECT start, end, source FROM mic_log WHERE start>=? ORDER BY start DESC LIMIT 200", (since,))
         return {"sessions": rows, "seconds": round(sum(r["end"] - r["start"] for r in rows)), "now": self._since is not None,
-                "camera": "JARVIS kameru nepoužívá"}
+                "camera": "Kameru JARVIS používá jen na tvůj pokyn (fotka z telefonu, sledování objektu) – každé použití je v záznamu přístupů"}
 
 
 # ---------------------------------------------------------------------------------------------- export / backup / reset

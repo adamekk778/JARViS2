@@ -128,3 +128,63 @@ async def mochi_level(ctx) -> ToolResult:
     nxt = lv["locked"][0] if lv["locked"] else None
     return ToolResult(True, f"Mochi má úroveň {lv['level']} ({lv['points']} bodů)."
                       + (f" Na úrovni {nxt['level']} odemkne {nxt['name']}." if nxt else " Všechno odemčeno."), data=lv)
+
+
+@tool("guest_mode", "Režim host: u PC sedí někdo jiný – JARVIS neukáže nic osobního (paměť, e-maily, zprávy, kalendář), "
+      "upozornění jen s titulkem a nic soukromého nahlas. on=false ho vypne.", category="bezpečnost")
+async def guest_mode(ctx, on: bool = True) -> ToolResult:
+    ctx.update_config({"privacy": {"guest_mode": bool(on)}})
+    return ToolResult(True, "Režim host je zapnutý – nic osobního neukážu." if on else "Režim host je vypnutý.")
+
+
+@tool("access_log", "Co JARVIS dnes (nebo za posledních N dní) viděl a slyšel: obrazovka, schránka, myš a klávesnice, "
+      "kamera, mikrofon a podezřelé texty – kdy a k čemu.", category="bezpečnost")
+async def access_log(ctx, days: int = 1) -> ToolResult:
+    from .. import shield
+
+    r = shield.recent(ctx, max(1, min(days, 30)))
+    mic = (r.get("mic") or {}).get("sessions") or []
+    if not r["rows"] and not mic:
+        return ToolResult(True, "Nic – na obrazovku, schránku, kameru, mikrofon ani ovládání jsem nesahal.", data=r)
+    parts = [f"{shield.KIND_OF.get(k, k)}: {n}×" for k, n in r["counts"].items()]
+    if mic:
+        parts.append(f"mikrofon: {len(mic)}× ({r['mic'].get('seconds', 0)} s)")
+    return ToolResult(True, "Za tu dobu: " + ", ".join(parts) + ".", data=r)
+
+
+# ---------- 3.14 návrh 113: self-healing skills ----------
+@tool("skill_fix", "Navrhne opravu naučené dovednosti (skillu), která padá nebo dělá chybu: AI přepíše soubor, JARVIS "
+      "zkontroluje, že jde načíst, a ukáže změny řádek po řádku. Nic se nezapíše – použití opravy je skill_fix_apply. Na "
+      "„oprav dovednost …“, „skill … nefunguje“.", category="dovednosti", perm="files_read")
+async def skill_fix(ctx, name: Annotated[str, "název dovednosti (souboru) – viz list_skills"],
+                    problem: Annotated[str, "co nefunguje, vlastními slovy (nepovinné, když dovednost spadla)"] = "") -> ToolResult:
+    from .. import skillheal
+
+    try:
+        prop = await skillheal.propose(ctx, name.strip().lower(), problem)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    if prop["problems"]:
+        return ToolResult(False, f"Opravu se nepodařilo připravit: {'; '.join(prop['problems'])}.", data=prop)
+    changed = sum(1 for x in prop["diff"] if x[:1] in "+-" and not x.startswith(("+++", "---")))
+    return ToolResult(True, f"Oprava dovednosti {name} je připravená ({changed} změněných řádků). {prop['why']} Mám ji použít? "
+                      "(ukážu ti změny ke schválení)", data={"diff": prop["diff"], "why": prop["why"]})
+
+
+def _fix_details(a: dict) -> list[str]:
+    from .. import skillheal
+
+    return skillheal.details(str(a.get("name", "")).strip().lower())
+
+
+@tool("skill_fix_apply", "Použije připravenou opravu dovednosti ze skill_fix (po schválení; stará verze se zálohuje).",
+      danger=True, category="dovednosti", perm="files_write", details=_fix_details)
+async def skill_fix_apply(ctx, name: Annotated[str, "název dovednosti"]) -> ToolResult:
+    from .. import skillheal
+
+    try:
+        res = await asyncio.to_thread(skillheal.apply, ctx, name.strip().lower())
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    return ToolResult(True, f"Dovednost {name} je opravená a znovu načtená ({', '.join(res['tools'])}). Původní verze je v "
+                      "záloze.", data=res)

@@ -5,6 +5,10 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.14": [
+    { icon: "shield-check", title: "Kód v ohrádce", line: "Python, který JARVIS spouští, i naučené dovednosti běží v omezeném prostředí: bez spouštění programů, bez sítě a bez zápisu mimo svou složku, pokud to dovednost výslovně nepotřebuje. Na Windows navíc s limitem paměti." },
+    { icon: "eye", title: "Co JARVIS viděl a slyšel", line: "V Bezpečí a soukromí najdeš, kdy JARVIS sáhl na obrazovku, schránku, myš, kameru nebo mikrofon a proč. Podezřelou větu z webu nebo e-mailu („ignoruj předchozí pokyny…“) ti ukáže i s tím, odkud přišla." },
+    { icon: "user-switch", title: "Režim host", line: "Sedí u PC někdo jiný? Řekni „zapni režim host“: JARVIS nic osobního neprozradí, upozornění ukáže jen s nadpisem a e-maily ani paměť neotevře. A když se spáruje nový telefon, ostatní dostanou zprávu s tlačítkem Odvolat." },
+    { icon: "wrench", title: "Dovednosti se umí opravit", line: "Když naučená dovednost spadne, JARVIS si chybu zapamatuje. Řekni „oprav dovednost …“ a ukáže ti opravu řádek po řádku – zapíše ji až po tvém souhlasu a starou verzi zazálohuje. Agenti při multitaskingu můžou mít každý vlastní oprávnění." },
     { icon: "heartbeat", title: "Zdraví JARVISe", line: "Diagnostika ukáže, které nástroje JARVISovi selhávají, jak rychle odpovídá každá AI a hlas, kolik bere procesoru a baterie a jestli je nová verze lepší než ta předchozí. Tlačítko Nahlásit chybu otevře předvyplněné hlášení na GitHubu (bez hesel a klíčů)." },
     { icon: "arrow-counter-clockwise", title: "Bezpečné aktualizace", line: "Když po aktualizaci přestane fungovat notch nebo hlas, JARVIS se sám vrátí na předchozí verzi a tu rozbitou znovu nenainstaluje. V Diagnostice si můžeš vybrat i kanál Beta, kde novinky přijdou dřív." },
     { icon: "video-camera", title: "OBS a herní klipy", line: "JARVIS ovládá OBS Studio: „přepni scénu na hru“, „začni nahrávat“, a po skvělém momentu stačí „ulož to“ – uloží posledních pár desítek vteřin jako klip (záznam posledních chvil v OBS)." },

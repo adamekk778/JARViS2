@@ -198,9 +198,13 @@ class Agent:
             self._task = asyncio.current_task()
             self.busy = True
             try:
-                if lang == "en":
-                    extra_system = (extra_system + "\n" if extra_system else "") + "Odpověz anglicky."
-                self._lang = lang or "cs"
+                from .lang import preferred
+
+                lang = preferred(text, lang, getattr(rt.cfg.general, "language", "cs"))   # 3.14 návrh 114
+                rule = {"en": "Odpověz anglicky.", "sk": "Odpovídaj po slovensky.", "de": "Antworte auf Deutsch."}.get(lang)
+                if rule:
+                    extra_system = (extra_system + "\n" if extra_system else "") + rule
+                self._lang = lang if lang in ("cs", "en") else "cs"
                 return await self._handle(text, attachments or [], source, record_user, extra_system)
             finally:
                 self.busy = False
@@ -324,6 +328,11 @@ class Agent:
         rt = self.rt
         know = getattr(rt, "knowledge", None)
         facts = know.for_prompt() if know else [f["text"] for f in rt.memory.facts()]
+        from . import shield
+
+        if shield.guest_on(rt):                     # 3.14 návrh 109: a guest at the PC – nothing about you
+            facts = []
+            extra = (extra + "\n\n" if extra else "") + shield.GUEST_RULE
         proj = know.project_prompt() if know else ""
         vm = getattr(rt, "voice_mood", None)          # OMEGA P3.12: only when switched on, only fresh, only a hint
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
@@ -419,8 +428,12 @@ class Agent:
             raise BudgetExceeded(budget)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
+        from . import shield
+
         if spec is None or call.name in disabled:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
+        elif shield.guest_on(rt) and call.name in shield.GUEST_BLOCKED:
+            res = tools.ToolResult(False, "V režimu host osobní data (e-maily, zprávy, paměť, kalendář) neukazuji.")
         else:
             approved = True
             from . import trust

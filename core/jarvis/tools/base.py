@@ -235,9 +235,18 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
         if name in UNTRUSTED_OUTPUT and res.ok:     # OMEGA 183: orders hidden in e-mails, pages and files
             from ..injection import warn
 
-            w = warn(res.summary + " " + (str(res.data)[:20000] if res.data is not None else ""))
+            seen = res.summary + " " + (str(res.data)[:20000] if res.data is not None else "")
+            w = warn(seen)
             if w:
                 res.summary = w + "\n\n" + res.summary
+                if hasattr(ctx, "notify") and hasattr(ctx, "db"):
+                    from ..shield import report_injection      # 3.14 návrh 108: the sentence and its source to you
+
+                    report_injection(ctx, name, clean, seen)
+        if hasattr(ctx, "db"):
+            from ..shield import log_access                 # 3.14 návrh 107: what JARVIS looked at / touched
+
+            log_access(ctx, name, perm_of(spec), clean)
         return res
     except Exception as e:  # tools never crash the agent
         log.exception("tool %s failed", name)

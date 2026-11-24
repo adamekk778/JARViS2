@@ -229,6 +229,8 @@ class Tools(BaseModel):
     always_confirm: list[str] = Field(default_factory=list)
     trusted: list[str] = Field(default_factory=list)
     full_trust: bool = False    # 3.13 Plná důvěra: PC actions without asking (see trust.py for what still asks)
+    sandbox_code: bool = True   # 3.14 run_python in a fenced process: no programs, no network, writes only in its folder (10)
+    sandbox_network: bool = False   # 3.14 …but with the network allowed
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
     approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)
@@ -593,6 +595,7 @@ class LimitsCfg(BaseModel):
 
 class PrivacyCfg(BaseModel):
     private_mode: bool = False         # nothing new is written to the history or memory
+    guest_mode: bool = False           # 3.14 someone else at the PC: nothing private in answers, notices, aloud (109)
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
     mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
     mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)

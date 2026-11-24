@@ -31,9 +31,21 @@ async def run_python(ctx, code: Annotated[str, "Python 3 kód"], timeout: int = 
     script.write_text(code, encoding="utf-8")
     flags = 0x08000000 if sys.platform == "win32" else 0
 
+    secs = max(5, min(600, timeout))
+    fenced = bool(getattr(getattr(getattr(ctx, "cfg", None), "tools", None), "sandbox_code", True))
+
     def run():
+        if fenced:                                   # 3.14 návrh 10: programs, network, writes outside the folder: no
+            import os
+
+            from .. import sandbox
+
+            os.environ.setdefault("MPLBACKEND", "Agg")
+            os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+            return sandbox.run(python_cmd(str(script)), script, run_dir, secs,
+                               network=bool(getattr(ctx.cfg.tools, "sandbox_network", False)))
         return subprocess.run(python_cmd(str(script)), cwd=run_dir, capture_output=True, text=True,
-                              timeout=max(5, min(600, timeout)), encoding="utf-8", errors="replace", creationflags=flags,
+                              timeout=secs, encoding="utf-8", errors="replace", creationflags=flags,
                               env={**__import__("os").environ, "MPLBACKEND": "Agg", "PYTHONIOENCODING": "utf-8"})
 
     try:
@@ -42,7 +54,7 @@ async def run_python(ctx, code: Annotated[str, "Python 3 kód"], timeout: int = 
         return ToolResult(False, f"Kód běžel déle než {timeout} s a byl ukončen")
     atts = []
     for f in sorted(run_dir.iterdir()):
-        if f.name != "main.py" and f.is_file():
+        if f.name != "main.py" and f.is_file() and not f.name.startswith(".jarvis_sandbox"):
             import mimetypes
 
             att = await ctx.store.save_path(f, mimetypes.guess_type(f.name)[0] or "application/octet-stream")

@@ -513,6 +513,11 @@ class Runtime:
                 else:
                     self.submit(self.agent.handle(text, [], "chat"))
             return None
+        if act == "device_revoke":                # 3.14 návrh 111: "Odvolat" under "a new device paired"
+            from . import mobileplus
+
+            ok = mobileplus.revoke_device(self, str(args.get("id") or ""))
+            return ok, "Zařízení odvoláno – už se nepřipojí." if ok else "To zařízení už spárované není."
         if act == "mute_kind":                    # 3.14 "Nezajímá mě" under a proactive notice
             kind = str(args.get("kind") or "")[:30]
             if kind:
@@ -565,6 +570,8 @@ class Runtime:
     def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False,
                actions: list[dict] | None = None, kind: str = "") -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
+        if getattr(self.cfg.privacy, "guest_mode", False) and target == "all" and not urgent:
+            body, speak = "Podrobnosti jsou skryté v režimu host.", False     # 3.14 návrh 109
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game

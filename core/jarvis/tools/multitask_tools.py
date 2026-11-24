@@ -32,7 +32,9 @@ async def list_monitors(ctx) -> ToolResult:
       "uživatel.", category="agenti", danger_if=_has_screen)
 async def multitask_start(ctx, goal: Annotated[str, "celý cíl, např. „na monitoru 1 obchoduj, na monitoru 2 hlídej, jestli se to vyplatí“"],
                           workers: Annotated[list[dict], "agenti: [{name, kind: work|screen|watch, task, monitor (1 = hlavní), "
-                                                         "app, minutes}] – prázdné = rozdělí koordinátor"] = None,
+                                                         "app, minutes, areas: oprávnění jen pro tohoto agenta, např. "
+                                                         "[\"network\"] nebo [\"files_read\",\"network\"]}] – prázdné = "
+                                                         "rozdělí koordinátor"] = None,
                           max_agents: Annotated[int, "kolik agentů nejvýš, když je rozděluje koordinátor (1–100)"] = 12,
                           paper: Annotated[bool, "zkušební obchodování: obchody se jen zapisují na virtuální účet, nic se "
                                                  "neklikne (na „zkušebně“, „nanečisto“, „bez peněz“)"] = False) -> ToolResult:

@@ -42,6 +42,7 @@ export const CLIENT_TYPES = [
   "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
   "notice_feedback", "proactive_get",
   "widgets_get", "widget_delete", "mochi_level_get",
+  "access_log_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -70,6 +71,7 @@ export const SERVER_TYPES = [
   "memory_cleanup", "memory_import", "data_encrypt_result",
   "proactive",
   "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
+  "access_log",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
