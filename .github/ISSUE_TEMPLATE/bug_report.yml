@@ -1,0 +1,51 @@
+# 3.14 návrh 118. Tip: in JARVIS, Diagnostika → "Nahlásit chybu" fills in the version and the log for you
+# (passwords and keys removed) – it opens a blank issue, which stays allowed (config.yml).
+name: Chyba
+description: Něco nefunguje, jak má
+title: "[Chyba] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Díky! Nejrychleji pomůže tlačítko **Diagnostika → Nahlásit chybu** přímo v JARVISovi – vyplní verzi a log
+        (bez hesel a klíčů). Sem nikdy nevkládej API klíče, hesla ani tokeny.
+  - type: textarea
+    id: what
+    attributes:
+      label: Co se stalo
+      description: Co jsi udělal(a), co JARVIS udělal a co jsi čekal(a).
+      placeholder: "Řekl jsem „pusť hudbu“, notch ukázal chybu …"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Jak to zopakovat
+      placeholder: |
+        1. …
+        2. …
+  - type: input
+    id: version
+    attributes:
+      label: Verze JARVISe
+      description: Nastavení → Obecné, dole (např. 3.14.120)
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Kde
+      multiple: true
+      options: [PC – aplikace, Notch, Hlas, Telefon (Android), Webové rozhraní, Instalace / aktualizace, Jinde]
+  - type: input
+    id: system
+    attributes:
+      label: Systém
+      placeholder: Windows 11 23H2 / Android 14
+  - type: textarea
+    id: log
+    attributes:
+      label: Log nebo snímek
+      description: Diagnostika → Log (je bez hesel a klíčů). Snímek obrazovky sem můžeš přetáhnout.
+      render: text

@@ -83,6 +83,7 @@ jobs:
       - run: pip install -e "./core[dev]"
       - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 axe-core@4 && npx playwright install --with-deps chromium
       - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome python -m jarvis.uicheck --out $RUNNER_TEMP/uicheck
+      - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome-en python -m jarvis.uicheck --lang en --out $RUNNER_TEMP/uicheck/en
       - uses: actions/upload-artifact@v4
         if: always()
         continue-on-error: true
@@ -541,6 +542,12 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       - run: mkdir -p out && cp dist/JARVIS-Setup.exe mobile/JARVIS.apk out/ && ls -la out
+      - uses: actions/checkout@v4
+        with: { path: src, sparse-checkout: packaging/winget }
+      - name: winget manifests (3.14 návrh 115 – attached to the release, submitted to winget-pkgs by hand)
+        run: |
+          python3 src/packaging/winget/make_manifest.py "$JARVIS_VERSION" out/JARVIS-Setup.exe out/winget "$GITHUB_REPOSITORY"
+          (cd out && zip -r winget-manifests.zip winget)
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.JARVIS_VERSION }}
@@ -556,3 +563,4 @@ jobs:
           files: |
             out/JARVIS-Setup.exe
             out/JARVIS.apk
+            out/winget-manifests.zip

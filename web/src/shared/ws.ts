@@ -1,5 +1,6 @@
 import type { Attachment, ClientType, ServerMsg, ServerType } from "./protocol";
 import { applyLoad, applyPower } from "./base";
+import { setLang } from "./i18n";
 
 export interface Endpoint {
   base: string; // http://host:port (no trailing slash)
@@ -62,6 +63,7 @@ export class JarvisClient {
         return;
       }
       if (m.type === "welcome") this.local = !!m.local;
+      if (m.type === "welcome" || m.type === "settings_changed") setLang((m as any).settings?.general?.language);   // 3.14 návrh 114
       if (m.type === "power_state" || (m.type === "welcome" && (m as any).power)) applyPower(!!((m as any).power?.on_battery ?? (m as any).on_battery));
       if (m.type === "perf_hint") applyLoad(!!(m as any).heavy);
       // one screen that cannot handle a message must not stop the others (or the rest of this one) from getting it

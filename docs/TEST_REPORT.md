@@ -17,6 +17,15 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
   agenti přes falešný model (stejná cesta potvrzování); učení (SM-2, kontrola výpočtů); komunikace s falešnou schránkou;
   proaktivita; web proti falešnému webu; každodenní pomocníci s falešnou předpovědí; pracovní profily s falešnými okny.
 
+- **3.14 (118 návrhů, 11 dávek): 1747 testů prošlo, 20 přeskočeno** (Linux) – nové `tests/test_*314*.py` (kvalita, evals, mozek,
+  hlas, paměť, proaktivita, notch, PC, telefon, propojení, bezpečnost, omezené prostředí, dosah). Navíc:
+  - `python -m jarvis.evals --offline --min-score 0.9` – 303 zkušebních otázek, 100 % (brána v CI),
+  - `ruff` a `mypy` (vybrané moduly) bez chyb, ESLint bez chyb,
+  - `python -m jarvis.uicheck` (Playwright + axe-core) česky i anglicky (`--lang en`): 5 stránek × velikosti bez chyb,
+    bez přetékání, anglické rozhraní ověřené na postranním panelu,
+  - omezené prostředí ověřené na Linuxu (výpočty a soubory ve vlastní složce projdou; zápis mimo, mazání, programy
+    a síť zablokované; 127.0.0.1 není „síť“). Windows Job Object ověří CI na windows-latest.
+
 ## Ruční / vizuální ověření (Playwright proti skutečnému serveru)
 - Úkoly → **Zkontrolovat PC**: mise doběhla, 5/5 kritérií zelených, artefakt „Report o stavu PC“ s otiskem,
   11 důkazů, audit akcí. **Uložit jako dovednost** → schválení → protokol „Kontrola PC“ v1 → Stark → Verze ukazuje v1.

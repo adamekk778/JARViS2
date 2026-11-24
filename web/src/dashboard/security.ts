@@ -26,6 +26,18 @@ export function buildSecurity(client: JarvisClient) {
     return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)), inp);
   };
 
+  const statsBox = h("pre", { class: "sec-pre", "data-no-tr": "", hidden: true });
+  const statsUrl = (val: string) => {
+    const inp = h("input", { class: "input", value: val, placeholder: "https://… (prázdné = nic se neposílá)", "aria-label": "Adresa pro statistiky" }) as HTMLInputElement;
+    inp.onchange = () => {
+      const v = inp.value.trim();
+      if (v && !v.startsWith("https://")) { toast("Adresa musí začínat https://"); return; }
+      set({ privacy: { stats_url: v } });
+    };
+    return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Kam se statistiky posílají"),
+      h("span", { class: "help" }, "Adresa serveru autora JARVISe. Dokud je prázdná, neodejde nic ani se zapnutým přepínačem.")), inp);
+  };
+  client.on("stats_preview", (m: any) => { statsBox.hidden = false; statsBox.textContent = JSON.stringify(m.data, null, 2); });
   const safety = h("div", { class: "group" });
   const usageBox = h("div", { class: "card sec-card" });
   const grantsBox = h("div", { class: "card sec-card" });
@@ -57,7 +69,14 @@ export function buildSecurity(client: JarvisClient) {
       sw("Soukromý režim", "Nová konverzace se drží jen v paměti a nic se nezapíše na disk (ani fakta). Po vypnutí zmizí.",
         () => !!P.private_mode, (v) => set({ privacy: { private_mode: v } })),
       num("Mazat data starší než (dní)", "Konverzace, mise, záznamy akcí, diktování a spotřebu AI. 0 = nemazat. Fakta a nastavení zůstávají.",
-        P.keep_days ?? 0, 0, 3650, (v) => set({ privacy: { keep_days: v } })));
+        P.keep_days ?? 0, 0, 3650, (v) => set({ privacy: { keep_days: v } })),
+      // 3.14 návrh 117: anonymous statistics – off unless you switch them on, and you see exactly what would go out
+      sw("Anonymní statistiky", "Jednou týdně: verze, které vestavěné nástroje se používají a jak často selhávají, rychlost AI a hlasu. Nikdy nic z toho, co říkáš, píšeš nebo máš v souborech.",
+        () => !!P.share_stats, (v) => set({ privacy: { share_stats: v } })),
+      statsUrl(P.stats_url || ""),
+      h("div", { class: "row" }, h("span", { class: "help" }, "Přesně tohle by se poslalo:"),
+        h("button", { class: "btn sm", type: "button", onclick: () => client.send("stats_preview_get") }, icon("eye"), "Ukázat")),
+      statsBox);
   }
 
   function renderUsage(m: any) {

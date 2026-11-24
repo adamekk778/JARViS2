@@ -1,0 +1,6 @@
+# a blank issue stays allowed: JARVIS's own "Nahlásit chybu" button opens one with the version and the log filled in
+blank_issues_enabled: true
+contact_links:
+  - name: Dokumentace a návody
+    url: https://github.com/adamekk778/JARViS2#readme
+    about: Jak JARVIS nastavit, propojit se službami a psát vlastní dovednosti.

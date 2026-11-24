@@ -43,6 +43,7 @@ export const CLIENT_TYPES = [
   "notice_feedback", "proactive_get",
   "widgets_get", "widget_delete", "mochi_level_get",
   "access_log_get",
+  "stats_preview_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -72,6 +73,7 @@ export const SERVER_TYPES = [
   "proactive",
   "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
   "access_log",
+  "stats_preview",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

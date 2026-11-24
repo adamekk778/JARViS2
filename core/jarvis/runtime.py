@@ -272,6 +272,9 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
         self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
+        from . import stats
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
         from . import quality
 
         self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)

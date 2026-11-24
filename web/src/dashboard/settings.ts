@@ -282,7 +282,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       card("O tobě", null,
         h("div", { class: "grid2" }, text("general.user_name", "Tvoje jméno"), text("general.address_as", "Jak tě má oslovovat", "Např. pane, šéfe, Adame")),
         h("div", { class: "grid2" }, text("general.city", "Domovské město", "Pro počasí"),
-          select("general.language", "Jazyk", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "English"], ["de", "Deutsch"]]))),
+          select("general.language", "Jazyk", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "English"], ["de", "Deutsch"]],
+            "V jakém jazyce JARVIS odpovídá. English přepne do angličtiny i aplikaci."))),
       card("Osobnost", null,
         select("general.personality", "Styl", [["jarvis", "J.A.R.V.I.S. (zdvořilý, suchý humor)"], ["friend", "Kamarád (tyká, uvolněný)"], ["brief", "Stručný (jen fakta)"], ["custom", "Vlastní prompt"]], "", () => setTimeout(render, 150)),
         S.general.personality === "custom" ? (() => {

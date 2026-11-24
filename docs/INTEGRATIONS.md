@@ -3,6 +3,7 @@
 | Integrace | Stav | Jak se připojuje | Kde jsou tajemství | Omezení |
 |---|---|---|---|---|
 | AI poskytovatelé (Claude, OpenAI, Gemini, Groq, OmniRoute, kompatibilní API) | funkční | Nastavení → Mozek | trezor OS | limity a cena podle poskytovatele; řetěz s náhradou |
+| Claude přes oficiální SDK (3.14) | funkční | Nastavení → Mozek → Claude (adresa api.anthropic.com) | trezor OS | cache promptu, přemýšlení podle obtížnosti; jiné adresy jdou přes OpenAI-kompatibilní rozhraní |
 | Místní modely (Ollama, LM Studio) | funkční, volitelné | Nastavení → Mozek | — | stažení jen ručně; výkon podle GPU |
 | Claude Code CLI | funkční | háčky Claude Code → notch/telefon (claude_bridge.py) | — | jen podporovaným rozhraním, bez obcházení limitů |
 | MCP servery | funkční | Nastavení → Integrace | trezor OS | nástroje MCP spadají pod oprávnění Internet |
@@ -15,7 +16,13 @@
 | Google Zprávy RSS, Open-Meteo počasí | funkční | bez účtu | — | — |
 | GitHub, Google Drive | přes MCP | MCP server | podle serveru | — |
 | Blender, Unity, Roblox Studio | jen přes ovládání počítače | — | — | nativní integrace v ROADMAP |
-| Jízdní řády ČR | chybí | — | — | chybí veřejné API |
+| MHD Praha (PID, Golemio) | funkční s klíčem | Nastavení → Propojení → Golemio | trezor OS | bezplatný klíč z api.golemio.cz; jen Praha |
+| Jízdní řády mimo Prahu | chybí | — | — | chybí veřejné API |
+| OBS Studio (3.14) | funkční | obs-websocket 5 (OBS 28+), Nastavení → Propojení → OBS | trezor OS (heslo) | scény, nahrávání, stream, uložení posledních chvil |
+| PresentMon (FPS ve hrách, 3.14) | volitelné | nainstalovaný PresentMon | — | bez něj se FPS neměří |
+| winget (3.14) | připraveno | manifesty v příloze každého vydání | — | zařazení do katalogu = ruční PR do microsoft/winget-pkgs (docs/WINGET.md) |
+| Webová stránka (GitHub Pages, 3.14) | připraveno | `site/` + workflow `pages.yml` | — | správce zapne Pages: Settings → Pages → GitHub Actions |
+| Anonymní statistiky (3.14) | vypnuté | Bezpečí a soukromí → Anonymní statistiky + adresa serveru | — | jen se souhlasem; sběrný server `packaging/stats-worker` (Cloudflare Worker) |
 
 Kontrola funkčnosti: Nastavení → Mozek (test poskytovatele), E-mail a telefon (stav účtů a spojení s telefonem),
 Domov (test Home Assistantu při uložení), Diagnostika.

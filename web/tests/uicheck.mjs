@@ -54,7 +54,10 @@ for (const p of PAGES) {
         const n = document.querySelector("#notch, .notch, [data-notch]");
         if (n) { const r = n.getBoundingClientRect(); notchOk = r.left >= -1 && r.right <= window.innerWidth + 1 && r.top >= -1; }
       }
-      return { overflowX, clipped, notchOk, title: document.title, nodes: document.querySelectorAll("*").length };
+      // 3.14 návrh 114: with --lang en the app must really be in English (the sidebar at least)
+      const text = document.body.innerText || "";
+      const english = de.lang === "en" && !/\bNastavení\b/.test(text.slice(0, 4000));
+      return { overflowX, clipped, notchOk, title: document.title, nodes: document.querySelectorAll("*").length, english };
     }, !!p.notch).catch((e) => ({ overflowX: 0, clipped: 0, notchOk: true, title: "", nodes: 0, evalErr: String(e) }));
     let a11y = { critical: [], serious: 0 };
     if (axeSource && !loadErr) {
@@ -74,6 +77,7 @@ for (const p of PAGES) {
     if (loadErr) problems.push(`nenačetla se: ${loadErr}`);
     if (errors.length) problems.push(...errors.map((e) => `chyba ve skriptu: ${e}`));
     if (p.name !== "notch" && m.overflowX > 2) problems.push(`stránka přetéká do strany o ${m.overflowX} px`);
+    if (process.env.UICHECK_LANG === "en" && p.name === "dashboard" && !m.english) problems.push("rozhraní není anglicky (--lang en)");
     if (m.clipped > 0) problems.push(`${m.clipped} tlačítek/nadpisů je useknutých vpravo`);
     if (!m.notchOk) problems.push("notch je mimo okno");
     if (m.nodes < 10) problems.push("stránka je skoro prázdná");

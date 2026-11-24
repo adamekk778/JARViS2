@@ -320,9 +320,9 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 180 | Oprávnění podle projektu. | ✅ HOTOVO | oprávnění podle projektu: pro aktivní projekt jen vybrané oblasti (limits.project_perms) |
 | 181 | Dočasná oprávnění. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
 | 182 | Dvojí potvrzení nebezpečných operací. | ✅ HOTOVO | nevratné akce (mazání, vypnutí PC, odemčení) se ptají dvakrát (agent._needs_second, tests/test_agent.py) |
-| 183 | Detekce škodlivých instrukcí z externích zdrojů. | ✅ HOTOVO | skener skrytých pokynů v e-mailech, webech, souborech a zprávách (injection.py, tools/base.py UNTRUSTED_OUTPUT) |
+| 183 | Detekce škodlivých instrukcí z externích zdrojů. | ✅ HOTOVO | skener skrytých pokynů + upozornění s konkrétní podezřelou větou a zdrojem (adresa / soubor / předmět), zapsané do záznamu přístupů (shield.report_injection, tools/base.py) |
 | 184 | Správa propojených zařízení. | ✅ HOTOVO | spárovaná zařízení s vlastním klíčem: seznam (spárováno, naposledy, online) v Nastavení → Telefon a nástroj paired_devices |
-| 185 | Revokace ztracených zařízení. | ✅ HOTOVO | odpojení jednoho ztraceného zařízení (jeho klíč přestane platit, spojení se ukončí); ostatní zůstanou spárované |
+| 185 | Revokace ztracených zařízení. | ✅ HOTOVO | odvolání jednoho zařízení + při spárování nového zařízení dostanou ostatní telefony upozornění s tlačítkem Odvolat (shield.announce_device, runtime.notice_action device_revoke) |
 
 ## 18. Iron Man — Future Tech
 
@@ -559,7 +559,7 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 | 342 | Environment Reproducer — reprodukovatelné prostředí. | ✅ HOTOVO | container_setup: Dockerfile, .dockerignore a devcontainer.json se stejnou verzí Pythonu / Node / .NET jako na PC (náhled, zápis se souhlasem, nepřepisuje) |
 | 343 | Automated Release Notes — release notes. | ✅ HOTOVO | release_notes: commity od posledního tagu podle typu (i české zprávy), Markdown |
 | 344 | Feature Flag Manager — přepínače funkcí. | ✅ HOTOVO | feature_flags (stav, použití v kódu, nepoužívané, nedefinované) + set_feature_flag (se záchytným bodem) |
-| 345 | Code Experiment Sandbox — experimentální kód. | ✅ HOTOVO | code_sandbox: příkaz v jednorázové kopii projektu, výstup a seznam souborů, které by se změnily; originál beze změny |
+| 345 | Code Experiment Sandbox — experimentální kód. | ✅ HOTOVO | code_sandbox (kopie projektu) + run_python v omezeném prostředí; samooprava dovedností: chyba se zapamatuje, AI navrhne opravu, diff ke schválení, záloha staré verze (skillheal.py) |
 
 ## 29. AI Design Studio
 
@@ -1053,15 +1053,15 @@ Pozn.: položky se překrývají (viz FEATURE_MATRIX.md), součty nejsou počtem
 |---|---|---|---|
 | 676 | Consent Receipt Manager — evidence souhlasů. | ✅ HOTOVO | evidence souhlasů: dočasná oprávnění a přístupy hostů s platností, výpis a odvolání (odvolání hosta ruší i přístup) |
 | 677 | Personal Data Inventory — evidence údajů. | ✅ HOTOVO | inventář dat: co, kolik a kde (privacy.inventory, Bezpečí a soukromí) |
-| 678 | Outbound Data Inspector — před odesláním dat. | ✅ HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py) |
+| 678 | Outbound Data Inspector — před odesláním dat. | ✅ HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py) + u anonymních statistik přesný náhled toho, co odejde, ještě před zapnutím (stats.payload, Bezpečí a soukromí) |
 | 679 | Microphone Access Audit — mikrofon. | ✅ HOTOVO | záznam, kdy naslouchal mikrofon (privacy.MicLog) |
-| 680 | Camera Access Audit — kamera. | ✅ HOTOVO | kamera se nepoužívá – uvedeno v přehledu mikrofonu a kamery |
+| 680 | Camera Access Audit — kamera. | ✅ HOTOVO | kamera jen na pokyn; každé použití (fotka z telefonu, sledování objektu, kalibrace) je v záznamu přístupů s časem a nástrojem (shield.py, Bezpečí a soukromí → Co JARVIS dnes viděl) |
 | 681 | Clipboard Secret Masking — redakce schránky. | ✅ HOTOVO | hesla a tokeny se do historie schránky neukládají (powers.looks_secret) |
 | 682 | Application Allowlist — seznam povolených aplikací. | ✅ HOTOVO | myš a klávesnice jen v povolených aplikacích (limits.app_allowlist, tools/base.py) |
 | 683 | Temporary Permission Grants — dočasná povolení. | ✅ HOTOVO | dočasné povolení vypnutého oprávnění na 15/60 min jen z UI (permissions.grant) |
 | 684 | Data Retention Rules — uchovávání dat. | ✅ HOTOVO | mazání dat starších než N dní (privacy.prune, denně) |
 | 685 | Encrypted Vault Backup — šifrované zálohy. | ✅ HOTOVO | šifrovaná záloha AES-256-GCM + PBKDF2, obnova do nové složky (privacy.backup_encrypted) |
-| 686 | Untrusted Agent Isolation — izolace agentů. | ✅ HOTOVO | izolace nedůvěryhodných integrací: MCP servery bez důvěry potvrzují každou akci, výstup s pokyny pro AI je označen jako data |
+| 686 | Untrusted Agent Isolation — izolace agentů. | ✅ HOTOVO | izolace nedůvěryhodného kódu: run_python v omezeném prostředí (audit hook: žádné programy, síť jen se svolením, zápis jen do vlastní složky, limit paměti, Windows Job Object) a dovednosti s manifestem dodržují svá oprávnění (sandbox.py, skill_runner.fence, tests/test_sandbox314.py); není to virtuální stroj |
 | 687 | Audit Log Export — export logů. | ✅ HOTOVO | export auditu do CSV + JSON (missions.export_audit) |
 | 688 | Project Isolation Profiles — oddělení projektů. | ✅ HOTOVO | oddělené projekty: soubory jen ve složce aktivního projektu, vlastní paměť faktů, vlastní oprávnění |
 | 689 | Sensitive Action Lock — uzamčení rizikových akcí. | ✅ HOTOVO | uzamčení rizikových akcí: režim jen pro čtení (AI ho nevypne), nouzové uzamčení, dvojí potvrzení nevratných akcí, otisk prstu na telefonu |

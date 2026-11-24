@@ -5,6 +5,7 @@ import { ChatView, conversationList } from "../shared/chat";
 import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
+import "../shared/i18n";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
 import { approvalsCard, permissionsWizard } from "./agents";

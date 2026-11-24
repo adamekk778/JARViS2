@@ -5,6 +5,8 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.14": [
+    { icon: "translate", title: "JARVIS anglicky", line: "Nastavení → Obecné → Jazyk → English: JARVIS odpovídá anglicky a přepne do angličtiny i aplikaci, notch a telefon. Instalace jde i přes winget a projekt má vlastní webovou stránku." },
+    { icon: "chart-bar", title: "Statistiky jen se souhlasem", line: "Chceš pomoct JARVIS zlepšovat? V Bezpečí a soukromí můžeš zapnout anonymní statistiky – předem ti ukážu přesně, co by se poslalo. Nikdy nic z toho, co říkáš nebo píšeš. Ve výchozím stavu je to vypnuté." },
     { icon: "shield-check", title: "Kód v ohrádce", line: "Python, který JARVIS spouští, i naučené dovednosti běží v omezeném prostředí: bez spouštění programů, bez sítě a bez zápisu mimo svou složku, pokud to dovednost výslovně nepotřebuje. Na Windows navíc s limitem paměti." },
     { icon: "eye", title: "Co JARVIS viděl a slyšel", line: "V Bezpečí a soukromí najdeš, kdy JARVIS sáhl na obrazovku, schránku, myš, kameru nebo mikrofon a proč. Podezřelou větu z webu nebo e-mailu („ignoruj předchozí pokyny…“) ti ukáže i s tím, odkud přišla." },
     { icon: "user-switch", title: "Režim host", line: "Sedí u PC někdo jiný? Řekni „zapni režim host“: JARVIS nic osobního neprozradí, upozornění ukáže jen s nadpisem a e-maily ani paměť neotevře. A když se spáruje nový telefon, ostatní dostanou zprávu s tlačítkem Odvolat." },

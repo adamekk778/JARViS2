@@ -1,0 +1,23 @@
+# 3.14 návrh 118
+name: Nápad
+description: Co by JARVIS měl umět
+title: "[Nápad] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Co by měl JARVIS umět
+      placeholder: "Chtěl bych říct „…“ a JARVIS by …"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: K čemu ti to bude
+      description: Situace, ve které ti to chybí – pomůže to vybrat to nejlepší řešení.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Oblast
+      options: [Hlas, Notch a vzhled, Ovládání PC, Telefon, Paměť, Propojení se službami, Bezpečnost a soukromí, Jiné]

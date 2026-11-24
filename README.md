@@ -15,6 +15,12 @@ Stáhni z **[Releases](../../releases/latest)**:
 
 Pak na PC: JARVIS → **Telefon** → v aplikaci na mobilu **Naskenovat QR kód**. Hotovo.
 
+Nebo přes Správce balíčků Windows (až bude JARVIS v katalogu winget – viz `docs/WINGET.md`):
+
+```bash
+winget install adamekk778.JARVIS
+```
+
 > Při prvním spuštění se Windows zeptá na povolení v bráně firewall: povol **Soukromé sítě**, jinak se telefon nepřipojí.
 > Hlasové modely (Whisper ~460 MB) se stáhnou automaticky při prvním použití hlasu.
 
@@ -34,7 +40,6 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 - **Přílohy:** fotky (popíše), PDF, Word, Excel, PowerPoint, kód, hlasovky (přepíše), cokoli dalšího uloží/otevře.
 - **Postavička JARVIS:** lesklý černý blob s očima, který bydlí v notchi a má 24 nálad (poslouchá, přemýšlí, mluví, tančí do hudby, pracuje, spí, chyba, limit, bez internetu, upozornění, radost…). Barvu a velikost změníš v Nastavení → Vzhled nebo hlasem.
 - **Notch:** najeď myší nahoru doprostřed obrazovky → JARVIS se probudí a vyjede lišta; klik na něj otevře velký panel (Chat, Rychlé akce, Systém, Soubory, Nástroje, Nastavení).
-- **Mazlíček na ploše:** chytni JARVISe v notchi a táhni dolů. Chodí po hlavním panelu a oknech, skáče, usíná; klik = poslouchej, dvojklik = zpět do notche, pravé tlačítko = menu.
 - **Aktualizace:** panel → Systém → Zkontrolovat / Aktualizovat (instaluje jen po potvrzení).
 - **Ovládání PC:** aplikace, YouTube, Spotify/média, hlasitost, okna, soubory, schránka, screenshot, vypnutí (s potvrzením), PowerShell.
 - **Internet:** vyhledávání a čtení stránek, počasí.
@@ -46,13 +51,28 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.14
+
+Velká vlna vylepšení (118 návrhů, rozdělených do 11 oblastí). Nejdůležitější:
+
+- **Spolehlivost:** sada 300+ zkušebních otázek hlídá kvalitu odpovědí při každé změně, Diagnostika ukáže selhávající
+  nástroje a rychlost každé AI, rozbitá aktualizace se sama vrátí, kanál Beta, kontrola rozhraní v prohlížeči.
+- **Mozek:** Claude přes oficiální SDK (cache promptu, úroveň přemýšlení podle obtížnosti), úplně offline balíček.
+- **Hlas:** rozpozná tvůj hlas, mluví stylem podle situace, odpovídá od první věty.
+- **Paměť:** místní vyhledávání podle významu, rozhodnutí i s důvodem, import z ChatGPT / Claude / Google Keep.
+- **Myslí dopředu, notch, ovládání PC, telefon, propojení:** OBS a herní klipy, podepsané balíčky dovedností,
+  odpovědi z hodinek a z auta, widget v telefonu.
+- **Bezpečnost:** kód a dovednosti v omezeném prostředí, záznam toho, co JARVIS viděl a čeho se dotkl, režim host,
+  upozornění na nové spárované zařízení, samooprava dovedností, vlastní oprávnění pro každého agenta.
+- **Dosah:** anglické rozhraní (Nastavení → Obecné → Jazyk → English), winget, webová stránka projektu (`site/`),
+  anonymní statistiky jen se souhlasem (ve výchozím stavu vypnuté), šablony pro hlášení chyb a nápadů.
+
 ## Ruční test po instalaci
 
 - [ ] „Hey Jarvis, pusť na YouTube trailer na Avengers“ → rozevře se notch, JARVIS odpoví a pustí video.
 - [ ] Ctrl+Alt+J → chat, pošli fotku → JARVIS ji popíše.
 - [ ] „Ztlum zvuk“, „hlasitost na 30“, „jaké bude počasí“.
 - [ ] Najeď myší na notch → JARVIS se probudí, vyjede lišta; klik na něj → velký panel; odjeď → zavře se.
-- [ ] Táhni JARVISe z notche dolů → chodí po hlavním panelu, vyskočí na okno; dvojklik → zpět do notche.
 - [ ] Pusť hudbu → JARVIS v notchi tancuje; nech PC 10 min být → usne.
 - [ ] Telefon na Wi-Fi: napiš „otevři Spotify“ → otevře se na PC. Pak přes mobilní data se zapnutým Tailscale.
 - [ ] „Vypni počítač“ → JARVIS se zeptá na potvrzení, řekni „ne“.

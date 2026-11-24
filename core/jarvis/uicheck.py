@@ -21,7 +21,7 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
-def serve(port: int) -> threading.Thread:
+def serve(port: int, lang: str = "cs") -> threading.Thread:
     import uvicorn
 
     from .runtime import Runtime
@@ -32,6 +32,7 @@ def serve(port: int) -> threading.Thread:
     rt.cfg.phone.port = port
     rt.cfg.general.onboarded = True            # the pages themselves, not the first-run guide over them
     rt.cfg.general.user_name = "Adam"
+    rt.cfg.general.language = lang             # 3.14 návrh 114: --lang en checks the English UI
     app = create_app(rt, manage_runtime=False)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", lifespan="off"))
     th = threading.Thread(target=server.run, daemon=True)
@@ -48,13 +49,14 @@ def serve(port: int) -> threading.Thread:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="jarvis.uicheck")
     ap.add_argument("--out", default="uicheck-out")
+    ap.add_argument("--lang", default="cs", choices=["cs", "en"])
     a = ap.parse_args(argv)
     os.environ.setdefault("JARVIS_NO_NET", "1")
     root = Path(__file__).resolve().parents[2]
     port = free_port()
-    serve(port)
+    serve(port, a.lang)
     script = root / "web" / "tests" / "uicheck.mjs"
-    env = {**os.environ, "NODE_PATH": os.environ.get("NODE_PATH", "")}
+    env = {**os.environ, "NODE_PATH": os.environ.get("NODE_PATH", ""), "UICHECK_LANG": a.lang}
     r = subprocess.run(["node", str(script), f"http://127.0.0.1:{port}", a.out], cwd=str(root / "web"), env=env)
     return r.returncode
 

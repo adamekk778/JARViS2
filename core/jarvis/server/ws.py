@@ -67,6 +67,7 @@ CLIENT_TYPES = [
     "notice_feedback", "proactive_get",
     "widgets_get", "widget_delete", "mochi_level_get",
     "access_log_get",
+    "stats_preview_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -96,6 +97,7 @@ SERVER_TYPES = [
     "proactive",
     "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
     "access_log",
+    "stats_preview",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

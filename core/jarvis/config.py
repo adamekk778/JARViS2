@@ -599,6 +599,8 @@ class PrivacyCfg(BaseModel):
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
     mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
     mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)
+    share_stats: bool = False          # 3.14 návrh 117: anonymous weekly statistics – only when switched on
+    stats_url: str = ""                # where they go (HTTPS); empty = nothing is ever sent
 
 
 class AgentCfg(BaseModel):

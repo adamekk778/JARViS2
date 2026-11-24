@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS – osobní AI asistent pro Windows</title>
+<meta name="description" content="JARVIS mluví česky, ovládá počítač, čte e-maily a kalendář, hlídá výkon PC a spolupracuje s telefonem.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #07090d; --panel: #0f131a; --line: #1c2330; --text: #e8ecf2; --muted: #9aa3b2; --accent: #4f8cff; --accent2: #8b5cf6;
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --bg: #f6f7fb; --panel: #ffffff; --line: #e3e7ef; --text: #11151c; --muted: #5b6474; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .08em; }
+  .brand img { width: 32px; height: 32px; }
+  .lang { display: flex; gap: 4px; }
+  .lang button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; font-size: 14px; }
+  .lang button[aria-pressed="true"] { color: var(--text); border-color: var(--accent); }
+  .hero { padding: 64px 0 40px; text-align: center; }
+  .hero h1 { font-size: clamp(32px, 6vw, 56px); line-height: 1.1; margin: 0 0 16px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 auto 28px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; text-decoration: none; font-weight: 600; border: 1px solid var(--line); color: var(--text); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  code.cmd { display: inline-block; margin-top: 18px; padding: 8px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; margin: 32px 0 56px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  h2 { font-size: 26px; margin: 48px 0 8px; }
+  .docs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 10px; margin-bottom: 56px; }
+  .docs a { display: block; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--text); }
+  .docs a small { display: block; color: var(--muted); }
+  footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+  [data-en] { display: none; }
+  html[lang="en"] [data-cs] { display: none; }
+  html[lang="en"] [data-en] { display: revert; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><img src="icon.svg" alt="">JARVIS</div>
+    <div class="lang" role="group" aria-label="Jazyk / Language">
+      <button type="button" data-set="cs" aria-pressed="true">CZ</button>
+      <button type="button" data-set="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1 data-cs>Tvůj vlastní <span>JARVIS</span> na Windows</h1>
+    <h1 data-en>Your own <span>JARVIS</span> on Windows</h1>
+    <p data-cs>Mluví česky, ovládá počítač, čte e-maily a kalendář, hlídá výkon PC, pracuje s telefonem – a nic neudělá bez tvého souhlasu.</p>
+    <p data-en>Speaks Czech and English, drives your PC, reads e-mail and calendar, watches your PC's health, works with your phone – and does nothing without your approval.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/adamekk778/JARViS2/releases/latest"><span data-cs>Stáhnout pro Windows</span><span data-en>Download for Windows</span></a>
+      <a class="btn" href="https://github.com/adamekk778/JARViS2/releases/latest"><span data-cs>Aplikace pro Android</span><span data-en>Android app</span></a>
+    </div>
+    <code class="cmd">winget install adamekk778.JARVIS</code>
+  </section>
+
+  <div class="grid">
+    <div class="card"><h3 data-cs>Hlas a notch</h3><h3 data-en>Voice and notch</h3>
+      <p data-cs>„Hey Jarvis“ kdykoli, odpověď od první věty, notch nahoře na obrazovce s hudbou, časovači a agenty.</p>
+      <p data-en>“Hey Jarvis” any time, answers from the first sentence, a notch at the top of the screen with music, timers and agents.</p></div>
+    <div class="card"><h3 data-cs>Ovládá počítač</h3><h3 data-en>Drives your PC</h3>
+      <p data-cs>Aplikace, okna, soubory, myš a klávesnice – i víc agentů najednou na různých monitorech.</p>
+      <p data-en>Apps, windows, files, mouse and keyboard – even several agents at once on different monitors.</p></div>
+    <div class="card"><h3 data-cs>Pamatuje si</h3><h3 data-en>Remembers</h3>
+      <p data-cs>Fakta, rozhodnutí i projekty – s místním vyhledáváním podle významu. Všechno jde najít, opravit i smazat.</p>
+      <p data-en>Facts, decisions and projects – with local search by meaning. Everything can be found, corrected or deleted.</p></div>
+    <div class="card"><h3 data-cs>Telefon</h3><h3 data-en>Phone</h3>
+      <p data-cs>Schvalování akcí, zprávy na PC, odpovědi z hodinek, widget a funguje i mimo domov.</p>
+      <p data-en>Approvals, messages on the PC, replies from your watch, a widget – and it works away from home too.</p></div>
+    <div class="card"><h3 data-cs>Bezpečí na prvním místě</h3><h3 data-en>Safety first</h3>
+      <p data-cs>Oprávnění po oblastech, režim jen pro čtení, kód v omezeném prostředí, záznam všeho, co viděl, a režim host.</p>
+      <p data-en>Permissions by area, read-only mode, fenced code, a log of everything it saw, and guest mode.</p></div>
+    <div class="card"><h3 data-cs>Tvoje AI</h3><h3 data-en>Your AI</h3>
+      <p data-cs>Claude, Groq, Gemini, OpenRouter i úplně offline modely – JARVIS sám volí podle obtížnosti a ceny.</p>
+      <p data-en>Claude, Groq, Gemini, OpenRouter and fully offline models – JARVIS picks by difficulty and price.</p></div>
+  </div>
+
+  <h2 data-cs>Dokumentace</h2><h2 data-en>Documentation</h2>
+  <div class="docs">
+    <a href="https://github.com/adamekk778/JARViS2#readme"><span data-cs>Začínáme</span><span data-en>Getting started</span><small>README</small></a>
+    <a href="https://github.com/adamekk778/JARViS2/blob/HEAD/docs/INTEGRATIONS.md"><span data-cs>Propojení se službami</span><span data-en>Integrations</span><small>INTEGRATIONS.md</small></a>
+    <a href="https://github.com/adamekk778/JARViS2/blob/HEAD/docs/SDK.md"><span data-cs>Vlastní dovednosti (SDK)</span><span data-en>Write your own skills (SDK)</span><small>SDK.md</small></a>
+    <a href="https://github.com/adamekk778/JARViS2/blob/HEAD/docs/ARCHITECTURE.md"><span data-cs>Jak to funguje uvnitř</span><span data-en>How it works inside</span><small>ARCHITECTURE.md</small></a>
+    <a href="https://github.com/adamekk778/JARViS2/blob/HEAD/docs/ROADMAP.md"><span data-cs>Co chystáme</span><span data-en>Roadmap</span><small>ROADMAP.md</small></a>
+    <a href="https://github.com/adamekk778/JARViS2/issues/new/choose"><span data-cs>Nahlásit chybu nebo nápad</span><span data-en>Report a bug or an idea</span><small>GitHub Issues</small></a>
+  </div>
+
+  <footer>
+    <span data-cs>JARVIS je osobní projekt. Není spojený se společností Marvel ani s filmy o Iron Manovi.</span>
+    <span data-en>JARVIS is a personal project, not affiliated with Marvel or the Iron Man films.</span>
+  </footer>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    function set(l) {
+      root.lang = l;
+      document.querySelectorAll(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === l)); });
+      try { localStorage.setItem("jarvis_site_lang", l); } catch (e) { /* private window */ }
+    }
+    var saved = null;
+    try { saved = localStorage.getItem("jarvis_site_lang"); } catch (e) { /* private window */ }
+    set(saved || (/^(cs|sk)\b/i.test(navigator.language || "") ? "cs" : "en"));
+    document.querySelectorAll(".lang button").forEach(function (b) { b.onclick = function () { set(b.dataset.set); }; });
+  })();
+</script>
+</body>
+</html>

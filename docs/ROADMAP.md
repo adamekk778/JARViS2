@@ -14,6 +14,24 @@ Malé ověřitelné milníky; každý končí testy, CI na skutečném Windows a
 | M7 | Controlled Self-Evolution: návrh změny vlastních dovedností na samostatné větvi/sandboxu, měření před/po, testy, diff + schválení + rollback | změna dovednosti projde testy a jde vrátit | nikdy nesahat na kód oprávnění |
 | M8 | World Builder a experimentální: Blender/Unity/Roblox přes jejich API, sériový port/Arduino, AR/gesta (jen pokud je HW) | reálný artefakt (soubor modelu/projektu) s důkazem | závislost na nainstalovaných nástrojích |
 
+## 3.14 – „nejlepší JARVIS“ (118 návrhů v 11 dávkách)
+Hotovo v kódu s testy: spolehlivost a měření kvality, Claude přes SDK, hlas, paměť s místním vyhledáváním podle
+významu, proaktivita, notch, ovládání PC, telefon (odpovědi z hodinek, Android Auto na úrovni oznámení, widget),
+propojení (OBS, podepsané balíčky dovedností), bezpečnost (kód v omezeném prostředí, záznam přístupů, režim host,
+samooprava dovedností, oprávnění pro každého agenta zvlášť) a dosah (angličtina, winget, web, statistiky se souhlasem).
+
+Co z 3.14 zbývá (a proč):
+- **Vlastní aplikace pro Wear OS** – dnes hodinky odpovídají přes oznámení telefonu (RemoteInput); samostatná aplikace ne.
+- **Plné Android Auto** – jen oznámení s odpovědí; vlastní obrazovka v autě vyžaduje šablony Car App Library.
+- **Geofencing na pozadí** – potřebuje službu s typem location a oprávnění „vždy“; zatím jen v popředí.
+- **Plně obousměrná offline synchronizace telefonu a PC** – zatím fronta zpráv odeslaných bez připojení.
+- **Klíčové snímky pro animace notche (editor)** a **mazlíček na ploše** (odstraněn ve 3.1).
+- **„Hmm, aha“ během poslechu** (zpětná vazba hlasem) – mikrofon by ji nahrál; potřeba echo-cancel.
+- **Vlastní velký hlasový model** – potřebuje GPU a token Hugging Face.
+- **iOS** – nativní build vyžaduje Mac a účet Apple; zatím PWA.
+- **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
+- **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
+
 ## Android vs. iPhone
 | Schopnost | Android (dnes) | iPhone |
 |---|---|---|
