@@ -30,7 +30,30 @@ KIND_LABEL = {
     "zone_enter": "Přijdu na místo (telefon)", "zone_leave": "Odejdu z místa (telefon)",
     "home_state": "Čidlo v domácnosti (Home Assistant)",
     "phone_power": "Telefon na nabíječce", "phone_battery": "Slabá baterie telefonu",
+    "phrase": "Řeknu větu",
 }
+
+
+def _norm_phrase(text: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    t = re.sub(r"[^a-z0-9 ]", " ", t)
+    return " ".join(w for w in t.split() if w not in ("jarvis", "jarvisi", "hej", "hey", "prosim"))
+
+
+def phrase_match(rt, text: str):
+    """3.14 návrh 48: an enabled "phrase" automation whose sentence is what was just said (or how it starts)."""
+    said = _norm_phrase(text)
+    if not said or not getattr(rt.cfg.automations, "enabled", True):
+        return None
+    for a in rt.cfg.automations.items:
+        if a.enabled and a.trigger.type == "phrase":
+            p = _norm_phrase(a.trigger.value)
+            if p and (said == p or (said.startswith(p + " ") and len(said.split()) <= len(p.split()) + 2)):
+                return a
+    return None
 HOME_POLL_S = 30
 
 
@@ -202,6 +225,9 @@ class Automations:
             next((a for a in items if want and want in _fold(a.name)), None)
 
     # ---------- firing ----------
+    def phrase_match(self, text: str):
+        return phrase_match(self.rt, text)
+
     def fire(self, a, vars: dict | None = None, reason: str = "", force: bool = False) -> bool:
         now = time.monotonic()
         if not force and now - self._last.get(a.id, -1e9) < COOLDOWN_S:

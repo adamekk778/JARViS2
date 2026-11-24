@@ -61,6 +61,7 @@ CLIENT_TYPES = [
     "quality_get", "bug_report", "rollback_now", "update_channel_set",
     "rules_get", "rule_delete", "rule_add", "answer_rate", "ratings_get",
     "offline_pack_get", "offline_pack_prepare", "offline_pack_test",
+    "voiceid_get", "voiceid_sample", "voiceid_save", "voiceid_delete", "voiceid_reset",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -84,6 +85,7 @@ SERVER_TYPES = [
     "quality", "bug_report_url",
     "rules", "ratings", "answer_check",
     "offline_pack", "offline_pack_progress", "offline_pack_test_result",
+    "voiceid",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

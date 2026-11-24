@@ -335,7 +335,9 @@ class Agent:
             world = ""
         from . import brainplus
 
-        plus = [brainplus.rules_prompt(rt) if getattr(rt.cfg.brain, "learn_corrections", True) else "",
+        vid = getattr(rt, "voiceid", None)
+        plus = [vid.prompt() if voice and vid is not None else "",                     # 3.14 who is speaking
+                brainplus.rules_prompt(rt) if getattr(rt.cfg.brain, "learn_corrections", True) else "",
                 brainplus.traits_prompt(rt.cfg),
                 brainplus.risky(text) if getattr(rt.cfg.brain, "second_opinion", True) else ""]
         extra = "\n\n".join(x for x in (proj, mood, world, *plus, extra) if x)
@@ -423,7 +425,13 @@ class Agent:
             approved = True
             from . import trust
 
-            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt) and \
+            dangerous = tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt)
+            vid = getattr(rt, "voiceid", None)
+            owner_block = bool(dangerous and getattr(self, "_source_now", "") == "voice"
+                               and getattr(rt.cfg.voice, "owner_only", True) and vid is not None and not vid.owner_ok())
+            if owner_block:                            # 3.14 návrh 38: a risky action by voice only in the owner's voice
+                approved = False
+            elif dangerous and \
                     not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False)):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
@@ -433,7 +441,11 @@ class Agent:
                         approved = await self._ask_confirm(call, second=True)
                 finally:
                     rt.tasks.set_waiting(False)
-            if not approved:
+            if owner_block:
+                res = tools.ToolResult(False, "Tohle hlasem udělám jen na pokyn majitele (jeho hlas jsem nepoznal). Ať to "
+                                              "řekne sám, nebo ať to napíše v chatu. NEPROVEDENO.")
+                rt.bus.publish("tool_end", id=call.id, ok=False, summary="Jen hlasem majitele")
+            elif not approved:
                 res = tools.ToolResult(False, "Uživatel akci nepotvrdil – NEPROVEDENO. Nezkoušej to znovu.")
                 rt.bus.publish("tool_end", id=call.id, ok=False, summary="Zrušeno")
             else:
@@ -501,6 +513,7 @@ class Agent:
         bus = rt.bus
         voice = source in ("voice", "mobile_voice", "headset")      # spoken: short answers without tables or code
         self._goal = text or "(příloha)"
+        self._source_now = source
         self._sources = []
         self._untrusted_seen = False            # 3.13 full trust asks again after e-mails / web pages were read
         rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
@@ -529,7 +542,11 @@ class Agent:
         used_now: list[str] = []
         cancelled = False
         quick = None                                       # 3.13 an everyday command: done at once, no AI in between
-        if not attachments and not self._only and getattr(rt.cfg.agent, "instant", True):
+        phrase = None if attachments else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
+        if phrase is not None:                             # 3.14 návrh 48: "jdu spát" → your own routine, no AI
+            rt.automations.fire(phrase, {"text": text or ""}, reason="phrase", force=True)
+            quick = f"Spouštím {phrase.name}."
+        if quick is None and not attachments and not self._only and getattr(rt.cfg.agent, "instant", True):
             from . import instant
 
             p = instant.plan(text)

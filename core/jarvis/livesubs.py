@@ -255,6 +255,8 @@ class LiveSubs:
             if out and self.on and self.text == text:      # a newer line already replaced it → do not go back
                 self.text, self.lang = out, f"{lang}→cs"
                 self._publish()
+                if getattr(self.rt.cfg.notch, "subs_speak", False) and getattr(self.rt, "speaker", None):
+                    self.rt.speak(out)                     # 3.14 návrh 45: the translation also aloud (a quiet dub)
 
         coro = run()
         try:

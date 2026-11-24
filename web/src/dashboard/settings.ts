@@ -451,6 +451,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("voice.stt_download_ok", "Povolit stažení místního modelu řeči", "Jen bez klíče od Groq: model (asi 0,5 GB) se jednou stáhne při prvním mluvení a pak funguje offline.")),
         select("voice.stt_language", "Jazyk řeči", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "Angličtina"], ["auto", "Automaticky"]])),
       voiceStudio(),
+      voiceId(),
       card("Hlas JARVISe", null,
         (() => {
           const outs: string[] | undefined = extra.audio?.outputs;
@@ -465,6 +466,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         range("voice.tts_volume", "Hlasitost hlasu", -50, 50, 5, (v) => signed(v, " %"), pct, (v) => signed(v, "%")),
         select("voice.speak_mode", "Kdy mluvit nahlas", [["voice", "Jen když na něj mluvím"], ["always", "Vždy (i odpovědi v chatu)"], ["never", "Nikdy (jen text)"]]),
         h("p", { class: "help" }, "Rychlost, výška a hlasitost platí pro hlasy Microsoft."),
+        sw("voice.adaptive_tone", "Tón podle denní doby", "Večer a v noci mluví pomaleji a tišeji, ráno živěji."),
+        sw("voice.whisper_reply", "Na šeptání odpovídat potichu", "Když zašeptáš, JARVIS chvíli odpovídá potichu."),
+        sw("notch.subs_speak", "Přeložené titulky i nahlas", "U cizojazyčného videa JARVIS překlad titulků i přečte (video se přitom ztiší)."),
+        pronounceEditor(),
         h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("speak", { text: "Dobrý den, pane. Všechny systémy jsou připraveny." }) }, icon("speaker-high"), "Přehrát nahlas"))),
     ],
 
@@ -1153,6 +1158,48 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** Voice studio: find a voice, bring your own (a Piper file or an ElevenLabs voice), give it a character. */
+  // 3.14 návrhy 37–39, 43: voice prints of the household, the owner, an own wake word, the pronunciation dictionary
+  function voiceId() {
+    const v = extra.voiceid;
+    if (!extra.voiceidAsked) { extra.voiceidAsked = true; client.send("voiceid_get"); }
+    if (!v) return card("Kdo mluví", null, h("p", { class: "help" }, "Načítám…"));
+    const name = h("input", { class: "input", placeholder: "Jméno (např. Adam)", "aria-label": "Jméno" }) as HTMLInputElement;
+    const owner = h("input", { type: "checkbox", checked: !v.owner }) as HTMLInputElement;
+    const word = h("input", { class: "input", placeholder: "Slovo, např. Jarvisi", value: v.wake_word || "", "aria-label": "Vlastní slovo" }) as HTMLInputElement;
+    const pend = v.pending || {};
+    const lat = v.latency || {};
+    return card("Kdo mluví a vlastní slovo", "Hlasový otisk a vlastní slovo se počítají jen v tomhle PC z pár vteřin nahrávek; nahrávky se neukládají, jen čísla.",
+      h("p", { class: "help" }, lat.median_ms != null ? `Odpověď hlasem začíná v průměru ${(lat.median_ms / 1000).toFixed(1)} s po tvé větě (z ${lat.answers} odpovědí).` : "Prodleva hlasu se změří po prvních odpovědích."),
+      h("strong", {}, "Lidé v domácnosti"),
+      ...(v.people || []).map((p: any) => h("div", { class: "row" }, h("span", {}, icon(p.owner ? "crown-simple" : "user"), " ", p.name, p.owner ? " (majitel)" : ""),
+        h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("voiceid_delete", { name: p.name }) }, icon("trash")))),
+      h("p", { class: "help" }, `Přečti 5 vět (každou zvlášť, asi 3 s). Nahráno: ${pend.person || 0}.`),
+      h("div", { class: "btn-row" }, name,
+        h("label", { class: "rs-check" }, owner, "je to majitel"),
+        h("button", { class: "btn", type: "button", disabled: !v.mic, onclick: () => { toast("Mluv teď…", "info", 2500); client.send("voiceid_sample", { kind: "person" }); } }, icon("microphone"), "Nahrát větu"),
+        h("button", { class: "btn primary", type: "button", disabled: (pend.person || 0) < 3, onclick: () => client.send("voiceid_save", { kind: "person", name: name.value, owner: owner.checked }) }, icon("check"), "Uložit hlas")),
+      sw("voice.owner_only", "Riskantní věci hlasem jen majitel", "Platby, mazání a podobné akce udělá hlasem jen na pokyn majitele (ochrana proti televizi a hostům, ne proti nahrávce)."),
+      h("strong", {}, "Vlastní slovo pro probuzení"),
+      h("p", { class: "help" }, v.wake_ready ? `Funguje slovo „${v.wake_word}“ (řekni ho a krátce se zastav).` : `Řekni své slovo 8× za sebou, vždy s krátkou pauzou. Nahráno: ${pend.wake || 0}.`),
+      h("div", { class: "btn-row" }, word,
+        h("button", { class: "btn", type: "button", disabled: !v.mic, onclick: () => { toast("Řekni slovo…", "info", 2000); client.send("voiceid_sample", { kind: "wake" }); } }, icon("microphone"), "Nahrát slovo"),
+        h("button", { class: "btn primary", type: "button", disabled: (pend.wake || 0) < 3, onclick: () => client.send("voiceid_save", { kind: "wake", word: word.value }) }, icon("check"), "Naučit"),
+        v.wake_ready ? h("button", { class: "btn ghost", type: "button", onclick: () => client.send("voiceid_delete", { kind: "wake" }) }, icon("trash"), "Smazat") : null),
+      v.wake_ready ? sw("voice.custom_wake", "Probouzet i vlastním slovem", "Funguje vedle „Hey Jarvis“.") : null);
+  }
+
+  function pronounceEditor() {
+    const list: { src: string; dst: string }[] = S.voice.pronounce || [];
+    const src = h("input", { class: "input", placeholder: "Napsáno (např. SQL)", "aria-label": "Napsáno" }) as HTMLInputElement;
+    const dst = h("input", { class: "input", placeholder: "Vyslovit (např. es kjú el)", "aria-label": "Vyslovit" }) as HTMLInputElement;
+    return h("div", { class: "field wide" }, h("strong", {}, "Výslovnost jmen a zkratek"),
+      ...list.map((r, i) => h("div", { class: "row" }, h("span", {}, `${r.src} → ${r.dst}`),
+        h("button", { class: "btn ghost sm", type: "button", onclick: () => set("voice.pronounce", list.filter((_, j) => j !== i)) }, icon("trash")))),
+      h("div", { class: "btn-row" }, src, dst, h("button", { class: "btn", type: "button", onclick: () => {
+        if (src.value.trim() && dst.value.trim()) set("voice.pronounce", [...list, { src: src.value.trim(), dst: dst.value.trim() }]);
+      } }, icon("plus"), "Přidat")));
+  }
+
   function voiceStudio() {
     const V = S.voice || {};
     const D = extra.voices || {};
@@ -1448,6 +1495,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("memory_import_result", (m) => toast(`Importováno: ${m.facts_added} faktů, ${m.conversations_added} konverzací (přeskočeno ${m.facts_skipped})`, "ok"));
   client.on("settings_changed", (m) => { S = m.settings; render(); });
   client.on("voice_status", (m) => { voiceStatus = m; if (current === "voice") render(); });
+  client.on("voiceid", (m) => { extra.voiceid = m; if (current === "voice") render(); });
   client.on("provider_test_result", (m) => {
     const text = m.ok ? `Funguje ✓ (${m.ms} ms): ${m.message}` : m.message;
     extra[`kstat_${m.id}`] = { cls: m.ok ? "ok" : "fail", text };

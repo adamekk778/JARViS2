@@ -178,6 +178,13 @@ class Runtime:
 
         self.pc_audio = PcAudio(self)          # 3.12 Zvuk z PC do telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
+        from collections import deque as _dq
+
+        from .voice.voiceid import VoiceId
+
+        self.voiceid = VoiceId(self)            # 3.14 who speaks (household, owner), own wake word, whispering
+        self.voice_lat: _dq = _dq(maxlen=50)   # 3.14 end of your sentence → JARVIS's first sound, ms
+        self.voice_t_end: float | None = None
         tools.load_builtin()
 
     # ---------- lifecycle ----------

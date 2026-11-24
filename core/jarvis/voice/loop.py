@@ -65,6 +65,10 @@ class VoiceLoop:
         self.ducker = Ducker(rt.platform, lambda: rt.cfg.voice.duck_level)
         self._recent: deque = deque(maxlen=12)  # ~1 s of microphone before the wake word = the room's noise
         self._score_sink: list | None = None    # wake-word calibration collects the scores here
+        self._rec: dict | None = None           # 3.14 recording one sample (own wake word / voice print)
+        from .voiceid import ShortUtterance
+
+        self._short = ShortUtterance(FRAME / SR)  # 3.14 own wake word: a short word followed by a pause
 
     # ---------- public ----------
     def start(self) -> None:
@@ -253,7 +257,18 @@ class VoiceLoop:
                 continue
             if frame is not None:
                 self._recent.append(frame)
+            if frame is not None and self._rec is not None:       # 3.14 recording a sample: nothing triggers meanwhile
+                self._record_frame(frame, vad, np)
+                continue
             triggered = self._ptt.is_set()
+            vid = getattr(self.rt, "voiceid", None)
+            if (frame is not None and not triggered and vid is not None and vid.wake.ready
+                    and getattr(self.rt.cfg.voice, "custom_wake", False) and time.time() > cooldown):
+                utt = self._short.feed(frame, self._is_speech(frame, vad, np))
+                if utt is not None:
+                    heard, _dist = vid.wake.check(np.frombuffer(utt, dtype=np.int16).astype(np.float32) / 32768.0)
+                    if heard:
+                        triggered = True
             if frame is not None and not triggered and self._talk_over(frame, vad, np):
                 triggered = True                          # 3.13 you started talking over JARVIS
                 self.rt.bus.publish_threadsafe("barge_in")
@@ -274,6 +289,35 @@ class VoiceLoop:
                     self.speaker.stop()  # barge-in
                 cooldown = time.time() + 2.0
                 self._capture(vad, np)
+
+    # ---------- 3.14 recording samples for the own wake word / the voice print ----------
+    def record_utterance(self, short: bool, timeout: float = 8.0) -> bytes | None:
+        """The next thing said into the microphone (a short word, or a sentence up to ~6 s). Blocks; call in a thread."""
+        ev = threading.Event()
+        self._rec = {"short": short, "buf": bytearray(), "speech": 0.0, "silence": 0.0, "event": ev, "out": None}
+        try:
+            ev.wait(timeout)
+            return self._rec["out"] if self._rec else None
+        finally:
+            self._rec = None
+
+    def _record_frame(self, frame: bytes, vad, np) -> None:
+        r = self._rec
+        if r is None or r["event"].is_set():
+            return
+        step = FRAME / SR
+        speech = self._is_speech(frame, vad, np)
+        if speech:
+            r["buf"] += frame
+            r["speech"] += step
+            r["silence"] = 0.0
+        elif r["speech"] > 0:
+            r["buf"] += frame
+            r["silence"] += step
+        limit = 1.6 if r["short"] else 6.0
+        if (r["speech"] >= 0.3 and r["silence"] >= (0.25 if r["short"] else 0.6)) or r["speech"] >= limit:
+            r["out"] = bytes(r["buf"])
+            r["event"].set()
 
     def _beep(self, np, freq: float = 880.0) -> None:
         try:
@@ -360,7 +404,16 @@ class VoiceLoop:
             bus.publish_threadsafe("state", state="idle")
             return
         self._beep(np, 660.0)
+        from .style import mark_end
+
+        mark_end(self.rt)                                  # 3.14 návrh 1: from here to JARVIS's first sound
         bus.publish_threadsafe("state", state="thinking")
+        vid = getattr(self.rt, "voiceid", None)
+        if vid is not None:                                # 3.14 who spoke (household, owner) and whether whispered
+            try:
+                vid.on_utterance(bytes(audio))
+            except Exception as e:  # noqa: BLE001
+                log.debug("voice id: %s", e)
         try:
             text = self.transcriber.transcribe(self.clean_utterance(bytes(audio), np), SR)
         except Exception as e:

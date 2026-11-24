@@ -122,6 +122,11 @@ class Speaker:
         v = self.rt.cfg.voice.model_copy(update=override) if override else self.rt.cfg.voice
         edge_voice, piper_voice = (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
         spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")
+        from .style import pronounce, prosody
+
+        if lang != "en":
+            spoken = pronounce(self.rt.cfg, spoken)          # 3.14 your own "how to say it"
+        e_rate, e_pitch, e_vol = prosody(self.rt, v)        # 3.14 tone by the time of day, a whisper
         order = [v.tts_engine] + [e for e in ("edge", "piper") if e != v.tts_engine] + (["windows"] if sys.platform == "win32" else [])
         audio, mime, err = b"", "", None
         for eng in order:
@@ -139,7 +144,7 @@ class Speaker:
                     audio = await asyncio.to_thread(piper_synth, *args)
                     mime = "audio/wav"
                 else:
-                    audio, mime = await edge_synth(spoken, edge_voice, v.tts_rate, v.tts_pitch, v.tts_volume), "audio/mpeg"
+                    audio, mime = await edge_synth(spoken, edge_voice, e_rate, e_pitch, e_vol), "audio/mpeg"
                 break
             except Exception as e:
                 err = e
@@ -193,7 +198,14 @@ class Speaker:
         import sounddevice as sd
 
         pcm, sr = decode_to_pcm(audio)
+        from .style import gain, mark_sound
+
+        if getattr(self.rt.cfg.voice, "tts_engine", "edge") != "edge":   # Edge got the volume in its request
+            g = gain(self.rt)
+            if g != 1.0:
+                pcm = pcm * g
         block = int(sr * 0.05)
+        first = True
         from .devices import output_index
 
         dev = output_index(self.rt.cfg.voice.output_device)
@@ -206,5 +218,8 @@ class Speaker:
                 if echo is not None:            # what goes to the speaker, so the mic can subtract it
                     echo.played(chunk, sr, time.monotonic())
                 out.write(chunk.reshape(-1, 1))
+                if first:                       # 3.14 návrh 1: the delay from the end of your sentence to this
+                    first = False
+                    mark_sound(self.rt)
                 rms = float(np.sqrt(np.mean(chunk ** 2))) if len(chunk) else 0.0
                 self.rt.bus.publish_threadsafe("level", rms=round(rms, 3))

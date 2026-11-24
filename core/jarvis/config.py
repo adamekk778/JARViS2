@@ -124,6 +124,11 @@ class Voice(BaseModel):
     barge_in: bool = True           # 3.13 start talking while JARVIS speaks → it stops and listens (needs echo_cancel)
     duck_media: bool = True         # turn other programs down while JARVIS listens or speaks
     duck_level: float = 0.3         # … to this share of their volume
+    adaptive_tone: bool = True      # 3.14 slower and quieter at night, livelier in the morning (44)
+    whisper_reply: bool = True      # 3.14 you whisper → JARVIS answers quietly (41)
+    pronounce: list["Replacement"] = Field(default_factory=list)   # 3.14 how to say names / abbreviations (43)
+    custom_wake: bool = False       # 3.14 your own wake word (recorded in Nastavení → Hlas), next to "Hey Jarvis" (37)
+    owner_only: bool = True         # 3.14 a voice profile of the owner exists → risky actions by voice only in that voice (38)
 
 
 class Notch(BaseModel):
@@ -142,6 +147,7 @@ class Notch(BaseModel):
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
+    subs_speak: bool = False       # 3.14: …and the translation read aloud (the video is turned down meanwhile)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
     lyrics_translate: bool = True  # 3.12: a small Czech translation under a foreign line (the AI, once per song)
     habit_ring: bool = False       # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
@@ -316,6 +322,9 @@ class Snippet(BaseModel):
 class Replacement(BaseModel):
     src: str                  # what the recognizer writes
     dst: str                  # what you want instead
+
+
+Voice.model_rebuild()         # 3.14 Voice.pronounce uses Replacement, defined after it
 
 
 class Dictation(BaseModel):
@@ -502,7 +511,8 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state", "phone_power", "phone_battery"] = "time"
+                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state", "phone_power", "phone_battery",
+                  "phrase"] = "time"      # 3.14 phrase: value = what you say ("jdu spát") → the steps run (návrh 48)
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
     #                    3.13 phone_power "in"/"out" (the phone on / off its charger) · phone_battery % (the phone runs low)
     text: str = ""     # …and the subject / message must contain this · home_state: the state ("on", "open") or "> 25" / "< 10"
