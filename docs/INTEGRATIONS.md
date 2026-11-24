@@ -36,6 +36,12 @@
 | VB-Cable (tlumočník, 3.14) | volitelné | nainstalovaný ovladač VB-Audio Cable | — | jen Windows |
 | DJI Tello (3.14) | volitelné | PC na Wi-Fi dronu | — | limity: 1,5 m, 1 m na pohyb, 2 min, baterie > 25 %; neověřeno na dronu |
 | Anonymní statistiky (3.14) | vypnuté | Bezpečí a soukromí → Anonymní statistiky + adresa serveru | — | jen se souhlasem; sběrný server `packaging/stats-worker` (Cloudflare Worker) |
+| OctoPrint (3.15) | volitelné | Integrace → Dílna – 3D tiskárna | trezor OS (klíč API „printer“) | stav, pauza, pokračovat, zrušit, nahrání a tisk, snímek z /webcam; neověřeno na skutečné tiskárně |
+| Klipper / Moonraker (3.15) | volitelné | Integrace → Dílna – 3D tiskárna (adresa :7125) | trezor OS (volitelný klíč) | print_stats, pause/resume/cancel, upload s tiskem, kamera ze /server/webcams |
+| Bambu Lab přes Home Assistant (3.15) | volitelné | integrace ha-bambulab v HA + Dílna | trezor OS (token HA) | stav, pauza, stop, kamera; soubor k tisku jen z Bambu Studia |
+| PrusaSlicer (3.15) | volitelné | nainstalovaný + profil .ini v Nastavení | — | STL / 3MF → G-code před tiskem |
+| OpenSCAD (3.15) | volitelné | nainstalovaný | — | přesné STL z text → CAD; bez něj náhled ze sítě JARVISe |
+| FreeCAD (3.15) | volitelné | nainstalovaný (freecadcmd) | — | STEP → OBJ s díly pro HUD |
 
 Kontrola funkčnosti: Nastavení → Mozek (test poskytovatele), E-mail a telefon (stav účtů a spojení s telefonem),
 Domov (test Home Assistantu při uložení), Diagnostika.

@@ -48,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/workshop\.printer$/, "printer"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -761,7 +761,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
                 text("workshop.printer_name", "Jméno", "Jak jí JARVIS říká")),
               h("div", { class: "grid2" }, field("Klíč API", key, "OctoPrint: Nastavení → Application Keys; Moonraker většinou žádný"),
                 text("workshop.camera_url", "Kamera (snímek)", "Prázdné = kamera tiskárny; jinak adresa JPEG snímku")),
-              getPath(S, "workshop.printer") === "bambu_ha" ? text("workshop.ha_prefix", "Předpona entit v Home Assistantu", "Např. p1s_01p00a123456789 – prázdné = první nalezená tiskárna") : h("span"),
+              ...(getPath(S, "workshop.printer") === "bambu_ha" ? [text("workshop.ha_prefix", "Předpona entit v Home Assistantu", "Např. p1s_01p00a123456789 – prázdné = první nalezená tiskárna")] : []),
               sw("workshop.watch", "Hlídat tisk kamerou", "Fotka jde jen do tvé AI (jako u „podívej se“), nic se neukládá, kromě fotky selhání do deníku projektu."),
               h("div", { class: "grid2" }, select("workshop.on_failure", "Když se tisk kazí", [["pause", "Pozastavit"], ["notify", "Jen dát vědět"]]),
                 range("workshop.watch_every_min", "Dívat se každých", 1, 15, 1, (v) => `${v} min`)),

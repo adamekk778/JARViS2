@@ -51,6 +51,24 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.15 – Mega animace a dílna
+
+- **Pohyb všude:** Nastavení → Vzhled → Kvalita efektů (Ultra / Vysoká / Úsporná / Vypnuto, Automaticky podle grafiky);
+  ve hře a na baterii se animace samy ztiší, Diagnostika ukazuje FPS každého okna. Nový zvukový design a barevná
+  schémata Stark, Mark, Friday, Stealth.
+- **Stark HUD ve 3D:** reaktor s částicemi, filmový start, 3D glóbus s oblouky cest, paralaxa, telemetrie, nástroje
+  kroužící kolem reaktoru, rozložení Holo (prosvítá plocha) a ovládání hlasem („přibliž mapu“, „schovej panely“).
+- **Notch a Mochi z tekutého kovu:** pružiny, tep do rytmu hudby, emoce podle odpovědi, tekutá upozornění, denní doba.
+- **Chat a aplikace:** zhmotňování textu, živé karty výsledků, grafy, plynulé přechody, hlasový režim přes celou
+  obrazovku, nový úvod.
+- **Telefon:** EDITH s rámečky kolem věcí, start reaktorem, haptika, filmové SOS a příchozí hovor, widgety.
+- **Plocha Windows:** zaměřovač tam, kam JARVIS kliká, skenovací paprsek, vlastní displej hlasitosti a jasu,
+  „Vítejte zpět“ po odemčení, živá tapeta s reaktorem nebo glóbem za ikonami.
+- **Dílna:** text → 3D model s úpravami hlasem („o 5 mm širší“, „vrať to“), hologram modelu v HUD s rozloženým pohledem
+  (STL, OBJ, GLB, 3MF, STEP přes FreeCAD), 3D tiskárna (OctoPrint, Klipper, Bambu přes Home Assistant) s hlídáním
+  tisku kamerou a AI, deník projektů s díly a nákupním seznamem, simulace (nosník, teplo v desce, obvod, RC/RL).
+- **Gesta kamerou ovládají HUD:** otáčení modelu a glóbu, přiblížení, rozložení; bez HUD dál hudba.
+
 ## Novinky ve verzi 3.14
 
 Velká vlna vylepšení (118 návrhů, rozdělených do 11 oblastí). Nejdůležitější:

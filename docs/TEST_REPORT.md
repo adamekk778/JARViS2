@@ -38,6 +38,24 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
   - **Neověřeno na skutečném hardwaru:** webkamera, VB-Cable, satelity, Frigate, Twilio, auto, vysavač, sekačka,
     dron, hodinky, Docker na Raspberry Pi.
 
+- **3.15 „Mega animace“ a dílna (8 balíků, 45 návrhů): 1914 testů prošlo, 20 přeskočeno** (Linux). Nové
+  `tests/test_fx.py` (úrovně efektů, FPS, snímky efektů na ploše, háčky klikání jen když JARVIS pracuje, OSD,
+  „Vítejte zpět“, /wallpaper) a `tests/test_dilna.py` (CAD: všechny šablony dávají uzavřenou síť se správnou
+  orientací, objem krychle a trubky proti vzorci, platné binární STL, úpravy česky, verze a návrat; knihovna modelů
+  neposkytne nic mimo svou složku; STEP přes FreeCAD s falešným spuštěním; OctoPrint a Moonraker přes simulované
+  HTTP; Bambu z entit HA; hlídání tisku: dvakrát špatně → pauza a upozornění s tlačítky; deník projektů a nákupní
+  seznam; nosník, teplo s energetickou bilancí, obvod a RC proti učebnicovým hodnotám; gesta do HUD). Navíc:
+  - web unit testy (`npm test`): úrovně efektů, zvuky, rozdělení STL na díly, rozložený pohled,
+  - evals 401 zkušebních požadavků, 100 %; `ruff`, `mypy` (77 souborů), ESLint, `tsc`, `vite build` bez chyb,
+  - `python -m jarvis.uicheck` česky i anglicky: 10 stránek × velikosti bez chyb,
+  - v prohlížeči (Playwright, softwarové WebGL): 3D reaktor, glóbus, živá tapeta (reaktor i glóbus), prohlížeč modelu
+    v HUD se skutečným STL z CAD (krabička + víko = 2 díly, rozložení zamáváním, otočení), ukazatel tisku,
+    karta Dílna v Nastavení,
+  - snímky efektů na ploše vykreslené a zkontrolované (zaměřovač, OSD, uvítání).
+  - **Neověřeno na skutečném hardwaru / Windows:** vrstvená okna efektů a živá tapeta za ikonami (WorkerW), widgety
+    a animace hovoru v Androidu, skutečná 3D tiskárna (OctoPrint / Klipper / Bambu), OpenSCAD, FreeCAD a PrusaSlicer
+    (volání napsaná podle dokumentace, testovaná se simulovaným spuštěním), gesta se skutečnou webkamerou.
+
 ## Ruční / vizuální ověření (Playwright proti skutečnému serveru)
 - Úkoly → **Zkontrolovat PC**: mise doběhla, 5/5 kritérií zelených, artefakt „Report o stavu PC“ s otiskem,
   11 důkazů, audit akcí. **Uložit jako dovednost** → schválení → protokol „Kontrola PC“ v1 → Stark → Verze ukazuje v1.

@@ -32,6 +32,31 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.15 – „Mega animace“ a dílna (45 návrhů v 8 balících)
+Hotovo v kódu s testy: základ pohybu (úrovně kvality podle grafiky, hlídání FPS, pauza ve hře a na baterii, zvukový
+design), Stark HUD ve 3D (reaktor, start, glóbus, paralaxa, telemetrie, orbit nástrojů, ovládání hlasem, Holo),
+notch a Mochi (tekutý kov, pružiny, rytmus, emoce, tekutá upozornění, denní doba), chat a aplikace (zhmotnění textu,
+živé karty, grafy, přechody, hlasový režim, úvod, barevná schémata), telefon (EDITH AR, start, haptika, SOS, hovor,
+widgety), plocha Windows (zaměřovač, paprsek, OSD, „Vítejte zpět“, živá tapeta, holo-plocha), gesta kamerou v HUD
+a celá dílna: text → CAD s verzemi a úpravami hlasem, 3D model v HUD s rozloženým pohledem, 3D tiskárna s hlídáním
+selhání, deník projektů s díly a nákupním seznamem, simulace (nosník, teplo, obvod, RC/RL). Elektronika (Arduino /
+ESP build a upload, sériový monitor, schéma) už byla z dřívějška a deník projektů zapisuje i do ní.
+
+Co je potřeba od uživatele: OpenSCAD (přesné STL z CAD, jinak náhled s mírně zaoblenými hranami), FreeCAD (STEP v HUD),
+PrusaSlicer + profil tiskárny (tisk ze STL), OctoPrint / Moonraker nebo Bambu v Home Assistantu, kamera u tiskárny
+a AI s obrazem (hlídání tisku), webkamera (gesta).
+
+Co nejde nebo zatím není:
+- **STEP přímo v prohlížeči** – knihovna occt-import-js je pod LGPL; nepřidal jsem ji bez souhlasu. Teď přes FreeCAD.
+- **Bambu Lab napřímo** (MQTT + FTP s kódem z tiskárny) – jen přes integraci ha-bambulab v Home Assistantu; poslat
+  soubor k tisku na Bambu jde z Bambu Studia.
+- **Parametrický CAD je šablonový** (krabička, L-držák, deska, sloupek, háček, knoflík) – libovolný tvar z věty
+  neumí; na složité díly je .scad, který jde dál upravit.
+- **Gesta** jsou pohyb ruky (ne prsty / štípnutí) – rozpoznávání prstů by potřebovalo model pro ruku.
+- **Nativní efekty na ploše a živá tapeta** (vrstvená okna, WorkerW) – napsané podle Win32 API, ale **neověřené na
+  skutečném Windows** (tady je Linux); stejně tak widgety a animace hovoru v Androidu bez skutečného telefonu.
+- **Nic z dílny nebylo vyzkoušené na skutečné tiskárně** – OctoPrint, Moonraker i Home Assistant jen v simulaci.
+
 ## 3.14 – „JARVIS jako z filmu“ (58 návrhů, bez sekce C – dílna)
 Hotovo v kódu s testy (simulovaná zařízení a služby): hlas a osobnost (živý rozhovor, bez „Hey Jarvis“ přes kameru,
 FRIDAY, humor, tlumočník), celý dům (satelity, reproduktory, následuj mě, uvítání, scény, kiosk, víc PC, Docker server,
@@ -46,8 +71,7 @@ volání), klíč AeroDataBox (zpoždění a gate letů), klíč HIBP (úniky e-
 hodinky zapisující do Health Connect, DJI Tello a PC na jeho Wi-Fi, Docker (nonstop server).
 
 Co z „filmu“ nejde nebo zatím není:
-- **Sekce C – dílna** (3D model v HUD, gesta, text → CAD, 3D tisk, elektronika, deník projektu, simulace) – vynechaná
-  na přání.
+- **Sekce C – dílna** – doplněná ve verzi 3.15 (viz výše).
 - **Vlastní aplikace pro Wear OS** – hodinky dál odpovídají přes oznámení telefonu (RemoteInput); samostatnou aplikaci
   pro hodinky tady nejde sestavit ani vyzkoušet.
 - **Garmin / Fitbit napřímo** – jen přes Health Connect (aplikace Garmin Connect a Fitbit do něj zapisují).

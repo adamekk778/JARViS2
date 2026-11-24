@@ -373,3 +373,13 @@ async def test_model_explode_tool(rt):
     r = await tools.call("model_explode", {"action": "explode"}, rt)
     assert r.ok and ("hud_cmd", {"action": "model_explode"}) in sent
     assert not (await tools.call("model_explode", {"action": "fly"}, rt)).ok
+
+
+def test_firmware_build_lands_in_the_active_project(rt):
+    from jarvis import hwlab
+
+    p = workbench.create(rt, "Meteostanice")
+    hwlab.record_build(rt, "meteo-fw", "upload", True, "0.3.0", {}, "ok")
+    hwlab.record_build(rt, "meteo-fw", "build", False, "0.3.1", {}, "chybí knihovna Adafruit_BME280")
+    texts = [e["text"] for e in workbench.timeline(rt, p)]
+    assert "Nahráno do desky: meteo-fw v0.3.0" in texts and any("chybí knihovna" in t for t in texts)
