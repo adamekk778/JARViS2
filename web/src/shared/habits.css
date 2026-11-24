@@ -320,3 +320,22 @@
 .hb-meal-status { margin: 0; font-size: 12.5px; color: rgba(255, 255, 255, .7); }
 .hb-meal-status:empty { display: none; }
 .hb-weekcard { justify-self: start; margin-top: 4px; padding: 10px 16px; }
+
+/* 3.14 Stav systémů – the watch's night and heart against your own normal */
+.hb-body { display: grid; gap: 10px; border-left: 3px solid var(--hb-body, #3ddc97); }
+.hb-body.lvl-normal { --hb-body: #f5b942; }
+.hb-body.lvl-easy { --hb-body: #ff6b6b; }
+.hb-body-head { display: flex; align-items: center; gap: 8px; }
+.hb-body-head .ph-fill { color: var(--hb-body, #3ddc97); font-size: 20px; }
+.hb-body-lvl { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 999px; color: var(--hb-body, #3ddc97);
+  border: 1px solid currentColor; }
+.hb-body-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.hb-body-stat { display: grid; gap: 1px; }
+.hb-body-stat span, .hb-body-stat small { font-size: 12px; opacity: .65; }
+.hb-body-stat strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.hb-body-text { margin: 0; font-size: 14px; line-height: 1.45; }
+.mhb-body { border-left: 3px solid #3ddc97; padding-left: 8px; }
+.mhb-body.lvl-normal { border-color: #f5b942; }
+.mhb-body.lvl-easy { border-color: #ff6b6b; }
+.hbp-today .hb-body { grid-column: 2; }
+@media (max-width: 900px) { .hbp-today .hb-body { grid-column: auto; } }

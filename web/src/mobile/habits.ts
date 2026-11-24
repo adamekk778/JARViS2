@@ -185,10 +185,11 @@ export function habitsView(c: JarvisClient): { el: HTMLElement; show: () => void
       paint();
     };
     return h("div", { class: "hb-card mhb-health" },
-      h("div", { class: "mhb-health-h" }, icon("heartbeat", "ph-fill"), h("strong", {}, "Spánek a kroky z telefonu")),
+      h("div", { class: "mhb-health-h" }, icon("heartbeat", "ph-fill"), h("strong", {}, "Spánek, kroky a tep z hodinek")),
       st.on
-        ? h("p", {}, `Propojeno ✓${st.steps != null ? ` · dnes ${st.steps.toLocaleString("cs-CZ")} kroků` : ""}${st.sleep != null ? ` · spánek ${String(st.sleep).replace(".", ",")} h` : ""}. Zapisuje se samo.`)
-        : h("p", {}, "Telefon sám zapíše, kolik jsi spal a nachodil – nemusíš nic odškrtávat. Data jdou jen do tvého PC."),
+        ? h("p", {}, `Propojeno ✓${st.steps != null ? ` · dnes ${st.steps.toLocaleString("cs-CZ")} kroků` : ""}${st.sleep != null ? ` · spánek ${String(st.sleep).replace(".", ",")} h` : ""}${st.rest_hr != null ? ` · klidový tep ${Math.round(st.rest_hr)}` : ""}. Zapisuje se samo.`)
+        : h("p", {}, "Telefon sám zapíše, kolik jsi spal a nachodil, a z hodinek (Wear OS, Samsung, Garmin, Fitbit – přes Health Connect) i tep. Data jdou jen do tvého PC."),
+      st.on && snap?.body?.text ? h("p", { class: `mhb-body lvl-${snap.body.level}` }, snap.body.text) : "",
       h("div", { class: "mhb-health-b" },
         st.on ? h("button", { type: "button", class: "btn", onclick: async () => { await healthSync(c, true); paint(); } }, icon("arrows-clockwise"), "Načíst teď") : "",
         st.on ? h("button", { type: "button", class: "btn ghost", onclick: () => { healthOff(); paint(); } }, "Odpojit")

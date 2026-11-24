@@ -88,9 +88,10 @@ class Cameras:
         away = bool(house is not None and house.home is False)
         told = []
         for ev in await self.frigate_events():
-            if ev.get("id") in self.seen:
+            eid = str(ev.get("id") or "")
+            if eid in self.seen:
                 continue
-            self.seen.add(ev.get("id"))
+            self.seen.add(eid)
             if not interesting(ev, getattr(cfg, "camera_zones", []), hour, away):
                 continue
             zones = set(ev.get("zones") or [])

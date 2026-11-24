@@ -55,6 +55,9 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("sleduj se mnou obrazovku a pomáhej mi", ("screen_buddy",)), ("hlídej zvuky doma, když nebudu doma", ("sound_watch",)),
     ("jarvisi pomoc, upadl jsem", ("emergency_help",)), ("jsem v pořádku, to byl omyl", ("emergency_ok",)),
     ("je doma všechno v bezpečí, udělej bezpečnostní přehled", ("security_briefing",)),
+    ("jak jsem se dneska vyspal?", ("body_status",)), ("jaký mám dneska klidový tep", ("body_status",)),
+    ("jak jsem spal poslední týden", ("body_history",)), ("připomínej mi pít vodu každou hodinu", ("health_reminders",)),
+    ("hlídej mi držení těla kamerou", ("health_reminders",)), ("teď sedím rovně, zapamatuj si to", ("posture_calibrate",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar

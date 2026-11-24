@@ -631,6 +631,15 @@ class PrivacyCfg(BaseModel):
     stats_url: str = ""                # where they go (HTTPS); empty = nothing is ever sent
 
 
+class HealthCfg(BaseModel):
+    """3.14 Zdraví jako ve filmu (42–44): the watch's numbers in the morning, care while you sit at the PC."""
+    morning: bool = True               # "Stav systémů" (sleep, resting heart rate) in the morning briefing
+    water_minutes: int = 0             # a glass of water every N minutes at the PC (0 = off)
+    long_day_h: float = 10.0           # one notice after this many hours at the PC in a day (0 = off)
+    bedtime: str = ""                  # "23:30": after this, while you still sit at the PC, a nudge to bed ("" = off)
+    posture: bool = False              # posture from the webcam every 2 minutes (leaning in, slumped); only on your yes
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -677,6 +686,7 @@ class Config(BaseModel):
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
+    health: HealthCfg = Field(default_factory=HealthCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -755,6 +765,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "appearance.spatial_sounds", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
+    "health.morning", "health.water_minutes", "health.long_day_h", "health.bedtime", "health.posture",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
     "multitask.parallel", "multitask.watch_every_s",

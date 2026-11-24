@@ -105,6 +105,7 @@ class LookWatcher:
         self.rt = rt
         self.every = every
         self.seen_at = 0.0
+        self.last: tuple | None = None           # (the face or None, width, height, monotonic time) – the posture check reuses it
         self.error = ""
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -135,7 +136,9 @@ class LookWatcher:
                     if cap is None:                  # kept open while watching (opening it each second is slow)
                         cap = open_camera(int(getattr(self.rt.cfg.voice, "camera_index", 0) or 0))
                     frame = read(cap)
-                    if looking(faces(frame), frame.shape[1]):
+                    found = faces(frame)
+                    self.last = (found[0] if len(found) == 1 else None, int(frame.shape[1]), int(frame.shape[0]), time.monotonic())
+                    if looking(found, frame.shape[1]):
                         self.seen_at = time.monotonic()
                     self.error = ""
                     if time.time() - logged > 600:   # the access log: once per 10 min while it watches

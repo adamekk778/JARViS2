@@ -2,7 +2,7 @@
 // the meals), Návyky (the month grid with its trend line), Úkoly (the week planner), Cíle (goals) and Přehled
 // (consistency, this week, the leaderboard, streaks); the gear opens Upravit (your own habits, the reminder).
 import { h, icon } from "../shared/dom";
-import { editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, trackerHead, weekPlanner, type HabitSnap } from "../shared/habitsui";
+import { bodyCard, editor, goalsView, habitTile, insights, meals, monthGrid, ring, statCard, trackerHead, weekPlanner, type HabitSnap } from "../shared/habitsui";
 import type { JarvisClient } from "../shared/ws";
 import { gymView, type GymSnap } from "../shared/gymui";
 
@@ -44,6 +44,7 @@ export function buildHabits(client: JarvisClient) {
             statCard("Tento týden", s.week == null ? "–" : `${s.week} %`),
             statCard("Proti minulému", s.delta == null ? "–" : `${s.delta >= 0 ? "+" : ""}${s.delta} %`, undefined, s.delta == null ? "" : s.delta >= 0 ? "up" : "down"),
             statCard("30 dní", s.consistency == null ? "–" : `${s.consistency} %`))),
+        bodyCard(s.body),
         h("div", { class: "hbp-list" }, ...due.map((it) => habitTile(client, it, true)),
           rest.length ? h("p", { class: "hbp-sub" }, "Dnes volno") : "", ...rest.map((it) => habitTile(client, it, true))),
         meals(client, s)));

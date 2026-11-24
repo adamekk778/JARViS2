@@ -294,6 +294,9 @@ class Runtime:
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.cameras(self).run()))   # 3.14 cameras, doorbell
         self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.weekly(self)))         # 3.14 security briefing
+        from . import body
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(body.desk(self).run()))       # 3.14 water, long day, bed, posture
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
@@ -563,6 +566,10 @@ class Runtime:
 
                 return True, f"Dobře, {KIND_LABEL.get(kind, kind)} už posílat nebudu (zapneš v Nastavení → Obecné)."
             return None
+        if act == "water_done":                   # 3.14 "Vypito" under the water reminder
+            from . import body
+
+            return True, body.water_done(self)
         if act == "break_snooze":
             self.activity.snooze_break(int(args.get("minutes") or 10))
             return True, "Připomenu za chvíli."

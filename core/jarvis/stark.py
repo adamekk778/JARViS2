@@ -126,6 +126,16 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
     except Exception as e:
         log.debug("briefing weather: %s", e)
 
+    try:                                  # 3.14 návrh 43: the watch's night – "Stav systémů: spánek 6 h… lehčí den"
+        from . import body
+
+        line = body.morning_line(rt)
+        if line:
+            parts.append(line)
+            data["body"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing body: %s", e)
+
     cal = getattr(rt, "calendar", None)
     if cal is not None:
         try:

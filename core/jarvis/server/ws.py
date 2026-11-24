@@ -1191,15 +1191,11 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
-        elif t == "habit_health":             # 3.12 spánek a kroky from the phone (Health Connect)
+        elif t == "habit_health":             # 3.12 spánek a kroky (+ 3.14 tep, variabilita, kyslík) from the phone's Health Connect
+            from .. import body
             from .. import habits as hb
 
-            def num(v):
-                try:
-                    return float(v) if v is not None else None
-                except (TypeError, ValueError):
-                    return None
-            hb.health_sync(rt, m.get("day") or None, num(m.get("steps")), num(m.get("sleep_h")))
+            body.from_phone(rt, dict(m))
             hb.publish(rt)
         elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set",
                    "habit_task", "habit_mindset", "habit_goal"):
