@@ -830,7 +830,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     const st = extra.local;
     if (!st) return null;
     const b = st.backup || {};
-    const rec = ((st.recommended || [])[0] as string) || "qwen2.5:3b";
+    const rec = ((st.recommended || [])[0] as string) || "qwen3:4b";
     const model = b.on ? b.model : rec;
     const info = (st.catalog || []).find((m: any) => m.name === model) || { size_gb: "?" };
     const have = (st.installed || []).some((m: any) => m.name === model);

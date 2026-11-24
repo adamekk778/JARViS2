@@ -80,6 +80,7 @@ class TaskManager:
         self._current_action = ""
         self._running.set()
         self._started = time.time()
+        self._cost0 = self._spent()
         if task_id and self.db.one("SELECT id FROM tasks WHERE id=?", (task_id,)):
             self._id = task_id
             self.db.exec("UPDATE tasks SET status='running', finished=NULL WHERE id=?", (task_id,))
@@ -134,7 +135,19 @@ class TaskManager:
         mins = (time.time() - getattr(self, "_started", time.time())) / 60
         if limits.mission_max_minutes and mins >= limits.mission_max_minutes:
             return f"Rozpočet mise vyčerpán: běží {mins:.0f} min (limit {limits.mission_max_minutes})."
+        cap = float(getattr(limits, "mission_max_cost", 0) or 0)
+        if cap > 0:                                         # 3.14 návrh 35: what the paid AI keys cost this mission
+            spent = self._spent() - getattr(self, "_cost0", 0.0)
+            if spent >= cap:
+                return f"Rozpočet mise vyčerpán: AI stála {spent:.2f} {limits.currency} (limit {cap:g})."
         return ""
+
+    def _spent(self) -> float:
+        usage = getattr(self.rt, "usage", None)
+        try:
+            return float(usage.today()["cost"]) if usage is not None else 0.0
+        except Exception:  # noqa: BLE001
+            return 0.0
 
     def set_plan(self, steps: list[str], current: int = 0, note: str = "") -> None:
         if not self._id:

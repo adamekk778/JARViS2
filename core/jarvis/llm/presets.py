@@ -13,9 +13,9 @@ PRESETS: dict[str, dict] = {
     "huggingface": {"label": "Hugging Face", "base_url": "https://router.huggingface.co/v1", "needs_key": True, "local": False, "model": "openai/gpt-oss-120b"},
     "deepseek": {"label": "DeepSeek (levné, platí se kreditem)", "base_url": "https://api.deepseek.com/v1", "needs_key": True, "local": False, "model": "deepseek-chat", "fast_model": "deepseek-chat"},
     "gemini": {"label": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "needs_key": True, "local": False, "model": "gemini-3.8-flash", "fast_model": "gemini-3.5-flash-lite"},
-    "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1", "needs_key": True, "local": False, "model": "gpt-4o-mini"},
-    "anthropic": {"label": "Anthropic Claude", "base_url": "https://api.anthropic.com/v1", "needs_key": True, "local": False, "model": "claude-haiku-4-5"},
+    "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1", "needs_key": True, "local": False, "model": "gpt-5-mini"},
+    "anthropic": {"label": "Anthropic Claude", "base_url": "https://api.anthropic.com/v1", "needs_key": True, "local": False, "model": "claude-opus-5-5", "fast_model": "claude-haiku-5-5"},   # 3.14 native API (llm/claude.py)
     "lmstudio": {"label": "LM Studio (offline)", "base_url": "http://localhost:1234/v1", "needs_key": False, "local": True, "model": "local-model"},
-    "ollama": {"label": "Ollama (offline)", "base_url": "http://localhost:11434", "needs_key": False, "local": True, "model": "qwen2.5:3b"},
+    "ollama": {"label": "Ollama (offline)", "base_url": "http://localhost:11434", "needs_key": False, "local": True, "model": "qwen3:4b"},
     "custom": {"label": "Vlastní (OpenAI-kompatibilní)", "base_url": "", "needs_key": False, "local": False, "model": ""},
 }

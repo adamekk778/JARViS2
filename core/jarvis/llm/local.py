@@ -130,7 +130,7 @@ class LocalManager:
     @property
     def model(self) -> str:
         p = self._provider()
-        return (p.model if p else "") or "qwen2.5:3b"
+        return (p.model if p else "") or "qwen3:4b"
 
     def _client(self, timeout: float | None = 10.0) -> httpx.AsyncClient:
         return httpx.AsyncClient(transport=self.transport, timeout=timeout, trust_env=False)
@@ -189,7 +189,7 @@ class LocalManager:
         p = self._provider()
         chain = self.rt.cfg.brain.chain
         on = bool(p and p.enabled and self.rt.cfg.brain.local_enabled)
-        return {"on": on, "model": (p.model if p else "") or "qwen2.5:3b", "last": bool(p and chain and chain[-1] == p.id)}
+        return {"on": on, "model": (p.model if p else "") or "qwen3:4b", "last": bool(p and chain and chain[-1] == p.id)}
 
     def set_backup(self, on: bool, model: str = "") -> dict:
         """On: the Ollama provider exists, is enabled and goes LAST in the chain (the cloud answers first). Off: disabled."""
@@ -200,7 +200,7 @@ class LocalManager:
         p = next((x for x in provs if x.get("preset") == "ollama"), None)
         if on:
             if p is None:
-                p = ProviderCfg(id="ollama", preset="ollama", model=model or "qwen2.5:3b").model_dump()
+                p = ProviderCfg(id="ollama", preset="ollama", model=model or "qwen3:4b").model_dump()
                 provs.append(p)
             p["enabled"] = True
             if model:

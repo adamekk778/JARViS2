@@ -47,7 +47,7 @@ class ProviderCfg(BaseModel):
 def _default_providers() -> list[ProviderCfg]:
     return [
         ProviderCfg(id="omniroute", preset="omniroute", base_url="http://localhost:20128/v1", model="auto"),
-        ProviderCfg(id="ollama", preset="ollama", base_url="http://localhost:11434", model="qwen2.5:3b"),
+        ProviderCfg(id="ollama", preset="ollama", base_url="http://localhost:11434", model="qwen3:4b"),
     ]
 
 
@@ -65,6 +65,7 @@ class General(BaseModel):
     auto_rollback: bool = True     # 3.14 the check after an update finds the notch / voice broken → previous version (12)
     night_care: bool = True        # 3.12 Noční údržba: old temp files, disk health, waiting Windows updates (once a night)
     onboarded: bool = False        # 3.12 the first-run guide was finished or skipped
+    traits: dict[str, int] = Field(default_factory=lambda: {"humor": 1, "formal": 1, "brevity": 1})   # 3.14 0–2 each (29)
 
 
 class Brain(BaseModel):
@@ -80,6 +81,11 @@ class Brain(BaseModel):
     local_gpu_layers: int = -1     # OMEGA 574: layers on the graphics card (-1 = let Ollama decide)
     save_limits: bool = True       # 3.12 Šetřič limitů: background work (chat summaries) by the AI on this PC when its backup is on
     adaptive_local: bool = True    # OMEGA P15.10: local models step aside during games, on low battery, when RAM runs out
+    quick_preface: bool = True     # 3.14 a hard question asked aloud: one sentence at once from the quick model (23)
+    learn_corrections: bool = True  # 3.14 "ne, myslel jsem…" → a rule for next time (24)
+    verify_answers: bool = True    # 3.14 claims the read web pages do not support are marked under the answer (26)
+    second_opinion: bool = True    # 3.14 money / health / law / deleting: weigh it twice, ask other AIs (30)
+    private_local: bool = True     # 3.14 passwords, health, bank details → only the AI on this PC, when it runs (32)
 
 
 class Voice(BaseModel):
@@ -543,6 +549,7 @@ class LimitsCfg(BaseModel):
     prices: dict[str, float] = Field(default_factory=dict)   # provider id → price per 1 million tokens
     mission_max_actions: int = 60      # one mission may call at most this many tools …
     mission_max_minutes: int = 30      # … and run at most this long
+    mission_max_cost: float = 0.0      # 3.14 … and cost at most this much on paid AI keys (in `currency`; 0 = no limit)
     double_confirm: bool = True        # the most dangerous actions ask twice
     app_allowlist: list[str] = Field(default_factory=list)   # mouse/keyboard only in these apps (empty = any)
     project_isolation: bool = False    # OMEGA 688: while a project with a folder is active, file tools stay inside it

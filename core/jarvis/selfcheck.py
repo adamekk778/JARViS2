@@ -259,7 +259,7 @@ async def offline_ai(rt: Any) -> dict:
     if not names:
         return _r("ollama", name, False, f"Ollama běží (verze {st.get('version') or '?'}), ale nemá stažený žádný model.",
                   "Nastavení → AI mozek → Offline záloha mozku → Nastavit (stáhne asi 2 GB).")
-    want = b.get("model") or "qwen2.5:3b"
+    want = b.get("model") or "qwen3:4b"
     have = want in names or any(n.split(":")[0] == want.split(":")[0] for n in names)
     if not b.get("on"):
         return _r("ollama", name, False, f"Ollama běží a má {', '.join(names[:3])}, ale offline záloha v JARVISovi je vypnutá.",

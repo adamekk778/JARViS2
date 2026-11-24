@@ -36,6 +36,10 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
             options["num_gpu"] = brain.local_gpu_layers
         return Ollama(p.id, base, model, temperature=brain.temperature, transport=transport, options=options,
                       keep_alive=keep_alive)
+    if p.preset == "anthropic" and "api.anthropic.com" in (base or "api.anthropic.com"):
+        from .claude import Claude          # 3.14 Anthropic's own API: prompt caching, effort, thinking, fallbacks
+
+        return Claude(p.id, base, model, api_key, max_tokens=brain.max_tokens)
     return OpenAICompat(p.id, base, model, api_key, temperature=brain.temperature,
                         max_tokens=brain.max_tokens, transport=transport)
 
@@ -115,7 +119,7 @@ class Router:
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
-                     model: str | None = None, light: bool = False) -> AsyncIterator[Chunk]:
+                     model: str | None = None, light: bool = False, effort: str | None = None) -> AsyncIterator[Chunk]:
         """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
         background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
         the free cloud limits are kept for what you ask."""
@@ -148,6 +152,8 @@ class Router:
                 errors[pcfg.id] = why
                 continue
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if effort and hasattr(prov, "effort"):      # 3.14 how deeply it thinks (Claude); others ignore it
+                prov.effort = effort
             if hasattr(prov, "on_headers"):
                 prov.on_headers = lambda h, _p=pcfg.id, _prov=prov: self.quota.from_headers(_p, _prov.model, h)
             if pcfg.id in self.resolved_models:

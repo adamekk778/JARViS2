@@ -179,4 +179,9 @@ def test_self_check_covers_wake_word_notch_and_phone(rt):
 
 
 def test_whats_new_shows_the_new_batch(rt):
-    assert rt.whats_new_due() == NEWS == "3.13"
+    import re
+    from pathlib import Path
+
+    ts = (Path(__file__).resolve().parents[2] / "web" / "src" / "shared" / "whatsnew.ts").read_text("utf-8")
+    newest = re.findall(r'^  "(\d+\.\d+)": \[', ts, re.M)[0]          # the first batch in "Co je nového"
+    assert rt.whats_new_due() == NEWS == newest

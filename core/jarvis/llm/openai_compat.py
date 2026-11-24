@@ -39,6 +39,25 @@ def with_signatures(messages: list[dict]) -> list[dict]:
     return out
 
 
+def without_foreign(messages: list[dict]) -> list[dict]:
+    """3.14: what Claude attached to its tool calls (thinking blocks) stays with Claude – another service would refuse
+    an unknown field or read a large block it cannot use."""
+    out = []
+    for m in messages:
+        calls = m.get("tool_calls") if m.get("role") == "assistant" else None
+        if calls and any("anthropic" in (c.get("extra_content") or {}) for c in calls):
+            calls = [dict(c) for c in calls]
+            for c in calls:
+                ex = {k: v for k, v in (c.get("extra_content") or {}).items() if k != "anthropic"}
+                if ex:
+                    c["extra_content"] = ex
+                else:
+                    c.pop("extra_content", None)
+            m = {**m, "tool_calls": calls}
+        out.append(m)
+    return out
+
+
 def is_gemini(base_url: str) -> bool:
     return "generativelanguage.googleapis.com" in base_url
 
@@ -79,6 +98,7 @@ class OpenAICompat:
         return h
 
     async def stream(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> AsyncIterator[Chunk]:
+        messages = without_foreign(messages)
         if is_gemini(self.base_url):
             messages = with_signatures(messages)
         body: dict = {

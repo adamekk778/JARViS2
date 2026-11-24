@@ -337,3 +337,9 @@ body.sp-max-open::before { content: ""; position: fixed; inset: 0; z-index: 59; 
 .conv-when { padding: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint, var(--muted)); }
 .conv-when:first-child { padding-top: 2px; }
 @media (prefers-reduced-motion: reduce) { .think, .msg.live .mini-blob { animation: none; color: var(--muted); background: none; } }
+
+/* 3.14 Mozek+: 👍/👎 and the fact check note */
+.actions .rate.on { color: var(--accent); }
+.answer-check { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0 2px; padding: 8px 10px; border-radius: 10px;
+  font-size: 12.5px; background: color-mix(in srgb, #f5a524 12%, transparent); border: 1px solid color-mix(in srgb, #f5a524 35%, transparent); }
+.answer-check ul { margin: 2px 0 0 16px; padding: 0; }

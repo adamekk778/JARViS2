@@ -104,6 +104,55 @@ export function buildBrain(client: JarvisClient) {
       k.facts.length ? "" : h("p", { class: "muted" }, "Zatím si nic nepamatuji. Řekni „zapamatuj si, že…“."));
   };
   client.on("knowledge", (m) => { k = { ...k, ...m }; render(); });
+
+  // ---- 3.14 Mozek+: learned rules, 👍/👎 by AI, character and behaviour switches
+  const rulesBox = h("div", { class: "card sec-card" });
+  const newRule = h("input", { class: "input", placeholder: "Např. Hudbu pouštěj na Spotify, ne na YouTube.", "aria-label": "Nové pravidlo" }) as HTMLInputElement;
+  client.on("rules", (m) => {
+    if (m.learned) toast(`Naučil jsem se: ${m.learned.text}`, "ok", 6000);
+    rulesBox.replaceChildren(
+      h("p", { class: "help" }, "Když JARVISe opravíš („ne, myslel jsem…“), napíše si z toho pravidlo a příště ho dodrží. Tady je vidíš a můžeš smazat."),
+      m.items?.length ? h("ul", { class: "sec-list" }, ...m.items.map((r: any) => h("li", {},
+        h("span", {}, r.text, r.source && r.source !== "ručně" ? h("span", { class: "muted" }, ` – z opravy „${r.source}“`) : ""),
+        h("button", { class: "btn ghost sm", type: "button", "aria-label": `Smazat pravidlo ${r.text}`, onclick: () => client.send("rule_delete", { id: r.id }) }, icon("trash"))))) :
+        h("p", { class: "muted" }, "Zatím žádné pravidlo."),
+      h("div", { class: "list-add" }, newRule, h("button", { class: "btn", type: "button", onclick: () => {
+        if (newRule.value.trim()) { client.send("rule_add", { text: newRule.value.trim() }); newRule.value = ""; }
+      } }, icon("plus"), "Přidat pravidlo")));
+  });
+  const rateBox = h("div", { class: "card sec-card" });
+  const TIER: Record<string, string> = { fast: "rychlé otázky", normal: "běžné požadavky", strong: "těžké úkoly", "–": "starší odpovědi" };
+  client.on("ratings", (m) => {
+    rateBox.replaceChildren(
+      h("p", { class: "help" }, m.total ? `Ohodnotil jsi ${m.total} odpovědí, ${m.good} 👍.` : "Pod každou odpovědí v chatu je 👍 a 👎 – z toho JARVIS pozná, která AI je na co nejlepší."),
+      ...Object.entries(m.best || {}).map(([t, p]) => h("p", {}, h("strong", {}, `Na ${TIER[t] || t}: `), String(p))),
+      m.rows?.length ? h("ul", { class: "sec-list" }, ...m.rows.slice(0, 12).map((r: any) => h("li", {},
+        h("span", {}, `${r.provider}${r.model ? " · " + r.model : ""} – ${TIER[r.tier] || r.tier}`),
+        h("span", { class: "muted" }, `${Math.round(r.rate * 100)} % 👍 z ${r.n}`)))) : "");
+  });
+  const behaveBox = h("div", { class: "card sec-card" });
+  const TRAIT_LABEL: [string, string, [string, string, string]][] = [
+    ["humor", "Humor", ["žádný", "občas", "hodně"]], ["formal", "Oslovení", ["tykání", "normálně", "formálně"]],
+    ["brevity", "Délka odpovědí", ["co nejkratší", "normální", "podrobné"]]];
+  const FLAGS: [string, string][] = [
+    ["quick_preface", "U těžké otázky nahlas hned jedna věta, co dělám (rychlý model), než doběhne odpověď"],
+    ["learn_corrections", "Učit se z oprav („ne, myslel jsem…“)"],
+    ["verify_answers", "Odpověď z webu porovnat se zdroji a označit, co v nich není"],
+    ["second_opinion", "U peněz, zdraví, práva a mazání odpovídat opatrně a ověřit u dalších AI"],
+    ["private_local", "Hesla, zdraví a bankovní údaje posílat jen AI v tomhle PC (když běží)"]];
+  client.on("settings", (m) => {
+    const s = m.settings; if (!s?.general || !s?.brain) return;
+    const tr = s.general.traits || {};
+    behaveBox.replaceChildren(
+      ...TRAIT_LABEL.map(([key, label, opts]) => h("div", { class: "row" }, h("span", {}, label),
+        h("select", { "aria-label": label, onchange: (e: Event) => client.send("settings_set", { patch: { general: { traits: { ...tr, [key]: Number((e.target as HTMLSelectElement).value) } } } }) },
+          ...opts.map((o, i) => h("option", { value: String(i), selected: Number(tr[key] ?? 1) === i }, o))))),
+      ...FLAGS.map(([key, label]) => h("label", { class: "row" }, h("span", {}, label),
+        h("input", { type: "checkbox", checked: s.brain[key] !== false, onchange: (e: Event) => client.send("settings_set", { patch: { brain: { [key]: (e.target as HTMLInputElement).checked } } }) }))),
+      h("div", { class: "row" }, h("span", {}, `Rozpočet jedné mise na placené AI (${s.limits?.currency || "Kč"}, 0 = bez limitu)`),
+        h("input", { class: "input sm", type: "number", min: "0", step: "1", value: String(s.limits?.mission_max_cost ?? 0), "aria-label": "Rozpočet mise",
+          onchange: (e: Event) => client.send("settings_set", { patch: { limits: { mission_max_cost: Number((e.target as HTMLInputElement).value) || 0 } } }) })));
+  });
   client.on("error", (m) => { if (/projekt/i.test(m.message || "")) toast(m.message, "error"); });
 
   const el = h("section", { class: "tasks-view brain-view" },
@@ -112,9 +161,13 @@ export function buildBrain(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Projekty"), projBox,
     h("h2", { class: "group-label" }, "Časová osa"), h("div", { class: "card sec-card" }, day, tl),
     h("h2", { class: "group-label" }, "Rozpory v paměti"), conflictBox,
-    h("h2", { class: "group-label" }, "Co o tobě vím"), factsBox);
+    h("h2", { class: "group-label" }, "Co o tobě vím"), factsBox,
+    h("h2", { class: "group-label" }, "Naučená pravidla"), rulesBox,
+    h("h2", { class: "group-label" }, "Povaha a chování"), behaveBox,
+    h("h2", { class: "group-label" }, "Hodnocení odpovědí"), rateBox);
   return { el, show: () => {
     client.send("knowledge_get"); client.send("timeline_get", { day: day.value });
+    client.send("rules_get"); client.send("ratings_get"); client.send("settings_get");
     meaningLabel.title = k.embed ? `Model: ${k.embed}` : "Potřebuje místní model na embeddingy v Ollamě (např. nomic-embed-text).";
   } };
 }

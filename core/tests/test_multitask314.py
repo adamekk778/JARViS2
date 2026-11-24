@@ -22,7 +22,7 @@ class SlowRouter:
         self.delay, self.now, self.peak, self.calls = delay, 0, 0, 0
         self.last_used = ("fake", "fake")
 
-    async def stream(self, messages, tools=None, need_vision=False, fast=False, only=None, model=None):
+    async def stream(self, messages, tools=None, need_vision=False, fast=False, only=None, model=None, **kw):
         self.now += 1
         self.calls += 1
         self.peak = max(self.peak, self.now)

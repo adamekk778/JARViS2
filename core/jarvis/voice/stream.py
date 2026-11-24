@@ -61,6 +61,12 @@ class SpeechStream:
             self.buf = rest
             self._queue(piece)
 
+    def preface(self, line: str) -> None:
+        """3.14 one short sentence said before the answer is written (not part of the answer text)."""
+        if self.spoke or self.rt.speaker is None or not line.strip():
+            return
+        self._queue(line)
+
     def _queue(self, piece: str) -> None:
         text = speakable(piece)
         if not re.search(r"\w", text):

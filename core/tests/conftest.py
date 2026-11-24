@@ -47,10 +47,11 @@ class FakeRouter:
     def update(self, brain):
         pass
 
-    async def stream(self, messages, tools, need_vision=False, fast=False, only=None, model=None):
+    async def stream(self, messages, tools, need_vision=False, fast=False, only=None, model=None, **kw):
         from jarvis.llm.base import Chunk, ToolCall
 
-        self.calls.append({"messages": messages, "tools": tools, "need_vision": need_vision, "only": only, "model": model})
+        self.calls.append({"messages": messages, "tools": tools, "need_vision": need_vision, "only": only, "model": model,
+                           "fast": fast, **kw})
         item = self.script.pop(0) if self.script else "konec"
         if isinstance(item, Exception):
             raise item

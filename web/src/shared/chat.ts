@@ -159,6 +159,11 @@ export class ChatView {
     c.on("tool_start", (m) => this.toolStart(m));
     c.on("tool_end", (m) => this.toolEnd(m));
     c.on("assistant_done", (m) => this.done(m));
+    c.on("answer_check", (m) => {
+      const el = this.list.querySelector(`.msg.assistant[data-id="${m.id}"] .a-main`);
+      const note = this.checkEl(m.issues);
+      if (el && note && !el.querySelector(".answer-check")) el.querySelector(".actions")?.before(note);
+    });
     c.on("confirm_request", (m) => this.confirmCard(m));
     c.on("confirm_timeout", (m) => this.list.querySelector(`[data-confirm="${m.id}"]`)?.classList.add("resolved"));
     c.on("confirm_resolved", (m) => this.list.querySelector(`[data-confirm="${m.id}"]`)?.classList.add("resolved"));
@@ -277,6 +282,7 @@ export class ChatView {
         body,
         this.attachmentsEl(m.attachments),
         this.sourcesEl(m.meta?.sources),
+        this.checkEl(m.meta?.check),
         this.actions(m)));
   }
 
@@ -311,11 +317,31 @@ export class ChatView {
     ta.focus();
   }
 
+  /** 3.14 👍 / 👎 – JARVIS learns which AI does best at what (Paměť → Hodnocení odpovědí). */
+  private rate(m: Message, good: boolean, btn: HTMLElement) {
+    this.client.send("answer_rate", { id: m.id, good });
+    btn.parentElement?.querySelectorAll(".rate").forEach((b) => b.classList.remove("on"));
+    btn.classList.add("on");
+    if (!good) toast("Díky. Napiš mi, co bylo špatně – zapamatuju si to jako pravidlo.", "info", 5000);
+  }
+
+  /** 3.14 claims the read web pages do not support, under the answer. */
+  private checkEl(issues: string[] = []): HTMLElement | null {
+    if (!issues.length) return null;
+    return h("div", { class: "answer-check", role: "note" }, icon("warning"), h("div", {},
+      h("strong", {}, "Ve zdrojích jsem nenašel:"), h("ul", {}, ...issues.map((i) => h("li", {}, i)))));
+  }
+
   private actions(m: Message): HTMLElement {
     return h("div", { class: "actions" },
       h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", "aria-label": "Kopírovat", onclick: () => copyText(m.text) }, icon("copy")),
       h("button", { class: "icon-btn sm", type: "button", title: "Přečíst nahlas", "aria-label": "Přečíst nahlas", onclick: () => this.speak(m) }, icon("speaker-high")),
       h("button", { class: "icon-btn sm regen", type: "button", title: "Vygenerovat znovu", "aria-label": "Vygenerovat znovu", onclick: () => this.client.send("regenerate") }, icon("arrows-clockwise")),
+      h("button", { class: `icon-btn sm rate ${m.meta?.rated === true ? "on" : ""}`, type: "button", title: "Dobrá odpověď", "aria-label": "Dobrá odpověď",
+        onclick: (e: Event) => this.rate(m, true, e.currentTarget as HTMLElement) }, icon("thumbs-up")),
+      h("button", { class: `icon-btn sm rate ${m.meta?.rated === false ? "on" : ""}`, type: "button", title: "Špatná odpověď", "aria-label": "Špatná odpověď",
+        onclick: (e: Event) => this.rate(m, false, e.currentTarget as HTMLElement) }, icon("thumbs-down")),
+      m.meta?.private ? h("span", { class: "brain", title: "Citlivý dotaz – odpověděla jen AI v tomhle PC" }, icon("lock-simple"), " jen v PC") : null,
       m.meta?.brain ? h("span", { class: "brain", title: isLocalBrain(m.meta.brain[0]) ? "Odpověděl lokální model (offline, v tvém PC)" : "Odpověděl cloudový model (přes internet)" },
         icon(isLocalBrain(m.meta.brain[0]) ? "cpu" : "cloud"), " ", m.meta.brain[0]) : null,
       h("span", { class: "meta" }, fmtTime(m.created)));

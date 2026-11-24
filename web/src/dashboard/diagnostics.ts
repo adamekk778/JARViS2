@@ -111,6 +111,30 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     toast("Otevírám formulář na GitHubu – zkontroluj text a klikni Submit.", "ok", 6000);
   });
 
+  // 3.14 Úplně offline (návrh 31): speech recognition, AI and voice on this PC – sizes first, one click, then a test
+  const offline = h("div", { class: "card qh" }, h("p", { class: "help" }, "Načítám…"));
+  const offlineLog = h("p", { class: "help" });
+  client.on("offline_pack_progress", (m: any) => { offlineLog.textContent = m.text; });
+  client.on("offline_pack", (m: any) => {
+    offlineLog.textContent = (m.errors || []).join(" ");
+    offline.replaceChildren(
+      h("p", { class: "help" }, m.ready ? "Všechno potřebné pro práci bez internetu je v tomhle PC." :
+        `Pro práci úplně bez internetu chybí ${m.parts.filter((p: any) => !p.ready).length} část(i) – ke stažení ${m.download_gb} GB.`),
+      ...m.parts.map((p: any) => h("div", { class: `row ${p.ready ? "" : "warn"}` }, h("span", {}, icon(p.ready ? "check-circle" : "download-simple"), " ", p.name),
+        h("span", { class: "help" }, p.ready ? `připraveno · ${p.note}` : `${p.size_gb} GB · ${p.note}`))),
+      h("div", { class: "btn-row" },
+        m.ready ? null : h("button", { class: "btn primary", type: "button", onclick: () => {
+          if (!window.confirm(`Stáhnout ${m.download_gb} GB pro práci bez internetu?`)) return;
+          offlineLog.textContent = "Připravuju…"; client.send("offline_pack_prepare", { switch: false });
+        } }, icon("download-simple"), "Připravit vše offline"),
+        h("button", { class: "btn", type: "button", onclick: () => { offlineLog.textContent = "Zkouším hlas → rozpoznání → AI…"; client.send("offline_pack_test"); } }, icon("play"), "Vyzkoušet"),
+        m.ready && !m.offline_only ? h("button", { class: "btn", type: "button", onclick: () => client.send("offline_pack_prepare", { switch: true }) }, icon("wifi-slash"), "Používat jen offline") : null),
+      offlineLog);
+  });
+  client.on("offline_pack_test_result", (m: any) => {
+    offlineLog.replaceChildren(...(m.items || []).map((i: any) => h("span", { class: "row" }, icon(i.ok === false ? "x-circle" : i.ok ? "check-circle" : "minus-circle"), " ", i.detail)));
+  });
+
   const tick = () => { client.send("diagnostics_get"); client.send("system_get", { gpu: true }); };
   const el = h("section", { class: "diag-view" },
     hero(HEROES.diagnostics, "Diagnostika", "Jak se daří JARVISovi a tvému počítači.", [
@@ -121,6 +145,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("div", { class: "sc-head" }, h("p", { class: "group-label" }, "Kontrola funkcí"),
       h("button", { class: "btn primary", type: "button", onclick: runCheck }, icon("stethoscope"), "Zkontrolovat")), checks,
     h("p", { class: "group-label" }, "Zdraví JARVISe"), health,
+    h("p", { class: "group-label" }, "Úplně offline"), offline,
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
     h("div", { class: "grid2" },
@@ -129,7 +154,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "Log (bez hesel a klíčů)"), h("div", { class: "card" }, log));
   return {
     el,
-    show() { tick(); client.send("quality_get"); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
+    show() { tick(); client.send("quality_get"); client.send("offline_pack_get"); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
     hide() { window.clearInterval(timer); },
   };
 }

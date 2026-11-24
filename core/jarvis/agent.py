@@ -333,7 +333,12 @@ class Agent:
             world = rt.world.for_prompt() if getattr(rt, "world", None) is not None else ""
         except Exception:  # noqa: BLE001
             world = ""
-        extra = "\n\n".join(x for x in (proj, mood, world, extra) if x)
+        from . import brainplus
+
+        plus = [brainplus.rules_prompt(rt) if getattr(rt.cfg.brain, "learn_corrections", True) else "",
+                brainplus.traits_prompt(rt.cfg),
+                brainplus.risky(text) if getattr(rt.cfg.brain, "second_opinion", True) else ""]
+        extra = "\n\n".join(x for x in (proj, mood, world, *plus, extra) if x)
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:
             history = history[:-1]
@@ -500,6 +505,13 @@ class Agent:
         self._untrusted_seen = False            # 3.13 full trust asks again after e-mails / web pages were read
         rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
         status = "done"
+        from . import brainplus                # 3.14 Mozek+: corrections, traits, think twice, private, preface, check
+
+        correction_of = None
+        if record_user and getattr(rt.cfg.brain, "learn_corrections", True) and brainplus.is_correction(text or ""):
+            prev = [m for m in rt.memory.recent(4) if m["role"] in ("user", "assistant")]
+            if len(prev) >= 2 and prev[-1]["role"] == "assistant" and prev[-2]["role"] == "user":
+                correction_of = (prev[-2]["text"], prev[-1]["text"])
         if record_user:
             um = rt.memory.add_message("user", text, attachments, source)
             bus.publish("user_message", id=um["id"], text=text, source=source,
@@ -540,6 +552,34 @@ class Agent:
             msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
             schemas = self._tool_schemas(text)
         speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+        from .llm import difficulty                        # 3.14 návrh 4: the model tier and the depth of thinking
+
+        tier = difficulty.classify(text or "", attachments=len(attachments or []), agent_mode=bool(rt.cfg.agent.mode),
+                                   mission=bool(getattr(self, "_task_hint", None)))
+        self.tier = tier
+        tier_kw: dict = {"effort": difficulty.EFFORT[tier]}
+        if tier == "fast" and not self._only:
+            tier_kw["fast"] = True
+        private = False
+        if not self._only and getattr(rt.cfg.brain, "private_local", True) and brainplus.sensitive(text or ""):
+            lid = brainplus.local_provider(rt)        # 3.14 návrh 32: passwords, health, bank → the AI on this PC
+            ready = False
+            if lid and rt.router.local_ready is not None:
+                try:
+                    ready = await rt.router.local_ready()
+                except Exception:  # noqa: BLE001
+                    ready = False
+            if lid and ready:
+                tier_kw["only"] = lid
+                tier_kw.pop("fast", None)
+                private = True
+        if (tier == "strong" and speech is not None and quick is None and getattr(rt.cfg.brain, "quick_preface", True)
+                and not private):
+            async def _say_first() -> None:            # 3.14 návrh 23: one sentence at once while the main model thinks
+                line = await brainplus.preface(rt, text or "")
+                if line and not speech.spoke:
+                    speech.preface(line)
+            asyncio.get_running_loop().create_task(_say_first())
         offered = {sc.get("function", sc).get("name") for sc in schemas}
         calls: list[ToolCall] | None = None
         rnd = 0
@@ -557,7 +597,8 @@ class Agent:
                 calls: list[ToolCall] | None = None
                 use_tools = schemas if rnd < rounds else None
                 shown = 0                                  # 3.13 how much of round_text is on the screen already
-                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **({"only": self._only} if self._only else {})):
+                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw,
+                                                 **({"only": self._only} if self._only else {})):
                     if ch.text:
                         round_text += ch.text
                         if not only_dots(round_text):      # "..." alone (some models send it between steps) is not shown
@@ -655,7 +696,8 @@ class Agent:
         if rt.tasks.current is not None:
             rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,
-                                   meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12]})
+                                   meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12],
+                                         "tier": getattr(self, "tier", ""), **({"private": True} if private else {})})
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
         if speech is not None:                      # spoken as it was written; anything added at the end too
@@ -671,4 +713,27 @@ class Agent:
             from . import chatsummary
 
             asyncio.get_running_loop().create_task(chatsummary.refresh(rt))
+        if correction_of and not cancelled:         # 3.14 návrh 24: a rule from the correction, for next time
+            asyncio.get_running_loop().create_task(brainplus.learn(rt, correction_of[0], correction_of[1], text or ""))
+        if (status == "done" and not cancelled and getattr(rt.cfg.brain, "verify_answers", True)
+                and brainplus.worth_checking(full_text, self._sources)):
+            texts = [str(m.get("content") or "") for m in msgs if m.get("role") == "tool"
+                     and m.get("name") in ("web_read", "read_website", "web_search", "google_ask", "deep_research", "world_news")]
+            asyncio.get_running_loop().create_task(self._check_answer(am["id"], full_text, texts))
         return full_text
+
+    async def _check_answer(self, msg_id: str, answer: str, texts: list[str]) -> None:
+        """3.14 návrh 26: claims the read pages do not support → marked under the answer."""
+        from . import brainplus
+
+        issues = await brainplus.check_answer(self.rt, answer, texts)
+        if not issues:
+            return
+        row = self.rt.db.one("SELECT meta FROM messages WHERE id=?", (msg_id,))
+        try:
+            meta = __import__("json").loads((row or {}).get("meta") or "{}")
+        except ValueError:
+            meta = {}
+        meta["check"] = issues
+        self.rt.db.exec("UPDATE messages SET meta=? WHERE id=?", (__import__("json").dumps(meta, ensure_ascii=False), msg_id))
+        self.rt.bus.publish("answer_check", id=msg_id, issues=issues)

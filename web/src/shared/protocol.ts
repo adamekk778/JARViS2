@@ -35,6 +35,8 @@ export const CLIENT_TYPES = [
   "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
   "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop", "multitask_tell", "multitask_preset", "monitor_check", "paper_get", "paper_reset",
   "quality_get", "bug_report", "rollback_now", "update_channel_set",
+  "rules_get", "rule_delete", "rule_add", "answer_rate", "ratings_get",
+  "offline_pack_get", "offline_pack_prepare", "offline_pack_test",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -56,6 +58,8 @@ export const SERVER_TYPES = [
   "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
   "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask", "multitask_result", "monitor_check_result", "paper",
   "quality", "bug_report_url",
+  "rules", "ratings", "answer_check",
+  "offline_pack", "offline_pack_progress", "offline_pack_test_result",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -92,7 +96,7 @@ export interface Message {
   attachments: Attachment[];
   source?: string;
   created?: number;
-  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[] };
+  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[]; check?: string[]; tier?: string; private?: boolean; rated?: boolean };
 }
 
 /** OMEGA 550: what an answer rests on. */
