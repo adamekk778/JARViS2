@@ -10,8 +10,13 @@ import "./glass.css";
 // OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
 let motionPref = "full";
 let onBattery = false;
+let heavyLoad = false;               // 3.14 návrh 79: the processor is busy → fewer effects (with "auto")
 function applyMotion() {
-  document.documentElement.dataset.motion = motionPref === "reduced" || (motionPref === "auto" && onBattery) ? "reduced" : "full";
+  document.documentElement.dataset.motion = motionPref === "reduced" || (motionPref === "auto" && (onBattery || heavyLoad)) ? "reduced" : "full";
+}
+export function applyLoad(heavy: boolean) {
+  heavyLoad = !!heavy;
+  applyMotion();
 }
 export function applyPower(battery: boolean) {
   onBattery = !!battery;
@@ -31,6 +36,9 @@ export function applyAppearance(s: any) {
   }
   motionPref = a.animations || "full";
   applyMotion();
+  root.dataset.contrast = a.high_contrast ? "high" : "normal";                  // 3.14 návrh 68
+  const scale = Math.max(1, Math.min(1.6, Number(a.font_scale) || 1));
+  if (!root.classList.contains("notch-doc")) (root.style as any).zoom = scale === 1 ? "" : String(scale);
   densityPref = a.density || "auto";
   applyDensity();
   inputPref = a.input_mode || "auto";

@@ -185,6 +185,10 @@ class Runtime:
         self.voiceid = VoiceId(self)            # 3.14 who speaks (household, owner), own wake word, whispering
         self.voice_lat: _dq = _dq(maxlen=50)   # 3.14 end of your sentence → JARVIS's first sound, ms
         self.voice_t_end: float | None = None
+        from . import notchplus
+
+        self.widgets = notchplus.Widgets(self)  # 3.14 your own tiles in the notch (76)
+        self.loadwatch = notchplus.LoadWatch(self)   # 3.14 fewer effects under heavy load (79)
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -275,6 +279,11 @@ class Runtime:
 
         self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
         self._sys_tasks.append(self._later(proactiveplus.evening_loop(self)))   # 3.14 the evening review (58)
+        from . import notchplus
+
+        self._sys_tasks.append(self._later(self.widgets.loop()))
+        self._sys_tasks.append(self._later(self.loadwatch.loop()))
+        self._sys_tasks.append(self._later(notchplus.Spectrum(self).loop()))   # 3.14 the spectrum of the music (74)
         from . import selfcheck
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails

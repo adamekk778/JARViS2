@@ -131,9 +131,21 @@ class Voice(BaseModel):
     owner_only: bool = True         # 3.14 a voice profile of the owner exists → risky actions by voice only in that voice (38)
 
 
+class NotchWidget(BaseModel):
+    """3.14 a small tile in the notch: a read-only tool run every few minutes and its one-line answer (návrh 76)."""
+    id: str
+    name: str = "Widget"
+    icon: str = "squares-four"
+    tool: str = "weather"
+    args: dict[str, Any] = Field(default_factory=dict)
+    every_min: int = 15
+
+
 class Notch(BaseModel):
     enabled: bool = True
     music_viz: bool = True         # OMEGA P12.02: bars moving with the music while something plays
+    spectrum: bool = False         # 3.14 the bars from the real spectrum of what plays (loopback, 10× a second) (74)
+    widgets: list[NotchWidget] = Field(default_factory=list)   # 3.14 your own tiles in Více (76)
     follow_window: bool = True     # OMEGA 752: while JARVIS works in a window, the notch moves above it
     edge_play: bool = True         # OMEGA 247: when nothing happens for a while, Mochi plays along the screen edge
     monitor: int = 0
@@ -178,6 +190,8 @@ class Appearance(BaseModel):
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
+    high_contrast: bool = False         # 3.14 stronger borders and text for weaker eyes (68)
+    font_scale: float = 1.0             # 3.14 the whole interface larger (1.0–1.6) (68)
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced", "auto"] = "full"   # auto = reduced on battery (OMEGA 240 / 764)
@@ -299,7 +313,8 @@ class CustomReaction(BaseModel):
 class Character(BaseModel):
     color: Literal["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] = "black"
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
-    outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] = "auto"
+    outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap",
+                    "headphones", "graduate", "flower", "halo"] = "auto"   # 3.14 the last four unlock with Mochi's level
     size: Literal["S", "M", "L"] = "M"
     personality: Literal["vyvážený", "hravý", "klidný", "profesionální"] = "vyvážený"   # OMEGA 242: how lively he is
     ambient: bool = True      # OMEGA 739–741: accessories by weather and time of day, dimmer at night

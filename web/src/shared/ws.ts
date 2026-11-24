@@ -1,5 +1,5 @@
 import type { Attachment, ClientType, ServerMsg, ServerType } from "./protocol";
-import { applyPower } from "./base";
+import { applyLoad, applyPower } from "./base";
 
 export interface Endpoint {
   base: string; // http://host:port (no trailing slash)
@@ -63,6 +63,7 @@ export class JarvisClient {
       }
       if (m.type === "welcome") this.local = !!m.local;
       if (m.type === "power_state" || (m.type === "welcome" && (m as any).power)) applyPower(!!((m as any).power?.on_battery ?? (m as any).on_battery));
+      if (m.type === "perf_hint") applyLoad(!!(m as any).heavy);
       // one screen that cannot handle a message must not stop the others (or the rest of this one) from getting it
       const run = (h: Handler) => { try { h(m); } catch (e) { console.warn(`JARVIS: ${m.type} handler failed`, e); } };
       this.handlers.get(m.type)?.forEach(run);

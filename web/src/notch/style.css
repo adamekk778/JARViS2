@@ -723,3 +723,8 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
   overflow: hidden; text-overflow: ellipsis; font: 500 11.5px/1.2 var(--font); color: rgb(255 255 255 / .55); pointer-events: none; }
 .notch.has-tr[data-island="lyrics"]:is([data-mode="closed"], [data-mode="hover"]) .n-lyr-tr { display: block; opacity: 1; }
 .notch.has-tr[data-island="lyrics"] .n-lyr { bottom: 16px; }
+
+
+/* 3.14 widgets in Více */
+.mo-widgets { display: contents; }
+.mo-widget.bad .mo-text span { opacity: .6; }

@@ -18,6 +18,9 @@ async def embedder_download(c, m: dict) -> None:
         if p - last["p"] >= 0.05 or p >= 1.0:
             last["p"] = p
             c.rt.bus.publish("embedder", **embedder.status(), progress=round(p, 2))
+            from ...notchplus import live
+
+            live(c.rt, "embedder", "Model pro hledání", "download-simple", p, done=p >= 1.0)
     try:
         res = await embedder.download(getattr(c.rt, "transport", None), progress)
     except Exception as e:  # noqa: BLE001 – offline, blocked…

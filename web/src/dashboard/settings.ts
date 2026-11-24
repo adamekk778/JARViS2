@@ -3,7 +3,7 @@ import { openPhoneMirror } from "./phonemirror";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
 import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
-import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
+import { OUTFIT_LABEL, OUTFITS, UNLOCK_LEVEL } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
 import { createBrainsPanel } from "../shared/brainsui";
@@ -507,6 +507,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             "Vypni, když ho chceš mít i nad YouTube nebo hrou. Kdykoli ho schováš a vrátíš zkratkou " + combo(S.hotkeys.notch_toggle || "ctrl+alt+n") +
             ". Hry ve výhradním režimu celé obrazovky nic nepřekryje – přepni je na „okno bez okrajů“ (borderless)."),
           sw("notch.music_viz", "Pruhy podle hudby", "Když hraje hudba, na okraji notche se hýbou pruhy."),
+          sw("notch.spectrum", "Pruhy podle skutečného spektra", "Pruhy sledují basy až výšky toho, co PC hraje (bere jen zvuk z PC, nikdy mikrofon)."),
+          ...((S.notch.widgets || []) as any[]).map((w) => h("div", { class: "row" }, h("span", {}, icon(w.icon || "squares-four"), ` Widget: ${w.name} (${w.tool}, každých ${w.every_min} min)`),
+            h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("widget_delete", { id: w.id }) }, icon("trash")))),
+          h("p", { class: "help" }, "Vlastní widget přidáš hlasem nebo v chatu: „přidej do notche widget s počasím v Brně“."),
           sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
           sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
@@ -540,6 +544,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       picker.onchange = () => set("appearance.accent", picker.value);
       return [bgCard(), card("Barvy", null,
         select("appearance.theme", "Motiv", [["glass", "Sklo (liquid glass)"], ["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
+        sw("appearance.high_contrast", "Vysoký kontrast", "Výraznější text, okraje a zvýraznění prvku, na kterém je klávesnice."),
+        range("appearance.font_scale", "Velikost rozhraní", 1, 1.6, 0.1, (v) => `${Math.round(v * 100)} %`),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["auto", "Na baterii omezené"], ["reduced", "Omezené"]]),
@@ -955,8 +961,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
           h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
-          select("character.outfit", "Šatník", OUTFITS.map((o) => [o, OUTFIT_LABEL[o]] as [string, string]),
-            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."),
+          (() => {                                   // 3.14 návrh 78: some outfits unlock with Mochi's level
+            const lv = extra.mochi?.level ?? 1;
+            if (!extra.mochiAsked) { extra.mochiAsked = true; client.send("mochi_level_get"); }
+            const opts = OUTFITS.filter((o) => (UNLOCK_LEVEL[o] ?? 0) <= lv || ch.outfit === o).map((o) => [o, OUTFIT_LABEL[o]] as [string, string]);
+            const locked = OUTFITS.filter((o) => (UNLOCK_LEVEL[o] ?? 0) > lv).map((o) => `${OUTFIT_LABEL[o]} (úroveň ${UNLOCK_LEVEL[o]})`);
+            return select("character.outfit", `Šatník · Mochi úroveň ${lv}`, opts,
+              `Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“.${locked.length ? " Ještě se odemkne: " + locked.join(", ") + "." : ""}`);
+          })(),
           select("character.personality", "Povaha", [["vyvážený", "Vyvážená"], ["hravý", "Hravá – víc hraní a překvapení"],
             ["klidný", "Klidná – méně pohybu"], ["profesionální", "Profesionální – žádné hraní"]],
             "Jak živě se hýbe a jak často si sám pro sebe hraje, když nic neděláš."))),
@@ -1504,6 +1516,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("settings_changed", (m) => { S = m.settings; render(); });
   client.on("voice_status", (m) => { voiceStatus = m; if (current === "voice") render(); });
   client.on("voiceid", (m) => { extra.voiceid = m; if (current === "voice") render(); });
+  client.on("mochi_level", (m) => { extra.mochi = m; if (current === "appearance") render(); });
   client.on("provider_test_result", (m) => {
     const text = m.ok ? `Funguje ✓ (${m.ms} ms): ${m.message}` : m.message;
     extra[`kstat_${m.id}`] = { cls: m.ok ? "ok" : "fail", text };

@@ -50,6 +50,9 @@ async def offline_pack_prepare(c, m: dict) -> None:
 
     def progress(key: str, text: str) -> None:
         c.rt.bus.publish("offline_pack_progress", key=key, text=text)
+        from ...notchplus import live
+
+        live(c.rt, "offline", "Úplně offline", "wifi-slash", text=text[:24])
     res = await offlinepack.prepare(c.rt, switch=bool(m.get("switch")), progress=progress)
     await c.send("offline_pack", **res)
 

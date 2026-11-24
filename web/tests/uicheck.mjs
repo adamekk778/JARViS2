@@ -5,7 +5,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 // Playwright from this folder's node_modules or a global install (CI: `npx playwright install chromium`)
-const { chromium } = createRequire(import.meta.url)("playwright");
+const require_ = createRequire(import.meta.url);
+const { chromium } = require_("playwright");
+// 3.14 návrh 68: accessibility (axe-core) when it is installed – critical problems fail the check
+let axeSource = "";
+try { axeSource = (await import("node:fs")).readFileSync(require_.resolve("axe-core/axe.min.js"), "utf8"); } catch { /* not installed */ }
 
 const [base, out = "uicheck-out"] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
@@ -52,6 +56,18 @@ for (const p of PAGES) {
       }
       return { overflowX, clipped, notchOk, title: document.title, nodes: document.querySelectorAll("*").length };
     }, !!p.notch).catch((e) => ({ overflowX: 0, clipped: 0, notchOk: true, title: "", nodes: 0, evalErr: String(e) }));
+    let a11y = { critical: [], serious: 0 };
+    if (axeSource && !loadErr) {
+      try {
+        await page.addScriptTag({ content: axeSource });
+        const r = await page.evaluate(async () => {
+          const res = await (window).axe.run(document, { resultTypes: ["violations"], runOnly: ["wcag2a", "wcag2aa"] });
+          return res.violations.map((v) => ({ id: v.id, impact: v.impact, n: v.nodes.length, help: v.help,
+            where: v.nodes.slice(0, 4).map((n) => `${n.target.join(" ")} – ${(n.failureSummary || "").split("\n").slice(1, 2).join("").slice(0, 140)}`) }));
+        });
+        a11y = { critical: r.filter((v) => v.impact === "critical"), serious: r.filter((v) => v.impact === "serious").reduce((s, v) => s + v.n, 0), all: r };
+      } catch (e) { a11y = { critical: [], serious: 0, error: String(e).slice(0, 120) }; }
+    }
     const file = `${out}/${p.name}-${w}x${hgt}.png`;
     await page.screenshot({ path: file, fullPage: false }).catch(() => {});
     const problems = [];
@@ -61,7 +77,8 @@ for (const p of PAGES) {
     if (m.clipped > 0) problems.push(`${m.clipped} tlačítek/nadpisů je useknutých vpravo`);
     if (!m.notchOk) problems.push("notch je mimo okno");
     if (m.nodes < 10) problems.push("stránka je skoro prázdná");
-    results.push({ page: p.name, size: `${w}x${hgt}`, screenshot: file, problems, ...m });
+    for (const v of a11y.critical) problems.push(`přístupnost (${v.id}, ${v.n}×): ${v.help}`);
+    results.push({ page: p.name, size: `${w}x${hgt}`, screenshot: file, problems, a11y, ...m });
     await page.close();
   }
 }

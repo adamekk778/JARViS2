@@ -1462,14 +1462,17 @@ window.setInterval(() => {                                                   // 
   if (mode === "closed") apply(mode);
   window.setTimeout(() => { updateActivity(); if (mode === "closed") apply(mode); }, 40_500);
 }, 60_000);
-const PERSIST = ["lyrics", "subs", "team", "agents", "ai", "claude", "focus", "task", "download", "music"];
+const PERSIST = ["lyrics", "subs", "team", "agents", "ai", "claude", "focus", "task", "download", "live", "music"];
+// 3.14 live activities: anything long shows a small progress pill (a model downloading, the offline pack, a skill)
+const lives = new Map<string, { title: string; icon: string; progress: number | null; text: string; at: number }>();
+const liveNow = () => { for (const [k, v] of lives) if (Date.now() - v.at > 120000) lives.delete(k); return [...lives.values()].sort((a, b) => b.at - a.at)[0]; };
 let lastKind = "", lastKindAt = 0;
 let preferKind = "";
 let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
   const on: Record<string, boolean> = {
     lyrics: lyricsOn(), subs: subs.on && !songApp(), team: team.size > 0, agents: mtAgents.running > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
-    focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000),
+    focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000), live: !!liveNow(),
     music: !lyricsOn() && !!(media?.playing && media.title),
   };
   return PERSIST.filter((k) => on[k]);
@@ -1632,6 +1635,10 @@ function islandActivity(t: any) {
     const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;
     kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
     r = [`${mb(d.bytes)}${d.speed > 0 ? ` · ${mb(d.speed)}/s` : ""}`];
+  } else if (sk("live") && liveNow()) {
+    const la = liveNow()!;
+    kind = "live"; l = [icon(la.icon || "spinner-gap"), h("span", {}, la.title.slice(0, 20))];
+    r = [la.progress != null ? `${Math.round(la.progress * 100)} %` : la.text];
   } else if (dyn() && ["listening", "speaking", "thinking", "working"].includes(coreMood)) {
     kind = "voice"; l = [];                                       // the eyes are in the middle
     r = [h("span", { class: "n-wave" }, ...Array.from({ length: 5 }, () => h("i")))];
@@ -2064,6 +2071,22 @@ client.on("beat", (m) => {
   window.clearTimeout(beatOff);
   beatOff = window.setTimeout(() => { delete document.documentElement.dataset.beat; }, 12000);
 });
+client.on("live_activity", (m: any) => {
+  if (m.done) lives.delete(m.id); else lives.set(m.id, { title: m.title, icon: m.icon, progress: m.progress, text: m.text || "", at: Date.now() });
+  updateActivity();
+});
+// 3.14 the real spectrum of the music (when Nastavení → Notch → Spektrum is on): the 5 bars follow it
+let vizBands: number[] = [], vizAt = 0;
+client.on("viz_bands", (m: any) => { vizBands = Array.isArray(m.bands) ? m.bands : []; vizAt = Date.now(); });
+const paintViz = () => {
+  if (Date.now() - vizAt < 600 && vizBands.length >= 6) {
+    document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar, i) => {
+      bar.style.animation = "none"; bar.style.transform = `scaleY(${(0.25 + 0.75 * (vizBands[i + 1] || 0)).toFixed(2)})`;
+    });
+  } else document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar) => { bar.style.animation = ""; bar.style.transform = ""; });
+  window.requestAnimationFrame(paintViz);
+};
+window.requestAnimationFrame(paintViz);
 client.on("download_progress", (m) => { dls = Array.isArray(m.items) ? m.items.filter((d: any) => d && typeof d.file === "string") : []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;

@@ -84,3 +84,47 @@ async def proactive_stats(ctx) -> ToolResult:
         return ToolResult(True, "Zatím jsem sám od sebe nic neposílal.")
     return ToolResult(True, "; ".join(f"{s['label']}: {s['shown']}× ukázáno, {s['used']}× použito{' (ztlumeno)' if s['muted'] else ''}"
                                       for s in st), data=st)
+
+
+@tool("live_activity", "Ukáže v zavřeném notchi malý průběh dlouhé věci (stahování, převod, build): id, název, průběh 0–1 "
+      "nebo krátký text; done=true ho schová.", category="notch")
+async def live_activity(ctx, id: str, title: str, progress: float | None = None, text: str = "",  # noqa: A002
+                        done: bool = False, icon: str = "spinner-gap") -> ToolResult:
+    from .. import notchplus
+
+    notchplus.live(ctx, id, title, icon, progress, text, done)
+    return ToolResult(True, "Skryto." if done else "Zobrazeno v notchi.")
+
+
+@tool("notch_widget_add", "Přidá do notche (Více) vlastní widget: krátký text z nástroje, který nic nemění, každých N minut "
+      "(např. počasí v Brně: tool=weather, args={city: Brno}; kurz bitcoinu: tool=price; odjezdy: tool=transit_departures).",
+      category="notch", perm="apps")
+async def notch_widget_add(ctx, name: str, tool_name: str, args: dict | None = None, every_min: int = 15,
+                           icon: str = "squares-four") -> ToolResult:
+    import uuid
+
+    from .. import tools as T
+
+    T.load_builtin()
+    spec = T.REGISTRY.get(tool_name)
+    if spec is None or spec.danger or (spec.danger_if and spec.danger_if(dict(args or {}))):
+        return ToolResult(False, "Widget smí používat jen nástroj, který nic nemění.")
+    w = {"id": uuid.uuid4().hex[:8], "name": name[:30], "icon": icon[:30], "tool": tool_name, "args": dict(args or {}),
+         "every_min": max(1, min(int(every_min), 1440))}
+    items = [x.model_dump() for x in ctx.cfg.notch.widgets] + [w]
+    ctx.update_config({"notch": {"widgets": items}})
+    wid = getattr(ctx, "widgets", None)
+    if wid is not None:
+        await wid.refresh(force=True)
+    return ToolResult(True, f"Widget „{name}“ je v notchi (Více).", data=w)
+
+
+@tool("mochi_level", "Jak Mochi (postavička JARVISe) roste: úroveň, body za společné dny, mise a návyky, a co se odemklo.",
+      category="notch")
+async def mochi_level(ctx) -> ToolResult:
+    from .. import notchplus
+
+    lv = notchplus.mochi_level(ctx)
+    nxt = lv["locked"][0] if lv["locked"] else None
+    return ToolResult(True, f"Mochi má úroveň {lv['level']} ({lv['points']} bodů)."
+                      + (f" Na úrovni {nxt['level']} odemkne {nxt['name']}." if nxt else " Všechno odemčeno."), data=lv)

@@ -81,7 +81,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: pip install -e "./core[dev]"
-      - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 && npx playwright install --with-deps chromium
+      - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 axe-core@4 && npx playwright install --with-deps chromium
       - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome python -m jarvis.uicheck --out $RUNNER_TEMP/uicheck
       - uses: actions/upload-artifact@v4
         if: always()

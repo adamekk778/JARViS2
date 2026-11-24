@@ -19,7 +19,7 @@
   --text: #f5f6f8;
   --text-2: #c7cad0;
   --muted: #8e939c;
-  --faint: #6b7079;
+  --faint: #7c818b;              /* 3.14 4.5:1 on the dark panels (WCAG AA) */
   --accent: #4f8dff;
   --accent-ink: #fff;
   --accent-2: color-mix(in oklab, var(--accent) 60%, white);
@@ -296,3 +296,10 @@ kbd { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; b
 .phead.compact .phead-ico { width: 36px; height: 36px; font-size: 18px; border-radius: 11px; }
 .phead.compact h1 { font-size: 20px; }
 @media (max-width: 760px) { .phead { flex-wrap: wrap; } .phead-actions { width: 100%; } }
+
+
+/* 3.14 návrh 68: high contrast for weaker eyes – stronger text, borders and focus rings */
+:root[data-contrast="high"] { --muted: #d9d9de; --edge: rgba(255,255,255,0.55); }
+:root[data-contrast="high"][data-theme="light"] { --muted: #2b2b30; --edge: rgba(0,0,0,0.6); }
+:root[data-contrast="high"] :focus-visible { outline: 3px solid var(--accent) !important; outline-offset: 2px; }
+:root[data-contrast="high"] .help, :root[data-contrast="high"] .muted { opacity: 1 !important; }

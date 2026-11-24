@@ -455,7 +455,7 @@ export function buildPanel(ctx: PanelCtx) {
   // 3.12 the logos of your AIs on the card: a click asks that one AI (askai.ts); the sheet is made on first use
   let ask: ReturnType<typeof createAskAi> | null = null;
   const askAi = () => (ask ??= createAskAi(() => el.parentElement || el, client, () => show("chat")));
-  const cardAi = h("div", { class: "tile ai", role: "button", tabindex: "0",
+  const cardAi = h("div", { class: "tile ai", role: "group", tabindex: "0",
     onclick: (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest(".aa-chips-slot")) return;
       show(sessions.some((x) => x.state !== "idle" || (x.changes || []).length) || jChanges.length ? "activity" : "chat");
@@ -492,7 +492,7 @@ export function buildPanel(ctx: PanelCtx) {
   const fxChips = h("div", { class: "fx-chips" }, fxChip(25), fxChip(50),
     h("button", { class: "fx-stats", type: "button", title: "Týden soustředění", "aria-label": "Týden soustředění",
       onclick: (e: Event) => { e.stopPropagation(); (stats ??= createFocusStats(el.parentElement || el, client)).open(); } }, icon("chart-bar", "ph-fill")));
-  const cardFocus = h("div", { class: "tile focus", role: "button", tabindex: "0", "aria-label": "Soustředění",
+  const cardFocus = h("div", { class: "tile focus", role: "group", tabindex: "0", "aria-label": "Soustředění",
     onclick: () => (focusState.active ? quick("focus_mode", { minutes: 0 }) : startFocus(25)),
     onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } } },
     h("div", { class: "fx-ring-box" }, ringSvg, h("span", { class: "fx-ico" }, fxBtnIco)),
@@ -613,6 +613,13 @@ export function buildPanel(ctx: PanelCtx) {
   const tile = (sec: Section | null, ic: string, label: string, sub: string, cls = "", fn?: () => void) =>
     h("button", { class: `more-tile ${cls}`, type: "button", onclick: () => (fn ? fn() : sec && show(sec)) },
       h("span", { class: "mo-ico" }, icon(ic, "ph-fill")), h("div", { class: "mo-text" }, h("strong", {}, label), h("span", {}, sub)));
+  // 3.14 your own widgets (Nastavení → Notch, or "přidej do notche widget s počasím v Brně")
+  const widgetsBox = h("div", { class: "mo-widgets" });
+  ctx.client.on("widgets", (m: any) => {
+    widgetsBox.replaceChildren(...(m.items || []).map((w: any) => h("div", { class: `more-tile mo-widget ${w.ok ? "" : "bad"}`, title: w.text },
+      h("span", { class: "mo-ico" }, icon(w.icon || "squares-four", "ph-fill")),
+      h("div", { class: "mo-text" }, h("strong", {}, w.name), h("span", {}, w.text)))));
+  });
   const moLive = h("span", { class: "mo-live" });
   const moActivity = tile("activity", "pulse", "Průběh", "Co AI právě dělá a co přesně změnila", "mo-tall mo-activity");
   moActivity.append(moLive, h("span", { class: "mo-go" }, "Otevřít", icon("caret-right")));
@@ -628,7 +635,8 @@ export function buildPanel(ctx: PanelCtx) {
     tile("workspaces", "browsers", "Plochy", "Rozložení oken"),
     tile("tools", "wrench", "Nástroje", "Co JARVIS umí"),
     tile("settings", "sliders-horizontal", "Nastavení", "Hlas, animace, vzhled", "mo-wide"),
-    tile(null, "arrow-square-out", "Celé okno", "Všechny stránky a nastavení JARVISe", "mo-wide", () => ctx.openChat("general")));
+    tile(null, "arrow-square-out", "Celé okno", "Všechny stránky a nastavení JARVISe", "mo-wide", () => ctx.openChat("general")),
+    widgetsBox);
   function paintMore() {
     const cc = sessions.find((x) => ["working", "thinking", "waiting"].includes(x.state));
     const busy = ["thinking", "working", "speaking", "listening"].includes(mood);
@@ -818,6 +826,7 @@ export function buildPanel(ctx: PanelCtx) {
   function show(s: Section) {
     const prev = current;
     current = s;
+    if (s === "more") ctx.client.send("widgets_get");
     music.show(s === "music");
     navEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.sec === s || ((b as HTMLElement).dataset.sec === "home" && s === "music") || ((b as HTMLElement).dataset.sec === "more" && EXTRA.includes(s))));
     requestAnimationFrame(() => moveInd());
