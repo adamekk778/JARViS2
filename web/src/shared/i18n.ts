@@ -134,6 +134,21 @@ const EN: Record<string, string> = {
   "Jak tě má oslovovat": "How to address you", "Domovské město": "Home city", "Pro počasí": "For the weather",
   "V jakém jazyce JARVIS odpovídá. English přepne do angličtiny i aplikaci.":
     "The language JARVIS answers in. English also switches the app to English.",
+  // 3.18 Cesty
+  "Cesty": "Trips", "Najít": "Find", "Rezervace": "Bookings", "Hlídání cen": "Price watches", "Kolik stály cesty": "What trips cost",
+  "Odkud JARVIS rezervuje": "Where JARVIS books", "Údaje a limity": "Details and limits", "Nic nehlídám.": "Nothing is watched.",
+  "Hotely a letenky podle tvého popisu. Platí se až po tvém potvrzení – dvakrát, s přesnou částkou.":
+    "Hotels and flights by your description. Nothing is paid until you confirm – twice, with the exact amount.",
+  "Tento měsíc": "This month", "Zrušit…": "Cancel…", "zrušeno": "cancelled", "nevratná": "non-refundable", "vratná": "refundable",
+  "Limit na jednu rezervaci (Kč)": "Limit per booking (CZK)", "Měsíční rozpočet na cesty (Kč)": "Monthly travel budget (CZK)",
+  "Přednost zrušení zdarma": "Prefer free cancellation", "Přednost platby na hotelu": "Prefer paying at the hotel",
+  "Kde hledat": "Where to search", "Platba u LiteAPI": "LiteAPI payment", "Měna": "Currency",
+  "Státní příslušnost (kód)": "Nationality (code)", "Příjmení": "Last name",
+  "E-mail pro potvrzení": "E-mail for the confirmation", "Datum narození (letenky)": "Date of birth (flights)",
+  "Oslovení (letenky)": "Title (flights)", "Pohlaví (letenky)": "Gender (flights)", "Pas platí do": "Passport valid until",
+  "Po rezervaci": "After booking", "Připomínky": "Reminders", "Hlídat, jestli hotel nezlevnil": "Watch whether the hotel got cheaper",
+  "Údaje cestujícího (zůstávají jen na tomhle PC)": "Traveller's details (they stay on this PC only)",
+  "zrušení zdarma": "free cancellation", "nevratné": "non-refundable", "platba na hotelu": "pay at the hotel", "snídaně": "breakfast",
 };
 
 const ADDRESS: Record<string, string> = { pane: "sir", "šéfe": "boss", "paní": "ma'am", kámo: "mate" };

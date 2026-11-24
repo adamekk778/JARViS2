@@ -154,7 +154,7 @@ def unregister_source(source: str) -> None:
         del REGISTRY[k]
 
 
-NEVER_TRUSTED = {"claude_code", "delete_file"}
+NEVER_TRUSTED = {"claude_code", "delete_file", "travel_book", "booking_cancel"}   # 3.18 money: always asked
 # results that carry text written by someone else (e-mails, web pages, files, messages): scanned for hidden orders
 UNTRUSTED_OUTPUT = {"email_read", "email_inbox", "email_search", "web_read", "web_search", "google_search", "browser_read",
                     "phone_messages", "read_text_file", "read_attachment", "clipboard_get", "ui_read", "selected_text"}   # always confirmed, even when the user marked them trusted

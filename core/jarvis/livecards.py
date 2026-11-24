@@ -45,7 +45,26 @@ def card(name: str, ok: bool, data: Any) -> dict | None:
                                              "state": p.get("state") or "open"} for p in items[:4]]} if items else None
     if name in ("now_playing_info", "media_control") and isinstance(data, dict) and data.get("title"):
         return {"kind": "music", "title": str(data.get("title"))[:60], "artist": str(data.get("artist") or "")[:60]}
+    if name in ("hotel_search", "flight_search", "travel_offers", "trip_plan") and isinstance(data, dict) and data.get("card"):
+        return offers_card(data["card"])                # 3.18 the offers side by side
     if name == "body_status" and isinstance(data, dict) and data.get("level") not in (None, "unknown"):
         now = data.get("now") or {}
         return {"kind": "body", "level": data["level"], "sleep": _num(now.get("sleep_h")), "rest_hr": _num(now.get("rest_hr"))}
     return None
+
+
+def offers_card(c: dict) -> dict | None:
+    """3.18 Cesty: up to 5 offers side by side – number, name, total, per night, rating, distance, terms, why."""
+    items: list[dict] = []
+    for o in (c.get("offers") or [])[:5]:
+        if not isinstance(o, dict):
+            continue
+        legs = [{"from": str(lg.get("from") or "")[:4], "to": str(lg.get("to") or "")[:4], "dep": str(lg.get("dep") or "")[:16],
+                 "stops": int(lg.get("stops") or 0)} for lg in (o.get("legs") or [])[:2] if isinstance(lg, dict)]
+        items.append({"n": int(o.get("n") or len(items) + 1), "kind": "flight" if o.get("kind") == "flight" else "hotel",
+                      "name": str(o.get("name") or "")[:60], "stars": _num(o.get("stars")), "rating": _num(o.get("rating")),
+                      "total": _num(o.get("total")), "currency": str(o.get("currency") or "")[:3],
+                      "per_night": _num(o.get("per_night")), "nights": int(o.get("nights") or 0), "km": _num(o.get("km")),
+                      "why": str(o.get("why") or "")[:120], "refundable": bool(o.get("refundable")),
+                      "pay_at_property": bool(o.get("pay_at_property")), "breakfast": bool(o.get("breakfast")), "legs": legs})
+    return {"kind": "offers", "title": str(c.get("title") or "")[:40], "items": items} if items else None

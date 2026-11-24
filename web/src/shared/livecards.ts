@@ -9,7 +9,17 @@ export type LiveCard =
   | { kind: "flight" | "train"; number: string; from: string; to: string; flying: boolean }
   | { kind: "parcel"; items: { name: string; state: string }[] }
   | { kind: "music"; title: string; artist: string }
-  | { kind: "body"; level: string; sleep: number | null; rest_hr: number | null };
+  | { kind: "body"; level: string; sleep: number | null; rest_hr: number | null }
+  | { kind: "offers"; title: string; items: Offer[] };
+
+/** 3.18 Cesty: one offer of a hotel or flight search (what the card shows side by side). */
+export interface Offer {
+  n: number; kind: "hotel" | "flight"; name: string; stars: number | null; rating: number | null; total: number | null;
+  currency: string; per_night: number | null; nights: number; km: number | null; why: string; refundable: boolean;
+  pay_at_property: boolean; breakfast: boolean; legs: { from: string; to: string; dep: string; stops: number }[];
+}
+
+const money = (v: number | null, cur: string) => (v == null ? "–" : `${Math.round(v).toLocaleString("cs-CZ")} ${cur}`);
 
 const n = (v: number | null | undefined, unit = "") => (v == null ? "–" : `${Math.round(v)}${unit}`);
 
@@ -41,6 +51,21 @@ export function liveCard(c: LiveCard | null | undefined): HTMLElement | null {
     case "music":
       return h("div", { class: "lc lc-music" }, h("div", { class: "lc-eq", "aria-hidden": "true" }, ...Array.from({ length: 14 }, (_, i) => h("i", { style: { "--i": String(i) } }))),
         h("div", {}, h("strong", {}, c.title), h("span", {}, c.artist)));
+    case "offers":
+      return h("div", { class: "lc lc-offers" }, c.title ? h("span", { class: "lc-offers-title" }, c.title) : null,
+        h("div", { class: "lc-offers-row" }, ...c.items.map((o, i) => h("div", { class: `lc-offer ${o.refundable ? "free" : ""}`, style: { "--i": String(i) } },
+          h("b", { class: "lc-offer-n" }, String(o.n)),
+          h("strong", {}, o.name || (o.kind === "flight" ? "Let" : "Hotel")),
+          o.kind === "flight"
+            ? h("span", {}, o.legs.map((l) => `${l.from}→${l.to} ${l.dep.slice(5, 16).replace("T", " ")}${l.stops ? ` · ${l.stops}× přestup` : " · přímý"}`).join("  ·  "))
+            : h("span", {}, [o.stars ? "★".repeat(Math.round(o.stars)) : "", o.rating != null ? `${String(o.rating).replace(".", ",")}/10` : "",
+              o.km != null ? `${String(o.km).replace(".", ",")} km` : ""].filter(Boolean).join(" · ")),
+          h("div", { class: "lc-offer-price" }, h("strong", {}, money(o.total, o.currency)),
+            o.kind === "hotel" && o.per_night != null ? h("span", {}, `${money(o.per_night, o.currency)} / noc`) : null),
+          h("div", { class: "lc-offer-tags" },
+            o.refundable ? h("i", { class: "ok" }, "zrušení zdarma") : h("i", { class: "warn" }, "nevratné"),
+            o.pay_at_property ? h("i", {}, "platba na hotelu") : null, o.breakfast ? h("i", {}, "snídaně") : null),
+          o.why ? h("span", { class: "lc-offer-why" }, o.why) : null))));
     case "body":
       return h("div", { class: `lc lc-body ${c.level}` }, ecg(),
         h("div", {}, h("strong", {}, { full: "Plná síla", normal: "Běžný den", easy: "Lehčí den" }[c.level] || c.level),

@@ -74,3 +74,23 @@
 html[data-fx="off"] .lc, html[data-fx="off"] .lc * { animation: none !important; }
 html[data-fx="eco"] .lc-sky i:nth-child(n + 8) { display: none; }
 html[data-fx-paused="1"] .lc * { animation-play-state: paused !important; }
+
+/* 3.18 offers side by side (hotels, flights) */
+.lc-offers { max-width: 640px; }
+.lc-offers-title { display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.lc-offers-row { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 2px; }
+.lc-offer { position: relative; flex: 0 0 180px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 10px 10px 12px; border-radius: 12px; background: rgb(0 0 0 / .18); border: 1px solid rgb(255 255 255 / .08);
+  animation: lcIn .45s cubic-bezier(.2, .9, .2, 1) both; animation-delay: calc(var(--i) * 70ms); }
+.lc-offer.free { border-color: color-mix(in srgb, #3ddc97 45%, transparent); }
+.lc-offer strong { font-size: 13.5px; line-height: 1.25; }
+.lc-offer-n { position: absolute; top: 8px; right: 10px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; background: var(--accent, #4f8dff); color: #fff; }
+.lc-offer > strong { padding-right: 26px; }
+.lc-offer-price strong { font-size: 17px; }
+.lc-offer-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.lc-offer-tags i { font-style: normal; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: rgb(255 255 255 / .08); }
+.lc-offer-tags i.ok { background: color-mix(in srgb, #3ddc97 25%, transparent); }
+.lc-offer-tags i.warn { background: color-mix(in srgb, #ff9f43 25%, transparent); }
+.lc-offer-why { font-size: 11.5px; opacity: .7; }
+@media (prefers-reduced-motion: reduce) { .lc-offer { animation: none; } }

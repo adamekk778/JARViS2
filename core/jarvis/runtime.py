@@ -304,6 +304,9 @@ class Runtime:
         from . import resmon
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(resmon.loop(self)))           # 3.18 the long run
+        from . import tripcare
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(tripcare.loop(self)))         # 3.18 booked trips
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop

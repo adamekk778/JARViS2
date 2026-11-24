@@ -169,7 +169,7 @@ def fx_stats(rt: Any, now: float | None = None) -> list[dict]:
 
 def export_zip(rt: Any) -> Path:
     out = paths.sub("diagnostics") / f"jarvis-diagnostika-{dt.datetime.now():%Y%m%d-%H%M%S}.zip"
-    cfg = config_mod.public_dump(rt.cfg)
+    cfg = config_mod.public_dump(rt.cfg, local=False)          # 3.18 no traveller's details in a support file
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("config.json", redact(json.dumps(cfg, ensure_ascii=False, indent=2)))
         snap = snapshot(rt)

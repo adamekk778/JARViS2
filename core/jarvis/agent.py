@@ -12,7 +12,7 @@ from . import tools
 from . import toolcatalog as tc
 from .agent_fast import FastPaths
 # 3.18 the helpers live in agent_helpers.py; importing them from here keeps working
-from .agent_helpers import (AGENT_MODE_RULE, CONNECTOR_LABELS, CONTINUE, DOUBLE_TOOLS, MEDIA_ACTIONS, MIDRUN,  # noqa: F401
+from .agent_helpers import (AGENT_MODE_RULE, CONNECTOR_LABELS, CONTINUE, DOUBLE_TOOLS, MEDIA_ACTIONS, MIDRUN, MONEY_TOOLS,  # noqa: F401
                             SAY_RESULT, TOOL_LABELS, BudgetExceeded, _first_sentence, _needs_second, _stored_to_llm,
                             _wave_of, _waves, describe_call, only_dots)
 from .llm.base import AllProvidersFailed, ProviderError, ToolCall
@@ -277,6 +277,13 @@ class Agent(FastPaths):
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
         desc = describe_call(call.name, call.arguments) + (f" ({why})" if why else "")
+        if call.name in MONEY_TOOLS:                  # 3.18 the real offer and amount, to the phone with the fingerprint
+            from . import booking
+
+            phone = True
+            real = booking.confirm_text(self.rt, call.name, call.arguments or {})
+            if real:
+                desc = real + (f" ({why})" if why else "")
         if second:
             desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
         spec = tools.REGISTRY.get(call.name)
@@ -386,7 +393,7 @@ class Agent(FastPaths):
             raise BudgetExceeded(budget)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
-        from . import safety, shield
+        from . import booking, safety, shield
 
         if spec is None or call.name in disabled:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
@@ -394,6 +401,11 @@ class Agent(FastPaths):
             res = tools.ToolResult(False, kid_why)
         elif shield.guest_on(rt) and call.name in shield.GUEST_BLOCKED:
             res = tools.ToolResult(False, "V režimu host osobní data (e-maily, zprávy, paměť, kalendář) neukazuji.")
+        elif (money_why := trust.money_blocked(call.name, bool(getattr(self, "_untrusted_seen", False)),
+                                               getattr(self, "_own_words", ""))):
+            res = tools.ToolResult(False, money_why)
+        elif call.name == "travel_book" and (pre := booking.precheck(rt, call.arguments or {})):
+            res = tools.ToolResult(False, pre)               # a gone offer or a wrong amount: not even asked, nothing paid
         else:
             approved = True
             dangerous = tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt)
@@ -408,7 +420,7 @@ class Agent(FastPaths):
                                and getattr(rt.cfg.voice, "owner_only", True) and vid is not None and not vid.owner_ok())
             if owner_block:                            # 3.14 návrh 38: a risky action by voice only in the owner's voice
                 approved = False
-            elif foreign or (dangerous and not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False))):
+            elif foreign or (dangerous and not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False), call.arguments)):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:

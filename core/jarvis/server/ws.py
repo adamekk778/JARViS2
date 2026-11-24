@@ -85,6 +85,7 @@ CLIENT_TYPES = [
     "foreign_log_get",
     "webpush_key", "webpush_subscribe", "webpush_test",
     "watch_pair_start",
+    "travel_get", "travel_watch_stop",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -135,6 +136,7 @@ SERVER_TYPES = [
     "printer_done",
     "webpush",
     "watch_pair",
+    "travel",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -382,6 +384,8 @@ class Connection:
                     continue
                 if self.guest and msg["type"] == "settings_changed":
                     msg = {"type": "settings_changed", "settings": self._guest_settings()}
+                elif msg["type"] == "settings_changed" and not self.local:      # 3.18 the traveller's details stay here
+                    msg = {"type": "settings_changed", "settings": config_mod.public_dump(self.rt.cfg, local=False)}
                 await self.send(**msg)
         except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
             pass
@@ -398,7 +402,7 @@ class Connection:
             return
         await self.send("welcome", version=__import__("jarvis").__version__, local=self.local,
                         power={"on_battery": bool(getattr(rt, "on_battery", False))},
-                        settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
+                        settings=config_mod.public_dump(rt.cfg, local=self.local), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
                         pc_control=rt.pc_control.state(), clip_sync=rt.cfg.phone_link.clip_sync, remote_desk=rt.remote_desk.status(),
@@ -1587,7 +1591,7 @@ class Connection:
                 rt.bus.publish("history", conversation=rt.memory.current_conversation, messages=self._history())
                 self.spawn(rt.agent.handle(u["text"], u["attachments"], self._source(), record_user=False))
         elif t == "settings_get":
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags(),
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags(),
                             presets=__import__("jarvis.llm.presets", fromlist=["PRESETS"]).PRESETS,
                             perm_labels=__import__("jarvis.permissions", fromlist=["PERMS"]).PERMS,
                             voice=self._voice_status())
@@ -1599,12 +1603,12 @@ class Connection:
                     from .. import nowplaying
 
                     nowplaying.refresh(rt)            # the song playing now: lyrics / reason at once
-                await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+                await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
             except ValueError as e:
                 await self.send("error", message=f"Neplatné nastavení: {e}")
         elif t == "secret_set":
             secrets.set(m["name"], m.get("value", ""))
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
         elif t in ("qnotes_get", "qnote_set", "qnote_delete"):   # 3.12 quick notes in the notch (this PC only)
             from .. import quicknotes
 
@@ -1851,7 +1855,7 @@ class Connection:
 
             r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test, str(m.get("preset") or "") or None)
             await self.send("brain_key_result", **r)
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
         elif t == "brain_pick":           # 3.13 a click on an AI's logo in the notch: from now on that AI answers (the rest are backup)
             pid = str(m.get("id") or "")
             provs = {p.id: p for p in rt.cfg.brain.providers}

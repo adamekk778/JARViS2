@@ -15,6 +15,7 @@ const [base, out = "uicheck-out"] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
 const PAGES = [
   { path: "/", name: "dashboard", sizes: [[1280, 800], [1920, 1080]] },
+  { path: "/#travel", name: "cesty", sizes: [[1280, 800]] },                          // 3.18 Cesty
   { path: "/chat", name: "chat", sizes: [[1280, 800], [900, 700]] },
   { path: "/hud", name: "hud", sizes: [[1920, 1080]] },
   { path: "/notch", name: "notch", sizes: [[1000, 410]], notch: true },

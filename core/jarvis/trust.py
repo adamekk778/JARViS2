@@ -22,7 +22,8 @@ from __future__ import annotations
 from typing import Any
 
 STILL_ASK = {"send_sms", "record_call", "paired_devices", "screen_share", "guest_access", "pc_link", "firmware_upload", "flash_esp32",
-             "webhooks", "workflow_import", "delete_file", "claude_code", "email_delete", "roblox_publish"}
+             "webhooks", "workflow_import", "delete_file", "claude_code", "email_delete", "roblox_publish",
+             "travel_book", "booking_cancel"}
 FREE_AREAS = {"apps", "input", "screen", "files_read", "files_write", "system", "home"}
 CAREFUL_AREAS = {"files_write", "system"}           # these ask again once untrusted text (mail, web) was read
 RULE = ("PLNÁ DŮVĚRA: uživatel ti dovolil dělat na tomhle PC všechno bez ptaní. Co řekne, to rovnou udělej – nevysvětluj, "
@@ -35,10 +36,15 @@ def on(rt: Any) -> bool:
     return bool(getattr(getattr(getattr(rt, "cfg", None), "tools", None), "full_trust", False))
 
 
-def skip_confirm(rt: Any, spec: Any, untrusted_seen: bool = False) -> bool:
+def skip_confirm(rt: Any, spec: Any, untrusted_seen: bool = False, args: dict | None = None) -> bool:
     """True = this dangerous step runs without asking, because you gave JARVIS full trust."""
     if not on(rt) or spec is None:
         return False
+    if spec.name == "browser_click":               # 3.18 paying, buying, booking: always your confirmation
+        from .tools.browser import money_click
+
+        if args is None or money_click(args):
+            return False
     from .bizagents import AUTO_SAFE
     from .permissions import perm_of
     from .tools.base import NEVER_TRUSTED
@@ -92,6 +98,23 @@ def foreign_needs_ask(spec: Any, offered: bool, words: str = "") -> bool:
 
         return not re.search(NAMED_BY.get(spec.name, _INPUT_VERBS), _fold(words))
     return False
+
+
+# ------------------------------------------------------------------------------------------ 3.18 money only on your own word
+MONEY_TOOLS = {"travel_book", "booking_cancel"}
+MONEY_WORDS = (r"(rezerv|zarezerv|\bberu\b|\bbereme\b|vezmu|vezmeme|zaplat|\bplat|objednej|\bkup|zrus|storn|"
+               r"\bbook|reserve|\bpay\b|cancel)")
+
+
+def money_blocked(name: str, untrusted_seen: bool, words: str = "") -> str:
+    """Foreign text (an e-mail, a page) is in this task: booking, paying or cancelling only when YOUR words ask for it
+    – otherwise not even a question (a planted "book this now" never reaches the payment)."""
+    import re
+
+    if name not in MONEY_TOOLS or not untrusted_seen or re.search(MONEY_WORDS, _fold(words)):
+        return ""
+    return ("Rezervovat, platit nebo rušit budu jen na tvůj vlastní pokyn – tohle navrhl cizí text (e-mail, stránka). "
+            "NEPROVEDENO. Když to chceš, řekni to sám.")
 
 
 # ------------------------------------------------------------------------------------------ 3.18 a link that carries data out

@@ -7,6 +7,11 @@ import re
 from .llm.base import ToolCall
 
 TOOL_LABELS = {
+    "hotel_search": "Hledám hotel", "flight_search": "Hledám letenky", "travel_offers": "Nabídky",
+    "travel_book": "Rezervovat a zaplatit", "booking_list": "Moje rezervace", "booking_cancel_check": "Podmínky zrušení",
+    "booking_cancel": "Zrušit rezervaci", "booking_change": "Změna termínu", "hotel_message": "Zpráva hotelu",
+    "trip_plan": "Plánuji cestu", "experiences": "Vstupenky a zážitky", "travel_watch": "Hlídání ceny",
+    "travel_spend": "Útrata za cesty",
     "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
     "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
     "google_ask": "Ptám se Googlu", "world_news": "Čtu zprávy",
@@ -61,9 +66,13 @@ def _waves(steps: list, done: set[int]) -> list[list[int]]:
 
 # OMEGA 182: what cannot be undone asks twice
 DOUBLE_TOOLS = {"delete_file", "clean_pc", "email_delete"}
+# 3.18 Cesty: money – always twice (whatever the settings), the second time with the exact amount, also to the phone
+MONEY_TOOLS = {"travel_book", "booking_cancel"}
 
 
 def _needs_second(call: ToolCall, limits) -> bool:
+    if call.name in MONEY_TOOLS:
+        return True
     if limits is None or not limits.double_confirm:
         return False
     a = call.arguments or {}
@@ -116,6 +125,14 @@ CONNECTOR_LABELS = {
 
 def describe_call(name: str, args: dict) -> str:
     label = CONNECTOR_LABELS.get(name) or TOOL_LABELS.get(name, name)
+    if name == "travel_book":
+        try:
+            money = f"{float(args.get('expected_total') or 0):,.2f}".replace(",", " ")
+        except (TypeError, ValueError):
+            money = "?"
+        return f"{label}: {money} {args.get('currency', '')} – nabídka {args.get('option', '?')}"
+    if name in ("booking_cancel", "booking_cancel_check", "booking_change", "hotel_message") and args.get("booking_ref"):
+        return f"{label}: {args['booking_ref']}"
     if name in ("google_gmail_send", "google_gmail_draft", "outlook_mail_send", "outlook_mail_draft") and args.get("to"):
         return f"{label}: {args['to']} – {args.get('subject', '')}"
     if name == "spaceship_dns_set" and args.get("domain"):

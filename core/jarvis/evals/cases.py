@@ -89,6 +89,14 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("dej mi JARVISe na hodinky", ("watch_ask",)), ("chci se ptát z hodinek", ("watch_ask",)),           # 3.17
     ("kde je můj balík od PPL", ("ppl_status", "parcels_list")), ("pošli ten 3mf na bambu a vytiskni", ("printer_control",)),
     ("navrhni držák na kolo na zeď", ("cad_part",)),
+    ("najdi hotel v Římě na 3 noci od pátku do 150 € za noc", ("hotel_search",)),                    # 3.18 Cesty
+    ("najdi mi ubytování v Brně na víkend se snídaní", ("hotel_search",)), ("hledej apartmán na Airbnb v Lisabonu", ("hotel_search",)),
+    ("najdi letenky z Prahy do Lisabonu 12. 3.", ("flight_search",)), ("beru dvojku", ("travel_book",)),
+    ("zarezervuj ten hotel", ("travel_book",)), ("jaké mám rezervace", ("booking_list",)),
+    ("zruš rezervaci hotelu v Římě", ("booking_cancel_check", "booking_cancel")),
+    ("posuň rezervaci hotelu o den", ("booking_change",)), ("naplánuj mi víkend v Barceloně", ("trip_plan",)),
+    ("kup vstupenky do Vatikánských muzeí", ("experiences",)), ("dej vědět, až bude letenka do Říma pod 3000", ("travel_watch",)),
+    ("kolik jsem letos utratil za cesty", ("travel_spend",)), ("napiš hotelu, že přijedu pozdě", ("hotel_message",)),
     ("navrhni L-držák 40 mm široký na šrouby M4", ("cad_part",)), ("udělej krabičku 60 × 40 × 25 mm na Arduino", ("cad_part",)),
     ("udělej ho o 5 mm širší", ("cad_part",)), ("stěna 3 mm", ("cad_part",)), ("ukaž moje díly", ("cad_part",)),
     ("ukaž model C:/dilna/drzak.stl", ("model_view",)), ("rozlož model", ("model_explode",)), ("otoč model doleva", ("model_explode",)),

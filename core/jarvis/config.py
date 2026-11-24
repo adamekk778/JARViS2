@@ -632,6 +632,29 @@ class HomeCfg(BaseModel):
     vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
 
 
+class BookingCfg(BaseModel):
+    """3.18 Cesty a rezervace: hotels and flights by your description, booked and paid only after your confirmation.
+    The keys are in the keyring (Propojení → LiteAPI / Duffel); the traveller's details stay on this PC."""
+    provider: Literal["auto", "liteapi", "duffel", "browser"] = "auto"
+    currency: str = "CZK"
+    nationality: str = "CZ"
+    max_per_booking: float = 15000.0       # Kč; a booking above it is refused
+    monthly_budget: float = 0.0            # Kč per month for trips (0 = no budget)
+    prefer_free_cancel: bool = True        # rates you can cancel for free first
+    prefer_pay_at_hotel: bool = True       # …and those paid only at the hotel
+    liteapi_payment: Literal["ACC_CREDIT_CARD", "WALLET"] = "ACC_CREDIT_CARD"   # the card in your LiteAPI account / its wallet
+    first_name: str = ""
+    last_name: str = ""
+    email: str = ""
+    phone: str = ""                        # +420…
+    born_on: str = ""                      # YYYY-MM-DD (flights)
+    title: Literal["mr", "ms", "mrs", "miss", "dr"] = "mr"
+    gender: Literal["m", "f"] = "m"
+    passport_until: str = ""               # YYYY-MM-DD: warns when it runs out too soon for a trip
+    reminders: bool = True                 # free cancellation ends, check-in, weather, packing
+    price_watch: bool = True               # a booked hotel that you can cancel for free got cheaper → tell me
+
+
 class WorkshopCfg(BaseModel):
     """3.15 Dílna: the 3D printer and the failed-print watch (the printer's API key is in the keyring as "printer")."""
     printer: Literal["off", "octoprint", "moonraker", "bambu_ha", "bambu_lan"] = "off"
@@ -742,6 +765,7 @@ class Config(BaseModel):
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
     workshop: WorkshopCfg = Field(default_factory=WorkshopCfg)
+    booking: BookingCfg = Field(default_factory=BookingCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
@@ -891,8 +915,12 @@ def dotted_to_patch(key: str, value: Any) -> dict:
     return out
 
 
-def public_dump(cfg: Config) -> dict:
+# 3.18 the traveller's details (for bookings) stay on this PC: not sent to the phone or another device
+PC_ONLY_KEYS = [("booking", k) for k in ("first_name", "last_name", "email", "phone", "born_on", "passport_until", "gender", "title")]
+
+
+def public_dump(cfg: Config, local: bool = True) -> dict:
     data = cfg.model_dump(mode="json")
-    for sec, key in SECRET_KEYS:
+    for sec, key in [*SECRET_KEYS, *([] if local else PC_ONLY_KEYS)]:
         data.get(sec, {}).pop(key, None)
     return data

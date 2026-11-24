@@ -597,7 +597,7 @@ class Multitask:
             for c in calls:
                 w.steps += 1
                 spec = tools.REGISTRY.get(c.name)
-                if spec is None or c.name not in allowed or c.name.startswith("browser_"):
+                if spec is None or c.name not in allowed or c.name.startswith("browser_") or c.name in trust.MONEY_TOOLS:
                     content = json.dumps({"ok": False, "result": f"Nástroj {c.name} tenhle agent nemá."}, ensure_ascii=False)
                 else:
                     from .agent import describe_call
@@ -606,7 +606,7 @@ class Multitask:
                     self.emit()
                     ok = True
                     if tools.is_dangerous(spec, c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt) and \
-                            not trust.skip_confirm(rt, spec, untrusted):
+                            not trust.skip_confirm(rt, spec, untrusted, c.arguments):
                         ok = await rt.agent._ask_confirm(ToolCall(id=f"{w.id}-{c.id}", name=c.name, arguments=c.arguments))
                     if not ok:
                         content = json.dumps({"ok": False, "result": "Uživatel akci nepotvrdil – NEPROVEDENO."}, ensure_ascii=False)
