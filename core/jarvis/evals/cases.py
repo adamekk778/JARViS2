@@ -100,7 +100,7 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("najdi vlak z Prahy do Brna v pátek ráno", ("train_search",)), ("jede autobus do Ostravy zítra?", ("train_search",)),  # 3.19
     ("co potřebuju do Británie, stačí občanka?", ("entry_requirements",)), ("potřebuju vízum do USA?", ("entry_requirements",)),
     ("pošli mi cestovní kartu do telefonu", ("trip_pack",)), ("spočítej stravné za služebku", ("travel_allowance",)),
-    ("přidej spolucestující Janu", ("travel_companions",)),
+    ("přidej spolucestující Janu", ("travel_companions",)), ("pošli mámě odkaz na cestu do Lisabonu", ("trip_share",)),
     ("navrhni L-držák 40 mm široký na šrouby M4", ("cad_part",)), ("udělej krabičku 60 × 40 × 25 mm na Arduino", ("cad_part",)),
     ("udělej ho o 5 mm širší", ("cad_part",)), ("stěna 3 mm", ("cad_part",)), ("ukaž moje díly", ("cad_part",)),
     ("ukaž model C:/dilna/drzak.stl", ("model_view",)), ("rozlož model", ("model_explode",)), ("otoč model doleva", ("model_explode",)),

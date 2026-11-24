@@ -595,3 +595,22 @@ async def travel_companions(ctx, action: Annotated[str, "list / add / remove"] =
         return ToolResult(True, "Spolucestující nemám – řekni „přidej spolucestující Janu Novákovou, narozená 1990-05-01“.")
     return ToolResult(True, "; ".join(f"{c['first_name']} {c['last_name']}".strip() + (f" ({c['relation']})" if c["relation"] else "")
                                       + ("" if c["born_on"] else " – chybí datum narození") for c in comp), data={"companions": comp})
+
+
+@tool("trip_share", "Odkaz na cestu pro rodinu jen pro čtení (kam, kdy, stav letu) – bez ceny a čísla rezervace, platí do konce "
+      "cesty. action = create / stop. Vytvoření odkazu se vždy zeptá (prozradí, kdy nejsi doma).", category="cesty", perm="network",
+      danger_if=lambda a: str(a.get("action") or "create").lower() != "stop")
+async def trip_share(ctx, booking_ref: Annotated[str, "která rezervace"], action: Annotated[str, "create / stop"] = "create") -> ToolResult:
+    from .. import booking, tripshare
+
+    b = booking.find_booking(ctx, booking_ref)
+    if not b:
+        return ToolResult(False, "Takovou rezervaci nenacházím.")
+    if (action or "").lower() == "stop":
+        n = tripshare.stop(ctx, b["id"])
+        return ToolResult(True, "Sdílení zrušeno – odkaz už nefunguje." if n else "Tahle cesta sdílená nebyla.")
+    r = tripshare.create(ctx, b)
+    where = "" if r["public"] else (" Funguje jen u tebe doma – pro sdílení odkudkoli nastav veřejnou adresu (Tailscale nebo "
+                                    "Cloudflare, E-mail a telefon → Veřejná adresa).")
+    return ToolResult(True, f"Odkaz pro rodinu: {r['url']} (platí do {dt.datetime.fromtimestamp(r['until']):%d. %m.}, jen pro čtení, "
+                            f"bez ceny a čísla rezervace).{where}", data=r)

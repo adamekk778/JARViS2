@@ -149,6 +149,28 @@ const EN: Record<string, string> = {
   "Po rezervaci": "After booking", "Připomínky": "Reminders", "Hlídat, jestli hotel nezlevnil": "Watch whether the hotel got cheaper",
   "Údaje cestujícího (zůstávají jen na tomhle PC)": "Traveller's details (they stay on this PC only)",
   "zrušení zdarma": "free cancellation", "nevratné": "non-refundable", "platba na hotelu": "pay at the hotel", "snídaně": "breakfast",
+  // 3.19 Peníze, Cesty 2
+  "Peníze tento měsíc": "Money this month",
+  "Celkem tento měsíc": "Total this month",
+  "AI (Claude a další)": "AI (Claude and others)",
+  "Předplatné": "Subscriptions",
+  "Další platby přes JARVISe": "Other payments through JARVIS",
+  "Předplatné se ukáže po „přehled předplatných“ v chatu (projde e-maily s účtenkami).": "Subscriptions show up after “subscriptions overview” in the chat (it reads e-mails with receipts).",
+  "Tento měsíc se JARVIS na žádnou platbu neptal.": "This month JARVIS has not asked about any payment.",
+  "povoleno": "allowed",
+  "zamítnuto": "refused",
+  "Zkušební rezervace": "Test booking",
+  "Jen se zkušebním klíčem: najde hotel / let, ověří cenu, zarezervuje a hned zruší. Nic se nezaplatí ani neuloží.": "Test key only: finds a hotel / flight, checks the price, books and cancels right away. Nothing is paid or kept.",
+  "Zkouším hledání, kontrolu ceny, rezervaci a zrušení… (do minuty)": "Trying search, price check, booking and cancellation… (under a minute)",
+  "Spolucestující (zůstávají jen na tomhle PC)": "Travel companions (kept on this PC only)",
+  "„Najdi letenky pro mě a Janu“ – JARVIS vezme jejich údaje odsud. U letenek je potřeba datum narození každého.": "“Find flights for me and Jana” – JARVIS takes their details from here. Flights need everyone's date of birth.",
+  "partner, dítě, kolega…": "partner, child, colleague…",
+  "Vyplň aspoň jméno": "Fill in at least the name",
+  "Stravné v tuzemsku (Kč)": "Domestic meal allowance (CZK)",
+  "5–12 h / 12–18 h / nad 18 h. Mění se vyhláškou každý rok – drž je aktuální; zahraniční sazby řekni v chatu.": "5–12 h / 12–18 h / over 18 h. A decree changes them every year – keep them current; tell foreign rates in the chat.",
+  "Vstupní podmínky": "Entry requirements",
+  "Při hledání mimo EU řeknu, jestli stačí občanka, nebo je potřeba pas, vízum, ESTA, UK ETA…": "When searching outside the EU I say whether an ID card is enough or a passport, visa, ESTA, UK ETA… is needed.",
+  " (z e-mailu)": " (from e-mail)",
 };
 
 const ADDRESS: Record<string, string> = { pane: "sir", "šéfe": "boss", "paní": "ma'am", kámo: "mate" };

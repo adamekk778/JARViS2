@@ -317,6 +317,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         res = await rt.claude.handle(event, payload if isinstance(payload, dict) else {})
         return JSONResponse(res) if res else Response(status_code=204)
 
+    @app.get("/share/{token}")
+    async def shared_trip(token: str):
+        """3.19 a trip shared with the family: read-only, no price, no booking number, expires after the trip."""
+        from .. import tripshare
+
+        html = tripshare.page(rt, token[:64])
+        headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+        if html is None:
+            return Response("Odkaz neplatí (vypršel nebo byl zrušený).", status_code=404, media_type="text/plain; charset=utf-8",
+                            headers=headers)
+        return Response(html, media_type="text/html; charset=utf-8", headers=headers)
+
     @app.post("/api/hook/{hook_id}")
     async def incoming_webhook(hook_id: str, request: Request):
         """OMEGA 590: a webhook from another service (GitHub, a shop, IFTTT…) – secret token or HMAC signature required."""

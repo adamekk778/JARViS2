@@ -177,6 +177,8 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\bcestovni kart\w*|\b(rezervac\w*|cest\w*|hotel\w*)\b.*\b(do telefonu|offline)\b", ("trip_pack",)),
     (r"\b(stravne|stravneho|cestovni nahrad\w*|diet\w*)\b", ("travel_allowance",)),
     (r"\bspolucestujic\w*", ("travel_companions",)),
+    (r"\b(sdilej|sdilet|posli|nasdilej)\w*\b.*\b(cest\w*|let\w*|rezervac\w*)\b.*\b(rodin\w*|mam\w*|tat\w*|zen\w*|manzel\w*|odkaz)\b|"
+     r"\bodkaz na (cestu|let)\b", ("trip_share",)),
     # 3.18 Cesty: hledat, porovnat, rezervovat (a platit) až po potvrzení
     (r"\b(hotel\w*|ubytovan\w*|penzion\w*|apartman\w*|airbnb|booking)\b", ("hotel_search", "travel_offers", "booking_list")),
     (r"\b(letenk\w*|letet|odlet\w* z|let z|lety z|letadlem)\b.*\b(do|na|z)\b|\bnajdi\b.*\blet\w*\b", ("flight_search", "travel_offers")),

@@ -31,7 +31,7 @@ async def send_file(ctx, path: str) -> ToolResult:
     return ToolResult(True, f"Posílám {p.name}", attachments=[att.id])
 
 
-WATCH_QUICK = ("Co mám dnes v plánu?", "Jaké bude počasí?", "Kde mám balík?", "Jak je na tom tisk?", "Pusť hudbu")
+WATCH_QUICK = ("Co mám dnes v plánu?", "Kdy letím?", "Kde mám balík?", "Jaké bude počasí?", "Pusť hudbu")
 
 
 @tool("watch_ask", "Hodinky Wear OS (přes spárovaný Android telefon): pošle tichou zprávu „Zeptej se JARVISe“ s hotovými "

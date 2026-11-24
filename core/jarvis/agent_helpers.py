@@ -13,6 +13,7 @@ TOOL_LABELS = {
     "trip_plan": "Plánuji cestu", "experiences": "Vstupenky a zážitky", "travel_watch": "Hlídání ceny",
     "travel_spend": "Útrata za cesty", "train_search": "Hledám vlak a autobus", "entry_requirements": "Vstupní podmínky",
     "trip_pack": "Cestovní karta", "travel_allowance": "Stravné", "travel_companions": "Spolucestující",
+    "trip_share": "Sdílet cestu",
     "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
     "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
     "google_ask": "Ptám se Googlu", "world_news": "Čtu zprávy",
