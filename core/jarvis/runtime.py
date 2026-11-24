@@ -297,6 +297,10 @@ class Runtime:
         from . import body
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(body.desk(self).run()))       # 3.14 water, long day, bed, posture
+        from . import parcels, travel
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
         from . import stats
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on

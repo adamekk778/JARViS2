@@ -58,6 +58,13 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("jak jsem se dneska vyspal?", ("body_status",)), ("jaký mám dneska klidový tep", ("body_status",)),
     ("jak jsem spal poslední týden", ("body_history",)), ("připomínej mi pít vodu každou hodinu", ("health_reminders",)),
     ("hlídej mi držení těla kamerou", ("health_reminders",)), ("teď sedím rovně, zapamatuj si to", ("posture_calibrate",)),
+    ("jak je na tom auto?", ("car_status",)), ("kolik mám dojezd", ("car_status",)), ("kde stojí auto", ("car_status",)),
+    ("předehřej auto", ("car_climate",)), ("připrav auto na půl osmou", ("car_ready",)), ("zamkni auto", ("car_lock",)),
+    ("najdi moje auto v home assistantu", ("car_setup",)),
+    ("kdy letím do Barcelony?", ("trips_list",)), ("v kolik mi jede vlak", ("trips_list",)),
+    ("přidej let FR 1234 12. 12. v 14:35", ("trip_add",)), ("má můj let zpoždění?", ("flight_status",)),
+    ("kde mám balík?", ("parcels_list",)), ("hlídej zásilku RR123456789CZ", ("parcel_add",)),
+    ("ukaž mapu světa s radarem", ("world_map",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar

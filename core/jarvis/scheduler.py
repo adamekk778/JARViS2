@@ -144,6 +144,10 @@ class Scheduler:
                                        paper=bool(p.get("paper")))
                 self.rt.notify(job["title"] or "Agenti podle plánu", f"Spustil jsem {len(s.workers)} agentů – uvidíš je v notchi "
                                "(Více → Agenti), na konci dám vědět.", speak=False)
+            elif job["kind"] == "car_ready":  # 3.14 "připrav auto na 7:30"
+                from .car import run_ready
+
+                await run_ready(self.rt, p)
             elif job["kind"] == "prompt":
                 text = await self.rt.agent.handle(
                     p["prompt"], [], "schedule",

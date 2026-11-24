@@ -75,6 +75,7 @@ CLIENT_TYPES = [
     "node_add", "node_remove",
     "edith_ask",
     "emergency", "emergency_cancel",
+    "world_map_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -111,6 +112,7 @@ SERVER_TYPES = [
     "interpreter",
     "house",
     "edith_answer", "screen_buddy",
+    "world_map", "hud_map",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

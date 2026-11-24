@@ -51,6 +51,7 @@ export const CLIENT_TYPES = [
   "node_add", "node_remove",
   "edith_ask",
   "emergency", "emergency_cancel",
+  "world_map_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -87,6 +88,7 @@ export const SERVER_TYPES = [
   "interpreter",
   "house",
   "edith_answer", "screen_buddy",
+  "world_map", "hud_map",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -598,6 +598,9 @@ class HomeCfg(BaseModel):
     camera_zones: list[str] = Field(default_factory=list)    # Frigate zones watched also by day (e.g. "vchod", "zahrada")
     doorbell_entity: str = ""       # binary_sensor of the doorbell in Home Assistant
     door_camera: str = ""           # camera.* at the door (its picture comes with "Někdo zvoní")
+    car: dict[str, str] = Field(default_factory=dict)        # 3.14 the car's entities: battery, fuel, range, location, lock,
+                                                             # climate, charging, odometer (+ name); found by car_setup
+    travel_buffer_min: int = 120    # 3.14 be at the airport this long before a flight (a train: 10 minutes)
 
 
 class LimitsCfg(BaseModel):

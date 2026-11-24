@@ -213,7 +213,7 @@ def planes(states: list, lat: float, lon: float, radius_km: float) -> list[dict]
             alt = s[13] if s[13] is not None else s[7]
             out.append({"callsign": (s[1] or "").strip() or s[0], "country": s[2], "km": round(d, 1),
                         "dir": bearing(lat, lon, float(s[6]), float(s[5])), "alt_m": int(alt or 0),
-                        "speed_kmh": int((s[9] or 0) * 3.6)})
+                        "speed_kmh": int((s[9] or 0) * 3.6), "lat": float(s[6]), "lon": float(s[5])})
         except (IndexError, TypeError, ValueError):
             continue
     return sorted(out, key=lambda p: p["km"])

@@ -11,6 +11,7 @@ import { h, icon } from "../shared/dom";
 import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { kioskMode } from "./kiosk";
+import { worldMap } from "./worldmap";
 
 // 3.14 on a tablet / TV on the home network: ?token=<the phone's key> (kiosk=1: the wall display, see kiosk.ts)
 const hudEp = localEndpoint();
@@ -178,16 +179,18 @@ const bottom = h("div", { class: "bottom" }, protoRow,
     input,
     h("button", { class: "hbtn", type: "button", title: "Odeslat", "aria-label": "Odeslat", onclick: send }, icon("arrow-right", "ph-bold")),
     h("button", { class: "hbtn", type: "button", title: "Ranní brífink", "aria-label": "Brífink", onclick: () => client.send("user_text", { text: "Brífink", attachments: [] }) }, icon("sun-horizon")),
+    h("button", { class: "hbtn", type: "button", title: "Mapa světa", "aria-label": "Mapa světa", onclick: () => wmap.open() }, icon("globe-hemisphere-west")),
     h("button", { class: "hbtn", type: "button", title: "Otevřít celý chat", "aria-label": "Celý chat", onclick: () => openChat("full") }, icon("chats-circle"))));
 
 const alertBox = h("div", { class: "alert", hidden: true });
+const wmap = worldMap(client);                 // 3.14 radar, home, the car, trips, planes
 const briefBox = h("div", { class: "brief", hidden: true });
 const closeBtn = h("button", { class: "close", type: "button", title: "Zavřít HUD (Esc)", "aria-label": "Zavřít HUD", onclick: () => closeHud() }, icon("x"));
 const left = h("div", { class: "col left" }, sysPanel, logPanel);
 const right = h("div", { class: "col right" }, planPanel, mediaPanel);
 const root = h("div", { class: "hud booting" },
   h("div", { class: "grid" }), h("div", { class: "scan" }), h("div", { class: "vignette" }),
-  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, closeBtn,
+  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, wmap.el, closeBtn,
   h("i", { class: "br b1" }), h("i", { class: "br b2" }), h("i", { class: "br b3" }), h("i", { class: "br b4" }));
 document.getElementById("hud")!.append(root);
 kioskMode(root);                       // 3.14 the wall display (only with ?kiosk=1)

@@ -160,6 +160,16 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
         except Exception as e:
             log.debug("briefing mail: %s", e)
 
+    try:                                  # 3.14 návrh 47: today's flight / train and when to leave
+        from . import travel
+
+        line = travel.briefing_line(rt, now)
+        if line:
+            parts.append(line)
+            data["travel"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing travel: %s", e)
+
     jobs = _today_jobs(rt, now)
     timers = rt.timers.list()
     if jobs or timers:
