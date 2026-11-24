@@ -523,6 +523,34 @@ jobs:
           key: apk-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
+  android-ui:                     # 3.17 the APK in a real emulator: starts, stays up, widget offered, no crash
+    needs: [android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: mobile/JARVIS.apk
+          key: apk-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - name: KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash mobile/emulator-smoke.sh "${{ runner.temp }}/android-shots"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: android-shots, path: "${{ runner.temp }}/android-shots", retention-days: 7 }
+
   release:
     needs: [test, windows, android]
     # the default branch = stable releases; the `beta` branch = test builds (pre-release, only the beta channel gets them)

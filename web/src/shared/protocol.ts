@@ -54,6 +54,7 @@ export const CLIENT_TYPES = [
   "world_map_get",
   "fx_report",
   "hud_presence", "hud_gesture", "printer_get",
+  "speedcheck_run", "speedcheck_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -96,6 +97,7 @@ export const SERVER_TYPES = [
   "emergency_state",
   "overlay_fx",
   "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
+  "speedcheck",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

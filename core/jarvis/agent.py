@@ -975,7 +975,7 @@ class Agent:
                     attachments=[rt.public_attachment(a) for a in out_atts])
         lat.finish(tools=len(tool_cards), instant=quick is not None, catalog=bool(getattr(rt.router, "catalog_used", False)),
                    status=status, reflex=reflexed, **self._turn_stats)
-        if status == "done" and record_user and not reflexed and not private:
+        if status == "done" and record_user and not reflexed and not private and not getattr(rt, "speedcheck_running", False):
             try:
                 toolmind.learn(rt, text or "", self._turn_calls, full_text)
             except Exception as e:  # noqa: BLE001

@@ -10,6 +10,21 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   const sys = h("div", { class: "diag-stats" });
   const fx = h("div", { class: "diag-stats" });
   const speed = h("div", { class: "diag-stats" });
+  // 3.17 Změřit rychlost: typical read-only requests + the voice there and back, on this PC with this AI
+  const sc = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Projde 20 běžných dotazů, které nic nemění (čas, počasí, kalendář, výpočty…), a hlas tam a zpět. Trvá asi minutu; dotazy jdou na tvou AI jako obvykle, výsledek zůstane v počítači."));
+  const scBtn = h("button", { class: "btn primary", type: "button", onclick: () => { scBtn.disabled = true; client.send("speedcheck_run" as any, { voice: true }); } }, icon("gauge"), "Změřit rychlost") as HTMLButtonElement;
+  const ms = (v: any) => (v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(1).replace(".", ",")} s` : `${v} ms`);
+  client.on("speedcheck" as any, (m: any) => {
+    if (m.running) { sc.replaceChildren(h("p", { class: "help" }, `Měřím… ${m.done || 0} z ${m.total || 20}${m.last ? ` · „${m.last.text}“ ${ms(m.last.total_ms)} (${m.last.how})` : ""}`)); return; }
+    scBtn.disabled = false;
+    if (m.error) { sc.replaceChildren(h("p", { class: "help" }, m.error)); return; }
+    if (!m.report) return;
+    const r = m.report;
+    sc.replaceChildren(h("p", { class: "sc-sum ok" }, m.text),
+      ...r.requests.map((q: any) => h("div", { class: "row" }, h("span", {}, q.text), h("span", { class: "help" }, `${q.how} · první slovo ${ms(q.first_word_ms)} · celé ${ms(q.total_ms)}`))),
+      ...(r.voice || []).map((v: any) => h("div", { class: "row" }, h("span", {}, `🔊 ${v.text}`),
+        h("span", { class: "help" }, v.error ? v.error : `hlas ${ms(v.tts_ms)} · rozpoznání ${ms(v.stt_ms)} · „${v.heard || ""}“ (${Math.round((v.match || 0) * 100)} %)`))));
+  });
   const kids = h("div", {});
   const ttft = h("div", {});
   const log = h("pre", { class: "diag-log" });
@@ -170,6 +185,7 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
     h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
+    h("div", { class: "btn-row" }, scBtn), sc,
     h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),

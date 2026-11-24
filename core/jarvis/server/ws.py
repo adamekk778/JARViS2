@@ -78,6 +78,7 @@ CLIENT_TYPES = [
     "world_map_get",
     "fx_report",
     "hud_presence", "hud_gesture", "printer_get",
+    "speedcheck_run", "speedcheck_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -120,6 +121,7 @@ SERVER_TYPES = [
     "emergency_state",
     "overlay_fx",
     "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
+    "speedcheck",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
