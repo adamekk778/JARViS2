@@ -22,7 +22,7 @@ export class JarvisClient {
   status: ConnStatus = "closed";
   local = false;
 
-  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud", private name = "") {}
+  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud" | "karaoke", private name = "") {}
 
   on(type: ServerType | "*", h: Handler): () => void {
     if (!this.handlers.has(type)) this.handlers.set(type, new Set());

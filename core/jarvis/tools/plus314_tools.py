@@ -226,3 +226,22 @@ async def brain_switch(ctx, brain: Annotated[str, "anthropic | ollama | groq | g
         return ToolResult(False, str(e))
     line = f"Hotovo, odpovídá {res['label']}" + (f" s modelem {res['model']}" if res["model"] else "") + "."
     return ToolResult(True, " ".join([line, *res["notes"]]), data=res)
+
+
+@tool("brain_split", "Chytré rozdělení mozků: lehké otázky (pozdrav, rychlý dotaz) odpovídá jedna AI – třeba Ollama v PC zdarma "
+      "– a těžké úkoly (plán, kód, analýza, mise) jiná – třeba Claude. Na „lehké věci ať dělá Ollama a těžké Claude“, "
+      "„vypni rozdělení“.", category="mozek")
+async def brain_split(ctx, on: Annotated[bool, "zapnout (true) / vypnout (false)"] = True,
+                      easy: Annotated[str, "AI na lehké otázky: ollama | groq | gemini | anthropic | …"] = "",
+                      hard: Annotated[str, "AI na těžké úkoly: anthropic | openai | gemini | …"] = "") -> ToolResult:
+    from .. import brainpick
+
+    try:
+        res = brainpick.split(ctx, on, brainpick.preset_from_words(easy) or easy, brainpick.preset_from_words(hard) or hard)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    if not res["on"]:
+        return ToolResult(True, "Rozdělení je vypnuté – odpovídá AI podle pořadí.", data=res)
+    if not res["easy"] or not res["hard"]:
+        return ToolResult(False, "Řekni, která AI má dělat lehké otázky a která těžké úkoly (např. Ollama a Claude).", data=res)
+    return ToolResult(True, " ".join([f"Hotovo: lehké otázky dělá {res['easy']}, těžké úkoly {res['hard']}.", *res["notes"]]), data=res)

@@ -14,7 +14,7 @@ import "./redesign.css";
 import "./livecard.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
-import { lyricShift } from "../shared/lyricsync";
+import { lyricShift, setAutoShift } from "../shared/lyricsync";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
@@ -1148,6 +1148,8 @@ const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "P�
 // the AI that answers now (the core says which provider + model once the first words arrive)
 let brain: { provider: string; model: string } | null = null;
 let brainLeft: number | null = null;      // 3.12 % of today's free AI left (null = unknown / paid)
+let brainSpend: { usd: number; limit: number; over: boolean } | null = null;   // 3.14 Claude: today's spend in USD (estimate)
+const usd = (v: number) => `$${v < 1 ? v.toFixed(2) : v.toFixed(1)}`.replace(".", ",");
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
 let mtAgents = { running: 0, verdict: "", tone: "" };                      // 3.14 multitasking agents at work
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
@@ -1211,12 +1213,22 @@ function setKids(el: HTMLElement, kids: (Node | string)[]) {
   kidsKey.set(el, key);
   el.replaceChildren(...kids);
 }
-client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; brainLeft = typeof m.left === "number" ? m.left : null; renderBrand(); updateActivity(); });
+client.on("brain", (m) => {
+  brain = { provider: m.provider || "", model: m.model || "" };
+  brainLeft = typeof m.left === "number" ? m.left : null;
+  const sp = (m as any).spend;
+  brainSpend = sp && typeof sp.usd === "number" ? { usd: sp.usd, limit: Number(sp.limit) || 0, over: !!sp.over } : null;
+  renderBrand(); updateActivity();
+});
 client.on("lyrics", (m) => {
   lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [],
     tr: Array.isArray(m.tr) ? m.tr.map(String) : [] };
   lyrIdx = -2;
   updateActivity();
+});
+// 3.14 the timing JARVIS fitted by listening to the singing (once per song) – your own nudge still wins
+client.on("lyrics_autoshift", (m: any) => {
+  if (setAutoShift(String(m.title || ""), String(m.artist || ""), Number(m.shift) || 0) !== null) lyrIdx = -2;
 });
 client.on("live_subs", (m) => {
   const lines = Array.isArray(m.lines) ? m.lines.map(String).filter(Boolean) : [];
@@ -1609,7 +1621,10 @@ function islandActivity(t: any) {
     const b = brandOf(brain.provider, brain.model);
     kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")];
     // 3.12 how much of today's free AI is left ("Groq · 70 %"), amber when low, red when nearly out
-    r = brainLeft === null ? [b.name] : [h("span", { class: `n-ai-left ${brainLeft < 5 ? "out" : brainLeft < 20 ? "low" : ""}`,
+    r = brainSpend ? [h("span", { class: `n-ai-left ${brainSpend.over ? "out" : brainSpend.limit && brainSpend.usd > brainSpend.limit * 0.8 ? "low" : ""}`,
+        title: "Kolik dnes stál Claude (odhad podle ceníku modelu)" }, b.name,
+        h("b", {}, ` · ${usd(brainSpend.usd)}${brainSpend.limit ? ` / ${usd(brainSpend.limit)}` : ""}`))]
+      : brainLeft === null ? [b.name] : [h("span", { class: `n-ai-left ${brainLeft < 5 ? "out" : brainLeft < 20 ? "low" : ""}`,
       title: "Kolik ti dnes zbývá z limitu zdarma (odhad)" }, b.name, h("b", {}, ` · ${brainLeft} %`))];
     shape.style.setProperty("--brand", b.color);
   } else if (dict.state === "listening" || dict.state === "transcribing") {

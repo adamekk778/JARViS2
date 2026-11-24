@@ -119,7 +119,8 @@ class Router:
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
-                     model: str | None = None, light: bool = False, effort: str | None = None) -> AsyncIterator[Chunk]:
+                     model: str | None = None, light: bool = False, effort: str | None = None,
+                     prefer: str | None = None) -> AsyncIterator[Chunk]:
         """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
         background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
         the free cloud limits are kept for what you ask."""
@@ -133,7 +134,9 @@ class Router:
                                      "Mozek, nebo spusť AI v tomhle PC (Ollama).")
             elif not enabled:
                 errors["mozek"] = "není nastavená žádná AI – vlož API klíč v Nastavení → Mozek (Groq nebo Gemini jsou zdarma)."
-        if not only and getattr(self.brain, "only_primary", False):
+        if prefer and not only and any(p.id == prefer for p in cands):
+            cands = sorted(cands, key=lambda p: p.id != prefer)    # 3.14 chytré rozdělení: this one first, the rest as backup
+        elif not only and getattr(self.brain, "only_primary", False):
             cands = cands[:1]                      # 3.14 "Jen tento mozek": the brain you picked, no backups
         if light and not only and not getattr(self.brain, "only_primary", False) and getattr(self.brain, "save_limits", True) \
                 and self.local_ready is not None:

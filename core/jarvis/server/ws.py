@@ -69,6 +69,8 @@ CLIENT_TYPES = [
     "access_log_get",
     "stats_preview_get",
     "brain_tiles_get", "brain_models_get", "brain_use",
+    "brain_split",
+    "lyrics_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -100,6 +102,7 @@ SERVER_TYPES = [
     "access_log",
     "stats_preview",
     "brain_tiles", "brain_models", "brain_used",
+    "lyrics_autoshift",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

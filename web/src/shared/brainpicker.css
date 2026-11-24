@@ -36,3 +36,14 @@
   border: 1px solid var(--border-strong); box-shadow: var(--shadow); }
 .bp-pop h3 { margin: 0 0 10px; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .bp-tile { transition: none; } }
+.bp-ollama { display: grid; gap: 8px; }
+.bp-more summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+.bp-more[open] summary { margin-bottom: 8px; }
+.bp-more .help { margin: 6px 0 0; }
+.bp-pull { display: flex; align-items: center; gap: 10px; font-size: 13px; flex-wrap: wrap; }
+.bp-bar { flex: 1; min-width: 120px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.bp-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s var(--ease, ease); }
+.bp-spend { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.bp-spend .bad { color: var(--danger); }
+.bp-spend label { display: inline-flex; align-items: center; gap: 6px; }
+.bp-spend input { width: 90px; }

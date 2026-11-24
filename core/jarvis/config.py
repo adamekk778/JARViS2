@@ -87,6 +87,9 @@ class Brain(BaseModel):
     second_opinion: bool = True    # 3.14 money / health / law / deleting: weigh it twice, ask other AIs (30)
     private_local: bool = True     # 3.14 passwords, health, bank details → only the AI on this PC, when it runs (32)
     only_primary: bool = False     # 3.14 "Jen tento mozek": only the brain you picked answers (no backup AIs)
+    split: bool = False            # 3.14 chytré rozdělení: easy questions → split_easy, hard tasks → split_hard
+    split_easy: str = ""           # a provider id (e.g. "ollama" – free, on this PC)
+    split_hard: str = ""           # a provider id (e.g. "anthropic" – the strongest)
 
 
 class Voice(BaseModel):
@@ -163,6 +166,7 @@ class Notch(BaseModel):
     subs_speak: bool = False       # 3.14: …and the translation read aloud (the video is turned down meanwhile)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
     lyrics_translate: bool = True  # 3.12: a small Czech translation under a foreign line (the AI, once per song)
+    lyrics_autosync: bool = True   # 3.14: the timing fitted to the singing by listening to the PC's sound once per song
     habit_ring: bool = False       # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
     habit_ring_rev: int = 2        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
     # 3.12: the island's colour – the song's cover while music plays, and with "song_wall" the wallpaper otherwise
@@ -583,6 +587,7 @@ class LimitsCfg(BaseModel):
     read_only: bool = False            # nothing that changes the PC, files, accounts or the home (only looking/reading)
     ai_daily_tokens: int = 0           # 0 = no limit; an estimate (characters / 4) across all providers
     ai_daily_cost: float = 0.0         # 0 = no limit; in `currency`, from the prices below
+    claude_daily_usd: float = 0.0      # 3.14 Claude only: USD a day by its own price list (0 = no limit); over it → other AIs
     currency: str = "Kč"
     prices: dict[str, float] = Field(default_factory=dict)   # provider id → price per 1 million tokens
     mission_max_actions: int = 60      # one mission may call at most this many tools …

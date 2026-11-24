@@ -523,6 +523,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           select("notch.style", "Vzhled notche", [["dynamic", "Dynamic Island – jako iPhone"], ["island", "Ostrov – svítící oči"], ["mochi", "Mochi – celá postavička"]],
             "Ostrov ukazuje vlevo a vpravo, co se děje (hudba, časovač, Claude Code), a po otevření tři velké karty."),
           sw("notch.lyrics_translate", "Překlad textu písniček", "Pod cizojazyčným řádkem malý český překlad (AI ho udělá jednou pro celou píseň)."),
+          sw("notch.lyrics_autosync", "Texty se samy doladí", "JARVIS jednou za píseň krátce poslouchá zvuk z PC (ne mikrofon, nic se neukládá) a posune text tak, aby řádky naskakovaly se zpěvem. Ruční posun má přednost."),
           select("notch.tint", "Barva notche", [["song_wall", "Podle písničky, jinak podle tapety"], ["song", "Jen podle písničky"], ["black", "Vždy černá"]],
             "Když hraje hudba, ostrůvek má barvu obalu alba; když nic nehraje, barvu tvé tapety. Vždy tmavě, aby text zůstal čitelný."),
           select("notch.edges", "Okraje notche", [["smooth", "Hladké (bez zubů)"], ["hard", "Ostré (záloha)"]],

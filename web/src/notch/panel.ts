@@ -703,7 +703,8 @@ export function buildPanel(ctx: PanelCtx) {
   const centre = h("section", { class: "p-centre" });
   // 3.12 the music screen (a click on the player): big art, a progress bar to drag, lyrics that follow the song
   const music = createMusicView({ quick, back: () => show("home"), lyricsOn: () => settings?.notch?.lyrics !== false,
-    onlineOn: () => client.send("settings_set", { patch: { brain: { offline_only: false } } }) });
+    onlineOn: () => client.send("settings_set", { patch: { brain: { offline_only: false } } }),
+    karaoke: () => client.send("open_window", { view: "karaoke" }) });
   npCard.classList.add("opens");
   npCard.title = "Otevřít přehrávač s textem";
   npCard.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest("button")) show("music"); });

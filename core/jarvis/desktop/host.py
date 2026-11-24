@@ -93,6 +93,7 @@ class DesktopHost:
         self._hidden_manual = False      # hidden by the user (hotkey / panel / tray) until they bring it back
         self.alpha = False
         self.hud = None
+        self.karaoke = None   # 3.14 the full-screen karaoke window, created on first use
         self.hud_visible = False
         self.hud_alpha = False
         self._anchor_win = None
@@ -408,6 +409,9 @@ class DesktopHost:
     def open_chat(self, view: str = "chat") -> None:
         if view in ("hud", "hud-close"):
             return self.toggle_hud(view == "hud")
+        if view in ("karaoke", "karaoke-close"):     # 3.14 karaoke over the whole screen
+            threading.Thread(target=self._karaoke, args=(view == "karaoke",), daemon=True, name="karaoke").start()
+            return
         if view == "full":   # off the caller's thread: creating a window waits for the GUI thread
             threading.Thread(target=self.open_fullchat, daemon=True, name="fullchat").start()
             return
@@ -425,6 +429,25 @@ class DesktopHost:
             self.chat.on_top = False
         except Exception as e:
             log.debug("open_chat: %s", e)
+
+    def _karaoke(self, show: bool) -> None:
+        import webview
+
+        win = self.karaoke
+        try:
+            if not show:
+                if win is not None:
+                    win.hide()
+                return
+            if win is None:
+                self.karaoke = webview.create_window("JARVIS Karaoke", f"{self.base}/karaoke", fullscreen=True,
+                                                     background_color="#05070b", focus=True)
+                return
+            win.show()
+            win.on_top = True
+            win.on_top = False
+        except Exception as e:
+            log.warning("karaoke: %s", e)
 
     # ---------- background loops ----------
     def toggle_notch(self, show: bool | None = None) -> None:

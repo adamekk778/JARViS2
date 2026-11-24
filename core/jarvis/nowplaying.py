@@ -12,11 +12,13 @@ import asyncio
 import logging
 import os
 import re
+import time
 from collections import OrderedDict
 
 log = logging.getLogger(__name__)
 
 LRCLIB = "https://lrclib.net/api"
+OVH = "https://api.lyrics.ovh/v1"     # 3.14 a second free source (words only, no timing) when LRCLIB has none
 NET: dict = {"cover": "", "lyrics": ""}   # 3.12 the last reason a cover / lyrics could not be fetched (Kontrola funkcí)
 
 
@@ -257,7 +259,34 @@ class Lyrics:
                 if r.status_code != 200:
                     continue
                 cands += [x for x in r.json() or [] if isinstance(x, dict) and (not skip or x.get("id") not in skip)]
-        return pick(cands, song, artist, duration)
+            res = pick(cands, song, artist, duration)
+            if not res["lines"] and not res["plain"] and artist:
+                res = await self._ovh(c, song, artist, skip) or res
+        return res
+
+    async def _ovh(self, c, song: str, artist: str, skip: tuple) -> dict | None:
+        """3.14 lyrics.ovh: asked by the exact artist and title, so a hit is this song; words without timing."""
+        from urllib.parse import quote
+
+        for who in dict.fromkeys([main_artist(artist), artist]):
+            sid = f"ovh:{_norm(who)}|{_title_key(song)}"
+            if not who or sid in skip:
+                continue
+            try:
+                r = await c.get(f"{OVH}/{quote(who, safe='')}/{quote(song, safe='')}")
+            except Exception as e:  # noqa: BLE001 – the second source is a bonus: never an error for the notch
+                log.info("lyrics.ovh: %s", e)
+                return None
+            try:
+                body = r.json() if r.status_code == 200 else {}
+            except ValueError:
+                body = {}
+            if isinstance(body, dict) and body.get("lyrics"):
+                text = str(body.get("lyrics") or "").replace("\r\n", "\n").strip()
+                text = re.sub(r"^Paroles de la chanson .*?\n", "", text)          # the site's French header line
+                if len(text) > 40:
+                    return {"lines": [], "synced": False, "plain": text[:6000], "src_id": sid, "source": "lyrics.ovh"}
+        return None
 
 
 def pick(cands: list[dict], song: str, artist: str, duration: float) -> dict:
@@ -443,10 +472,29 @@ async def publish_lyrics(rt, snap: dict, settle: float = 0.0) -> None:
                        "lines": res["lines"][:400], "plain": "" if res["synced"] else (res.get("plain") or "")[:6000],
                        "reason": str(res.get("error") or "")[:160], "src_id": res.get("src_id")}
     rt.bus.publish("lyrics", **rt.lyrics_state)
+    if res["synced"] and res["lines"] and getattr(rt.cfg.notch, "lyrics_autosync", True):
+        from .background import bg
+
+        bg(_autosync_later(rt, gen))
     if res["synced"] and res["lines"] and getattr(rt.cfg.notch, "lyrics_translate", True) and not looks_czech(res["lines"]):
         from .background import bg
 
         bg(translate_lyrics(rt, snap.get("title", ""), res["lines"][:400], snap.get("artist", "")))
+
+
+async def _autosync_later(rt, gen: int) -> None:
+    """3.14 listen when the singing is about to start (not during a long intro), then fit the timing once."""
+    from . import lyricsync
+
+    if not lyricsync.of(rt).wanted():
+        return
+    st = getattr(rt, "lyrics_state", {}) or {}
+    first = next((float(x["t"]) for x in st.get("lines") or [] if x.get("text")), 0.0)
+    m = rt.media_state or {}
+    pos = float(m.get("position") or 0) + ((time.time() - float(m.get("at") or time.time())) if m.get("playing") else 0)
+    await asyncio.sleep(min(60.0, max(3.0, first - 2.0 - pos)))
+    if gen == getattr(rt, "_lyrics_gen", 0) and (rt.media_state or {}).get("playing"):
+        lyricsync.of(rt).maybe_start()
 
 
 # ---- 3.14 "Jiný text": you say the words are not this song's – that text is never shown for it again, and the next
@@ -539,3 +587,57 @@ async def translate_lyrics(rt, title: str, lines: list[dict], artist: str = "") 
         rt.lyrics_state = {**st, "tr": tr}
         rt.bus.publish("lyrics", **rt.lyrics_state)
     return tr
+
+
+# ---- 3.14 "Co to hraje?": the song, its album / year / genre (Apple's public catalogue) and a line about the artist
+# (Wikipedia) – only the song title and artist are sent, nothing about you
+MUSIC_WORDS = re.compile(r"zpěv|zpěvač|skupin|kapel|rapper|raper|hudeb|hudebn|písničkář|dj\b|producent|skladatel|"
+                         r"singer|band|musician|rapper|producer|composer|songwriter|duo|group", re.I)
+
+
+def _mmss(s: float) -> str:
+    s = max(0, int(s))
+    return f"{s // 60}:{s % 60:02d}"
+
+
+async def song_info(rt) -> dict:
+    snap = dict(getattr(rt, "media_state", {}) or {})
+    if not snap.get("title"):
+        return {"ok": False, "say": "Teď nic nehraje."}
+    song, singer = split_artist(snap.get("title", ""), snap.get("artist", ""))
+    out: dict = {"ok": True, "title": song or snap["title"], "artist": singer, "album": snap.get("album", ""), "year": "", "genre": "",
+                 "about": "", "source": snap.get("source", "")}
+    transport = getattr(rt, "transport", None)
+    offline = getattr(rt.cfg.brain, "offline_only", False) or (os.environ.get("JARVIS_NO_NET") and transport is None)
+    if not offline and singer:
+        try:
+            async with _client(transport) as c:
+                r = await c.get(ITUNES, params={"term": f"{singer} {song}", "entity": "song", "limit": 8})
+                for x in (r.json().get("results") or []) if r.status_code == 200 else []:
+                    if same_title(song, x.get("trackName", "")) and same_artist(singer, x.get("artistName", "")):
+                        out["album"] = out["album"] or str(x.get("collectionName") or "")
+                        out["year"] = str(x.get("releaseDate") or "")[:4]
+                        out["genre"] = str(x.get("primaryGenreName") or "")
+                        break
+                from urllib.parse import quote
+
+                for lang in ("cs", "en"):
+                    r = await c.get(f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{quote(main_artist(singer).replace(' ', '_'), safe='')}")
+                    if r.status_code != 200:
+                        continue
+                    d = r.json() or {}
+                    text = str(d.get("extract") or "")
+                    if d.get("type") == "disambiguation" or not MUSIC_WORDS.search(f"{d.get('description', '')} {text[:300]}"):
+                        continue
+                    out["about"] = " ".join(re.split(r"(?<=[.!?])\s+", text)[:2])[:400]
+                    break
+        except Exception as e:  # noqa: BLE001 – the song itself is still known
+            log.info("song info: %s", e)
+    bits = [x for x in (out["album"] and f"album {out['album']}", out["year"], out["genre"] and out["genre"].lower()) if x]
+    where = ""
+    if isinstance(snap.get("position"), (int, float)) and snap.get("duration"):
+        p = float(snap["position"]) + ((time.time() - float(snap.get("at") or time.time())) if snap.get("playing") else 0)
+        where = f" Jsme v {_mmss(p)} z {_mmss(float(snap['duration']))}."
+    head = f"Hraje „{out['title']}“" + (f" od {singer}" if singer else "") + (f" ({', '.join(bits)})" if bits else "") + "."
+    out["say"] = head + where + (f" {out['about']}" if out["about"] else "")
+    return out

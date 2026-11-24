@@ -98,3 +98,17 @@ async def brain_use(c, m: dict) -> None:
     await c.send("brain_tiles", tiles=brainpick.tiles(c.rt), current=brainpick.current(c.rt))
     if res["preset"] in ("ollama", "lmstudio") and getattr(c.rt, "local", None) is not None:
         c.spawn(c.rt.local.warm(res["model"] or None))       # loaded now, so the first answer is quick
+
+
+@handles("brain_split")
+async def brain_split(c, m: dict) -> None:
+    """3.14 chytré rozdělení: easy questions to one brain, hard tasks to another."""
+    from ... import brainpick
+
+    try:
+        res = brainpick.split(c.rt, bool(m.get("on")), str(m.get("easy", "") or ""), str(m.get("hard", "") or ""))
+    except ValueError as e:
+        await c.send("error", message=str(e))
+        return
+    await c.send("brain_used", id=brainpick.current(c.rt)["id"], model=brainpick.current(c.rt)["model"], notes=res["notes"], split=res)
+    await c.send("brain_tiles", tiles=brainpick.tiles(c.rt), current=brainpick.current(c.rt))

@@ -98,4 +98,4 @@ check_untyped_defs = false
 files = ["jarvis/llm", "jarvis/evals", "jarvis/quality.py", "jarvis/redact.py", "jarvis/events.py", "jarvis/brainplus.py",
          "jarvis/offlinepack.py", "jarvis/server/handlers", "jarvis/voice/voiceid.py", "jarvis/voice/style.py",
          "jarvis/embedder.py", "jarvis/memplus.py", "jarvis/proactiveplus.py", "jarvis/notchplus.py", "jarvis/pcplus.py", "jarvis/phoneplus.py", "jarvis/obs.py", "jarvis/skillpack.py",
-         "jarvis/shield.py", "jarvis/sandbox.py", "jarvis/skillheal.py", "jarvis/stats.py", "jarvis/brainpick.py", "jarvis/nowplaying.py"]
+         "jarvis/shield.py", "jarvis/sandbox.py", "jarvis/skillheal.py", "jarvis/stats.py", "jarvis/brainpick.py", "jarvis/nowplaying.py", "jarvis/lyricsync.py"]

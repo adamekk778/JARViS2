@@ -96,6 +96,11 @@ def plan(text: str) -> Plan | None:
         return Plan([("weather", {})], kind="weather")
     if re.fullmatch(r"(?:udelej |vyfot\w* |zachyt\w* )?(?:screenshot|snimek obrazovky|screen)", t):
         return Plan([("screenshot", {})], say=lambda c: "Hotovo, snímek je v chatu." if c and c[0]["ok"] else c[0]["summary"], kind="screenshot")
+    # ---- 3.14 music: what is playing, karaoke
+    if re.fullmatch(r"(?:co (?:to )?(?:ted )?hraje|co je to za (?:pisnick\w*|pisen|song|skladb\w*)|jaka je to pisnick\w*|kdo to zpiva|co to je za pisnick\w*)", t):
+        return Plan([("now_playing_info", {})], kind="music")
+    if re.fullmatch(r"(?:pust |zapni |otevri |spust )?karaoke", t):
+        return Plan([("karaoke_open", {})], kind="music")
     # ---- 3.14 the brain: "přepni na Ollamu", "použij Claude Sonnet", "přepni model na qwen3:8b" – works even when
     # the AI answering now does not (that is when you want to switch)
     m = re.fullmatch(r"(?:prepni|prepnout|pouzij|pouzivej|zmen|vyber)\s+(?:(mozek|model|ai|umelou inteligenci)\s+)?(?:na |do )?(.{2,40})", t)

@@ -69,7 +69,16 @@ def brain_state(rt) -> dict:
             left = q.left_pct(pid, pcfg.preset if pcfg else "", model, used, calls)
         except Exception:  # noqa: BLE001
             left = None
-    return {"provider": pid, "model": model, "left": left}
+    out = {"provider": pid, "model": model, "left": left}
+    pcfg = next((p for p in rt.cfg.brain.providers if p.id == pid), None)
+    if pcfg is not None and pcfg.preset == "anthropic":      # 3.14 what Claude cost today (USD, an estimate)
+        try:
+            from ..brainpick import claude_spend
+
+            out["spend"] = claude_spend(rt)
+        except Exception:  # noqa: BLE001
+            pass
+    return out
 
 
 def overview(rt) -> list[dict]:

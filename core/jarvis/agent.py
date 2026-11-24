@@ -603,6 +603,14 @@ class Agent:
                 tier_kw["only"] = lid
                 tier_kw.pop("fast", None)
                 private = True
+        if not self._only and not private:
+            from . import brainpick
+
+            pref = await brainpick.split_for(rt, tier)     # 3.14 chytré rozdělení: easy → e.g. Ollama, hard → e.g. Claude
+            if pref:
+                tier_kw["prefer"] = pref
+                if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
+                    tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
         if (tier == "strong" and speech is not None and quick is None and getattr(rt.cfg.brain, "quick_preface", True)
                 and not private):
             async def _say_first() -> None:            # 3.14 návrh 23: one sentence at once while the main model thinks

@@ -77,6 +77,12 @@ class Usage:
     def blocked(self, provider_cfg) -> str:
         """Why this provider must be skipped now ("" = go). Over the limit only free/local providers still answer."""
         lim = self.rt.cfg.limits
+        if getattr(provider_cfg, "preset", "") == "anthropic" and getattr(lim, "claude_daily_usd", 0):
+            from .brainpick import claude_spend
+
+            sp = claude_spend(self.rt)
+            if sp["over"]:                         # 3.14 the Claude budget for today is used up: the other AIs answer
+                return f"denní limit pro Claude (${lim.claude_daily_usd:g}) vyčerpán – dnes ≈ ${sp['usd']:.2f}"
         if not (lim.ai_daily_tokens or lim.ai_daily_cost) or self.price(provider_cfg.id) == 0 and not lim.ai_daily_tokens:
             return ""
         t = self.today()

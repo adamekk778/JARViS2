@@ -5,6 +5,8 @@ import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
   "3.14": [
+    { icon: "microphone-stage", title: "Karaoke a „co to hraje“", line: "V notchi u textu je tlačítko Karaoke: text písně přes celou obrazovku, slova se rozsvěcují podle zpěvu (jde i na televizi v prohlížeči). „Co to hraje?“ řekne název, album, rok a pár slov o interpretovi. Texty se navíc samy doladí podle zpěvu a když je nemá LRCLIB, zkusí se druhý zdroj." },
+    { icon: "cpu", title: "Ollama a Claude ještě chytřeji", line: "U modelů Ollamy vidíš, jestli poběží rychle v grafice, nebo pomalu na procesoru, a další model stáhneš rovnou z výběru. Chytré rozdělení pošle lehké otázky Ollamě zdarma a těžké úkoly Claudovi – a notch ukazuje, kolik dnes Claude stál, s denním limitem." },
     { icon: "brain", title: "Vyber si mozek jedním klikem", line: "Nastavení → Mozek → Kdo odpovídá (nebo klik na štítek AI v chatu): klikni na Claude, Ollamu, Groq či Gemini a od teď odpovídá ona. Pod ní přepneš model – u Ollamy ty stažené v PC, u Claude Opus, Sonnet, Haiku nebo Fable. Funguje i hlasem: „přepni na Ollamu“." },
     { icon: "microphone-stage", title: "Texty písní sedí", line: "Notch už neukazuje text jiné písně se stejným názvem ani jiné verze: musí sedět název, interpret i délka. A kdyby přesto nesedl, tlačítko Jiný text ho zahodí a zkusí jiný." },
     { icon: "translate", title: "JARVIS anglicky", line: "Nastavení → Obecné → Jazyk → English: JARVIS odpovídá anglicky a přepne do angličtiny i aplikaci, notch a telefon. Instalace jde i přes winget a projekt má vlastní webovou stránku." },

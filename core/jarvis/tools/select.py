@@ -90,6 +90,8 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("lyrics_wrong",)),
     (r"\b(jak\w* (ai|model|mozek)|kter\w* (ai|model|mozek))\b.*\b(pouzivas|odpovida|mas)\b|\b(prepni|pouzij)\b.*\b(mozek|model|ai)\b",
      ("brain_switch",)),
+    (r"\b(co (to )?hraje|kdo to zpiva|interpret\w*|zpevak\w*)\b.*\b(pisn\w*|pisnick\w*|hraje|song\w*)?", ("now_playing_info",)),
+    (r"\b(lehk\w*|jednoduch\w*)\b.*\b(tezk\w*|slozit\w*)\b|\brozdel\w*\b.*\b(mozk\w*|ai)\b", ("brain_split",)),
     (r"\b(oprav\w*|nefung\w*|spadl\w*|pada\w*)\b.*\b(dovednost\w*|skill\w*)\b|\b(dovednost\w*|skill\w*)\b.*\b(nefung\w*|spadl\w*|pada\w*)",
      ("skill_fix", "list_skills")),
     (r"\b(nainstaluj|nainstalovat|instaluj|stahni a nainstaluj)\b", ("app_search", "app_install")),

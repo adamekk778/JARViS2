@@ -4,10 +4,11 @@
    Runs its frame loop only while it is on screen. */
 import { brandEl, mediaBrand } from "../shared/brands";
 import { h, icon } from "../shared/dom";
-import { fmtShift, lyricShift, setLyricShift } from "../shared/lyricsync";
+import { fmtShift, isAutoShift, lyricShift, setLyricShift } from "../shared/lyricsync";
 
 type Line = { t: number; text: string };
-type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean; onlineOn?: () => void };
+type Ctx = { quick: (action: string, args?: any) => void; back: () => void; lyricsOn: () => boolean; onlineOn?: () => void;
+  karaoke?: () => void };
 
 const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s)) % 60).padStart(2, "0")}`;
 
@@ -44,7 +45,9 @@ export function createMusicView(ctx: Ctx) {
     h("button", { type: "button", title: "Text jde napřed – posunout později", onclick: () => nudge(-0.25) }, "Text napřed", icon("fast-forward", "ph-fill")),
     // 3.14 the words belong to another song (or version): never show this text for it again, try another one
     h("button", { type: "button", class: "mu-wrong", title: "Tohle není text téhle písně – zkusit jiný", onclick: () => ctx.quick("lyrics_wrong") },
-      icon("swap", "ph-fill"), "Jiný text"));
+      icon("swap", "ph-fill"), "Jiný text"),
+    ctx.karaoke ? h("button", { type: "button", title: "Karaoke přes celou obrazovku", onclick: () => ctx.karaoke?.() },
+      icon("microphone-stage", "ph-fill"), "Karaoke") : "");
   const lyrBox = h("div", { class: "mu-lyrics" }, lyrList);
   const lyrWrap = h("div", { class: "mu-lyr-wrap" }, lyrBox, sync);       // outside the faded edges of the lyrics
   const back = h("button", { class: "mu-back", type: "button", title: "Zpět", "aria-label": "Zpět na hlavní obrazovku", onclick: () => ctx.back() }, icon("caret-left"));
@@ -213,7 +216,7 @@ export function createMusicView(ctx: Ctx) {
       } else { cover.removeAttribute("src"); bg.removeAttribute("src"); }
     }
     title.textContent = has ? media.title : "Nic nehraje";
-    shiftVal.textContent = fmtShift(lyricShift(media?.title, media?.artist));
+    shiftVal.textContent = fmtShift(lyricShift(media?.title, media?.artist)) + (isAutoShift(media?.title, media?.artist) ? " · auto" : "");
     artist.textContent = has ? media.artist || "" : "";
     const b = mediaBrand(media?.source || "");
     src.replaceChildren(...(b && b.id !== "browser" ? [brandEl(b), h("span", {}, b.name)] : []));

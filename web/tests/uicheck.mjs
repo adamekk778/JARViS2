@@ -19,6 +19,7 @@ const PAGES = [
   { path: "/hud", name: "hud", sizes: [[1920, 1080]] },
   { path: "/notch", name: "notch", sizes: [[1000, 410]], notch: true },
   { path: "/mobile", name: "mobile", sizes: [[390, 844], [412, 915]] },
+  { path: "/karaoke", name: "karaoke", sizes: [[1920, 1080], [390, 844]] },
 ];
 // what a page may log without it being a bug (no microphone in CI, the phone-only plugins)
 const IGNORE = [/getUserMedia/i, /NotAllowedError/i, /Capacitor/i, /favicon/i, /WebSocket is closed/i, /ERR_CONNECTION_REFUSED/i,

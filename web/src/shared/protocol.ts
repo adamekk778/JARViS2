@@ -45,6 +45,8 @@ export const CLIENT_TYPES = [
   "access_log_get",
   "stats_preview_get",
   "brain_tiles_get", "brain_models_get", "brain_use",
+  "brain_split",
+  "lyrics_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -76,6 +78,7 @@ export const SERVER_TYPES = [
   "access_log",
   "stats_preview",
   "brain_tiles", "brain_models", "brain_used",
+  "lyrics_autoshift",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
