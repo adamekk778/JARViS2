@@ -86,6 +86,7 @@ CLIENT_TYPES = [
     "webpush_key", "webpush_subscribe", "webpush_test",
     "watch_pair_start",
     "travel_get", "travel_watch_stop",
+    "travel_drill", "money_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -137,6 +138,7 @@ SERVER_TYPES = [
     "webpush",
     "watch_pair",
     "travel",
+    "travel_drill", "money",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

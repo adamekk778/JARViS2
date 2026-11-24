@@ -355,9 +355,10 @@ def nights_of(c: dict) -> int:
 
 
 def to_czk(amount: float, currency: str) -> float:
-    """A rough CZK value for the limits (the exact one is in the confirmation)."""
-    rates = {"CZK": 1.0, "EUR": 25.0, "USD": 23.0, "GBP": 29.5, "PLN": 5.8, "CHF": 26.0, "HUF": 0.064}
-    return round(float(amount) * rates.get((currency or "CZK").upper(), 25.0), 0)
+    """CZK value for the limits: today's ČNB rate (3.19), a rough estimate only without any rate."""
+    from .money import to_czk as czk
+
+    return czk(amount, currency)
 
 
 def spent_this_month(rt: Any, now: float | None = None) -> float:
@@ -407,6 +408,9 @@ async def book(rt: Any, off: dict, transport: Any = None, business: bool = False
     g, why = guest(rt)
     if why:
         raise BookingError(why)
+    from .money import ensure_rates
+
+    await ensure_rates(rt)                                   # the limits in CZK with today's ČNB rate
     why = limit_problem(rt, off["total"], off["currency"])
     if why:
         raise BookingError(why)
@@ -521,6 +525,64 @@ async def cancel(rt: Any, b: dict, cancellation_id: str = "", transport: Any = N
     if "cancel" in res.get("status", "").lower():
         _db(rt).exec("UPDATE bookings SET status='cancelled' WHERE id=?", (b["id"],))
     return res
+
+
+# ------------------------------------------------------------------------------------------ 3.19 a test booking (návrh 9)
+DRILL_GUEST = {"first": "Jarvis", "last": "Test", "email": "test@example.com", "phone": "+420000000000", "born_on": "1990-01-01",
+               "title": "mr", "gender": "m"}
+
+
+async def drill(rt: Any, transport: Any = None) -> list[dict]:
+    """Zkušební rezervace: with a TEST key only – search → price check → booking → cancellation, each step timed; nothing
+    is stored among your bookings and nothing is paid. A live key is refused (never a real booking from a button)."""
+    import datetime as dt
+
+    out: list[dict] = []
+
+    async def step(name: str, coro: Any) -> Any:
+        t0 = time.monotonic()
+        try:
+            res = await coro
+            out.append({"step": name, "ok": True, "ms": int((time.monotonic() - t0) * 1000), "detail": ""})
+            return res
+        except Exception as e:  # noqa: BLE001
+            out.append({"step": name, "ok": False, "ms": int((time.monotonic() - t0) * 1000), "detail": str(e)[:200]})
+            return None
+    day = dt.date.today() + dt.timedelta(days=30)
+    g = DRILL_GUEST
+    lk, dk = lite_key(), duffel_key()
+    if lk and not lk.startswith("sand_"):
+        out.append({"step": "LiteAPI", "ok": None, "ms": 0, "detail": "ostrý klíč – zkušební rezervaci dělám jen se zkušebním (sand_…)"})
+    elif lk:
+        c = {"city": "Prague", "country": "CZ", "checkin": day.isoformat(), "checkout": (day + dt.timedelta(days=1)).isoformat(),
+             "adults": 1, "rooms": 1, "currency": "EUR", "nationality": "CZ"}
+        found = await step("Hotely: hledání (LiteAPI)", lite_search(rt, c, transport))
+        if found:
+            off = min(found, key=lambda o: o["total"])
+            pre = await step(f"Hotely: kontrola ceny ({off['total']:g} {off['currency']})", lite_recheck(rt, off, transport))
+            if pre:
+                res = await step("Hotely: rezervace (zkušební)", lite_book(rt, off, pre, g, transport))
+                if res:
+                    await step("Hotely: zrušení", lite_cancel(rt, res["ref"], transport))
+        elif found == []:
+            out[-1].update(ok=False, detail="nic nenalezeno")
+    if dk and not dk.startswith("duffel_test"):
+        out.append({"step": "Duffel", "ok": None, "ms": 0, "detail": "ostrý token – zkušební rezervaci dělám jen s duffel_test_…"})
+    elif dk:
+        found = await step("Lety: hledání (Duffel)", flight_search(rt, {"origin": "PRG", "destination": "LHR", "date": day.isoformat(),
+                                                                        "adults": 1}, transport))
+        if found:
+            off = found[0]
+            pre = await step(f"Lety: kontrola ceny ({off['total']:g} {off['currency']})", flight_recheck(rt, off, transport))
+            if pre:
+                res = await step("Lety: objednávka (zkušební)", flight_book(rt, off, pre, g, transport))
+                if res:
+                    q = await step("Lety: podmínky zrušení", flight_cancel_quote(rt, res["ref"], transport))
+                    if q and q.get("id"):
+                        await step("Lety: zrušení", flight_cancel_confirm(rt, q["id"], transport))
+    if not lk and not dk:
+        out.append({"step": "Klíč", "ok": None, "ms": 0, "detail": "vlož zkušební klíč LiteAPI (sand_…) nebo Duffel (duffel_test_…) v Propojení"})
+    return out
 
 
 async def selfcheck(rt: Any) -> list[dict]:

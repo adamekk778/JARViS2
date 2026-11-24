@@ -9,6 +9,16 @@ def jarvis_home(tmp_path, monkeypatch):
     return tmp_path / "home"
 
 
+@pytest.fixture(autouse=True)
+def money_rates_reset():
+    """3.19 the ČNB rates live in memory: every test starts without them (the estimate), as on a fresh start."""
+    from jarvis import money
+
+    money.reset()
+    yield
+    money.reset()
+
+
 @pytest.fixture
 def ctx(tmp_path):
     """Minimal tool context (the real one is jarvis.runtime.Runtime)."""

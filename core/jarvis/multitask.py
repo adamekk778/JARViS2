@@ -597,7 +597,7 @@ class Multitask:
             for c in calls:
                 w.steps += 1
                 spec = tools.REGISTRY.get(c.name)
-                if spec is None or c.name not in allowed or c.name.startswith("browser_") or c.name in trust.MONEY_TOOLS:
+                if spec is None or c.name not in allowed or c.name.startswith("browser_") or trust.is_money(c.name, c.arguments):
                     content = json.dumps({"ok": False, "result": f"Nástroj {c.name} tenhle agent nemá."}, ensure_ascii=False)
                 else:
                     from .agent import describe_call

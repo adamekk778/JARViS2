@@ -62,6 +62,7 @@ export const CLIENT_TYPES = [
   "webpush_key", "webpush_subscribe", "webpush_test",
   "watch_pair_start",
   "travel_get", "travel_watch_stop",
+  "travel_drill", "money_get",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -113,6 +114,7 @@ export const SERVER_TYPES = [
   "webpush",
   "watch_pair",
   "travel",
+  "travel_drill", "money",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

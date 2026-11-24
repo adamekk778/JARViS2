@@ -7,9 +7,10 @@ from . import handles
 
 @handles("travel_get", local_only=True)
 async def travel_get(c, m: dict) -> None:
-    from ... import booking, tripcare
+    from ... import booking, money, tripcare
 
     rt = c.rt
+    await money.ensure_rates(rt)
     b = rt.cfg.booking
     g, missing = booking.guest(rt)
     await c.send("travel", bookings=booking.bookings(rt, include_past=bool(m.get("past"))), watches=tripcare.watches(rt),
@@ -29,3 +30,13 @@ async def travel_watch_stop(c, m: dict) -> None:
     except (TypeError, ValueError):
         pass
     await travel_get(c, {})
+
+
+@handles("travel_drill", local_only=True, slow=True)
+async def travel_drill(c, m: dict) -> None:
+    """3.19 Zkušební rezervace (test keys only): every step and how long it took."""
+    from ... import booking
+
+    await c.send("travel_drill", running=True, steps=[])
+    steps = await booking.drill(c.rt)
+    await c.send("travel_drill", running=False, steps=steps)

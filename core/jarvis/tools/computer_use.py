@@ -60,8 +60,14 @@ async def ask_money(ctx, what: str) -> bool:
     agent = getattr(ctx, "agent", None)
     if agent is None:
         return False
-    return bool(await agent._ask_confirm(ToolCall(id=f"money-{uuid.uuid4().hex[:8]}", name="money_action",
-                                                  arguments={"text": what[:200]}), timeout=MONEY_CONFIRM_S, phone=True))
+    call = ToolCall(id=f"money-{uuid.uuid4().hex[:8]}", name="money_action", arguments={"text": what[:200]})
+    ok = bool(await agent._ask_confirm(call, timeout=MONEY_CONFIRM_S, phone=True))
+    if ok:                                       # 3.19 the same rules for every payment: twice
+        ok = bool(await agent._ask_confirm(call, second=True, timeout=MONEY_CONFIRM_S, phone=True))
+    from .. import money
+
+    money.log_step(ctx, "money_action", what[:200], approved=ok)
+    return ok
 
 
 def _howto_file():

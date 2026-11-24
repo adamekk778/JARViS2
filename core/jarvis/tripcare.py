@@ -320,6 +320,9 @@ async def loop(rt: Any) -> None:
     n = 0
     while True:
         try:
+            from .money import ensure_rates
+
+            await ensure_rates(rt)                         # today's ČNB rate for the limits and the watches
             if getattr(rt.cfg.booking, "reminders", True):
                 await reminders(rt)
             if n % 12 == 0:                         # twice a day: prices

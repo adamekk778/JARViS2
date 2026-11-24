@@ -66,12 +66,12 @@ def _waves(steps: list, done: set[int]) -> list[list[int]]:
 
 # OMEGA 182: what cannot be undone asks twice
 DOUBLE_TOOLS = {"delete_file", "clean_pc", "email_delete"}
-# 3.18 Cesty: money – always twice (whatever the settings), the second time with the exact amount, also to the phone
-MONEY_TOOLS = {"travel_book", "booking_cancel"}
+# 3.18/3.19 money – always twice (whatever the settings), the second time with the exact amount, also to the phone
+from .trust import MONEY_TOOLS, is_money  # noqa: E402,F401
 
 
 def _needs_second(call: ToolCall, limits) -> bool:
-    if call.name in MONEY_TOOLS:
+    if is_money(call.name, call.arguments):
         return True
     if limits is None or not limits.double_confirm:
         return False

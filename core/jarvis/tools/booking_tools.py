@@ -92,8 +92,9 @@ def _card(offers: list[dict], title: str) -> dict:
       "travel_book s číslem nabídky. Bez klíče otevře Booking.com / Airbnb s vyplněným hledáním.", category="cesty", perm="network")
 async def hotel_search(ctx, description: Annotated[str, "popis vlastními slovy uživatele (kam, kdy, kolik, co musí mít)"],
                        provider: Annotated[str, "liteapi / duffel / browser / airbnb (prázdné = co je nastavené)"] = "") -> ToolResult:
-    from .. import booking, travelsearch
+    from .. import booking, money, travelsearch
 
+    await money.ensure_rates(ctx)
     c, missing = await travelsearch.understand(ctx, description)
     c["kind"] = "hotel"
     missing = [m for m in missing if m in ("kam (město)", "od kdy", "do kdy")]
@@ -125,8 +126,9 @@ async def hotel_search(ctx, description: Annotated[str, "popis vlastními slovy 
       "nejrychlejší, přestupy, zavazadla podle aerolinky. Rezervace pak travel_book. Bez klíče Duffel otevře Google Flights.",
       category="cesty", perm="network")
 async def flight_search(ctx, description: Annotated[str, "popis vlastními slovy (odkud, kam, kdy, zpátky, přímé)"]) -> ToolResult:
-    from .. import booking, travelsearch
+    from .. import booking, money, travelsearch
 
+    await money.ensure_rates(ctx)
     c, missing = await travelsearch.understand(ctx, description)
     c["kind"] = "flight"
     missing = [m for m in missing if m in ("odkud letíš", "kam letíš", "kdy letíš")]
@@ -198,8 +200,11 @@ def _book_details(a: dict, ctx: Any = None) -> list[str]:
                    + (f", {off['board']}" if off.get("board") else ""))
         if off.get("address"):
             out.append(off["address"])
-    out.append(f"Celkem: {_money(off['total'], off['currency'])} (~{booking.to_czk(off['total'], off['currency']):,.0f} Kč)"
-               .replace(",", " "))
+    from ..money import rate_note
+
+    czk = "" if off["currency"].upper() == "CZK" else \
+        f" (~{booking.to_czk(off['total'], off['currency']):,.0f} Kč, {rate_note()})".replace(",", " ")
+    out.append(f"Celkem: {_money(off['total'], off['currency'])}{czk}")
     if off.get("refundable"):
         out.append("Zrušení zdarma" + (f" do {travelsearch.fmt_when(off['free_cancel_until'])}" if off.get("free_cancel_until") else ""))
     else:
@@ -448,8 +453,9 @@ async def travel_watch(ctx, action: Annotated[str, "add / list / stop"] = "list"
 @tool("travel_spend", "Kolik stály cesty: tento měsíc, letos po měsících, služební zvlášť (rezervace přes JARVISe).",
       category="cesty", perm="network")
 async def travel_spend(ctx, year: Annotated[int, "rok (0 = letos)"] = 0) -> ToolResult:
-    from .. import tripcare
+    from .. import money, tripcare
 
+    await money.ensure_rates(ctx)
     s = tripcare.spend(ctx, year or None)
     if not s["trips"]:
         return ToolResult(True, f"V roce {s['year']} jsem přes JARVISe nic nerezervoval.", data=s)

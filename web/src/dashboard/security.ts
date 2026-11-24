@@ -204,6 +204,24 @@ export function buildSecurity(client: JarvisClient) {
         new Date(r.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }), " · ", r.tool), h("span", { class: "muted" }, r.what || ""))));
   });
 
+  // 3.19 Peníze: what goes out this month – AI, trips, subscriptions, approved payments – and every money step you were asked
+  const moneyBox = h("div", { class: "card sec-card" }, loading());
+  const KIND: Record<string, string> = { travel_book: "rezervace", booking_cancel: "zrušení rezervace", stripe_refund: "vrácení peněz",
+    money_action: "nákup na obrazovce", browser_click: "platba v prohlížeči" };
+  client.on("money", (m: any) => {
+    const parts: any[] = m.parts || [];
+    const steps: any[] = m.steps || [];
+    const czk = (v: number) => `${Math.round(v).toLocaleString("cs-CZ")} Kč`;
+    moneyBox.replaceChildren(
+      h("div", { class: "row" }, h("strong", {}, "Celkem tento měsíc"), h("strong", {}, czk(m.total_czk || 0))),
+      ...parts.map((p) => h("div", { class: "row" }, h("span", {}, p.label + (p.count ? ` (${p.count})` : "")), h("span", {}, czk(p.czk)))),
+      parts.some((p) => p.key === "subs") ? h("span", {}) : h("p", { class: "help" }, "Předplatné se ukáže po „přehled předplatných“ v chatu (projde e-maily s účtenkami)."),
+      h("p", { class: "help" }, `Cizí měny přepočítané: ${m.rate || ""}. Každá platba se potvrzuje dvakrát (podruhé s přesnou částkou), na telefonu otiskem prstu, a nikdy ji nespustí e-mail, stránka ani agent na pozadí.`),
+      steps.length ? h("ul", { class: "sec-list" }, ...steps.slice(0, 12).map((x) => h("li", {},
+        h("span", {}, `${new Date(x.ts * 1000).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })} · ${KIND[x.kind] || x.kind}: ${x.what}`),
+        h("span", { class: x.approved ? "muted" : "sec-ok" }, x.approved ? "povoleno" : "zamítnuto")))) : h("p", { class: "muted" }, "Tento měsíc se JARVIS na žádnou platbu neptal."));
+  });
+
   // 3.18 Co zkoušel cizí text: steps an e-mail, a web page, a file, a picture or the clipboard led to – and your answer
   const foreignBox = h("div", { class: "card sec-card" });
   const SRC: Record<string, string> = { clipboard: "schránka", attachment: "příloha", email_read: "e-mail", email_inbox: "e-maily",
@@ -223,6 +241,7 @@ export function buildSecurity(client: JarvisClient) {
       h("button", { class: "btn", type: "button", onclick: refresh }, icon("arrow-clockwise"), "Obnovit")]),
     h("h2", { class: "group-label" }, "Bezpečí"), safety,
     h("h2", { class: "group-label" }, "Dočasná oprávnění"), grantsBox,
+    h("h2", { class: "group-label" }, "Peníze tento měsíc"), moneyBox,
     h("h2", { class: "group-label" }, "Spotřeba AI"), usageBox,
     h("h2", { class: "group-label" }, "Soukromí"), privacyBox,
     h("h2", { class: "group-label" }, "Co JARVIS ukládá"), invBox,
@@ -230,7 +249,7 @@ export function buildSecurity(client: JarvisClient) {
     h("h2", { class: "group-label" }, "Co JARVIS dnes viděl a čeho se dotkl"), accessBox,
     h("h2", { class: "group-label" }, "Co zkoušel cizí text"), foreignBox,
     h("h2", { class: "group-label" }, "Export, záloha, smazání"), dataBox);
-  return { el, show: () => { refresh(); client.send("access_log_get"); client.send("foreign_log_get"); } };
+  return { el, show: () => { refresh(); client.send("access_log_get"); client.send("foreign_log_get"); client.send("money_get"); } };
 }
 
 // 3.14 the security briefing's leak check: the user's own Have I Been Pwned key (kept in the Windows vault)

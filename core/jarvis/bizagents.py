@@ -324,6 +324,20 @@ async def decide(rt: Any, pid: int, approve: bool, by: str = "ty") -> dict:
         return {"ok": True, "message": "Zamítnuto."}
     if by == "auto" and (r["tool"] not in AUTO_SAFE or r["tool"] not in (agent.get("auto") or [])):
         raise ValueError("Tohle pravidlo samo schválit nesmí.")
+    from . import trust
+
+    args = json.loads(r["args"] or "{}")
+    if trust.is_money(r["tool"], args):          # 3.19 money: your click + a second confirmation with the exact amount
+        from . import money
+        from .llm.base import ToolCall
+
+        if by != "ty":
+            raise ValueError("Platbu schvaluješ jen ty, jednotlivě.")
+        ok = bool(await rt.agent._ask_confirm(ToolCall(id=f"biz-{pid}", name=r["tool"], arguments=args), second=True,
+                                              phone=True))
+        money.log_step(rt, r["tool"], r["description"], *money.amount_of(r["tool"], args), approved=ok)
+        if not ok:
+            return {"ok": False, "message": "Platba nepotvrzena – návrh čeká dál."}
     db.exec("UPDATE biz_proposals SET status='running', decided=? WHERE id=?", (time.time(), int(pid)))
     res = await tools.call(r["tool"], json.loads(r["args"] or "{}"), rt)
     db.exec("UPDATE biz_proposals SET status=?, result=? WHERE id=?", ("done" if res.ok else "failed", res.summary[:500], int(pid)))
@@ -340,7 +354,14 @@ async def decide(rt: Any, pid: int, approve: bool, by: str = "ty") -> dict:
 async def decide_many(rt: Any, ids: list[int], approve: bool) -> dict:
     """3.13 "Schválit vše" / "Zamítnout vše": exactly the proposals you saw on the screen, one after another."""
     ok = failed = skipped = 0
+    from . import trust
+
+    db = _db(rt)
     for pid in [int(i) for i in ids or []][:200]:
+        row = db.one("SELECT tool, args FROM biz_proposals WHERE id=?", (pid,))
+        if approve and row and trust.is_money(row["tool"], json.loads(row["args"] or "{}")):
+            skipped += 1                             # 3.19 payments are never approved in bulk
+            continue
         try:
             r = await decide(rt, pid, approve)
         except ValueError:

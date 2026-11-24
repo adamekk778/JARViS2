@@ -23,7 +23,7 @@ from typing import Any
 
 STILL_ASK = {"send_sms", "record_call", "paired_devices", "screen_share", "guest_access", "pc_link", "firmware_upload", "flash_esp32",
              "webhooks", "workflow_import", "delete_file", "claude_code", "email_delete", "roblox_publish",
-             "travel_book", "booking_cancel"}
+             "travel_book", "booking_cancel", "stripe_refund"}
 FREE_AREAS = {"apps", "input", "screen", "files_read", "files_write", "system", "home"}
 CAREFUL_AREAS = {"files_write", "system"}           # these ask again once untrusted text (mail, web) was read
 RULE = ("PLNÁ DŮVĚRA: uživatel ti dovolil dělat na tomhle PC všechno bez ptaní. Co řekne, to rovnou udělej – nevysvětluj, "
@@ -40,11 +40,10 @@ def skip_confirm(rt: Any, spec: Any, untrusted_seen: bool = False, args: dict | 
     """True = this dangerous step runs without asking, because you gave JARVIS full trust."""
     if not on(rt) or spec is None:
         return False
-    if spec.name == "browser_click":               # 3.18 paying, buying, booking: always your confirmation
-        from .tools.browser import money_click
-
-        if args is None or money_click(args):
-            return False
+    if spec.name == "browser_click" and args is None:
+        return False
+    if is_money(spec.name, args):                  # 3.18/3.19 paying, buying, booking, refunding: always your confirmation
+        return False
     from .bizagents import AUTO_SAFE
     from .permissions import perm_of
     from .tools.base import NEVER_TRUSTED
@@ -101,17 +100,31 @@ def foreign_needs_ask(spec: Any, offered: bool, words: str = "") -> bool:
 
 
 # ------------------------------------------------------------------------------------------ 3.18 money only on your own word
-MONEY_TOOLS = {"travel_book", "booking_cancel"}
-MONEY_WORDS = (r"(rezerv|zarezerv|\bberu\b|\bbereme\b|vezmu|vezmeme|zaplat|\bplat|objednej|\bkup|zrus|storn|"
-               r"\bbook|reserve|\bpay\b|cancel)")
+# 3.19 every step that moves money: the same rules – asked twice (the second time with the exact amount from JARVIS' own
+# data), to the phone with the fingerprint, never on full trust, never in a background agent, never after foreign text
+# unless your own words ask for it
+MONEY_TOOLS = {"travel_book", "booking_cancel", "stripe_refund", "money_action"}
+MONEY_WORDS = (r"(rezerv|zarezerv|\bberu\b|\bbereme\b|vezmu|vezmeme|zaplat|\bplat|objednej|\bkup|zrus|storn|vrat|"
+               r"\bbook|reserve|\bpay\b|cancel|refund)")
 
 
-def money_blocked(name: str, untrusted_seen: bool, words: str = "") -> str:
+def is_money(name: str, args: dict | None = None) -> bool:
+    """This step moves money: a booking, a refund, a purchase on the screen, or a click on a pay / book button."""
+    if name in MONEY_TOOLS:
+        return True
+    if name == "browser_click" and args is not None:
+        from .tools.browser import money_click
+
+        return money_click(args)
+    return False
+
+
+def money_blocked(name: str, untrusted_seen: bool, words: str = "", args: dict | None = None) -> str:
     """Foreign text (an e-mail, a page) is in this task: booking, paying or cancelling only when YOUR words ask for it
     – otherwise not even a question (a planted "book this now" never reaches the payment)."""
     import re
 
-    if name not in MONEY_TOOLS or not untrusted_seen or re.search(MONEY_WORDS, _fold(words)):
+    if not is_money(name, args) or not untrusted_seen or re.search(MONEY_WORDS, _fold(words)):
         return ""
     return ("Rezervovat, platit nebo rušit budu jen na tvůj vlastní pokyn – tohle navrhl cizí text (e-mail, stránka). "
             "NEPROVEDENO. Když to chceš, řekni to sám.")

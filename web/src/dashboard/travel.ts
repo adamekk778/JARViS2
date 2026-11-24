@@ -51,6 +51,15 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
     h("div", { class: "house-add" }, search, h("button", { class: "btn primary", type: "button", onclick: go }, icon("magnifying-glass"), "Najít")));
 
   const statusBox = h("div", { class: "card sec-card" }, loading());
+  // 3.19 Zkušební rezervace: with a test key only – search, price check, booking, cancellation; nothing is paid or kept
+  const drillBox = h("div", { class: "drill" });
+  client.on("travel_drill", (m: any) => {
+    if (m.running) { drillBox.replaceChildren(h("p", { class: "help" }, "Zkouším hledání, kontrolu ceny, rezervaci a zrušení… (do minuty)")); return; }
+    const steps: any[] = m.steps || [];
+    drillBox.replaceChildren(...steps.map((x) => h("div", { class: `sc-item ${x.ok === false ? "bad" : x.ok ? "ok" : "na"}` },
+      icon(x.ok === false ? "x-circle" : x.ok ? "check-circle" : "minus-circle", "ph-fill"),
+      h("div", { class: "sc-text" }, h("strong", {}, x.step), h("span", {}, x.detail || (x.ms ? `${(x.ms / 1000).toFixed(1).replace(".", ",")} s` : ""))))));
+  });
   const bookingsBox = h("div", { class: "card sec-card" }, loading());
   const watchesBox = h("div", { class: "card sec-card" });
   const spendBox = h("div", { class: "card sec-card" });
@@ -61,6 +70,10 @@ export function buildTravel(client: JarvisClient, ask: (text: string) => void) {
     statusBox.replaceChildren(...nodes(
       h("div", { class: "row" }, h("span", {}, icon("buildings"), " Hotely (LiteAPI)"), h("span", { class: p.liteapi ? "sec-ok" : "muted" }, p.liteapi ? (p.sandbox ? "zkušební klíč – nic se nezaplatí" : "připojeno") : "bez klíče")),
       h("div", { class: "row" }, h("span", {}, icon("airplane-tilt"), " Lety a hotely (Duffel)"), h("span", { class: p.duffel ? "sec-ok" : "muted" }, p.duffel ? "připojeno" : "bez klíče")),
+      p.liteapi || p.duffel ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Zkušební rezervace"),
+        h("span", { class: "help" }, "Jen se zkušebním klíčem: najde hotel / let, ověří cenu, zarezervuje a hned zruší. Nic se nezaplatí ani neuloží.")),
+        h("button", { class: "btn sm", type: "button", onclick: () => client.send("travel_drill") }, icon("flask"), "Vyzkoušet")) : null,
+      drillBox,
       !p.liteapi && !p.duffel ? h("p", { class: "help" }, "Bez klíče JARVIS otevře Booking.com, Airbnb nebo Google Flights s vyplněným hledáním, vyplní údaje a před tlačítkem Zaplatit se vždycky zastaví. Klíče přidáš v Propojení.") : null,
       m.traveller_missing ? h("p", { class: "help warn" }, icon("warning"), ` Pro rezervace ${m.traveller_missing.replace(" (Cesty → Údaje a limity)", "")} – doplň dole v Údaje a limity.`) : null));
     const rows: any[] = m.bookings || [];
