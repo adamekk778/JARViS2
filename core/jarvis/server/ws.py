@@ -62,6 +62,8 @@ CLIENT_TYPES = [
     "rules_get", "rule_delete", "rule_add", "answer_rate", "ratings_get",
     "offline_pack_get", "offline_pack_prepare", "offline_pack_test",
     "voiceid_get", "voiceid_sample", "voiceid_save", "voiceid_delete", "voiceid_reset",
+    "embedder_get", "embedder_download",
+    "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -86,6 +88,8 @@ SERVER_TYPES = [
     "rules", "ratings", "answer_check",
     "offline_pack", "offline_pack_progress", "offline_pack_test_result",
     "voiceid",
+    "embedder",
+    "memory_cleanup", "memory_import", "data_encrypt_result",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

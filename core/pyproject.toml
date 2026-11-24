@@ -52,6 +52,8 @@ desktop = [
   "matplotlib>=3.8",
   "send2trash>=1.8",
   "soundcard>=0.4.6; sys_platform == 'win32'",
+  "onnxruntime>=1.17",       # 3.14 search by meaning inside JARVIS (embedder.py)
+  "tokenizers>=0.19",
 ]
 voice = [
   "sounddevice>=0.4.6",
@@ -94,4 +96,5 @@ warn_unused_ignores = false
 check_untyped_defs = false
 # the typed core first; more modules join the list as they get annotated
 files = ["jarvis/llm", "jarvis/evals", "jarvis/quality.py", "jarvis/redact.py", "jarvis/events.py", "jarvis/brainplus.py",
-         "jarvis/offlinepack.py", "jarvis/server/handlers", "jarvis/voice/voiceid.py", "jarvis/voice/style.py"]
+         "jarvis/offlinepack.py", "jarvis/server/handlers", "jarvis/voice/voiceid.py", "jarvis/voice/style.py",
+         "jarvis/embedder.py", "jarvis/memplus.py"]

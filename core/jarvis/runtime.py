@@ -271,6 +271,9 @@ class Runtime:
         from . import quality
 
         self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)
+        from . import memplus
+
+        self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
         from . import selfcheck
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
