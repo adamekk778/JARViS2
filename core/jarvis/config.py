@@ -232,6 +232,7 @@ class Tools(BaseModel):
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
     approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)
+    trusted_publishers: list[str] = Field(default_factory=list)   # 3.14 fingerprints of skill authors you trust
     legacy_skills: list[str] = Field(default_factory=list)     # 2.0 skills: keep their full ctx (platform, store)
 
 
@@ -264,6 +265,8 @@ class Integrations(BaseModel):
     webhooks: list[Webhook] = Field(default_factory=list)
     peers: list[Peer] = Field(default_factory=list)
     image_provider: str = "pollinations"
+    obs_url: str = "ws://127.0.0.1:4455"   # 3.14 OBS Studio's WebSocket server (its password is in the keyring as "obs")
+    skill_catalogs: list[str] = Field(default_factory=list)   # 3.14 catalogs of skill packages (JSON lists on the web)
 
 
 class Device(BaseModel):
