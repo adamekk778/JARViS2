@@ -51,6 +51,22 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.19 – Peníze pod kontrolou a Cesty 2
+
+- **Každá platba stejně:** rezervace, zrušení rezervace, vrácení peněz přes Stripe, nákup na obrazovce i kliknutí na
+  Zaplatit / Rezervovat v prohlížeči – vždy dvakrát (podruhé s částkou z vlastních dat JARVISe), na telefon s otiskem
+  prstu, nikdy s plnou důvěrou, nikdy v agentovi na pozadí a po cizím textu jen na tvoje vlastní slova. Návrhy
+  firemních agentů na platbu se neschvalují hromadně.
+- **Kurz ČNB:** limity, rozpočet a útrata se přepočítávají dnešním kurzem ČNB (poslední kurz uložený pro výpadek
+  internetu); v potvrzení je napsané, který kurz se použil.
+- **Peníze tento měsíc** (Bezpečí): AI, cesty, předplatné a platby přes JARVISe s každým krokem a tvou odpovědí.
+- **Cesty 2:** spolucestující (údaje jen v PC, letenky pro víc lidí), vlaky a autobusy RegioJet živě (ČD a další přes
+  IDOS), vstupní podmínky pro občany ČR s odkazem na MZV, ubytování z potvrzovacích e-mailů, cestovní karta do
+  telefonu offline, zpožděný let → zpráva hotelu po tvém ano, stravné podle zákoníku práce, zkušební rezervace
+  jedním kliknutím (jen se zkušebním klíčem), odkaz na cestu pro rodinu (bez ceny a čísla rezervace, vyprší).
+- **Hodinky:** dlaždice ukáže nejbližší cestu a čekající platbu (schvaluje se jen v telefonu s otiskem).
+- **Ověřování:** testy na Windows v CI běží ve dvou souběžných částech; novější akce GitHubu; opravená varování.
+
 ## Novinky ve verzi 3.18 – Cesty: hotely a letenky po tvém potvrzení
 
 - **Cesty podle popisu:** „Řím, 3 noci od pátku, do 150 € za noc, blízko centra, se snídaní“ → 3–5 nabídek vedle

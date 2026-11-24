@@ -32,6 +32,25 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.19 – peníze pod kontrolou a Cesty 2 (17 návrhů ve 4 dávkách)
+Hotovo v kódu s testy: kurz ČNB pro limity a rozpočet (uložený pro offline), stejná pravidla pro každou platbu
+(rezervace, zrušení, vrácení přes Stripe, nákup na obrazovce, Zaplatit v prohlížeči, návrhy firemních agentů), přehled
+peněz, zkušební rezervace se zkušebním klíčem; spolucestující, RegioJet živě + IDOS, vstupní podmínky, ubytování
+z e-mailu, cestovní karta offline, zpoždění → hotel, stravné; testy na Windows ve dvou částech, novější akce GitHubu,
+opravená varování (Pillow, nedokončená korutina); hodinky s cestou a čekající platbou, odkaz na cestu pro rodinu,
+překlady nových obrazovek.
+
+Co nejde nebo zatím není:
+- **Test na tvém PC přes Remote Control** – k relaci zase nebyl připojený žádný počítač.
+- **Schválení platby z hodinek** – záměrně ne: hodinky nemají otisk prstu; dlaždice jen řekne „Potvrď platbu v telefonu“.
+- **Koupě jízdenky RegioJet přímo z JARVISe** – veřejné API je jen pro vyhledávání; koupě na jejich webu v prohlížeči
+  JARVISe se zastavením před platbou. ČD, Leo Express a FlixBus nemají veřejné API – IDOS.
+- **Vstupní podmínky** – shrnutí pro krátké turistické cesty občanů ČR; pravidla se mění, proto vždy odkaz na MZV.
+- **Stravné** – sazby nastavuješ ty (mění je vyhláška každý rok); výchozí tuzemské jsou z roku 2025.
+- **Odkaz na cestu mimo domov** – jen s veřejnou HTTPS adresou (Tailscale / Cloudflare), jinak funguje jen doma.
+- **Neověřeno ostře:** RegioJet živě odpovídal z tohoto prostředí, ale v testech je simulovaný; e-maily z Booking.com
+  a Airbnb jen se simulovanými texty; ČNB testována simulovanou odpovědí.
+
 ## 3.18 – cesty a rezervace po potvrzení + 18 vylepšení (37 návrhů v 6 balících)
 Hotovo v kódu s testy: samotest integrací v Diagnostice, odkaz s daty po cizím textu se ptá, záznam cizího textu
 v Bezpečí, Šifrovat i doma; STL na Bambu přes OrcaSlicer, kontrola před tiskem, bohatší CAD (díry, text, zaoblení,

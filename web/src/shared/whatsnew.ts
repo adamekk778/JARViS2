@@ -4,6 +4,14 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.19": [
+    { icon: "shield-check", title: "Každá platba stejně bezpečně", line: "Rezervace, vrácení peněz, nákup na obrazovce i tlačítko Zaplatit v prohlížeči: vždy dvakrát (podruhé s přesnou částkou), na telefonu otiskem prstu, nikdy s plnou důvěrou, nikdy na pokyn e-mailu nebo agenta na pozadí. Limity a rozpočet počítají s dnešním kurzem ČNB." },
+    { icon: "wallet", title: "Peníze tento měsíc", line: "Bezpečí → Peníze: kolik stála AI, cesty, předplatné a platby přes JARVISe – a každá platba, na kterou se JARVIS ptal, s tvou odpovědí." },
+    { icon: "users", title: "Spolucestující a vlaky", line: "„Letenky pro mě a Janu“ – údaje spolucestujících zůstávají v PC. Vlaky a autobusy RegioJet živě s cenou a volnými místy, ČD a další přes IDOS." },
+    { icon: "identification-card", title: "Co potřebuješ do země", line: "Při hledání mimo EU řekne, jestli stačí občanka, nebo je potřeba pas, vízum, ESTA či UK ETA – vždy s odkazem na MZV k ověření." },
+    { icon: "suitcase-rolling", title: "Cesta i odjinud", line: "Ubytování z e-mailu (Booking.com, Airbnb) se zapíše do Cest s připomínkami. Cestovní karta do telefonu, funguje offline. Zpožděný let → nabídne zprávu hotelu. Stravné podle zákoníku práce. Zkušební rezervace jedním kliknutím." },
+    { icon: "share-network", title: "Cesta pro rodinu", line: "Odkaz jen pro čtení: kam, kdy a stav letu – bez ceny a čísla rezervace, platí do konce cesty a jde zrušit. Hodinky ukážou nejbližší cestu a čekající platbu." },
+  ],
   "3.18": [
     { icon: "airplane-tilt", title: "Hotely a letenky podle popisu", line: "„Řím, 3 noci od pátku, do 150 € za noc, blízko centra, se snídaní“ – JARVIS ukáže 3–5 nabídek vedle sebe s důvodem, cenou celkem a podmínkami zrušení a pamatuje si, co jsi bral minule. „Beru dvojku“ ji zarezervuje. Hotely přes LiteAPI, letenky a hotely přes Duffel; bez klíče otevře Booking.com, Airbnb nebo Google Flights s vyplněným hledáním." },
     { icon: "shield-check", title: "Platí se až po tvém potvrzení", line: "Každá rezervace se ptá dvakrát (podruhé s přesnou částkou), na telefonu s otiskem prstu. Těsně před platbou JARVIS ověří cenu znovu – když se změní, nic nezaplatí. Limit na rezervaci, měsíční rozpočet a nikdy na pokyn e-mailu nebo stránky. Prohlížeč se před tlačítkem Zaplatit vždycky zastaví." },

@@ -52,6 +52,10 @@
 | Web Push pro iPhone (3.18) | volitelné | webová aplikace na ploše (iOS 16.4+) přes HTTPS (Tailscale / Cloudflare) | klíč VAPID v trezoru OS | šifrování RFC 8291; viz docs/IPHONE.md; neověřeno na iPhonu |
 | Wear OS aplikace (3.18) | volitelné | Nastavení → Telefon → Spárovat hodinky (kód 6 číslic) | vlastní klíč zařízení | dlaždice se stavem, otázka hlasem; sestavuje CI, neověřeno na hodinkách |
 | OrcaSlicer (3.18) | volitelné | nainstalovaný + profil a filament v Dílně | — | STL → nakrájený 3MF pro Bambu napřímo |
+| ČNB kurzy (3.19) | funkční | bez účtu | — | denní kurz pro limity, rozpočet a „kolik je 50 eur“; poslední kurz uložený pro výpadek |
+| RegioJet (3.19) | funkční | bez účtu | — | veřejný jízdní řád (spoje, ceny, volná místa); koupě na regiojet.cz v prohlížeči JARVISe |
+| IDOS (3.19) | odkaz | bez účtu | — | ČD, Leo Express a další dopravci – otevřené hledání |
+| MZV ČR – cestujeme (3.19) | odkaz | — | — | vstupní podmínky jsou shrnutí v JARVISi, k ověření vždy odkaz na MZV |
 | PrusaSlicer (3.15) | volitelné | nainstalovaný + profil .ini v Nastavení | — | STL / 3MF → G-code před tiskem |
 | OpenSCAD (3.15) | volitelné | nainstalovaný | — | přesné STL z text → CAD; bez něj náhled ze sítě JARVISe |
 | FreeCAD (3.15) | volitelné | nainstalovaný (freecadcmd) | — | STEP → OBJ s díly pro HUD |
