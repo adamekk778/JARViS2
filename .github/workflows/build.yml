@@ -20,8 +20,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - run: pip install -e "./core[dev]"
       - name: Lint (ruff – real bugs only, see core/pyproject.toml)
@@ -37,13 +37,13 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - run: pip install pip-audit && pip install "./core"
       - name: pip-audit (Python packages)
         run: pip-audit --progress-spinner off --skip-editable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - name: npm audit (web UI, production packages)
         run: cd web && npm ci --no-audit --no-fund && npm audit --omit=dev --audit-level=high
@@ -51,8 +51,8 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: cd web && npm ci && npm run lint && npm test && npm run build
       # build outputs travel through the cache, not artifacts: the artifact quota filled up and blocked releases,
@@ -69,25 +69,53 @@ jobs:
     needs: [web]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: web/dist
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - run: pip install -e "./core[dev]"
       - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 axe-core@4 && npx playwright install --with-deps chromium
       - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome python -m jarvis.uicheck --out $RUNNER_TEMP/uicheck
       - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome-en python -m jarvis.uicheck --lang en --out $RUNNER_TEMP/uicheck/en
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         continue-on-error: true
         with: { name: ui-screenshots, path: "${{ runner.temp }}/uicheck", retention-days: 7 }
+
+  # 3.19 the tests on real Windows run in two parts beside the build (before: ~17 min of tests, then the build)
+  windows-tests:
+    needs: [web]
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - name: Install JARVIS
+        run: |
+          python -m pip install --upgrade pip
+          pip install "./core[desktop,voice,dev]"
+          python -c "import openwakeword.utils as u; u.download_models(['hey_jarvis'])"
+      - name: Tests on Windows (part ${{ matrix.shard }})
+        env:
+          JARVIS_TEST_SHARD: ${{ matrix.shard }}
+        run: cd core; pytest -q -x
 
   windows:
     needs: [web]
@@ -95,14 +123,14 @@ jobs:
     env:
       HAS_SIGNING_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: web/dist
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - name: Version into the app (Settings, updates and the "Co je nového" check read it)
         shell: pwsh
@@ -114,8 +142,6 @@ jobs:
           # the "Jarvis" wake word models go INTO the installer – before, JARVIS downloaded them after every update
           # and the voice was not ready (or not there at all when the internet was blocked)
           python -c "import openwakeword.utils as u; u.download_models(['hey_jarvis'])"
-      - name: Tests on Windows
-        run: cd core; pytest -q -x
       - name: PyInstaller
         timeout-minutes: 25      # normally 4–5 min; a hang must end with a log, not after 6 hours
         run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
@@ -395,7 +421,7 @@ jobs:
           if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
           if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }
           if (($fr.R - $fr.L) -lt $sb.Width * 0.8) { throw "the full chat window is not maximized" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         continue-on-error: true   # screenshots are for diagnosis only – a full artifact quota must not fail the build
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots", retention-days: 7 }
@@ -430,7 +456,7 @@ jobs:
           $rsr = ($rs | Select-Object -Last 1) | ConvertFrom-Json
           if (-not $rsr.ok) { throw "PC rescue: a probe did not return data or the report was not verified" }
           if ($code -ne 0) { throw "idle cost above 2x target" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         continue-on-error: true
         with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png", retention-days: 7 }
@@ -505,16 +531,16 @@ jobs:
     needs: [web]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: web/dist
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "21" }
       - run: bash mobile/build-android.sh
       - uses: actions/cache/save@v4
@@ -527,14 +553,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "21" }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.11.1" }
       - run: gradle -p mobile/wear assembleDebug --no-daemon --stacktrace
       - run: cp mobile/wear/app/build/outputs/apk/debug/app-debug.apk JARVIS-wear.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: JARVIS-wear
           path: JARVIS-wear.apk
@@ -545,7 +571,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: mobile/JARVIS.apk
@@ -564,12 +590,12 @@ jobs:
           target: google_apis
           disable-animations: true
           script: bash mobile/emulator-smoke.sh "${{ runner.temp }}/android-shots"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with: { name: android-shots, path: "${{ runner.temp }}/android-shots", retention-days: 7 }
 
   release:
-    needs: [test, windows, android]
+    needs: [test, windows, windows-tests, android]
     # the default branch = stable releases; the `beta` branch = test builds (pre-release, only the beta channel gets them)
     if: github.ref_name == github.event.repository.default_branch || github.ref_name == 'beta' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -587,7 +613,7 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       - run: mkdir -p out && cp dist/JARVIS-Setup.exe mobile/JARVIS.apk out/ && ls -la out
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { path: src, sparse-checkout: packaging/winget }
       - name: winget manifests (3.14 návrh 115 – attached to the release, submitted to winget-pkgs by hand)
         run: |

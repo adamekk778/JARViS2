@@ -161,7 +161,7 @@ def visual_diff(before: Path, after: Path, out: Path, tolerance: int = 24) -> di
     ca.paste(a)
     cb.paste(b)
     diff = ImageChops.difference(ca, cb).convert("L").point(lambda v: 255 if v > tolerance else 0)
-    changed = sum(1 for v in diff.getdata() if v)
+    changed = diff.width * diff.height - diff.histogram()[0]        # pixels that differ (Pillow 14 drops getdata)
     grown = diff.filter(ImageFilter.MaxFilter(15))
     boxes = _boxes(grown)
     marked = cb.copy()

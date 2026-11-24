@@ -133,9 +133,7 @@ def confirm_text(rt: Any, name: str, args: dict) -> str:
             host = el[1].split("/")[2] if el[1].count("/") >= 2 else ""
             return f"Kliknout na „{el[0][:80]}“" + (f" na {host}" if host else "") + " – může to zaplatit nebo objednat"
         return ""
-    if name == "money_action":
-        return f"Nákup / platba: {str(args.get('text', ''))[:200]}"
-    return ""
+    return ""                                    # money_action: its own text ("Peníze: …") says it already
 
 
 # ------------------------------------------------------------------------------------------ one overview

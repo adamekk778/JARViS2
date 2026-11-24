@@ -111,9 +111,10 @@ class Guard:
         from .background import bg
 
         try:
-            bg(safety.guard_photo(self.rt, body))
+            asyncio.get_running_loop()                   # no loop (a test, shutdown): no photo – and no coroutine left unawaited
         except RuntimeError:
-            pass
+            return
+        bg(safety.guard_photo(self.rt, body))
 
     async def loop(self) -> None:
         while True:
