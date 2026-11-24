@@ -7,7 +7,7 @@ export interface Ambient { part?: "night" | "morning" | "day" | "evening"; weath
 
 export interface Phase {
   until: number;                         // seconds since the reaction started
-  look: Partial<Look> & { spin?: boolean };
+  look: Partial<Look> & { spin?: boolean; wink?: boolean };
   extra?: string;                        // HTML for the reaction's own prop
 }
 
@@ -49,6 +49,19 @@ export function reactionPhases(r: Reaction): Phase[] {
       if (d.kind === "42") return [{ until: 3, look: { eyes: "pensive" }, extra: "<em>42</em>" }];
       if (d.kind === "juggle") return [{ until: 3, look: { eyes: "happy", hop: true, accessories: ["stars"] } }];
       return [{ until: 0.35, look: { eyes: "closed" } }, { until: 2, look: { eyes: "happy", accessories: ["heart"] } }];
+    // 3.15 new feelings (návrh 19): surprised by a sudden notice, proud after a long job, a yawn at night, a wink
+    case "surprised":
+      return [{ until: 0.22, look: { eyes: "wide", squash: 0.84, glow: 0.85, blink: false } },
+        { until: 1.2, look: { eyes: "wide", gaze: [0, -0.25], blink: false }, extra: "<em class=\"acc-bang\">!</em>" }];
+    case "proud":
+      return [{ until: 0.35, look: { eyes: "happy", squash: 0.8 } },
+        { until: 2.4, look: { eyes: "happy", hop: true, glow: 0.95, accessories: ["stars"] } }];
+    case "yawn":
+      return [{ until: 0.5, look: { eyes: "sleepy", blink: false } },
+        { until: 1.9, look: { eyes: "closed", squash: 1.16, tilt: -3, blink: false }, extra: `<span class="acc-yawn">${icon("moon")}</span>` },
+        { until: 2.4, look: { eyes: "lidded" } }];
+    case "wink":
+      return [{ until: 0.45, look: { eyes: "happy", wink: true, blink: false } }, { until: 0.8, look: { eyes: "open" } }];
     case "custom": {
       const eyes = (d.eyes in EYES ? d.eyes : "wide") as keyof typeof EYES;
       const m = String(d.motion || "hop");

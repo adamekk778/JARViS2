@@ -60,9 +60,11 @@ export const at = (min: Tier): boolean => ORDER.indexOf(current) >= ORDER.indexO
 export const isPaused = (): boolean => paused || document.hidden;
 export function onTier(f: (t: Tier) => void): () => void { listeners.add(f); return () => listeners.delete(f); }
 
+let urlPref: Tier | null = null;           // ?fx=… (screenshots, tests) wins over the settings
 export function configureMotion(o: { quality?: string; animations?: string; battery?: boolean; heavy?: boolean; paused?: boolean }) {
   if (o.quality !== undefined) pref = (["ultra", "high", "eco", "off"].includes(o.quality) ? o.quality : "auto") as typeof pref;
   if (o.animations === "reduced") pref = "off";
+  if (urlPref) pref = urlPref;
   if (o.battery !== undefined) battery = o.battery;
   if (o.heavy !== undefined) heavy = o.heavy;
   if (o.paused !== undefined) paused = o.paused;
@@ -145,6 +147,6 @@ export function initMotion(): void {
   mq?.addEventListener?.("change", (e) => { reduced = e.matches; apply(); });
   document.addEventListener("visibilitychange", () => { apply(); kick(); });
   const q = new URLSearchParams(location.search).get("fx");       // ?fx=ultra / eco / off – for screenshots and tests
-  if (q) pref = (["ultra", "high", "eco", "off"].includes(q) ? q : "auto") as typeof pref;
+  if (q && ["ultra", "high", "eco", "off"].includes(q)) pref = urlPref = q as Tier;
   apply();
 }

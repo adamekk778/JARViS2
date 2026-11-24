@@ -2,6 +2,7 @@ import "./blob.css";
 import { OUTFIT_SVG, resolveOutfit } from "./outfits";
 import { BODY_COLORS, EYES, LOOKS, type Accessory, type CharacterColor, type Eye, type Look, type Mood } from "./looks";
 import { PERSONALITY_ENERGY, ambientExtra, reactionPhases, type Ambient, type Phase, type Reaction } from "./reactions";
+import { at, onTier, tier } from "../shared/motion";
 
 export type { Mood, CharacterColor } from "./looks";
 export { MOODS, MOOD_LABEL } from "./looks";
@@ -95,6 +96,41 @@ export class Blob {
   private lastLand = -1;
   /** Kick the soft body (positive = flatten, negative = stretch up). */
   wobble(strength = 1.5) { this.jelly.v += strength; }
+  // 3.15 Mega animace: liquid metal, the real voice wave, the jobs orbiting him, the beat, feelings of his own
+  private liquidG!: SVGGElement;
+  private liquidF!: { turb: SVGElement; disp: SVGElement; chrome: SVGElement; chromeG: SVGElement };
+  private liquidOn = false;
+  private levelHist: number[] = new Array(16).fill(0);
+  private orbitG!: SVGGElement;
+  private orbit: (number | null)[] = [];
+  private beatAt = -1e9;
+  private tempo = 120;
+  private localReaction = -1;
+  private nextLife = performance.now() + 45000;
+  private offTier: () => void = () => {};
+  /** A beat of the music: a small hop in time with it (the dance follows the measured tempo). */
+  beat(bpm?: number) {
+    this.beatAt = performance.now();
+    if (bpm && bpm >= 60 && bpm <= 200) this.tempo = bpm;
+    if (this.mood === "dancing") this.wobble(-0.9);
+    this.kick();
+  }
+  /** Jobs running (downloads, missions, steps): each a small moon orbiting him, filled with its progress (null = unknown). */
+  private orbitKey = "";
+  setOrbit(items: (number | null)[]) {
+    const list = items.slice(0, 4);
+    const key = list.map((p) => (p == null ? "n" : Math.round(clamp(p, 0, 1) * 100))).join(",");
+    if (key === this.orbitKey) return;                 // the notch calls this often: only real changes redraw
+    this.orbitKey = key;
+    this.orbit = list;
+    this.renderOrbit();
+    this.kick();
+  }
+  /** One of his own little reactions (not from the PC). */
+  private feel(name: string) {
+    if (tier() === "off") return;
+    this.play({ name, id: this.localReaction-- });
+  }
 
   constructor(opts: BlobOptions = {}) {
     const uid = `b${++uidSeq}`;
@@ -133,6 +169,16 @@ export class Blob {
       return { m, cut, side };
     });
     this.cuts = masks;
+    // 3.15 liquid metal: the outline ripples softly (turbulence → displacement) and a chrome reflection slides over him
+    const liquid = el("filter", { id: `${uid}-liq`, x: "-20%", y: "-20%", width: "140%", height: "140%" });
+    const turb = el("feTurbulence", { type: "fractalNoise", baseFrequency: "0.011", numOctaves: 2, seed: 3, result: "n" });
+    const disp = el("feDisplacementMap", { in: "SourceGraphic", in2: "n", scale: 0, xChannelSelector: "R", yChannelSelector: "G" });
+    liquid.append(turb, disp);
+    const chromeGrad = el("linearGradient", { id: `${uid}-ch`, x1: 0, y1: 0, x2: 1, y2: 1, gradientUnits: "objectBoundingBox" });
+    for (const [o, a] of [[0, 0], [0.32, 0], [0.4, 0.55], [0.47, 0.05], [0.58, 0.35], [0.66, 0], [1, 0]] as const) {
+      chromeGrad.append(el("stop", { offset: o, "stop-color": "#ffffff", "stop-opacity": a }));
+    }
+    defs.append(liquid, chromeGrad);
     defs.append(grad, rimGrad, floor, clip, blur, soft, ...masks.map((x) => x.m));
 
     // floor: blue light spilling out from under the body + dark contact shadow
@@ -155,8 +201,16 @@ export class Blob {
     }
     this.svgBody = el("g", { class: "blob-body-g" });
     this.outfitG = el("g", { class: "blob-outfit" });
-    this.svgBody.append(halo, bodyPath, spec, rimSoft, rim, this.eyesG, this.outfitG);
-    svg.append(defs, this.shadow, contact, this.svgBody);
+    const chrome = el("path", { d: BODY, fill: `url(#${uid}-ch)`, class: "blob-chrome", "clip-path": `url(#${uid}-c)` });
+    const chromeG = el("g", { class: "blob-chrome-g" });
+    chromeG.append(chrome);
+    this.liquidG = el("g", { class: "blob-liquid" });
+    this.liquidG.append(halo, bodyPath, chromeG, spec, rimSoft, rim);
+    this.liquidF = { turb, disp, chrome, chromeG };
+    this.svgBody.append(this.liquidG, this.eyesG, this.outfitG);
+    this.orbitG = el("g", { class: "blob-orbit" });
+    svg.append(defs, this.shadow, contact, this.svgBody, this.orbitG);
+    this.liquidUid = uid;
 
     this.acc = document.createElement("div");
     this.acc.className = "blob-acc";
@@ -172,8 +226,31 @@ export class Blob {
     this.io.observe(this.el);
     document.addEventListener("visibilitychange", this.onVis);
     this.raf = requestAnimationFrame(this.frame);
+    this.setLiquid(at("high"));
+    this.offTier = onTier(() => this.setLiquid(at("high")));
   }
   private io: IntersectionObserver;
+  private liquidUid = "";
+  /** 3.15 the liquid-metal look (high / ultra tier; the plain glossy blob otherwise). */
+  setLiquid(on: boolean) {
+    this.liquidOn = on;
+    if (on) this.liquidG.setAttribute("filter", `url(#${this.liquidUid}-liq)`);
+    else this.liquidG.removeAttribute("filter");
+    this.liquidF.chromeG.style.display = on ? "" : "none";
+    this.el.classList.toggle("liquid", on);
+    this.kick();
+  }
+  private renderOrbit() {
+    const g = this.orbitG;
+    while (g.firstChild) g.firstChild.remove();
+    this.orbit.forEach((p, i) => {
+      const moon = el("g", { class: `blob-moon ${p == null ? "indet" : ""}`, "data-i": i });
+      moon.append(el("circle", { r: 11, class: "moon-track" }),
+        el("circle", { r: 11, class: "moon-arc", pathLength: 100, "stroke-dasharray": p == null ? "30 70" : `${Math.round(clamp(p, 0, 1) * 100)} 100`,
+          transform: "rotate(-90)" }), el("circle", { r: 4.2, class: "moon-core" }));
+      g.append(moon);
+    });
+  }
   private seen = true;
   private timer = 0;
   private onVis = () => { if (!document.hidden) this.kick(); };
@@ -193,6 +270,13 @@ export class Blob {
     if (m !== this.mood || extra.reaction) this.kick();
     if (m !== this.mood) {
       if (this.renderedFrames) this.wobble(m === "success" || m === "joy" ? -1.6 : 0.9);
+      // 3.15 feelings of his own: he stretches after sleep, is proud after a long job, startled by a sudden notice
+      const was = this.mood, long = performance.now() - this.moodStart;
+      if (this.renderedFrames && !extra.reaction) {
+        if (was === "sleeping" && m !== "closed") setTimeout(() => this.feel("stretch"), 0);
+        else if (m === "success" && (was === "working" || was === "thinking") && long > 15000) setTimeout(() => this.feel("proud"), 0);
+        else if (m === "notify" && CALM.has(was)) setTimeout(() => this.feel("surprised"), 0);
+      }
       this.mood = m;
       this.look = LOOKS[m] ?? LOOKS.idle;
       this.moodStart = performance.now();
@@ -328,6 +412,7 @@ export class Blob {
   }
 
   destroy() {
+    this.offTier();
     cancelAnimationFrame(this.raf);
     this.raf = 0;
     clearTimeout(this.timer);
@@ -468,7 +553,7 @@ export class Blob {
     const e = { ...this.eye, h: this.eye.h * blink };
     const d = eyePath(e);
     this.eyeL.setAttribute("d", d);
-    this.eyeR.setAttribute("d", d);
+    this.eyeR.setAttribute("d", (look as { wink?: boolean }).wink ? eyePath({ ...e, h: e.h * 0.08 }) : d);
     const ex = this.gaze.x * 9, ey = this.gaze.y * 7;
     this.eyeL.setAttribute("transform", `translate(${100 - EYE_X + ex} ${EYE_Y + ey}) rotate(${this.eye.tilt})`);
     this.eyeR.setAttribute("transform", `translate(${100 + EYE_X + ex} ${EYE_Y + ey}) rotate(${-this.eye.tilt})`);
@@ -492,7 +577,7 @@ export class Blob {
       sy /= breath;
       if (look.audio) { sy *= 1 + this.level * 0.12; sx *= 1 - this.level * 0.04; }
       if (look.dance) {
-        const beat = t * 2; // 120 BPM
+        const beat = t * (this.tempo / 60); // 3.15 the measured tempo of the music (120 BPM until known)
         const ph = beat % 1;
         y -= Math.abs(Math.sin(beat * Math.PI)) * 9 * Math.max(0.5, en);
         sy *= ph < 0.15 ? 0.9 : 1;
@@ -506,6 +591,7 @@ export class Blob {
         if (ph >= 0.4 && cycle !== this.lastLand) { this.lastLand = cycle; this.wobble(1.8 * Math.max(0.5, en)); }
       }
       if (look.shake && since < 0.6) rot += Math.sin(since * 40) * 7 * (1 - since / 0.6);
+      if (now - this.beatAt < 180 && this.mood === "dancing") y -= (1 - (now - this.beatAt) / 180) * 5;
       if (look.wobble) { rot += Math.sin(t * 5) * 9; y += Math.sin(t * 10) * 1.5; }
       if (look.spin) spin = clamp(since / 1.2, 0, 1) * 360;
       // soft body: under-damped spring, so a landing squashes, overshoots and settles in a few wobbles
@@ -537,15 +623,47 @@ export class Blob {
     if (look.glowColor) this.el.style.setProperty("--blob-glow", look.glowColor);
     else this.el.style.setProperty("--blob-glow", this.glowColor || DEFAULT_GLOW);
 
-    // audio bars
+    // audio bars – 3.15: the real voice: the middle bar is now, the outer ones a moment ago (the level history)
+    this.levelHist.unshift(this.level);
+    this.levelHist.length = 16;
     if (this.bars.length) {
       const n = this.bars.length;
+      const live = this.mood === "listening" || this.mood === "speaking";
       this.bars.forEach((b, i) => {
+        const fromMid = Math.round(Math.abs(i - (n - 1) / 2));
+        const hist = this.levelHist[Math.min(15, fromMid * 2)] || 0;
         const wob = 0.35 + 0.65 * Math.abs(Math.sin(t * 7 + i * 1.3));
-        const amp = this.mood === "listening" || this.mood === "speaking" ? Math.max(0.15, this.level) : 0.1;
+        const amp = live ? Math.max(0.12, hist) : 0.1;
         const center = n > 9 ? 1 : 1 - Math.abs(i - (n - 1) / 2) / n;
-        b.style.transform = `scaleY(${(0.2 + wob * amp * 1.6 * (0.5 + center)).toFixed(3)})`;
+        const v = live && hist > 0.05 ? 0.2 + hist * 1.5 * (0.6 + center) : 0.2 + wob * amp * 1.6 * (0.5 + center);
+        b.style.transform = `scaleY(${v.toFixed(3)})`;
       });
+    }
+    // 3.15 liquid metal: the outline breathes with the voice and the bounce, the reflection follows the gaze
+    if (this.liquidOn && !reduce) {
+      const lf = this.liquidF;
+      lf.turb.setAttribute("baseFrequency", (0.011 + 0.003 * Math.sin(t * 0.7)).toFixed(4));
+      lf.disp.setAttribute("scale", (2.2 + this.level * 7 + Math.abs(this.jelly.x) * 40).toFixed(2));
+      lf.chromeG.setAttribute("transform", `translate(${(this.gaze.x * -14 + Math.sin(t * 0.4) * 6).toFixed(1)} ${(this.gaze.y * -8).toFixed(1)})`);
+    }
+    // 3.15 the jobs orbiting him on a tilted ring (behind him on the far side, in front on the near side)
+    if (this.orbit.length) {
+      const moons = this.orbitG.children;
+      for (let i = 0; i < moons.length; i++) {
+        const a = t * 0.9 + (i * Math.PI * 2) / moons.length;
+        const x = 100 + Math.cos(a) * 96, y2 = 118 + Math.sin(a) * 30 + this.body.bob;
+        const m = moons[i] as SVGGElement;
+        m.setAttribute("transform", `translate(${x.toFixed(1)} ${y2.toFixed(1)}) scale(${(0.8 + 0.2 * Math.sin(a)).toFixed(2)})`);
+        m.style.opacity = Math.sin(a) < -0.2 ? "0.35" : "1";
+      }
+    }
+    // 3.15 a life of his own while calm: a yawn late at night, now and then a wink at you
+    if (!reduce && !this.reaction && CALM.has(this.mood) && now > this.nextLife) {
+      const hr = new Date().getHours();
+      const night = hr >= 23 || hr < 5 || this.ambient?.part === "night";
+      this.nextLife = now + (60000 + Math.random() * 90000) / Math.max(0.4, this.energy);
+      if (night) this.feel("yawn");
+      else if (Math.random() < 0.35 * this.energy) this.feel("wink");
     }
   };
 }

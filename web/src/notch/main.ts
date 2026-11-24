@@ -24,6 +24,7 @@ import { notchOutline, regionSender, roundRect } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
+import { at, spring } from "../shared/motion";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -78,6 +79,10 @@ let capturing = false;
 
 // ---------- DOM ----------
 const blob = new Blob({ size: 64 });
+// 3.15 the time of day colours the notch a little: fresher in the morning, warm in the evening, dimmed at night
+const dayPart = () => { const hr = new Date().getHours(); return hr < 5 || hr >= 23 ? "night" : hr < 10 ? "morning" : hr < 18 ? "day" : "evening"; };
+document.documentElement.dataset.daypart = dayPart();
+window.setInterval(() => { document.documentElement.dataset.daypart = dayPart(); }, 5 * 60 * 1000);
 const blobBox = h("div", { class: "n-blob" }, blob.el);
 const actText = h("span", { class: "act" });
 const glow = h("div", { class: "n-glow", "aria-hidden": "true" });
@@ -211,7 +216,8 @@ const alertTitle = h("strong");
 const alertBody = h("span");
 const alertIco = h("span", { class: "n-alert-ico", "aria-hidden": "true" });   // 3.13 a tinted glass disc on top
 const alertActs = h("div", { class: "n-alert-acts" });                          // 3.13 "Za 10 min" · "Ok" · "+5 min"
-const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs);
+const alertMore = h("em", { class: "n-alert-more", hidden: true, title: "Další upozornění – švihni tohle stranou" });   // 3.15 the stack
+const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs, alertMore);
 /** 3.13 the notice's icon and colour from what it is about (Přestávka → coffee, Časovač → timer, a failure → warning…). */
 const ALERT_KINDS: [RegExp, string, string][] = [
   [/^tip\b/i, "lightbulb", "#ffd60a"],
@@ -408,7 +414,7 @@ function sendRegionPlan(): boolean {
   if (!cfg.native_region_anim) return false;
   if (!api?.region_anim || regionPad) return false;          // smooth edges (per-pixel alpha): frames as before
   const box = shape.getBoundingClientRect();
-  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
+  const k = S.grow ? 230 : 320, c = (S.grow && at("ultra") && !regionPad ? 1.64 : 2) * Math.sqrt(k);   // the same spring as springStep
   const plan = { geom: dyn() ? "round" : "notch", cx: box.left + box.width / 2, top: box.top + (dyn() ? GAP : 0), dpr: window.devicePixelRatio || 1,
     pad: regionPad, ear: 14, k, c, from: { w: S.w, h: S.h, r: Math.max(0, S.r), vw: S.vw, vh: S.vh, vr: S.vr }, to: { w: S.tw, h: S.th, r: S.tr } };
   Promise.resolve(api.region_anim(plan)).then((ok) => { if (ok === false) { hostAnim = false; } }, () => { hostAnim = false; });
@@ -444,7 +450,8 @@ function springStep(now: number) {
   const dt = Math.min(0.034, (now - S.last) / 1000 || 0.016);
   S.last = now;
   // 3.12 clean: critically damped – it glides into place without overshooting or bouncing
-  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
+  // 3.15 ultra: a touch of life – growing overshoots by a hair and settles (damping 0.82); otherwise critically damped
+  const k = S.grow ? 230 : 320, c = (S.grow && at("ultra") && !regionPad ? 1.64 : 2) * Math.sqrt(k);
   let moving = false;
   for (const [x, v, t] of [["w", "vw", "tw"], ["h", "vh", "th"], ["r", "vr", "tr"]] as const) {
     const a = k * (S[t] - S[x]) - c * S[v];
@@ -470,7 +477,8 @@ function animateShape(w: number, hh: number, r: number) {
   // the box is never smaller than what is on screen during the move
   const bw = Math.max(w, Math.ceil(S.w)), bh = Math.max(hh, Math.ceil(S.h));
   ensureWindow();
-  setBox(Math.max(bw, boxW), Math.max(bh, boxH));
+  const over = S.grow && at("ultra") && !regionPad ? 1.04 : 1;          // room for the overshoot while it moves
+  setBox(Math.max(Math.ceil(bw * over), boxW), Math.max(Math.ceil(bh * over), boxH));
   if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
   if (retarget) hostAnim = sendRegionPlan();
   if (regionPad && retarget) syncRegion(true, Math.max(w, S.w), Math.max(hh, S.h), Math.max(r, S.r));   // the mouse area covers the whole move, once
@@ -835,7 +843,57 @@ function onMood(m: any) {
 }
 
 let alertKindFb = "";          // 3.14 a proactive notice: used (a button) or let pass (it went away by itself)
+// 3.15 Mega animace (návrh 21): notices pile up instead of replacing each other – a "+2" shows how many wait, and a
+// swipe sideways (mouse or touch) throws the top one away with a spring and brings the next
+type Notice = { title: string; body: string; actions: { label: string; action: string; args?: any }[]; kind: string };
+const alertStack: Notice[] = [];
+let alertCur: Notice | null = null;
+function nextAlert() {
+  alertCur = null;
+  const n = alertStack.pop();
+  alertMore.hidden = !alertStack.length;
+  if (n) window.setTimeout(() => showAlert(n.title, n.body, n.actions, n.kind), 280);
+}
+function dismissAlert() {
+  if (alertKindFb) { client.send("notice_feedback", { kind: alertKindFb, action: "ignored" }); alertKindFb = ""; }
+  window.clearTimeout(alertTimer);
+  settle(true);
+  nextAlert();
+}
+let swipe: { x0: number; dx: number } | null = null;
+alertBox.addEventListener("pointerdown", (e) => {
+  if ((e.target as HTMLElement).closest("button") || mode !== "alert") return;
+  swipe = { x0: e.clientX, dx: 0 };
+  try { alertBox.setPointerCapture(e.pointerId); } catch { /* fine */ }
+});
+alertBox.addEventListener("pointermove", (e) => {
+  if (!swipe) return;
+  swipe.dx = e.clientX - swipe.x0;
+  if (Math.abs(swipe.dx) > 6) e.stopPropagation();
+  alertBox.style.transform = `translateX(${swipe.dx}px) rotate(${(swipe.dx / 40).toFixed(2)}deg)`;
+  alertBox.style.opacity = String(Math.max(0.2, 1 - Math.abs(swipe.dx) / 260));
+});
+const endSwipe = (e: PointerEvent) => {
+  if (!swipe) return;
+  const dx = swipe.dx;
+  swipe = null;
+  const reset = () => { alertBox.style.transform = ""; alertBox.style.opacity = ""; };
+  if (Math.abs(dx) > 70) {
+    e.stopPropagation();
+    play("close");
+    void spring(dx, Math.sign(dx) * 420, (v) => { alertBox.style.transform = `translateX(${v}px) rotate(${(v / 40).toFixed(2)}deg)`; alertBox.style.opacity = String(Math.max(0, 1 - Math.abs(v) / 420)); },
+      { stiffness: 260, damping: 26, precision: 2 }).then(() => { reset(); dismissAlert(); });
+  } else void spring(dx, 0, (v) => { alertBox.style.transform = v ? `translateX(${v}px)` : ""; alertBox.style.opacity = ""; }, { stiffness: 380, damping: 18, precision: 0.5 }).then(reset);
+};
+alertBox.addEventListener("pointerup", endSwipe);
+alertBox.addEventListener("pointercancel", endSwipe);
+
 function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = [], kind = "") {
+  if (alertCur && mode === "alert") { alertStack.push(alertCur); if (alertStack.length > 9) alertStack.shift(); }
+  alertCur = { title, body, actions, kind };
+  alertMore.hidden = !alertStack.length;
+  alertMore.textContent = `+${alertStack.length}`;
+  if (at("high")) { alertBox.classList.remove("liquid-in"); void alertBox.offsetWidth; alertBox.classList.add("liquid-in"); }
   if (alertKindFb) client.send("notice_feedback", { kind: alertKindFb, action: "ignored" });   // replaced unanswered
   alertKindFb = kind;
   alertTitle.textContent = title;
@@ -848,6 +906,7 @@ function showAlert(title: string, body: string, actions: { label: string; action
       alertKindFb = "";
       window.clearTimeout(alertTimer);
       settle(true);
+      nextAlert();
     } }, a.label)));
   const [ico, tint] = alertKind(title || "", body || "");
   alertIco.replaceChildren(icon(ico, "ph-fill"));
@@ -859,7 +918,7 @@ function showAlert(title: string, body: string, actions: { label: string; action
     // a longer notice stays a little longer, so it can be read (5–9 s)
     alertTimer = window.setTimeout(() => {
       if (alertKindFb) { client.send("notice_feedback", { kind: alertKindFb, action: "ignored" }); alertKindFb = ""; }
-      if (mode === "alert") settle();
+      if (mode === "alert") { settle(); nextAlert(); }
     }, actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
   }
 }
@@ -1781,6 +1840,15 @@ function paintTint(kind: string) {
 }
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
+  // 3.15 the jobs running now orbit Mochi as small moons, each filled with its progress
+  try {
+    const moons: (number | null)[] = [];
+    if (t && t.total) moons.push(t.done / t.total);
+    for (const l of lives.values()) moons.push(typeof l.progress === "number" ? l.progress : null);
+    if (Date.now() - dlsAt < 8000) for (let i = 0; i < Math.min(2, dls.length); i++) moons.push(null);
+    if (upd?.available && upd.state === "downloading") moons.push(upd.progress || 0);
+    blob.setOrbit(moons);
+  } catch { /* called before everything is set up: next time */ }
   shape.classList.toggle("has-task", !!(t && t.total));
   progressBar.style.width = t && t.total ? `${Math.round((t.done / t.total) * 100)}%` : "0";
   const now = new Date();
@@ -2092,7 +2160,22 @@ client.on("live_activity", (m: any) => {
 });
 // 3.14 the real spectrum of the music (when Nastavení → Notch → Spektrum is on): the 5 bars follow it
 let vizBands: number[] = [], vizAt = 0;
-client.on("viz_bands", (m: any) => { vizBands = Array.isArray(m.bands) ? m.bands : []; vizAt = Date.now(); });
+let bassAvg = 0, lastBeat = 0;
+const beatGaps: number[] = [];
+client.on("viz_bands", (m: any) => {
+  vizBands = Array.isArray(m.bands) ? m.bands : []; vizAt = Date.now();
+  // 3.15 the beat of the music from the bass (a jump over its own average): Mochi dances in time with it
+  const bass = (Number(vizBands[0]) || 0) + (Number(vizBands[1]) || 0);
+  const now = performance.now();
+  if (bass > bassAvg * 1.35 && bass > 0.3 && now - lastBeat > 280) {
+    if (lastBeat && now - lastBeat < 1500) { beatGaps.push(now - lastBeat); if (beatGaps.length > 12) beatGaps.shift(); }
+    lastBeat = now;
+    const sorted = [...beatGaps].sort((a, b) => a - b);
+    const bpm = sorted.length >= 4 ? Math.round(60000 / sorted[Math.floor(sorted.length / 2)]) : undefined;
+    blob.beat(bpm);
+  }
+  bassAvg = bassAvg * 0.9 + bass * 0.1;
+});
 const paintViz = () => {
   if (Date.now() - vizAt < 600 && vizBands.length >= 6) {
     document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar, i) => {
