@@ -518,6 +518,11 @@ class PhoneLinkCfg(BaseModel):
     twilio_sid: str = ""
     twilio_from: str = ""        # your Twilio number, +1…
     my_number: str = ""          # your mobile, +420…
+    # 3.14 AI sekretářka a volání za tebe (Twilio + a public HTTPS address for its webhooks)
+    secretary: bool = False      # forwarded calls you do not take → JARVIS answers, asks, sends you a summary
+    secretary_greeting: str = "" # own first sentence ("" = "Dobrý den, tady JARVIS. Jsem umělá inteligence…")
+    public_url: str = ""         # https://… where Twilio reaches this JARVIS (nonstop server / Cloudflare tunnel)
+    call_key: str = ""           # the secret part of the webhook address (made on first use)
 
 
 class LinkCfg(BaseModel):
@@ -776,7 +781,7 @@ SETTABLE_BY_VOICE: set[str] = {
 }
 
 # Never sent to remote clients.
-SECRET_KEYS = {("phone", "token"), ("link", "room")}
+SECRET_KEYS = {("phone", "token"), ("link", "room"), ("home", "satellite_key"), ("phone_link", "call_key")}
 
 
 def config_path():

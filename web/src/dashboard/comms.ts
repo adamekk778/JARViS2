@@ -143,7 +143,26 @@ export function buildComms(client: JarvisClient) {
           if (tok.value) msg.token = tok.value;
           client.send("twilio_set", msg);
           toast("Uloženo", "ok");
-        } }, icon("floppy-disk"), "Uložit"))));
+        } }, icon("floppy-disk"), "Uložit"))),
+      secretaryCard(pl, sw));
+  }
+
+  // 3.14 AI sekretářka a volání za tebe (návrhy 9, 50): Twilio + a public HTTPS address for its webhooks
+  function secretaryCard(pl: any, sw: (key: string, title: string, desc: string) => HTMLElement): HTMLElement {
+    const url = h("input", { class: "input", value: pl.public_url || "", placeholder: "https://jarvis.tvoje-domena.cz", "aria-label": "Veřejná adresa JARVISe" }) as HTMLInputElement;
+    const greet = h("textarea", { class: "input", rows: 2, placeholder: "Vlastní pozdrav (prázdné = „Dobrý den, tady JARVIS. Jsem umělá inteligence…“)", "aria-label": "Pozdrav sekretářky" }, pl.secretary_greeting || "") as HTMLTextAreaElement;
+    return h("details", { class: "card comms-add" }, h("summary", {}, icon("headset"), " AI sekretářka a volání za tebe (Twilio)"),
+      h("p", { class: "help" }, "Hovor, který nevezmeš, operátor přesměruje na tvoje číslo Twilio. JARVIS ho vezme, řekne, že je umělá inteligence, zjistí kdo volá a co chce, a pošle ti shrnutí (naléhavý hovor ti rovnou prozvoní). Umí i zavolat za tebe – „zavolej do restaurace a zarezervuj stůl“ – vždy se představí jako AI a před hovorem se zeptá."),
+      sw("secretary", "Zapnout AI sekretářku", "Přesměrované hovory na číslo Twilio vyřídí JARVIS. Řekni „nastav sekretářku“ a dostaneš adresu pro Twilio a kódy přesměrování."),
+      h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Veřejná adresa JARVISe"),
+        h("span", { class: "help" }, "HTTPS adresa, na které Twilio JARVISe zastihne (nonstop server s doménou nebo Cloudflare tunel na port 8765). Každý požadavek se ověřuje podpisem Twilia.")), url),
+      greet,
+      h("div", { class: "btn-row" }, h("button", { class: "btn primary", type: "button", onclick: () => {
+        const v = url.value.trim();
+        if (v && !/^https:\/\//.test(v)) { toast("Adresa musí začínat https://", "error"); return; }
+        client.send("settings_set", { patch: { phone_link: { public_url: v, secretary_greeting: greet.value.trim() } } });
+        toast("Uloženo", "ok");
+      } }, icon("floppy-disk"), "Uložit")));
   }
   client.on("phone_status", (m) => { phone = m; renderPhone(); });
 

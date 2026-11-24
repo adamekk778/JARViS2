@@ -106,6 +106,13 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\bjsem v poradku\b|\bto byl omyl\b", ("emergency_ok",)),
     (r"\b(bezpecnostn\w* (prehled|brifink)|unik\w* (hesel|dat|e-?mail\w*))", ("security_briefing",)),
     (r"\bdetsk\w* rezim\w*\b", ("kids_mode",)),
+    (r"\b(sekretar\w*|prepojen\w* hovor\w*|presmerovan\w* hovor\w*|hovory? (co|ktere) nevezmu)\b", ("secretary_setup", "calls_history")),
+    (r"\b(zavolej|volej|obvolej)\b.*\b(za mne|za me|mym jmenem|misto mne|misto me)\b|"
+     r"\b(zavolej|zatelefonuj)\w*\b.*\b(a )?(zarezervuj|rezerv\w*|objednej|objednat|zjisti|domluv|zeptej)", ("call_for_me",)),
+    (r"\b(kdo (mi )?volal|zmeskan\w* hovor\w*|vyridil\w* hovor\w*|historie hovor\w*)\b", ("calls_history", "phone_messages")),
+    (r"\b(shrn\w*|prehled|co (mi )?(psal|psali|napsal\w*))\b.*\b(chat\w*|zprav\w*|whatsapp\w*|messenger\w*|telegram\w*|sms)\b|"
+     r"\bco je nov\w* (na|v) (whatsapp\w*|messenger\w*|chat\w*)", ("chat_digest", "phone_messages")),
+    (r"\b(odpovez|odepis|napis)\w*\b.*\b(na whatsapp\w*|na messenger\w*|v chatu|zpravu|na zpravu)\b|\bodpovez\b \w+\w*,? ze\b", ("chat_reply",)),
     (r"\b(najdi|propoj|nastav|pridej)\w*\b.*\b(aut[oa]|vuz|vozidl\w*)\b", ("car_setup", "car_status")),
     (r"\b(predehr\w*|vyhrej\w*|vytop\w*|klimatizac\w*)\b.*\b(aut[oau]|vuz|vozidl\w*)\b|\b(aut[oa])\b.*\b(predehr\w*|topen\w*|klimatiz\w*)",
      ("car_climate", "car_ready")),

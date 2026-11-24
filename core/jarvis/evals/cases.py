@@ -65,6 +65,10 @@ PICK: list[tuple[str, tuple[str, ...]]] = [
     ("přidej let FR 1234 12. 12. v 14:35", ("trip_add",)), ("má můj let zpoždění?", ("flight_status",)),
     ("kde mám balík?", ("parcels_list",)), ("hlídej zásilku RR123456789CZ", ("parcel_add",)),
     ("ukaž mapu světa s radarem", ("world_map",)),
+    ("zapni AI sekretářku", ("secretary_setup",)), ("zavolej do restaurace a zarezervuj stůl na pátek na sedm pro čtyři", ("call_for_me",)),
+    ("zavolej za mě do autoservisu a zjisti, jestli je hotové auto", ("call_for_me",)), ("kdo mi volal, když jsem byl na schůzce?", ("calls_history",)),
+    ("shrň mi zprávy z WhatsAppu", ("chat_digest",)), ("co mi psali na messengeru?", ("chat_digest",)),
+    ("odpověz Petrovi, že dorazím v šest", ("chat_reply",)),
     ("zapni dětský režim", ("kids_mode",)), ("hlídají se kamery a zvonek?", ("cameras_status",)), ("řekni mi něco o interpretovi té písničky, co hraje", ("now_playing_info",)),
     ("dej ať lehké otázky dělá ollama a těžké claude", ("brain_split",)), ("jakou AI teď používáš za model", ("brain_switch",)),
     # --- e-mail, messages, calendar

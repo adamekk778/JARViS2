@@ -247,6 +247,9 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     from . import houseroutes
 
     houseroutes.register(app, rt)            # 3.14 house speakers + Home Assistant voice satellites
+    from . import callroutes
+
+    callroutes.register(app, rt)             # 3.14 AI sekretářka + calls for you (Twilio webhooks, signed)
 
     @app.get("/karaoke")
     async def karaoke():                    # 3.14 the song's words big, over the whole screen (PC window or a TV browser)
