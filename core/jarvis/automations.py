@@ -247,6 +247,9 @@ class Automations:
 
         bg(
             run_protocol(self.rt, proto, "Automatizace", THIRD_PARTY.format(name=a.name), say=getattr(a, "say", "voice")))
+        if getattr(a, "once", False):              # 3.14 "připomeň mi, až…" – fired once, then gone (61)
+            items = [x.model_dump() for x in self.rt.cfg.automations.items if x.id != a.id]
+            self.rt.update_config({"automations": {"items": items}})
         return True
 
     async def _boot(self) -> None:
@@ -265,6 +268,12 @@ class Automations:
                 record_event(self.rt, ev)                 # OMEGA 599: kept for a dry-run replay
             except Exception as e:
                 log.debug("event log: %s", e)
+            try:
+                from .proactiveplus import on_event
+
+                await on_event(self.rt, ev)               # 3.14 leaving home → a briefing to the phone (60)
+            except Exception as e:  # noqa: BLE001
+                log.debug("proactive event: %s", e)
             try:
                 for a in self.active():
                     vars = match_event(a, ev)

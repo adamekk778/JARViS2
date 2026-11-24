@@ -231,6 +231,13 @@ class TaskManager:
                      (status, time.time(), redact(summary)[:500], self._id))
         self._current_action = ""
         self._publish(force=True)
+        if status == "done":                     # 3.14 návrh 62: the same steps a third time → offer a skill
+            try:
+                from .proactiveplus import after_mission
+
+                after_mission(self.rt, self._id)
+            except Exception:  # noqa: BLE001 – an offer must never break finishing a mission
+                pass
         self._id = None
         self._running.set()
 

@@ -834,13 +834,18 @@ function onMood(m: any) {
   updateBlob();
 }
 
-function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = []) {
+let alertKindFb = "";          // 3.14 a proactive notice: used (a button) or let pass (it went away by itself)
+function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = [], kind = "") {
+  if (alertKindFb) client.send("notice_feedback", { kind: alertKindFb, action: "ignored" });   // replaced unanswered
+  alertKindFb = kind;
   alertTitle.textContent = title;
   alertBody.textContent = body;
   alertActs.replaceChildren(...actions.map((a, i) => h("button", { type: "button", class: `n-alert-btn ${i === 0 && a.action !== "dismiss" ? "main" : ""}`,
     onclick: (e: Event) => {
       e.stopPropagation();
       if (a.action !== "dismiss") client.send("notice_action", { action: a.action, args: a.args || {} });
+      if (alertKindFb && a.action !== "mute_kind") client.send("notice_feedback", { kind: alertKindFb, action: "used" });
+      alertKindFb = "";
       window.clearTimeout(alertTimer);
       settle(true);
     } }, a.label)));
@@ -852,7 +857,10 @@ function showAlert(title: string, body: string, actions: { label: string; action
     if (mode === "alert") apply("alert");                     // the card fits this text
     window.clearTimeout(alertTimer);
     // a longer notice stays a little longer, so it can be read (5–9 s)
-    alertTimer = window.setTimeout(() => mode === "alert" && settle(), actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
+    alertTimer = window.setTimeout(() => {
+      if (alertKindFb) { client.send("notice_feedback", { kind: alertKindFb, action: "ignored" }); alertKindFb = ""; }
+      if (mode === "alert") settle();
+    }, actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
   }
 }
 
@@ -2018,7 +2026,7 @@ client.on("confirm_request", (m) => {
 });
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
-client.on("notify", (m) => { showAlert(m.title, m.body, Array.isArray(m.actions) ? m.actions : []); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
+client.on("notify", (m) => { showAlert(m.title, m.body, Array.isArray(m.actions) ? m.actions : [], String(m.kind || "")); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
 client.on("sounds", (m) => setCustomSounds(m.files));
 client.on("update_status", (m) => { upd = m; paintUpdate(); updateActivity(); });
 client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });

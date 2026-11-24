@@ -59,3 +59,28 @@ async def encrypt_data(ctx) -> ToolResult:
 
     r = await asyncio.to_thread(memplus.encrypt_data_folder, paths.data_dir())
     return ToolResult(r["ok"], r["message"])
+
+
+@tool("remind_on", "Připomene něco v určitou CHVÍLI místo času: when = pc (až si sednu k PC), home (až přijdu domů), "
+      "away_home (až odejdu z domu), call (až mi zavolá `who`), message (až mi napíše `who`), app (až otevřu aplikaci `who`), "
+      "mail (až přijde e-mail od `who`). Připomínka se po jednom použití sama smaže.", category="připomínky", perm="apps")
+async def remind_on(ctx, when: str, text: str, who: str = "") -> ToolResult:
+    from .. import proactiveplus
+
+    try:
+        r = proactiveplus.remind_on(ctx, when, text, who)
+    except ValueError as e:
+        return ToolResult(False, str(e))
+    return ToolResult(True, f"Připomenu: „{text}“ ({proactiveplus.WHEN_LABEL.get(when, when)}{' – ' + who if who else ''}).", data=r)
+
+
+@tool("proactive_stats", "Která upozornění, co JARVIS posílá sám od sebe (večerní přehled, brífink při odchodu, návrhy "
+      "dovedností…), používáš a která ignoruješ – a které jsou kvůli tomu ztlumené.", category="připomínky")
+async def proactive_stats(ctx) -> ToolResult:
+    from .. import proactiveplus
+
+    st = proactiveplus.stats(ctx)
+    if not st:
+        return ToolResult(True, "Zatím jsem sám od sebe nic neposílal.")
+    return ToolResult(True, "; ".join(f"{s['label']}: {s['shown']}× ukázáno, {s['used']}× použito{' (ztlumeno)' if s['muted'] else ''}"
+                                      for s in st), data=st)

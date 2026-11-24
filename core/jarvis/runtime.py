@@ -271,9 +271,10 @@ class Runtime:
         from . import quality
 
         self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)
-        from . import memplus
+        from . import memplus, proactiveplus
 
         self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
+        self._sys_tasks.append(self._later(proactiveplus.evening_loop(self)))   # 3.14 the evening review (58)
         from . import selfcheck
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
@@ -491,6 +492,19 @@ class Runtime:
     async def notice_action(self, act: str, args: dict) -> tuple[bool, str] | None:
         """3.13 a button of a notice – from the notch or from the phone's notification (the same buttons)."""
         args = args if isinstance(args, dict) else {}
+        if act == "ask":                          # 3.14 a proactive notice's button: say it to JARVIS
+            text = str(args.get("text") or "")[:300]
+            if text:
+                self.submit(self.agent.handle(text, [], "chat"))
+            return None
+        if act == "mute_kind":                    # 3.14 "Nezajímá mě" under a proactive notice
+            kind = str(args.get("kind") or "")[:30]
+            if kind:
+                self.update_config({"stark": {"muted_kinds": sorted(set(self.cfg.stark.muted_kinds) | {kind})}})
+                from .proactiveplus import KIND_LABEL
+
+                return True, f"Dobře, {KIND_LABEL.get(kind, kind)} už posílat nebudu (zapneš v Nastavení → Obecné)."
+            return None
         if act == "break_snooze":
             self.activity.snooze_break(int(args.get("minutes") or 10))
             return True, "Připomenu za chvíli."
@@ -533,7 +547,7 @@ class Runtime:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
     def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False,
-               actions: list[dict] | None = None) -> int:
+               actions: list[dict] | None = None, kind: str = "") -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
@@ -541,7 +555,9 @@ class Runtime:
         # 3.13 buttons in the notice ("Za 10 min", "+5 min") – each a notice_action the notch sends back
         acts = [{"label": str(a["label"])[:24], "action": str(a["action"]), "args": a.get("args") or {}} for a in (actions or [])][:3]
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
-        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts)
+        if kind:                                         # 3.14 a proactive notice: "Nezajímá mě" + used / ignored feedback
+            acts = (acts + [{"label": "Nezajímá mě", "action": "mute_kind", "args": {"kind": kind}}])[:3]
+        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind)
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):

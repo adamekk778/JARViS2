@@ -407,6 +407,12 @@ class Stark(BaseModel):
     attention_aware: bool = True        # OMEGA 753: non-urgent notices wait during a meeting / full-screen app, then come as a summary
     layout_memory: bool = True          # OMEGA 31: keep the window layout, offer it back after a restart
     crash_help: bool = True             # OMEGA 32: a program crashed 3× today → offer to find out why
+    evening_review: bool = True         # 3.14 a short evening review: done, left, tomorrow, unprepared meetings (58, 59)
+    evening_time: str = "21:00"
+    leave_briefing: bool = True         # 3.14 leaving home with the phone: weather, next event, departures (60)
+    home_stop: str = ""                 # 3.14 your stop for the departures (Prague, Golemio key)
+    proactive_daily_max: int = 8        # 3.14 at most this many proactive notices a day (66); 0 = no limit
+    muted_kinds: list[str] = Field(default_factory=list)   # 3.14 kinds you kept ignoring – they stay quiet (64)
     hud_layout: Literal["full", "minimal", "focus", "presentation"] = "full"   # OMEGA 756: rozložení HUD
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
@@ -527,6 +533,7 @@ class Automation(BaseModel):
     trigger: AutoTrigger = Field(default_factory=AutoTrigger)
     steps: list[ProtocolStep] = Field(default_factory=list)
     say: Literal["voice", "notch", "phone"] = "voice"   # 3.13 how it speaks up: aloud · only in the notch (quiet) · on the phone
+    once: bool = False   # 3.14 "připomeň mi, až…": removes itself after it fires once (61)
 
 
 def _default_automations() -> list[Automation]:

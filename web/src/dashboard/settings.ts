@@ -290,6 +290,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ta.onchange = () => set("general.custom_prompt", ta.value);
           return field("Vlastní systémový prompt", ta, "", true);
         })() : null),
+      card("Sám od sebe", "Co JARVIS přináší bez ptaní. Druhy upozornění, které opakovaně necháš bez povšimnutí, sám ztlumí.",
+        sw("stark.evening_review", "Večerní přehled", "Co se dnes povedlo, co zbývá, co je zítra a na které schůzky nemáš podklady."),
+        text("stark.evening_time", "Kdy večerní přehled", "Např. 21:00"),
+        sw("stark.leave_briefing", "Brífink při odchodu z domu", "Když s telefonem odejdeš z místa Domov: počasí, další událost a odjezdy."),
+        text("stark.home_stop", "Tvoje zastávka MHD", "Pro odjezdy v brífinku (Praha, klíč Golemio)"),
+        range("stark.proactive_daily_max", "Nejvýš upozornění od JARVISe za den", 0, 30, 1, (v) => (v ? String(v) : "bez limitu")),
+        ...((S.stark.muted_kinds || []) as string[]).map((k) => h("div", { class: "row" }, h("span", {}, `Ztlumeno: ${k}`),
+          h("button", { class: "btn ghost sm", type: "button", onclick: () => set("stark.muted_kinds", (S.stark.muted_kinds as string[]).filter((x) => x !== k)) }, "Zapnout znovu")))),
       card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi"),
         sw("general.auto_update", "Aktualizovat sám v noci", "Nová verze se nainstaluje mezi 2. a 6. hodinou, když PC nikdo nepoužívá – ráno už běží nová. Jinak čeká na tlačítko Aktualizovat."),
         sw("general.night_care", "Noční údržba PC", "Jednou za noc smaže dočasné soubory starší než týden, zkontroluje disky a aktualizace Windows. Osobní soubory ani koš nemaže."),

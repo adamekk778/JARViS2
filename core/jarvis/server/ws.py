@@ -64,6 +64,7 @@ CLIENT_TYPES = [
     "voiceid_get", "voiceid_sample", "voiceid_save", "voiceid_delete", "voiceid_reset",
     "embedder_get", "embedder_download",
     "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
+    "notice_feedback", "proactive_get",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -90,6 +91,7 @@ SERVER_TYPES = [
     "voiceid",
     "embedder",
     "memory_cleanup", "memory_import", "data_encrypt_result",
+    "proactive",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
