@@ -11,7 +11,8 @@ from typing import Literal
 from .. import bizx, workx
 from .base import ToolResult, tool
 
-WORK_CHANGES = {"autoreply", "send_later", "sign"}
+WORK_CHANGES = {"autoreply", "send_later", "sign"}     # change a mail account, send later, sign → ask first
+BIZ_CHANGES = {"gdpr_delete", "team"}                  # delete someone's data, open a public link → ask first
 
 
 @tool("work_kit", "Práce: hluboké soustředění (focus minutes, focus_end, focus_stats), pomodoro (pomodoro / pomodoro_stop), jen jedna věc "
@@ -19,7 +20,8 @@ WORK_CHANGES = {"autoreply", "send_later", "sign"}
       "rychlá poznámka (note text, notes), odeslat ráno (send_later to+subject+text), výkaz (timesheet), 1:1 (one_on_one name), třídění "
       "pošty (triage), překlad Wordu (translate path+lang), prezentace z poznámek (slides text), psaní (write), hromadné koncepty (merge "
       "path=CSV, text=šablona), volný čas pro schůzku (slots date+minutes), nástěnka (board, board_add text, board_move id+col), časté "
-      "dotazy (faq_add text+answer, faq text), konec dne (eod, eod_move), podpis PDF (sign path+attachment=podpis).", category="práce")
+      "dotazy (faq_add text+answer, faq text), konec dne (eod, eod_move), podpis PDF (sign path+attachment=podpis).", category="práce",
+      danger_if=lambda a: a.get("action") in WORK_CHANGES)
 async def work_kit(ctx, action: Literal["focus", "focus_end", "focus_stats", "pomodoro", "pomodoro_stop", "only", "only_end", "autoreply",
                                         "handwriting", "note", "notes", "send_later", "timesheet", "one_on_one", "triage", "translate", "slides",
                                         "write", "merge", "slots", "board", "board_add", "board_move", "faq_add", "faq", "eod", "eod_move", "sign"],
@@ -197,7 +199,8 @@ async def work_kit(ctx, action: Literal["focus", "focus_end", "focus_stats", "po
       "(claim name+text, claims, claim_done id), GDPR (gdpr name, gdpr_delete name), dodavatelé (suppliers text=JSON), cestovní příkaz "
       "(travel_order text=JSON), marže (margin amount=cena, cost, fee, shipping), balíček pro účetní (accountant date), tým (team), "
       "smlouva ze šablony (contract_template kind=nda/dilo, text=IČO klienta + JSON), nábor (cv path, text=požadavky), nástup "
-      "(onboard name, onboard_tick name+text), kurzový rozdíl (fx amount, currency, date=vystavení, date2=úhrada).", category="firma")
+      "(onboard name, onboard_tick name+text), kurzový rozdíl (fx amount, currency, date=vystavení, date2=úhrada).", category="firma",
+      danger_if=lambda a: a.get("action") in BIZ_CHANGES)
 async def biz_kit(ctx, action: Literal["company", "contract", "in", "out", "hours", "cashflow", "shifts", "claim", "claims", "claim_done", "gdpr",
                                        "gdpr_delete", "suppliers", "travel_order", "margin", "accountant", "team", "contract_template", "cv",
                                        "onboard", "onboard_tick", "fx"],

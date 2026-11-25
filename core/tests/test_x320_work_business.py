@@ -310,3 +310,12 @@ async def test_travel_order_tool(rt):
     assert r.ok
     page = Path(r.data["path"]).read_text(encoding="utf-8")
     assert "Brno" in page and "CZK" in page and "2 240 Kč" in page
+
+
+def test_outward_actions_ask_first():
+    reg = tools.REGISTRY
+    for name, action in (("work_kit", "autoreply"), ("work_kit", "send_later"), ("work_kit", "sign"), ("biz_kit", "gdpr_delete"),
+                         ("biz_kit", "team"), ("phone_kit", "share_location")):
+        assert reg[name].danger_if({"action": action}), (name, action)
+    for name, action in (("work_kit", "note"), ("biz_kit", "margin"), ("phone_kit", "status")):
+        assert not reg[name].danger_if({"action": action}), (name, action)

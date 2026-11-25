@@ -13,7 +13,7 @@ from .base import ToolResult, tool
       "(dnd on/off), stav na zamčené obrazovce (lock_status), roaming v zemi (roaming text=kód země), dovolená (vacation on/off, "
       "until), sdílení polohy na čas (share_location minutes, name; share_stop), poznámky k hovorům (call_notes text=kdo), "
       "sken stránek do PDF (scan attachments=id fotek oddělené čárkou, text=doc/bw/color), telefon jako webkamera (webcam), "
-      "přehled (status).", category="telefon")
+      "přehled (status).", category="telefon", danger_if=lambda a: a.get("action") == "share_location")
 async def phone_kit(ctx, action: Literal["nfc_bind", "nfc_list", "nfc_remove", "pc", "drive", "dnd", "lock_status", "roaming",
                                          "vacation", "share_location", "share_stop", "call_notes", "scan", "webcam", "status"],
                     name: str = "", text: str = "", on: bool = True, minutes: int = 60, until: str = "", attachments: str = "",
