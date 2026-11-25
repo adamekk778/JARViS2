@@ -166,6 +166,14 @@ class Scheduler:
                 from .voicex import run_future
 
                 await run_future(self.rt, p)
+            elif job["kind"] == "send_mail":        # 3.20 (267) a mail written in the evening goes out in the morning
+                import asyncio as _aio
+
+                from .tools.mail_tools import _mail
+
+                acc = _mail(self.rt).account(p.get("account", ""))
+                await _aio.to_thread(acc.send, p["to"], p["subject"], p["body"])
+                self.rt.notify("E-mail odeslán", f"{p['subject']} → {p['to']}", speak=False)
             elif job["kind"] == "watch_alarm":      # 3.20 (154) tichý budík na hodinkách
                 from .phonex import run_watch_alarm
 

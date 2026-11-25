@@ -77,6 +77,63 @@ def register(app: FastAPI, rt: Any, require_auth: Callable[[Request], None]) -> 
         today = _dt.date.today()
         return HTMLResponse(familyx.week_html(rt, today - _dt.timedelta(days=today.weekday())), headers={"Cache-Control": "no-store"})
 
+    @app.get("/write")
+    async def write_page(request: Request):
+        """3.20 (273) distraction-free writing (kept in this browser only)."""
+        require_auth(request)
+        from .. import workx
+
+        return HTMLResponse(workx.write_page())
+
+    @app.get("/board")
+    async def board_page(request: Request):
+        require_auth(request)
+        from .. import workx
+
+        return HTMLResponse(workx.board_html(rt), headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/board/move")
+    async def board_move(request: Request):
+        require_auth(request)
+        from .. import workx
+
+        try:
+            b = await request.json()
+            return {"ok": workx.board_move(rt, int(b.get("id") or 0), str(b.get("col") or ""))}
+        except Exception:  # noqa: BLE001
+            return {"ok": False}
+
+    @app.get("/team/{token}")
+    async def team_page(token: str):
+        """3.20 (294) a small team's tasks – the link is the key (unguessable)."""
+        from .. import bizx
+
+        tasks = bizx.team_tasks(rt, token[:40])
+        if tasks is None:
+            return HTMLResponse("<!doctype html><meta charset=utf-8><p>Tým nenalezen.</p>", 404)
+        return HTMLResponse(bizx.team_page(token[:40], tasks), headers=NOSTORE)
+
+    @app.post("/team/{token}")
+    async def team_add(token: str, request: Request):
+        from urllib.parse import parse_qs
+
+        from .. import bizx
+
+        form = parse_qs((await request.body()).decode("utf-8", "replace")[:2000])
+        bizx.team_add(rt, token[:40], (form.get("who") or [""])[0], (form.get("task") or [""])[0])
+        tasks = bizx.team_tasks(rt, token[:40])
+        if tasks is None:
+            return HTMLResponse("<!doctype html><meta charset=utf-8><p>Tým nenalezen.</p>", 404)
+        return HTMLResponse(bizx.team_page(token[:40], tasks), headers=NOSTORE)
+
+    @app.post("/team/{token}/done/{tid}")
+    async def team_done(token: str, tid: int):
+        from .. import bizx
+
+        bizx.team_done(rt, token[:40], tid)
+        tasks = bizx.team_tasks(rt, token[:40]) or []
+        return HTMLResponse(bizx.team_page(token[:40], tasks), headers=NOSTORE)
+
     @app.get("/house-map")
     async def house_map(request: Request):
         require_auth(request)

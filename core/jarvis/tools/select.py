@@ -106,6 +106,7 @@ INTENTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (r"\bjsem v poradku\b|\bto byl omyl\b", ("emergency_ok",)),
     (r"\b(bezpecnostn\w* (prehled|brifink)|unik\w* (hesel|dat|e-?mail\w*))", ("security_briefing",)),
     (r"\bdetsk\w* rezim\w*\b", ("kids_mode",)),
+    (r"\b(prehled\w*|stav\w*|souhrn\w*)\b.*\bfirm\w*|\bjak (je na tom|se dari|si vede)\w* firm\w*", ("company_overview", "business_dashboard")),
     (r"\bholo\w*\b.*\bploch\w*\b|\bholo ?ploch\w*\b", ("hud_control",)),
     (r"\b(ziv\w* tapet\w*|tapet\w* (s |se )?(reaktor\w*|globus\w*))\b|\b(efekt\w*) na ploch\w*\b|\b(kvalit\w*) (efekt\w*|animac\w*)\b|"
      r"\b(motiv\w*|schema|barv\w*) (na )?(mark|friday|stealth|stark)\b", ("update_setting",)),

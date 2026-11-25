@@ -926,6 +926,21 @@ class FamilyXCfg(BaseModel):
     kid_rules: dict = Field(default_factory=dict)        # {"school_from": "15:00", "bed": "20:30", "daily_min": 90}
 
 
+class WorkXCfg(BaseModel):
+    """3.20 Práce+ (261–280)."""
+    projects: dict[str, list[str]] = Field(default_factory=dict)   # project → words in the window / app ("Alfa": ["alfa", "Figma"])
+
+
+class BizXCfg(BaseModel):
+    """3.20 Firma+ (281–300)."""
+    feeds: list[str] = Field(default_factory=list)        # RSS of tenders, law changes, grant calls
+    feed_words: list[str] = Field(default_factory=list)   # your field ("tisk", "3D", "elektro")
+    region: str = ""
+    my_name: str = ""                    # your company for contract templates
+    my_ico: str = ""
+    my_address: str = ""
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -989,6 +1004,8 @@ class Config(BaseModel):
     healthx: HealthXCfg = Field(default_factory=HealthXCfg)
     learnx: LearnXCfg = Field(default_factory=LearnXCfg)
     familyx: FamilyXCfg = Field(default_factory=FamilyXCfg)
+    workx: WorkXCfg = Field(default_factory=WorkXCfg)
+    bizx: BizXCfg = Field(default_factory=BizXCfg)
 
     @model_validator(mode="before")
     @classmethod

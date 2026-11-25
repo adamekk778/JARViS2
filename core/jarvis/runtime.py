@@ -716,6 +716,16 @@ class Runtime:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
         if getattr(self.cfg.privacy, "guest_mode", False) and target == "all" and not urgent:
             body, speak = "Podrobnosti jsou skryté v režimu host.", False     # 3.14 návrh 109
+        topic = getattr(self, "focus_topic", "")
+        if topic and target == "all" and not urgent:     # 3.20 (277) "teď jen faktury": the rest waits
+            from .workx import focus_topic_holds
+
+            if focus_topic_holds(topic, title, body):
+                held = getattr(self, "focus_held", None)
+                if held is None:
+                    held = self.focus_held = []
+                held.append(f"{title}: {body}"[:120])
+                return 0
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
