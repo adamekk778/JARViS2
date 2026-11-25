@@ -45,6 +45,25 @@ def part_of_day(hour: int) -> str:
     return "day"
 
 
+def room_db(rt: Any) -> float | None:
+    """The room's noise from the microphone's noise floor (int16 RMS), roughly in dB."""
+    import math
+
+    floor = getattr(getattr(rt, "voice", None), "_floor", None)
+    if not floor:
+        return None
+    return 20 * math.log10(max(float(floor), 1.0) / 32768) + 94
+
+
+def noise_boost(rt: Any, v: Any) -> int:
+    """3.20 (475): percent more (or less) volume for the room – louder in noise, softer in a quiet room."""
+    if not getattr(v, "auto_volume", False):
+        return 0
+    from ..accessx import volume_for_noise
+
+    return volume_for_noise(room_db(rt), 50) - 50
+
+
 def prosody(rt: Any, v: Any, hour: int | None = None) -> tuple[str, str, str]:
     """Edge (rate, pitch, volume) strings with the time of day and a whisper applied to your own settings."""
     rate, pitch, vol = _pct(v.tts_rate), _hz(v.tts_pitch), _pct(v.tts_volume)
@@ -59,6 +78,7 @@ def prosody(rt: Any, v: Any, hour: int | None = None) -> tuple[str, str, str]:
     vid = getattr(rt, "voiceid", None)
     if vid is not None and vid.whispering():
         rate, vol = rate - 5, vol - 45
+    vol += noise_boost(rt, v)
     rate, vol = max(-50, min(100, rate)), max(-90, min(50, vol))
     return f"{rate:+d}%", f"{pitch:+d}Hz", f"{vol:+d}%"
 
@@ -68,6 +88,7 @@ def gain(rt: Any) -> float:
     g = 1.0
     if getattr(rt.cfg.voice, "adaptive_tone", True) and part_of_day(time.localtime().tm_hour) == "night":
         g *= 0.75
+    g *= 1 + noise_boost(rt, rt.cfg.voice) / 100
     vid = getattr(rt, "voiceid", None)
     if vid is not None and vid.whispering():
         g *= 0.45

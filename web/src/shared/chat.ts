@@ -124,7 +124,39 @@ export class ChatView {
     this.sendBtn = h("button", { class: "send-btn", type: "button", "aria-label": "Odeslat", onclick: () => this.submit() }, icon("arrow-up", "ph-bold"));
     this.pendingBox = h("div", { class: "pending" });
     this.statusLine = h("div", { class: "chat-status" });
+    // 3.20 (476) the next words from your own writing – click one or press Tab for the first
+    const predictBox = h("div", { class: "chat-predict", "aria-live": "polite", "aria-label": "Návrhy dalších slov" });
+    let predictTimer = 0;
+    let predicted: string[] = [];
+    const accept = (w: string) => {
+      const v = this.input.value;
+      const m = v.match(/([\p{L}\d]+)$/u);
+      this.input.value = (m && !/\s$/.test(v) ? v.slice(0, v.length - m[1].length) : v) + w + " ";
+      predictBox.replaceChildren();
+      predicted = [];
+      this.input.focus();
+      this.autosize();
+    };
+    this.input.addEventListener("input", () => {
+      clearTimeout(predictTimer);
+      const v = this.input.value;
+      if (v.length < 2 || v.length > 300) { predictBox.replaceChildren(); predicted = []; return; }
+      predictTimer = window.setTimeout(async () => {
+        try {
+          const r = await fetch(this.client.url(`/api/predict?q=${encodeURIComponent(v)}`));
+          predicted = r.ok ? ((await r.json()).words || []) : [];
+        } catch { predicted = []; }
+        predictBox.replaceChildren(...predicted.map((w) => h("button", { class: "predict", type: "button", onclick: () => accept(w) }, w)));
+      }, 350);
+    });
+    this.input.addEventListener("keydown", (e) => {
+      if (e.key === "Tab" && !e.shiftKey && predicted.length) {
+        e.preventDefault();
+        accept(predicted[0]);
+      }
+    });
     const composer = h("div", { class: "composer" },
+      predictBox,
       this.pendingBox,
       h("div", { class: "composer-row" }, attachBtn, this.input, ...(opts.extraTools || []), this.micBtn, this.sendBtn), fileInput);
 

@@ -327,3 +327,30 @@ html[data-motif="stealth"] .hud:not([data-mood="error"]):not([data-mood="limit"]
 ::view-transition-new(root) { animation: vtIn .32s cubic-bezier(.2, .9, .2, 1) both; }
 @keyframes vtOut { to { opacity: 0; transform: translateY(-6px); filter: blur(2px); } }
 @keyframes vtIn { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+
+/* 3.20 (468) dyslexia: a plain sans-serif, wider letters, words and lines, text aligned left, no italics */
+:root[data-dyslexia="1"] body, :root[data-dyslexia="1"] button, :root[data-dyslexia="1"] input, :root[data-dyslexia="1"] textarea {
+  font-family: Verdana, Tahoma, "Segoe UI", sans-serif !important; letter-spacing: 0.04em; word-spacing: 0.14em; }
+:root[data-dyslexia="1"] p, :root[data-dyslexia="1"] li, :root[data-dyslexia="1"] .msg, :root[data-dyslexia="1"] .bubble {
+  line-height: 1.75 !important; text-align: left !important; max-width: 70ch; }
+:root[data-dyslexia="1"] em, :root[data-dyslexia="1"] i { font-style: normal; text-decoration: underline; }
+
+/* 3.20 (469) colour-blind schemes: good / bad / warning that differ in more than red and green */
+:root[data-cb="protan"], :root[data-cb="deutan"] { --ok: #3b82f6; --danger: #f97316; --warn: #facc15; }
+:root[data-cb="tritan"] { --ok: #14b8a6; --danger: #e11d48; --warn: #f472b6; }
+
+/* 3.20 (472) simple mode: bigger, fewer things, the chat and the microphone first */
+:root[data-simple="1"] { --radius: 16px; }
+:root[data-simple="1"] body { font-size: 19px; }
+:root[data-simple="1"] button, :root[data-simple="1"] .btn { min-height: 52px; font-size: 18px; padding: 12px 18px; }
+:root[data-simple="1"] .advanced, :root[data-simple="1"] [data-advanced], :root[data-simple="1"] .help-tip,
+:root[data-simple="1"] .stat-grid, :root[data-simple="1"] .kbd-hints { display: none !important; }
+
+/* 3.20 (464) keyboard only: the focus is always clearly visible, and a link straight to the content */
+:root[data-kb="1"] :focus { outline: 3px solid var(--accent) !important; outline-offset: 2px !important; }
+.skip-link { position: fixed; left: 8px; top: -60px; z-index: 99999; padding: 10px 14px; border-radius: 10px; background: var(--accent);
+  color: var(--accent-ink, #000); font-weight: 600; transition: top 0.15s; }
+.skip-link:focus { top: 8px; }
+
+/* 3.20 (474) one-switch control: the element the scan is on */
+.scan-on { outline: 4px solid #ffd400 !important; outline-offset: 3px !important; box-shadow: 0 0 0 8px rgba(255, 212, 0, 0.25) !important; }

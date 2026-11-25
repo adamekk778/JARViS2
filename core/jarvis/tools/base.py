@@ -266,4 +266,6 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
         return res
     except Exception as e:  # tools never crash the agent
         log.exception("tool %s failed", name)
-        return ToolResult(False, f"{type(e).__name__}: {e}")
+        from ..accessx import error_text                   # 3.20 (480) what happened and what to do, in plain words
+
+        return ToolResult(False, f"{error_text(e)} (technicky: {type(e).__name__}: {str(e)[:200]})")

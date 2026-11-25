@@ -749,6 +749,12 @@ class Runtime:
         # 3.13 buttons in the notice ("Za 10 min", "+5 min") – each a notice_action the notch sends back
         acts = [{"label": str(a["label"])[:24], "action": str(a["action"]), "args": a.get("args") or {}} for a in (actions or [])][:3]
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
+        lights = getattr(getattr(self.cfg, "accessx", None), "flash_lights", None)
+        if lights and target in ("all", "pc") and getattr(self, "loop", None) is not None:   # 3.20 (467) a light instead of a sound
+            from . import accessx
+
+            if accessx.should_flash(title, body, urgent):
+                self.call_soon(lambda: self.loop.create_task(accessx.flash(self, list(lights))))
         if kind:                                         # 3.14 a proactive notice: "Nezajímá mě" + used / ignored feedback
             acts = (acts + [{"label": "Nezajímá mě", "action": "mute_kind", "args": {"kind": kind}}])[:3]
         self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind,

@@ -123,6 +123,7 @@ export const SERVER_TYPES = [
   "driving", "hr_now", "vacation",
   "savings_goal",
   "breathe", "water_glass", "rsvp", "notice_hint",
+  "lang_changed",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

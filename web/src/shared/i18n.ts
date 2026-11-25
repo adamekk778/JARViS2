@@ -216,14 +216,21 @@ export function currentLang(): string {
   return lang;
 }
 
+// 3.20 (461, 462, 478, 487): Slovak, German, Polish and Ukrainian come as a dictionary from the PC (the built-in starter
+// words plus what translators added on /translate); a text not in it stays Czech.
+export const UI_LANGS = ["cs", "en", "sk", "de", "pl", "uk"] as const;
+let dict: Record<string, string> = EN;
+
 export function tr(s: string): string {
-  if (lang !== "en" || !s) return s;
+  if (lang === "cs" || !s) return s;
   const key = s.trim();
-  const v = EN[key];
+  const v = dict[key];
   if (v) return s.replace(key, v);
-  for (const [rx, fn] of PATTERNS) {
-    const m = key.match(rx);
-    if (m) return s.replace(key, fn(m));
+  if (lang === "en") {
+    for (const [rx, fn] of PATTERNS) {
+      const m = key.match(rx);
+      if (m) return s.replace(key, fn(m));
+    }
   }
   return s;
 }
@@ -261,16 +268,42 @@ function remembered(): string {
   try { return localStorage.getItem(KEY) || ""; } catch { return ""; }
 }
 
-export function setLang(next: string | undefined, fromServer = true): void {
-  const want = next === "en" ? "en" : "cs";
+const PACK_KEY = "jarvis_ui_pack";
+
+function cachedPack(want: string): Record<string, string> | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PACK_KEY) || "null");
+    return raw && raw.lang === want ? raw.dict : null;
+  } catch { return null; }
+}
+
+export function setLang(next: string | undefined, fromServer = true, urlFor?: (path: string) => string): void {
+  const want = (UI_LANGS as readonly string[]).includes(next || "") ? (next as string) : "cs";
   if (fromServer) {
     try { localStorage.setItem(KEY, want); } catch { /* private window */ }
   }
   if (want === lang) return;
-  if (lang === "en" && want === "cs") {           // the Czech originals were replaced → draw everything again
+  if (lang !== "cs") {                            // the Czech originals were replaced → draw everything again
     location.reload();
     return;
   }
+  if (want !== "en") {
+    const have = cachedPack(want);
+    if (have) dict = have;
+    else if (urlFor) {
+      fetch(urlFor(`/api/i18n/${want}`)).then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (!d) return;
+        try { localStorage.setItem(PACK_KEY, JSON.stringify({ lang: want, dict: d })); } catch { /* full */ }
+        dict = d;
+        start(want);
+      }).catch(() => { /* stays Czech */ });
+      return;
+    } else return;
+  } else dict = EN;
+  start(want);
+}
+
+function start(want: string): void {
   lang = want;
   document.documentElement.lang = lang;
   translateNode(document.body);
@@ -290,9 +323,10 @@ export const DICTIONARY_SIZE = Object.keys(EN).length;
 // before the PC has said which language (the phone's pairing screen, the first paint): the last one it said, else the
 // device's own language
 if (typeof document !== "undefined") {
-  const first = remembered() || (/^en\b/i.test(navigator.language || "") ? "en" : "cs");
-  if (first === "en") {
-    const go = () => setLang("en", false);
+  const nav = (navigator.language || "").slice(0, 2).toLowerCase();
+  const first = remembered() || ((UI_LANGS as readonly string[]).includes(nav) ? nav : "cs");
+  if (first !== "cs") {
+    const go = () => setLang(first, false);
     if (document.body) go(); else document.addEventListener("DOMContentLoaded", go, { once: true });
   }
 }

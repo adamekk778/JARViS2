@@ -1,4 +1,4 @@
-"""3.20 Propojení+ (421–440) a Spolehlivost+ (441–460) tools."""
+"""3.20 Propojení+ (421–440), Spolehlivost+ (441–460) a Přístupnost+ (461–480) tools."""
 from __future__ import annotations
 
 import datetime as dt
@@ -433,3 +433,68 @@ async def care_kit(ctx, action: Literal["score", "settings_history", "settings_r
     last = today.replace(day=1) - dt.timedelta(days=1)
     r = reliax.month_report(ctx, today.year, today.month) if text.strip() in ("teď", "tento", "now") else reliax.month_report(ctx, last.year, last.month)
     return ToolResult(True, reliax.month_text(r), data=r)
+
+
+@tool("access_kit", "Přístupnost: lupa (zoom text=přibliž/oddal/vypni), jednoduchá čeština z úředního dopisu (simplify text nebo path), "
+      "přečíst etiketu / cenovku z fotky (label attachment), jazyk rozhraní a hlasu (language text=sk/de/pl/uk/en/cs), stránka pro "
+      "překladatele (translate), vyzkoušet bliknutí světel (flash).", category="přístupnost")
+async def access_kit(ctx, action: Literal["zoom", "simplify", "label", "language", "translate", "flash"], text: str = "", path: str = "",
+                     attachment: str = "") -> ToolResult:
+    from .. import accessx
+
+    if action == "zoom":
+        how = accessx.zoom_action(text)
+        ctx.platform.hotkey(accessx.ZOOM_KEYS[how])
+        return ToolResult(True, {"in": "Přibližuji (Lupa Windows). „Oddal“ zmenší, „vypni lupu“ ji zavře.", "out": "Oddaluji.",
+                                 "off": "Lupa vypnutá."}[how])
+    if action == "simplify":
+        src = text
+        if path:
+            from .files import resolve
+
+            p = resolve(path)
+            if p.suffix.lower() == ".pdf":
+                from ..moneyx import pdf_text
+
+                src = pdf_text(p)
+            elif p.is_file():
+                src = p.read_text(encoding="utf-8", errors="ignore")
+        if not src.strip():
+            return ToolResult(False, "Pošli text nebo soubor s dopisem.")
+        out = await _ai(ctx, accessx.PLAIN_PROMPT.format(text=src[:12000]))
+        return ToolResult(True, out.strip())
+    if action == "label":
+        if not attachment:
+            return ToolResult(False, "Vyfoť etiketu nebo cenovku telefonem a pošli mi fotku.")
+        parts = await ctx.store.llm_parts(attachment, vision=True)
+        out = await ctx.router.complete([{"role": "system", "content": accessx.LABEL_PROMPT},
+                                         {"role": "user", "content": [{"type": "text", "text": "Přečti etiketu."}, *parts]}], need_vision=True)
+        try:
+            d = accessx.parse_label(out, ctx.cfg.accessx.allergies)
+        except ValueError as e:
+            return ToolResult(False, str(e))
+        return ToolResult(True, accessx.label_text(d), data=d)
+    if action == "language":
+        lang = linkx.fold(text)[:2]
+        lang = {"sl": "sk", "ne": "de", "po": "pl", "uk": "uk", "uj": "uk", "an": "en", "ce": "cs", "ge": "de", "en": "en", "cs": "cs",
+                "sk": "sk", "de": "de", "pl": "pl"}.get(lang, lang)
+        if lang not in accessx.UI_LANGS:
+            return ToolResult(False, "Umím: " + ", ".join(f"{k} ({v})" for k, v in accessx.NAMES.items()))
+        patch: dict = {"general": {"language": lang}}
+        if lang in accessx.VOICES and lang != "cs":
+            patch["voice"] = {"tts_voice": accessx.VOICES[lang]}
+        ctx.update_config(patch)
+        n = len(accessx.ui_pack(lang))
+        return ToolResult(True, f"Jazyk: {accessx.NAMES[lang]}." + (f" Rozhraní má zatím {n} přeložených textů, zbytek zůstane česky – doplnit je "
+                                                                     "jde na stránce /translate." if lang not in ("cs", "en") else ""))
+    if action == "translate":
+        try:
+            ctx.platform.open_url(f"http://localhost:{ctx.cfg.phone.port}/translate")
+        except Exception:  # noqa: BLE001
+            pass
+        return ToolResult(True, f"Stránka pro překladatele: http://localhost:{ctx.cfg.phone.port}/translate")
+    lights = ctx.cfg.accessx.flash_lights
+    if not lights:
+        return ToolResult(False, "Nastav světla, která mají blikat (Nastavení → Přístupnost → Světlo místo zvuku).")
+    n = await accessx.flash(ctx, lights)
+    return ToolResult(True, f"Bliklo {n} světel.")

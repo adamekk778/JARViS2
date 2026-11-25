@@ -79,7 +79,9 @@ class Agent(FastPaths):
                 from .lang import preferred
 
                 lang = preferred(text, lang, getattr(rt.cfg.general, "language", "cs"))   # 3.14 návrh 114
-                rule = {"en": "Odpověz anglicky.", "sk": "Odpovídaj po slovensky.", "de": "Antworte auf Deutsch."}.get(lang)
+                from .accessx import ANSWER_RULE
+
+                rule = ANSWER_RULE.get(lang)                  # 3.20 (461, 462, 478) also Polish and Ukrainian
                 if rule:
                     extra_system = (extra_system + "\n" if extra_system else "") + rule
                 self._lang = lang if lang in ("cs", "en") else "cs"

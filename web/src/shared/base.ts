@@ -1,3 +1,4 @@
+import { setAutoDark, setKeyboardOnly, setSwitchScan } from "./access";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "@phosphor-icons/web/regular";
@@ -53,6 +54,13 @@ export function applyAppearance(s: any) {
   applyMotion();
   configureMotion({ quality: a.fx_quality || "auto", animations: a.animations });
   root.dataset.contrast = a.high_contrast ? "high" : "normal";                  // 3.14 návrh 68
+  root.dataset.dyslexia = a.dyslexia ? "1" : "0";                               // 3.20 (468)
+  root.dataset.cb = a.colorblind || "";                                         // 3.20 (469)
+  root.dataset.simple = a.simple ? "1" : "0";                                   // 3.20 (472)
+  root.dataset.kb = a.keyboard_only ? "1" : "0";                                // 3.20 (464)
+  setKeyboardOnly(!!a.keyboard_only);
+  setSwitchScan(Number(a.switch_scan) || 0);                                    // 3.20 (474)
+  if (!root.classList.contains("notch-doc")) setAutoDark(!!a.auto_dark, (t) => { root.dataset.theme = t; });   // 3.20 (479)
   const scale = Math.max(1, Math.min(1.6, Number(a.font_scale) || 1));
   if (!root.classList.contains("notch-doc")) (root.style as any).zoom = scale === 1 ? "" : String(scale);
   densityPref = a.density || "auto";

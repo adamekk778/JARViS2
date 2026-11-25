@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/i18n-export.mjs && tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "node --experimental-strip-types --no-warnings --test tests/unit/*.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test tests/unit/*.test.ts",
+    "i18n": "node scripts/i18n-export.mjs"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.2.1",

@@ -284,6 +284,9 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     from . import funroutes
 
     funroutes.register(app, rt, require_auth)      # 3.20 Zábava+: the quiz on the guests' phones (347, 355)
+    from . import accessroutes
+
+    accessroutes.register(app, rt, require_auth)   # 3.20 Přístupnost+: interface languages, translators' page, word prediction
 
     @app.get("/wallpaper")
     async def wallpaper():                  # 3.15 the live wallpaper behind the desktop icons

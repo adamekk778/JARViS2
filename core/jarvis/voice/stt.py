@@ -309,6 +309,10 @@ class Transcriber:
         if not self.local_ready() and not getattr(self.cfg, "stt_download_ok", False):
             raise RuntimeError(self.NO_MODEL)          # never a silent 0.5 GB download in the middle of a sentence
         model = self._local()
+        if getattr(self.cfg, "dialects", False):          # 3.20 (477) Moravian and Slovak words
+            from ..accessx import DIALECT_PROMPT
+
+            prompt = f"{prompt} {DIALECT_PROMPT}".strip()
         segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
                                           condition_on_previous_text=False, initial_prompt=prompt or None)
         text = " ".join(s.text.strip() for s in segments).strip()

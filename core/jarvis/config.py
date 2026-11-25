@@ -113,6 +113,8 @@ class Brain(BaseModel):
 
 class Voice(BaseModel):
     enabled: bool = True
+    dialects: bool = False         # 3.20 (477) Moravian and Slovak words help the speech recognition
+    auto_volume: bool = False      # 3.20 (475) louder in a noisy room, softer in a quiet one
     emotion: bool = False          # OMEGA P3.12: read the tone of voice (tired / tense / lively) – off unless you turn it on
     wake_word: bool = True
     wake_word_model: str = "hey_jarvis"
@@ -254,6 +256,12 @@ class Appearance(BaseModel):
     share_ring: bool = True             # 3.20 (118) a ring around the cursor while you share your screen
     avatar3d: bool = False              # 3.20 (117) a 3D character in the corner instead of the notch
     high_contrast: bool = False         # 3.14 stronger borders and text for weaker eyes (68)
+    dyslexia: bool = False              # 3.20 (468) a clearer font, wider letter and line spacing, no italics
+    colorblind: Literal["", "protan", "deutan", "tritan"] = ""   # 3.20 (469) status colours you can tell apart
+    simple: bool = False                # 3.20 (472) few big buttons and plain words (seniors)
+    keyboard_only: bool = False         # 3.20 (464) a strong focus ring everywhere and a "skip to the content" link
+    auto_dark: bool = False             # 3.20 (479) light by day, dark in the evening (by the sun)
+    switch_scan: int = 0                # 3.20 (474) one-switch control: ms per step (0 = off; Space = choose)
     font_scale: float = 1.0             # 3.14 the whole interface larger (1.0–1.6) (68)
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
     gesture_fingers: bool = True        # 3.17 with the hand model downloaded: fingers (pinch, turn, fist) instead of hand motion
@@ -998,6 +1006,12 @@ class ReliaXCfg(BaseModel):
     model_evals: bool = False            # a new AI model → 10 test questions and a comparison (costs a few cents)
 
 
+class AccessXCfg(BaseModel):
+    """3.20 Přístupnost+ (461–480)."""
+    flash_lights: list[str] = Field(default_factory=list)   # light.* that blink at the doorbell, an alarm or an urgent notice
+    allergies: list[str] = Field(default_factory=list)      # label reading warns about these
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -1068,6 +1082,7 @@ class Config(BaseModel):
     funx: FunXCfg = Field(default_factory=FunXCfg)
     linkx: LinkXCfg = Field(default_factory=LinkXCfg)
     reliax: ReliaXCfg = Field(default_factory=ReliaXCfg)
+    accessx: AccessXCfg = Field(default_factory=AccessXCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -1138,6 +1153,7 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
     "voice.speak_mode", "voice.stt_language", "voice.followup", "voice.game_quiet", "voice.barge_in", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
+    "appearance.dyslexia", "appearance.colorblind", "appearance.simple", "appearance.keyboard_only", "appearance.auto_dark", "voice.auto_volume",
     "appearance.theme", "appearance.accent", "appearance.animations", "appearance.fx_quality", "appearance.motif", "appearance.desktop_fx", "appearance.live_wallpaper",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",
