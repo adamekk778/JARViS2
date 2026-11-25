@@ -77,9 +77,10 @@ async def test_car_ready_schedules_the_heating(rt, ha):
 
     rt.scheduler = Scheduler(rt)
     rt.update_config({"home": {"car": {"climate": "climate.enyaq_air_conditioning", "battery": "sensor.enyaq_battery_level"}}})
-    job = car.ready_at(rt, "7:30", now=dt.datetime(2026, 11, 24, 22, 0))
+    evening = (dt.datetime.now() + dt.timedelta(days=1)).replace(hour=22, minute=0, second=0, microsecond=0)
+    job = car.ready_at(rt, "7:30", now=evening)
     start = dt.datetime.fromtimestamp(job["next_run"])
-    assert (start.day, start.hour, start.minute) == (25, 7, 15) and job["kind"] == "car_ready"
+    assert start == (evening + dt.timedelta(days=1)).replace(hour=7, minute=15) and job["kind"] == "car_ready"
     with pytest.raises(ValueError):
         car.ready_at(rt, "25:00")
     said = []
