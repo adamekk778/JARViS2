@@ -316,8 +316,11 @@ class DesktopHost:
             return
         if self._make_alpha(self.notch, self.notch_hwnd()):
             self.alpha = True
-            self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
             log.info("notch: smooth edges (per-pixel alpha) on")
+            try:   # the page also asks on its own (pywebviewready → api.smooth), so a page still loading is fine
+                self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
+            except Exception as e:  # noqa: BLE001
+                log.debug("notch alpha → page: %s", e)
 
     def _make_alpha(self, win, hwnd: int) -> bool:
         """Per-pixel transparency for a pywebview window (WebView2 background transparent + DWM blur-behind)."""

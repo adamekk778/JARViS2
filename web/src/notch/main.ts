@@ -360,7 +360,14 @@ function dynRadius(m: Mode, hh: number): number {
   return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
 }
 
+// 3.20 (109) the small island a little bigger on a big / ultrawide monitor, smaller on a small one – as real sizes,
+// so the window region (cut from the same numbers) never clips it
 function sizeFor(m: Mode): [number, number] {
+  const [w, hh] = baseSize(m);
+  const k = Number(shape.dataset.sizek || 1);
+  return (m === "closed" || m === "hover") && k > 0 && k !== 1 ? [Math.round(w * k), Math.round(hh * k)] : [w, hh];
+}
+function baseSize(m: Mode): [number, number] {
   if (dyn()) return dynSize(m);
   switch (m) {
     case "panel": return [cfg.expanded_width || 1000, Math.max(340, cfg.expanded_height || 390)];

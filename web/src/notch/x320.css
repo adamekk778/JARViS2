@@ -1,9 +1,15 @@
 /* 3.20 Vzhled+ in the notch */
-.notch { transform-origin: top center; scale: var(--x-notch-scale, 1); }
+/* The extras below sit inside .n-inner, which is clipped to the visible (rounded) shape; --cw / --ch / --r are not
+   inherited (fast animation), so the ones that draw the outline take them over explicitly. Nothing here may draw on
+   the .notch box itself: it has square corners and is a few px taller than the island – that showed as a frame. */
+.n-inner > :is(.x-ring, .x-timeline) { --cw: inherit; --ch: inherit; --r: inherit; opacity: 1; }   /* .n-inner > * starts hidden */
+.x-ring { position: absolute; top: 0; left: calc((100% - var(--cw)) / 2); width: var(--cw); height: var(--ch);
+  border-radius: 0 0 var(--r) var(--r); pointer-events: none; z-index: 3; transition: box-shadow .4s ease; }
+html[data-nstyle="dynamic"] .x-ring { border-radius: var(--r); }
 
-/* (102) only what is urgent goes red */
-.notch.urgent { box-shadow: 0 0 0 1.5px #ff3b30, 0 0 24px rgba(255, 59, 48, .55); animation: x-urgent 1.1s ease-in-out 3; }
-@keyframes x-urgent { 50% { box-shadow: 0 0 0 1.5px #ff3b30, 0 0 36px rgba(255, 59, 48, .85); } }
+/* (102) only what is urgent goes red: a red edge and a red glow inside the shape */
+.notch.urgent .x-ring { box-shadow: inset 0 0 0 1.5px #ff3b30, inset 0 0 18px rgba(255, 59, 48, .55); animation: x-urgent 1.1s ease-in-out 3; }
+@keyframes x-urgent { 50% { box-shadow: inset 0 0 0 1.5px #ff3b30, inset 0 0 28px rgba(255, 59, 48, .85); } }
 
 /* (105) zen: invisible until JARVIS listens / speaks / something urgent comes */
 .notch.zen[data-mode="closed"]:not(.urgent):not(:hover) { opacity: 0; pointer-events: none; transition: opacity .5s ease; }
@@ -28,7 +34,10 @@
 .x-count span { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 9px/1 system-ui, sans-serif; }
 
 /* (111) the day's timeline */
-.x-timeline { position: absolute; left: 14px; right: 14px; bottom: 1px; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.x-timeline { position: absolute; top: calc(var(--ch) - 3px); left: calc((100% - var(--cw)) / 2 + var(--r)); width: calc(var(--cw) - 2 * var(--r));
+  height: 2px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+/* only on the small island: under an answer card or the panel it would be a stray line */
+.notch:not([data-mode="closed"]):not([data-mode="hover"]):not([data-mode="bar"]) .x-timeline { display: none; }
 .x-timeline .now { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent, #4fc3ff) 55%, transparent); }
 .x-timeline .ev { position: absolute; top: 0; bottom: 0; background: #ffcc00; opacity: .85; min-width: 2px; }
 
@@ -56,7 +65,7 @@
   white-space: nowrap; }
 
 /* (108) a tiny weather scene behind the notch's content */
-.x-weather { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; opacity: .5; }
+.x-weather { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .5; }
 .notch[data-weather="rain"] .x-weather, .notch[data-weather="storm"] .x-weather {
   background: repeating-linear-gradient(105deg, transparent 0 9px, rgba(150, 190, 255, .35) 9px 10px); background-size: 40px 40px;
   animation: x-rain .6s linear infinite; }
@@ -78,12 +87,12 @@
 :root[data-season="spring"] { --x-season-tint: #9be7a8; }
 :root[data-season="summer"] { --x-season-tint: #ffd36e; }
 :root[data-season="autumn"] { --x-season-tint: #ff9f5a; }
-:root[data-season] .notch { outline: 1px solid color-mix(in srgb, var(--x-season-tint, transparent) 22%, transparent); outline-offset: -1px; }
+:root[data-season] .notch:not(.urgent) .x-ring { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--x-season-tint, transparent) 22%, transparent); }
 
 /* (107) your own theme */
 :root.x-custom-theme .notch { font-family: var(--x-theme-font, inherit); border-radius: var(--x-radius, revert-layer); }
 :root.x-custom-theme { --x-anim: calc(1s / var(--x-anim-speed, 1)); }
 
 @media (prefers-reduced-motion: reduce) {
-  .x-weather, .notch.urgent, .x-photo, .x-hr, .x-breathe, .x-glass i { animation: none !important; transition: none !important; }
+  .x-weather, .notch.urgent .x-ring, .x-photo, .x-hr, .x-breathe, .x-glass i { animation: none !important; transition: none !important; }
 }

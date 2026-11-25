@@ -176,10 +176,16 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
   });
 
   // ---------- (108) weather scene, (111) the day's timeline, (115) a second clock
+  // inside the shape's clipped layer: they follow the rounded outline instead of the box (the box is a few px taller
+  // than the island and has square corners – a line there showed under the card)
   const scene = h("div", { class: "x-weather", "aria-hidden": "true" });
-  const line = h("div", { class: "x-timeline", "aria-hidden": "true" }, h("i", { class: "now" }));
+  const line = h("div", { class: "x-timeline", "aria-hidden": "true", hidden: true }, h("i", { class: "now" }));
+  const edge = h("div", { class: "x-ring", "aria-hidden": "true" });   // (102) urgent red, (106) the season's tint
   const clock2 = h("div", { class: "x-clock2", hidden: true });
-  shape.append(scene, line, clock2);
+  const inner = shape.querySelector(".n-inner") || shape;
+  inner.prepend(scene);
+  inner.append(line, edge);
+  shape.append(clock2);
   client.on("weather_now", (m) => {
     if (settings?.notch?.weather_scene === false) { delete shape.dataset.weather; return; }
     if (m.scene) shape.dataset.weather = String(m.scene); else delete shape.dataset.weather;
@@ -227,8 +233,9 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
     shape.classList.toggle("zen", !!n.zen);
     document.documentElement.dataset.season = a.seasonal === false ? "" : season();
     applyCustomTheme(a);
-    const sc = n.auto_size === false ? 1 : notchScale(window.screen.width, window.screen.height);
-    document.documentElement.style.setProperty("--x-notch-scale", String(sc));
+    // (109) the closed island's size, not a CSS scale: the window region is cut from these numbers too, so a scaled
+    // drawing would be clipped at the edges (the main script reads it when it sizes the closed / hover shape)
+    shape.dataset.sizek = String(n.auto_size === false ? 1 : notchScale(window.screen.width, window.screen.height));
     paintLine();
     paintClock();
   };
