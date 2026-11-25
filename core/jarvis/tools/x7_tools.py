@@ -135,7 +135,7 @@ async def health_kit(ctx, action: Literal["med_set", "med_taken", "meds", "breat
     return ToolResult(True, healthx.light_advice(lum) or "Světla máš dost.", data={"luminance": round(lum)})
 
 
-@tool("learn_kit", "Učení: ladička a metronom (tuner), noty a akordy (chord text=Am7, scale text=D, kind=dur/moll), slovíčko (word "
+@tool("learn_kit", "Učení: ladička a metronom (tuner), noty a akordy (chord text=Am7, scale text=D, kind=dur/moll), slovo dne (word "
       "text=en/de), konverzace v jazyce s opravami (practice text=en / stop), vysvětli jako dítěti / úkol / sloh / dějepis (mode "
       "kind=eli5/homework/essay/history), shrnutí videa (video url), psaní všemi deseti (typing), šachy (chess text=PGN), autoškola "
       "(driving n, answer), citace ISO 690 (cite text=JSON), hlavní města (capital n / answer+text=země), knihy (book_add text, "

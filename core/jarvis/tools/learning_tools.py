@@ -51,7 +51,7 @@ async def flashcards_from(ctx, source: Annotated[str, "cesta k souboru nebo text
     return ToolResult(added > 0, f"Vytvořil jsem {added} kartiček do balíčku „{deck}“. Opakovat: „zkoušej mě“.", data=cards)
 
 
-@tool("flashcards_review", "Opakování kartiček: bez card_id vrátí další kartičku k zopakování (jen otázku); s card_id a "
+@tool("flashcards_review", "Opakování kartiček (zkoušení ze slovíček a pojmů): bez card_id vrátí další kartičku k zopakování (jen otázku); s card_id a "
       "grade (0 nevěděl – 3 těžké – 4 dobře – 5 snadné) ji ohodnotí a naplánuje další opakování.", category="učení")
 async def flashcards_review(ctx, deck: str = "", card_id: str = "", grade: int = -1) -> ToolResult:
     lr = ctx.learning
