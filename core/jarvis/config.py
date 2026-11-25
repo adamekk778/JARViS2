@@ -975,6 +975,19 @@ class FunXCfg(BaseModel):
     sound_pack: str = ""                 # krystal / marimba / scifi / klid ("" = the built-in sounds)
 
 
+class LinkXCfg(BaseModel):
+    """3.20 Propojení+ (421–440)."""
+    region: str = ""                     # kraj / okres / ORP for ČHMÚ warnings ("" = the whole country)
+    chmu_url: str = ""                   # "" = ČHMÚ's current CAP document
+    rss: list[str] = Field(default_factory=list)
+    youtube: list[str] = Field(default_factory=list)   # channel IDs (UC…) or playlist links
+    nextcloud_calendar: str = "personal"
+    watch_isds: bool = False             # check the data box for new messages twice a day (list only)
+    obsidian_vault: str = ""             # the vault folder
+    calendar_sync: bool = False          # JARVIS calendar ↔ Google Calendar every 15 minutes
+    list_sync: dict[str, str] = Field(default_factory=dict)   # JARVIS list → "todoist:Projekt" or "mstodo:Seznam"
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -1043,6 +1056,7 @@ class Config(BaseModel):
     devx: DevXCfg = Field(default_factory=DevXCfg)
     shopx: ShopXCfg = Field(default_factory=ShopXCfg)
     funx: FunXCfg = Field(default_factory=FunXCfg)
+    linkx: LinkXCfg = Field(default_factory=LinkXCfg)
 
     @model_validator(mode="before")
     @classmethod
