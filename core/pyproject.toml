@@ -32,7 +32,7 @@ dependencies = [
   "recurring-ical-events>=3",
   "av>=12",
   "cryptography>=42",
-  "anthropic>=1",          # 3.14 Claude through Anthropic's own API (llm/claude.py)
+  "anthropic>=2.12.0",          # 3.14 Claude through Anthropic's own API (llm/claude.py)
   "pyyaml>=6",             # 3.20 (318) tidy JSON / YAML
 ]
 
