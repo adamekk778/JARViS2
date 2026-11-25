@@ -4,6 +4,16 @@ import type { JarvisClient } from "./ws";
 import { openTrial } from "./trial";
 
 export const WHATS_NEW: Record<string, { icon: string; title: string; line: string }[]> = {
+  "3.20": [
+    { icon: "sparkle", title: "500 vylepšení", line: "Mozek, hlas, paměť, proaktivita, ovládání PC, vzhled, telefon, hodinky, domácnost, bezpečnost, peníze, cesty, auto, zdraví, rodina, učení, práce, firma, programování, dílna, zábava, propojení, spolehlivost, přístupnost i komunita – vše v jedné verzi." },
+    { icon: "watch", title: "Telefon a hodinky víc spolu", line: "Vibrace podle důležitosti, tichý budík na hodinkách, NFC štítky, sdílení polohy, sken dokumentů, offline povely, tepová frekvence a pád – a připomenutí zapomenutého telefonu." },
+    { icon: "house-line", title: "Domácnost a bezpečí", line: "Okno a topení, zapomenuté spotřebiče, únik vody, přebytky z fotovoltaiky, mapa domu; kontrola oprávnění, nástražné soubory, trezor, jednorázová tajemství a YubiKey u nebezpečných akcí." },
+    { icon: "briefcase", title: "Práce, firma, peníze", line: "Hluboké soustředění, pomodoro, výkaz hodin, podpis PDF, ARES a DPH, rizika smlouvy, docházka, cash flow, QR platby, rozpočty, daně a hlídání cen." },
+    { icon: "wrench", title: "Programování, dílna, zábava", line: "Kontrola změn před commitem, hlídání CI, SQL z češtiny, české testovací údaje; filament, cena tisku, knihovna modelů, laser a CNC; kvíz na telefonech, knihovna her a vlastní zvuky." },
+    { icon: "plugs-connected", title: "Nová propojení", line: "Google Kalendář a Todoist / Microsoft To Do oběma směry, Obsidian, Spotify, Bakaláři, Mapy.cz, datová schránka, Strava, Plex, Jellyfin, Nextcloud, Synology, výstrahy ČHMÚ a RSS." },
+    { icon: "heartbeat", title: "Spolehlivost", line: "Spadlá část se sama spustí znovu a JARVIS řekne proč, zdraví 0–100, historie nastavení, nouzový režim, UPS, záložní internet přes hotspot a měsíční zpráva." },
+    { icon: "wheelchair", title: "Přístupnost a jazyky", line: "Rozhraní ve slovenštině, němčině, polštině a ukrajinštině, režim pro dyslexii, barvy pro barvoslepost, jednoduchý režim, ovládání jedním tlačítkem a světla místo zvuku." },
+  ],
   "3.19": [
     { icon: "shield-check", title: "Každá platba stejně bezpečně", line: "Rezervace, vrácení peněz, nákup na obrazovce i tlačítko Zaplatit v prohlížeči: vždy dvakrát (podruhé s přesnou částkou), na telefonu otiskem prstu, nikdy s plnou důvěrou, nikdy na pokyn e-mailu nebo agenta na pozadí. Limity a rozpočet počítají s dnešním kurzem ČNB." },
     { icon: "wallet", title: "Peníze tento měsíc", line: "Bezpečí → Peníze: kolik stála AI, cesty, předplatné a platby přes JARVISe – a každá platba, na kterou se JARVIS ptal, s tvou odpovědí." },

@@ -49,7 +49,7 @@ def serve(port: int, lang: str = "cs") -> threading.Thread:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="jarvis.uicheck")
     ap.add_argument("--out", default="uicheck-out")
-    ap.add_argument("--lang", default="cs", choices=["cs", "en"])
+    ap.add_argument("--lang", default="cs", choices=["cs", "en", "sk", "de", "pl", "uk"])   # 3.20 (461, 462, 478)
     a = ap.parse_args(argv)
     os.environ.setdefault("JARVIS_NO_NET", "1")
     root = Path(__file__).resolve().parents[2]

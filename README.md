@@ -51,6 +51,37 @@ JARVIS zkouší poskytovatele v pořadí z **Nastavení → Mozek** a když jede
 
 Nebezpečné akce (vypnutí, mazání, nákupy, příkazy) vždy nejdřív potvrdíš ty.
 
+## Novinky ve verzi 3.20 – 500 vylepšení
+
+Celý seznam „Nápady pro JARVISe“ (500 položek ve 25 oblastech) je v kódu s testy. Výběr:
+
+- **Hlas, mozek, paměť, proaktivita:** jen do sluchátek, šepot, budíček se souhrnem, plán ke schválení, poctivé „nevím“,
+  wiki toho, co o tobě JARVIS ví, zapomenutí i ze záloh, ranní souhrn podle dne, termíny STK / pasu / faktur.
+- **Ovládání PC a vzhled:** úklid s návratem, rozložení oken hlasem, přesun programu na jiný disk, bod obnovy před velkou
+  změnou, vlastní témata, režim zen, notch na monitoru, kde pracuješ.
+- **Telefon a hodinky:** NFC štítky, vibrační kódy, tichý budík, sdílení polohy na čas, sken do PDF, offline povely,
+  tep a pád, navigace vibracemi.
+- **Domácnost a bezpečnost:** okno a topení, zapomenuté spotřebiče, únik vody, přebytky z FVE, mapa domu; nástražné
+  soubory, trezor, jednorázová tajemství, YubiKey u nebezpečných akcí, kontrola stažených souborů.
+- **Peníze, cesty, auto, zdraví, rodina, učení:** QR platby, rozpočty, daně, hlídání cen; výlety, nárok na odškodnění
+  za let; kniha jízd, servis, ceny paliva; léky, prevence, pyl; rodinný kalendář, lednice, kytky; ladička, psaní všemi
+  deseti, kvízy.
+- **Práce a firma:** hluboké soustředění, pomodoro, výkaz hodin, podpis PDF, prezentace z poznámek; ARES, DPH,
+  insolvence, rizika smlouvy, docházka, cash flow, směny, reklamace, GDPR, balíček pro účetní.
+- **Programování, dílna, zábava:** kontrola změn, zpráva commitu, hlídání CI, SQL z češtiny, české testovací údaje,
+  Docker a porty; filament, cena tisku, knihovna modelů s náhledy, úpravy STL, laser a CNC, nářezový plán; kvíz na
+  telefonech, knihovna her ze Steamu / Epicu / GOG, slevy, seriály, vlastní zvuky.
+- **Propojení:** Google Kalendář a Todoist / Microsoft To Do oběma směry, Obsidian, Spotify, Bakaláři, Mapy.cz,
+  datová schránka (jen seznam), Strava, Plex, Jellyfin, Nextcloud, Synology, výstrahy ČHMÚ, RSS, YouTube kanály.
+- **Spolehlivost:** samoopravení, zdraví 0–100, historie nastavení, nouzový režim (`JARVIS_SAFE=1`), UPS, záložní
+  internet přes hotspot, nácvik obnovy, kontrola vlastních souborů, stres a chaos testy, měsíční zpráva.
+- **Přístupnost:** rozhraní ve slovenštině, němčině, polštině a ukrajinštině (+ stránka `/translate`), dyslexie,
+  barvoslepost, jednoduchý režim, jen klávesnice, jedno tlačítko, světla místo zvuku, etikety s alergeny.
+- **Komunita:** ukázkový režim (`JARVIS_DEMO=1`), přenosná verze (`portable.txt`), Linux a macOS, šifrovaná záloha do
+  vlastního cloudu, firemní zásady, web s dokumentací, [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Co v 3.20 potřebuje tvoje zařízení, účet nebo certifikát, je v [docs/ROADMAP.md](docs/ROADMAP.md) (sekce 3.20).
+
 ## Novinky ve verzi 3.19 – Peníze pod kontrolou a Cesty 2
 
 - **Každá platba stejně:** rezervace, zrušení rezervace, vrácení peněz přes Stripe, nákup na obrazovce i kliknutí na

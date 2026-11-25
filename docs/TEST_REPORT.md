@@ -3,6 +3,11 @@
 Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené zvlášť.
 
 ## Automatické testy (Linux, `cd core && pytest`)
+- **3.20 (500 nápadů, 11 vln): 2409 testů prošlo, 24 přeskočeno** (Linux) – nové `tests/test_x320_*.py` (telefon a hodinky,
+  domácnost a bezpečnost, peníze / cesty / auto, zdraví / učení / rodina, práce a firma, programování / dílna / zábava,
+  propojení, spolehlivost s chaos testy, přístupnost, komunita); evals 446 případů 100 %; web `tsc`, `eslint`, 18 unit
+  testů, `vite build`; kontrola UI v Chromiu (`python -m jarvis.uicheck`, i `--lang sk`) bez chyb; Java telefonu a
+  hodinek přeložená proti knihovnám Androidu. Stres test našel a opravil souběh ve výběru nástrojů.
 - **413 testů prošlo** (0 selhalo) – stav k release v3.6.47. Nové pro OMEGA:
   - `tests/test_omega.py` – mise „stav PC“ end-to-end (plán 4 kroky, 5 kritérií, artefakt se SHA-256, 11 důkazů
     měření + 5 důkazů ověření, stav `verifying` → `done`); ověření odhalí změněný soubor; Windows sonda obsahuje

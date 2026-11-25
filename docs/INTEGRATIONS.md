@@ -8,8 +8,23 @@
 | Claude Code CLI | funkční | háčky Claude Code → notch/telefon (claude_bridge.py) | — | jen podporovaným rozhraním, bez obcházení limitů |
 | MCP servery | funkční | Nastavení → Integrace | trezor OS | nástroje MCP spadají pod oprávnění Internet |
 | E-mail (IMAP/SMTP: Seznam, Gmail, Centrum, Atlas, iCloud, vlastní) | funkční | E-mail a telefon | trezor OS (heslo pro aplikace) | odeslání vždy po schválení |
-| Kalendář | funkční | vlastní + odběr ICS (jen čtení) | — | zápis do Google kalendáře chybí |
+| Kalendář | funkční | vlastní + odběr ICS + Google Kalendář oběma směry (3.20) | trezor OS (Google) | synchronizace každých 15 min po prvním potvrzení; Outlook kalendář jen čtení a zápis přes Microsoft konektor |
 | Telefon (Android) | funkční | QR párování, služba na pozadí | token v nastavení | iOS: viz ROADMAP (omezení platformy) |
+| Todoist / Microsoft To Do ↔ seznamy JARVISe (3.20) | funkční | sync_kit → list_sync | trezor OS | po spárování každých 15 min oběma směry, bez duplicit |
+| Obsidian (3.20) | funkční | Nastavení → Propojení → složka trezoru | — | hledání, poznámky do denní poznámky, úkoly - [ ] |
+| Spotify ovládání (3.20) | funkční s Premium | Propojení → Spotify (po aktualizaci se přihlas znovu – širší oprávnění) | trezor OS | doporučení API pro nové aplikace Spotify vypnulo |
+| Bakaláři (3.20) | funkční | Propojení → Bakaláři (adresa školy, účet rodiče) | trezor OS | jen čtení; EduPage nemá API |
+| Mapy.cz (3.20) | funkční s klíčem | developer.mapy.com | trezor OS | trasy auto / pěšky / kolo, oblíbená místa |
+| Datová schránka (3.20) | jen seznam | Propojení → Datová schránka | trezor OS | doporučená pověřená osoba bez práva číst (přihlášení = doručení) |
+| Strava, Garmin (3.20) | Strava s vlastní aplikací; Garmin importem | Propojení → Strava; soubor GPX / CSV | trezor OS | Garmin Connect nemá veřejné API pro jednotlivce |
+| Plex, Jellyfin (3.20) | funkční | Propojení → Plex / Jellyfin | trezor OS | ovládání přehrávání jen Jellyfin |
+| Nextcloud (3.20) | funkční | Propojení → Nextcloud (heslo aplikace) | trezor OS | hledání souborů, kalendář na týden |
+| Synology NAS (3.20) | funkční | Propojení → Synology | trezor OS | účet bez 2FA jen pro čtení; disky, svazky, Hyper Backup |
+| Výstrahy ČHMÚ (3.20) | funkční | bez účtu (CAP) | — | kraj / okres v nastavení; adresa CAP jde změnit |
+| RSS a YouTube kanály (3.20) | funkční | bez účtu | — | YouTube přes veřejné RSS kanálů |
+| Odečty elektřiny (3.20) | import | CSV z portálu distributora | — | distributoři nemají veřejné API |
+| TMDB, Ticketmaster, CheapShark, TVmaze (3.20) | funkční (TMDB a Ticketmaster s klíčem) | klíče „tmdb“, „ticketmaster“ | trezor OS | filmy podle služeb v ČR, koncerty, slevy her, nové díly seriálů |
+| WebDAV záloha (3.20) | funkční | Nastavení → Záloha → Do vlastního cloudu | trezor OS | posílá se jen zašifrovaný soubor |
 | Twilio (skutečný hovor) | volitelné | E-mail a telefon → Twilio | trezor OS | placená služba |
 | Home Assistant | funkční | Domov → adresa + dlouhodobý token | trezor OS | zámky/alarm/brány vždy s potvrzením |
 | Kurzy ČNB, CoinGecko, Stooq | funkční | bez účtu | — | veřejná data, zpoždění podle zdroje |

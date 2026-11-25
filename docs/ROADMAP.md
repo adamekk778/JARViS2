@@ -32,6 +32,37 @@ Co z 3.14 zbývá (a proč):
 - **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
 - **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
 
+## 3.20 – 500 nápadů (25 oblastí v 11 vlnách)
+Hotovo v kódu s testy: všech 500 položek stránky „Nápady pro JARVISe“ – hlas, mozek, paměť, proaktivita, ovládání PC,
+vzhled, telefon, hodinky, domácnost, bezpečnost, peníze, cesty, auto, zdraví, rodina, učení, práce, firma,
+programování, dílna, zábava, propojení, spolehlivost, přístupnost a komunita. Akce, které něco odesílají, mažou nebo
+platí, se ptají (včetně sdílení polohy, automatické odpovědi, odloženého e-mailu, podpisu PDF, mazání podle GDPR,
+synchronizace kalendáře a seznamů, zálohy do cloudu).
+
+Co je jinak, než by název sliboval, nebo co potřebuje tebe:
+- **Hardware a podpis:** podepsaný instalátor bez SmartScreenu (482) potřebuje certifikát; Google Play a F-Droid (486)
+  potřebují účty – metadata jsou připravená v `mobile/fastlane`; testy na tvém PC, telefonu a hodinkách (448) – v CI
+  běží Windows, emulátor Androidu a sestavení Wear OS, ne skutečná zařízení; macOS vrstva (489) je napsaná a otestovaná
+  jen na simulovaných příkazech; Linux (488) pokrývá běžné povely, ne UI Automation a herní vstup.
+- **Bez veřejného API:** EduPage (422), Rohlík (427 – otevře hledání, do košíku a k platbě jdeš ty), ČSFD a Databáze
+  knih (429, 430 – odkaz a seznam, hodnocení nečteme), portály distributorů elektřiny (440 – import exportovaného CSV),
+  Garmin (433 – import GPX / CSV), banky mimo Fio (208, 432 – PSD2 jen přes placeného licencovaného poskytovatele).
+- **Klíče a účty:** TMDB pro filmy (344), Ticketmaster pro koncerty (359), TomTom pro dopravu (407), Yubico API (196),
+  Strava aplikace (433), token bota pro Discord (356, potřebuje i `discord.py[voice]` a ffmpeg), OpenSCAD pro díry a
+  řezy STL (325, 338), Equalizer APO (351), python-matter-server (177).
+- **Datová schránka (431):** jen seznam nových zpráv. Přihlášení osoby s právem číst zprávy se počítá jako doručení –
+  návod proto doporučuje pověřenou osobu jen se seznamy.
+- **Zjednodušení:** offline povely v telefonu jsou pravidla, ne AI (129); komplikace místo celého ciferníku (151); stres
+  je odhad z tepu (152); poznámka po hovoru, ne nahrávka (140); sdílení polohy povolíš ťuknutím (139); šachy rozebere AI
+  bez enginu (368); otázky na autoškolu jsou cvičné (370); shrnutí YouTube jen s titulky (365); podpis PDF je obrázek,
+  ne kvalifikovaný podpis (280); blokování webů potřebuje správce (261); jeden notch se přesouvá mezi monitory místo
+  více oken (110); ovládání pohledem (473) a znaková řeč (470) nejsou – kamera umí gesta rukou, ne spolehlivý pohled
+  ani znaky; „čtečka obrazovky“ (465) = popisky a živé oblasti v UI, s NVDA a Předčítáním neověřeno; videonávody (494)
+  nejsou, místo nich nápověda F1 a „Co je nového“; fórum (493) a hlasování (491) běží přes GitHub (Discussions zapne
+  vlastník, hlasuje se 👍); obchod s rozšířeními (483) = katalogy JSON s podpisy a hodnocením, ne vlastní server.
+- **Zdraví a právo:** zdravotní funkce nejsou lékařská rada; rizika smlouvy a šablony smluv nejsou právní rada;
+  licence projektu zůstává na autorovi (CONTRIBUTING.md).
+
 ## 3.19 – peníze pod kontrolou a Cesty 2 (17 návrhů ve 4 dávkách)
 Hotovo v kódu s testy: kurz ČNB pro limity a rozpočet (uložený pro offline), stejná pravidla pro každou platbu
 (rezervace, zrušení, vrácení přes Stripe, nákup na obrazovce, Zaplatit v prohlížeči, návrhy firemních agentů), přehled
