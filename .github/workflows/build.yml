@@ -623,7 +623,7 @@ jobs:
         run: |
           python3 src/packaging/winget/make_manifest.py "$JARVIS_VERSION" out/JARVIS-Setup.exe out/winget "$GITHUB_REPOSITORY"
           (cd out && zip -r winget-manifests.zip winget)
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.JARVIS_VERSION }}
           name: JARVIS ${{ env.JARVIS_VERSION }}
