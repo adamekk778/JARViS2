@@ -107,6 +107,7 @@ class DesktopHost:
             log.debug("fx windows: %s", e)
         self._anchor_win = None
         rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
+        rt.on_notch_monitor = self.move_notch_to   # 3.20 (110) the notch follows the monitor you work on
         rt.on_game_tip = self.peek_over_game  # 3.13 a game tip: the notch shows itself over the game for a moment
         self._region: list = []            # the last notch outline from the page, put back if Windows drops it
         self._region_applied: tuple | None = None
@@ -116,11 +117,26 @@ class DesktopHost:
         self._animator = None             # 3.12: the notch outline animated here, in step with the screen
 
     # ---------- geometry ----------
+    def notch_monitor(self) -> int:
+        """3.20 (110) "notch na každém monitoru": the notch follows the monitor you work on (0-based); otherwise the chosen one."""
+        follow = getattr(self.rt, "notch_monitor_follow", None)
+        if getattr(self.rt.cfg.notch, "all_monitors", False) and isinstance(follow, int):
+            return follow
+        return self.rt.cfg.notch.monitor
+
+    def move_notch_to(self, index: int) -> None:
+        """Called from the desktop loop when the cursor stays on another monitor for a moment."""
+        self.rt.notch_monitor_follow = index
+        try:
+            self.place_notch(*self._notch_size)
+        except Exception as e:  # noqa: BLE001
+            log.debug("notch follow: %s", e)
+
     def _screen(self):
         import webview
 
         screens = webview.screens or []
-        idx = self.rt.cfg.notch.monitor
+        idx = self.notch_monitor()
         return screens[idx] if 0 <= idx < len(screens) else (screens[0] if screens else None)
 
     def notch_hwnd(self) -> int:
@@ -196,7 +212,7 @@ class DesktopHost:
             from . import platforms
 
             mons = platforms.monitors()
-            i = self.rt.cfg.notch.monitor
+            i = self.notch_monitor()
             mon = mons[i if 0 <= i < len(mons) else 0][0]
             scale = winutil.dpi_scale(hwnd)
             pw, ph = round(w * scale), round(h * scale)
@@ -223,6 +239,9 @@ class DesktopHost:
         import webview
 
         w, h = self._notch_size
+        if getattr(self.rt.cfg.appearance, "avatar3d", False):     # 3.20 (117) the 3D character instead of the notch
+            self._make_avatar()
+            return
         if self.rt.cfg.notch.enabled:
             self.notch = webview.create_window(
                 NOTCH_TITLE, f"{self.base}/notch", js_api=NotchApi(self), width=w, height=h, x=0, y=0,
@@ -231,6 +250,33 @@ class DesktopHost:
             self.notch.events.shown += self._on_notch_shown
         else:   # pywebview needs one window to start with; with the notch on, the JARVIS window waits until it is opened
             self._make_chat("chat", hidden=True)
+
+    AVATAR_TITLE = "JARVIS Avatar"
+
+    def _make_avatar(self) -> None:
+        """3.20 (117) a round window in the corner with the 3D character (not "transparent": on Windows that shows a grey
+        box – a dark window clipped to a circle, like the notch is clipped to its shape)."""
+        import webview
+
+        scr = self._screen()
+        sx, sy, sw, sh = (scr.x, scr.y, scr.width, scr.height) if scr else (0, 0, 1920, 1080)
+        self.avatar = webview.create_window(
+            self.AVATAR_TITLE, f"{self.base}/hud?avatar=1", width=240, height=240, x=sx + sw - 270, y=sy + sh - 330,
+            frameless=True, easy_drag=True, on_top=True, resizable=False, shadow=False, background_color="#000000")
+        self.avatar.events.shown += self._on_avatar_shown
+
+    def _on_avatar_shown(self) -> None:
+        import math
+
+        time.sleep(0.3)
+        try:
+            hwnd = winutil.window_handle(self.avatar, self.AVATAR_TITLE)
+            winutil.hide_from_taskbar(self.AVATAR_TITLE)
+            r = round(120 * (winutil.dpi_scale(hwnd) or 1.0))   # the region is in physical pixels
+            circle = [(round(r + r * math.cos(a / 48 * 2 * math.pi)), round(r + r * math.sin(a / 48 * 2 * math.pi))) for a in range(48)]
+            winutil.set_region(hwnd, [circle])
+        except Exception as e:  # noqa: BLE001
+            log.debug("avatar window: %s", e)
 
     def _make_chat(self, view: str = "chat", hidden: bool = False) -> None:
         """Saving power: the JARVIS window (a whole browser page) is created only when it is opened, not at start-up."""

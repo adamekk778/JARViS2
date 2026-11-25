@@ -38,13 +38,16 @@ async def replace_selected_text(ctx, text: Annotated[str, "nový text, který se
 
 
 # ---------- clipboard history ----------
-@tool("clipboard_history", "Historie schránky: co uživatel nedávno kopíroval (posledních 30 textů, jen v paměti). "
+@tool("clipboard_history", "Historie schránky: co uživatel nedávno kopíroval (posledních 100 textů, jen v paměti; hledá i bez diakritiky). "
       "Hesla se neukládají.", category="schránka", perm="files_read")
 async def clipboard_history(ctx, query: Annotated[str, "hledat (prázdné = vše)"] = "", count: int = 10) -> ToolResult:
     act = _act(ctx)
     if act is None or not ctx.cfg.powers.clipboard_history:
         return ToolResult(False, "Historie schránky je vypnutá (Nastavení → Stark → Schopnosti).")
-    items = [c for c in act.clips if query.lower() in c["text"].lower()][: max(1, min(30, count))]
+    from ..pcx import fold
+
+    q = fold(query)
+    items = [c for c in act.clips if q in fold(c["text"]) or q in fold(c.get("app", ""))][: max(1, min(100, count))]
     if not items:
         return ToolResult(True, "Nic takového jsem v historii schránky nenašel.", data=[])
     return ToolResult(True, "\n".join(f"{i + 1}. {c['text'][:160]}" for i, c in enumerate(items)),

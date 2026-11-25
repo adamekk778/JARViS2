@@ -7,6 +7,7 @@ import "highlight.js/styles/github-dark.css";
 import "./theme.css";
 import "./glass.css";
 import { configureMotion, initMotion } from "./motion";
+import { applyCustomTheme } from "./theme320";
 
 // OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
 let motionPref = "full";
@@ -35,6 +36,7 @@ export const MOTIFS: Record<string, { accent: string; label: string }> = {
 export function applyAppearance(s: any) {
   const a = s?.appearance;
   if (!a) return;
+  applyCustomTheme(a);                                             // 3.20 (107) your own theme on every page
   const root = document.documentElement;
   // the notch is a black hardware-like cut-out: it keeps the dark tokens in the light theme too
   root.dataset.theme = a.theme === "light" && !root.classList.contains("notch-doc") ? "light" : "dark";

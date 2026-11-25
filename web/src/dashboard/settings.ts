@@ -592,6 +592,46 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     },
 
     appearance: () => {
+      // 3.20 Vzhled+ (101–120): the notch's new manners and the 3D character
+      const lookCard320 = () => card("Notch a plocha (3.20)", "Všechno se projeví hned.",
+        sw("notch.wheel_volume", "Hlasitost kolečkem nad notchem", "Najeď myší na notch a točením kolečka měníš hlasitost."),
+        sw("notch.urgent_red", "Červená jen pro naléhavé", "Notch zčervená jen u budíků, připomínek a věcí, které opravdu spěchají."),
+        sw("notch.photo_frame", "Fotka z tohoto dne", "Jednou za den fotka ze stejného dne před lety (z fotek, které JARVIS prošel)."),
+        sw("notch.zen", "Režim zen", "Notch je neviditelný, dokud JARVIS neposlouchá, nemluví nebo nepřijde něco naléhavého."),
+        sw("notch.auto_size", "Velikost podle monitoru", "Na širokoúhlém monitoru větší, na malém notebooku menší."),
+        sw("notch.all_monitors", "Notch na každém monitoru", "Upozornění se ukážou na monitoru, kde zrovna pracuješ (projeví se po restartu JARVISe)."),
+        sw("notch.timeline", "Časová osa dne", "Tenká linka pod notchem: kolik dne zbývá a kde jsou schůzky."),
+        sw("notch.weather_scene", "Počasí v notchi", "Déšť, sníh nebo slunce jako jemná animace podle skutečného počasí."),
+        text("notch.second_tz", "Druhé hodiny", "Časové pásmo, např. Europe/London. Na cestě do zahraničí se ukážou samy."),
+        sw("appearance.seasonal", "Barvy podle ročního období", "Jemný zimní, jarní, letní a podzimní nádech."),
+        sw("appearance.startup_sound", "Zvuk při startu", "Krátký zvuk, když JARVIS naběhne (v noci nikdy)."),
+        sw("appearance.taskbar_eq", "Ekvalizér nad hlavním panelem", "Při hudbě jemné sloupce těsně nad lištou Windows."),
+        sw("appearance.share_ring", "Kroužek kolem kurzoru při sdílení", "Když sdílíš obrazovku (Teams, Zoom, Meet), ostatní uvidí, kam ukazuješ."),
+        sw("appearance.avatar3d", "3D postava místo notche", "JARVIS jako 3D postavička v rohu obrazovky (projeví se po restartu)."));
+      const themeCard320 = () => {
+        const name = h("input", { type: "text", placeholder: "Název tématu", "aria-label": "Název tématu", maxlength: 40 }) as HTMLInputElement;
+        const accent = h("input", { type: "color", value: S.appearance.accent || "#4f8dff", "aria-label": "Akcent" }) as HTMLInputElement;
+        const bg = h("input", { type: "color", value: "#0b0f16", "aria-label": "Pozadí" }) as HTMLInputElement;
+        const fg = h("input", { type: "color", value: "#e8eef6", "aria-label": "Text" }) as HTMLInputElement;
+        const font = h("select", { "aria-label": "Písmo" }, ...["system", "Inter", "Rajdhani", "Orbitron", "JetBrains Mono", "Georgia"].map((f) => h("option", { value: f }, f))) as HTMLSelectElement;
+        const speed = h("input", { type: "range", min: 0.25, max: 2, step: 0.25, value: 1, "aria-label": "Rychlost animací" }) as HTMLInputElement;
+        const radius = h("input", { type: "range", min: 0, max: 30, step: 1, value: 14, "aria-label": "Zaoblení" }) as HTMLInputElement;
+        const themes: any[] = S.appearance.custom_themes || [];
+        const save = () => {
+          const t = { name: (name.value || "Moje téma").slice(0, 40), accent: accent.value, bg: bg.value, text: fg.value, font: font.value,
+            speed: Number(speed.value), radius: Number(radius.value) };
+          set("appearance.custom_themes", [...themes.filter((x) => x.name !== t.name), t]);
+          set("appearance.active_theme", t.name);
+          toast(`Téma „${t.name}“ uloženo`, "ok");
+        };
+        return card("Moje témata", "Vlastní barvy, písmo, rychlost animací a zaoblení – uložíš jako téma a kdykoli přepneš.",
+          h("div", { class: "grid2" }, name, font),
+          h("div", { class: "grid2" }, h("label", {}, "Akcent ", accent), h("label", {}, "Pozadí ", bg)),
+          h("div", { class: "grid2" }, h("label", {}, "Text ", fg), h("label", {}, "Animace ", speed)),
+          h("label", {}, "Zaoblení ", radius),
+          h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: save }, icon("floppy-disk"), "Uložit a použít")),
+          select("appearance.active_theme", "Používané téma", [["", "Vestavěné"], ...themes.map((t) => [t.name, t.name] as [string, string])]));
+      };
       const colors = ["#4f8dff", "#2ee6ff", "#3ddc97", "#ffb547", "#ff5d63", "#a78bfa", "#f472b6", "#e9eef3"];
       const picker = h("input", { type: "color", value: S.appearance.accent, "aria-label": "Vlastní barva" }) as HTMLInputElement;
       picker.onchange = () => set("appearance.accent", picker.value);
@@ -625,7 +665,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("div", { class: "btn-row" },
               h("button", { class: "btn sm", type: "button", onclick: () => client.send("sounds_folder", { open: true }) }, icon("folder-open"), "Otevřít složku"),
               h("button", { class: "btn sm", type: "button", onclick: () => { client.send("sounds_folder", { open: false }); toast("Zvuky načteny", "ok"); } }, icon("arrows-clockwise"), "Načíst")))),
-        characterCard(), reactionStudio()];
+        lookCard320(), themeCard320(), characterCard(), reactionStudio()];
     },
 
     dictation: () => {

@@ -282,6 +282,11 @@ class DeskCare:
         present = idle < PRESENT_IDLE_S
         if present:
             self.active_today += step
+        self.work_run = getattr(self, "work_run", 0.0) + step if present and idle < BREAK_IDLE_S else 0.0
+        from .lookx import stretch_due
+
+        if stretch_due(self.rt, self.work_run / 60):        # 3.20 (112) 90 minutes in a row: Mochi stretches
+            self.rt.bus.publish_threadsafe("mochi_action", action="stretch")
         if idle >= BREAK_IDLE_S:
             self.last_water = max(self.last_water, now - idle)     # away from the PC: maybe you drank, count from then
         out = []

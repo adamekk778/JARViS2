@@ -203,6 +203,16 @@ class Notch(BaseModel):
     close_delay_ms: int = 400
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
+    # 3.20 Vzhled+ (101–120)
+    wheel_volume: bool = True        # the mouse wheel over the notch changes the volume
+    urgent_red: bool = True          # only what really cannot wait turns the notch red
+    photo_frame: bool = True         # now and then a photo from the same day years ago
+    zen: bool = False                # the notch is invisible until JARVIS listens, speaks or something urgent comes
+    auto_size: bool = True           # the notch's size follows the monitor (ultrawide wider, a small notebook smaller)
+    all_monitors: bool = False       # a notch on every monitor; notices on the one you are working on
+    timeline: bool = True            # a thin line under the notch: how much of the day is left and where the meetings are
+    weather_scene: bool = True       # rain, snow or sun as a quiet animation in the notch
+    second_tz: str = ""              # a second clock ("Europe/London"); on a trip abroad it appears by itself
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
     subs_speak: bool = False       # 3.14: …and the translation read aloud (the video is turned down meanwhile)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
@@ -236,6 +246,13 @@ class Appearance(BaseModel):
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
+    seasonal: bool = True               # 3.20 (106) soft winter / spring / summer / autumn shades of the theme
+    custom_themes: list[dict] = Field(default_factory=list)   # 3.20 (107) your own themes (colours, font, speed, roundness)
+    active_theme: str = ""              # 3.20 (107) the name of the custom theme in use ("" = the built-in one)
+    startup_sound: bool = True          # 3.20 (120) a short sound when JARVIS starts (never at night)
+    taskbar_eq: bool = False            # 3.20 (113) music bars just above the taskbar while music plays
+    share_ring: bool = True             # 3.20 (118) a ring around the cursor while you share your screen
+    avatar3d: bool = False              # 3.20 (117) a 3D character in the corner instead of the notch
     high_contrast: bool = False         # 3.14 stronger borders and text for weaker eyes (68)
     font_scale: float = 1.0             # 3.14 the whole interface larger (1.0–1.6) (68)
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
@@ -768,6 +785,13 @@ class HealthCfg(BaseModel):
     posture: bool = False              # posture from the webcam every 2 minutes (leaning in, slumped); only on your yes
 
 
+class PcCfg(BaseModel):
+    """3.20 Ovládání PC+ (81–100)."""
+    auto_restore: bool = True          # a restore point before a big change of the system (at most one a day)
+    keyboard_by_app: dict[str, str] = Field(default_factory=dict)   # app → keyboard language ("Code": "en", "Telegram": "cs")
+    monitor_profiles: dict[str, str] = Field(default_factory=dict)  # the monitors connected → the saved layout to load
+
+
 class DayCfg(BaseModel):
     """3.20 Proaktivita+ (61–80): what JARVIS watches over the day by itself (each can be switched off)."""
     laundry: bool = True               # a good day for drying the washing outside
@@ -840,6 +864,7 @@ class Config(BaseModel):
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
     health: HealthCfg = Field(default_factory=HealthCfg)
     day: DayCfg = Field(default_factory=DayCfg)
+    pc: PcCfg = Field(default_factory=PcCfg)
 
     @model_validator(mode="before")
     @classmethod

@@ -53,6 +53,10 @@ def effect_for(rt: Any, kind: str, data: dict) -> fxrender.Effect | None:
                                cx=mx + mw - 170, cy=my + mh // 2)
     if kind == "welcome":
         return fxrender.Effect(760, 300, 3.2, fxrender.welcome(str(data.get("text") or "Vítejte zpět"), col), cx=mx + mw // 2, cy=my + mh // 2)
+    if kind == "ring":                      # 3.20 (118) sharing the screen: where the cursor is
+        return fxrender.Effect(120, 120, 1.0, fxrender.ring("#ffcc00"), cx=int(data["x"]), cy=int(data["y"]))
+    if kind == "eq":                        # 3.20 (113) music above the taskbar (bottom centre of the monitor)
+        return fxrender.Effect(420, 46, 1.9, fxrender.eq(list(data.get("bars") or []), col), cx=mx + mw // 2, cy=my + mh - 70)
     return None
 
 

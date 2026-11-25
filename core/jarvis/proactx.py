@@ -755,10 +755,20 @@ async def tick(rt: Any, now: dt.datetime | None = None) -> list[str]:
 
 
 async def loop(rt: Any) -> None:
+    from . import lookx
+
     await asyncio.sleep(30)
     while True:
         try:
             await tick(rt)
         except Exception as e:  # noqa: BLE001
             log.warning("proactx tick: %s", e)
+        try:
+            await lookx.tick(rt)                       # 3.20 Vzhled+: countdown, timeline, weather, photo, wallpaper tasks
+        except Exception as e:  # noqa: BLE001
+            log.debug("lookx tick: %s", e)
+        burst = getattr(rt, "_burst", None)
+        if burst is not None and burst.due():          # 3.20 (119) the held notices as one line
+            title, body = burst.summary()
+            rt.notify(title, body, speak=False, kind="burst")
         await asyncio.sleep(60)

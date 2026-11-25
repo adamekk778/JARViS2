@@ -26,6 +26,7 @@ import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
 import { FingerCam, type FingerEvent } from "../shared/handgest";
 import { at, spring } from "../shared/motion";
+import { initX320 } from "./x320";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -269,6 +270,7 @@ const songProg = h("i", { class: "n-songprog", "aria-hidden": "true" });
 const sheen = h("div", { class: "n-sheen", "aria-hidden": "true" });   // 3.13 the liquid-glass light of the answer card
 const inner = h("div", { class: "n-inner" }, sheen, songProg, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, lyrTr, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
+initX320(client, shape, blob);                // 3.20 Vzhled+ (101–112, 115)
 /** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
 function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
 document.getElementById("notch-root")!.append(shape);

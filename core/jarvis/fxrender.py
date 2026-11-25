@@ -6,6 +6,7 @@ Every effect is a function (t from 0 to 1 over its duration) → an RGBA image o
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Callable
 
@@ -179,6 +180,41 @@ def dot(color: str = "#4fc3ff", size: int = 64) -> Callable[[float], Image.Image
         d.ellipse((mid - r, mid - r, mid + r, mid + r), outline=(*c, int(220 * (1 - t))), width=2)
         d.ellipse((mid - 3, mid - 3, mid + 3, mid + 3), fill=(255, 255, 255, int(255 * (1 - t))))
         return _glow(img, 3)
+    return frame
+
+
+def ring(color: str = "#ffcc00", size: int = 120) -> Callable[[float], Image.Image]:
+    """3.20 (118) while you share your screen: a soft ring around the cursor, so others see where you point."""
+    c = rgb(color)
+
+    def frame(t: float) -> Image.Image:
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        mid = size // 2
+        r = int(size * 0.32 + 4 * math.sin(t * math.pi * 2))
+        a = int(170 * (1 - abs(t - 0.5)))
+        d.ellipse((mid - r, mid - r, mid + r, mid + r), outline=(*c, a), width=4)
+        d.ellipse((mid - r + 6, mid - r + 6, mid + r - 6, mid + r - 6), fill=(*c, a // 6))
+        return _glow(img, 4)
+    return frame
+
+
+def eq(bars: list[float], color: str = "#4fc3ff", w: int = 420, h: int = 46) -> Callable[[float], Image.Image]:
+    """3.20 (113) music bars just above the taskbar (the music's own levels, a short fade)."""
+    c = rgb(color)
+    vals = [max(0.0, min(1.0, float(b))) for b in (bars or [])][:16] or [0.0]
+
+    def frame(t: float) -> Image.Image:
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        n = len(vals)
+        bw = w / (n * 1.6)
+        for i, v in enumerate(vals):
+            bh = max(2, int((h - 6) * v * (0.85 + 0.15 * math.sin(t * math.pi * 2 + i))))
+            x = int(i * bw * 1.6 + bw * 0.3)
+            a = int(200 * (1 - t * 0.6))
+            d.rounded_rectangle((x, h - bh, x + int(bw), h), radius=2, fill=(*c, a))
+        return img
     return frame
 
 

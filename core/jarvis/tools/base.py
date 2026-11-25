@@ -224,6 +224,16 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     missing = [r for r in spec.parameters.get("required", []) if r not in clean]
     if missing:
         return ToolResult(False, f"Chybí parametry: {', '.join(missing)}")
+    if hasattr(ctx, "db") and hasattr(ctx, "scheduler"):
+        from ..pcx import SYSTEM_CHANGES, auto_restore_point
+
+        if name in SYSTEM_CHANGES:                      # 3.20 (87) a restore point before a big change (once a day)
+            try:
+                import asyncio as _aio
+
+                await _aio.to_thread(auto_restore_point, ctx, name)
+            except Exception as e:  # noqa: BLE001
+                log.debug("restore point: %s", e)
     try:
         pc = getattr(ctx, "pc_control", None) if perm_of(spec) == "input" else None
         async with (pc.session(name) if pc is not None else _nothing()):   # 3.12 the "JARVIS ovládá tvůj PC" frame

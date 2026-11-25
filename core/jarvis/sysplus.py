@@ -613,7 +613,9 @@ async def music_loop(rt) -> None:                             # pragma: no cover
                 beat = (beat + [p])[-240:]
                 tick += 1
                 if tick % 2 == 0:                    # the bars stay at 10 Hz, the meter is read at 20 Hz
-                    rt.bus.publish("music_level", bars=bars(hist, 7, time.time()))
+                    b = bars(hist, 7, time.time())
+                    rt.music_bars, rt.music_bars_at = b, time.time()     # 3.20 (113) the bars above the taskbar too
+                    rt.bus.publish("music_level", bars=b)
                 if len(beat) >= 160 and time.time() - beat_at > 8:
                     beat_at = time.time()
                     bpm, conf = tempo_bpm(beat, 20.0)

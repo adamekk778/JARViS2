@@ -55,5 +55,15 @@ client.on("settings_changed", (m) => {
   if (k && k !== "off" && k !== kind) { kind = k; void mount(); }
 });
 client.on("mood", (m) => { mood = m.mood; });
+// 3.20 (116) the day's three most important tasks on the wallpaper (your pinned tasks)
+const tasksBox = document.createElement("ol");
+tasksBox.className = "wp-tasks";
+tasksBox.hidden = true;
+root.append(tasksBox);
+client.on("wallpaper_tasks" as any, (m: any) => {
+  const items: string[] = Array.isArray(m.items) ? m.items.slice(0, 3).map((x: unknown) => String(x).slice(0, 80)) : [];
+  tasksBox.replaceChildren(...items.map((t) => { const li = document.createElement("li"); li.textContent = t; return li; }));
+  tasksBox.hidden = !items.length;
+});
 client.connect();
 void mount();

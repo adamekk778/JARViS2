@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import threading
 import time
 from typing import Any
 
@@ -317,6 +318,14 @@ class Runtime:
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
+        if sys.platform == "win32":                         # 3.20 keyboard per app, monitor profiles, share ring, taskbar bars
+            from . import pcx
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(pcx.desktop_loop(self)))
+        from . import lookx
+
+        if lookx.startup_sound_ok(self) and getattr(self, "speaker", None) is not None:   # 3.20 (120) a short start sound
+            threading.Thread(target=self.speaker._play, args=(lookx.startup_wav(),), daemon=True, name="startup-sound").start()
         from . import printer3d
 
         self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
@@ -694,12 +703,20 @@ class Runtime:
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
+        if target == "all" and not urgent and not kind:  # 3.20 (119) a burst of notices → one line instead
+            from .lookx import Burst
+
+            burst = getattr(self, "_burst", None) or Burst()
+            self._burst = burst
+            if not burst.add(title):
+                return 0
         # 3.13 buttons in the notice ("Za 10 min", "+5 min") – each a notice_action the notch sends back
         acts = [{"label": str(a["label"])[:24], "action": str(a["action"]), "args": a.get("args") or {}} for a in (actions or [])][:3]
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
         if kind:                                         # 3.14 a proactive notice: "Nezajímá mě" + used / ignored feedback
             acts = (acts + [{"label": "Nezajímá mě", "action": "mute_kind", "args": {"kind": kind}}])[:3]
-        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind)
+        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind,
+                         urgent=bool(urgent) and getattr(self.cfg.notch, "urgent_red", True))   # 3.20 (102) red only when urgent
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
         if (target == "mobile" or (target == "all" and self.user_away())) and getattr(self, "loop", None) is not None:

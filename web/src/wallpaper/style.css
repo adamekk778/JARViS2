@@ -18,3 +18,9 @@ html.wallpaper-doc, html.wallpaper-doc body { margin: 0; height: 100%; overflow:
 .wp-still i:nth-child(3) { inset: 26%; }
 .wp-still b { position: absolute; inset: 38%; border-radius: 50%; background: radial-gradient(#fff, var(--holo) 45%, transparent 72%);
   box-shadow: 0 0 60px var(--holo); }
+
+/* 3.20 (116) three tasks of the day on the wallpaper */
+.wp-tasks { position: fixed; right: 5vw; bottom: 14vh; margin: 0; padding: 14px 18px 14px 34px; max-width: 32vw; border-radius: 16px;
+  background: rgba(8, 12, 18, .42); backdrop-filter: blur(6px); color: #e8f4ff; font: 600 clamp(13px, 1.1vw, 18px)/1.5 Rajdhani, system-ui, sans-serif;
+  letter-spacing: .02em; box-shadow: 0 0 0 1px rgba(120, 200, 255, .18) inset; }
+.wp-tasks li::marker { color: #4fc3ff; }
