@@ -988,6 +988,16 @@ class LinkXCfg(BaseModel):
     list_sync: dict[str, str] = Field(default_factory=dict)   # JARVIS list → "todoist:Projekt" or "mstodo:Seznam"
 
 
+class ReliaXCfg(BaseModel):
+    """3.20 Spolehlivost+ (441–460)."""
+    ups: bool = False                    # this PC is on a UPS (Windows shows it as a battery) – watch power cuts
+    ups_shutdown_pct: int = 0            # shut down when the UPS has this many % left (0 = never by itself)
+    ups_shutdown_minutes: int = 0        # … or after this many minutes on battery (0 = never)
+    hotspot_ssid: str = ""               # your phone's hotspot (a saved Wi-Fi profile): internet down → connect to it
+    voice_check: str = ""                # "07:30" = a voice check every morning while you are away ("" = off)
+    model_evals: bool = False            # a new AI model → 10 test questions and a comparison (costs a few cents)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -1057,6 +1067,7 @@ class Config(BaseModel):
     shopx: ShopXCfg = Field(default_factory=ShopXCfg)
     funx: FunXCfg = Field(default_factory=FunXCfg)
     linkx: LinkXCfg = Field(default_factory=LinkXCfg)
+    reliax: ReliaXCfg = Field(default_factory=ReliaXCfg)
 
     @model_validator(mode="before")
     @classmethod

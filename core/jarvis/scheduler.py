@@ -162,6 +162,9 @@ class Scheduler:
                 from .voicex import run_alarm
 
                 await run_alarm(self.rt, p)
+                from .reliax import alarm_fired
+
+                alarm_fired(self.rt, job["title"] or "Budík")     # 3.20 (452) nobody reacts → it rings again
             elif job["kind"] == "future_message":   # 3.20 (11) vzkaz pro budoucí já
                 from .voicex import run_future
 
@@ -178,6 +181,10 @@ class Scheduler:
                 from .phonex import run_watch_alarm
 
                 run_watch_alarm(self.rt, p)
+                if p.get("important"):
+                    from .reliax import alarm_fired
+
+                    alarm_fired(self.rt, job["title"] or "Budík")
             elif job["kind"] == "brain_week":       # 3.20 (39) co se JARVIS za týden naučil
                 from .brainx import learned_text, learned_week
 

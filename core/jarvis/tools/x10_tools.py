@@ -1,10 +1,11 @@
-"""3.20 Propojení+ (421–440) tools."""
+"""3.20 Propojení+ (421–440) a Spolehlivost+ (441–460) tools."""
 from __future__ import annotations
 
 import datetime as dt
 import json
 import re
 import time
+from pathlib import Path
 from typing import Literal
 
 from .. import linkx
@@ -325,3 +326,110 @@ async def sync_kit(ctx, action: Literal["calendar_sync", "list_sync", "notes", "
         return ToolResult(False, "Umím pauzu, pokračuj, další a předchozí.")
     await syncx.spotify(*cmd)
     return ToolResult(True, "Hotovo.")
+
+
+CARE_CHANGES = {"settings_restore", "safe_mode", "restore_drill"}
+
+
+@tool("care_kit", "Spolehlivost JARVISe: skóre zdraví 0–100 s tím, co opravit (score), historie nastavení (settings_history, settings_restore "
+      "text=den RRRR-MM-DD), přesný čas PC (clock), záloha fotek z telefonu (phone_backup), nouzový režim jen s jádrem (safe_mode text=on/"
+      "off), rychlost odpovědí po týdnech (speed), UPS a výpadek proudu (ups), nácvik obnovy ze zálohy (restore_drill path+text=heslo), "
+      "kontrola vlastních souborů (integrity), stres test (stress), kontrola nastavení (config_check), měsíční zpráva (report).",
+      category="systém", danger_if=lambda a: a.get("action") in CARE_CHANGES)
+async def care_kit(ctx, action: Literal["score", "settings_history", "settings_restore", "clock", "phone_backup", "safe_mode", "speed", "ups",
+                                        "restore_drill", "integrity", "stress", "config_check", "report"],
+                   text: str = "", path: str = "") -> ToolResult:
+    import asyncio
+
+    from .. import paths, reliax
+
+    if action == "score":
+        s = reliax.score(ctx)
+        return ToolResult(True, f"Zdraví JARVISe: {s['score']}/100 ({s['word']}).\n" + "\n".join(
+            f"• {p['what']} → {p['fix']}" for p in s["problems"][:8]) if s["problems"] else f"Zdraví JARVISe: {s['score']}/100 – vše v pořádku.", data=s)
+    if action == "settings_history":
+        h = reliax.history()
+        return ToolResult(True, "Uložené dny: " + ", ".join(h[:20]) if h else "Historie nastavení se začne ukládat dnes v noci.", data={"days": h})
+    if action == "settings_restore":
+        try:
+            day = reliax.restore_settings(ctx, text.strip() or dt.date.today().isoformat())
+        except ValueError as e:
+            return ToolResult(False, str(e))
+        return ToolResult(True, f"Nastavení vráceno na {day}. Dnešní stav je v historii, kdyby to bylo potřeba vrátit.")
+    if action == "clock":
+        try:
+            off = await asyncio.to_thread(reliax.sntp_offset)
+        except (OSError, ValueError) as e:
+            return ToolResult(False, f"Časový server nedostupný ({e}).")
+        reliax.kv_set(ctx, "rx_clock", str(off))
+        return ToolResult(True, reliax.clock_text(off), data={"offset": off})
+    if action == "phone_backup":
+        from ..photobackup import default_folder
+
+        st = reliax.photo_backup_state(default_folder())
+        return ToolResult(st["ok"], st["why"] or f"Záloha fotek z telefonu funguje ({st['files']} souborů, poslední před {st['days']:g} dny).", data=st)
+    if action == "safe_mode":
+        flag = paths.data_dir() / "SAFE_MODE"
+        if linkx.fold(text) in ("off", "vypni", "konec", "ne", "vypnout"):
+            flag.unlink(missing_ok=True)
+            return ToolResult(True, "Nouzový režim vypnutý – po restartu JARVIS poběží celý.")
+        flag.write_text("JARVIS poběží jen s jádrem, dokud tenhle soubor nesmažeš (nebo neřekneš „vypni nouzový režim“).\n", encoding="utf-8")
+        return ToolResult(True, "Po restartu poběží jen jádro (bez dovedností, MCP a doplňkových smyček). Restartuj JARVISe.")
+    if action == "speed":
+        reliax.speed_record(ctx)
+        weeks = reliax.speed_weeks(ctx)
+        known = [w for w in weeks if w["ms"]]
+        if not known:
+            return ToolResult(True, "Měření rychlosti se teprve sbírá – za týden ukážu první čísla.")
+        trend = known[-1]["ms"] - known[0]["ms"] if len(known) > 1 else 0
+        return ToolResult(True, "Celá odpověď (medián) po týdnech: " + ", ".join(f"{w['week']} {w['ms']} ms" for w in known)
+                          + (f". Trend {'+' if trend >= 0 else ''}{trend} ms." if len(known) > 1 else "."), data={"weeks": weeks})
+    if action == "ups":
+        try:
+            import psutil
+
+            b = psutil.sensors_battery()
+        except Exception:  # noqa: BLE001
+            b = None
+        if b is None:
+            return ToolResult(False, "Windows nevidí žádnou baterii ani UPS (UPS připoj přes USB kabel).")
+        c = reliax.cfg(ctx)
+        return ToolResult(True, f"{'Z UPS' if not b.power_plugged else 'Ze sítě'}, {b.percent:.0f} %." + (
+            f" Vypnu při {c.ups_shutdown_pct} %." if c.ups and c.ups_shutdown_pct else " Hlídání UPS je vypnuté (Nastavení → Spolehlivost)." if not c.ups else ""))
+    if action == "restore_drill":
+        from .files import resolve
+
+        b = resolve(path) if path else None
+        if b is None or not b.is_file():
+            backups = sorted(paths.data_dir().glob("**/*.jarvisvault"), key=lambda p: p.stat().st_mtime)
+            b = backups[-1] if backups else None
+        if b is None:
+            return ToolResult(False, "Nemám zálohu (.jarvisvault) – vytvoř ji v Soukromí → Šifrovaná záloha.")
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            try:
+                r = await asyncio.to_thread(reliax.restore_drill, b, text, Path(td))
+            except Exception as e:  # noqa: BLE001
+                return ToolResult(False, f"Obnova selhala: {reliax.human_reason(e)} (špatné heslo?).")
+        reliax.event(ctx, "restore_drill", b.name, "ok" if r["ok"] else "fail")
+        return ToolResult(r["ok"], f"Nácvik obnovy z {b.name}: {r['files']} souborů, databáze {r['db'] or 'chybí'}, nastavení {r['config'] or 'chybí'}."
+                          + (" Záloha je použitelná." if r["ok"] else " Zálohu raději udělej znovu."), data=r)
+    if action == "integrity":
+        r = await asyncio.to_thread(reliax.integrity, ctx)
+        if r.get("first"):
+            return ToolResult(True, f"Zapamatoval jsem si otisky {r['files']} souborů této verze – příště je porovnám.")
+        return ToolResult(r["ok"], "Soubory JARVISe jsou beze změny." if r["ok"] else
+                          f"Změněno {len(r['changed'])}, chybí {len(r['missing'])}: " + ", ".join((r["changed"] + r["missing"])[:6]), data=r)
+    if action == "stress":
+        r = await reliax.stress(ctx, 300)
+        st = r["stages"]
+        return ToolResult(True, f"{r['n']} povelů za {r['seconds']} s ({r['per_s']}/s). P95: rychlé povely {st['instant']['p95']} ms, výběr nástrojů "
+                                f"{st['pick']['p95']} ms, databáze {st['db']['p95']} ms. Úzké místo: {r['bottleneck']}.", data=r)
+    if action == "config_check":
+        issues = reliax.config_issues(ctx)
+        return ToolResult(True, "\n".join(f"• {i['what']} → {i['fix']}" for i in issues) or "V nastavení jsem nenašel chybu.", data={"issues": issues})
+    today = dt.date.today()
+    last = today.replace(day=1) - dt.timedelta(days=1)
+    r = reliax.month_report(ctx, today.year, today.month) if text.strip() in ("teď", "tento", "now") else reliax.month_report(ctx, last.year, last.month)
+    return ToolResult(True, reliax.month_text(r), data=r)

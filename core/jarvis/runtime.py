@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import sys
 import threading
 import time
@@ -32,6 +33,7 @@ PRESET_LABEL = {"groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", 
 
 
 class Runtime:
+    safe_mode = False                 # 3.20 (446) set at start: JARVIS_SAFE=1 or a SAFE_MODE file in the data folder
     def __init__(self, cfg: config_mod.Config | None = None, *, platform: Platform | None = None,
                  transport: httpx.AsyncBaseTransport | None = None, llm_transport: httpx.AsyncBaseTransport | None = None,
                  persist_config: bool = True):
@@ -211,6 +213,9 @@ class Runtime:
 
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
+        self.safe_mode = os.environ.get("JARVIS_SAFE") == "1" or (paths.data_dir() / "SAFE_MODE").exists()
+        if self.safe_mode:
+            log.warning("safe mode: only the core runs (delete SAFE_MODE in the data folder to leave it)")
         self.bus.bind_loop(self.loop)
         from . import diagnostics
 
@@ -235,138 +240,141 @@ class Runtime:
         from . import netwatch
 
         self._sys_tasks.append(self._later(netwatch.loop(self)))   # OMEGA 708/709/719 (3.13: a little later)
-        from . import focusguard
+        if not self.safe_mode:                              # 3.20 (446) safe mode: only the core – no extra loops, skills, MCP
+            from . import focusguard
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
-        from . import meetings
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
+            from . import meetings
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
-        from . import fsplus
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
+            from . import fsplus
 
-        self._sys_tasks.append(self._later(fsplus.version_loop(self)))   # OMEGA 328
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
-        self._sys_tasks.append(self._later(self.health.run()))          # 3.12 Zdraví PC
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
-        from . import morning
+            self._sys_tasks.append(self._later(fsplus.version_loop(self)))   # OMEGA 328
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
+            self._sys_tasks.append(self._later(self.health.run()))          # 3.12 Zdraví PC
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
+            from . import morning
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
-        self._sys_tasks.append(self._later(self.nightcare.loop()))      # 3.12 Noční údržba
-        from . import habits
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
+            self._sys_tasks.append(self._later(self.nightcare.loop()))      # 3.12 Noční údržba
+            from . import habits
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
-        from . import gamecoach
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
+            from . import gamecoach
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
-        from . import worldwatch
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
+            from . import worldwatch
 
-        self._sys_tasks.append(self._later(worldwatch.loop(self)))                              # 3.13 Přehled o světě
-        from . import bizagents
+            self._sys_tasks.append(self._later(worldwatch.loop(self)))                              # 3.13 Přehled o světě
+            from . import bizagents
 
-        self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti
-        from . import bizevents, bizgoals, bizreport
+            self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti
+            from . import bizevents, bizgoals, bizreport
 
-        self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
-        self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
-        self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
-        try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
-            first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
-            if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
-                self._sys_tasks.append(asyncio.get_running_loop().create_task(self.local.warm(first.model or None)))
-        except Exception as e:  # noqa: BLE001
-            log.debug("warm: %s", e)
-        from . import upkeep
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
-        self._started = True
-        if self.look_watcher.wanted():
-            self.look_watcher.start()
-        from . import house
-
-        try:
-            house.ensure_scenes(self)                                # 3.14 Vítej doma / Kino / Odchod / Spánek
-        except Exception as e:  # noqa: BLE001
-            log.debug("house scenes: %s", e)
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(house.of(self).run()))   # 3.14 home / away, welcome
-        from . import eyes
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(eyes.sounds(self).run()))  # 3.14 sounds of the house (opt-in)
-        from . import safety
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.cameras(self).run()))   # 3.14 cameras, doorbell
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.weekly(self)))         # 3.14 security briefing
-        from . import body
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(body.desk(self).run()))       # 3.14 water, long day, bed, posture
-        from . import parcels, travel
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
-        from . import resmon
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(resmon.loop(self)))           # 3.18 the long run
-        from . import tripcare
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(tripcare.loop(self)))         # 3.18 booked trips
-        from . import memx, proactx
-
-        try:
-            memx.apply_tombstones(self)                     # 3.20 (42) what you asked to forget stays forgotten after a restore
-        except Exception as e:  # noqa: BLE001
-            log.debug("tombstones: %s", e)
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(proactx.loop(self)))          # 3.20 Proaktivita+
-        from . import secx
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(secx.loop(self)))   # 3.20 Bezpečnost+: camera / mic, downloads
-        from . import overlayfx
-
-        self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
-        if sys.platform == "win32":                         # 3.20 keyboard per app, monitor profiles, share ring, taskbar bars
-            from . import pcx
-
-            self._sys_tasks.append(asyncio.get_running_loop().create_task(pcx.desktop_loop(self)))
-        from . import lookx
-
-        if lookx.startup_sound_ok(self) and getattr(self, "speaker", None) is not None:   # 3.20 (120) a short start sound
-            threading.Thread(target=self.speaker._play, args=(lookx.startup_wav(),), daemon=True, name="startup-sound").start()
-        from . import printer3d
-
-        self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
-        from . import prefetch
-
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(prefetch.get(self).run()))    # 3.16 answers ready ahead
-
-        async def _mine_after_update() -> None:                       # 3.17 your own requests checked after an update
-            await asyncio.sleep(60)
-            try:
-                from .evals import mine
-
-                await asyncio.to_thread(mine.after_update, self)
+            self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
+            self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
+            self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
+            try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
+                first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
+                if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
+                    self._sys_tasks.append(asyncio.get_running_loop().create_task(self.local.warm(first.model or None)))
             except Exception as e:  # noqa: BLE001
-                log.debug("mine check: %s", e)
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(_mine_after_update()))
-        from . import lifelog, quests
+                log.debug("warm: %s", e)
+            from . import upkeep
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(quests.loop(self)))           # 3.14 missions over days
-        from . import stats
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
+            self._started = True
+            if self.look_watcher.wanted():
+                self.look_watcher.start()
+            from . import house
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
-        from . import quality
+            try:
+                house.ensure_scenes(self)                                # 3.14 Vítej doma / Kino / Odchod / Spánek
+            except Exception as e:  # noqa: BLE001
+                log.debug("house scenes: %s", e)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(house.of(self).run()))   # 3.14 home / away, welcome
+            from . import eyes
 
-        self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)
-        from . import memplus, proactiveplus
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(eyes.sounds(self).run()))  # 3.14 sounds of the house (opt-in)
+            from . import safety
 
-        self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
-        self._sys_tasks.append(self._later(proactiveplus.evening_loop(self)))   # 3.14 the evening review (58)
-        from . import notchplus
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.cameras(self).run()))   # 3.14 cameras, doorbell
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.weekly(self)))         # 3.14 security briefing
+            from . import body
 
-        self._sys_tasks.append(self._later(self.widgets.loop()))
-        self._sys_tasks.append(self._later(self.loadwatch.loop()))
-        self._sys_tasks.append(self._later(notchplus.Spectrum(self).loop()))   # 3.14 the spectrum of the music (74)
-        from . import selfcheck
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(body.desk(self).run()))       # 3.14 water, long day, bed, posture
+            from . import parcels, travel
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
+            from . import resmon
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(resmon.loop(self)))           # 3.18 the long run
+            from . import tripcare
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(tripcare.loop(self)))         # 3.18 booked trips
+            from . import memx, proactx
+
+            try:
+                memx.apply_tombstones(self)                     # 3.20 (42) what you asked to forget stays forgotten after a restore
+            except Exception as e:  # noqa: BLE001
+                log.debug("tombstones: %s", e)
+            from .reliax import supervise                       # 3.20 (441) a crashed part starts again and you are told why
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(supervise(self, "Proaktivita+", lambda: proactx.loop(self))))
+            from . import secx
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(supervise(self, "Bezpečnost+", lambda: secx.loop(self))))   # 3.20
+            from . import overlayfx
+
+            self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
+            if sys.platform == "win32":                         # 3.20 keyboard per app, monitor profiles, share ring, taskbar bars
+                from . import pcx
+
+                self._sys_tasks.append(asyncio.get_running_loop().create_task(pcx.desktop_loop(self)))
+            from . import lookx
+
+            if lookx.startup_sound_ok(self) and getattr(self, "speaker", None) is not None:   # 3.20 (120) a short start sound
+                threading.Thread(target=self.speaker._play, args=(lookx.startup_wav(),), daemon=True, name="startup-sound").start()
+            from . import printer3d
+
+            self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
+            from . import prefetch
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(prefetch.get(self).run()))    # 3.16 answers ready ahead
+
+            async def _mine_after_update() -> None:                       # 3.17 your own requests checked after an update
+                await asyncio.sleep(60)
+                try:
+                    from .evals import mine
+
+                    await asyncio.to_thread(mine.after_update, self)
+                except Exception as e:  # noqa: BLE001
+                    log.debug("mine check: %s", e)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(_mine_after_update()))
+            from . import lifelog, quests
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(quests.loop(self)))           # 3.14 missions over days
+            from . import stats
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
+            from . import quality
+
+            self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)
+            from . import memplus, proactiveplus
+
+            self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
+            self._sys_tasks.append(self._later(proactiveplus.evening_loop(self)))   # 3.14 the evening review (58)
+            from . import notchplus
+
+            self._sys_tasks.append(self._later(self.widgets.loop()))
+            self._sys_tasks.append(self._later(self.loadwatch.loop()))
+            self._sys_tasks.append(self._later(notchplus.Spectrum(self).loop()))   # 3.14 the spectrum of the music (74)
+            from . import selfcheck
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
         try:
             from .updater import Updater
 
@@ -377,8 +385,9 @@ class Runtime:
         try:
             from .tools.skills import load_all_skills, migrate_existing
 
-            migrate_existing(self)
-            load_all_skills(self.cfg.tools.approved_skills, self.cfg.tools.legacy_skills)
+            if not self.safe_mode:
+                migrate_existing(self)
+                load_all_skills(self.cfg.tools.approved_skills, self.cfg.tools.legacy_skills)
         except Exception as e:  # pragma: no cover
             log.warning("skills: %s", e)
         try:
@@ -395,7 +404,8 @@ class Runtime:
             from .integrations.mcp_client import McpManager
 
             self.mcp = McpManager(self)
-            bg(self.mcp.start())
+            if not self.safe_mode:
+                bg(self.mcp.start())
         except Exception as e:  # pragma: no cover
             log.warning("mcp unavailable: %s", e)
 

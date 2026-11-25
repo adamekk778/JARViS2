@@ -45,11 +45,15 @@ _INDEX: dict[str, tuple[set[str], set[str]]] = {}    # tool name → (stems of i
 
 
 def _index(registry: dict) -> dict:
-    if len(_INDEX) != len(registry) or any(n not in _INDEX for n in list(registry)[:5]):
-        _INDEX.clear()
-        for name, spec in registry.items():
-            _INDEX[name] = (stems(name + " " + spec.category), stems(spec.description))
-    return _INDEX
+    """The stems of every tool, rebuilt when the tools change. Built aside and swapped in one step, so a search running
+    in another thread never sees it half-made (3.20: the stress test found that)."""
+    global _INDEX
+    cur = _INDEX
+    items = list(registry.items())
+    if len(cur) != len(items) or any(n not in cur for n, _ in items[:5]):
+        cur = {name: (stems(name + " " + spec.category), stems(spec.description)) for name, spec in items}
+        _INDEX = cur
+    return cur
 
 
 def _hits(q: set[str], words: set[str]) -> int:
@@ -67,7 +71,7 @@ def search(registry: dict, query: str, limit: int = MAX_FOUND, exclude: set[str]
     if not q:
         return []
     scored = []
-    for name, (head, desc) in _index(registry).items():
+    for name, (head, desc) in list(_index(registry).items()):
         if name in exclude or name == FIND:
             continue
         s = 3 * _hits(q, head) + _hits(q, desc)
