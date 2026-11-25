@@ -21,6 +21,8 @@ import time
 import unicodedata
 from typing import Any
 
+from . import clock
+
 log = logging.getLogger("jarvis.travel")
 
 # IATA → (Czech name, latitude, longitude) – the airports people from Czechia fly to most
@@ -141,7 +143,7 @@ def _date_near(text: str, pos: int, dates: list[tuple[int, dt.date]]) -> dt.date
 
 def parse(text: str, now: dt.datetime | None = None) -> list[dict]:
     """Trips in a booking e-mail: [{kind, number, dep, arr, origin, dest}] (dep/arr local timestamps)."""
-    now = now or dt.datetime.now()
+    now = now or clock.now()
     text = re.sub(r"[ \t ]+", " ", text or "")
     dates = dates_in(text)
     out: list[dict] = []
@@ -409,7 +411,7 @@ async def check_flight(rt: Any, t: dict) -> dict:
 
 
 def briefing_line(rt: Any, now: dt.datetime | None = None) -> str:
-    now = now or dt.datetime.now()
+    now = now or clock.now()
     end = now.replace(hour=23, minute=59).timestamp()
     today = [t for t in upcoming(rt, now.timestamp()) if t["dep"] <= end]
     if not today:

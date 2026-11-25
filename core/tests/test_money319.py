@@ -3,6 +3,10 @@ moves money (twice, the phone, never trusted, never in the background, never aft
 goes out, and a test booking that works only with a test key."""
 from __future__ import annotations
 
+import datetime as dt
+
+import pytest
+
 import json
 import time
 
@@ -11,6 +15,16 @@ from conftest import FakeRouter
 from test_travel318 import CRIT, Lite
 
 from jarvis import booking, connectors, money, secrets, tools, trust
+
+
+@pytest.fixture(autouse=True)
+def _pinned_day():
+    """3.20 the example data (a hotel from 11. 12. 2026…) was written on 24. 11. 2026: the travel parts see that day."""
+    from jarvis import clock
+
+    clock.pin(dt.datetime(2026, 11, 24, 10, 0))
+    yield
+    clock.pin(None)
 
 CNB = """24.11.2026 #227
 země|měna|množství|kód|kurz

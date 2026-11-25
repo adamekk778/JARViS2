@@ -2,6 +2,8 @@
 the phone, a late flight → the hotel, the per diem. Every service answer here is a fake (no network)."""
 from __future__ import annotations
 
+import pytest
+
 import datetime as dt
 import json
 from types import SimpleNamespace
@@ -11,6 +13,16 @@ from conftest import FakeRouter
 from test_travel318 import CRIT, OFFER, Lite
 
 from jarvis import booking, connectors, entryreq, groundtravel, secrets, tools, tripcare
+
+
+@pytest.fixture(autouse=True)
+def _pinned_day():
+    """3.20 the example data (a hotel from 11. 12. 2026…) was written on 24. 11. 2026: the travel parts see that day."""
+    from jarvis import clock
+
+    clock.pin(dt.datetime(2026, 11, 24, 10, 0))
+    yield
+    clock.pin(None)
 
 LOCS = [{"country": "Česká republika", "code": "CZ", "cities": [
     {"id": 10202003, "name": "Praha", "aliases": ["Prague", "Prag"]},

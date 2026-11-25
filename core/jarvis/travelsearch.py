@@ -14,6 +14,7 @@ import re
 import time
 from typing import Any
 from urllib.parse import urlencode
+from . import clock
 
 PROMPT = (
     "Převeď požadavek na cestu do JSON. Dnes je {today} ({weekday}). Odpověz JEN JSON: "
@@ -54,7 +55,7 @@ def _int(v: Any, default: int, lo: int, hi: int) -> int:
 
 def clean(raw: dict, today: dt.date | None = None) -> tuple[dict, list[str]]:
     """The AI's criteria checked: dates real and in the future, numbers numbers; (criteria, what is missing)."""
-    today = today or dt.date.today()
+    today = today or clock.today()
     c: dict[str, Any] = {"kind": raw.get("kind") if raw.get("kind") in ("hotel", "flight", "trip") else "hotel"}
     c["city"] = str(raw.get("city") or "").strip()[:60]
     c["country"] = str(raw.get("country") or "").strip().upper()[:2]
@@ -90,7 +91,7 @@ def clean(raw: dict, today: dt.date | None = None) -> tuple[dict, list[str]]:
 
 
 async def understand(rt: Any, text: str, today: dt.date | None = None) -> tuple[dict, list[str]]:
-    today = today or dt.date.today()
+    today = today or clock.today()
     msgs = [{"role": "system", "content": PROMPT.format(today=today.isoformat(), weekday=WEEKDAYS[today.weekday()])},
             {"role": "user", "content": text[:1500]}]
     out = str(await rt.router.complete(msgs) or "")

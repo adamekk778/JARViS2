@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from . import booking
+from . import clock
 
 log = logging.getLogger("jarvis.tripcare")
 
@@ -133,7 +134,7 @@ def costs(rt: Any, b: dict) -> Path:
         w = csv.writer(f, delimiter=";")
         if new:
             w.writerow(["datum", "co", "kde", "od", "do", "castka", "mena", "cislo"])
-        w.writerow([time.strftime("%Y-%m-%d"), b.get("name", ""), b.get("city", ""), b.get("start", ""), b.get("end", ""),
+        w.writerow([clock.today().isoformat(), b.get("name", ""), b.get("city", ""), b.get("start", ""), b.get("end", ""),
                     f"{b.get('total', 0):.2f}".replace(".", ","), b.get("currency", ""), b.get("ref", "")])
     return p
 
@@ -160,7 +161,7 @@ def _once(rt: Any, bid: int, kind: str) -> bool:
 
 
 async def reminders(rt: Any, now: float | None = None) -> list[str]:
-    now = now or time.time()
+    now = now or clock.now_ts()
     said: list[str] = []
     for b in booking.bookings(rt):
         if b["status"] != "confirmed":
@@ -210,7 +211,7 @@ async def price_watch(rt: Any, transport: Any = None) -> list[str]:
         if b["status"] != "confirmed" or b["provider"] not in ("liteapi", "duffel") or not b["refundable"] or b["kind"] != "hotel":
             continue
         fc = _ts(b.get("free_cancel_until") or "")
-        if fc and fc < time.time():
+        if fc and fc < clock.now_ts():
             continue
         row = rt.db.one("SELECT data FROM bookings WHERE id=?", (b["id"],))
         off = (json.loads(row["data"]) or {}).get("offer", {}) if row else {}
@@ -281,7 +282,7 @@ async def check_watches(rt: Any, search: Any = None) -> list[str]:
     said = []
     for w in watches(rt):
         c = w["criteria"]
-        if (c.get("checkin") or c.get("date") or "9999") < time.strftime("%Y-%m-%d"):
+        if (c.get("checkin") or c.get("date") or "9999") < clock.today().isoformat():
             stop_watch(rt, w["id"])
             continue
         try:
@@ -318,7 +319,7 @@ async def _cheapest(rt: Any, kind: str, c: dict) -> tuple[float, str] | None:
 
 # ------------------------------------------------------------------------------------------ what trips cost
 def spend(rt: Any, year: int | None = None) -> dict:
-    year = year or dt.date.today().year
+    year = year or clock.today().year
     by_month: dict[str, float] = {}
     trips = []
     for r in booking._db(rt).all("SELECT * FROM bookings WHERE status!='cancelled' AND sandbox=0 ORDER BY created"):
@@ -428,7 +429,7 @@ async def _extract(rt: Any, text: str) -> dict | None:
         ci, co = dt.date.fromisoformat(str(d.get("checkin"))[:10]), dt.date.fromisoformat(str(d.get("checkout"))[:10])
     except ValueError:
         return None
-    if co <= ci or (co - ci).days > 60 or co < dt.date.today():
+    if co <= ci or (co - ci).days > 60 or co < clock.today():
         return None
     try:
         total = float(d.get("total") or 0)

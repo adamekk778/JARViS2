@@ -14,6 +14,16 @@ from conftest import FakeRouter
 from jarvis import booking, connectors, livecards, secrets, tools, travelsearch, tripcare, trust
 from jarvis.tools import select
 
+
+@pytest.fixture(autouse=True)
+def _pinned_day():
+    """3.20 the example data (a hotel from 11. 12. 2026…) was written on 24. 11. 2026: the travel parts see that day."""
+    from jarvis import clock
+
+    clock.pin(dt.datetime(2026, 11, 24, 10, 0))
+    yield
+    clock.pin(None)
+
 CRIT = {"kind": "hotel", "city": "Řím", "country": "IT", "checkin": "2026-12-11", "checkout": "2026-12-14", "adults": 2,
         "max_per_night": 150, "currency": "EUR", "near": "centrum", "must": ["snídaně"]}
 HOTELS = {"data": [

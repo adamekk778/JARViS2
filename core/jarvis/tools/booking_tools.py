@@ -11,6 +11,7 @@ import json
 from typing import Annotated, Any
 
 from .base import ToolResult, tool
+from .. import clock
 
 
 def _money(amount: float, cur: str) -> str:
@@ -303,7 +304,7 @@ async def booking_cancel_check(ctx, booking_ref: Annotated[str, "číslo z booki
         return ToolResult(True, f"Při zrušení letu {b['name']} vrátí {q['refund'] or 0} {q['currency'] or b['currency']}. "
                                 "Mám ho zrušit?", data={"booking": b, "quote": q})
     free = b.get("free_cancel_until") or ""
-    if b["refundable"] and free and free > dt.datetime.now().isoformat()[:16]:
+    if b["refundable"] and free and free > clock.now().isoformat()[:16]:
         say = f"{b['name']}: zrušení je zdarma do {travelsearch.fmt_when(free)}."
     elif b["refundable"]:
         say = f"{b['name']}: zrušení zdarma už skončilo – hotel si může vzít poplatek (řekne ho až při zrušení)."
@@ -491,7 +492,7 @@ async def train_search(ctx, src: Annotated[str, "odkud (město)"], dst: Annotate
                        after: Annotated[str, "od kolika hodin HH:MM (prázdné = celý den)"] = "") -> ToolResult:
     from .. import bridges, groundtravel
 
-    day = (date or dt.date.today().isoformat())[:10]
+    day = (date or clock.today().isoformat())[:10]
     try:
         dt.date.fromisoformat(day)
     except ValueError:
@@ -565,7 +566,7 @@ async def travel_allowance(ctx, start: Annotated[str, "začátek YYYY-MM-DDTHH:M
             w = csv.writer(f, delimiter=";")
             if new:
                 w.writerow(["datum", "co", "kde", "od", "do", "castka", "mena", "cislo"])
-            w.writerow([dt.date.today().isoformat(), "stravné", r["country"], start, end, f"{r['total']:.2f}".replace(".", ","),
+            w.writerow([clock.today().isoformat(), "stravné", r["country"], start, end, f"{r['total']:.2f}".replace(".", ","),
                         r["currency"], ""])
     return ToolResult(True, f"Stravné celkem {r['total']:g} {r['currency']} ({days}). Sazby si hlídej podle aktuální vyhlášky."
                       + (" Zapsáno do naklady.csv." if save else ""), data=r)

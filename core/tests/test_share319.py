@@ -2,6 +2,8 @@
 read-only trip link for the family – no price, no booking number, expires after the trip, revocable, always asked."""
 from __future__ import annotations
 
+import pytest
+
 import datetime as dt
 import json
 import time
@@ -10,6 +12,16 @@ from fastapi.testclient import TestClient
 
 from jarvis import booking, tools, tripshare, watchpair
 
+
+
+@pytest.fixture(autouse=True)
+def _pinned_day():
+    """3.20 the example data (a hotel from 11. 12. 2026…) was written on 24. 11. 2026: the travel parts see that day."""
+    from jarvis import clock
+
+    clock.pin(dt.datetime(2026, 11, 24, 10, 0))
+    yield
+    clock.pin(None)
 
 def _hotel(rt, start: str, end: str, **kw):
     b = {"provider": "liteapi", "ref": "BK5", "kind": "hotel", "name": "Hotel Lisboa", "city": "Lisabon", "start": start, "end": end,

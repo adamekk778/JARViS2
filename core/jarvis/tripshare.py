@@ -10,6 +10,7 @@ import json
 import secrets
 import time
 from typing import Any
+from . import clock
 
 SQL = "CREATE TABLE IF NOT EXISTS trip_shares (token TEXT PRIMARY KEY, booking_id INTEGER, until REAL, created REAL, views INTEGER DEFAULT 0)"
 
@@ -26,7 +27,7 @@ def _end_ts(b: dict) -> float:
             return (d + dt.timedelta(days=1)).timestamp()
         except ValueError:
             continue
-    return time.time() + 7 * 86400
+    return clock.now_ts() + 7 * 86400
 
 
 def base_url(rt: Any) -> tuple[str, bool]:
@@ -64,7 +65,7 @@ def stop(rt: Any, booking_id: int | None = None, token: str = "") -> int:
 
 def page(rt: Any, token: str, now: float | None = None) -> str | None:
     """The shared page, or None (unknown or expired link)."""
-    now = now or time.time()
+    now = now or clock.now_ts()
     db = _db(rt)
     db.exec("DELETE FROM trip_shares WHERE until < ?", (now,))
     if not token or len(token) > 64:

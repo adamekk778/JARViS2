@@ -19,6 +19,7 @@ import json
 import logging
 import time
 from typing import Any
+from . import clock
 
 log = logging.getLogger("jarvis.booking")
 
@@ -109,7 +110,7 @@ def _offers(rt: Any) -> dict:
     o = getattr(rt, "travel_offers", None)
     if o is None:
         o = rt.travel_offers = {}
-    now = time.time()
+    now = clock.now_ts()
     for k in [k for k, v in o.items() if now - v.get("found", 0) > OFFER_TTL_S]:
         o.pop(k, None)
     return o
@@ -367,7 +368,7 @@ def to_czk(amount: float, currency: str) -> float:
 
 
 def spent_this_month(rt: Any, now: float | None = None) -> float:
-    t = time.localtime(now or time.time())
+    t = time.localtime(now or clock.now_ts())
     since = time.mktime((t.tm_year, t.tm_mon, 1, 0, 0, 0, 0, 0, -1))
     rows = _db(rt).all("SELECT total, currency FROM bookings WHERE created >= ? AND status != 'cancelled' AND sandbox = 0 "
                        "AND provider != 'email'", (since,))                  # bookings made elsewhere are not JARVIS' budget
@@ -517,7 +518,7 @@ def confirm_text(rt: Any, name: str, args: dict) -> str:
 
 def bookings(rt: Any, include_past: bool = False) -> list[dict]:
     rows = _db(rt).all("SELECT * FROM bookings ORDER BY start")
-    today = time.strftime("%Y-%m-%d")
+    today = clock.today().isoformat()
     out = []
     for r in rows:
         d = dict(r)
@@ -576,7 +577,7 @@ async def drill(rt: Any, transport: Any = None) -> list[dict]:
         except Exception as e:  # noqa: BLE001
             out.append({"step": name, "ok": False, "ms": int((time.monotonic() - t0) * 1000), "detail": str(e)[:200]})
             return None
-    day = dt.date.today() + dt.timedelta(days=30)
+    day = clock.today() + dt.timedelta(days=30)
     g = DRILL_GUEST
     lk, dk = lite_key(), duffel_key()
     if lk and not lk.startswith("sand_"):
