@@ -1,0 +1,15 @@
+/* 3.20 Telefon + Hodinky in the phone app */
+.x-drive { position: fixed; inset: 0; z-index: 90; display: grid; grid-template-rows: auto 1fr 1fr 1fr 1fr; gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: #05080c; }
+.x-drive-title { display: flex; align-items: center; gap: 8px; color: #9fb4c8; font: 600 15px/1.2 system-ui, sans-serif; }
+.x-drive-btn { display: flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-radius: 22px; min-height: 72px;
+  background: #142231; color: #fff; font: 700 24px/1 system-ui, sans-serif; }
+.x-drive-btn i { font-size: 34px; color: #4fc3ff; }
+.x-drive-btn:active { background: #1d3448; }
+.x-pad-shell { position: fixed; inset: 0; z-index: 90; display: grid; grid-template-rows: 1fr auto; background: #05080c; }
+.x-pad { display: grid; place-items: center; margin: 16px; border-radius: 24px; background: #101a25; color: #6f8aa3;
+  font: 500 14px/1.3 system-ui, sans-serif; text-align: center; touch-action: none; user-select: none; }
+.x-pad-bar { display: flex; gap: 8px; padding: 0 16px max(16px, env(safe-area-inset-bottom)); }
+.x-pad-bar .btn { flex: 1; }
+.x-tools .btn.rec { background: #ff3b30; color: #fff; }
+.x-cam { display: block; width: 100%; max-height: 220px; margin-top: 8px; border-radius: 14px; background: #000; object-fit: cover; }

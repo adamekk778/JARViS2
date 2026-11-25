@@ -631,4 +631,8 @@ def prompt_lines(rt: Any, text: str) -> list[str]:
         sp = style_prompt(_kv_get(rt, "writing_style", {}) or {})
         if sp:
             lines.append(sp)
+    if getattr(rt, "driving", False):                  # 3.20 (123) the phone is in the car
+        from .phonex import DRIVE_RULE
+
+        lines.append(DRIVE_RULE)
     return lines

@@ -32,6 +32,11 @@
 .x-timeline .now { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent, #4fc3ff) 55%, transparent); }
 .x-timeline .ev { position: absolute; top: 0; bottom: 0; background: #ffcc00; opacity: .85; min-width: 2px; }
 
+/* (143) the heart rate from the watch while you play */
+.x-hr { position: absolute; right: -44px; top: 50%; translate: 0 -50%; color: #ff6b81; font: 700 11px/1 system-ui, sans-serif; white-space: nowrap; }
+.x-hr.high { color: #ff3b30; animation: x-beat .8s ease-in-out infinite; }
+@keyframes x-beat { 50% { scale: 1.15; } }
+
 /* (115) a second clock */
 .x-clock2 { position: absolute; left: -92px; top: 50%; translate: 0 -50%; color: rgba(255, 255, 255, .78); font: 600 10px/1 system-ui, sans-serif;
   white-space: nowrap; }
@@ -66,5 +71,5 @@
 :root.x-custom-theme { --x-anim: calc(1s / var(--x-anim-speed, 1)); }
 
 @media (prefers-reduced-motion: reduce) {
-  .x-weather, .notch.urgent, .x-photo { animation: none !important; transition: none !important; }
+  .x-weather, .notch.urgent, .x-photo, .x-hr { animation: none !important; transition: none !important; }
 }

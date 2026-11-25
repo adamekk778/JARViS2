@@ -120,6 +120,7 @@ export const SERVER_TYPES = [
   "mem_sync_done", "msg_starred",
   "countdown", "day_timeline", "weather_now", "second_clock", "wallpaper_tasks", "photo_frame", "mochi_action",
   "notch_active",
+  "driving", "hr_now", "vacation",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

@@ -9,6 +9,12 @@ from .base import ToolResult, tool
 @tool("set_timer", "Nastaví časovač (minutka). Ozve se hlasem, v notchi a na telefonu.", category="čas")
 async def set_timer(ctx, seconds: Annotated[int, "délka v sekundách"], label: str = "Časovač") -> ToolResult:
     t = ctx.timers.add(seconds, label)
+    try:
+        from ..phonex import watch_timer
+
+        watch_timer(ctx, seconds, label)              # 3.20 (145) the countdown on the wrist too
+    except Exception:  # noqa: BLE001
+        pass
     m, s = divmod(seconds, 60)
     return ToolResult(True, f"Časovač {label} na {m} min {s} s" if m else f"Časovač {label} na {s} s", data=t)
 

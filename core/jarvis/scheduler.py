@@ -166,6 +166,10 @@ class Scheduler:
                 from .voicex import run_future
 
                 await run_future(self.rt, p)
+            elif job["kind"] == "watch_alarm":      # 3.20 (154) tichý budík na hodinkách
+                from .phonex import run_watch_alarm
+
+                run_watch_alarm(self.rt, p)
             elif job["kind"] == "brain_week":       # 3.20 (39) co se JARVIS za týden naučil
                 from .brainx import learned_text, learned_week
 

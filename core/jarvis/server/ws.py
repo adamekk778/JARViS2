@@ -144,6 +144,7 @@ SERVER_TYPES = [
     "mem_sync_done", "msg_starred",
     "countdown", "day_timeline", "weather_now", "second_clock", "wallpaper_tasks", "photo_frame", "mochi_action",
     "notch_active",
+    "driving", "hr_now", "vacation",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -636,7 +637,7 @@ class Connection:
             pcm, self.audio = bytes(self.audio), bytearray()
             self.spawn(self._transcribe_pcm_and_handle(pcm, self.audio_sr))
         elif t == "voice_upload":
-            self.spawn(self._voice_note(m["attachment_id"]))
+            self.spawn(self._voice_note(m["attachment_id"], bool(m.get("dictate"))))
         elif t == "confirm_response":
             if m.get("approved") and not self.local and rt.cfg.phone.approve_nearby_only and not self._nearby():
                 await self.send("error", message="Schvalovat jde jen z domácí sítě (nastavení Telefon → Schvalovat jen doma).")
@@ -2181,8 +2182,12 @@ class Connection:
         if text:
             await rt.agent.handle(text, [], self._source(voice=True))
 
-    async def _voice_note(self, aid: str) -> None:
+    async def _voice_note(self, aid: str, dictate: bool = False) -> None:
         rt = self.rt
+        if dictate and not self.local and "input" not in set(rt.cfg.phone.allowed):
+            await self.send("error", message="Diktovat do PC smí telefon jen s povolením „Myš a klávesnice“ (na PC: Nastavení → "
+                                             "Telefon → Co smí telefon).")
+            return
         att = await rt.store.ensure(aid)
         if not att:
             return
@@ -2191,6 +2196,9 @@ class Connection:
             await self.send("error", message=att.error or "Nerozuměl jsem nahrávce.")
             return
         rt.bus.publish("transcript", text=text, final=True)
+        if dictate:                         # 3.20 (126) the phone as the PC's microphone: the words go where the cursor is
+            await asyncio.to_thread(rt.platform.type_text, text + " ")
+            return
         await rt.agent.handle(text, [], self._source(voice=True))
 
     async def _voices(self) -> dict:

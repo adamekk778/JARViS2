@@ -310,6 +310,14 @@ public final class JarvisLink {
                 }
                 case "notif_reply":            // 3.12 a reply written in the PC's notch, sent by the message's own app
                     return NotifMirror.reply(c, cmd.optString("key"), cmd.optString("text"));
+                case "dnd":                    // 3.20 (130) Nerušit for sleep / a meeting
+                    return PhoneX.dnd(c, cmd.optBoolean("on"));
+                case "lock_status":            // 3.20 (132, 133) the line on the lock screen + the PC's volume
+                    return PhoneX.lockStatus(c, cmd.optString("line"), cmd.optBoolean("controls", true));
+                case "loc_share":              // 3.20 (139) a time-limited location share (you allow it with a tap)
+                    return PhoneX.locShare(c, cmd.optString("token"), cmd.optInt("minutes"));
+                case "voice_share":            // 3.20 (16) a voice message recorded in JARVIS's voice → WhatsApp
+                    return PhoneX.voiceShare(c, cmd, foreground);
                 default:
                     return "unknown";
             }
@@ -388,12 +396,16 @@ public final class JarvisLink {
         for (int k = 0; k < acts.length() && k < 3; k++) {
             JSONObject a = acts.optJSONObject(k);
             if (a == null) continue;
+            boolean input = a.optBoolean("input", false) && Build.VERSION.SDK_INT >= 24;   // 3.20 (140) typed right here
             Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", a.optString("action"))
                     .putExtra("notice_args", String.valueOf(a.optJSONObject("args") == null ? "{}" : a.optJSONObject("args")))
-                    .putExtra("nid", nid);
-            PendingIntent ap = PendingIntent.getBroadcast(c, nid * 4 + k, i, piFlags());
-            b.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_send),
-                    a.optString("label", "Ok"), ap).build());
+                    .putExtra("nid", nid).putExtra("reply", input);
+            int fl = input ? PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0) : piFlags();
+            PendingIntent ap = PendingIntent.getBroadcast(c, nid * 4 + k, i, fl);
+            Notification.Action.Builder ab = new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c,
+                    input ? android.R.drawable.ic_menu_edit : android.R.drawable.ic_menu_send), a.optString("label", "Ok"), ap);
+            if (input) ab.addRemoteInput(new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš…").build());
+            b.addAction(ab.build());
         }
         addReply(c, b, nid, quick);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
@@ -564,7 +576,7 @@ public final class JarvisLink {
 
     static JSONArray poll(Context c) throws Exception {
         // 3.12 battery: one request every 50 s while nothing happens (a command still arrives at once)
-        String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c), null, 65000);
+        String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c) + PhoneX.extraQuery(c), null, 65000);
         return new JSONObject(body).optJSONArray("commands");
     }
 }

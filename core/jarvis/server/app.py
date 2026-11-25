@@ -275,6 +275,9 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     from . import callroutes
 
     callroutes.register(app, rt)             # 3.14 AI sekretářka + calls for you (Twilio webhooks, signed)
+    from . import phoneroutes
+
+    phoneroutes.register(app, rt, require_auth)   # 3.20 Telefon + Hodinky (121–160)
 
     @app.get("/wallpaper")
     async def wallpaper():                  # 3.15 the live wallpaper behind the desktop icons
@@ -374,10 +377,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     # ---------- 3.4 the phone app's background link ----------
     @app.get("/api/phone/poll")
-    async def phone_poll(request: Request, wait: float = 25.0, battery: int | None = None, charging: int = 0):
+    async def phone_poll(request: Request, wait: float = 25.0, battery: int | None = None, charging: int = 0,
+                         country: str = "", mdata: int | None = None):
         require_auth(request)
+        from .. import phonex
+
         if battery is not None:
             rt.phone.on_battery(battery, bool(charging))
+            try:
+                await phonex.on_battery(rt, battery, bool(charging))     # 3.20 (125, 137) 80 % and the cheap hour
+            except Exception:  # noqa: BLE001
+                pass
+        phonex.on_poll(rt, request.client.host if request.client else "", country, mdata)   # 3.20 (127, 128, 134)
         return {"commands": await rt.phone.poll(max(0.0, min(wait, 50.0)))}
 
     @app.post("/api/phone/event")
@@ -393,6 +404,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
                 raise HTTPException(400, "Špatná hodnota baterie")
         elif kind in ("headphones", "dnd"):          # 3.13 headphones on the phone, Do Not Disturb
             rt.phone.on_device(kind, bool(body.get("on")), str(body.get("name") or ""))
+            if kind == "headphones":
+                from .. import phonex
+
+                phonex.on_bt(rt, str(body.get("name") or ""), bool(body.get("on")))   # 3.20 (123) the car → driving mode
+        elif kind == "nfc":                           # 3.20 (121) a JARVIS NFC tag
+            from .. import phonex
+
+            return {"ok": True, "message": await phonex.on_nfc(rt, str(body.get("tag") or ""))}
+        elif kind == "call_end":                      # 3.20 (140) a call ended → "a note to it?"
+            from .. import phonex
+
+            phonex.on_call_end(rt, str(body.get("who") or ""))
         return {"ok": True}
 
     # 3.18 Hodinky Wear OS: pair with the 6-digit code from the PC, then ask by voice and show a status on the tile
@@ -428,7 +451,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         from .. import watchpair
 
         require_auth(request)
-        return watchpair.status(rt)
+        from .. import phonex
+
+        phonex.seen(rt, "watch", request.client.host if request.client else "")
+        return {**watchpair.status(rt), "complication": phonex.complication(rt)}
 
     @app.post("/api/phone/notice_action")
     async def phone_notice_action(request: Request):
@@ -436,7 +462,7 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         require_auth(request)
         body = await request.json()
         act = str(body.get("action") or "")
-        if act not in ("break_snooze", "timer_more", "game_tip", "ask", "mute_kind", "device_revoke"):     # 3.14 "Odpovědět", "Nezajímá mě"
+        if act not in ("break_snooze", "timer_more", "game_tip", "ask", "mute_kind", "device_revoke", "call_note"):     # 3.14 "Odpovědět", "Nezajímá mě"
             raise HTTPException(400, "Neznámá akce")
         args = body.get("args") if isinstance(body.get("args"), dict) else {}
         res = await rt.notice_action(act, {**args, "from_phone": True})

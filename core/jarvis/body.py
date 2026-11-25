@@ -287,6 +287,9 @@ class DeskCare:
 
         if stretch_due(self.rt, self.work_run / 60):        # 3.20 (112) 90 minutes in a row: Mochi stretches
             self.rt.bus.publish_threadsafe("mochi_action", action="stretch")
+            from .phonex import watch_tap
+
+            self.rt.call_soon(lambda: watch_tap(self.rt, "sit", "Sedíš 90 minut – protáhni se."))   # (146) two soft taps
         if idle >= BREAK_IDLE_S:
             self.last_water = max(self.last_water, now - idle)     # away from the PC: maybe you drank, count from then
         out = []

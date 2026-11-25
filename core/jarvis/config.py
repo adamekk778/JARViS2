@@ -811,6 +811,26 @@ class DayCfg(BaseModel):
     vacation_until: str = ""           # "YYYY-MM-DD": on holiday until then (the morning summary changes)
 
 
+class MobxCfg(BaseModel):
+    """3.20 Telefon + Hodinky (121–160): what the phone and the watch do with JARVIS (each can be switched off)."""
+    watch_vibes: bool = True           # notices as vibration codes on the wrist when you are away from the PC
+    name_mentions: bool = True         # a group message names you → three quick taps
+    forgotten_phone: bool = True       # the watch is out, the phone still at home → "Telefon zůstal doma"
+    drive_mode: bool = True            # the phone joins the car's Bluetooth → short spoken answers, nothing to read
+    car_names: list[str] = Field(default_factory=list)   # your car's Bluetooth names ("" = guess from the usual ones)
+    quiet_sleep: str = ""              # "23:00-07:00" → the phone's Do Not Disturb at night ("" = off)
+    quiet_meetings: bool = False       # Do Not Disturb during calendar meetings
+    lock_status: bool = False          # a quiet notification on the lock screen: the next meeting + PC volume buttons
+    roaming_info: bool = True          # another country → roaming, currency, plugs, the emergency number
+    home_country: str = "cz"
+    data_limit_gb: float = 0           # mobile data per month (0 = no warnings)
+    charge_limit: int = 80             # "nabito na 80 %" (0 = off)
+    charger_plug: str = ""             # Home Assistant switch of the phone charger (switch.nabijecka) – optional
+    cheap_charging: bool = True        # with the plug: an evening charge waits for the cheapest hour
+    call_notes: bool = True            # after a call: "Chceš si k hovoru něco poznamenat?"
+    my_names: list[str] = Field(default_factory=list)    # short forms of your name for the mention taps
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -865,6 +885,7 @@ class Config(BaseModel):
     health: HealthCfg = Field(default_factory=HealthCfg)
     day: DayCfg = Field(default_factory=DayCfg)
     pc: PcCfg = Field(default_factory=PcCfg)
+    mobx: MobxCfg = Field(default_factory=MobxCfg)
 
     @model_validator(mode="before")
     @classmethod

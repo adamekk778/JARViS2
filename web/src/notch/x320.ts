@@ -79,6 +79,22 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
   });
   window.setInterval(paintCount, 1000);
 
+  // (143) ♥ the heart rate from the watch while you play (gone 20 s after the last sample)
+  const hr = document.createElement("div");
+  hr.className = "x-hr";
+  hr.hidden = true;
+  shape.append(hr);
+  let hrTimer = 0;
+  client.on("hr_now", (m) => {
+    const bpm = Number(m.bpm) || 0;
+    if (!bpm) return;
+    hr.textContent = `♥ ${bpm}`;
+    hr.classList.toggle("high", bpm >= 140);
+    hr.hidden = false;
+    window.clearTimeout(hrTimer);
+    hrTimer = window.setTimeout(() => { hr.hidden = true; }, 20_000);
+  });
+
   // ---------- (108) weather scene, (111) the day's timeline, (115) a second clock
   const scene = h("div", { class: "x-weather", "aria-hidden": "true" });
   const line = h("div", { class: "x-timeline", "aria-hidden": "true" }, h("i", { class: "now" }));

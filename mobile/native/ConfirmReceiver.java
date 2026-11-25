@@ -24,7 +24,9 @@ public class ConfirmReceiver extends BroadcastReceiver {
                 android.os.Bundle in = android.app.RemoteInput.getResultsFromIntent(i);
                 CharSequence typed = in == null ? null : in.getCharSequence(JarvisLink.REPLY_KEY);
                 if (typed == null || typed.toString().trim().isEmpty()) return;
-                try { a0 = new JSONObject().put("text", typed.toString().trim()).toString(); } catch (Exception e) { return; }
+                try {      // 3.20 the typed text joins the button's own args (a call note keeps who it was for)
+                    a0 = new JSONObject(a0 == null ? "{}" : a0).put("text", typed.toString().trim()).toString();
+                } catch (Exception e) { return; }
             }
             final String args = a0;
             final PendingResult pr = goAsync();

@@ -23,6 +23,7 @@ import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } fro
 import { habitsGlance, habitsView } from "./habits";
 import { createAgentsView } from "../shared/agentsview";
 import { hapticTouch, sosScreen, splash } from "./cinema";
+import { drivingMode, phoneToolsCard } from "./x320";
 import "./polish.css";              // 3.13 the phone in the same airy look as the PC (loaded last)
 splash();                           // 3.15 the reactor powers up when the app opens
 hapticTouch();                      // 3.15 a light tap under the finger on the main buttons
@@ -236,6 +237,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const clock = phoneClock(c);
   views.home.prepend(clock.el, companyCard(c), approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
+  // 3.20 (123) the phone joined the car's Bluetooth: big buttons, everything by voice
+  drivingMode(c, () => { if (native.phone.available) void native.phone.voiceOpen(); else toast("Podrž tlačítko Mluvit na Ovládání.", "info"); });
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   // 3.14 Agenti on the phone: on Domů while agents work (stop one, write to one, the play wallet); in Více always, with
   // the ready-made teams to start from the phone
@@ -864,6 +867,7 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
         + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
     pcStatusCard(c),
+    phoneToolsCard(c),                 // 3.20 touchpad, dictation into the PC, scan to PDF, webcam
     clipHistoryCard(c),
     pcFilesCard(c),
     lanSpeedCard(c),

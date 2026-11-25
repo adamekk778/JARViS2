@@ -11,7 +11,7 @@ import { h, icon } from "../shared/dom";
 import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { kioskMode } from "./kiosk";
-import { isAvatar, isObs, mountAvatar, mountObs } from "./x320";
+import { isAvatar, isGlasses, isObs, mountAvatar, mountGlasses, mountObs } from "./x320";
 import { worldMap } from "./worldmap";
 import { modelViewer } from "./modelview";
 import { at, onTier } from "../shared/motion";
@@ -224,6 +224,7 @@ const saver = screensaver(root, (gh) => mountGlobe(gh));
 kioskMode(root, saver);                // 3.14 the wall display (only with ?kiosk=1)
 if (isObs()) mountObs(client, root);   // 3.20 (114) the see-through OBS overlay (?obs=1)
 if (isAvatar()) void mountAvatar(client, root);   // 3.20 (117) the 3D character instead of the notch (?avatar=1)
+if (isGlasses()) mountGlasses(client, root);      // 3.20 (159) captions for smart glasses (?glasses=1)
 root.append(telemetry(() => lastSys));
 parallax(root);
 const orbit = toolOrbit(rx);

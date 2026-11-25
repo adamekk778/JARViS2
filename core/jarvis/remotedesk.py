@@ -97,6 +97,15 @@ class RemoteDesk:
         elif kind == "move":
             x, y = self._xy(m)
             await asyncio.to_thread(p.move, x, y)
+        elif kind == "rel":                       # 3.20 (124) the phone as a touchpad: move by dx, dy pixels
+            pos = p.cursor_pos() or (0, 0)
+            w, h = p.screen_size()
+            dx = max(-400, min(400, int(float(m.get("dx", 0)))))
+            dy = max(-400, min(400, int(float(m.get("dy", 0)))))
+            await asyncio.to_thread(p.move, min(max(pos[0] + dx, 0), w - 1), min(max(pos[1] + dy, 0), h - 1))
+        elif kind in ("click_here", "right_here", "double_here"):   # a tap on the touchpad: where the cursor is
+            pos = p.cursor_pos() or (0, 0)
+            await asyncio.to_thread(p.click, pos[0], pos[1], "right" if kind == "right_here" else "left", kind == "double_here")
         elif kind == "drag":
             x1, y1 = self._xy({"x": m.get("x1"), "y": m.get("y1")})
             x2, y2 = self._xy({"x": m.get("x2"), "y": m.get("y2")})

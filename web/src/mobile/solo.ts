@@ -8,6 +8,7 @@ import { h, icon, toast } from "../shared/dom";
 import { renderMarkdown, wireCodeCopy } from "../shared/markdown";
 import { native } from "./native";
 import { queueForPc } from "./offline";
+import { offlineRule } from "./x320";
 import "./solo.css";
 
 type Pid = "groq" | "gemini" | "cerebras" | "openrouter" | "nvidia" | "mistral" | "github";
@@ -181,6 +182,19 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   async function submit() {
     const text = input.value.trim();
     if (!text || busy) return;
+    const local = offlineRule(text);              // 3.20 (129) a timer, an alarm, a note… the phone does by itself, no AI
+    if (local) {
+      input.value = "";
+      hist.push({ role: "user", text, at: Date.now() / 1000 });
+      try { await local.run?.(); } catch { /* shown below anyway */ }
+      if (/^(poznámk|zapiš|poznamenej)/i.test(text)) queueForPc(text);
+      hist.push({ role: "assistant", text: local.reply, at: Date.now() / 1000 });
+      hist = hist.slice(-MAX_HIST);
+      save(HIST, hist);
+      paint(true);
+      native.haptic();
+      return;
+    }
     const key = await getKey(provider);
     if (!key) { setup(); return; }
     busy = true; send.disabled = true;

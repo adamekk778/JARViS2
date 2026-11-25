@@ -1,7 +1,10 @@
 package cz.adamekk.jarvis.wear;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -93,16 +96,62 @@ public class MainActivity extends Activity {
         ask.setText("Zeptat se");
         ask.setOnClickListener(v -> listen());
         answer = text(Api.prefs(this).getString("status", "Ťukni a zeptej se JARVISe."), 14);
-        Button unpair = new Button(this);
-        unpair.setText("Odpárovat");
-        unpair.setOnClickListener(v -> { Api.prefs(this).edit().remove("token").remove("base").apply(); showPair(); });
         l.addView(ask);
         l.addView(answer);
+        // 3.20 Telefon + Hodinky (141–160)
+        l.addView(open("Ovládání PC", new Intent(this, ToolsActivity.class)));
+        l.addView(open("Prezentace", new Intent(this, ToolsActivity.class).putExtra("presenter", true)));
+        l.addView(open("Běh s tempem", new Intent(this, RunActivity.class).putExtra("kind", "run")));
+        l.addView(open("Trénink", new Intent(this, RunActivity.class).putExtra("kind", "gym")));
+        l.addView(open("Navigace", new Intent(this, NavActivity.class)));
+        l.addView(toggle("Spojení s PC (vibrace)", "link", null));
+        l.addView(toggle("Posílat tep", "hr", Manifest.permission.BODY_SENSORS));
+        l.addView(toggle("Hlídat pád", "fall", null));
+        Button unpair = new Button(this);
+        unpair.setText("Odpárovat");
+        unpair.setOnClickListener(v -> {
+            Api.prefs(this).edit().remove("token").remove("base").putBoolean("link", false).apply();
+            WatchService.stop(this);
+            showPair();
+        });
         l.addView(unpair);
         ScrollView sv = new ScrollView(this);
         sv.addView(l);
         setContentView(sv);
-        if (getIntent() != null && getIntent().getBooleanExtra("ask", false)) listen();
+        if (Api.prefs(this).getBoolean("link", false) && !WatchService.running) WatchService.start(this);
+        Intent in = getIntent();
+        String act = in == null ? null : in.getAction();
+        // (158) the watch's assistant gesture / "ask JARVIS" opens straight into listening
+        if (in != null && (in.getBooleanExtra("ask", false) || Intent.ACTION_ASSIST.equals(act) || Intent.ACTION_VOICE_COMMAND.equals(act)
+                || "android.intent.action.VOICE_ASSIST".equals(act))) listen();
+    }
+
+    private Button open(String label, Intent target) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setOnClickListener(v -> startActivity(target));
+        return b;
+    }
+
+    /** A switch kept in the watch's settings; "Spojení s PC" starts the background link (a notification shows it). */
+    private Button toggle(String label, String key, String perm) {
+        Button b = new Button(this);
+        Runnable paint = () -> b.setText(label + (Api.prefs(this).getBoolean(key, false) ? ": zapnuto" : ": vypnuto"));
+        paint.run();
+        b.setOnClickListener(v -> {
+            boolean on = !Api.prefs(this).getBoolean(key, false);
+            if (on && perm != null && checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{perm}, 3);
+            }
+            if (on && Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 4);
+            }
+            Api.prefs(this).edit().putBoolean(key, on).apply();
+            if ("link".equals(key) && !on) WatchService.stop(this);
+            else if (Api.prefs(this).getBoolean("link", false)) WatchService.start(this);      // restart with the new sensors
+            paint.run();
+        });
+        return b;
     }
 
     private void listen() {

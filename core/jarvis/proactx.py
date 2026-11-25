@@ -230,7 +230,13 @@ def laundry_window(rt: Any, day: dt.date | None = None) -> str:
 def water_minutes(rt: Any, mins: int) -> int:
     mx = today_max(rt)
     if mins and mx is not None and mx >= 28:
-        return max(20, int(mins * 0.66))
+        mins = max(20, int(mins * 0.66))
+    if mins:
+        from .phonex import activity_factor                 # 3.20 (156) after a workout / a high heart rate: more often
+
+        f = activity_factor(rt)
+        if f < 1:
+            mins = max(15, int(mins * f))
     return mins
 
 
@@ -763,6 +769,12 @@ async def loop(rt: Any) -> None:
             await tick(rt)
         except Exception as e:  # noqa: BLE001
             log.warning("proactx tick: %s", e)
+        try:
+            from . import phonex
+
+            await phonex.tick(rt)                      # 3.20 Telefon + Hodinky: forgotten phone, Do Not Disturb, lock screen, plug
+        except Exception as e:  # noqa: BLE001
+            log.debug("phonex tick: %s", e)
         try:
             await lookx.tick(rt)                       # 3.20 Vzhled+: countdown, timeline, weather, photo, wallpaper tasks
         except Exception as e:  # noqa: BLE001

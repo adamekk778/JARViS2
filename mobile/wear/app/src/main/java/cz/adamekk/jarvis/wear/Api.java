@@ -56,6 +56,28 @@ final class Api {
         return line;
     }
 
+    // ---------- 3.20 Telefon + Hodinky (141–160)
+    static String get(Context c, String path, int timeoutMs) throws Exception {
+        return request(prefs(c).getString("base", "") + path, "GET", null, prefs(c).getString("token", ""), timeoutMs);
+    }
+
+    static JSONObject post(Context c, String path, JSONObject body, int timeoutMs) throws Exception {
+        return new JSONObject(request(prefs(c).getString("base", "") + path, "POST", body.toString(), prefs(c).getString("token", ""),
+                timeoutMs));
+    }
+
+    /** The long-poll: vibration codes, timers, routes, the silent alarm, "find the watch" (waits up to 50 s). */
+    static org.json.JSONArray events(Context c) throws Exception {
+        JSONObject r = new JSONObject(get(c, "/api/watch/events?wait=50", 65000));
+        org.json.JSONArray a = r.optJSONArray("events");
+        return a == null ? new org.json.JSONArray() : a;
+    }
+
+    /** PC controls from the wrist: mute, lock, vol_up, vol_down, play_pause, next, prev, next_slide, prev_slide… */
+    static String action(Context c, String action) throws Exception {
+        return post(c, "/api/watch/action", new JSONObject().put("action", action), 10000).optString("message", "Hotovo.");
+    }
+
     private static String request(String url, String method, String body, String token, int timeoutMs) throws Exception {
         HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
         h.setRequestMethod(method);

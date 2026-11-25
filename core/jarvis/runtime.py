@@ -596,6 +596,14 @@ class Runtime:
                 else:
                     self.submit(self.agent.handle(text, [], "chat"))
             return None
+        if act == "call_note":                    # 3.20 (140) a note to the call that just ended, typed in the notification
+            from . import phonex
+
+            try:
+                phonex.save_call_note(self, str(args.get("who") or ""), str(args.get("text") or ""))
+            except ValueError as e:
+                return False, str(e)
+            return True, "Poznámku k hovoru jsem uložil."
         if act == "emergency_ok":                 # 3.14 návrh 39: "Jsem v pořádku" under the emergency question
             from . import safety
 
@@ -719,6 +727,13 @@ class Runtime:
                          urgent=bool(urgent) and getattr(self.cfg.notch, "urgent_red", True))   # 3.20 (102) red only when urgent
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
+        if target == "all":                              # 3.20 (141) the wrist taps the notice's code when you are away
+            try:
+                from .phonex import on_notice
+
+                on_notice(self, title, body, kind, urgent)
+            except Exception as e:  # noqa: BLE001
+                log.debug("watch notice: %s", e)
         if (target == "mobile" or (target == "all" and self.user_away())) and getattr(self, "loop", None) is not None:
             from . import webpush                        # 3.18 the iPhone (the web app on its home screen)
 

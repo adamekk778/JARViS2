@@ -9,6 +9,36 @@ const q = new URLSearchParams(location.search);
 
 export function isObs(): boolean { return q.get("obs") === "1"; }
 export function isAvatar(): boolean { return q.get("avatar") === "1"; }
+export function isGlasses(): boolean { return q.get("glasses") === "1"; }
+
+/** 3.20 (159) ?glasses=1 – captions for smart glasses / a HUD browser: big white text on black (black = see-through on
+ *  most glasses), only the last line you said and JARVIS's answer, nothing else. */
+export function mountGlasses(client: Client, hide: HTMLElement): void {
+  hide.style.display = "none";
+  document.documentElement.classList.add("glasses");
+  document.body.style.background = "#000";
+  const said = document.createElement("div");
+  said.className = "gl-said";
+  const ans = document.createElement("div");
+  ans.className = "gl-ans";
+  const st = document.createElement("div");
+  st.className = "gl-state";
+  document.body.append(st, said, ans);
+  let answer = "";
+  const tail = (t: string, n: number) => (t.length > n ? "…" + t.slice(-n) : t);
+  client.on("state", (m) => { st.textContent = STATE_TEXT[m.state] ?? ""; });
+  client.on("transcript", (m) => { if (m.text) said.textContent = tail(String(m.text), 90); });
+  client.on("user_message", (m) => { said.textContent = tail(String(m.text || ""), 90); answer = ""; ans.textContent = ""; });
+  client.on("assistant_delta", (m) => { answer += m.text; ans.textContent = tail(answer.replace(/[#*_`>|]/g, ""), 160); });
+  client.on("assistant_done", (m) => { answer = String(m.text || answer); ans.textContent = tail(answer.replace(/[#*_`>|]/g, ""), 160); });
+  const style = document.createElement("style");
+  style.textContent = `
+    html.glasses,html.glasses body{background:#000;margin:0;height:100%;overflow:hidden}
+    .gl-state{position:fixed;top:4vh;left:5vw;color:#4fc3ff;font:700 3.2vh/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+    .gl-said{position:fixed;left:5vw;right:5vw;top:12vh;color:#9fb4c8;font:600 4.2vh/1.25 system-ui,sans-serif}
+    .gl-ans{position:fixed;left:5vw;right:5vw;bottom:8vh;color:#fff;font:700 6vh/1.2 system-ui,sans-serif}`;
+  document.head.append(style);
+}
 
 const STATE_TEXT: Record<string, string> = { listening: "Poslouchám", thinking: "Přemýšlím", acting: "Pracuji", speaking: "Mluvím", idle: "" };
 
