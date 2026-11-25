@@ -28,7 +28,7 @@ jobs:
       - uses: actions/configure-pages@v5
       - name: Docs website (3.20)
         run: python3 packaging/build_docs.py
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with: { path: site }
       - id: deploy
         uses: actions/deploy-pages@v4
