@@ -102,18 +102,20 @@ def test_docx_translate_pptx_sign(tmp_path):
 
     assert len(Presentation(str(pp)).slides) == 3
     from PIL import Image
-    from reportlab.pdfgen import canvas
+    from pypdf import PdfWriter
 
     pdf = tmp_path / "doc.pdf"
-    c = canvas.Canvas(str(pdf))
-    c.drawString(100, 700, "Smlouva")
-    c.save()
+    wr = PdfWriter()
+    wr.add_blank_page(595, 842)
+    with open(pdf, "wb") as fh:
+        wr.write(fh)
     sig = tmp_path / "sig.png"
     Image.new("RGBA", (300, 100), (0, 0, 255, 255)).save(sig)
     signed = workx.sign_pdf(pdf, sig, tmp_path / "signed.pdf")
     from pypdf import PdfReader
 
-    assert "Podepsano" in PdfReader(str(signed)).pages[0].extract_text()
+    page = PdfReader(str(signed)).pages[0]
+    assert "Podepsano" in page.extract_text() and "/XObject" in str(page["/Resources"])
 
 
 def test_merge_slots_board_faq_eod(rt):

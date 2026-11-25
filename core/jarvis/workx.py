@@ -333,28 +333,57 @@ def parse_outline(text: str) -> list[dict]:
     return out
 
 
+def overlay_pdf(w: float, h: float, signature_png: Path, x: float, y: float, width: float, label: str) -> bytes:
+    """One PDF page (w×h points) with the signature picture (transparency kept) and a line of text under it – built by
+    hand, so no PDF drawing library is needed."""
+    import zlib
+
+    from PIL import Image
+
+    im = Image.open(signature_png).convert("RGBA")
+    iw, ih = im.size
+    height = width * ih / iw
+    rgb = zlib.compress(im.convert("RGB").tobytes())
+    alpha = zlib.compress(im.getchannel("A").tobytes())
+    safe = label.replace("\\", "").replace("(", "").replace(")", "")
+    content = (f"q {width:.2f} 0 0 {height:.2f} {x:.2f} {y:.2f} cm /Im0 Do Q "
+               f"BT /F1 8 Tf {x:.2f} {y - 10:.2f} Td ({safe}) Tj ET").encode("latin-1", "replace")
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w:.2f} {h:.2f}] /Resources << /XObject << /Im0 4 0 R >> "
+        f"/Font << /F1 6 0 R >> >> /Contents 7 0 R >>".encode(),
+        f"<< /Type /XObject /Subtype /Image /Width {iw} /Height {ih} /ColorSpace /DeviceRGB /BitsPerComponent 8 "
+        f"/Filter /FlateDecode /SMask 5 0 R /Length {len(rgb)} >>\nstream\n".encode() + rgb + b"\nendstream",
+        f"<< /Type /XObject /Subtype /Image /Width {iw} /Height {ih} /ColorSpace /DeviceGray /BitsPerComponent 8 "
+        f"/Filter /FlateDecode /Length {len(alpha)} >>\nstream\n".encode() + alpha + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        f"<< /Length {len(content)} >>\nstream\n".encode() + content + b"\nendstream",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for i, o in enumerate(objs, 1):
+        offsets.append(len(out))
+        out += f"{i} 0 obj\n".encode() + o + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode()
+    out += b"".join(f"{off:010d} 00000 n \n".encode() for off in offsets)
+    out += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    return bytes(out)
+
+
 def sign_pdf(src: Path, signature_png: Path, dst: Path, page: int = -1, x: float = 380, y: float = 60, width: float = 160) -> Path:
     """A picture of your signature stamped on a page (a visual signature; a qualified electronic one needs a certificate)."""
     import io
 
     from pypdf import PdfReader, PdfWriter
-    from reportlab.lib.utils import ImageReader
-    from reportlab.pdfgen import canvas
 
     writer = PdfWriter(clone_from=str(src))
     idx = page if page >= 0 else len(writer.pages) + page
-    img = ImageReader(str(signature_png))
-    iw, ih = img.getSize()
     pg = writer.pages[idx]
     w, h = float(pg.mediabox.width), float(pg.mediabox.height)
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=(w, h))
-    c.drawImage(img, x, y, width=width, height=width * ih / iw, mask="auto")
-    c.setFont("Helvetica", 8)
-    c.drawString(x, y - 10, f"Podepsano {dt.date.today():%d. %m. %Y}")
-    c.save()
-    buf.seek(0)
-    pg.merge_page(PdfReader(buf).pages[0])
+    stamp = overlay_pdf(w, h, signature_png, x, y, width, f"Podepsano {dt.date.today():%d. %m. %Y}")
+    pg.merge_page(PdfReader(io.BytesIO(stamp)).pages[0])
     with open(dst, "wb") as f:
         writer.write(f)
     return dst
