@@ -10,7 +10,8 @@ Co se opravdu spustilo a s jakým výsledkem. Neověřené věci jsou uvedené z
   hodinek přeložená proti knihovnám Androidu. Stres test našel a opravil souběh ve výběru nástrojů. Kontrola notche na
   skutečném Windows v CI našla tenký rámeček kolem karty s oznámením (sezónní odstín, červená pro naléhavé, časová osa
   a počasí kreslily na hranatý box místo do zaobleného tvaru) – opraveno a hlídá to `web/tests/unit/notchbox.test.ts`;
-  podpis PDF už nepotřebuje reportlab, který v závislostech chyběl.
+  podpis PDF už nepotřebuje reportlab, který v závislostech chyběl. CI běh 315 celý zelený: testy na Linuxu i Windows,
+  notch na skutečném Windows, instalátor, Android s emulátorem, Wear OS, web a kontrola UI.
 - **413 testů prošlo** (0 selhalo) – stav k release v3.6.47. Nové pro OMEGA:
   - `tests/test_omega.py` – mise „stav PC“ end-to-end (plán 4 kroky, 5 kritérií, artefakt se SHA-256, 11 důkazů
     měření + 5 důkazů ověření, stav `verifying` → `done`); ověření odhalí změněný soubor; Windows sonda obsahuje
