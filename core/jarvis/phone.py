@@ -200,6 +200,12 @@ class PhoneLink:
             on_message(self.rt, item)                 # 3.20 (144) your name in a group chat → taps on the wrist
         except Exception:  # noqa: BLE001
             pass
+        try:
+            from .secx import on_message as scam
+
+            scam(self.rt, item)                       # 3.20 (186, 188) "doplaťte clo…" → a warning on the phone
+        except Exception:  # noqa: BLE001
+            pass
         if cfg.announce and (item["messaging"] or item["call"]):
             if item["call"]:
                 body = f"Volá vám {item['title'] or 'někdo'}."

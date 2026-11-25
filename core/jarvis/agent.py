@@ -182,6 +182,7 @@ class Agent(FastPaths):
     def confirm(self, cid: str, approved: bool) -> bool:
         fut = self._confirms.get(cid)
         if fut and not fut.done():
+            agent_x320.audit_confirm(self.rt, self.confirm_info.get(cid), bool(approved))     # 3.20 (194)
             fut.set_result(bool(approved))
             self.rt.bus.publish("confirm_resolved", id=cid, approved=bool(approved))
             return True
@@ -288,15 +289,16 @@ class Agent(FastPaths):
                 desc = real + (f" ({why})" if why else "")
         if second:
             desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
+        desc, otp = await agent_x320.confirm_extras(self.rt, call, desc)       # 3.20 (189) a second model, (196) YubiKey
         spec = tools.REGISTRY.get(call.name)
         details = await asyncio.to_thread(tools.details_for, spec, call.arguments, self.rt) if spec else []
         self.confirm_info[cid] = {"id": cid, "description": desc, "tool": call.name, "details": details, "ts": time.time(),
-                                  "second": second}
+                                  "second": second, "otp": otp}
         # pending only from the moment the request is announced (details are prepared in a thread before that), so
         # whoever sees a pending confirmation also has its request
         self._confirms[cid] = fut
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
-                            details=details, second=second)
+                            details=details, second=second, needs_otp=otp)
         self.rt.on_confirm_request(cid, desc, phone=phone)
         try:
             return await asyncio.wait_for(fut, timeout or CONFIRM_TIMEOUT)

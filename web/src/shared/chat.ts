@@ -6,7 +6,7 @@ import { renderMarkdown, wireCodeCopy } from "./markdown";
 import type { AgentState, Attachment, Message, ServerMsg, SourceRef, ToolCard } from "./protocol";
 import type { JarvisClient } from "./ws";
 import { Recorder } from "./recorder";
-import { guardApprove } from "./approve";
+import { askOtp, guardApprove } from "./approve";
 import { Blob } from "../character/blob";
 
 const STATE_TEXT: Record<AgentState, string> = {
@@ -442,7 +442,9 @@ export class ChatView {
         h("button", { class: "btn primary", type: "button", onclick: () => answer(true) }, "Ano, proveď")));
     const answer = async (ok: boolean) => {
       if (ok && !(await guardApprove(String(m.description || "Potvrdit akci")))) return;
-      this.client.send("confirm_response", { id: m.id, approved: ok });
+      const otp = ok ? askOtp(m.needs_otp) : undefined;
+      if (otp === null) return;
+      this.client.send("confirm_response", { id: m.id, approved: ok, otp });
       card.classList.add("resolved");
     };
     const l = this.ensureLive();

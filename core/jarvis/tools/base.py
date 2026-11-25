@@ -207,6 +207,12 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     proj = project_blocks(ctx, spec, args or {}) if getattr(ctx, "knowledge", None) else None
     if proj:                                      # OMEGA 688 / 180: the active project is isolated
         return ToolResult(False, proj)
+    if getattr(ctx, "db", None) is not None:
+        from ..secx import time_blocks
+
+        tl = time_blocks(ctx, name, args or {})
+        if tl:                                    # 3.20 (193) e.g. no payments at night
+            return ToolResult(False, tl)
     dev = device_blocks(required(spec))
     if dev:                                       # OMEGA 419: switched off for requests from the phone
         return ToolResult(False, f"Z telefonu je „{LABELS.get(dev, dev)}“ zakázané (na PC: Nastavení → Telefon). Udělej to přímo na počítači.")

@@ -776,6 +776,12 @@ async def loop(rt: Any) -> None:
         except Exception as e:  # noqa: BLE001
             log.debug("phonex tick: %s", e)
         try:
+            from . import homex
+
+            await homex.tick(rt)                       # 3.20 Domácnost+: windows, forgotten plugs, washer, air, leaks…
+        except Exception as e:  # noqa: BLE001
+            log.debug("homex tick: %s", e)
+        try:
             await lookx.tick(rt)                       # 3.20 Vzhled+: countdown, timeline, weather, photo, wallpaper tasks
         except Exception as e:  # noqa: BLE001
             log.debug("lookx tick: %s", e)

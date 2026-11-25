@@ -278,6 +278,9 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     from . import phoneroutes
 
     phoneroutes.register(app, rt, require_auth)   # 3.20 Telefon + Hodinky (121–160)
+    from . import homesecroutes
+
+    homesecroutes.register(app, rt, require_auth)  # 3.20 Domácnost+ a Bezpečnost+ (161–200)
 
     @app.get("/wallpaper")
     async def wallpaper():                  # 3.15 the live wallpaper behind the desktop icons
@@ -519,6 +522,12 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             if not near:
                 raise HTTPException(403, "Schvalovat jde jen z domácí sítě")
         cid = str(body.get("id", ""))
+        if approved and (rt.agent.confirm_info.get(cid) or {}).get("otp"):   # 3.20 (196) this one needs the YubiKey
+            from .. import secx
+
+            ok, why = await secx.yubikey_verify(rt, str(body.get("otp") or ""))
+            if not ok:
+                return {"ok": False, "message": f"Tohle schválíš jen klíčem YubiKey (na PC). {why}"}
         if cid.startswith("biz:"):                 # 3.12 an agent's proposal from the phone's notification
             from .. import bizagents
 

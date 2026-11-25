@@ -1,3 +1,4 @@
+import { askOtp } from "../shared/approve";
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./dynamic.css";
@@ -2165,7 +2166,11 @@ client.on("tool_start", (m) => {
 client.on("tool_end", (m) => { if (!m.ok) bubbleTool.append(h("span", { class: "fail" }, ` · ${m.summary}`)); });
 client.on("confirm_request", (m) => {
   pendingConfirm = m.id;
-  const answer = (ok: boolean) => { client.send("confirm_response", { id: m.id, approved: ok }); pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); };
+  const answer = (ok: boolean) => {
+    const otp = ok ? askOtp(m.needs_otp) : undefined;       // 3.20 (196) the YubiKey
+    if (otp === null) return;
+    client.send("confirm_response", { id: m.id, approved: ok, otp }); pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive();
+  };
   bubbleConfirm.replaceChildren(
     h("span", {}, icon("shield-warning", "ph-fill"), " ", String(m.description),
       (m.details || []).length ? h("span", { class: "muted", title: (m.details as string[]).join("\n") }, ` (${(m.details as string[]).length}× – detail v panelu)`) : ""),

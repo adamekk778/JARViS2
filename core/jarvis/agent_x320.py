@@ -177,3 +177,34 @@ async def post_check(rt: Any, msg_id: str, goal: str, cards: list[dict], answer:
     if r and not r["ok"]:
         rt.bus.publish("answer_check", id=msg_id, issues=[r["why"]], title="Kontrola úkolu – možná nesedí:")
         rt.notify("Kontrola úkolu", f"Možná to úplně nesedí: {r['why']}", speak=False)
+
+
+# ------------------------------------------------------------------ 3.20 Bezpečnost+ in the approvals
+async def confirm_extras(rt: Any, call: Any, desc: str) -> tuple[str, bool]:
+    """(189) another model's view on a dangerous step, (196) whether it needs a touch of the YubiKey."""
+    from . import secx
+
+    from . import tools
+
+    spec_danger = bool(getattr(tools.REGISTRY.get(call.name), "danger", False))
+    if spec_danger and call.name != "plan_approval":
+        try:
+            view = await secx.second_opinion(rt, desc)
+        except Exception as e:  # noqa: BLE001
+            log.info("second opinion: %s", e)
+            view = ""
+        if view:
+            desc = f"{desc} – druhý model: {view}"
+    return desc, secx.needs_otp(rt, call.name)
+
+
+def audit_confirm(rt: Any, info: dict | None, approved: bool, who: str = "") -> None:
+    """(194) every approval / refusal into the hash-chained log (nobody can quietly change it afterwards)."""
+    if not info:
+        return
+    try:
+        from . import secx
+
+        secx.log_event(rt, who or "uživatel", f"{info.get('tool', '')}: {info.get('description', '')}", approved)
+    except Exception as e:  # noqa: BLE001
+        log.debug("audit log: %s", e)

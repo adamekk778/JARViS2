@@ -831,6 +831,47 @@ class MobxCfg(BaseModel):
     my_names: list[str] = Field(default_factory=list)    # short forms of your name for the mention taps
 
 
+class HomeXCfg(BaseModel):
+    """3.20 Domácnost+ (161–180): what JARVIS watches in the house through Home Assistant (each can be switched off)."""
+    window_climate: dict[str, str] = Field(default_factory=dict)   # window sensor → its room's climate (guessed by name when empty)
+    forgotten_watts: float = 60          # a plug drawing more than this for 30 min while nobody is home → a notice
+    co2_max: int = 1200                  # ppm → "vyvětrej"
+    night_light: str = ""                # "23:00-06:00" → motion at night turns its room's light on dimmed ("" = off)
+    night_brightness: int = 8
+    simulate: bool = True                # on holiday and away: lights on and off in the evening like someone is home
+    simulate_lights: list[str] = Field(default_factory=list)
+    solar_entity: str = ""               # the PV surplus / export sensor (W)
+    solar_watts: float = 1500            # this much surplus for 10 minutes → solar_loads switch on (once a day)
+    solar_loads: list[str] = Field(default_factory=list)
+    watering_entity: str = ""            # the garden valve / pump switch
+    watering_time: str = "06:00"
+    watering_minutes: int = 15
+    vacuum_days: list[int] = Field(default_factory=list)   # 0 = Monday … (empty = never by itself)
+    privacy_cameras: list[str] = Field(default_factory=list)  # switches that turn indoor cameras off while you are home
+    lock_camera: str = ""                # camera.* that sees the lock ("" = the door camera)
+    door_speaker: str = ""               # a room of Domov → reproduktory for the answer at the doorbell ("" = "dveře")
+    profiles: dict[str, dict] = Field(default_factory=dict)  # person → {lights: {entity: %}, climate: {entity: °C}, scenes: []}
+    matter_url: str = ""                 # python-matter-server ("" = ws://localhost:5580/ws)
+    floorplan: str = ""                  # a picture of the floor plan for the house map (URL or /api/files/…)
+    map_positions: dict[str, list[float]] = Field(default_factory=dict)  # entity → [x %, y %] on the floor plan
+
+
+class SecXCfg(BaseModel):
+    """3.20 Bezpečnost+ (181–200)."""
+    scam_check: bool = True              # a message that looks like a scam → a warning on the phone
+    family_devices: list[str] = Field(default_factory=list)   # paired phones of parents / kids (their scam warnings come to you)
+    stranger_lock: bool = False          # someone unknown at the PC (webcam, only while typing) → lock the screen
+    owners: list[str] = Field(default_factory=list)            # whose faces count as yours ("" = your first name)
+    second_ai: bool = False              # another model gives its view on every dangerous step before you approve
+    second_ai_provider: str = ""         # which brain (a provider id) – a different one than usual is best
+    media_alert: bool = True             # an app starts using the camera / the microphone → a quiet notice
+    scan_downloads: bool = True          # a new file in Downloads → checked (type, signature, Defender)
+    downloads_folder: str = ""
+    time_locks: list[dict] = Field(default_factory=list)   # [{"what": "money", "from": "23:00", "to": "06:00", "days": [0..6]}]
+    yubikey_required: bool = False       # dangerous steps approved only with a touch of your YubiKey (Yubico OTP)
+    yubikey_id: str = ""                 # the first 12 characters of your key's codes
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -886,6 +927,8 @@ class Config(BaseModel):
     day: DayCfg = Field(default_factory=DayCfg)
     pc: PcCfg = Field(default_factory=PcCfg)
     mobx: MobxCfg = Field(default_factory=MobxCfg)
+    homex: HomeXCfg = Field(default_factory=HomeXCfg)
+    secx: SecXCfg = Field(default_factory=SecXCfg)
 
     @model_validator(mode="before")
     @classmethod

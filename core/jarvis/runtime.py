@@ -315,6 +315,9 @@ class Runtime:
         except Exception as e:  # noqa: BLE001
             log.debug("tombstones: %s", e)
         self._sys_tasks.append(asyncio.get_running_loop().create_task(proactx.loop(self)))          # 3.20 Proaktivita+
+        from . import secx
+
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(secx.loop(self)))   # 3.20 Bezpečnost+: camera / mic, downloads
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop

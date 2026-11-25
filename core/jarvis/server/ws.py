@@ -642,6 +642,14 @@ class Connection:
             if m.get("approved") and not self.local and rt.cfg.phone.approve_nearby_only and not self._nearby():
                 await self.send("error", message="Schvalovat jde jen z domácí sítě (nastavení Telefon → Schvalovat jen doma).")
                 return
+            info = rt.agent.confirm_info.get(str(m.get("id", ""))) or {}
+            if m.get("approved") and info.get("otp"):         # 3.20 (196) approved only with a touch of the YubiKey
+                from .. import secx
+
+                ok, why = await secx.yubikey_verify(rt, str(m.get("otp") or ""))
+                if not ok:
+                    await self.send("error", message=f"Neschváleno: {why}")
+                    return
             rt.agent.confirm(m.get("id", ""), bool(m.get("approved")))
         elif t == "stop":
             rt.agent.stop()
