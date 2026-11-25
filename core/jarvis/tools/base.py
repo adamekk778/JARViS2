@@ -187,10 +187,21 @@ async def _nothing():
     yield
 
 
+def _safe_danger(spec: Any, args: dict) -> bool:
+    try:
+        return bool(spec.danger_if(args))
+    except Exception:  # noqa: BLE001 – a danger check that needs more (ctx) counts as dangerous
+        return True
+
+
 async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
         return ToolResult(False, f"Neznámý nástroj: {name}")
+    from ..communityx import DEMO_REFUSAL, demo_on
+
+    if demo_on() and (spec.danger or (spec.danger_if is not None and _safe_danger(spec, args))):   # 3.20 (497) the demo changes nothing
+        return ToolResult(False, DEMO_REFUSAL)
     from ..permissions import LABELS, READ_ONLY, blocked_by, perm_of
 
     cfg = getattr(ctx, "cfg", None)

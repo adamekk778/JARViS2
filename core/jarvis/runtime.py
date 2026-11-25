@@ -214,6 +214,11 @@ class Runtime:
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
         self.safe_mode = os.environ.get("JARVIS_SAFE") == "1" or (paths.data_dir() / "SAFE_MODE").exists()
+        from .communityx import demo_on, seed_demo
+
+        if demo_on() and not self.db.one("SELECT v FROM kv WHERE k='cx_demo'"):   # 3.20 (497) made-up data for the demo
+            seed_demo(self)
+            self.db.exec("INSERT OR REPLACE INTO kv VALUES ('cx_demo', '1')")
         if self.safe_mode:
             log.warning("safe mode: only the core runs (delete SAFE_MODE in the data folder to leave it)")
         self.bus.bind_loop(self.loop)
@@ -560,6 +565,13 @@ class Runtime:
         return httpx.AsyncClient(transport=self.transport, follow_redirects=True, verify=tlsctx.context())
 
     def update_config(self, patch: dict) -> config_mod.Config:
+        locked = getattr(self, "_policy_locked", None)
+        if locked and not getattr(self, "_applying_policy", False):     # 3.20 (500) what the company locked stays
+            from .communityx import strip_locked
+
+            patch, dropped = strip_locked(patch, locked)
+            if dropped:
+                log.info("policy keeps %s", ", ".join(dropped))
         was_local = self.cfg.brain.local_enabled
         old_cfg = self.cfg
         self.cfg = config_mod.apply_patch(self.cfg, patch)

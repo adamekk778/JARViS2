@@ -5,7 +5,7 @@ name: pages
 on:
   push:
     branches: [main, master]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "docs/**", "README.md", "SECURITY.md", "CONTRIBUTING.md", "packaging/build_docs.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/configure-pages@v5
+      - name: Docs website (3.20)
+        run: python3 packaging/build_docs.py
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
       - id: deploy

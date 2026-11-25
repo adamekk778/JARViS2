@@ -23,3 +23,6 @@ core/jarvis/_version.py
 mobile/wear/.gradle/
 mobile/wear/build/
 mobile/wear/app/build/
+
+# 3.20 (485) the docs website is built by the Pages workflow
+/site/docs/

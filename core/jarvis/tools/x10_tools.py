@@ -1,4 +1,4 @@
-"""3.20 Propojení+ (421–440), Spolehlivost+ (441–460) a Přístupnost+ (461–480) tools."""
+"""3.20 Propojení+ (421–440), Spolehlivost+ (441–460), Přístupnost+ (461–480) a Komunita+ (481–500) tools."""
 from __future__ import annotations
 
 import datetime as dt
@@ -498,3 +498,63 @@ async def access_kit(ctx, action: Literal["zoom", "simplify", "label", "language
         return ToolResult(False, "Nastav světla, která mají blikat (Nastavení → Přístupnost → Světlo místo zvuku).")
     n = await accessx.flash(ctx, lights)
     return ToolResult(True, f"Bliklo {n} světel.")
+
+
+@tool("community_kit", "Komunita a nasazení: výzva měsíce (challenge), hodnocení rozšíření (rate name+n=1–5, text=poznámka; ratings), "
+      "sdílení osobnosti (persona_export name, persona_import path), záloha do vlastního cloudu (cloud_backup), firemní zásady "
+      "(policy), ukázkový režim (demo), přenosná verze z flashky (portable).", category="systém",
+      danger_if=lambda a: a.get("action") in ("cloud_backup", "persona_import"))
+async def community_kit(ctx, action: Literal["challenge", "rate", "ratings", "persona_export", "persona_import", "cloud_backup", "policy",
+                                             "demo", "portable"],
+                        name: str = "", text: str = "", path: str = "", n: int = 0) -> ToolResult:
+    from .. import communityx, paths
+
+    if action == "challenge":
+        ch = communityx.challenge_of(dt.date.today())
+        return ToolResult(True, f"Výzva {ch['month']}: {ch['title']} – {ch['text']} Zbývá {ch['days_left']} dní. Svoji rutinu pošleš jako "
+                                "balíček dovednosti („zabal dovednost …“).", data=ch)
+    if action == "rate":
+        try:
+            r = communityx.rate(ctx, name, n, text)
+        except ValueError as e:
+            return ToolResult(False, str(e))
+        return ToolResult(True, f"{name}: {'★' * r['stars']}{'☆' * (5 - r['stars'])} uloženo.")
+    if action == "ratings":
+        rs = communityx.ratings(ctx)
+        return ToolResult(True, "\n".join(f"• {k}: {'★' * v['stars']}" + (f" – {v['note']}" if v["note"] else "") for k, v in rs.items())
+                          or "Zatím jsi nic nehodnotil(a).")
+    if action == "persona_export":
+        try:
+            d = communityx.persona_export(ctx, name or "Moje osobnost", ctx.cfg.general.user_name)
+        except ValueError as e:
+            return ToolResult(False, str(e))
+        out = paths.sub("sdileni") / f"osobnost-{re.sub(r'[^a-z0-9]+', '-', linkx.fold(d['name']))}.json"
+        out.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+        return ToolResult(True, f"Šablona osobnosti: {out} – je to jen text a jméno hlasu, nic, co by se spouštělo.", data={"path": str(out)})
+    if action == "persona_import":
+        from .files import resolve
+
+        p = resolve(path)
+        if not p.is_file():
+            return ToolResult(False, "Pošli soubor šablony (.json).")
+        try:
+            nm = communityx.persona_import(ctx, json.loads(p.read_text(encoding="utf-8")))
+        except (ValueError, json.JSONDecodeError) as e:
+            return ToolResult(False, str(e))
+        return ToolResult(True, f"Osobnost „{nm}“ je nastavená (Nastavení → Obecné → Osobnost ji vrátí zpět).")
+    if action == "cloud_backup":
+        try:
+            r = await communityx.cloud_backup(ctx)
+        except ValueError as e:
+            return ToolResult(False, str(e))
+        return ToolResult(True, f"Šifrovaná záloha ({r['bytes'] // 1024} kB) je v tvém úložišti: {r['url']}")
+    if action == "policy":
+        locked = getattr(ctx, "_policy_locked", None) or []
+        src = ctx.cfg.communityx.policy_source
+        return ToolResult(True, (f"Firemní zásady z {src}: zamčeno {len(locked)} nastavení" + (f" ({', '.join(locked[:6])})" if locked else "") + ".")
+                          if src else "Tenhle JARVIS nemá firemní zásady (nastaví je IT v communityx.policy_source).")
+    if action == "demo":
+        return ToolResult(True, "Ukázkový režim: spusť JARVIS s proměnnou JARVIS_DEMO=1 – běží s vymyšlenými daty v dočasné složce, bez účtů, "
+                                "a nic neodesílá, nekupuje ani nemaže." + (" Teď běží v ukázkovém režimu." if communityx.demo_on() else ""))
+    return ToolResult(True, "Přenosná verze: zkopíruj složku JARVIS na flashku a vedle JARVIS.exe dej prázdný soubor portable.txt – data se pak "
+                            "ukládají do složky data vedle programu, nic do počítače." + (f" Teď: {paths.data_dir()}" if path == "?" else ""))

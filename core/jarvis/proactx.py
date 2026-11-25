@@ -781,7 +781,7 @@ async def loop(rt: Any) -> None:
             await homex.tick(rt)                       # 3.20 Domácnost+: windows, forgotten plugs, washer, air, leaks…
         except Exception as e:  # noqa: BLE001
             log.debug("homex tick: %s", e)
-        for mod in ("moneyx", "tripx", "carx", "healthx", "learnx", "familyx", "workx", "bizx", "devx", "shopx", "funx", "linkx", "syncx", "reliax"):   # 3.20 their own times inside
+        for mod in ("moneyx", "tripx", "carx", "healthx", "learnx", "familyx", "workx", "bizx", "devx", "shopx", "funx", "linkx", "syncx", "reliax", "communityx"):   # 3.20 their own times inside
             try:
                 import importlib
 

@@ -1012,6 +1012,13 @@ class AccessXCfg(BaseModel):
     allergies: list[str] = Field(default_factory=list)      # label reading warns about these
 
 
+class CommunityXCfg(BaseModel):
+    """3.20 Komunita+ (481–500)."""
+    cloud_url: str = ""                  # WebDAV folder for the encrypted backup (Nextcloud: …/remote.php/dav/files/<you>/JARVIS)
+    cloud_backup_day: int = -1           # 0 = Monday … 6 = Sunday, -1 = off (at 2:30 at night)
+    policy_source: str = ""              # company policy: a JSON file on a share or a URL (IT manages it)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -1083,6 +1090,7 @@ class Config(BaseModel):
     linkx: LinkXCfg = Field(default_factory=LinkXCfg)
     reliax: ReliaXCfg = Field(default_factory=ReliaXCfg)
     accessx: AccessXCfg = Field(default_factory=AccessXCfg)
+    communityx: CommunityXCfg = Field(default_factory=CommunityXCfg)
 
     @model_validator(mode="before")
     @classmethod

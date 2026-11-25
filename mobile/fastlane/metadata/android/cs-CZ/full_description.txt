@@ -1,0 +1,8 @@
+JARVIS je osobní asistent, který běží na tvém počítači. Tahle aplikace je jeho telefon:
+
+• mluv s ním hlasem i z druhého konce bytu nebo z cesty
+• upozornění, budíky a připomínky z PC na telefonu a hodinkách
+• NFC štítky, sdílení polohy, sken dokumentů, ovládání PC z telefonu
+• offline povely, když není spojení
+
+Data zůstávají na tvém počítači. Aplikace potřebuje JARVIS na PC (Windows) a spárování QR kódem.
