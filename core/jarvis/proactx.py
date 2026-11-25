@@ -781,6 +781,13 @@ async def loop(rt: Any) -> None:
             await homex.tick(rt)                       # 3.20 Domácnost+: windows, forgotten plugs, washer, air, leaks…
         except Exception as e:  # noqa: BLE001
             log.debug("homex tick: %s", e)
+        for mod in ("moneyx", "tripx", "carx"):        # 3.20 Peníze+, Cesty+, Auto+ (their own once-a-day times inside)
+            try:
+                import importlib
+
+                await importlib.import_module(f"jarvis.{mod}").tick(rt)
+            except Exception as e:  # noqa: BLE001
+                log.debug("%s tick: %s", mod, e)
         try:
             await lookx.tick(rt)                       # 3.20 Vzhled+: countdown, timeline, weather, photo, wallpaper tasks
         except Exception as e:  # noqa: BLE001

@@ -166,6 +166,43 @@ final class PhoneX {
         return mb;
     }
 
+    // ---------- (409) where you parked: the last known position when the phone left the car's Bluetooth
+    @SuppressWarnings("MissingPermission")
+    static String where(Context c) throws Exception {
+        if (!JarvisLink.has(c, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                && !JarvisLink.has(c, android.Manifest.permission.ACCESS_COARSE_LOCATION)) return "permission";
+        android.location.LocationManager lm = c.getSystemService(android.location.LocationManager.class);
+        if (lm == null) return "error";
+        android.location.Location best = null;
+        for (String p : lm.getProviders(true)) {
+            try {
+                android.location.Location l = lm.getLastKnownLocation(p);
+                if (l != null && (best == null || l.getTime() > best.getTime())) best = l;
+            } catch (SecurityException e) {
+                return "permission";            // in the background Android needs "Povolit vždy" for the location
+            }
+        }
+        if (best == null || System.currentTimeMillis() - best.getTime() > 10 * 60_000L) return "nofix";
+        JarvisLink.http(c, "POST", "/api/phone/where", new JSONObject().put("lat", best.getLatitude()).put("lon", best.getLongitude())
+                .toString(), 15000);
+        return "sent";
+    }
+
+    // ---------- (226) a ticket from the PC kept in the phone for offline use
+    static String saveFile(Context c, String aid, String name) throws Exception {
+        if (aid == null || !aid.matches("[a-f0-9]{8,32}")) return "error";
+        File dir = new File(c.getExternalFilesDir(null), "Jizdenky");
+        if (!dir.isDirectory() && !dir.mkdirs()) return "error";
+        String safe = (name == null || name.isEmpty() ? "jizdenka.pdf" : name).replaceAll("[\\/:*?\"<>|]+", "_");
+        File f = new File(dir, safe);
+        JarvisLink.download(c, "/api/files/" + aid, f, 30L * 1024 * 1024);
+        Uri uri = androidx.core.content.FileProvider.getUriForFile(c, c.getPackageName() + ".fileprovider", f);
+        Intent open = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, safe.endsWith(".pdf") ? "application/pdf" : "*/*")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        JarvisLink.actionNotification(c, "Jízdenka v telefonu: " + safe, "Uloženo i bez internetu – klepni a otevři", open);
+        return "saved";
+    }
+
     // ---------- PC controls from a tile / a notification button (122, 133)
     static void pcAction(final Context c, final String action, final android.content.BroadcastReceiver.PendingResult pr) {
         new Thread(() -> {

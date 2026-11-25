@@ -37,6 +37,7 @@ const perms = [
   "android.permission.ACCESS_NOTIFICATION_POLICY", // 3.20 (130) Nerušit for sleep and meetings (you allow it once)
   "android.permission.FOREGROUND_SERVICE_LOCATION",// 3.20 (139) a location share you started with a tap
   "android.permission.PACKAGE_USAGE_STATS",        // 3.20 (128) the month's mobile data (optional, granted in Settings)
+  "android.permission.ACCESS_BACKGROUND_LOCATION", // 3.20 (409) where you parked – only if you choose "Povolit vždy"
 ];
 for (const p of perms) {
   if (!m.includes(`"${p}"`)) m = m.replace("</manifest>", `    <uses-permission android:name="${p}" />\n</manifest>`);

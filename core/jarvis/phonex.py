@@ -496,6 +496,9 @@ def on_bt(rt: Any, name: str, on: bool) -> bool | None:
     rt.driving = bool(on)
     if was != rt.driving:
         rt.bus.publish("driving", on=rt.driving, car=name[:40])
+        from .carx import on_driving
+
+        on_driving(rt, rt.driving)                      # 3.20 (404) the logbook, (409) where you parked
         if rt.driving:
             rt.phone_push("notify", title="Režim v autě", body="Mluv se mnou hlasem – zprávy ti přečtu, nic nečti z displeje.",
                           quiet=True)

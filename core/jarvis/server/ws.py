@@ -145,6 +145,7 @@ SERVER_TYPES = [
     "countdown", "day_timeline", "weather_now", "second_clock", "wallpaper_tasks", "photo_frame", "mochi_action",
     "notch_active",
     "driving", "hr_now", "vacation",
+    "savings_goal",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

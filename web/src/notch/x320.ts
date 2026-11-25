@@ -79,6 +79,21 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
   });
   window.setInterval(paintCount, 1000);
 
+  // 3.20 (207) a savings goal moved: a thin bar with its percentage for a few seconds
+  const goal = document.createElement("div");
+  goal.className = "x-goal";
+  goal.hidden = true;
+  shape.append(goal);
+  let goalTimer = 0;
+  client.on("savings_goal", (m) => {
+    const pct = Math.max(0, Math.min(100, Number(m.pct) || 0));
+    goal.replaceChildren(Object.assign(document.createElement("i"), { style: `width:${pct}%` }),
+      Object.assign(document.createElement("span"), { textContent: `${String(m.name || "Cíl").slice(0, 24)} ${pct} %` }));
+    goal.hidden = false;
+    window.clearTimeout(goalTimer);
+    goalTimer = window.setTimeout(() => { goal.hidden = true; }, 8000);
+  });
+
   // (143) ♥ the heart rate from the watch while you play (gone 20 s after the last sample)
   const hr = document.createElement("div");
   hr.className = "x-hr";

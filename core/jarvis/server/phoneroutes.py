@@ -108,6 +108,42 @@ def register(app: FastAPI, rt: Any, require_auth: Callable[[Request], None]) -> 
             raise HTTPException(400, "Špatná poloha.") from None
         return {"ok": ok, "stop": not ok}           # the share ended → the phone stops sending
 
+    @app.post("/api/phone/where")
+    async def phone_where(request: Request):
+        """3.20 (409) the phone's position when it left the car's Bluetooth = where you parked."""
+        require_auth(request)
+        from .. import carx
+
+        b = await _json(request)
+        try:
+            p = carx.park(rt, float(b["lat"]), float(b["lon"]), int(b.get("minutes") or 0), "Bluetooth auta")
+        except (KeyError, ValueError, TypeError):
+            raise HTTPException(400, "Špatná poloha.") from None
+        return {"ok": True, **p}
+
+    @app.get("/plan/{token}")
+    async def shared_plan(token: str):
+        from .. import tripx
+
+        p = tripx.plan_get(rt, token[:40])
+        if p is None:
+            return HTMLResponse("<!doctype html><meta charset=utf-8><p>Plán už není dostupný.</p>", status_code=404)
+        return HTMLResponse(tripx.plan_page(token[:40], p), headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+    @app.post("/plan/{token}")
+    async def shared_plan_add(token: str, request: Request):
+        """Friends add to the plan (no login – the link is the key; at most 100 items, short texts)."""
+        from urllib.parse import parse_qs
+
+        from .. import tripx
+
+        form = parse_qs((await request.body()).decode("utf-8", "replace")[:2000])
+        tripx.plan_add(rt, token[:40], (form.get("who") or [""])[0], (form.get("text") or [""])[0])
+        p = tripx.plan_get(rt, token[:40])
+        if p is None:
+            return HTMLResponse("<!doctype html><meta charset=utf-8><p>Plán už není dostupný.</p>", status_code=404)
+        return HTMLResponse(tripx.plan_page(token[:40], p), headers={"Cache-Control": "no-store"})
+
     @app.get("/share/loc/{token}")
     async def share_loc(token: str):
         page = phonex.share_page(rt, token[:40])

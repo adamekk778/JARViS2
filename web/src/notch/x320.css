@@ -37,6 +37,11 @@
 .x-hr.high { color: #ff3b30; animation: x-beat .8s ease-in-out infinite; }
 @keyframes x-beat { 50% { scale: 1.15; } }
 
+/* (207) a savings goal */
+.x-goal { position: absolute; left: 50%; top: calc(100% + 6px); translate: -50% 0; width: 180px; padding: 5px 8px; border-radius: 10px;
+  background: rgba(10, 12, 16, .88); color: #e6e8ec; font: 600 11px/1.2 system-ui, sans-serif; }
+.x-goal i { display: block; height: 4px; border-radius: 3px; background: #30d158; margin-bottom: 4px; }
+
 /* (115) a second clock */
 .x-clock2 { position: absolute; left: -92px; top: 50%; translate: 0 -50%; color: rgba(255, 255, 255, .78); font: 600 10px/1 system-ui, sans-serif;
   white-space: nowrap; }

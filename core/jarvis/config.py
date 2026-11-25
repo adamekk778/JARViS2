@@ -872,6 +872,35 @@ class SecXCfg(BaseModel):
     yubikey_id: str = ""                 # the first 12 characters of your key's codes
 
 
+class MoneyXCfg(BaseModel):
+    """3.20 Peníze+ (201–220)."""
+    my_account: str = ""                 # your account (123456789/0800 or an IBAN) for QR payments when you split a bill
+    gift_budget: float = 0               # the Christmas (or another season's) gift budget
+    gift_season: str = ""                # e.g. "Vánoce 2026"
+
+
+class TripXCfg(BaseModel):
+    """3.20 Cesty+ (221–240)."""
+    closure_feeds: list[str] = Field(default_factory=list)    # pages / feeds of your operators with closure notices
+    closure_lines: list[str] = Field(default_factory=list)    # your lines and stations ("S7", "R9", "Beroun")
+    gbfs_feeds: list[str] = Field(default_factory=list)       # GBFS auto-discovery URLs of shared bikes / scooters in your city
+    allergies: list[str] = Field(default_factory=list)        # for menu translations
+
+
+class CarXCfg(BaseModel):
+    """3.20 Auto+ (401–420)."""
+    tyres: str = ""                      # "zimní" / "letní" – what is on the car now
+    service_km: int = 15000
+    service_months: int = 12
+    cabin_temp_entity: str = ""          # a temperature sensor in the car (Home Assistant)
+    occupied_entity: str = ""            # an input_boolean you switch on when a pet / child stays in the car
+    battery_kwh: float = 0               # an electric car's battery
+    ev_range_km: float = 0
+    commute_from: str = ""               # "50.08,14.42" – the morning traffic check (TomTom key needed)
+    commute_to: str = ""
+    commute_time: str = "07:15"
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -929,6 +958,9 @@ class Config(BaseModel):
     mobx: MobxCfg = Field(default_factory=MobxCfg)
     homex: HomeXCfg = Field(default_factory=HomeXCfg)
     secx: SecXCfg = Field(default_factory=SecXCfg)
+    moneyx: MoneyXCfg = Field(default_factory=MoneyXCfg)
+    tripx: TripXCfg = Field(default_factory=TripXCfg)
+    carx: CarXCfg = Field(default_factory=CarXCfg)
 
     @model_validator(mode="before")
     @classmethod
