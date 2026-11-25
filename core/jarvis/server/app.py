@@ -137,6 +137,31 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             raise HTTPException(404, "Bez náhledu")
         return FileResponse(p)
 
+    # 3.17 the hand model for finger gestures (downloaded on a click, checked) – only for windows on this PC
+    @app.get("/api/hands/{name}")
+    async def hands_file(name: str, request: Request):
+        from .. import handmodel
+
+        if not is_local(request):
+            raise HTTPException(403, "Jen v tomto PC")
+        p = handmodel.path_of(name)
+        if not p:
+            raise HTTPException(404, "Model ruky není stažený")
+        mt = "application/wasm" if name.endswith(".wasm") else "text/javascript" if name.endswith(".js") else "application/octet-stream"
+        return FileResponse(p, media_type=mt, headers={"Cache-Control": "private, max-age=86400"})
+
+    # 3.15 Dílna: a 3D model for the HUD's viewer (only files the model library put into its own folder)
+    @app.get("/api/workshop/model/{name}")
+    async def workshop_model(name: str, request: Request):
+        from .. import models3d
+
+        require_auth(request)
+        p = models3d.path_of(name)
+        if not p:
+            raise HTTPException(404, "Model nenalezen")
+        return FileResponse(p, media_type="application/octet-stream", headers={"X-Content-Type-Options": "nosniff",
+                                                                              "Cache-Control": "private, max-age=3600"})
+
     # OMEGA 717: the speed of the home network between the phone and this PC (paired devices only)
     @app.get("/api/speedtest")
     async def speedtest_down(request: Request, mb: int = 20):
@@ -244,6 +269,33 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
     async def hud():
         return page("hud.html")
 
+    from . import houseroutes
+
+    houseroutes.register(app, rt)            # 3.14 house speakers + Home Assistant voice satellites
+    from . import callroutes
+
+    callroutes.register(app, rt)             # 3.14 AI sekretářka + calls for you (Twilio webhooks, signed)
+    from . import phoneroutes
+
+    phoneroutes.register(app, rt, require_auth)   # 3.20 Telefon + Hodinky (121–160)
+    from . import homesecroutes
+
+    homesecroutes.register(app, rt, require_auth)  # 3.20 Domácnost+ a Bezpečnost+ (161–200)
+    from . import funroutes
+
+    funroutes.register(app, rt, require_auth)      # 3.20 Zábava+: the quiz on the guests' phones (347, 355)
+    from . import accessroutes
+
+    accessroutes.register(app, rt, require_auth)   # 3.20 Přístupnost+: interface languages, translators' page, word prediction
+
+    @app.get("/wallpaper")
+    async def wallpaper():                  # 3.15 the live wallpaper behind the desktop icons
+        return page("wallpaper.html")
+
+    @app.get("/karaoke")
+    async def karaoke():                    # 3.14 the song's words big, over the whole screen (PC window or a TV browser)
+        return page("karaoke.html")
+
     @app.get("/sites/{site_id}/{rel:path}")
     async def site_file(site_id: str, rel: str = ""):
         """Websites JARVIS built. The unguessable id is the key; the sandbox CSP gives each page an opaque origin,
@@ -276,6 +328,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             payload = {}
         res = await rt.claude.handle(event, payload if isinstance(payload, dict) else {})
         return JSONResponse(res) if res else Response(status_code=204)
+
+    @app.get("/share/{token}")
+    async def shared_trip(token: str):
+        """3.19 a trip shared with the family: read-only, no price, no booking number, expires after the trip."""
+        from .. import tripshare
+
+        html = tripshare.page(rt, token[:64])
+        headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer"}
+        if html is None:
+            return Response("Odkaz neplatí (vypršel nebo byl zrušený).", status_code=404, media_type="text/plain; charset=utf-8",
+                            headers=headers)
+        return Response(html, media_type="text/html; charset=utf-8", headers=headers)
 
     @app.post("/api/hook/{hook_id}")
     async def incoming_webhook(hook_id: str, request: Request):
@@ -322,10 +386,18 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
 
     # ---------- 3.4 the phone app's background link ----------
     @app.get("/api/phone/poll")
-    async def phone_poll(request: Request, wait: float = 25.0, battery: int | None = None, charging: int = 0):
+    async def phone_poll(request: Request, wait: float = 25.0, battery: int | None = None, charging: int = 0,
+                         country: str = "", mdata: int | None = None):
         require_auth(request)
+        from .. import phonex
+
         if battery is not None:
             rt.phone.on_battery(battery, bool(charging))
+            try:
+                await phonex.on_battery(rt, battery, bool(charging))     # 3.20 (125, 137) 80 % and the cheap hour
+            except Exception:  # noqa: BLE001
+                pass
+        phonex.on_poll(rt, request.client.host if request.client else "", country, mdata)   # 3.20 (127, 128, 134)
         return {"commands": await rt.phone.poll(max(0.0, min(wait, 50.0)))}
 
     @app.post("/api/phone/event")
@@ -341,7 +413,57 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
                 raise HTTPException(400, "Špatná hodnota baterie")
         elif kind in ("headphones", "dnd"):          # 3.13 headphones on the phone, Do Not Disturb
             rt.phone.on_device(kind, bool(body.get("on")), str(body.get("name") or ""))
+            if kind == "headphones":
+                from .. import phonex
+
+                phonex.on_bt(rt, str(body.get("name") or ""), bool(body.get("on")))   # 3.20 (123) the car → driving mode
+        elif kind == "nfc":                           # 3.20 (121) a JARVIS NFC tag
+            from .. import phonex
+
+            return {"ok": True, "message": await phonex.on_nfc(rt, str(body.get("tag") or ""))}
+        elif kind == "call_end":                      # 3.20 (140) a call ended → "a note to it?"
+            from .. import phonex
+
+            phonex.on_call_end(rt, str(body.get("who") or ""))
         return {"ok": True}
+
+    # 3.18 Hodinky Wear OS: pair with the 6-digit code from the PC, then ask by voice and show a status on the tile
+    @app.post("/api/watch/pair")
+    async def watch_pair(request: Request):
+        from .. import watchpair
+
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        token, why = watchpair.redeem(rt, str((body or {}).get("code") or ""), str((body or {}).get("name") or "Hodinky"))
+        if not token:
+            raise HTTPException(403, why)
+        return {"ok": True, "token": token, "name": "JARVIS"}
+
+    @app.post("/api/watch/ask")
+    async def watch_ask(request: Request):
+        require_auth(request)
+        body = await request.json()
+        text = str(body.get("text") or "").strip()[:500]
+        if not text:
+            raise HTTPException(400, "Prázdná otázka")
+        try:
+            answer = await asyncio.wait_for(rt.agent.handle(text, [], "watch", extra_system=(
+                "Odpovídáš na malém displeji hodinek: nejvýš dvě krátké věty, bez tabulek a seznamů.")), 90)
+        except asyncio.TimeoutError:
+            answer = "Pořád na tom pracuji – odpověď najdeš v telefonu nebo na PC."
+        return {"ok": True, "answer": str(answer or "Hotovo.").strip()[:1500]}
+
+    @app.get("/api/watch/status")
+    async def watch_status(request: Request):
+        from .. import watchpair
+
+        require_auth(request)
+        from .. import phonex
+
+        phonex.seen(rt, "watch", request.client.host if request.client else "")
+        return {**watchpair.status(rt), "complication": phonex.complication(rt)}
 
     @app.post("/api/phone/notice_action")
     async def phone_notice_action(request: Request):
@@ -349,9 +471,10 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
         require_auth(request)
         body = await request.json()
         act = str(body.get("action") or "")
-        if act not in ("break_snooze", "timer_more", "game_tip"):
+        if act not in ("break_snooze", "timer_more", "game_tip", "ask", "mute_kind", "device_revoke", "call_note"):     # 3.14 "Odpovědět", "Nezajímá mě"
             raise HTTPException(400, "Neznámá akce")
-        res = await rt.notice_action(act, body.get("args") or {})
+        args = body.get("args") if isinstance(body.get("args"), dict) else {}
+        res = await rt.notice_action(act, {**args, "from_phone": True})
         return {"ok": True if res is None else res[0], "message": "" if res is None else res[1]}
 
     @app.post("/api/phone/ack")
@@ -405,6 +528,12 @@ def create_app(rt: Any, *, manage_runtime: bool = True) -> FastAPI:
             if not near:
                 raise HTTPException(403, "Schvalovat jde jen z domácí sítě")
         cid = str(body.get("id", ""))
+        if approved and (rt.agent.confirm_info.get(cid) or {}).get("otp"):   # 3.20 (196) this one needs the YubiKey
+            from .. import secx
+
+            ok, why = await secx.yubikey_verify(rt, str(body.get("otp") or ""))
+            if not ok:
+                return {"ok": False, "message": f"Tohle schválíš jen klíčem YubiKey (na PC). {why}"}
         if cid.startswith("biz:"):                 # 3.12 an agent's proposal from the phone's notification
             from .. import bizagents
 

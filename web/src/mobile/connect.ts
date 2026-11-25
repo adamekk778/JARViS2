@@ -122,7 +122,7 @@ async function refreshWake(ep: Endpoint): Promise<void> {
 }
 
 export async function refreshLink(ep: Endpoint, p: Pairing): Promise<Pairing> {
-  refreshWake(ep);
+  void refreshWake(ep);
   try {
     const r = await fetch(`${ep.base}/api/link/info`, { headers: { Authorization: `Bearer ${ep.token}` }, cache: "no-store" });
     if (!r.ok) return p;

@@ -1217,3 +1217,11 @@
 100 | HOTOVO | více příkazů v jedné větě: agent je rozloží na víc kroků / nástrojů v jednom tahu (souběžně, kde to jde)
 367 | VYŽADUJE_INTEGRACI | remove_background: jednobarevné pozadí hotové bez AI; fotky s rušným pozadím potřebují AI model pro segmentaci (stažení jen se souhlasem)
 256 | BLOKOVÁNO_PLATFORMOU | dálkový mikrofon: zesílení řeči, filtr hluku, mic_check; směrování mikrofonním polem (beamforming) dělá ovladač mikrofonu ve Windows, aplikace k jednotlivým mikrofonům přístup nemá
+
+# 3.14 – vylepšení z návrhu „nejlepší JARVIS“ (118 bodů; jen položky katalogu, kterých se týkají)
+680 | HOTOVO | kamera jen na pokyn; každé použití (fotka z telefonu, sledování objektu, kalibrace) je v záznamu přístupů s časem a nástrojem (shield.py, Bezpečí a soukromí → Co JARVIS dnes viděl)
+183 | HOTOVO | skener skrytých pokynů + upozornění s konkrétní podezřelou větou a zdrojem (adresa / soubor / předmět), zapsané do záznamu přístupů (shield.report_injection, tools/base.py)
+185 | HOTOVO | odvolání jednoho zařízení + při spárování nového zařízení dostanou ostatní telefony upozornění s tlačítkem Odvolat (shield.announce_device, runtime.notice_action device_revoke)
+686 | HOTOVO | izolace nedůvěryhodného kódu: run_python v omezeném prostředí (audit hook: žádné programy, síť jen se svolením, zápis jen do vlastní složky, limit paměti, Windows Job Object) a dovednosti s manifestem dodržují svá oprávnění (sandbox.py, skill_runner.fence, tests/test_sandbox314.py); není to virtuální stroj
+678 | HOTOVO | spotřeba po poskytovatelích: kolik textu a obrázků šlo kam (usage.py) + u anonymních statistik přesný náhled toho, co odejde, ještě před zapnutím (stats.payload, Bezpečí a soukromí)
+345 | HOTOVO | code_sandbox (kopie projektu) + run_python v omezeném prostředí; samooprava dovedností: chyba se zapamatuje, AI navrhne opravu, diff ke schválení, záloha staré verze (skillheal.py)

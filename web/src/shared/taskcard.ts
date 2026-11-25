@@ -1,7 +1,7 @@
 // Current-task card (spec §4.5): goal, steps, progress, current action, pending approval, controls.
 // Shared by the dashboard Tasks page, the notch panel and the phone.
 import "./taskcard.css";
-import { guardApprove } from "./approve";
+import { askOtp, guardApprove } from "./approve";
 import { h, icon } from "./dom";
 import { renderMarkdown } from "./markdown";
 import type { JarvisClient } from "./ws";
@@ -82,7 +82,11 @@ export class TaskCard {
         c.details.length ? h("ul", { class: "tc-details" }, ...c.details.map((d) => h("li", {}, d))) : "",
         h("div", { class: "tc-row" },
           this.btn("x", "Zamítnout", () => this.client.send("confirm_response", { id: c.id, approved: false })),
-          this.btn("check", "Povolit", async () => { if (await guardApprove(c.description)) this.client.send("confirm_response", { id: c.id, approved: true }); }, "primary"))) : "",
+          this.btn("check", "Povolit", async () => {
+            if (!(await guardApprove(c.description))) return;
+            const otp = askOtp((c as any).otp);
+            if (otp !== null) this.client.send("confirm_response", { id: c.id, approved: true, otp });
+          }, "primary"))) : "",
       !active && t.summary ? h("div", { class: "tc-summary md", html: renderMarkdown(t.summary) }) : "",
       h("div", { class: "tc-row" },
         ...(active ? [

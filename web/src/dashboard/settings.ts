@@ -2,10 +2,11 @@ import { openOnboarding } from "./onboarding";
 import { openPhoneMirror } from "./phonemirror";
 import { loadLook, loadPhoto, savePhoto, saveLook, shrinkPhoto } from "../shared/lookstore";
 import "./settings.css";
-import { copyText, h, icon, toast, TOOL_ICON } from "../shared/dom";
-import { OUTFIT_LABEL, OUTFITS } from "../character/outfits";
+import { copyText, h, icon, loading, toast, TOOL_ICON } from "../shared/dom";
+import { OUTFIT_LABEL, OUTFITS, UNLOCK_LEVEL } from "../character/outfits";
 import { Blob as Character, DEFAULT_GLOW } from "../character/blob";
 import type { JarvisClient } from "../shared/ws";
+import { createBrainPicker } from "../shared/brainpicker";
 import { createBrainsPanel } from "../shared/brainsui";
 
 export type Section =
@@ -47,7 +48,7 @@ const ROW_ICON: [RegExp, string][] = [
   [/hotkeys\.subtitles|subs/, "closed-captioning"], [/screen_ask/, "selection-plus"], [/device_listen/, "ear"], [/lyrics/, "microphone-stage"], [/focus_guard/, "target"], [/notch\.enabled/, "power"], [/fullscreen/, "monitor-play"],
   [/music_viz/, "music-notes"], [/follow_window/, "arrows-out-cardinal"], [/edge_play/, "person-simple-run"], [/pinned/, "push-pin"],
   [/notch\.style/, "device-mobile-camera"], [/edges/, "circle-dashed"], [/open_on/, "cursor-click"], [/theme/, "moon-stars"], [/accent/, "paint-brush"],
-  [/animations/, "sparkle"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"],
+  [/animations/, "sparkle"], [/fx_quality/, "magic-wand"], [/motif/, "palette"], [/desktop_fx/, "crosshair"], [/live_wallpaper/, "image"], [/density/, "text-aa"], [/input_mode/, "hand-pointing"], [/captions/, "subtitles"], [/gestures/, "hand-waving"], [/gesture_fingers/, "hand-pointing"], [/tool_catalog/, "books"], [/reflexes/, "lightning"], [/agent\.prefetch/, "clock-countdown"], [/reflex_model/, "lightning-a"], [/claude_cache_ttl/, "hourglass"], [/smart_endpoint/, "timer"], [/low_latency/, "rocket-launch"], [/stream_voice/, "waveform"], [/speculate/, "fast-forward"], [/adaptive_pace/, "metronome"], [/live_partial/, "text-aa"], [/backchannel/, "chat-teardrop-dots"], [/voice\.vocabulary/, "book-open-text"], [/workshop\.printer$/, "printer"], [/printer_url/, "link"], [/printer_name/, "tag"], [/camera_url/, "camera"], [/ha_prefix/, "house-line"], [/workshop\.watch$/, "eye"], [/watch_every_min/, "timer"], [/on_failure/, "warning"], [/slicer_profile/, "file-code"], [/bambu_serial/, "barcode"], [/bambu_model/, "printer"], [/bambu_ams/, "palette"], [/bambu_pin/, "fingerprint"], [/orca_/, "sliders"], [/workshop\.timelapse/, "film-strip"],
   [/sounds|sound_volume/, "speaker-simple-high"], [/spatial/, "headphones"], [/quiet|focus/, "moon"], [/hotkeys\./, "keyboard"],
   [/model/, "cpu"], [/key|token/, "key"], [/enabled/, "power"],
 ];
@@ -113,6 +114,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   let query = "";
   const extra: Record<string, any> = {};
   const brainsPanel = createBrainsPanel(client);         // 3.12 Přehled AI – keeps itself up to date
+  const brainPicker = createBrainPicker(client);         // 3.14 Kdo odpovídá – a click on Claude / Ollama / … and its models
 
   const set = (path: string, value: unknown) => {
     if (!local) return toast("Nastavení jde měnit jen přímo na PC.", "error");
@@ -277,19 +279,58 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   const signed = (v: number, unit: string) => `${v >= 0 ? "+" : ""}${v}${unit}`;
 
   // ----- sections -----
+  // 3.17 Co se JARVIS naučil: the words that worked for a tool, the patterns ("pusť … na YouTube"), the reflexes –
+  // each can be forgotten or kept from ever being done without the AI
+  client.on("toolmem" as any, (m: any) => { extra.toolmem = m.items || []; if (current === "brain") render(); });
+  const learntCard = () => {
+    if (!extra.toolmemAsked) { extra.toolmemAsked = true; client.send("toolmem_get" as any, {}); }
+    const items: any[] = extra.toolmem || [];
+    const forget = (r: any, block = false) => client.send("toolmem_forget" as any, { phrase: r.kind === "pattern" ? r.pattern : r.phrase, tool: r.tool, block });
+    const rows = items.slice(0, 80).map((r) => h("div", { class: "row" },
+      h("div", { class: "row-text" }, h("strong", {}, `„${r.phrase}“ → ${r.tool}`),
+        h("span", {}, `${r.reflex ? "⚡ reflex (bez AI)" : "pomáhá výběru nástrojů"} · povedlo se ${r.ok}×${r.bad ? `, chyba ${r.bad}×` : ""}${r.values ? ` · např. ${r.values.slice(0, 3).join(", ")}` : ""}`)),
+      h("div", { class: "btn-row" },
+        r.reflex ? h("button", { class: "btn sm", type: "button", title: "Už nikdy bez AI", onclick: () => forget(r, true) }, icon("hand"), "Ne reflex") : null,
+        h("button", { class: "icon-btn sm", type: "button", "aria-label": "Zapomenout", title: "Zapomenout", onclick: () => forget(r) }, icon("trash")))));
+    return card("Co se JARVIS naučil", "Které nástroje fungovaly na tvoje slova. Co se dvakrát povedlo stejně, dělá JARVIS jako reflex hned bez AI (jen neškodné věci). Všechno zůstává jen v tomto PC.",
+      ...(rows.length ? rows : [h("p", { class: "help" }, "Zatím nic – JARVIS se učí z toho, co mu říkáš.")]),
+      ...(items.length ? [h("div", { class: "btn-row" }, h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Opravdu zapomenout všechno, co se JARVIS o nástrojích naučil?")) client.send("toolmem_forget" as any, { all: true }); } }, icon("trash"), "Zapomenout vše"))] : []));
+  };
+  // 3.17 finger gestures: the hand model is downloaded only on this click (~22 MB, checked)
+  client.on("hands" as any, (m: any) => { extra.hands = m; if (current === "appearance") render(); });
+  const handsRow = () => {
+    if (!extra.handsAsked) { extra.handsAsked = true; client.send("hands_status" as any, {}); }
+    const st = extra.hands || {};
+    const btn = st.ready ? h("span", { class: "help" }, "Model ruky je stažený.")
+      : st.progress != null ? h("span", { class: "help" }, `Stahuji… ${Math.round(st.progress * 100)} %`)
+      : h("button", { class: "btn", type: "button", onclick: () => client.send("hands_download" as any, {}) }, icon("download-simple"), `Stáhnout model ruky (${st.size_mb || 22} MB)`);
+    return h("div", { class: "grid2" },
+      sw("appearance.gesture_fingers", "Gesta prsty", "S modelem ruky: štípnutí palce a ukazováčku a posun nahoru / dolů přiblíží, otevřená dlaň do strany otáčí 3D model či glóbus, pěst model rozloží (bez HUD: pěst = play/pauza, máchnutí = další skladba, štípnutí = hlasitost). Model běží v počítači, obraz nikam nejde."),
+      h("div", { class: "row" }, btn, st.error ? h("span", { class: "help" }, st.error) : null));
+  };
   const sections: Record<Section, () => Node[]> = {
     general: () => [
       card("O tobě", null,
         h("div", { class: "grid2" }, text("general.user_name", "Tvoje jméno"), text("general.address_as", "Jak tě má oslovovat", "Např. pane, šéfe, Adame")),
         h("div", { class: "grid2" }, text("general.city", "Domovské město", "Pro počasí"),
-          select("general.language", "Jazyk", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "English"], ["de", "Deutsch"]]))),
+          select("general.language", "Jazyk", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "English"], ["de", "Deutsch"], ["pl", "Polski"], ["uk", "Українська"]],
+            "V jakém jazyce JARVIS odpovídá. English přepne do angličtiny i aplikaci."))),
       card("Osobnost", null,
-        select("general.personality", "Styl", [["jarvis", "J.A.R.V.I.S. (zdvořilý, suchý humor)"], ["friend", "Kamarád (tyká, uvolněný)"], ["brief", "Stručný (jen fakta)"], ["custom", "Vlastní prompt"]], "", () => setTimeout(render, 150)),
+        select("general.personality", "Styl", [["jarvis", "J.A.R.V.I.S. (zdvořilý, suchý humor)"], ["friday", "F.R.I.D.A.Y. (pohotová, ženský hlas)"], ["friend", "Kamarád (tyká, uvolněný)"], ["brief", "Stručný (jen fakta)"], ["custom", "Vlastní prompt"]], "",
+          (v) => { if (v === "jarvis" || v === "friday") client.send("persona_set", { name: v }); setTimeout(render, 150); }),
         S.general.personality === "custom" ? (() => {
           const ta = h("textarea", { class: "input", rows: 6 }, S.general.custom_prompt) as HTMLTextAreaElement;
           ta.onchange = () => set("general.custom_prompt", ta.value);
           return field("Vlastní systémový prompt", ta, "", true);
         })() : null),
+      card("Sám od sebe", "Co JARVIS přináší bez ptaní. Druhy upozornění, které opakovaně necháš bez povšimnutí, sám ztlumí.",
+        sw("stark.evening_review", "Večerní přehled", "Co se dnes povedlo, co zbývá, co je zítra a na které schůzky nemáš podklady."),
+        text("stark.evening_time", "Kdy večerní přehled", "Např. 21:00"),
+        sw("stark.leave_briefing", "Brífink při odchodu z domu", "Když s telefonem odejdeš z místa Domov: počasí, další událost a odjezdy."),
+        text("stark.home_stop", "Tvoje zastávka MHD", "Pro odjezdy v brífinku (Praha, klíč Golemio)"),
+        range("stark.proactive_daily_max", "Nejvýš upozornění od JARVISe za den", 0, 30, 1, (v) => (v ? String(v) : "bez limitu")),
+        ...((S.stark.muted_kinds || []) as string[]).map((k) => h("div", { class: "row" }, h("span", {}, `Ztlumeno: ${k}`),
+          h("button", { class: "btn ghost sm", type: "button", onclick: () => set("stark.muted_kinds", (S.stark.muted_kinds as string[]).filter((x) => x !== k)) }, "Zapnout znovu")))),
       card("Systém", null, sw("general.autostart", "Spouštět po startu Windows", "JARVIS poběží na pozadí v trayi"),
         sw("general.auto_update", "Aktualizovat sám v noci", "Nová verze se nainstaluje mezi 2. a 6. hodinou, když PC nikdo nepoužívá – ráno už běží nová. Jinak čeká na tlačítko Aktualizovat."),
         sw("general.night_care", "Noční údržba PC", "Jednou za noc smaže dočasné soubory starší než týden, zkontroluje disky a aktualizace Windows. Osobní soubory ani koš nemaže."),
@@ -391,6 +432,9 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       qk.onkeydown = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); sendKey(); } };
       const first = ordered.find((p) => p.enabled);
       return [
+        (() => { brainPicker.refresh(); return h("div", { class: "card bp-card" }, h("h2", {}, "Kdo odpovídá"),
+          h("p", { class: "help" }, "Klikni na AI a od teď odpovídá ona. Pod ní přepneš model – u Ollamy ty, které máš stažené v PC, u Claude Opus, Sonnet, Haiku nebo Fable."),
+          brainPicker.el); })(),
         h("div", { class: "card qk-card" },
           h("h2", {}, "Mozek – stačí API klíč"),
           h("p", { class: "help" }, "Vlož klíč a je hotovo: JARVIS pozná, od koho je, sám nastaví vše ostatní a hned ho vyzkouší. Zdarma klíč dostaneš na console.groq.com (Groq) nebo aistudio.google.com (Gemini)."),
@@ -409,6 +453,12 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           range("brain.temperature", "Kreativita (temperature)", 0, 1.5, 0.1, (v) => v.toFixed(1)),
           h("div", { class: "grid2" }, text("brain.max_tokens", "Max délka odpovědi (tokeny)", "", "number"), text("brain.first_token_timeout", "Čekat na první odpověď (s)", "Pak zkusí dalšího poskytovatele", "number")),
           sw("brain.offline_only", "Jen offline režim", "Používat jen lokální modely (Ollama, LM Studio). Nic neodchází na internet."),
+          select("brain.tool_catalog", "Všechny nástroje v hlavě", [["auto", "Automaticky (Claude, OpenAI, Gemini, DeepSeek, Mistral)"], ["on", "U každé AI z internetu"], ["off", "Vypnuto (hledá nástroje jako dřív)"]],
+            "JARVIS dostane seznam všech svých nástrojů najednou (AI si ho podrží v paměti a nehledá je) a zavolá kterýkoli z nich jedním krokem. Malé modely v PC a Groq zdarma dostanou dál menší sadu."),
+          select("brain.claude_cache_ttl", "Jak dlouho si Claude pamatuje pokyny", [["1h", "Hodinu (doporučeno)"], ["5m", "5 minut"]], "Pokyny a seznam nástrojů v cache Clauda: zápis na hodinu je dražší, ale když se zeptáš po 10–60 minutách, nemusí se posílat znovu – dřív odpoví a celkově to vyjde levněji."),
+          text("brain.reflex_model", "Reflexní model (Ollama)", "Malý rychlý model v tomhle PC (např. qwen3:1.7b) rozhodne jasné povely ještě před velkou AI – za zlomek sekundy. Jen neškodné věci, při pochybnosti odpovídá velká AI. Prázdné = vypnuto."),
+          sw("agent.prefetch", "Odpovědi připravené dopředu", "Počasí, dnešní kalendář a zprávy si JARVIS na pozadí připravuje, když sedíš u PC – na otázku odpoví hned. Jen čtení, nic nemění."),
+          sw("agent.reflexes", "Reflexy", "Co jsi řekl stejnými slovy aspoň dvakrát a povedlo se (třeba „pusť lo-fi“), JARVIS příště udělá hned, bez AI. Jen neškodné věci; „ne, to ne“ reflex zruší."),
           sw("brain.save_limits", "Šetřit limity zdarma", "Práci na pozadí (shrnutí dlouhých konverzací) udělá AI v tomhle PC, když máš zapnutou offline zálohu. Na tvoje otázky dál odpovídají rychlé AI z internetu."),
           h("p", { class: "help" }, "Pozor: předplatné Claude Code nedává API klíč. Claude jako mozek potřebuje vlastní klíč z console.anthropic.com (placený).")),
         worldCard(),
@@ -417,6 +467,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           h("p", { class: "help" }, "Bezplatné AI mají limit dotazů za minutu – při 4–8 to běží plynule, víc má smysl s placeným klíčem. Ostatní agenti se střídají."),
           range("multitask.watch_every_s", "Sledující agent se dívá jednou za", 5, 120, 5, (v) => `${v} s`),
           monitorCheckRow()),
+        learntCard(),
       ];
     },
 
@@ -431,7 +482,16 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           ? select("voice.input_device", "Mikrofon", [["", "Výchozí systémový"], ...voiceStatus.devices.map((d: string) => [d, d] as [string, string])])
           : text("voice.input_device", "Mikrofon (název zařízení)", "Prázdné = výchozí"),
         range("voice.silence_seconds", "Konec věty po tichu", 0.4, 2, 0.1, (v) => `${v.toFixed(1)} s`),
+        sw("voice.smart_endpoint", "Chytrý konec věty", "Při každé pauze si JARVIS hned zapíše, co jsi řekl: hotová věta („pusť hudbu“) skončí už po čtvrt sekundě, rozdělaná („napiš mámě, že…“) počká déle. S rychlým rozpoznáním řeči vidíš v notchi, co říkáš, už během mluvení."),
+        sw("voice.stream_voice", "Hlas po kouscích", "První věta začne hrát, ještě než je celá vyrobená (hlas Edge a ElevenLabs, bez efektu z Hlasové dílny)."),
+        sw("voice.speculate", "Odpověď už při pauze", "Když se uprostřed mluvení zastavíš a není jasné, jestli jsi domluvil, JARVIS se AI zeptá dopředu. Když už nic neřekneš, odpověď je hotová dřív; když pokračuješ, zahodí se. Nic se nespustí, dokud nedomluvíš."),
+        sw("voice.adaptive_pace", "Přizpůsobit se mému tempu", "JARVIS se učí, jak dlouhé pauzy děláš uprostřed věty, a podle toho čeká na konec."),
+        sw("voice.live_partial", "Živý přepis i na pomalejším PC", "Během mluvení ukazuje tvoje slova pomocí malého modelu Whisper „tiny“ (asi 75 MB, jen s rozpoznáváním v PC); konečná slova dál přepíše tvůj model."),
+        sw("voice.low_latency", "Nejrychlejší hlas (ElevenLabs Flash)", "První slovo zazní dřív (model Flash), hlas je o kousek méně barevný. Platí jen pro hlas z ElevenLabs."),
+        sw("voice.backchannel", "Tiché „mhm“ v živém rozhovoru", "Když v živém rozhovoru dlouho mluvíš a uprostřed myšlenky se zastavíš, JARVIS potichu přitaká. Jen s potlačením ozvěny."),
+        sw("voice.vocabulary", "Tvoje slova v rozpoznávání", "Tvoje jméno, slovník z Diktování, projekty, 3D díly, místnosti a zařízení z Home Assistantu a aplikace jdou rozpoznávání řeči – míň přeslechnutých jmen."),
         sw("voice.followup", "Navazovat v rozhovoru", "Po odpovědi JARVIS ještě 6 s poslouchá bez „Hey Jarvis“ (je to vidět). Ukončíš „díky, to je vše“."),
+        sw("voice.look_to_talk", "Mluv bez „Hey Jarvis“", "Když jsi u PC sám a díváš se na obrazovku, stačí mluvit. Používá webkameru (jen v tomhle PC, nic se neukládá); vypnuté = kamera se nezapne."),
         sw("voice.barge_in", "Skočit JARVISovi do řeči", "Když JARVIS mluví a ty začneš mluvit, hned zmlkne a poslouchá tě (jeho vlastní hlas si z mikrofonu odečte)."),
         sw("games.tips", "Tipy do her v notchi", "JARVIS pozná, co hraješ, a občas (každých pár minut) ukáže v notchi krátký tip ke hře. Nejlépe vidět v režimu hry „Okno bez okrajů“."),
         range("games.tips_every", "Tip jednou za", 2, 30, 1, (v) => `${v} min`),
@@ -451,6 +511,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
           sw("voice.stt_download_ok", "Povolit stažení místního modelu řeči", "Jen bez klíče od Groq: model (asi 0,5 GB) se jednou stáhne při prvním mluvení a pak funguje offline.")),
         select("voice.stt_language", "Jazyk řeči", [["cs", "Čeština"], ["sk", "Slovenčina"], ["en", "Angličtina"], ["auto", "Automaticky"]])),
       voiceStudio(),
+      voiceId(),
       card("Hlas JARVISe", null,
         (() => {
           const outs: string[] | undefined = extra.audio?.outputs;
@@ -465,6 +526,10 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         range("voice.tts_volume", "Hlasitost hlasu", -50, 50, 5, (v) => signed(v, " %"), pct, (v) => signed(v, "%")),
         select("voice.speak_mode", "Kdy mluvit nahlas", [["voice", "Jen když na něj mluvím"], ["always", "Vždy (i odpovědi v chatu)"], ["never", "Nikdy (jen text)"]]),
         h("p", { class: "help" }, "Rychlost, výška a hlasitost platí pro hlasy Microsoft."),
+        sw("voice.adaptive_tone", "Tón podle denní doby", "Večer a v noci mluví pomaleji a tišeji, ráno živěji."),
+        sw("voice.whisper_reply", "Na šeptání odpovídat potichu", "Když zašeptáš, JARVIS chvíli odpovídá potichu."),
+        sw("notch.subs_speak", "Přeložené titulky i nahlas", "U cizojazyčného videa JARVIS překlad titulků i přečte (video se přitom ztiší)."),
+        pronounceEditor(),
         h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("speak", { text: "Dobrý den, pane. Všechny systémy jsou připraveny." }) }, icon("speaker-high"), "Přehrát nahlas"))),
     ],
 
@@ -494,12 +559,17 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             "Vypni, když ho chceš mít i nad YouTube nebo hrou. Kdykoli ho schováš a vrátíš zkratkou " + combo(S.hotkeys.notch_toggle || "ctrl+alt+n") +
             ". Hry ve výhradním režimu celé obrazovky nic nepřekryje – přepni je na „okno bez okrajů“ (borderless)."),
           sw("notch.music_viz", "Pruhy podle hudby", "Když hraje hudba, na okraji notche se hýbou pruhy."),
+          sw("notch.spectrum", "Pruhy podle skutečného spektra", "Pruhy sledují basy až výšky toho, co PC hraje (bere jen zvuk z PC, nikdy mikrofon)."),
+          ...((S.notch.widgets || []) as any[]).map((w) => h("div", { class: "row" }, h("span", {}, icon(w.icon || "squares-four"), ` Widget: ${w.name} (${w.tool}, každých ${w.every_min} min)`),
+            h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("widget_delete", { id: w.id }) }, icon("trash")))),
+          h("p", { class: "help" }, "Vlastní widget přidáš hlasem nebo v chatu: „přidej do notche widget s počasím v Brně“."),
           sw("notch.follow_window", "Notch nad oknem, ve kterém JARVIS pracuje", "Když JARVIS něco dělá v okně, notch se přesune nad něj a pak se vrátí doprostřed."),
           sw("notch.edge_play", "Mochi si hraje na okraji", "Po delším klidu proběhne po okraji obrazovky. Ťuknutím ho zastavíš."),
           sw("notch.pinned", "Připnutý panel", "Velký panel zůstane otevřený i po odjetí myší a po restartu"),
           select("notch.style", "Vzhled notche", [["dynamic", "Dynamic Island – jako iPhone"], ["island", "Ostrov – svítící oči"], ["mochi", "Mochi – celá postavička"]],
             "Ostrov ukazuje vlevo a vpravo, co se děje (hudba, časovač, Claude Code), a po otevření tři velké karty."),
           sw("notch.lyrics_translate", "Překlad textu písniček", "Pod cizojazyčným řádkem malý český překlad (AI ho udělá jednou pro celou píseň)."),
+          sw("notch.lyrics_autosync", "Texty se samy doladí", "JARVIS jednou za píseň krátce poslouchá zvuk z PC (ne mikrofon, nic se neukládá) a posune text tak, aby řádky naskakovaly se zpěvem. Ruční posun má přednost."),
           select("notch.tint", "Barva notche", [["song_wall", "Podle písničky, jinak podle tapety"], ["song", "Jen podle písničky"], ["black", "Vždy černá"]],
             "Když hraje hudba, ostrůvek má barvu obalu alba; když nic nehraje, barvu tvé tapety. Vždy tmavě, aby text zůstal čitelný."),
           select("notch.edges", "Okraje notche", [["smooth", "Hladké (bez zubů)"], ["hard", "Ostré (záloha)"]],
@@ -522,20 +592,70 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     },
 
     appearance: () => {
+      // 3.20 Vzhled+ (101–120): the notch's new manners and the 3D character
+      const lookCard320 = () => card("Notch a plocha (3.20)", "Všechno se projeví hned.",
+        sw("notch.wheel_volume", "Hlasitost kolečkem nad notchem", "Najeď myší na notch a točením kolečka měníš hlasitost."),
+        sw("notch.urgent_red", "Červená jen pro naléhavé", "Notch zčervená jen u budíků, připomínek a věcí, které opravdu spěchají."),
+        sw("notch.photo_frame", "Fotka z tohoto dne", "Jednou za den fotka ze stejného dne před lety (z fotek, které JARVIS prošel)."),
+        sw("notch.zen", "Režim zen", "Notch je neviditelný, dokud JARVIS neposlouchá, nemluví nebo nepřijde něco naléhavého."),
+        sw("notch.auto_size", "Velikost podle monitoru", "Na širokoúhlém monitoru větší, na malém notebooku menší."),
+        sw("notch.all_monitors", "Notch na každém monitoru", "Upozornění se ukážou na monitoru, kde zrovna pracuješ (projeví se po restartu JARVISe)."),
+        sw("notch.timeline", "Časová osa dne", "Tenká linka pod notchem: kolik dne zbývá a kde jsou schůzky."),
+        sw("notch.weather_scene", "Počasí v notchi", "Déšť, sníh nebo slunce jako jemná animace podle skutečného počasí."),
+        text("notch.second_tz", "Druhé hodiny", "Časové pásmo, např. Europe/London. Na cestě do zahraničí se ukážou samy."),
+        sw("appearance.seasonal", "Barvy podle ročního období", "Jemný zimní, jarní, letní a podzimní nádech."),
+        sw("appearance.startup_sound", "Zvuk při startu", "Krátký zvuk, když JARVIS naběhne (v noci nikdy)."),
+        sw("appearance.taskbar_eq", "Ekvalizér nad hlavním panelem", "Při hudbě jemné sloupce těsně nad lištou Windows."),
+        sw("appearance.share_ring", "Kroužek kolem kurzoru při sdílení", "Když sdílíš obrazovku (Teams, Zoom, Meet), ostatní uvidí, kam ukazuješ."),
+        sw("appearance.avatar3d", "3D postava místo notche", "JARVIS jako 3D postavička v rohu obrazovky (projeví se po restartu)."));
+      const themeCard320 = () => {
+        const name = h("input", { type: "text", placeholder: "Název tématu", "aria-label": "Název tématu", maxlength: 40 }) as HTMLInputElement;
+        const accent = h("input", { type: "color", value: S.appearance.accent || "#4f8dff", "aria-label": "Akcent" }) as HTMLInputElement;
+        const bg = h("input", { type: "color", value: "#0b0f16", "aria-label": "Pozadí" }) as HTMLInputElement;
+        const fg = h("input", { type: "color", value: "#e8eef6", "aria-label": "Text" }) as HTMLInputElement;
+        const font = h("select", { "aria-label": "Písmo" }, ...["system", "Inter", "Rajdhani", "Orbitron", "JetBrains Mono", "Georgia"].map((f) => h("option", { value: f }, f))) as HTMLSelectElement;
+        const speed = h("input", { type: "range", min: 0.25, max: 2, step: 0.25, value: 1, "aria-label": "Rychlost animací" }) as HTMLInputElement;
+        const radius = h("input", { type: "range", min: 0, max: 30, step: 1, value: 14, "aria-label": "Zaoblení" }) as HTMLInputElement;
+        const themes: any[] = S.appearance.custom_themes || [];
+        const save = () => {
+          const t = { name: (name.value || "Moje téma").slice(0, 40), accent: accent.value, bg: bg.value, text: fg.value, font: font.value,
+            speed: Number(speed.value), radius: Number(radius.value) };
+          set("appearance.custom_themes", [...themes.filter((x) => x.name !== t.name), t]);
+          set("appearance.active_theme", t.name);
+          toast(`Téma „${t.name}“ uloženo`, "ok");
+        };
+        return card("Moje témata", "Vlastní barvy, písmo, rychlost animací a zaoblení – uložíš jako téma a kdykoli přepneš.",
+          h("div", { class: "grid2" }, name, font),
+          h("div", { class: "grid2" }, h("label", {}, "Akcent ", accent), h("label", {}, "Pozadí ", bg)),
+          h("div", { class: "grid2" }, h("label", {}, "Text ", fg), h("label", {}, "Animace ", speed)),
+          h("label", {}, "Zaoblení ", radius),
+          h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: save }, icon("floppy-disk"), "Uložit a použít")),
+          select("appearance.active_theme", "Používané téma", [["", "Vestavěné"], ...themes.map((t) => [t.name, t.name] as [string, string])]));
+      };
       const colors = ["#4f8dff", "#2ee6ff", "#3ddc97", "#ffb547", "#ff5d63", "#a78bfa", "#f472b6", "#e9eef3"];
       const picker = h("input", { type: "color", value: S.appearance.accent, "aria-label": "Vlastní barva" }) as HTMLInputElement;
       picker.onchange = () => set("appearance.accent", picker.value);
       return [bgCard(), card("Barvy", null,
         select("appearance.theme", "Motiv", [["glass", "Sklo (liquid glass)"], ["stark", "Stark (tmavý)"], ["light", "Světlý"]]),
+        sw("appearance.high_contrast", "Vysoký kontrast", "Výraznější text, okraje a zvýraznění prvku, na kterém je klávesnice."),
+        range("appearance.font_scale", "Velikost rozhraní", 1, 1.6, 0.1, (v) => `${Math.round(v * 100)} %`),
         h("div", { class: "field" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Akcent")), h("div", { class: "swatches" },
           ...colors.map((c) => h("button", { class: `swatch ${S.appearance.accent === c ? "on" : ""}`, type: "button", style: { background: c }, "aria-label": c, onclick: () => set("appearance.accent", c) })), picker)),
         select("appearance.animations", "Animace", [["full", "Plné"], ["auto", "Na baterii omezené"], ["reduced", "Omezené"]]),
+        select("appearance.motif", "Barevné schéma", [["vlastni", "Vlastní barva"], ["stark", "Stark – modrá"], ["mark", "Mark – červená a zlatá"],
+          ["friday", "FRIDAY – fialová"], ["stealth", "Stealth – grafit"]]),
+        select("appearance.fx_quality", "Kvalita efektů", [["auto", "Automaticky (podle grafiky a baterie)"], ["ultra", "Ultra – 3D a částice"],
+          ["high", "Vysoká"], ["eco", "Úsporná"], ["off", "Bez efektů"]]),
+        sw("appearance.desktop_fx", "Efekty na ploše", "Když JARVIS pracuje: skenovací paprsek při čtení obrazovky, zaměřovač tam, kam kliká, kruhový ukazatel hlasitosti a „Vítejte zpět“ po odemčení PC. Kliknutí procházejí skrz a na snímcích obrazovky nejsou."),
+        select("appearance.live_wallpaper", "Živá tapeta", [["off", "Vypnutá"], ["reactor", "Reaktor"], ["globe", "Glóbus"]],
+          "Za ikonami plochy (Windows). Při hře nebo videu přes celou obrazovku stojí, na baterii je nehybná."),
         select("appearance.density", "Velikost rozhraní", [["auto", "Automaticky podle okna"], ["compact", "Kompaktní"], ["comfortable", "Běžná"], ["large", "Velká"]],
           "Automaticky: v malém okně kompaktní, na velkém monitoru větší."),
         select("appearance.input_mode", "Ovládání", [["auto", "Automaticky (podle zařízení)"], ["mouse", "Myš a klávesnice"], ["touch", "Dotyk – větší tlačítka"], ["voice", "Hlas – velké tlačítko mikrofonu"]],
           "Automaticky: na dotykové obrazovce se tlačítka zvětší, jakmile se jí dotkneš. Mikrofon se sám nikdy nezapne."),
         sw("appearance.captions", "Živé titulky", "Velké titulky toho, co JARVIS říká a co od tebe slyšel – i bez zvuku."),
-        sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
+        sw("appearance.gestures", "Ovládání gesty kamerou", "Mávni rukou před kamerou PC: doprava další skladba, doleva předchozí, nahoru a dolů hlasitost, zamávání = play/pauza. Když je otevřený Stark HUD, ovládají gesta jeho: otočení 3D modelu nebo glóbu, přiblížení, rozložení modelu, přepínání rozložení. Obraz zůstává v počítači a nic se neukládá; dokud je zapnuto, svítí v notchi červená tečka. Windows se poprvé zeptají na povolení kamery."),
+        handsRow(),
         sw("stark.attention_aware", "Nerušit při soustředění", "Při schůzce v kalendáři nebo hře přes celou obrazovku nedůležitá upozornění počkají a přijdou potom najednou. Budíky a časovače vždy hned.")),
         card("Zvuky", null, sw("appearance.sounds", "Jemné zvuky rozhraní", "Probuzení, poslech, hotovo, chyba, upozornění"),
           range("appearance.sound_volume", "Hlasitost zvuků", 0, 100, 5, (v) => `${v} %`),
@@ -545,7 +665,22 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("div", { class: "btn-row" },
               h("button", { class: "btn sm", type: "button", onclick: () => client.send("sounds_folder", { open: true }) }, icon("folder-open"), "Otevřít složku"),
               h("button", { class: "btn sm", type: "button", onclick: () => { client.send("sounds_folder", { open: false }); toast("Zvuky načteny", "ok"); } }, icon("arrows-clockwise"), "Načíst")))),
-        characterCard(), reactionStudio()];
+        card("Přístupnost", null,                                              // 3.20 Přístupnost+ (461–480)
+          sw("appearance.dyslexia", "Režim pro dyslexii", "Jednoduché písmo, větší mezery mezi písmeny, slovy a řádky, text zarovnaný doleva."),
+          select("appearance.colorblind", "Barvy pro barvoslepost", [["", "Běžné"], ["protan", "Protanopie (červená)"], ["deutan", "Deuteranopie (zelená)"],
+            ["tritan", "Tritanopie (modrá)"]], "Stavy OK / chyba / pozor se odliší i bez rozlišení červené a zelené."),
+          sw("appearance.simple", "Jednoduchý režim", "Větší tlačítka a písmo, méně věcí na obrazovce – hlavně chat a mikrofon."),
+          sw("appearance.keyboard_only", "Jen klávesnice", "Výrazné zvýraznění prvku, na kterém jsi, a odkaz „Přeskočit na obsah“ (Tab hned po otevření)."),
+          select("appearance.switch_scan", "Ovládání jedním tlačítkem", [["0", "Vypnuto"], ["800", "Rychle (0,8 s)"], ["1500", "Středně (1,5 s)"], ["2500", "Pomalu (2,5 s)"]],
+            "Zvýraznění samo přechází po tlačítkách; mezerník nebo Enter (nebo spínač, který se tváří jako mezerník) vybere."),
+          sw("appearance.auto_dark", "Večer tmavší", "Ve dne světlý vzhled, večer a v noci tmavý – samo."),
+          sw("voice.auto_volume", "Hlasitost podle okolí", "V hluku mluví JARVIS hlasitěji, v tichu tišeji (měří šum mikrofonem)."),
+          sw("voice.dialects", "Moravština a slovenština", "Rozpoznávání řeči počítá s moravskými a slovenskými slovy."),
+          h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Překlad rozhraní"),
+            h("span", {}, "Slovenčina, Deutsch, Polski a Українська mají základní slova; zbytek můžeš přeložit sám a poslat ostatním.")),
+            h("div", { class: "btn-row" }, h("button", { class: "btn sm", type: "button", onclick: () => window.open(client.plainUrl("/translate"), "_blank") },
+              icon("translate"), "Otevřít stránku pro překlad")))),
+        lookCard320(), themeCard320(), characterCard(), reactionStudio()];
     },
 
     dictation: () => {
@@ -713,6 +848,38 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               k.onchange = () => { client.send("secret_set", { name: id, value: k.value.trim() }); k.value = ""; toast("Klíč uložen do Správce pověření Windows", "ok"); };
               return field(label, k, help);
             })),
+        // 3.15 Dílna: the 3D printer (its key goes to Windows Credential Manager) and the AI watching the print
+        (() => {
+          const key = h("input", { class: "input", type: "password", autocomplete: "off", placeholder: "API klíč tiskárny (OctoPrint / Moonraker)" }) as HTMLInputElement;
+          key.onchange = () => { client.send("secret_set", { name: "printer", value: key.value.trim() }); key.value = ""; toast("Klíč tiskárny uložen do Správce pověření Windows", "ok"); };
+          const on = getPath(S, "workshop.printer") !== "off";
+          const lan = getPath(S, "workshop.printer") === "bambu_lan";
+          if (lan) key.placeholder = "Přístupový kód z obrazovky tiskárny";
+          return card("Dílna – 3D tiskárna", "JARVIS ukáže stav tisku v HUD a notchi, pozastaví ho hlasem a během tisku se každých pár minut podívá kamerou "
+            + "(AI s obrazem): špagety, odlepený výtisk nebo koule plastu → pozastaví tisk a pošle upozornění do telefonu.",
+            select("workshop.printer", "Tiskárna", [["off", "Žádná"], ["octoprint", "OctoPrint"], ["moonraker", "Klipper (Mainsail / Fluidd)"], ["bambu_ha", "Bambu Lab přes Home Assistant"], ["bambu_lan", "Bambu Lab napřímo (LAN)"]]),
+            ...(on ? [
+              h("div", { class: "grid2" }, text("workshop.printer_url", "Adresa", lan ? "IP adresa tiskárny (na tiskárně: Nastavení → Síť)" : "Např. http://octopi.local nebo http://mainsail.local:7125 (Bambu přes HA: prázdné)"),
+                text("workshop.printer_name", "Jméno", "Jak jí JARVIS říká")),
+              h("div", { class: "grid2" }, field(lan ? "Přístupový kód" : "Klíč API", key, lan ? "Na tiskárně: Nastavení → Síť → LAN režim (8 znaků). Uloží se do Správce pověření Windows."
+                : "OctoPrint: Nastavení → Application Keys; Moonraker většinou žádný"),
+                text("workshop.camera_url", "Kamera (snímek)", "Prázdné = kamera tiskárny; jinak adresa JPEG snímku")),
+              ...(lan ? [
+                h("div", { class: "grid2" }, text("workshop.bambu_serial", "Sériové číslo", "Na tiskárně: Nastavení → Zařízení (např. 01P00A123456789)"),
+                  select("workshop.bambu_model", "Model (kvůli kameře)", [["auto", "Zjistit sám"], ["p1", "P1P / P1S"], ["a1", "A1 / A1 mini"], ["x1", "X1 / X1C / X1E (kamera přes adresu snímku)"]])),
+                sw("workshop.bambu_ams", "Tisknout s AMS", "Barevný tisk z AMS, když pošleš .3mf"),
+                text("workshop.orca_settings", "Profil tiskárny a procesu pro OrcaSlicer", "Aby JARVIS nakrájel i STL: dva .json z OrcaSliceru oddělené středníkem (tiskárna;proces)"),
+                text("workshop.orca_filament", "Profil filamentu pro OrcaSlicer", "Cesta k .json filamentu"),
+                text("workshop.bambu_pin", "Otisk certifikátu tiskárny", "Zapamatuje se při prvním spojení; JARVIS pak jiné zařízení odmítne. Smaž ho jen po výměně nebo resetu tiskárny."),
+              ] : []),
+              ...(getPath(S, "workshop.printer") === "bambu_ha" ? [text("workshop.ha_prefix", "Předpona entit v Home Assistantu", "Např. p1s_01p00a123456789 – prázdné = první nalezená tiskárna")] : []),
+              sw("workshop.timelapse", "Časosběr tisku", "Každé dvě minuty snímek; po dotisku krátké video a fotka v deníku dílny (zůstávají v PC)."),
+              sw("workshop.watch", "Hlídat tisk kamerou", "Fotka jde jen do tvé AI (jako u „podívej se“), nic se neukládá, kromě fotky selhání do deníku projektu."),
+              h("div", { class: "grid2" }, select("workshop.on_failure", "Když se tisk kazí", [["pause", "Pozastavit"], ["notify", "Jen dát vědět"]]),
+                range("workshop.watch_every_min", "Dívat se každých", 1, 15, 1, (v) => `${v} min`)),
+              text("workshop.slicer_profile", "Profil PrusaSliceru (.ini)", "Aby JARVIS mohl STL sám nakrájet a poslat k tisku (PrusaSlicer → Soubor → Exportovat konfiguraci)"),
+            ] : []));
+        })(),
       ];
     },
 
@@ -721,6 +888,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       if (!p) client.send("pairing_get");
       return [
         phoneNetCard(),
+        watchCard(),
         card("Spárovat telefon", "1) Nainstaluj JARVIS.apk do telefonu. 2) V aplikaci klepni na Naskenovat QR. 3) Hotovo.",
           p ? h("div", { class: "qr" }, h("div", { class: "qr-img", html: p.qr_svg }),
             h("div", { style: { display: "grid", gap: "10px" } },
@@ -729,7 +897,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
               h("div", { class: "btn-row" },
                 h("button", { class: "btn", type: "button", onclick: () => copyText(p.url, "Odkaz zkopírován") }, icon("link"), "Kopírovat odkaz"),
                 h("button", { class: "btn danger", type: "button", onclick: () => { if (confirm("Vygenerovat nový token? Všechny telefony se budou muset spárovat znovu.")) { extra.pairing = null; client.send("pairing_get", { regenerate: true }); } } }, icon("arrows-clockwise"), "Nový token"))))
-            : h("p", { class: "help" }, "Načítám…")),
+            : loading()),
         card("Spárovaná zařízení", "Každý telefon má vlastní klíč – ztracený odpojíš sám, ostatní zůstanou spárované.",
           ...(p?.devices?.length ? p.devices.map((d: any) => h("div", { class: "row" },
             h("div", { class: "row-text" }, h("strong", {}, icon("device-mobile"), " ", d.name || "Telefon"),
@@ -830,7 +998,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
     const st = extra.local;
     if (!st) return null;
     const b = st.backup || {};
-    const rec = ((st.recommended || [])[0] as string) || "qwen2.5:3b";
+    const rec = ((st.recommended || [])[0] as string) || "qwen3:4b";
     const model = b.on ? b.model : rec;
     const info = (st.catalog || []).find((m: any) => m.name === model) || { size_gb: "?" };
     const have = (st.installed || []).some((m: any) => m.name === model);
@@ -942,8 +1110,14 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
             h("button", { class: `swatch char-${c} ${ch.color === c ? "on" : ""}`, type: "button", title: label, "aria-label": label, onclick: () => set("character.color", c) })))),
           h("div", { class: "field wide" }, h("span", { class: "f-text" }, h("span", { class: "f-title" }, "Záře")), h("div", { class: "swatches" }, glow,
             h("button", { class: "btn ghost", type: "button", onclick: () => set("character.glow", "") }, "Výchozí modrá"))),
-          select("character.outfit", "Šatník", OUTFITS.map((o) => [o, OUTFIT_LABEL[o]] as [string, string]),
-            "Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“."),
+          (() => {                                   // 3.14 návrh 78: some outfits unlock with Mochi's level
+            const lv = extra.mochi?.level ?? 1;
+            if (!extra.mochiAsked) { extra.mochiAsked = true; client.send("mochi_level_get"); }
+            const opts = OUTFITS.filter((o) => (UNLOCK_LEVEL[o] ?? 0) <= lv || ch.outfit === o).map((o) => [o, OUTFIT_LABEL[o]] as [string, string]);
+            const locked = OUTFITS.filter((o) => (UNLOCK_LEVEL[o] ?? 0) > lv).map((o) => `${OUTFIT_LABEL[o]} (úroveň ${UNLOCK_LEVEL[o]})`);
+            return select("character.outfit", `Šatník · Mochi úroveň ${lv}`, opts,
+              `Podle sezóny: Vánoce, Halloween, Silvestr a léto. Hlasem: „obleč si korunu“.${locked.length ? " Ještě se odemkne: " + locked.join(", ") + "." : ""}`);
+          })(),
           select("character.personality", "Povaha", [["vyvážený", "Vyvážená"], ["hravý", "Hravá – víc hraní a překvapení"],
             ["klidný", "Klidná – méně pohybu"], ["profesionální", "Profesionální – žádné hraní"]],
             "Jak živě se hýbe a jak často si sám pro sebe hraje, když nic neděláš."))),
@@ -1012,11 +1186,23 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       h("div", { class: "btn-row" }, h("button", { class: "btn", type: "button", onclick: () => client.send("photo_backup_open") }, icon("folder-open"), "Otevřít složku")));
   }
 
+  /** 3.18 Hodinky Wear OS: a 6-digit code (5 minutes, once) for the JARVIS app on the watch. */
+  function watchCard() {
+    const box = h("div", {});
+    const show = (m: any) => box.replaceChildren(
+      h("p", { class: "wn-code mono", style: { fontSize: "2rem", letterSpacing: "0.3em", margin: "6px 0" } }, m.code),
+      h("p", { class: "help" }, `Na hodinkách v aplikaci JARVIS zadej adresu ${(m.hosts || [])[0] || "tohoto PC"}:${m.port} a tenhle kód. Platí 5 minut, jen jednou.`));
+    client.on("watch_pair", show);
+    return card("Hodinky Wear OS", "Aplikace JARVIS na hodinkách: zeptáš se hlasem přímo z hodinek a dlaždice ukazuje stav (tisk, balíky…). "
+      + "APK pro hodinky je v GitHub Actions jako JARVIS-wear (nainstaluješ přes ADB nebo Wear Installer).",
+      h("button", { class: "btn", type: "button", disabled: !local, onclick: () => client.send("watch_pair_start") }, icon("watch"), "Spárovat hodinky"), box);
+  }
+
   /** 3.12 JARVIS Link – our own Tailscale: the phone reaches this PC from anywhere (Wi-Fi or mobile data). */
   function linkCard() {
     const L = extra.link;
     if (!extra.linkAsked) { extra.linkAsked = true; client.send("link_get"); }
-    if (!L) return card("JARVIS Link – telefon odkudkoli", null, h("p", { class: "help" }, "Načítám…"));
+    if (!L) return card("JARVIS Link – telefon odkudkoli", null, loading());
     const send = (o: Record<string, unknown>) => { extra.linkBusy = true; client.send("link_set", o); render(); };
     const toggle = (on: boolean, title: string, desc: string, onChange: (v: boolean) => void) => {
       const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
@@ -1046,6 +1232,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
       toggle(!!L.enabled, "Zapnout JARVIS Link", `Šifrovaný port ${L.port} na tomhle PC (jen pro spárované telefony).`, (v) => send({ enabled: v })),
       h("p", { class: "help", style: { margin: "6px 0" } }, h("b", {}, statusLine)),
       L.enabled ? toggle(!!L.upnp, "Otevřít port na routeru sám (UPnP)", routerText[r.state || "off"] || "", (v) => send({ upnp: v })) : null,
+      L.enabled ? toggle(!!L.encrypt_home, "Šifrovat i doma", "Telefon posílá všechno přes šifrované spojení s ověřeným otiskem PC i na domácí Wi-Fi – nikdo v síti (cizí zařízení, napadený router) nic nepřečte. Nepatrně pomalejší.", (v) => send({ encrypt_home: v })) : null,
       L.enabled && L.ipv6?.length ? h("p", { class: "help" }, `IPv6 (přímo, když ho má i operátor telefonu): ${L.ipv6.join(", ")}`) : null,
       L.enabled ? h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Vlastní relay (funguje vždy)"),
         h("span", {}, ag ? (ag.connected ? `✓ Připojeno k ${L.relay_host} – PC čeká na telefon.` : `Nepřipojeno${ag.error ? `: ${ag.error}` : ""}.`)
@@ -1153,6 +1340,48 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   }
 
   /** Voice studio: find a voice, bring your own (a Piper file or an ElevenLabs voice), give it a character. */
+  // 3.14 návrhy 37–39, 43: voice prints of the household, the owner, an own wake word, the pronunciation dictionary
+  function voiceId() {
+    const v = extra.voiceid;
+    if (!extra.voiceidAsked) { extra.voiceidAsked = true; client.send("voiceid_get"); }
+    if (!v) return card("Kdo mluví", null, loading());
+    const name = h("input", { class: "input", placeholder: "Jméno (např. Adam)", "aria-label": "Jméno" }) as HTMLInputElement;
+    const owner = h("input", { type: "checkbox", checked: !v.owner }) as HTMLInputElement;
+    const word = h("input", { class: "input", placeholder: "Slovo, např. Jarvisi", value: v.wake_word || "", "aria-label": "Vlastní slovo" }) as HTMLInputElement;
+    const pend = v.pending || {};
+    const lat = v.latency || {};
+    return card("Kdo mluví a vlastní slovo", "Hlasový otisk a vlastní slovo se počítají jen v tomhle PC z pár vteřin nahrávek; nahrávky se neukládají, jen čísla.",
+      h("p", { class: "help" }, lat.median_ms != null ? `Odpověď hlasem začíná v průměru ${(lat.median_ms / 1000).toFixed(1)} s po tvé větě (z ${lat.answers} odpovědí).` : "Prodleva hlasu se změří po prvních odpovědích."),
+      h("strong", {}, "Lidé v domácnosti"),
+      ...(v.people || []).map((p: any) => h("div", { class: "row" }, h("span", {}, icon(p.owner ? "crown-simple" : "user"), " ", p.name, p.owner ? " (majitel)" : ""),
+        h("button", { class: "btn ghost sm", type: "button", onclick: () => client.send("voiceid_delete", { name: p.name }) }, icon("trash")))),
+      h("p", { class: "help" }, `Přečti 5 vět (každou zvlášť, asi 3 s). Nahráno: ${pend.person || 0}.`),
+      h("div", { class: "btn-row" }, name,
+        h("label", { class: "rs-check" }, owner, "je to majitel"),
+        h("button", { class: "btn", type: "button", disabled: !v.mic, onclick: () => { toast("Mluv teď…", "info", 2500); client.send("voiceid_sample", { kind: "person" }); } }, icon("microphone"), "Nahrát větu"),
+        h("button", { class: "btn primary", type: "button", disabled: (pend.person || 0) < 3, onclick: () => client.send("voiceid_save", { kind: "person", name: name.value, owner: owner.checked }) }, icon("check"), "Uložit hlas")),
+      sw("voice.owner_only", "Riskantní věci hlasem jen majitel", "Platby, mazání a podobné akce udělá hlasem jen na pokyn majitele (ochrana proti televizi a hostům, ne proti nahrávce)."),
+      h("strong", {}, "Vlastní slovo pro probuzení"),
+      h("p", { class: "help" }, v.wake_ready ? `Funguje slovo „${v.wake_word}“ (řekni ho a krátce se zastav).` : `Řekni své slovo 8× za sebou, vždy s krátkou pauzou. Nahráno: ${pend.wake || 0}.`),
+      h("div", { class: "btn-row" }, word,
+        h("button", { class: "btn", type: "button", disabled: !v.mic, onclick: () => { toast("Řekni slovo…", "info", 2000); client.send("voiceid_sample", { kind: "wake" }); } }, icon("microphone"), "Nahrát slovo"),
+        h("button", { class: "btn primary", type: "button", disabled: (pend.wake || 0) < 3, onclick: () => client.send("voiceid_save", { kind: "wake", word: word.value }) }, icon("check"), "Naučit"),
+        v.wake_ready ? h("button", { class: "btn ghost", type: "button", onclick: () => client.send("voiceid_delete", { kind: "wake" }) }, icon("trash"), "Smazat") : null),
+      v.wake_ready ? sw("voice.custom_wake", "Probouzet i vlastním slovem", "Funguje vedle „Hey Jarvis“.") : null);
+  }
+
+  function pronounceEditor() {
+    const list: { src: string; dst: string }[] = S.voice.pronounce || [];
+    const src = h("input", { class: "input", placeholder: "Napsáno (např. SQL)", "aria-label": "Napsáno" }) as HTMLInputElement;
+    const dst = h("input", { class: "input", placeholder: "Vyslovit (např. es kjú el)", "aria-label": "Vyslovit" }) as HTMLInputElement;
+    return h("div", { class: "field wide" }, h("strong", {}, "Výslovnost jmen a zkratek"),
+      ...list.map((r, i) => h("div", { class: "row" }, h("span", {}, `${r.src} → ${r.dst}`),
+        h("button", { class: "btn ghost sm", type: "button", onclick: () => set("voice.pronounce", list.filter((_, j) => j !== i)) }, icon("trash")))),
+      h("div", { class: "btn-row" }, src, dst, h("button", { class: "btn", type: "button", onclick: () => {
+        if (src.value.trim() && dst.value.trim()) set("voice.pronounce", [...list, { src: src.value.trim(), dst: dst.value.trim() }]);
+      } }, icon("plus"), "Přidat")));
+  }
+
   function voiceStudio() {
     const V = S.voice || {};
     const D = extra.voices || {};
@@ -1448,6 +1677,8 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
   client.on("memory_import_result", (m) => toast(`Importováno: ${m.facts_added} faktů, ${m.conversations_added} konverzací (přeskočeno ${m.facts_skipped})`, "ok"));
   client.on("settings_changed", (m) => { S = m.settings; render(); });
   client.on("voice_status", (m) => { voiceStatus = m; if (current === "voice") render(); });
+  client.on("voiceid", (m) => { extra.voiceid = m; if (current === "voice") render(); });
+  client.on("mochi_level", (m) => { extra.mochi = m; if (current === "appearance") render(); });
   client.on("provider_test_result", (m) => {
     const text = m.ok ? `Funguje ✓ (${m.ms} ms): ${m.message}` : m.message;
     extra[`kstat_${m.id}`] = { cls: m.ok ? "ok" : "fail", text };

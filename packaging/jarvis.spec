@@ -43,7 +43,7 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[os.path.join(SPECPATH, "hooks")],
     excludes=["tkinter", "PyQt5", "PyQt6", "PySide2", "PySide6", "IPython", "jupyter", "pytest", "matplotlib.tests",
-              "numpy.tests", "torch", "tensorflow", "cv2", "rapidocr_onnxruntime"],
+              "numpy.tests", "torch", "tensorflow", "rapidocr_onnxruntime"],   # 3.14 cv2 stays: webcam features
     noarchive=False,
 )
 pyz = PYZ(a.pure)

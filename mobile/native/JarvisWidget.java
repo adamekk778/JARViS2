@@ -89,6 +89,11 @@ public class JarvisWidget extends AppWidgetProvider {
         SharedPreferences p = prefs(c);
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_jarvis);
         v.setTextViewText(R.id.w_status, p.getString("status", "Otevři aplikaci JARVIS"));
+        // 3.15 Mega animace: a spinning ring while JARVIS works, a bar filling with the running task
+        v.setViewVisibility(R.id.w_spin, p.getBoolean("busy", false) ? android.view.View.VISIBLE : android.view.View.GONE);
+        int prog = p.getInt("progress", -1);
+        v.setViewVisibility(R.id.w_prog, prog >= 0 ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (prog >= 0) v.setProgressBar(R.id.w_prog, 100, Math.min(100, prog), false);
         String task = p.getString("task", "");
         v.setTextViewText(R.id.w_task, task);
         v.setViewVisibility(R.id.w_task, task.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);

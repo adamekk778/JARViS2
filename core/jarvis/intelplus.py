@@ -112,7 +112,7 @@ def app_habits(rows: list[dict], weekday: int, hour: int) -> list[dict]:
 
 # ---------------------------------------------------------------- 205 contradictions
 STOP = {"je", "jsou", "byl", "byla", "bylo", "ma", "maji", "bude", "budou", "a", "i", "v", "ve", "na", "do", "se", "si", "to", "ze",
-        "za", "o", "s", "z", "k", "u", "pro", "nebo", "ale", "the", "is", "of", "a", "an", "pak", "jen", "celkem", "maximalne",
+        "za", "o", "s", "z", "k", "u", "pro", "nebo", "ale", "the", "is", "of", "an", "pak", "jen", "celkem", "maximalne",
         "minimalne", "nejvyse", "nejmene", "cini", "činí", "obnasi", "stoji", "trva", "nez", "po", "pri", "od", "kterou", "ktera", "ktery"}
 NUM = re.compile(r"(\d+(?:[  ]\d{3})*(?:[.,]\d+)?)\s*(%|kč|czk|eur|€|usd|\$|dní|dnů|dny|den|dnu|let|roky|roku|rok|měsíců|měsíce|měsíc|"
                  r"týdnů|týdny|týden|hodin|hodiny|hodinu|h|minut|min|kg|g|km|m|cm|mm|l|ks|kusů)?(?![\w])", re.I)

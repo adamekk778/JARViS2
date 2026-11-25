@@ -438,13 +438,15 @@ class Link:
         key = relay_key()
         if self.cfg.relay_host.strip() and key:
             relay = {"host": self.cfg.relay_host.strip(), "port": self.cfg.relay_port, "key": key, "room": self.cfg.room}
-        return {"enabled": True, "v": 1, "fp": self.fp, "direct": direct, "relay": relay, "at": int(time.time())}
+        return {"enabled": True, "v": 1, "fp": self.fp, "direct": direct, "relay": relay, "at": int(time.time()),
+                "always": bool(getattr(self.cfg, "encrypt_home", False))}
 
     def status(self) -> dict:
         """For Settings on this PC (never the keys)."""
         ag = self.agent.status() if self.agent else None
         return {"enabled": self.cfg.enabled, "listening": self.listening, "port": self.cfg.port, "error": self.error,
-                "fp": self.fp, "upnp": self.cfg.upnp, "router": self.router, "ipv6": global_v6() if self.cfg.enabled else [],
+                "fp": self.fp, "upnp": self.cfg.upnp, "encrypt_home": bool(getattr(self.cfg, "encrypt_home", False)),
+                "router": self.router, "ipv6": global_v6() if self.cfg.enabled else [],
                 "public_host": self.cfg.public_host, "relay_host": self.cfg.relay_host, "relay_port": self.cfg.relay_port,
                 "relay_key_set": bool(relay_key()), "relay": ag,
                 "connections": self.watch.list()[:15], "alerts": self.watch.alerts[:5],

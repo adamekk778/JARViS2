@@ -1,7 +1,10 @@
 """Runs one tool of a skill in its own process (spec §10): a crash or hang can't take JARVIS down.
 
 Protocol on stdout: "@@NOTIFY {json}" lines (forwarded as notifications) and one "@@RESULT {json}" line.
-This is crash/timeout isolation, not a security sandbox.
+Crash/timeout isolation – and since 3.14 the manifest is enforced too (a Python audit hook, as for run_python): a skill
+with a SKILL = {...} manifest cannot start programs without "shell", cannot reach the network without "network" and
+writes files only to its own folder and the temp folder without "files_write". Old skills without a manifest
+("legacy") run as before.
 """
 from __future__ import annotations
 
@@ -41,6 +44,34 @@ def _ctx(permissions: list[str], legacy: bool = False):
     return SimpleNamespace(http=lambda: httpx.AsyncClient(verify=tlsctx.context(), timeout=30), notify=notify, platform=platform, store=store)
 
 
+def has_manifest(path: str) -> bool:
+    import ast
+    from pathlib import Path
+
+    try:
+        tree = ast.parse(Path(path).read_text(encoding="utf-8"))
+    except (SyntaxError, OSError):
+        return False
+    return any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "SKILL" for t in n.targets)
+               for n in tree.body)
+
+
+def fence(path: str, permissions: list[str]) -> None:
+    import tempfile
+    from pathlib import Path
+
+    from . import paths, sandbox
+
+    perms = set(permissions)
+    roots = None
+    if "files_write" not in perms:
+        own = paths.sub("skills") / ".data" / Path(path).stem
+        own.mkdir(parents=True, exist_ok=True)
+        roots = [tempfile.gettempdir(), str(own)]
+    sandbox.install_fence(roots, net="network" in perms, programs="shell" in perms,
+                          native=bool(perms & {"input", "apps", "screen", "system", "shell"}))
+
+
 def main(argv: list[str]) -> int:
     legacy = "--legacy" in argv
     argv = [a for a in argv if a != "--legacy"]
@@ -59,8 +90,12 @@ def main(argv: list[str]) -> int:
     args = json.loads(args_json)
     args = {k: v for k, v in args.items() if k in ts.parameters.get("properties", {})}
 
+    ctx = _ctx(manifest["permissions"], legacy)
+    if not legacy and has_manifest(path):
+        fence(path, manifest["permissions"])
+
     async def run():
-        out = ts.func(_ctx(manifest["permissions"], legacy), **args)  # exceptions propagate → "Skill spadl" in the parent
+        out = ts.func(ctx, **args)  # exceptions propagate → "Skill spadl" in the parent
         if asyncio.iscoroutine(out):
             out = await out
         return out if isinstance(out, base.ToolResult) else base.ToolResult(True, str(out) if out is not None else "hotovo")

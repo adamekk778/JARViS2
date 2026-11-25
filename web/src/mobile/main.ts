@@ -5,6 +5,8 @@ import { ChatView, conversationList } from "../shared/chat";
 import { h, icon, toast } from "../shared/dom";
 import { Recorder } from "../shared/recorder";
 import { JarvisClient } from "../shared/ws";
+import "../shared/i18n";
+import { openEdith } from "./edith";
 import { loadPairing, parsePairing, refreshLink, resolveEndpoint, savePairing, type Pairing } from "./connect";
 import { startUpdateCheck } from "./update";
 import { approvalsCard, permissionsWizard } from "./agents";
@@ -20,7 +22,11 @@ import { openRemote } from "./remote";
 import { phoneBackground, phoneClock, phoneEyes, phoneLookCard, phoneMusic } from "./phonelook";
 import { habitsGlance, habitsView } from "./habits";
 import { createAgentsView } from "../shared/agentsview";
+import { hapticTouch, sosScreen, splash } from "./cinema";
+import { drivingMode, phoneToolsCard } from "./x320";
 import "./polish.css";              // 3.13 the phone in the same airy look as the PC (loaded last)
+splash();                           // 3.15 the reactor powers up when the app opens
+hapticTouch();                      // 3.15 a light tap under the finger on the main buttons
 
 const bigFace = (size: number) => { const b = new Blob({ size }); b.setMood("idle"); return b.el; };
 
@@ -41,11 +47,11 @@ window.addEventListener("hashchange", () => {
   if (p) {
     savePairing(p);
     history.replaceState(null, "", location.pathname);
-    boot();
+    void boot();
   }
 });
 
-boot();
+void boot();
 
 async function boot() {
   startUpdateCheck();                                   // 3.12 a newer app → one tap to update
@@ -111,7 +117,7 @@ let clipSync = false;
 let clipSent = "";
 let clipImgSent = "";
 function shareClipboard(c: JarvisClient) {
-  c.on("welcome", (m) => { clipSync = !!m.clip_sync; sendClip(); });
+  c.on("welcome", (m) => { clipSync = !!m.clip_sync; void sendClip(); });
   c.on("clip_sync", (m) => { clipSync = !!m.on; });
   const sendClip = async () => {
     if (!clipSync || document.hidden || !native.isNative) return;
@@ -143,12 +149,12 @@ function connectScreen(prev?: Pairing | null, error?: string) {
   const tryPairing = async (p: Pairing | null) => {
     if (!p) return toast("Tohle není platný párovací kód", "error");
     savePairing(p);
-    boot();
+    void boot();
   };
   const scan = async () => {
     try {
       const text = await native.scanQr();
-      if (text) tryPairing(parsePairing(text));
+      if (text) void tryPairing(parsePairing(text));
     } catch (e: any) {
       toast(e.message || "Skenování se nepodařilo", "error");
     }
@@ -212,6 +218,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     h("button", { class: "icon-btn", type: "button", "aria-label": "Konverzace", onclick: openDrawer }, icon("list")),
     h("div", { class: "m-title" }, orb, h("div", {}, h("strong", {}, "JARVIS"), status)),
     stop,
+    h("button", { class: "icon-btn", type: "button", "aria-label": "EDITH – kamera s JARVISem", title: "EDITH: co vidím, přečti, přelož",
+      onclick: () => openEdith(c) }, icon("aperture")),          // 3.14 návrh 6
     h("button", { class: "icon-btn", type: "button", "aria-label": "Nová konverzace", onclick: () => c.send("new_chat") }, icon("note-pencil")));
 
   const habits = habitsView(c);                                        // 3.12 Návyky a zdraví
@@ -229,6 +237,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   const clock = phoneClock(c);
   views.home.prepend(clock.el, companyCard(c), approvalsCard(c), habitsGlance(c, () => show("habits")), phoneMusic(c));
   views.more.prepend(phoneLookCard());
+  // 3.20 (123) the phone joined the car's Bluetooth: big buttons, everything by voice
+  drivingMode(c, () => { if (native.phone.available) void native.phone.voiceOpen(); else toast("Podrž tlačítko Mluvit na Ovládání.", "info"); });
   views.more.prepend(screenCard(c, ep), mochiCard(c));
   // 3.14 Agenti on the phone: on Domů while agents work (stop one, write to one, the play wallet); in Více always, with
   // the ready-made teams to start from the phone
@@ -261,7 +271,7 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   // 3.4 phone link: keep the phone reachable for JARVIS (ring, dial, SMS) and answer his calls
   if (native.phone.available) {
     native.phone.configure({ base: ep.base, token: ep.token, enabled: localStorage.getItem("jarvis.link") !== "0" }).catch(() => {});
-    refreshLink(ep, pairing).then((p) => { pairing = p; });   // 3.12 JARVIS Link: how to reach the PC from outside
+    void refreshLink(ep, pairing).then((p) => { pairing = p; });   // 3.12 JARVIS Link: how to reach the PC from outside
     native.phone.onReply(() => { show("chat"); chat.focus(); toast("Řekni nebo napiš JARVISovi odpověď", "ok", 3500); });
     c.on("phone_cmd", async (cmd) => {
       try {
@@ -295,12 +305,13 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     paintStatus();
   });
   photoRequests(c, asksBox, () => show("chat"));
+  sosScreen(c);                     // 3.15 the SOS countdown full screen
 
   // OMEGA 136 / 722: the home-screen widget follows what JARVIS does, the mission and the pins
   const MOOD_TEXT: Record<string, string> = { idle: "Připraven", listening: "Poslouchá…", thinking: "Přemýšlí…", working: "Pracuje…",
     speaking: "Mluví…", waiting: "Čeká na potvrzení", error: "Něco se nepovedlo", offline: "PC je nedostupné", sleeping: "Odpočívá",
     success: "Hotovo", joy: "Připraven", notify: "Má pro tebe zprávu", focus: "Režim soustředění", dancing: "Hraje hudba", limit: "Limit AI" };
-  const widget = { status: "", task: "", pins: "", habits: "", song: "", online: false };
+  const widget = { status: "", task: "", pins: "", habits: "", song: "", online: false, busy: false, progress: -1 };   // 3.15 busy spinner + progress
   let widgetTimer = 0;
   const pushWidget = (o: Partial<typeof widget>) => {
     Object.assign(widget, o);
@@ -319,7 +330,8 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
     const left = m.items.filter((i: any) => i.due && !i.done).map((i: any) => i.name);
     pushWidget({ habits: !t.due ? "Návyky: dnes volno" : left.length ? `Návyky ${t.done} z ${t.due} · zbývá ${left.slice(0, 3).join(", ")}` : `Návyky ${t.done} z ${t.due} – všechno hotovo 🔥`, online: true });
   });
-  c.on("task_update", (m) => pushWidget({ task: taskText(m.task) }));
+  const taskPct = (t: any) => (t && t.total && ["running", "paused", "waiting"].includes(t.status) ? Math.round((t.done / t.total) * 100) : -1);
+  c.on("task_update", (m) => pushWidget({ task: taskText(m.task), progress: taskPct(m.task) }));
   c.onStatus((s) => { if (s !== "open") pushWidget({ status: MOOD_TEXT.offline }); });
 
   // OMEGA 734: on a low battery the app goes quiet – no animations, no haptics, no live audio level from the PC
@@ -333,18 +345,19 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   // jarvis:// links – the widget, app shortcuts and command QR codes (a command is always shown before it is sent)
   native.onLink((url) => {
     const cmd = parseCommandLink(url);
-    if (cmd) { show("chat"); confirmCommand(c, cmd); return; }
+    if (cmd) { show("chat"); void confirmCommand(c, cmd); return; }
     const what = url.replace(/^jarvis:\/\/open\/?/, "");
     if (what === "talk") { show("control"); toast("Podrž mikrofon a mluv", "info", 2500); }
     else if (what === "chat") { show("chat"); chat.focus(); }
-    else if (what === "photo") { show("control"); sendPhoto(c, "shelf"); }
-    else if (what === "scan") scanCommand(c);
+    else if (what === "photo") { show("control"); void sendPhoto(c, "shelf"); }
+    else if (what === "scan") void scanCommand(c);
     else if (what === "habits") show("habits" as any);
     else if (what === "company") { show("home" as any); window.dispatchEvent(new Event("jarvis-open-company")); }
   });
   c.on("welcome", (m) => {
     if (m.guest) { app.replaceChildren(guestView(c, m.guest)); return; }     // OMEGA 727: a temporary guest pairing
-    pushWidget({ status: MOOD_TEXT[m.mood?.mood] || "Připraven", task: taskText(m.task), pins: pinsText(m.pins) });
+    pushWidget({ status: MOOD_TEXT[m.mood?.mood] || "Připraven", task: taskText(m.task), pins: pinsText(m.pins), progress: taskPct(m.task),
+      busy: ["thinking", "working", "listening", "speaking"].includes(m.mood?.mood) });
     asks = m.claude_pending || [];
     paintAsks();
     applyAppearance(m.settings);
@@ -358,21 +371,21 @@ function mainScreen(ep: { base: string; token: string }, pairing: Pairing) {
   });
   c.on("settings_changed", (m) => { applyAppearance(m.settings); if (native.lowPower) document.documentElement.dataset.motion = "reduced"; });
   c.on("mood", (m) => {
-    pushWidget({ status: MOOD_TEXT[m.mood] || "Připraven" });
+    pushWidget({ status: MOOD_TEXT[m.mood] || "Připraven", busy: ["thinking", "working", "listening", "speaking"].includes(m.mood) });
     face.setMood(m.mood, m);
     stop.hidden = !["listening", "thinking", "working", "speaking", "waiting"].includes(m.mood);
   });
   c.on("stopped", () => { toast("Zastaveno.", "ok"); native.haptic(); });
   c.on("notify", (m) => {
-    if (document.hidden) native.notify(m.title, m.body);
+    if (document.hidden) void native.notify(m.title, m.body);
     else toast(`${m.title}: ${m.body}`, "info", 6000);
     native.haptic();
   });
-  c.on("assistant_done", (m) => { if (document.hidden) native.notify("JARVIS", String(m.text).slice(0, 180)); });
-  c.on("confirm_request", (m) => { if (document.hidden) native.notifyApproval("JARVIS potřebuje potvrzení", m.description, { kind: "jarvis", id: m.id, label: m.description }); native.haptic(); });
+  c.on("assistant_done", (m) => { if (document.hidden) void native.notify("JARVIS", String(m.text).slice(0, 180)); });
+  c.on("confirm_request", (m) => { if (document.hidden) void native.notifyApproval("JARVIS potřebuje potvrzení", m.description, { kind: "jarvis", id: m.id, label: m.description }); native.haptic(); });
   c.on("claude_permission", (m) => {
     asks.push(m); paintAsks(); show("chat"); native.haptic();
-    if (document.hidden) native.notifyApproval(`Claude Code · ${m.project} čeká`, m.label, { kind: "claude", id: m.id, label: m.label });
+    if (document.hidden) void native.notifyApproval(`Claude Code · ${m.project} čeká`, m.label, { kind: "claude", id: m.id, label: m.label });
   });
   c.on("claude_permission_resolved", (m) => { asks = asks.filter((a) => a.id !== m.id); paintAsks(); });
   native.onApprovalAction(async (action, extra) => {
@@ -520,8 +533,8 @@ function pcAudioRow(): HTMLElement | string {
   };
   const refresh = () => native.phone.pcAudio({}).then((r) => { on = r.on; paint(); }).catch(() => {});
   paint();
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return h("div", { class: "m-pcaudio-row" }, btn,
     h("p", { class: "help" }, "Hudba, film nebo hra z PC v telefonu a sluchátkách – i v jiné místnosti a mimo domov. Bere se jen zvuk, který PC samo hraje."));
 }
@@ -695,8 +708,8 @@ const render = (st: PhoneStatus) => box.replaceChildren(
       toast("JARVIS za chvilku zavolá", "ok");
     } }, icon("phone-call"), "Vyzkoušet hovor od JARVISe")));
   const refresh = () => native.phone.status().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });   // back from Android settings
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });   // back from Android settings
   return box;
 }
 
@@ -720,8 +733,8 @@ function mirrorCard(): HTMLElement {
         st.control ? null : h("button", { class: "btn sm", type: "button", onclick: () => native.phone.openAccessibility() }, "Povolit")));
   };
   const refresh = () => native.phone.mirrorStatus().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return box;
 }
 
@@ -787,13 +800,13 @@ function backupCard(): HTMLElement {
     box.replaceChildren(
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Záloha fotek na PC"), h("span", { class: b.running ? "m-live" : "" }, say(b))),
         sw(b.on || choosing, (v) => {
-          if (v) { choosing = true; render(b); } else { choosing = false; set({ on: false }); }
+          if (v) { choosing = true; render(b); } else { choosing = false; void set({ on: false }); }
         }, "Záloha fotek na PC")),
       choosing ? h("div", { class: "m-choice" },
         h("p", { class: "help" }, "Co poslat na PC? Pak už se budou posílat jen nové."),
         h("div", { class: "btn-row" },
-          h("button", { class: "btn primary sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: true }); } }, icon("images"), "Všechny fotky"),
-          h("button", { class: "btn sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); set({ on: true, all: false }); } }, icon("sparkle"), "Jen nové od teď"),
+          h("button", { class: "btn primary sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); void set({ on: true, all: true }); } }, icon("images"), "Všechny fotky"),
+          h("button", { class: "btn sm", type: "button", onclick: () => { choosing = false; localStorage.setItem("jarvis.link", "1"); void set({ on: true, all: false }); } }, icon("sparkle"), "Jen nové od teď"),
           h("button", { class: "btn ghost sm", type: "button", onclick: () => { choosing = false; render(b); } }, "Zrušit"))) : "",
       b.on && !choosing ? h("div", { class: "m-subrows" },
         h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Jen přes Wi-Fi"), h("span", {}, "Nešetří data – na mobilních datech čeká.")),
@@ -807,8 +820,8 @@ function backupCard(): HTMLElement {
           : h("button", { class: "btn sm", type: "button", disabled: b.running, onclick: () => set({ now: true }) }, icon("cloud-arrow-up"), b.running ? "Zálohuji…" : "Zálohovat teď"))) : "");
   };
   const refresh = () => native.phone.backupStatus().then(render).catch(() => {});
-  refresh();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  void refresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
   return box;
 }
 
@@ -820,7 +833,22 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     localStorage.setItem("jarvis.notify", notif.checked ? "1" : "0");
     if (notif.checked) await native.askNotifyPermission();
   };
+  // 3.14 návrh 39: SOS – hold for a second (no accidental taps); the position goes along only if the phone allows it
+  let sosTimer = 0;
+  const sendSos = () => {
+    native.haptic();
+    const go = (lat?: number, lon?: number) => c.send("emergency", { reason: "SOS z telefonu", lat, lon });
+    if (!navigator.geolocation) { go(); return; }
+    navigator.geolocation.getCurrentPosition((pos) => go(pos.coords.latitude, pos.coords.longitude), () => go(), { timeout: 6000, maximumAge: 60000 });
+    toast("SOS odesláno – JARVIS se zeptá, jestli jsi v pořádku.", "info", 5000);
+  };
+  const sos = h("button", { class: "btn danger m-sos", type: "button", "aria-label": "SOS – podrž 1 sekundu",
+    onpointerdown: () => { sosTimer = window.setTimeout(sendSos, 1000); },
+    onpointerup: () => window.clearTimeout(sosTimer), onpointerleave: () => window.clearTimeout(sosTimer) }, icon("siren", "ph-fill"), "SOS (podrž)");
   return h("section", { class: "m-view m-more", hidden: true },
+    h("div", { class: "card" }, h("h2", {}, "Nouze"),
+      h("p", { class: "help" }, "Podrž SOS 1 sekundu: JARVIS se zeptá, jestli jsi v pořádku, a když neodpovíš, napíše tvým nouzovým kontaktům i s polohou."),
+      sos, h("button", { class: "btn", type: "button", onclick: () => c.send("emergency_cancel") }, icon("check-circle"), "Jsem v pořádku")),
     h("div", { class: "card" }, h("h2", {}, "Připojení"),
       h("div", { class: "kv" }, h("span", {}, "PC"), h("b", { class: "mono" }, ep.base.replace("http://", ""))),
       h("div", { class: "kv" }, h("span", {}, "Známé adresy"), h("b", { class: "mono" }, p.hosts.join(", "))),
@@ -832,12 +860,14 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
       h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Notifikace z PC"), h("span", {}, "Časovače, připomínky, odpovědi na pozadí")),
         h("label", { class: "switch" }, notif, h("span"))),
       phoneCard(c),
+      native.isNative ? "" : webPushRow(c),
       backupCard(),
       native.phone.available ? morningCard(c) : "",
       native.phone.available ? mirrorCard() : "",
       h("p", { class: "help" }, "Tip: v jakékoli aplikaci dej Sdílet → JARVIS a odkaz se otevře na PC, soubor přistane v polici notche. "
         + "Dlouhým podržením ikony JARVIS máš zkratky (Mluvit, Napsat, Fotka na PC) a na plochu si můžeš přidat widget.")),
     pcStatusCard(c),
+    phoneToolsCard(c),                 // 3.20 touchpad, dictation into the PC, scan to PDF, webcam
     clipHistoryCard(c),
     pcFilesCard(c),
     lanSpeedCard(c),
@@ -845,6 +875,36 @@ function moreView(c: JarvisClient, ep: { base: string }, p: Pairing): HTMLElemen
     h("div", { class: "card" }, h("h2", {}, "O aplikaci"), h("p", { class: "help" }, "JARVIS 2 · nastavení najdeš na PC v okně JARVIS.")));
 }
 
+
+/** 3.18 iPhone (and any browser): JARVIS's notices as notifications – the web app from the home screen, Web Push. */
+function webPushRow(c: JarvisClient): HTMLElement {
+  const note = h("span", {}, "Na iPhonu: Sdílet → Přidat na plochu, otevřít JARVIS z plochy a zapnout tady. Potřebuje HTTPS adresu (docs/IPHONE.md).");
+  const btn = h("button", { class: "btn", type: "button" }, icon("bell-ringing"), "Zapnout") as HTMLButtonElement;
+  const test = h("button", { class: "btn ghost", type: "button", hidden: true, onclick: () => c.send("webpush_test") }, "Vyzkoušet") as HTMLButtonElement;
+  const can = "serviceWorker" in navigator && "PushManager" in window && window.isSecureContext;
+  if (!can) { btn.disabled = true; note.textContent = window.isSecureContext ? "Tenhle prohlížeč upozornění neumí. Na iPhonu: přidej JARVIS na plochu (iOS 16.4+) a otevři ho odtamtud."
+    : "Upozornění v prohlížeči potřebují zabezpečenou adresu (HTTPS) – viz docs/IPHONE.md."; }
+  let key = "";
+  c.on("webpush", (m: any) => {
+    if (m.key) key = m.key;
+    if (m.ok === true) { note.textContent = "Zapnuto – upozornění z PC přijdou sem."; test.hidden = false; }
+    if (m.ok === false) toast(m.error || "Nepovedlo se", "error");
+    if (m.tested != null) toast(m.tested ? "Upozornění odesláno" : "Nic nedorazilo – zkus to zapnout znovu", m.tested ? "ok" : "error");
+  });
+  if (can) c.send("webpush_key");
+  btn.onclick = async () => {
+    try {
+      if (await Notification.requestPermission() !== "granted") { toast("Upozornění nejsou povolená", "error"); return; }
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      await navigator.serviceWorker.ready;
+      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), (ch) => ch.charCodeAt(0));
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw });
+      c.send("webpush_subscribe", { subscription: sub.toJSON(), label: /iPhone|iPad/.test(navigator.userAgent) ? "iPhone" : "Prohlížeč" });
+    } catch (e: any) { toast(`Nepovedlo se: ${e?.message || e}`, "error"); }
+  };
+  return h("div", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Upozornění v tomhle prohlížeči"), note),
+    h("div", { class: "btn-row" }, btn, test));
+}
 
 /** OMEGA P9.08: the PC screen, live, while sharing is switched on on the PC (it asks there first). */
 function screenCard(c: JarvisClient, ep: { base: string; token: string }): HTMLElement {

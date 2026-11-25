@@ -84,7 +84,12 @@ def _resolve_to(ctx, to: str) -> tuple[str, str | None]:
       "člověka, který uživateli už někdy psal. Piš česky, přirozeně, za uživatele, s pozdravem a jeho jménem.",
       category="e-mail", perm="network", danger=True, details=_send_details)
 async def email_send(ctx, to: Annotated[str, "e-mail nebo jméno"], subject: str, body: Annotated[str, "celý text e-mailu"],
-                     account: str = "") -> ToolResult:
+                     account: str = "", attachment_ok: bool = False) -> ToolResult:
+    from ..workx import mentions_attachment
+
+    if mentions_attachment(body) and not attachment_ok:   # 3.20 (266) "v příloze…" and nothing attached
+        return ToolResult(False, "V textu píšeš o příloze, ale tenhle e-mail žádnou nemá. Přidej ji v poště, nebo text uprav "
+                                 "(když příloha opravdu není potřeba, pošli s attachment_ok).")
     addr, problem = await asyncio.to_thread(_resolve_to, ctx, to)
     if problem:
         return ToolResult(False, problem)

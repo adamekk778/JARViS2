@@ -76,7 +76,8 @@ async def test_what_next_ranks_and_fits_the_time(rt):
 
 async def test_day_summary(rt):
     t = rt.tasks.begin("Napsat dopis", rt.memory.current_conversation)
-    rt.db.exec("UPDATE tasks SET status='done', finished=? WHERE id=?", (NOW, t))
+    # the time of the test itself, not of loading the file: a run across midnight (CI at 00:00) put it on yesterday
+    rt.db.exec("UPDATE tasks SET status='done', finished=? WHERE id=?", (time.time(), t))
     rt.memory.add_message("user", "ahoj")
     r = await tools.call("day_summary", {}, rt)
     assert r.ok and "dokončeno 1 misí (Napsat dopis)" in r.summary and "1 zpráv" in r.summary

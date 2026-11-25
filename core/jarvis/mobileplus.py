@@ -232,7 +232,12 @@ def issue_device(rt, name: str) -> tuple[str, dict]:
     token = DEVICE_PREFIX + secrets.token_urlsafe(32)
     now = time.time()
     d = {"id": uuid.uuid4().hex[:8], "name": (name or "Telefon")[:60], "token_hash": _hash(token), "created": now, "last_seen": now}
+    had = bool(rt.cfg.phone.devices)
     rt.update_config({"phone": {"devices": [x.model_dump() for x in rt.cfg.phone.devices] + [d]}})
+    if had:                                         # 3.14 návrh 111: the phones paired before hear about it
+        from .shield import announce_device
+
+        announce_device(rt, d["name"], d["id"])
     return token, {k: v for k, v in d.items() if k != "token_hash"}
 
 

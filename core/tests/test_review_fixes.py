@@ -60,7 +60,7 @@ async def test_i1_stop_resolves_confirmation(rt):
 
 # ---------- I2: messages while paused / queued work after STOP ----------
 class SlowRouter(FakeRouter):
-    async def stream(self, messages, tools, need_vision=False, fast=False):
+    async def stream(self, messages, tools, need_vision=False, fast=False, **kw):
         await asyncio.sleep(0.15)
         async for ch in super().stream(messages, tools, need_vision, fast):
             yield ch

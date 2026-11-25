@@ -27,3 +27,11 @@ def test_every_published_event_is_declared():
     for f in root.rglob("*.py"):
         published |= set(re.findall(r'publish(?:_threadsafe)?\("([a-z_]+)"', f.read_text(encoding="utf-8")))
     assert published <= set(SERVER_TYPES), published - set(SERVER_TYPES)
+
+
+def test_moved_handlers_are_declared():
+    """Handlers in server/handlers/* answer only declared client types, and every type has one handler."""
+    from jarvis.server import handlers
+
+    handlers.load()
+    assert set(handlers.HANDLERS) <= set(CLIENT_TYPES), set(handlers.HANDLERS) - set(CLIENT_TYPES)

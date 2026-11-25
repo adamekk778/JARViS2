@@ -87,6 +87,22 @@ public class NotifMirror extends NotificationListenerService {
         } catch (Exception ignored) { }
     }
 
+    /** 3.20 (140) an ongoing call's notification went away = the call ended → the PC asks for a note to it. */
+    @Override
+    public void onNotificationRemoved(StatusBarNotification sbn) {
+        if (!JarvisLink.mirror(this) || JarvisLink.base(this).isEmpty()) return;
+        Notification n = sbn.getNotification();
+        if (!Notification.CATEGORY_CALL.equals(n.category) || !sbn.isOngoing()) return;
+        if (System.currentTimeMillis() - sbn.getPostTime() < 15_000) return;        // a missed / declined call: no note
+        CharSequence title = n.extras.getCharSequence(Notification.EXTRA_TITLE);
+        final String who = title == null ? "" : title.toString();
+        new Thread(() -> {
+            try {
+                JarvisLink.http(this, "POST", "/api/phone/event", new JSONObject().put("kind", "call_end").put("who", who).toString(), 10000);
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     private String label(String pkg) {
         try {
             PackageManager pm = getPackageManager();

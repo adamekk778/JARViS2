@@ -1,6 +1,6 @@
 /* 3.12 "Týden soustředění": a sheet over the notch panel – minutes per day as bars, the total, the streak of days in a
    row, the longest session and what pulled you away most often (only service names, e.g. YouTube). */
-import { h, icon } from "../shared/dom";
+import { h, icon, loading } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import "./focusstats.css";
 
@@ -8,7 +8,7 @@ const dur = (sec: number) => { const m = Math.round(sec / 60); return m >= 60 ? 
 const days = (n: number) => (n === 1 ? "den" : n >= 2 && n <= 4 ? "dny" : "dní");
 
 export function createFocusStats(host: HTMLElement, client: JarvisClient) {
-  const body = h("div", { class: "fs-body" }, h("p", { class: "fs-muted" }, "Načítám…"));
+  const body = h("div", { class: "fs-body" }, loading());
   const sheet = h("div", { class: "lk-sheet fs-sheet", role: "dialog", "aria-label": "Týden soustředění", hidden: true },
     h("div", { class: "lk-head" }, h("strong", {}, "Týden soustředění"),
       h("button", { type: "button", class: "lk-x", "aria-label": "Zavřít", onclick: () => open(false) }, icon("x"))), body);

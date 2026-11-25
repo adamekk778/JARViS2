@@ -46,7 +46,7 @@ class Activity:
     def __init__(self, rt):
         self.rt = rt
         self.last_external: dict = {}
-        self.clips: deque[dict] = deque(maxlen=30)
+        self.clips: deque[dict] = deque(maxlen=100)        # 3.20 (88) the last 100, searchable
         self._clip_seq = None
         self._active_since: float | None = None
         self._break_said = False

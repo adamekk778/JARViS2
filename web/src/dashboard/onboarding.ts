@@ -2,6 +2,8 @@
    and three things worth knowing. Shown once in the window while no AI key is saved; any time later from
    Nastavení → AI mozek → Průvodce nastavením. */
 import { h, icon, toast } from "../shared/dom";
+import { at } from "../shared/motion";
+import { play } from "../shared/sounds";
 import type { JarvisClient } from "../shared/ws";
 import "./onboarding.css";
 
@@ -50,6 +52,7 @@ function show(client: JarvisClient, s: any) {
     h("div", { class: "ob-top" }, dots, skip), body, h("div", { class: "ob-foot" }, back, next));
   const root = h("div", { class: "ob" }, h("div", { class: "ob-glow", "aria-hidden": "true" }), card);
   document.body.append(root);
+  if (at("high")) void intro(root, card);       // 3.15 the first meeting, like in the film
   const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") finish(); };
   window.addEventListener("keydown", onKey);
 
@@ -72,6 +75,10 @@ function show(client: JarvisClient, s: any) {
   }
 
   function go(n: number) {
+    const dir = n >= step ? "fwd" : "back";
+    body.classList.remove("ob-in-fwd", "ob-in-back");
+    void body.offsetWidth;
+    body.classList.add(`ob-in-${dir}`);          // 3.15 the steps slide in
     step = Math.max(0, Math.min(3, n));
     dots.replaceChildren(...[0, 1, 2, 3].map((i) => h("i", { class: i === step ? "on" : i < step ? "done" : "" })));
     back.hidden = step === 0 || step === 3;
@@ -160,4 +167,39 @@ function show(client: JarvisClient, s: any) {
     view.animate([{ opacity: 0, transform: "translateX(14px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.9,.25,1)" });
   }
   go(0);
+}
+
+/** 3.15 Mega animace (návrh 29): before the guide, JARVIS powers up and introduces himself (and says it, when the
+ *  system has a Czech voice); a click or a key skips it. The card then rises in. */
+async function intro(root: HTMLElement, card: HTMLElement): Promise<void> {
+  card.classList.add("ob-wait");
+  const text = h("p", { class: "obi-text" });
+  const rings = h("div", { class: "obi-core", "aria-hidden": "true" }, h("i", {}), h("i", {}), h("i", {}), h("b", {}));
+  const el = h("div", { class: "obi", role: "presentation" }, rings, text, h("small", {}, "Klikni pro přeskočení"));
+  root.append(el);
+  let skip = false;
+  const stop = () => { skip = true; };
+  el.addEventListener("click", stop);
+  window.addEventListener("keydown", stop, { once: true });
+  play("boot");
+  const lines = ["Dobrý den.", "Jsem J.A.R.V.I.S. – váš osobní asistent.", "Pojďme mě společně nastavit. Zabere to minutu."];
+  try {
+    const u = new SpeechSynthesisUtterance(lines.join(" ").replace("J.A.R.V.I.S.", "Džarvis"));
+    u.lang = "cs-CZ"; u.rate = 1.02; u.pitch = 0.9;
+    if (speechSynthesis.getVoices().some((v) => v.lang.startsWith("cs"))) speechSynthesis.speak(u);
+  } catch { /* no voice: the words on the screen are enough */ }
+  for (const line of lines) {
+    if (skip) break;
+    for (let i = 1; i <= line.length && !skip; i++) {
+      text.textContent = line.slice(0, i);
+      await new Promise((r) => setTimeout(r, 34));
+    }
+    await new Promise((r) => setTimeout(r, skip ? 0 : 650));
+  }
+  try { if (skip) speechSynthesis.cancel(); } catch { /* fine */ }
+  el.classList.add("out");
+  card.classList.remove("ob-wait");
+  card.classList.add("ob-rise");
+  play("whoosh");
+  setTimeout(() => el.remove(), 600);
 }

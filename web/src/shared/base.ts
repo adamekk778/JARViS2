@@ -1,3 +1,4 @@
+import { setAutoDark, setKeyboardOnly, setSwitchScan } from "./access";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "@phosphor-icons/web/regular";
@@ -6,31 +7,62 @@ import "@phosphor-icons/web/fill";
 import "highlight.js/styles/github-dark.css";
 import "./theme.css";
 import "./glass.css";
+import { configureMotion, initMotion } from "./motion";
+import { applyCustomTheme } from "./theme320";
 
 // OMEGA 240 / 255 / 764: "auto" = full animations on the charger, reduced on battery (and the phone's low-power mode)
 let motionPref = "full";
 let onBattery = false;
+let heavyLoad = false;               // 3.14 návrh 79: the processor is busy → fewer effects (with "auto")
 function applyMotion() {
-  document.documentElement.dataset.motion = motionPref === "reduced" || (motionPref === "auto" && onBattery) ? "reduced" : "full";
+  document.documentElement.dataset.motion = motionPref === "reduced" || (motionPref === "auto" && (onBattery || heavyLoad)) ? "reduced" : "full";
+}
+export function applyLoad(heavy: boolean) {
+  heavyLoad = !!heavy;
+  applyMotion();
+  configureMotion({ heavy: heavyLoad });
 }
 export function applyPower(battery: boolean) {
   onBattery = !!battery;
   applyMotion();
+  configureMotion({ battery: onBattery });
 }
+initMotion();                         // 3.15 the effects tier + one animation clock for the page
+
+export const MOTIFS: Record<string, { accent: string; label: string }> = {
+  stark: { accent: "#4fc3ff", label: "Stark – modrá" }, mark: { accent: "#ff4d3d", label: "Mark – červená a zlatá" },
+  friday: { accent: "#b48cff", label: "FRIDAY – fialová" }, stealth: { accent: "#9aa4b2", label: "Stealth – grafit" },
+};
 
 export function applyAppearance(s: any) {
   const a = s?.appearance;
   if (!a) return;
+  applyCustomTheme(a);                                             // 3.20 (107) your own theme on every page
   const root = document.documentElement;
   // the notch is a black hardware-like cut-out: it keeps the dark tokens in the light theme too
   root.dataset.theme = a.theme === "light" && !root.classList.contains("notch-doc") ? "light" : "dark";
   root.dataset.glass = a.theme === "glass" ? "1" : "0";            // 3.12 liquid glass (frosted panels over an aurora)
-  if (a.accent) {
-    root.style.setProperty("--accent", a.accent);
-    root.style.setProperty("--accent-ink", inkFor(a.accent));
+  // 3.15 motifs: Stark (blue), Mark (red and gold), FRIDAY (violet), Stealth (graphite) – or your own accent colour
+  const motif = MOTIFS[a.motif as string];
+  root.dataset.motif = motif ? String(a.motif) : "vlastni";
+  const accent = motif?.accent || a.accent;
+  if (accent) {
+    root.style.setProperty("--accent", accent);
+    root.style.setProperty("--accent-ink", inkFor(accent));
   }
   motionPref = a.animations || "full";
   applyMotion();
+  configureMotion({ quality: a.fx_quality || "auto", animations: a.animations });
+  root.dataset.contrast = a.high_contrast ? "high" : "normal";                  // 3.14 návrh 68
+  root.dataset.dyslexia = a.dyslexia ? "1" : "0";                               // 3.20 (468)
+  root.dataset.cb = a.colorblind || "";                                         // 3.20 (469)
+  root.dataset.simple = a.simple ? "1" : "0";                                   // 3.20 (472)
+  root.dataset.kb = a.keyboard_only ? "1" : "0";                                // 3.20 (464)
+  setKeyboardOnly(!!a.keyboard_only);
+  setSwitchScan(Number(a.switch_scan) || 0);                                    // 3.20 (474)
+  if (!root.classList.contains("notch-doc")) setAutoDark(!!a.auto_dark, (t) => { root.dataset.theme = t; });   // 3.20 (479)
+  const scale = Math.max(1, Math.min(1.6, Number(a.font_scale) || 1));
+  if (!root.classList.contains("notch-doc")) (root.style as any).zoom = scale === 1 ? "" : String(scale);
   densityPref = a.density || "auto";
   applyDensity();
   inputPref = a.input_mode || "auto";

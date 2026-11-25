@@ -154,7 +154,7 @@ def unregister_source(source: str) -> None:
         del REGISTRY[k]
 
 
-NEVER_TRUSTED = {"claude_code", "delete_file"}
+NEVER_TRUSTED = {"claude_code", "delete_file", "travel_book", "booking_cancel"}   # 3.18 money: always asked
 # results that carry text written by someone else (e-mails, web pages, files, messages): scanned for hidden orders
 UNTRUSTED_OUTPUT = {"email_read", "email_inbox", "email_search", "web_read", "web_search", "google_search", "browser_read",
                     "phone_messages", "read_text_file", "read_attachment", "clipboard_get", "ui_read", "selected_text"}   # always confirmed, even when the user marked them trusted
@@ -187,10 +187,21 @@ async def _nothing():
     yield
 
 
+def _safe_danger(spec: Any, args: dict) -> bool:
+    try:
+        return bool(spec.danger_if(args))
+    except Exception:  # noqa: BLE001 – a danger check that needs more (ctx) counts as dangerous
+        return True
+
+
 async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     spec = REGISTRY.get(name)
     if spec is None:
         return ToolResult(False, f"Neznámý nástroj: {name}")
+    from ..communityx import DEMO_REFUSAL, demo_on
+
+    if demo_on() and (spec.danger or (spec.danger_if is not None and _safe_danger(spec, args))):   # 3.20 (497) the demo changes nothing
+        return ToolResult(False, DEMO_REFUSAL)
     from ..permissions import LABELS, READ_ONLY, blocked_by, perm_of
 
     cfg = getattr(ctx, "cfg", None)
@@ -207,6 +218,12 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     proj = project_blocks(ctx, spec, args or {}) if getattr(ctx, "knowledge", None) else None
     if proj:                                      # OMEGA 688 / 180: the active project is isolated
         return ToolResult(False, proj)
+    if getattr(ctx, "db", None) is not None:
+        from ..secx import time_blocks
+
+        tl = time_blocks(ctx, name, args or {})
+        if tl:                                    # 3.20 (193) e.g. no payments at night
+            return ToolResult(False, tl)
     dev = device_blocks(required(spec))
     if dev:                                       # OMEGA 419: switched off for requests from the phone
         return ToolResult(False, f"Z telefonu je „{LABELS.get(dev, dev)}“ zakázané (na PC: Nastavení → Telefon). Udělej to přímo na počítači.")
@@ -224,6 +241,16 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
     missing = [r for r in spec.parameters.get("required", []) if r not in clean]
     if missing:
         return ToolResult(False, f"Chybí parametry: {', '.join(missing)}")
+    if hasattr(ctx, "db") and hasattr(ctx, "scheduler"):
+        from ..pcx import SYSTEM_CHANGES, auto_restore_point
+
+        if name in SYSTEM_CHANGES:                      # 3.20 (87) a restore point before a big change (once a day)
+            try:
+                import asyncio as _aio
+
+                await _aio.to_thread(auto_restore_point, ctx, name)
+            except Exception as e:  # noqa: BLE001
+                log.debug("restore point: %s", e)
     try:
         pc = getattr(ctx, "pc_control", None) if perm_of(spec) == "input" else None
         async with (pc.session(name) if pc is not None else _nothing()):   # 3.12 the "JARVIS ovládá tvůj PC" frame
@@ -235,10 +262,21 @@ async def call(name: str, args: dict, ctx: Any) -> ToolResult:
         if name in UNTRUSTED_OUTPUT and res.ok:     # OMEGA 183: orders hidden in e-mails, pages and files
             from ..injection import warn
 
-            w = warn(res.summary + " " + (str(res.data)[:20000] if res.data is not None else ""))
+            seen = res.summary + " " + (str(res.data)[:20000] if res.data is not None else "")
+            w = warn(seen)
             if w:
                 res.summary = w + "\n\n" + res.summary
+                if hasattr(ctx, "notify") and hasattr(ctx, "db"):
+                    from ..shield import report_injection      # 3.14 návrh 108: the sentence and its source to you
+
+                    report_injection(ctx, name, clean, seen)
+        if hasattr(ctx, "db"):
+            from ..shield import log_access                 # 3.14 návrh 107: what JARVIS looked at / touched
+
+            log_access(ctx, name, perm_of(spec), clean)
         return res
     except Exception as e:  # tools never crash the agent
         log.exception("tool %s failed", name)
-        return ToolResult(False, f"{type(e).__name__}: {e}")
+        from ..accessx import error_text                   # 3.20 (480) what happened and what to do, in plain words
+
+        return ToolResult(False, f"{error_text(e)} (technicky: {type(e).__name__}: {str(e)[:200]})")

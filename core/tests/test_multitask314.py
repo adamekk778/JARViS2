@@ -22,7 +22,7 @@ class SlowRouter:
         self.delay, self.now, self.peak, self.calls = delay, 0, 0, 0
         self.last_used = ("fake", "fake")
 
-    async def stream(self, messages, tools=None, need_vision=False, fast=False, only=None, model=None):
+    async def stream(self, messages, tools=None, need_vision=False, fast=False, only=None, model=None, **kw):
         self.now += 1
         self.calls += 1
         self.peak = max(self.peak, self.now)
@@ -110,14 +110,16 @@ async def test_one_monitor_is_driven_with_its_own_coordinates(rt, monkeypatch):
     assert s.workers[0].state == "done" and "graf" in s.workers[0].result
 
 
-async def answer_money(rt, approve: bool, seen: list):
+async def answer_money(rt, approve: bool, seen: list, times: int = 1):
+    """3.19 a purchase asks twice: a "yes" has to be given to both questions (a "no" ends it at the first)."""
     q = rt.bus.subscribe()
-    for _ in range(300):
+    for _ in range(600):
         for e in drain(q):
             if e["type"] == "confirm_request":
                 seen.append(e["description"])
                 rt.agent.confirm(e["id"], approve)
-                return
+                if len(seen) >= times:
+                    return
         await asyncio.sleep(0.01)
 
 
@@ -143,12 +145,12 @@ async def test_a_yes_lets_that_one_purchase_through(rt, monkeypatch):
                             '{"action":"click","x":10,"y":10,"why":"potvrzuji Koupit"}',
                             '{"action":"done","summary":"koupeno"}', "s"])
     seen: list = []
-    helper = asyncio.create_task(answer_money(rt, True, seen))
+    helper = asyncio.create_task(answer_money(rt, True, seen, times=2))
     mt = Multitask(rt)
     s = await mt.start("x", [{"name": "Obchodník", "kind": "screen", "task": "kup bitcoin", "monitor": 1}])
     await wait_done(mt, s)
     await helper
-    assert seen and "20 000 Kč" in seen[0]
+    assert len(seen) == 2 and "20 000 Kč" in seen[0] and seen[1].startswith("Opravdu?")
     assert [c for c in rt.platform.calls if c[0] == "click"]
 
 

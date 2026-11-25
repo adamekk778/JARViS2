@@ -7,11 +7,12 @@ import contextvars
 import logging
 import time
 from collections import defaultdict, deque
-from typing import AsyncIterator, Awaitable, Callable
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 import httpx
 
 from ..config import Brain, ProviderCfg
+from .. import toolcatalog as tc
 from . import budget as bud
 from .base import AllProvidersFailed, Chunk, ProviderError
 from .ollama import Ollama
@@ -36,6 +37,12 @@ def build_provider(p: ProviderCfg, api_key: str, brain: Brain, transport: httpx.
             options["num_gpu"] = brain.local_gpu_layers
         return Ollama(p.id, base, model, temperature=brain.temperature, transport=transport, options=options,
                       keep_alive=keep_alive)
+    if p.preset == "anthropic" and "api.anthropic.com" in (base or "api.anthropic.com"):
+        from .claude import Claude          # 3.14 Anthropic's own API: prompt caching, effort, thinking, fallbacks
+
+        prov = Claude(p.id, base, model, api_key, max_tokens=brain.max_tokens)
+        prov.cache_ttl = getattr(brain, "claude_cache_ttl", "1h")
+        return prov
     return OpenAICompat(p.id, base, model, api_key, temperature=brain.temperature,
                         max_tokens=brain.max_tokens, transport=transport)
 
@@ -88,20 +95,64 @@ class Router:
         self.ttft: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))  # ms to first token, per provider
         self.on_usage: Callable[[str, str, list[dict], int], None] | None = None   # OMEGA 178: usage ledger
         self.gate: Callable[[ProviderCfg], str] | None = None                       # → reason to skip a provider
-        self.local_queue = None                                                     # OMEGA 577: aiplus.InferenceQueue
-        self.cache = None                                                           # OMEGA 584: aiplus.AICache
+        self.local_queue: Any = None                                                # OMEGA 577: aiplus.InferenceQueue
+        self.cache: Any = None                                                          # OMEGA 584: aiplus.AICache
         self.local_ready: Callable[[], Awaitable[bool]] | None = None   # 3.12 Šetřič limitů: is the PC's own AI up?
         self.resolved_models: dict[str, str] = {}   # provider id → model found via /models when the set one is unknown
         self.limited: dict[tuple[str, str], float] = {}   # (provider, model) → used up until (monotonic): skip it till then
         self.tpm: dict[tuple[str, str], int] = {}          # (provider, model) → tokens a minute, learnt from its errors
         self.on_wait: Callable[[str, float], None] | None = None   # tells the user "waiting N s for the limit"
         self.on_switch: Callable[[dict, str], None] | None = None  # "Groq ran out → carrying on with Gemini"
+        self.catalog_used = False                                  # 3.16 the last answer had the whole tool catalog
+        self.claude_at = 0.0                                       # 3.18 the last request to Claude (its cache)
+        self.cache_stats: dict[str, dict] = {}                      # 3.17 provider → tokens from / into the prompt cache
         from .quota import Quota
 
         self.quota = Quota()
 
     def update(self, brain: Brain) -> None:
         self.brain = brain
+
+    async def prewarm(self, n: int = 2) -> list[str]:
+        """3.16 "Hey Jarvis": open the connection to the first AIs now (and load the PC's own model), so the answer
+        does not wait for TCP + TLS (or for the model to load) after you finish speaking."""
+        from . import pool
+        from .openai_compat import _tls
+
+        done: list[str] = []
+        for pcfg in self.providers()[:n]:
+            try:
+                prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+                if hasattr(prov, "warm") and pcfg.preset != "ollama":
+                    ok = await prov.warm()
+                elif pcfg.preset == "ollama":
+                    ok = await pool.warm(getattr(prov, "base_url", ""), trust_env=False)
+                else:
+                    ok = await pool.warm(getattr(prov, "base_url", ""), _tls())
+                if ok:
+                    done.append(pcfg.id)
+            except Exception as e:  # noqa: BLE001
+                log.debug("prewarm %s: %s", pcfg.id, e)
+        return done
+
+    async def warm_cache(self, messages: list[dict], tools: list[dict] | None, catalog: Any = None) -> dict | None:
+        """3.18 write Claude's cache again (the first Claude in the chain), exactly as a real request would send it."""
+        for pcfg in self.providers():
+            if pcfg.preset != "anthropic":
+                continue
+            if self.gate and self.gate(pcfg):
+                return None
+            prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if not hasattr(prov, "warm_cache"):
+                return None
+            send_msgs, send_tools = messages, tools
+            if catalog is not None and tools is not None and tc.wants_catalog(
+                    pcfg.preset, getattr(self.brain, "tool_catalog", "auto"), limited=bool(self._limit_of(pcfg, prov.model))):
+                send_msgs, send_tools = catalog.apply(messages), catalog.tools
+            res = await prov.warm_cache(send_msgs, send_tools)
+            self.claude_at = time.time()
+            return res
+        return None
 
     def providers(self) -> list[ProviderCfg]:
         by_id = {p.id: p for p in self.brain.providers if p.enabled}
@@ -115,7 +166,8 @@ class Router:
 
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
-                     model: str | None = None, light: bool = False) -> AsyncIterator[Chunk]:
+                     model: str | None = None, light: bool = False, effort: str | None = None,
+                     prefer: str | None = None, catalog: Any = None, temperature: float | None = None) -> AsyncIterator[Chunk]:
         """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
         background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
         the free cloud limits are kept for what you ask."""
@@ -129,7 +181,12 @@ class Router:
                                      "Mozek, nebo spusť AI v tomhle PC (Ollama).")
             elif not enabled:
                 errors["mozek"] = "není nastavená žádná AI – vlož API klíč v Nastavení → Mozek (Groq nebo Gemini jsou zdarma)."
-        if light and not only and getattr(self.brain, "save_limits", True) and self.local_ready is not None:
+        if prefer and not only and any(p.id == prefer for p in cands):
+            cands = sorted(cands, key=lambda p: p.id != prefer)    # 3.14 chytré rozdělení: this one first, the rest as backup
+        elif not only and getattr(self.brain, "only_primary", False):
+            cands = cands[:1]                      # 3.14 "Jen tento mozek": the brain you picked, no backups
+        if light and not only and not getattr(self.brain, "only_primary", False) and getattr(self.brain, "save_limits", True) \
+                and self.local_ready is not None:
             try:
                 ready = await self.local_ready()
             except Exception:  # noqa: BLE001
@@ -148,6 +205,10 @@ class Router:
                 errors[pcfg.id] = why
                 continue
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
+            if effort and hasattr(prov, "effort"):      # 3.14 how deeply it thinks (Claude); others ignore it
+                prov.effort = effort
+            if temperature is not None and hasattr(prov, "temperature"):   # 3.20 (40) kreativní režim: one answer bolder
+                prov.temperature = temperature
             if hasattr(prov, "on_headers"):
                 prov.on_headers = lambda h, _p=pcfg.id, _prov=prov: self.quota.from_headers(_p, _prov.model, h)
             if pcfg.id in self.resolved_models:
@@ -175,7 +236,12 @@ class Router:
                     started = False
                     send_msgs, send_tools = msgs, use_tools
                     limit = self._limit_of(pcfg, model or prov.model)
-                    if limit:                    # a small per-minute limit (Groq): make the request fit it
+                    # 3.16 a big AI with a prompt cache gets the whole catalog + the steady tool set (nothing to search)
+                    if catalog is not None and use_tools is not None and tc.wants_catalog(
+                            pcfg.preset, getattr(self.brain, "tool_catalog", "auto"), limited=bool(limit)):
+                        send_msgs, send_tools = catalog.apply(msgs), catalog.tools
+                        self.catalog_used = True
+                    elif limit:                  # a small per-minute limit (Groq): make the request fit it
                         send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
                         need = bud.estimate(send_msgs, send_tools) + prov.max_tokens
                         if need > limit and not want_model:          # still too big → a model with a bigger limit
@@ -184,13 +250,18 @@ class Router:
                                 log.info("%s: request ~%d tokens > %d of %s, using %s", pcfg.id, need, limit, prov.model, big)
                                 prov.model, model = big, None
                                 limit = self._limit_of(pcfg, big)
-                                send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
+                                if limit:                # the bigger model may have no known limit: send it all
+                                    send_msgs, send_tools, prov.max_tokens = bud.fit(msgs, use_tools, limit, self.brain.max_tokens)
+                                else:
+                                    send_msgs, send_tools = msgs, use_tools
                     try:
                         agen = prov.stream(send_msgs, send_tools, model=model)
                         t_req = time.monotonic()
                         first = await asyncio.wait_for(agen.__anext__(), timeout=self.brain.first_token_timeout)
                         self.ttft[pcfg.id].append((time.monotonic() - t_req) * 1000)
                         started = True
+                        if pcfg.preset == "anthropic":
+                            self.claude_at = time.time()      # 3.18 when Claude's cache was last written / read
                         self.last_used = (pcfg.id, model or prov.model)
                         if errors and self.on_switch:          # an earlier provider failed: say who carries on
                             try:
@@ -203,6 +274,12 @@ class Router:
                             out += len(ch.text or "") + sum(len(str(c.arguments)) for c in ch.tool_calls or [])
                             yield ch
                         self.last_errors = errors
+                        lu = getattr(prov, "last_usage", None)
+                        if isinstance(lu, dict) and ("cache_read" in lu or "cache_write" in lu):   # 3.17 cache in Diagnostika
+                            cs = self.cache_stats.setdefault(pcfg.id, {"in": 0, "cache_read": 0, "cache_write": 0, "requests": 0})
+                            for k in ("in", "cache_read", "cache_write"):
+                                cs[k] += int(lu.get(k, 0) or 0)
+                            cs["requests"] += 1
                         sink = USAGE_SINK.get()
                         if sink is not None:
                             sink.append((pcfg.id, model or prov.model, sum(len(str(m.get("content") or "")) for m in msgs), out))

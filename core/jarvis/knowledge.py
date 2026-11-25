@@ -14,6 +14,8 @@ import time
 import unicodedata
 import uuid
 
+from . import embedder
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT UNIQUE, folder TEXT DEFAULT '', note TEXT DEFAULT '',
   created REAL, updated REAL, archived INTEGER DEFAULT 0);
@@ -110,7 +112,10 @@ class Knowledge:
         conflicts = self._conflicts_for(fid, text, project)
         for c in conflicts:
             self.rt.db.exec("INSERT INTO fact_conflicts(old_id, new_id, created) VALUES (?,?,?)", (c["id"], fid, time.time()))
-        return {"stored": True, "id": fid, "category": category(text), "conflicts": conflicts}
+        from . import memplus
+
+        exp = memplus.set_expiry(self.rt, fid, text)       # 3.14 "zítra mám zubaře" ends after tomorrow (návrh 52)
+        return {"stored": True, "id": fid, "category": category(text), "conflicts": conflicts, "expires": exp}
 
     def _conflicts_for(self, fid: int, text: str, project: str) -> list[dict]:
         sv = subject_value(text)
@@ -130,7 +135,11 @@ class Knowledge:
         return self.rt.db.all(q + " ORDER BY id", (project,))
 
     def for_prompt(self) -> list[str]:
-        """Global facts + the current project's; other projects stay out (per-project isolation)."""
+        """Global facts + the current project's; other projects stay out (per-project isolation). 3.14: facts whose
+        time has passed ("zítra mám zubaře" two days later) are removed first."""
+        from . import memplus
+
+        memplus.drop_expired(self.rt)
         return [f["text"] for f in self.facts(self.current_project())]
 
     def open_conflicts(self) -> list[dict]:
@@ -193,6 +202,12 @@ class Knowledge:
             raise ValueError(f"Projekt „{name}“ neznám.")
         self.rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('project_current', ?)", (p["name"],))
         self.rt.db.exec("UPDATE projects SET updated=? WHERE id=?", (time.time(), p["id"]))
+        try:                                       # 3.14 návrh 90: the project's own window layout comes back
+            from .pcplus import restore_for_project
+
+            restore_for_project(self.rt, p["name"])
+        except Exception:  # noqa: BLE001
+            pass
         return p
 
     def project_prompt(self) -> str:
@@ -342,10 +357,10 @@ class Knowledge:
                       "WHERE e.ref IS NULL LIMIT 400", (model,))
         for i in range(0, len(todo), 32):
             batch = todo[i:i + 32]
-            vecs = await self._embed(model, [f"{r['title']}\n{r['body'][:2000]}" for r in batch])
+            vecs = await self._embed(model, [f"{r['title']}\n{r['body'][:2000]}" for r in batch], kind="passage")
             for r, v in zip(batch, vecs):
                 db.exec("INSERT OR REPLACE INTO search_emb VALUES (?,?,?,?)", (r["kind"], r["ref"], model, np.asarray(v, dtype=np.float32).tobytes()))
-        q = np.asarray((await self._embed(model, [query]))[0], dtype=np.float32)
+        q = np.asarray((await self._embed(model, [query], kind="query"))[0], dtype=np.float32)
         rows = db.all("SELECT e.kind, e.ref, e.vec, s.title, s.body, s.ts FROM search_emb e JOIN search_idx s ON s.kind=e.kind AND s.ref=e.ref WHERE e.model=?", (model,))
         if not rows:
             return {"available": True, "model": model, "hits": []}
@@ -362,13 +377,18 @@ class Knowledge:
             async with self.rt.http() as c:
                 r = await c.get(f"{self.rt.local.base}/api/tags", timeout=3)
             names = [m["name"] for m in r.json().get("models", [])]
-        except Exception:  # noqa: BLE001 – Ollama not running → full-text only
-            return ""
-        if want:
-            return want if want in names or f"{want}:latest" in names else ""
-        return next((n for n in names if re.search(r"embed|bge|e5|minilm|gte", n, re.I)), "")
+        except Exception:  # noqa: BLE001 – Ollama not running → the model inside JARVIS, if downloaded
+            names = []
+        if want and want != embedder.NAME:
+            return want if want in names or f"{want}:latest" in names else (embedder.NAME if embedder.ready() else "")
+        found = next((n for n in names if re.search(r"embed|bge|e5|minilm|gte", n, re.I)), "")
+        return found or (embedder.NAME if embedder.ready() else "")      # 3.14 návrh 8: no Ollama needed
 
-    async def _embed(self, model: str, texts: list[str]) -> list[list[float]]:
+    async def _embed(self, model: str, texts: list[str], kind: str = "passage") -> list[list[float]]:
+        if model == embedder.NAME:
+            import asyncio
+
+            return await asyncio.to_thread(embedder.encode, texts, kind)
         async with self.rt.http() as c:
             r = await c.post(f"{self.rt.local.base}/api/embed", json={"model": model, "input": texts}, timeout=120)
         r.raise_for_status()

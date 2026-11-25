@@ -12,6 +12,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `computer_use` | 531, P2.02, P4.04, P11.03 |
 | `picture_to_data` | 276, 277, 278, 770 |
 | `powers.py` | 026, 027, 077, 236 |
+| `run_python` | 345, 686, P5.12, P11.10 |
 | `run_tests` | 062, 411, 744, P5.08 |
 | `UI Automation` | 274, P2.03, P4.02 |
 | `ask_models` | 006, 007, 204 |
@@ -62,7 +63,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `home_control` | 424, P13.01 |
 | `home_state` | 424, 425 |
 | `hosting_health` | 387, 712 |
-| `injection.py` | 183, P14.11 |
 | `keyboard_test` | 054, 644 |
 | `label_speakers` | 267, P3.05 |
 | `load_test` | 057, 642 |
@@ -84,7 +84,6 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reframe_video` | 135, 365 |
 | `release_notes` | 050, 343 |
 | `restyle_subtitles` | 369, 674 |
-| `run_python` | P5.12, P11.10 |
 | `run_steps` | 212, 213 |
 | `screenshot_to_prototype` | 352, 353 |
 | `search_meetings` | 551, 566 |
@@ -122,6 +121,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `animate_elements` | 134 |
 | `animation_curve` | 349 |
 | `animation_fsm` | 655 |
+| `announce_device` | 185 |
 | `api_ask` | 589 |
 | `api_breaking_changes` | 627 |
 | `api_call` | 591 |
@@ -256,6 +256,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `design.py` | P4.09 |
 | `design_system` | 346 |
 | `device_class` | 427 |
+| `device_revoke` | 185 |
 | `device_test` | 638 |
 | `dialogue_check` | 647 |
 | `dictation.py` | 097 |
@@ -345,6 +346,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `inbox_overview` | 541 |
 | `index_documents` | 581 |
 | `ingredient_substitute` | 786 |
+| `injection.py` | P14.11 |
 | `integrity_check` | 605 |
 | `iot_overview` | 165 |
 | `keep_alive` | 575 |
@@ -415,6 +417,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `network_devices` | 426 |
 | `network_fault_start` | 634 |
 | `node_modules` | 060 |
+| `notice_action` | 185 |
 | `num_gpu` | 574 |
 | `offline_test` | 641 |
 | `omega.py` | 004 |
@@ -475,6 +478,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `reopen_crashed` | 519 |
 | `replay_workflow` | 529 |
 | `reply_context` | 543 |
+| `report_injection` | 183 |
 | `requirements_from_idea` | 616 |
 | `research_note` | 380 |
 | `research_to_tasks` | 390 |
@@ -489,6 +493,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `room_control` | 421 |
 | `run_notebook` | 768 |
 | `sales_funnel` | 439 |
+| `sandbox.py` | 686 |
 | `save_browser_session` | 528 |
 | `save_validate` | 654 |
 | `save_web_evidence` | 381 |
@@ -519,10 +524,13 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `sfx_library` | 373 |
 | `shared/charts.ts` | 194 |
 | `shared/gestures.ts` | 188 |
+| `shield.py` | 680 |
 | `shopping_by_aisle` | 785 |
 | `simulate_automations` | 430 |
 | `simulate_decision` | 005 |
+| `skill_runner` | 686 |
 | `skillforge.py` | 150 |
+| `skillheal.py` | 345 |
 | `slice_model` | 467 |
 | `smart_data` | 697 |
 | `smart_rename` | 320 |
@@ -546,6 +554,7 @@ Které existující moduly/nástroje nesou které funkce. Jedna schopnost = jedn
 | `test_agent` | 176 |
 | `test_model_accuracy` | 582 |
 | `test_regressions` | 339 |
+| `test_sandbox` | 686 |
 | `test_tasks` | 176 |
 | `tests/test_agent.py` | 182 |
 | `tests/test_agent_swarm.py` | P1.08 |

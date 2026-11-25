@@ -47,6 +47,10 @@ def short(e: dict) -> dict:
         out["current"] = a.get("current_temperature")
     if d == "cover" and a.get("current_position") is not None:
         out["position"] = a["current_position"]
+    if d == "vacuum" and a.get("battery_level") is not None:
+        out["battery"] = a["battery_level"]                          # 3.14 the robot vacuum's battery
+    if d in ("device_tracker", "person") and a.get("latitude") is not None and a.get("longitude") is not None:
+        out["lat"], out["lon"] = a["latitude"], a["longitude"]      # 3.14 the car / a person on the world map
     return out
 
 

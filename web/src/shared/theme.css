@@ -19,7 +19,7 @@
   --text: #f5f6f8;
   --text-2: #c7cad0;
   --muted: #8e939c;
-  --faint: #6b7079;
+  --faint: #7c818b;              /* 3.14 4.5:1 on the dark panels (WCAG AA) */
   --accent: #4f8dff;
   --accent-ink: #fff;
   --accent-2: color-mix(in oklab, var(--accent) 60%, white);
@@ -296,3 +296,61 @@ kbd { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; b
 .phead.compact .phead-ico { width: 36px; height: 36px; font-size: 18px; border-radius: 11px; }
 .phead.compact h1 { font-size: 20px; }
 @media (max-width: 760px) { .phead { flex-wrap: wrap; } .phead-actions { width: 100%; } }
+
+
+/* 3.14 návrh 68: high contrast for weaker eyes – stronger text, borders and focus rings */
+:root[data-contrast="high"] { --muted: #d9d9de; --edge: rgba(255,255,255,0.55); }
+:root[data-contrast="high"][data-theme="light"] { --muted: #2b2b30; --edge: rgba(0,0,0,0.6); }
+:root[data-contrast="high"] :focus-visible { outline: 3px solid var(--accent) !important; outline-offset: 2px; }
+:root[data-contrast="high"] .help, :root[data-contrast="high"] .muted { opacity: 1 !important; }
+
+/* 3.15 the holographic loading shimmer */
+.holo-skel { display: grid; gap: 9px; padding: 6px 0; }
+.holo-skel i { display: block; height: 11px; width: var(--w, 80%); border-radius: 6px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--accent, #4f8dff) 10%, transparent) 30%,
+    color-mix(in srgb, var(--accent, #4f8dff) 45%, transparent) 50%, color-mix(in srgb, var(--accent, #4f8dff) 10%, transparent) 70%);
+  background-size: 300% 100%; animation: skel 1.6s ease-in-out infinite; }
+.holo-skel i:nth-child(2) { animation-delay: .12s; } .holo-skel i:nth-child(3) { animation-delay: .24s; }
+@keyframes skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+html[data-fx="off"] .holo-skel i { animation: none; }
+
+/* 3.15 motifs: the accent comes from base.ts; these add the second colour and the HUD's hologram tint */
+html[data-motif="mark"] { --accent-2: #ffc857; }
+html[data-motif="friday"] { --accent-2: #ff8ad8; }
+html[data-motif="stealth"] { --accent-2: #5d6673; }
+html[data-motif="stark"] { --accent-2: #7fe3ff; }
+html[data-motif="mark"] .hud:not([data-mood="error"]):not([data-mood="limit"]):not([data-mood="waiting"]):not([data-mood="offline"]):not(.red-alert) { --holo: #ffb347; --holo-2: #ffe0a3; --holo-dim: rgb(255 179 71 / .25); --holo-faint: rgb(255 179 71 / .08); }
+html[data-motif="friday"] .hud:not([data-mood="error"]):not([data-mood="limit"]):not([data-mood="waiting"]):not([data-mood="offline"]):not(.red-alert) { --holo: #c39bff; --holo-2: #ead9ff; --holo-dim: rgb(195 155 255 / .25); --holo-faint: rgb(195 155 255 / .08); }
+html[data-motif="stealth"] .hud:not([data-mood="error"]):not([data-mood="limit"]):not([data-mood="waiting"]):not([data-mood="offline"]):not(.red-alert) { --holo: #aab4c2; --holo-2: #e3e8ef; --holo-dim: rgb(170 180 194 / .22); --holo-faint: rgb(170 180 194 / .07); }
+/* 3.15 page changes glide */
+::view-transition-old(root) { animation: vtOut .22s ease both; }
+::view-transition-new(root) { animation: vtIn .32s cubic-bezier(.2, .9, .2, 1) both; }
+@keyframes vtOut { to { opacity: 0; transform: translateY(-6px); filter: blur(2px); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(10px); filter: blur(3px); } }
+
+/* 3.20 (468) dyslexia: a plain sans-serif, wider letters, words and lines, text aligned left, no italics */
+:root[data-dyslexia="1"] body, :root[data-dyslexia="1"] button, :root[data-dyslexia="1"] input, :root[data-dyslexia="1"] textarea {
+  font-family: Verdana, Tahoma, "Segoe UI", sans-serif !important; letter-spacing: 0.04em; word-spacing: 0.14em; }
+:root[data-dyslexia="1"] p, :root[data-dyslexia="1"] li, :root[data-dyslexia="1"] .msg, :root[data-dyslexia="1"] .bubble {
+  line-height: 1.75 !important; text-align: left !important; max-width: 70ch; }
+:root[data-dyslexia="1"] em, :root[data-dyslexia="1"] i { font-style: normal; text-decoration: underline; }
+
+/* 3.20 (469) colour-blind schemes: good / bad / warning that differ in more than red and green */
+:root[data-cb="protan"], :root[data-cb="deutan"] { --ok: #3b82f6; --danger: #f97316; --warn: #facc15; }
+:root[data-cb="tritan"] { --ok: #14b8a6; --danger: #e11d48; --warn: #f472b6; }
+
+/* 3.20 (472) simple mode: bigger, fewer things, the chat and the microphone first */
+:root[data-simple="1"] { --radius: 16px; }
+:root[data-simple="1"] body { font-size: 19px; }
+:root[data-simple="1"] button, :root[data-simple="1"] .btn { min-height: 52px; font-size: 18px; padding: 12px 18px; }
+:root[data-simple="1"] .advanced, :root[data-simple="1"] [data-advanced], :root[data-simple="1"] .help-tip,
+:root[data-simple="1"] .stat-grid, :root[data-simple="1"] .kbd-hints { display: none !important; }
+
+/* 3.20 (464) keyboard only: the focus is always clearly visible, and a link straight to the content */
+:root[data-kb="1"] :focus { outline: 3px solid var(--accent) !important; outline-offset: 2px !important; }
+.skip-link { position: fixed; left: 8px; top: -60px; z-index: 99999; padding: 10px 14px; border-radius: 10px; background: var(--accent);
+  color: var(--accent-ink, #000); font-weight: 600; transition: top 0.15s; }
+.skip-link:focus { top: 8px; }
+
+/* 3.20 (474) one-switch control: the element the scan is on */
+.scan-on { outline: 4px solid #ffd400 !important; outline-offset: 3px !important; box-shadow: 0 0 0 8px rgba(255, 212, 0, 0.25) !important; }

@@ -1,0 +1,8 @@
+JARVIS is a personal assistant that runs on your computer. This app is its phone:
+
+• talk to it from across the flat or on the road
+• notices, alarms and reminders from the PC on your phone and watch
+• NFC tags, location sharing, document scanning, PC remote control
+• offline commands when there is no connection
+
+Your data stays on your computer. The app needs JARVIS on a Windows PC and pairing by QR code.

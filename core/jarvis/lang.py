@@ -23,3 +23,14 @@ def detect(text: str) -> str:
         return "cs"
     hits = sum(w in _EN for w in words)
     return "en" if hits >= 2 and hits / len(words) >= 0.3 else "cs"
+
+
+def preferred(text: str, detected: str, setting: str) -> str:
+    """3.14 (návrh 114): the language JARVIS answers in. English typed or said → English; otherwise the language chosen
+    in Nastavení → Obecné → Jazyk – unless the text itself is clearly Czech (diacritics)."""
+    if detected == "en":
+        return "en"
+    setting = (setting or "cs").lower()
+    if setting == "cs" or (setting != "sk" and any(c in _CS_CHARS for c in (text or "").lower())):   # sk shares č, á…
+        return detected or "cs"
+    return setting

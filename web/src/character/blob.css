@@ -172,3 +172,17 @@
 .fx-ambient .amb-sun { left: -20%; top: 2%; color: #ffc861; }
 .fx-ambient .amb-moon { right: -20%; top: -4%; color: #c9d6ff; }
 .fx-ambient .amb-coffee { right: -24%; bottom: 0; color: #d8a874; font-size: .75em; }
+
+/* 3.15 Mega animace – liquid metal, the moons of running jobs, new feelings */
+.blob-chrome { mix-blend-mode: screen; opacity: .38; }
+.blob.liquid .blob-spec { opacity: .7; }
+.blob-orbit { pointer-events: none; }
+.blob-moon .moon-track { fill: rgb(0 0 0 / .35); stroke: rgb(255 255 255 / .18); stroke-width: 2; }
+.blob-moon .moon-arc { fill: none; stroke: var(--blob-glow, #4f8dff); stroke-width: 3.4; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--blob-glow, #4f8dff)); }
+.blob-moon .moon-core { fill: #fff; opacity: .9; }
+.blob-moon.indet .moon-arc { animation: moonSpin 1.1s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes moonSpin { to { transform: rotate(270deg); } }
+.blob .acc-bang { position: absolute; left: 50%; top: -18%; transform: translateX(-50%); font: 900 calc(var(--blob-size, 64px) * .42) / 1 system-ui, sans-serif;
+  color: #ffd166; text-shadow: 0 0 10px rgb(255 209 102 / .8); font-style: normal; animation: bangPop .35s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes bangPop { from { transform: translateX(-50%) scale(.2); opacity: 0; } }
+html[data-fx="off"] .blob-moon.indet .moon-arc { animation: none; }

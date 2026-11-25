@@ -49,7 +49,7 @@
 .sidebar > .btn { justify-content: flex-start; }
 .sidebar > .btn i { color: var(--accent); }
 .side-title { font: 700 10.5px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 10px 10px 0; }
-.chat-wrap { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.chat-wrap { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .chat-wrap > .chat { flex: 1; min-height: 0; }
 .chat-head { display: flex; align-items: center; gap: 8px; height: 52px; flex: none; padding: 0 14px 0 20px; border-bottom: 1px solid var(--edge); }
 .chat-head-title { font: 700 15px var(--font); margin-right: 6px; }
@@ -629,3 +629,38 @@ html[data-density="large"] body { zoom: 1.15; }
 .sc-text span { color: var(--muted); }
 .sc-text em { font-style: normal; color: var(--text); background: color-mix(in oklab, var(--accent, #34d399) 9%, transparent); padding: 6px 9px; border-radius: 8px; }
 .sc-text .btn { justify-self: start; margin-top: 4px; }
+
+/* 3.14 Zdraví JARVISe */
+.qh { display: grid; gap: 8px; }
+.qh .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--edge); }
+.qh .row.warn span:first-child { color: var(--warn, #f5a524); }
+.qh .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.qh select { max-width: 260px; }
+
+/* 3.14 návrh 117: what the anonymous statistics would send */
+.sec-pre { max-height: 260px; overflow: auto; margin: 0; padding: 12px; border-radius: 10px; background: var(--panel-2, rgba(255,255,255,.04));
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+
+/* 3.14 JARVIS v celém domě */
+.house-card { display: grid; gap: 10px; }
+.house-card h3 { margin: 8px 0 0; font-size: 14px; }
+.house-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.house-add .input { flex: 1 1 160px; min-width: 0; }
+
+/* 3.15 voice mode: the 3D reactor behind Mochi, captions word by word, full screen */
+.vm-reactor { --holo: var(--accent); position: absolute; left: 50%; top: 50%; width: min(520px, 80vw); aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+.vm-reactor .rx3d { position: absolute; inset: 0; width: 100%; height: 100%; }
+.vm-stage .blob { position: relative; z-index: 1; }
+.vm-answer .vm-w { display: inline-block; animation: vmWord .45s ease-out both; transition: color .2s, text-shadow .2s; }
+.vm-answer .vm-w.said { color: var(--text, #e6edf3); }
+.vm-answer .vm-w.now { color: var(--accent); text-shadow: 0 0 14px color-mix(in oklab, var(--accent) 70%, transparent); }
+@keyframes vmWord { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
+.voice-mode:fullscreen { background: radial-gradient(80% 70% at 50% 40%, #0b1a2b, #03070c 75%); display: grid; align-content: center; justify-items: center;
+  padding: 4vh 6vw; overflow: auto; }
+.voice-mode:fullscreen .vm-answer { font-size: clamp(22px, 2.6vw, 38px); max-width: 1100px; text-align: center; line-height: 1.45; }
+.voice-mode:fullscreen .vm-reactor { width: min(70vh, 760px); }
+html[data-fx="off"] .vm-answer .vm-w { animation: none; }
+
+/* 3.18 Diagnostika → Dlouhý běh: JARVIS's memory over the last day */
+.spark-wrap { grid-column: 1 / -1; color: var(--accent, #2ee6ff); }
+.spark-wrap .spark { width: 100%; max-width: 520px; height: 56px; display: block; }

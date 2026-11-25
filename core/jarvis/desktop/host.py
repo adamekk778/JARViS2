@@ -93,10 +93,21 @@ class DesktopHost:
         self._hidden_manual = False      # hidden by the user (hotkey / panel / tray) until they bring it back
         self.alpha = False
         self.hud = None
+        self.karaoke = None   # 3.14 the full-screen karaoke window, created on first use
         self.hud_visible = False
         self.hud_alpha = False
+        self.wallpaper = None             # 3.15 the live wallpaper window (behind the desktop icons)
+        self._wallpaper_kind = "off"
+        try:                              # 3.15 effects over the desktop: native click-through windows
+            from .fxwin import FxWin
+
+            self.fx = FxWin(rt)
+            rt.on_overlay_fx = self.fx.handle
+        except Exception as e:  # noqa: BLE001
+            log.debug("fx windows: %s", e)
         self._anchor_win = None
         rt.on_anchor = self._anchor        # OMEGA 752: the runtime tells us which window JARVIS works in
+        rt.on_notch_monitor = self.move_notch_to   # 3.20 (110) the notch follows the monitor you work on
         rt.on_game_tip = self.peek_over_game  # 3.13 a game tip: the notch shows itself over the game for a moment
         self._region: list = []            # the last notch outline from the page, put back if Windows drops it
         self._region_applied: tuple | None = None
@@ -106,11 +117,26 @@ class DesktopHost:
         self._animator = None             # 3.12: the notch outline animated here, in step with the screen
 
     # ---------- geometry ----------
+    def notch_monitor(self) -> int:
+        """3.20 (110) "notch na každém monitoru": the notch follows the monitor you work on (0-based); otherwise the chosen one."""
+        follow = getattr(self.rt, "notch_monitor_follow", None)
+        if getattr(self.rt.cfg.notch, "all_monitors", False) and isinstance(follow, int):
+            return follow
+        return self.rt.cfg.notch.monitor
+
+    def move_notch_to(self, index: int) -> None:
+        """Called from the desktop loop when the cursor stays on another monitor for a moment."""
+        self.rt.notch_monitor_follow = index
+        try:
+            self.place_notch(*self._notch_size)
+        except Exception as e:  # noqa: BLE001
+            log.debug("notch follow: %s", e)
+
     def _screen(self):
         import webview
 
         screens = webview.screens or []
-        idx = self.rt.cfg.notch.monitor
+        idx = self.notch_monitor()
         return screens[idx] if 0 <= idx < len(screens) else (screens[0] if screens else None)
 
     def notch_hwnd(self) -> int:
@@ -186,7 +212,7 @@ class DesktopHost:
             from . import platforms
 
             mons = platforms.monitors()
-            i = self.rt.cfg.notch.monitor
+            i = self.notch_monitor()
             mon = mons[i if 0 <= i < len(mons) else 0][0]
             scale = winutil.dpi_scale(hwnd)
             pw, ph = round(w * scale), round(h * scale)
@@ -213,6 +239,9 @@ class DesktopHost:
         import webview
 
         w, h = self._notch_size
+        if getattr(self.rt.cfg.appearance, "avatar3d", False):     # 3.20 (117) the 3D character instead of the notch
+            self._make_avatar()
+            return
         if self.rt.cfg.notch.enabled:
             self.notch = webview.create_window(
                 NOTCH_TITLE, f"{self.base}/notch", js_api=NotchApi(self), width=w, height=h, x=0, y=0,
@@ -221,6 +250,33 @@ class DesktopHost:
             self.notch.events.shown += self._on_notch_shown
         else:   # pywebview needs one window to start with; with the notch on, the JARVIS window waits until it is opened
             self._make_chat("chat", hidden=True)
+
+    AVATAR_TITLE = "JARVIS Avatar"
+
+    def _make_avatar(self) -> None:
+        """3.20 (117) a round window in the corner with the 3D character (not "transparent": on Windows that shows a grey
+        box – a dark window clipped to a circle, like the notch is clipped to its shape)."""
+        import webview
+
+        scr = self._screen()
+        sx, sy, sw, sh = (scr.x, scr.y, scr.width, scr.height) if scr else (0, 0, 1920, 1080)
+        self.avatar = webview.create_window(
+            self.AVATAR_TITLE, f"{self.base}/hud?avatar=1", width=240, height=240, x=sx + sw - 270, y=sy + sh - 330,
+            frameless=True, easy_drag=True, on_top=True, resizable=False, shadow=False, background_color="#000000")
+        self.avatar.events.shown += self._on_avatar_shown
+
+    def _on_avatar_shown(self) -> None:
+        import math
+
+        time.sleep(0.3)
+        try:
+            hwnd = winutil.window_handle(self.avatar, self.AVATAR_TITLE)
+            winutil.hide_from_taskbar(self.AVATAR_TITLE)
+            r = round(120 * (winutil.dpi_scale(hwnd) or 1.0))   # the region is in physical pixels
+            circle = [(round(r + r * math.cos(a / 48 * 2 * math.pi)), round(r + r * math.sin(a / 48 * 2 * math.pi))) for a in range(48)]
+            winutil.set_region(hwnd, [circle])
+        except Exception as e:  # noqa: BLE001
+            log.debug("avatar window: %s", e)
 
     def _make_chat(self, view: str = "chat", hidden: bool = False) -> None:
         """Saving power: the JARVIS window (a whole browser page) is created only when it is opened, not at start-up."""
@@ -260,8 +316,11 @@ class DesktopHost:
             return
         if self._make_alpha(self.notch, self.notch_hwnd()):
             self.alpha = True
-            self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
             log.info("notch: smooth edges (per-pixel alpha) on")
+            try:   # the page also asks on its own (pywebviewready → api.smooth), so a page still loading is fine
+                self.notch.evaluate_js("window.__notchAlpha && window.__notchAlpha(true)")
+            except Exception as e:  # noqa: BLE001
+                log.debug("notch alpha → page: %s", e)
 
     def _make_alpha(self, win, hwnd: int) -> bool:
         """Per-pixel transparency for a pywebview window (WebView2 background transparent + DWM blur-behind)."""
@@ -283,6 +342,39 @@ class DesktopHost:
         except Exception as e:
             log.warning("per-pixel alpha unavailable: %s", e)
         return False
+
+    # ---------- 3.15 the live wallpaper ----------
+    def _set_wallpaper(self, kind: str) -> None:
+        import webview
+
+        self._wallpaper_kind = kind
+        if kind == "off" or not winutil.IS_WIN:
+            if self.wallpaper is not None:
+                try:
+                    self.wallpaper.destroy()
+                except Exception:
+                    pass
+                self.wallpaper = None
+                winutil.refresh_wallpaper()
+            return
+        if self.wallpaper is not None:
+            self.wallpaper.load_url(f"{self.base}/wallpaper?kind={kind}")
+            return
+        from . import platforms
+
+        mons = platforms.monitors()
+        i = self.rt.cfg.notch.monitor
+        mon = mons[i if 0 <= i < len(mons) else 0][0]
+        self.wallpaper = webview.create_window("JARVIS Wallpaper", f"{self.base}/wallpaper?kind={kind}", frameless=True, easy_drag=False,
+                                               resizable=False, shadow=False, focus=False, background_color="#02060c")
+        self.wallpaper.events.loaded.wait(15)
+        hwnd = winutil.window_handle(self.wallpaper, "JARVIS Wallpaper")
+        if not winutil.attach_to_desktop(hwnd, mon.x, mon.y, mon.w, mon.h):
+            log.warning("wallpaper: the desktop layer was not found – live wallpaper off")
+            self.wallpaper.destroy()
+            self.wallpaper = None
+        else:
+            winutil.hide_from_taskbar("JARVIS Wallpaper")
 
     # ---------- 3.2 Stark HUD: a holographic overlay over the whole screen ----------
     def toggle_hud(self, show: bool | None = None) -> None:
@@ -408,6 +500,9 @@ class DesktopHost:
     def open_chat(self, view: str = "chat") -> None:
         if view in ("hud", "hud-close"):
             return self.toggle_hud(view == "hud")
+        if view in ("karaoke", "karaoke-close"):     # 3.14 karaoke over the whole screen
+            threading.Thread(target=self._karaoke, args=(view == "karaoke",), daemon=True, name="karaoke").start()
+            return
         if view == "full":   # off the caller's thread: creating a window waits for the GUI thread
             threading.Thread(target=self.open_fullchat, daemon=True, name="fullchat").start()
             return
@@ -425,6 +520,25 @@ class DesktopHost:
             self.chat.on_top = False
         except Exception as e:
             log.debug("open_chat: %s", e)
+
+    def _karaoke(self, show: bool) -> None:
+        import webview
+
+        win = self.karaoke
+        try:
+            if not show:
+                if win is not None:
+                    win.hide()
+                return
+            if win is None:
+                self.karaoke = webview.create_window("JARVIS Karaoke", f"{self.base}/karaoke", fullscreen=True,
+                                                     background_color="#05070b", focus=True)
+                return
+            win.show()
+            win.on_top = True
+            win.on_top = False
+        except Exception as e:
+            log.warning("karaoke: %s", e)
 
     # ---------- background loops ----------
     def toggle_notch(self, show: bool | None = None) -> None:
@@ -483,6 +597,7 @@ class DesktopHost:
         return bool(subs and subs.on)
 
     def _fullscreen_watch(self) -> None:
+        fx_paused = False
         while not self._quitting:
             time.sleep(1.5)
             try:
@@ -490,6 +605,19 @@ class DesktopHost:
                 self.no_backdrop()
             except Exception as e:
                 log.debug("heal_region: %s", e)
+            try:                      # 3.15 the live wallpaper follows the setting (on / off / reactor / globe)
+                want = getattr(self.rt.cfg.appearance, "live_wallpaper", "off")
+                if want != self._wallpaper_kind:
+                    self._set_wallpaper(want)
+            except Exception as e:
+                log.debug("wallpaper: %s", e)
+            try:                      # 3.15 a game / video over the whole screen (not JARVIS's own HUD): effects stop
+                game = winutil.foreground_is_fullscreen() and winutil.foreground_pid() != os.getpid()
+                if game != fx_paused:
+                    fx_paused = game
+                    self.rt.bus.publish_threadsafe("fx_pause", on=game)
+            except Exception as e:
+                log.debug("fx pause: %s", e)
             if not self.notch or self._hidden_manual:
                 continue
             try:
@@ -561,7 +689,7 @@ class DesktopHost:
         if not text.strip():
             self.rt.notify("Schránka je prázdná", "Nejdřív zkopíruj nějaký text.", speak=False)
             return
-        self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat"))
+        self.rt.submit(self.rt.agent.handle(f"{instruction}:\n\n{text[:8000]}", [], "chat", untrusted=True))   # 3.17 not your words
         self.open_chat("chat")
 
     def _toggle_subs(self) -> None:
@@ -633,6 +761,11 @@ class DesktopHost:
 
     def quit(self, *_):
         self._quitting = True
+        if self.wallpaper is not None:
+            try:
+                self._set_wallpaper("off")
+            except Exception:
+                pass
         try:
             if self.tray:
                 self.tray.stop()

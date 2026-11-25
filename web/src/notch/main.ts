@@ -1,3 +1,4 @@
+import { askOtp } from "../shared/approve";
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./dynamic.css";
@@ -14,7 +15,7 @@ import "./redesign.css";
 import "./livecard.css";
 import { Blob, type Mood } from "../character/blob";
 import { h, icon, TOOL_ICON } from "../shared/dom";
-import { lyricShift } from "../shared/lyricsync";
+import { lyricShift, setAutoShift } from "../shared/lyricsync";
 import { renderMarkdown } from "../shared/markdown";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { buildPanel } from "./panel";
@@ -24,6 +25,9 @@ import { notchOutline, regionSender, roundRect } from "../shared/region";
 import { radialActions, renderRadial, type UiAction } from "./radial";
 import { brandEl, brandOf, BRANDS, mediaBrand } from "../shared/brands";
 import { GESTURE_LABEL, GestureCam, type Gesture } from "../shared/gestures";
+import { FingerCam, type FingerEvent } from "../shared/handgest";
+import { at, spring } from "../shared/motion";
+import { initX320 } from "./x320";
 
 /* Notch modes (spec §4):
    closed  black notch, eyes peeking from the bottom edge
@@ -78,6 +82,10 @@ let capturing = false;
 
 // ---------- DOM ----------
 const blob = new Blob({ size: 64 });
+// 3.15 the time of day colours the notch a little: fresher in the morning, warm in the evening, dimmed at night
+const dayPart = () => { const hr = new Date().getHours(); return hr < 5 || hr >= 23 ? "night" : hr < 10 ? "morning" : hr < 18 ? "day" : "evening"; };
+document.documentElement.dataset.daypart = dayPart();
+window.setInterval(() => { document.documentElement.dataset.daypart = dayPart(); }, 5 * 60 * 1000);
 const blobBox = h("div", { class: "n-blob" }, blob.el);
 const actText = h("span", { class: "act" });
 const glow = h("div", { class: "n-glow", "aria-hidden": "true" });
@@ -211,7 +219,8 @@ const alertTitle = h("strong");
 const alertBody = h("span");
 const alertIco = h("span", { class: "n-alert-ico", "aria-hidden": "true" });   // 3.13 a tinted glass disc on top
 const alertActs = h("div", { class: "n-alert-acts" });                          // 3.13 "Za 10 min" · "Ok" · "+5 min"
-const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs);
+const alertMore = h("em", { class: "n-alert-more", hidden: true, title: "Další upozornění – švihni tohle stranou" });   // 3.15 the stack
+const alertBox = h("div", { class: "n-alert-text", role: "status" }, alertIco, alertTitle, alertBody, alertActs, alertMore);
 /** 3.13 the notice's icon and colour from what it is about (Přestávka → coffee, Časovač → timer, a failure → warning…). */
 const ALERT_KINDS: [RegExp, string, string][] = [
   [/^tip\b/i, "lightbulb", "#ffd60a"],
@@ -262,6 +271,7 @@ const songProg = h("i", { class: "n-songprog", "aria-hidden": "true" });
 const sheen = h("div", { class: "n-sheen", "aria-hidden": "true" });   // 3.13 the liquid-glass light of the answer card
 const inner = h("div", { class: "n-inner" }, sheen, songProg, glow, face.el, panelWrap, barTop, radialBox, blobBox, eyes, lead, trail, volBar, brandBadge, camDot, subsEl, lyrEl, lyrTr, actText, barLeft, barRight, dyBar, dyCtx, bubble, alertBox, capChip, liveStop, progress, musicBars);
 const shape = h("div", { class: "notch", "data-mode": "closed" }, inner);
+initX320(client, shape, blob);                // 3.20 Vzhled+ (101–112, 115)
 /** write a data-attribute only when it really changes: the once-a-second refresh used to re-style the notch every time */
 function setData(el: HTMLElement, key: string, v: string) { if (el.dataset[key] !== v) el.dataset[key] = v; }
 document.getElementById("notch-root")!.append(shape);
@@ -298,10 +308,10 @@ function ensureWindow() {
   const key = `${w}x${hh}@${cfg.monitor}:${cfg.offset_x}`;   // monitor / offset: the host places the window again
   if (key === windowKey) return;
   windowKey = key;
-  resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
+  void resizeWindow(w, hh).then(() => window.setTimeout(() => syncRegion(true), 30));
 }
 function openChat(view = "chat") {
-  if (window.pywebview) window.pywebview.api.open_chat(view);
+  if (window.pywebview) void window.pywebview.api.open_chat(view);
   else window.open(view === "full" ? "/chat" : view === "hud" ? "/hud" : `/#${view}`, "_blank");
 }
 
@@ -343,14 +353,21 @@ function subsSize(hover: boolean): [number, number] {
 }
 /** Lyrics: one wide line; the width follows the longest of this and the next two lines so it does not jump every line. */
 function lyrSize(hover: boolean): [number, number] {
-  const tr = !!(lyr.tr && lyr.tr.length) ? 16 : 0;          // room for the small translation line
+  const tr = (lyr.tr && lyr.tr.length) ? 16 : 0;          // room for the small translation line
   return [Math.round(Math.min(760, Math.max(360, lyrW))), (hover ? 46 : 44) + tr];
 }
 function dynRadius(m: Mode, hh: number): number {
   return m === "panel" ? 36 : m === "radial" ? 60 : m === "closed" || m === "hover" ? hh / 2 : Math.min(32, hh / 2);
 }
 
+// 3.20 (109) the small island a little bigger on a big / ultrawide monitor, smaller on a small one – as real sizes,
+// so the window region (cut from the same numbers) never clips it
 function sizeFor(m: Mode): [number, number] {
+  const [w, hh] = baseSize(m);
+  const k = Number(shape.dataset.sizek || 1);
+  return (m === "closed" || m === "hover") && k > 0 && k !== 1 ? [Math.round(w * k), Math.round(hh * k)] : [w, hh];
+}
+function baseSize(m: Mode): [number, number] {
   if (dyn()) return dynSize(m);
   switch (m) {
     case "panel": return [cfg.expanded_width || 1000, Math.max(340, cfg.expanded_height || 390)];
@@ -408,7 +425,7 @@ function sendRegionPlan(): boolean {
   if (!cfg.native_region_anim) return false;
   if (!api?.region_anim || regionPad) return false;          // smooth edges (per-pixel alpha): frames as before
   const box = shape.getBoundingClientRect();
-  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
+  const k = S.grow ? 230 : 320, c = (S.grow && at("ultra") && !regionPad ? 1.64 : 2) * Math.sqrt(k);   // the same spring as springStep
   const plan = { geom: dyn() ? "round" : "notch", cx: box.left + box.width / 2, top: box.top + (dyn() ? GAP : 0), dpr: window.devicePixelRatio || 1,
     pad: regionPad, ear: 14, k, c, from: { w: S.w, h: S.h, r: Math.max(0, S.r), vw: S.vw, vh: S.vh, vr: S.vr }, to: { w: S.tw, h: S.th, r: S.tr } };
   Promise.resolve(api.region_anim(plan)).then((ok) => { if (ok === false) { hostAnim = false; } }, () => { hostAnim = false; });
@@ -444,7 +461,8 @@ function springStep(now: number) {
   const dt = Math.min(0.034, (now - S.last) / 1000 || 0.016);
   S.last = now;
   // 3.12 clean: critically damped – it glides into place without overshooting or bouncing
-  const k = S.grow ? 230 : 320, c = 2 * Math.sqrt(k);
+  // 3.15 ultra: a touch of life – growing overshoots by a hair and settles (damping 0.82); otherwise critically damped
+  const k = S.grow ? 230 : 320, c = (S.grow && at("ultra") && !regionPad ? 1.64 : 2) * Math.sqrt(k);
   let moving = false;
   for (const [x, v, t] of [["w", "vw", "tw"], ["h", "vh", "th"], ["r", "vr", "tr"]] as const) {
     const a = k * (S[t] - S[x]) - c * S[v];
@@ -470,7 +488,8 @@ function animateShape(w: number, hh: number, r: number) {
   // the box is never smaller than what is on screen during the move
   const bw = Math.max(w, Math.ceil(S.w)), bh = Math.max(hh, Math.ceil(S.h));
   ensureWindow();
-  setBox(Math.max(bw, boxW), Math.max(bh, boxH));
+  const over = S.grow && at("ultra") && !regionPad ? 1.04 : 1;          // room for the overshoot while it moves
+  setBox(Math.max(Math.ceil(bw * over), boxW), Math.max(Math.ceil(bh * over), boxH));
   if (reducedMotion()) { S.w = w; S.h = hh; S.r = r; paintShape(); settleBox(); return; }
   if (retarget) hostAnim = sendRegionPlan();
   if (regionPad && retarget) syncRegion(true, Math.max(w, S.w), Math.max(hh, S.h), Math.max(r, S.r));   // the mouse area covers the whole move, once
@@ -834,15 +853,71 @@ function onMood(m: any) {
   updateBlob();
 }
 
-function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = []) {
+let alertKindFb = "";          // 3.14 a proactive notice: used (a button) or let pass (it went away by itself)
+// 3.15 Mega animace (návrh 21): notices pile up instead of replacing each other – a "+2" shows how many wait, and a
+// swipe sideways (mouse or touch) throws the top one away with a spring and brings the next
+type Notice = { title: string; body: string; actions: { label: string; action: string; args?: any }[]; kind: string };
+const alertStack: Notice[] = [];
+let alertCur: Notice | null = null;
+function nextAlert() {
+  alertCur = null;
+  const n = alertStack.pop();
+  alertMore.hidden = !alertStack.length;
+  if (n) window.setTimeout(() => showAlert(n.title, n.body, n.actions, n.kind), 280);
+}
+function dismissAlert() {
+  if (alertKindFb) { client.send("notice_feedback", { kind: alertKindFb, action: "ignored" }); alertKindFb = ""; }
+  window.clearTimeout(alertTimer);
+  settle(true);
+  nextAlert();
+}
+let swipe: { x0: number; dx: number } | null = null;
+alertBox.addEventListener("pointerdown", (e) => {
+  if ((e.target as HTMLElement).closest("button") || mode !== "alert") return;
+  swipe = { x0: e.clientX, dx: 0 };
+  try { alertBox.setPointerCapture(e.pointerId); } catch { /* fine */ }
+});
+alertBox.addEventListener("pointermove", (e) => {
+  if (!swipe) return;
+  swipe.dx = e.clientX - swipe.x0;
+  if (Math.abs(swipe.dx) > 6) e.stopPropagation();
+  alertBox.style.transform = `translateX(${swipe.dx}px) rotate(${(swipe.dx / 40).toFixed(2)}deg)`;
+  alertBox.style.opacity = String(Math.max(0.2, 1 - Math.abs(swipe.dx) / 260));
+});
+const endSwipe = (e: PointerEvent) => {
+  if (!swipe) return;
+  const dx = swipe.dx;
+  swipe = null;
+  const reset = () => { alertBox.style.transform = ""; alertBox.style.opacity = ""; };
+  if (Math.abs(dx) > 70) {
+    e.stopPropagation();
+    play("close");
+    void spring(dx, Math.sign(dx) * 420, (v) => { alertBox.style.transform = `translateX(${v}px) rotate(${(v / 40).toFixed(2)}deg)`; alertBox.style.opacity = String(Math.max(0, 1 - Math.abs(v) / 420)); },
+      { stiffness: 260, damping: 26, precision: 2 }).then(() => { reset(); dismissAlert(); });
+  } else void spring(dx, 0, (v) => { alertBox.style.transform = v ? `translateX(${v}px)` : ""; alertBox.style.opacity = ""; }, { stiffness: 380, damping: 18, precision: 0.5 }).then(reset);
+};
+alertBox.addEventListener("pointerup", endSwipe);
+alertBox.addEventListener("pointercancel", endSwipe);
+
+function showAlert(title: string, body: string, actions: { label: string; action: string; args?: any }[] = [], kind = "") {
+  if (alertCur && mode === "alert") { alertStack.push(alertCur); if (alertStack.length > 9) alertStack.shift(); }
+  alertCur = { title, body, actions, kind };
+  alertMore.hidden = !alertStack.length;
+  alertMore.textContent = `+${alertStack.length}`;
+  if (at("high")) { alertBox.classList.remove("liquid-in"); void alertBox.offsetWidth; alertBox.classList.add("liquid-in"); }
+  if (alertKindFb) client.send("notice_feedback", { kind: alertKindFb, action: "ignored" });   // replaced unanswered
+  alertKindFb = kind;
   alertTitle.textContent = title;
   alertBody.textContent = body;
   alertActs.replaceChildren(...actions.map((a, i) => h("button", { type: "button", class: `n-alert-btn ${i === 0 && a.action !== "dismiss" ? "main" : ""}`,
     onclick: (e: Event) => {
       e.stopPropagation();
       if (a.action !== "dismiss") client.send("notice_action", { action: a.action, args: a.args || {} });
+      if (alertKindFb && a.action !== "mute_kind") client.send("notice_feedback", { kind: alertKindFb, action: "used" });
+      alertKindFb = "";
       window.clearTimeout(alertTimer);
       settle(true);
+      nextAlert();
     } }, a.label)));
   const [ico, tint] = alertKind(title || "", body || "");
   alertIco.replaceChildren(icon(ico, "ph-fill"));
@@ -852,7 +927,10 @@ function showAlert(title: string, body: string, actions: { label: string; action
     if (mode === "alert") apply("alert");                     // the card fits this text
     window.clearTimeout(alertTimer);
     // a longer notice stays a little longer, so it can be read (5–9 s)
-    alertTimer = window.setTimeout(() => mode === "alert" && settle(), actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
+    alertTimer = window.setTimeout(() => {
+      if (alertKindFb) { client.send("notice_feedback", { kind: alertKindFb, action: "ignored" }); alertKindFb = ""; }
+      if (mode === "alert") { settle(); nextAlert(); }
+    }, actions.length ? 12000 : Math.min(9000, 5000 + (body || "").length * 35));
   }
 }
 
@@ -1140,10 +1218,13 @@ const AI_WORD: Record<string, string> = { listening: "Poslouchá", thinking: "P�
 // the AI that answers now (the core says which provider + model once the first words arrive)
 let brain: { provider: string; model: string } | null = null;
 let brainLeft: number | null = null;      // 3.12 % of today's free AI left (null = unknown / paid)
+let brainSpend: { usd: number; limit: number; over: boolean } | null = null;   // 3.14 Claude: today's spend in USD (estimate)
+const usd = (v: number) => `$${v < 1 ? v.toFixed(2) : v.toFixed(1)}`.replace(".", ",");
 const team = new Map<string, { icon: string; name: string; since: number }>();   // specialists at work right now
 let mtAgents = { running: 0, verdict: "", tone: "" };                      // 3.14 multitasking agents at work
 // OMEGA 188: gestures through the camera (only when switched on in Settings; the red dot shows the camera is on)
 let lastGesture: { g: Gesture; until: number } | null = null;
+const HUD_GESTURE: Record<Gesture, string> = { left: "doleva", right: "doprava", up: "přiblížit", down: "oddálit", wave: "rozložit / panely" };
 let nudge: { app: string; until: number } | null = null;
 // 3.12 headphones / speakers / charger connected: a short iPhone-like island with an icon and the battery
 let linkEv: { icon: string; text: string; right: string; pct: number | null; tint: string; until: number; thumb?: string; fly?: boolean } | null = null;
@@ -1158,8 +1239,19 @@ const GESTURE_ACTION: Record<Gesture, [string, any]> = {
   left: ["media_control", { action: "previous" }], right: ["media_control", { action: "next" }],
   up: ["volume", { action: "up" }], down: ["volume", { action: "down" }], wave: ["media_control", { action: "play_pause" }],
 };
+// 3.15 while the Stark HUD is on screen, the gestures steer it (turn the model / the globe, zoom, layouts) – not the music
+let hudOnScreen = false, gestureToHud = false;
+client.on("hud_presence" as any, (m: any) => { hudOnScreen = !!m.on; });
 const gestureCam = new GestureCam({
   onGesture: (g) => {
+    gestureToHud = hudOnScreen;
+    if (hudOnScreen) {
+      client.send("hud_gesture" as any, { g });
+      lastGesture = { g, until: Date.now() + 1300 };
+      updateActivity();
+      window.setTimeout(updateActivity, 1400);
+      return;
+    }
     const [action, args] = workshop.on && g !== "up" && g !== "down"
       ? ["workshop_step", { move: g === "right" ? "next" : g === "left" ? "prev" : "repeat" }] : GESTURE_ACTION[g];
     client.send("quick_action", { action, args });
@@ -1169,7 +1261,51 @@ const gestureCam = new GestureCam({
   },
   onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
 });
-function syncGestures(on: boolean) { if (on && !gestureCam.on) gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop(); }
+// 3.17 finger gestures (the hand model, once downloaded): pinch = zoom, open hand sideways = turn, fist = take apart
+let handsReady = false, fingersWanted = true, gesturesWanted = false, fingerAcc = 0, fingerVolAt = 0;
+function showGesture(g: Gesture) {
+  lastGesture = { g, until: Date.now() + 1300 };
+  updateActivity();
+  window.setTimeout(updateActivity, 1400);
+}
+function onFinger(e: FingerEvent) {
+  gestureToHud = hudOnScreen;
+  const shown: Gesture = e.type === "rotate" ? (e.deg > 0 ? "right" : "left") : e.type === "zoom" ? (e.factor > 1 ? "up" : "down") : "wave";
+  if (hudOnScreen) {
+    client.send("hud_gesture" as any, { g: e.type === "fist" ? "fist" : e.type === "rotate" ? `rotate:${e.deg}` : `zoom:${e.factor}` });
+    showGesture(shown);
+    return;
+  }
+  if (e.type === "fist") client.send("quick_action", { action: "media_control", args: { action: "play_pause" } });
+  else if (e.type === "rotate") {
+    fingerAcc += e.deg;
+    if (Math.abs(fingerAcc) < 60) return;                   // a real swipe of the open hand, not a wobble
+    client.send("quick_action", { action: "media_control", args: { action: fingerAcc > 0 ? "next" : "previous" } });
+    fingerAcc = 0;
+  } else {
+    if (Date.now() - fingerVolAt < 500) return;
+    fingerVolAt = Date.now();
+    client.send("quick_action", { action: "volume", args: { action: e.factor > 1 ? "up" : "down" } });
+  }
+  showGesture(shown);
+}
+const fingerCam = new FingerCam({
+  base: client.plainUrl("/api/hands"), onEvent: onFinger,
+  onState: (on, error) => { shape.classList.toggle("cam-on", on); if (error) showAlert("Gesta", error); },
+});
+client.on("hands" as any, (m: any) => { if (typeof m.ready === "boolean") { handsReady = m.ready; syncGestures(gesturesWanted); } });
+client.send("hands_status" as any, {});
+function syncGestures(on: boolean) {
+  gesturesWanted = on;
+  const fingers = on && fingersWanted && handsReady;
+  if (fingers) {
+    if (gestureCam.on) gestureCam.stop();
+    if (!fingerCam.on) void fingerCam.start();
+    return;
+  }
+  if (fingerCam.on) fingerCam.stop();
+  if (on && !gestureCam.on) void gestureCam.start(); else if (!on && gestureCam.on) gestureCam.stop();
+}
 client.on("agent_activity", (m) => {
   if (m.state === "start") team.set(m.key, { icon: m.icon || "robot", name: m.name, since: team.get(m.key)?.since || Date.now() });
   if (m.state === "done") team.delete(m.key);
@@ -1203,12 +1339,22 @@ function setKids(el: HTMLElement, kids: (Node | string)[]) {
   kidsKey.set(el, key);
   el.replaceChildren(...kids);
 }
-client.on("brain", (m) => { brain = { provider: m.provider || "", model: m.model || "" }; brainLeft = typeof m.left === "number" ? m.left : null; renderBrand(); updateActivity(); });
+client.on("brain", (m) => {
+  brain = { provider: m.provider || "", model: m.model || "" };
+  brainLeft = typeof m.left === "number" ? m.left : null;
+  const sp = (m as any).spend;
+  brainSpend = sp && typeof sp.usd === "number" ? { usd: sp.usd, limit: Number(sp.limit) || 0, over: !!sp.over } : null;
+  renderBrand(); updateActivity();
+});
 client.on("lyrics", (m) => {
   lyr = { title: String(m.title || ""), artist: String(m.artist || ""), synced: !!m.synced, lines: Array.isArray(m.lines) ? m.lines : [],
     tr: Array.isArray(m.tr) ? m.tr.map(String) : [] };
   lyrIdx = -2;
   updateActivity();
+});
+// 3.14 the timing JARVIS fitted by listening to the singing (once per song) – your own nudge still wins
+client.on("lyrics_autoshift", (m: any) => {
+  if (setAutoShift(String(m.title || ""), String(m.artist || ""), Number(m.shift) || 0) !== null) lyrIdx = -2;
 });
 client.on("live_subs", (m) => {
   const lines = Array.isArray(m.lines) ? m.lines.map(String).filter(Boolean) : [];
@@ -1274,7 +1420,7 @@ function lyrPos(): number {
   return p < 0 ? p : p + lyricShift(media.title, media.artist);
 }
 function lyricsOn(): boolean {
-  return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && songPos() >= 0
+  return !!(cfgLyrics && lyr.synced && lyr.lines.length && media.playing && media.title && lyr.title === media.title && lyr.artist === String(media.artist || "") && songPos() >= 0
     && lyrPos() >= lyr.lines[0].t - 1.5 && lyrPos() <= lyr.lines[lyr.lines.length - 1].t + 8);
 }
 let cfgLyrics = true;
@@ -1454,14 +1600,17 @@ window.setInterval(() => {                                                   // 
   if (mode === "closed") apply(mode);
   window.setTimeout(() => { updateActivity(); if (mode === "closed") apply(mode); }, 40_500);
 }, 60_000);
-const PERSIST = ["lyrics", "subs", "team", "agents", "ai", "claude", "focus", "task", "download", "music"];
+const PERSIST = ["lyrics", "subs", "team", "agents", "ai", "claude", "focus", "task", "download", "live", "music"];
+// 3.14 live activities: anything long shows a small progress pill (a model downloading, the offline pack, a skill)
+const lives = new Map<string, { title: string; icon: string; progress: number | null; text: string; at: number }>();
+const liveNow = () => { for (const [k, v] of lives) if (Date.now() - v.at > 120000) lives.delete(k); return [...lives.values()].sort((a, b) => b.at - a.at)[0]; };
 let lastKind = "", lastKindAt = 0;
 let preferKind = "";
 let pipPopT = 0;
 function activeKinds(t: any, cc: any): string[] {
   const on: Record<string, boolean> = {
     lyrics: lyricsOn(), subs: subs.on && !songApp(), team: team.size > 0, agents: mtAgents.running > 0, ai: !!(jarvisBusy() && brain && coreMood !== "listening"), claude: !!cc,
-    focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000),
+    focus: timers.length > 0, task: !!(t && t.total), download: !!(dls.length && Date.now() - dlsAt < 15000), live: !!liveNow(),
     music: !lyricsOn() && !!(media?.playing && media.title),
   };
   return PERSIST.filter((k) => on[k]);
@@ -1546,7 +1695,7 @@ function islandActivity(t: any) {
     r = [h("span", { class: "n-sw-n" }, shareWait.count === 1 ? "1 soubor" : shareWait.count < 5 ? `${shareWait.count} soubory` : `${shareWait.count} souborů`)];
   } else if (lastGesture && Date.now() < lastGesture.until) {
     kind = "gesture";
-    l = [icon("hand-waving", "ph-fill"), h("span", {}, GESTURE_LABEL[lastGesture.g])];
+    l = [icon("hand-waving", "ph-fill"), h("span", {}, gestureToHud ? `HUD · ${HUD_GESTURE[lastGesture.g]}` : GESTURE_LABEL[lastGesture.g])];
   } else if (workshop.on && workshop.total) {
     kind = "workshop";
     l = [icon("wrench", "ph-fill"), h("span", {}, `Krok ${workshop.step}/${workshop.total}`)];
@@ -1598,7 +1747,10 @@ function islandActivity(t: any) {
     const b = brandOf(brain.provider, brain.model);
     kind = "ai"; l = [brandEl(b), h("span", {}, AI_WORD[coreMood] || "Pracuje")];
     // 3.12 how much of today's free AI is left ("Groq · 70 %"), amber when low, red when nearly out
-    r = brainLeft === null ? [b.name] : [h("span", { class: `n-ai-left ${brainLeft < 5 ? "out" : brainLeft < 20 ? "low" : ""}`,
+    r = brainSpend ? [h("span", { class: `n-ai-left ${brainSpend.over ? "out" : brainSpend.limit && brainSpend.usd > brainSpend.limit * 0.8 ? "low" : ""}`,
+        title: "Kolik dnes stál Claude (odhad podle ceníku modelu)" }, b.name,
+        h("b", {}, ` · ${usd(brainSpend.usd)}${brainSpend.limit ? ` / ${usd(brainSpend.limit)}` : ""}`))]
+      : brainLeft === null ? [b.name] : [h("span", { class: `n-ai-left ${brainLeft < 5 ? "out" : brainLeft < 20 ? "low" : ""}`,
       title: "Kolik ti dnes zbývá z limitu zdarma (odhad)" }, b.name, h("b", {}, ` · ${brainLeft} %`))];
     shape.style.setProperty("--brand", b.color);
   } else if (dict.state === "listening" || dict.state === "transcribing") {
@@ -1624,6 +1776,10 @@ function islandActivity(t: any) {
     const mb = (n: number) => n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`;
     kind = "download"; l = [icon("download-simple"), h("span", {}, dls.length > 1 ? `Stahuji ${dls.length} soubory` : d.file.slice(0, 18))];
     r = [`${mb(d.bytes)}${d.speed > 0 ? ` · ${mb(d.speed)}/s` : ""}`];
+  } else if (sk("live") && liveNow()) {
+    const la = liveNow()!;
+    kind = "live"; l = [icon(la.icon || "spinner-gap"), h("span", {}, la.title.slice(0, 20))];
+    r = [la.progress != null ? `${Math.round(la.progress * 100)} %` : la.text];
   } else if (dyn() && ["listening", "speaking", "thinking", "working"].includes(coreMood)) {
     kind = "voice"; l = [];                                       // the eyes are in the middle
     r = [h("span", { class: "n-wave" }, ...Array.from({ length: 5 }, () => h("i")))];
@@ -1743,7 +1899,7 @@ function paintTint(kind: string) {
   if (tints.has(want)) { show(tints.get(want) || ""); return; }
   if (tintFor === want) return;
   tintFor = want;
-  coverTint(want).then((v) => {
+  void coverTint(want).then((v) => {
     if (tints.size > 30) tints.clear();
     tints.set(want, v);
     if (tintFor === want) show(v);
@@ -1751,6 +1907,15 @@ function paintTint(kind: string) {
 }
 function updateActivity() {
   const t = task && ["running", "paused", "waiting"].includes(task.status) ? task : null;
+  // 3.15 the jobs running now orbit Mochi as small moons, each filled with its progress
+  try {
+    const moons: (number | null)[] = [];
+    if (t && t.total) moons.push(t.done / t.total);
+    for (const l of lives.values()) moons.push(typeof l.progress === "number" ? l.progress : null);
+    if (Date.now() - dlsAt < 8000) for (let i = 0; i < Math.min(2, dls.length); i++) moons.push(null);
+    if (upd?.available && upd.state === "downloading") moons.push(upd.progress || 0);
+    blob.setOrbit(moons);
+  } catch { /* called before everything is set up: next time */ }
   shape.classList.toggle("has-task", !!(t && t.total));
   progressBar.style.width = t && t.total ? `${Math.round((t.done / t.total) * 100)}%` : "0";
   const now = new Date();
@@ -1807,6 +1972,7 @@ client.on("welcome", (m) => {
   task = m.task || null;
   takeNotchSettings(m.settings?.notch);
   setStyle(m.settings?.notch?.style);
+  fingersWanted = m.settings?.appearance?.gesture_fingers !== false;
   syncGestures(!!m.settings?.appearance?.gestures);
   const ch = m.settings?.character;
   if (ch) { charColor = [ch.color, ch.glow || undefined]; blob.setColor(ch.color, ch.glow || undefined); blob.setOutfit(ch.outfit); blob.setCharacter(ch); }
@@ -2007,7 +2173,11 @@ client.on("tool_start", (m) => {
 client.on("tool_end", (m) => { if (!m.ok) bubbleTool.append(h("span", { class: "fail" }, ` · ${m.summary}`)); });
 client.on("confirm_request", (m) => {
   pendingConfirm = m.id;
-  const answer = (ok: boolean) => { client.send("confirm_response", { id: m.id, approved: ok }); pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive(); };
+  const answer = (ok: boolean) => {
+    const otp = ok ? askOtp(m.needs_otp) : undefined;       // 3.20 (196) the YubiKey
+    if (otp === null) return;
+    client.send("confirm_response", { id: m.id, approved: ok, otp }); pendingConfirm = null; bubbleConfirm.replaceChildren(); renderLive();
+  };
   bubbleConfirm.replaceChildren(
     h("span", {}, icon("shield-warning", "ph-fill"), " ", String(m.description),
       (m.details || []).length ? h("span", { class: "muted", title: (m.details as string[]).join("\n") }, ` (${(m.details as string[]).length}× – detail v panelu)`) : ""),
@@ -2018,7 +2188,7 @@ client.on("confirm_request", (m) => {
 });
 client.on("confirm_resolved", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); renderClaudeAsk(); renderLive(); if (!busy()) settle(); } });
 client.on("confirm_timeout", (m) => { if (pendingConfirm === m.id) { pendingConfirm = null; bubbleConfirm.replaceChildren(); settle(); } });
-client.on("notify", (m) => { showAlert(m.title, m.body, Array.isArray(m.actions) ? m.actions : []); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
+client.on("notify", (m) => { showAlert(m.title, m.body, Array.isArray(m.actions) ? m.actions : [], String(m.kind || "")); play("notify", panFor(m.target === "mobile" ? "phone" : /mail|e-mail/i.test(m.title || "") ? "mail" : /telefon/i.test(m.title || "") ? "phone" : "notch")); });
 client.on("sounds", (m) => setCustomSounds(m.files));
 client.on("update_status", (m) => { upd = m; paintUpdate(); updateActivity(); });
 client.on("claude_sessions", (m) => { claudeSessions = m.items || []; updateActivity(); });
@@ -2056,6 +2226,37 @@ client.on("beat", (m) => {
   window.clearTimeout(beatOff);
   beatOff = window.setTimeout(() => { delete document.documentElement.dataset.beat; }, 12000);
 });
+client.on("live_activity", (m: any) => {
+  if (m.done) lives.delete(m.id); else lives.set(m.id, { title: m.title, icon: m.icon, progress: m.progress, text: m.text || "", at: Date.now() });
+  updateActivity();
+});
+// 3.14 the real spectrum of the music (when Nastavení → Notch → Spektrum is on): the 5 bars follow it
+let vizBands: number[] = [], vizAt = 0;
+let bassAvg = 0, lastBeat = 0;
+const beatGaps: number[] = [];
+client.on("viz_bands", (m: any) => {
+  vizBands = Array.isArray(m.bands) ? m.bands : []; vizAt = Date.now();
+  // 3.15 the beat of the music from the bass (a jump over its own average): Mochi dances in time with it
+  const bass = (Number(vizBands[0]) || 0) + (Number(vizBands[1]) || 0);
+  const now = performance.now();
+  if (bass > bassAvg * 1.35 && bass > 0.3 && now - lastBeat > 280) {
+    if (lastBeat && now - lastBeat < 1500) { beatGaps.push(now - lastBeat); if (beatGaps.length > 12) beatGaps.shift(); }
+    lastBeat = now;
+    const sorted = [...beatGaps].sort((a, b) => a - b);
+    const bpm = sorted.length >= 4 ? Math.round(60000 / sorted[Math.floor(sorted.length / 2)]) : undefined;
+    blob.beat(bpm);
+  }
+  bassAvg = bassAvg * 0.9 + bass * 0.1;
+});
+const paintViz = () => {
+  if (Date.now() - vizAt < 600 && vizBands.length >= 6) {
+    document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar, i) => {
+      bar.style.animation = "none"; bar.style.transform = `scaleY(${(0.25 + 0.75 * (vizBands[i + 1] || 0)).toFixed(2)})`;
+    });
+  } else document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar) => { bar.style.animation = ""; bar.style.transform = ""; });
+  window.requestAnimationFrame(paintViz);
+};
+window.requestAnimationFrame(paintViz);
 client.on("download_progress", (m) => { dls = Array.isArray(m.items) ? m.items.filter((d: any) => d && typeof d.file === "string") : []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;

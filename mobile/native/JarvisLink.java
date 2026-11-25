@@ -40,6 +40,7 @@ public final class JarvisLink {
     static final String CH_CALL = "jarvis_call_v1";
     static final String CH_LINK = "jarvis_link_v1";
     static final String CH_ACTION = "jarvis_action_v1";
+    static final String CH_QUIET = "jarvis_quiet_v1";    // 3.17 "Zeptej se JARVISe" for the watch: shown without a sound
     static final int NOTIF_LINK = 7001;
     static final int NOTIF_CALL = 7002;
 
@@ -59,7 +60,7 @@ public final class JarvisLink {
     /** The address to use right now: home, or the JARVIS Link tunnel while home does not answer. */
     static String liveBase(Context c) {
         String base = base(c);
-        boolean viaLink = base.startsWith(LinkProxy.base())
+        boolean viaLink = base.startsWith(LinkProxy.base()) || LinkProxy.always(c)
                 || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil);
         return viaLink && LinkProxy.start(c) ? LinkProxy.base() : base;
     }
@@ -68,7 +69,7 @@ public final class JarvisLink {
         String base = base(c);
         if (base.isEmpty()) throw new IllegalStateException("not paired");
         boolean viaLink = base.startsWith(LinkProxy.base());
-        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (!viaLink && (LinkProxy.always(c) || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil))) viaLink = true;
         if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), method, path, body, timeoutMs, 15000);
         try {
             return http(c, base, method, path, body, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);
@@ -88,7 +89,7 @@ public final class JarvisLink {
         String base = base(c);
         if (base.isEmpty()) throw new IllegalStateException("not paired");
         boolean viaLink = base.startsWith(LinkProxy.base());
-        if (!viaLink && LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil) viaLink = true;
+        if (!viaLink && (LinkProxy.always(c) || (LinkProxy.configured(c) && System.currentTimeMillis() < homeDownUntil))) viaLink = true;
         if (viaLink && LinkProxy.start(c)) return http(c, LinkProxy.base(), "POST", path, body, type, timeoutMs, 15000);
         try {
             return http(c, base, "POST", path, body, type, timeoutMs, LinkProxy.configured(c) ? 3000 : 8000);
@@ -246,11 +247,18 @@ public final class JarvisLink {
                 case "notify": {                // 3.12 you are away from the PC: what matters comes here
                     Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     JSONArray acts = cmd.optJSONArray("actions");
-                    if (acts != null && acts.length() > 0) {        // 3.13 with its buttons ("+5 min", "Za 10 min")
-                        noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open, acts);
-                    } else {
-                        actionNotification(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open);
+                    // 3.14 every notice gets "Odpovědět" (typed in the notification); its own buttons stay in front
+                    noticeWithButtons(c, cmd.optString("title", "JARVIS"), cmd.optString("body", ""), open,
+                            acts == null ? new JSONArray() : acts, cmd.optBoolean("quiet", false), cmd.optJSONArray("quick"));
+                    return "shown";
+                }
+                case "widget": {                // 3.14 návrh 9: the widget kept fresh by this service, the app may be closed
+                    android.content.SharedPreferences.Editor e = JarvisWidget.prefs(c).edit();
+                    for (String k : new String[]{"status", "task", "song", "habits", "biz"}) {
+                        if (cmd.has(k)) e.putString(k, cmd.optString(k, ""));
                     }
+                    e.apply();
+                    JarvisWidget.refresh(c);
                     return "shown";
                 }
                 case "mirror_ask": {             // 3.12 the PC wants to show this phone's screen: you allow it here
@@ -302,6 +310,20 @@ public final class JarvisLink {
                 }
                 case "notif_reply":            // 3.12 a reply written in the PC's notch, sent by the message's own app
                     return NotifMirror.reply(c, cmd.optString("key"), cmd.optString("text"));
+                case "dnd":                    // 3.20 (130) Nerušit for sleep / a meeting
+                    return PhoneX.dnd(c, cmd.optBoolean("on"));
+                case "lock_status":            // 3.20 (132, 133) the line on the lock screen + the PC's volume
+                    return PhoneX.lockStatus(c, cmd.optString("line"), cmd.optBoolean("controls", true));
+                case "loc_share":              // 3.20 (139) a time-limited location share (you allow it with a tap)
+                    return PhoneX.locShare(c, cmd.optString("token"), cmd.optInt("minutes"));
+                case "voice_share":            // 3.20 (16) a voice message recorded in JARVIS's voice → WhatsApp
+                    return PhoneX.voiceShare(c, cmd, foreground);
+                case "ice_card":               // 3.20 (259) the emergency card on the lock screen
+                    return PhoneX.iceCard(c, cmd.optString("text"));
+                case "where":                  // 3.20 (409) where you parked (the car's Bluetooth went away)
+                    return PhoneX.where(c);
+                case "save_file":              // 3.20 (226) a ticket kept in the phone offline
+                    return PhoneX.saveFile(c, cmd.optString("aid"), cmd.optString("name"));
                 default:
                     return "unknown";
             }
@@ -332,6 +354,10 @@ public final class JarvisLink {
         NotificationChannel act = new NotificationChannel(CH_ACTION, "Akce od JARVISe", NotificationManager.IMPORTANCE_HIGH);
         act.setDescription("Volání a zprávy, které JARVIS připravil");
         nm.createNotificationChannel(act);
+        NotificationChannel quiet = new NotificationChannel(CH_QUIET, "Zeptej se z hodinek", NotificationManager.IMPORTANCE_LOW);
+        quiet.setDescription("Tichá zpráva, na kterou odpovíš hlasem z telefonu nebo z hodinek Wear OS");
+        quiet.setShowBadge(false);
+        nm.createNotificationChannel(quiet);
     }
 
     static int piFlags() {
@@ -354,23 +380,72 @@ public final class JarvisLink {
 
     /** 3.13 a notice from the PC with its buttons: a tap goes back to the PC as the same button in the notch would. */
     static void noticeWithButtons(Context c, String title, String text, Intent target, JSONArray acts) {
+        noticeWithButtons(c, title, text, target, acts, false, null);
+    }
+
+    /** quiet = 3.17 without a sound (the "Zeptej se JARVISe" entry for the watch); quick = ready questions to tap or say. */
+    static void noticeWithButtons(Context c, String title, String text, Intent target, JSONArray acts, boolean quiet, JSONArray quick) {
         channels(c);
         int nid = (int) (System.currentTimeMillis() & 0xfffff);
         PendingIntent pi = PendingIntent.getActivity(c, nid, target, piFlags());
-        Notification.Builder b = builder(c, CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
-                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true);
+        Notification.Builder b = builder(c, quiet ? CH_QUIET : CH_ACTION).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(title)
+                .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true)
+                .setOnlyAlertOnce(quiet);
+        if (Build.VERSION.SDK_INT >= 28) {        // 3.14 a message from "JARVIS": Android Auto and watches read it and offer a reply
+            try {
+                android.app.Person jarvis = new android.app.Person.Builder().setName("JARVIS").setKey("jarvis").build();
+                android.app.Person me = new android.app.Person.Builder().setName("Já").setKey("me").build();
+                b.setStyle(new Notification.MessagingStyle(me).setConversationTitle(title)
+                        .addMessage(text, System.currentTimeMillis(), jarvis));
+            } catch (Exception ignored) { }
+        }
         for (int k = 0; k < acts.length() && k < 3; k++) {
             JSONObject a = acts.optJSONObject(k);
             if (a == null) continue;
+            boolean input = a.optBoolean("input", false) && Build.VERSION.SDK_INT >= 24;   // 3.20 (140) typed right here
             Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", a.optString("action"))
                     .putExtra("notice_args", String.valueOf(a.optJSONObject("args") == null ? "{}" : a.optJSONObject("args")))
-                    .putExtra("nid", nid);
-            PendingIntent ap = PendingIntent.getBroadcast(c, nid * 4 + k, i, piFlags());
-            b.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_send),
-                    a.optString("label", "Ok"), ap).build());
+                    .putExtra("nid", nid).putExtra("reply", input);
+            int fl = input ? PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0) : piFlags();
+            PendingIntent ap = PendingIntent.getBroadcast(c, nid * 4 + k, i, fl);
+            Notification.Action.Builder ab = new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c,
+                    input ? android.R.drawable.ic_menu_edit : android.R.drawable.ic_menu_send), a.optString("label", "Ok"), ap);
+            if (input) ab.addRemoteInput(new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš…").build());
+            b.addAction(ab.build());
         }
+        addReply(c, b, nid, quick);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         if (nm != null) nm.notify(nid, b.build());
+    }
+
+    static final String REPLY_KEY = "jarvis_reply";
+
+    /** 3.14 návrh 97: "Odpovědět" under every notice from the PC – typed right in the notification, sent to JARVIS. */
+    static void addReply(Context c, Notification.Builder b, int nid) {
+        addReply(c, b, nid, null);
+    }
+
+    /** choices: 3.17 ready answers a watch shows as buttons (and the phone as chips); speaking or typing still works. */
+    static void addReply(Context c, Notification.Builder b, int nid, JSONArray choices) {
+        if (Build.VERSION.SDK_INT < 24) return;
+        try {
+            android.app.RemoteInput.Builder rb = new android.app.RemoteInput.Builder(REPLY_KEY).setLabel("Napiš JARVISovi…");
+            if (choices != null && choices.length() > 0) {
+                int n = Math.min(choices.length(), 5);
+                CharSequence[] cs = new CharSequence[n];
+                for (int k = 0; k < n; k++) cs[k] = choices.optString(k, "");
+                rb.setChoices(cs);
+            }
+            android.app.RemoteInput ri = rb.build();
+            Intent i = new Intent(c, ConfirmReceiver.class).putExtra("notice_action", "ask").putExtra("notice_args", "{}")
+                    .putExtra("reply", true).putExtra("nid", nid);
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+            PendingIntent pi = PendingIntent.getBroadcast(c, nid * 4 + 3, i, flags);
+            Notification.Action.Builder ab = new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, android.R.drawable.ic_menu_edit),
+                    "Odpovědět", pi).addRemoteInput(ri);
+            if (Build.VERSION.SDK_INT >= 28) ab.setSemanticAction(Notification.Action.SEMANTIC_ACTION_REPLY);
+            b.addAction(ab.build());
+        } catch (Exception ignored) { }
     }
 
     /** 3.12 Ranní souhrn: the whole text in the notice and "Přehrát" (JARVIS's voice in the visible JARVIS window). */
@@ -507,7 +582,7 @@ public final class JarvisLink {
 
     static JSONArray poll(Context c) throws Exception {
         // 3.12 battery: one request every 50 s while nothing happens (a command still arrives at once)
-        String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c), null, 65000);
+        String body = http(c, "GET", "/api/phone/poll?wait=50" + batteryQuery(c) + PhoneX.extraQuery(c), null, 65000);
         return new JSONObject(body).optJSONArray("commands");
     }
 }

@@ -1,14 +1,20 @@
-"""The agent loop: message → LLM → tools → … → answer."""
+"""The agent loop: message → LLM → tools → … → answer. (3.18: helpers in agent_helpers.py, the fast paths – the
+tools' own words, progress, cache warm-up, speculation – in agent_fast.py.)"""
 from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import time
 import uuid
 from typing import Any
 
-from . import tools
+from . import agent_x320, brainx, tools, voicex
+from . import toolcatalog as tc
+from .agent_fast import FastPaths
+# 3.18 the helpers live in agent_helpers.py; importing them from here keeps working
+from .agent_helpers import (AGENT_MODE_RULE, CONNECTOR_LABELS, CONTINUE, DOUBLE_TOOLS, MEDIA_ACTIONS, MIDRUN, MONEY_TOOLS,  # noqa: F401
+                            SAY_RESULT, TOOL_LABELS, BudgetExceeded, _first_sentence, _needs_second, _stored_to_llm,
+                            _wave_of, _waves, describe_call, is_money, only_dots)
 from .llm.base import AllProvidersFailed, ProviderError, ToolCall
 from .prompt import build_system_prompt
 from .tools import select as sel
@@ -24,147 +30,9 @@ NO_LIMIT = ("Narazil jsem na limit u všech AI mozků. Chvíli počkej – nebo 
 NO_BRAIN = ("Omlouvám se, teď se nemůžu spojit s žádným AI mozkem. V Nastavení → Mozek vlož nahoře API klíč "
             "(Groq nebo Gemini, oba zdarma) – nic dalšího není potřeba. Pokud klíč už máš, je PC připojené k internetu?")
 
-TOOL_LABELS = {
-    "youtube_play": "Pouštím YouTube", "open_app": "Spouštím aplikaci", "close_app": "Zavírám aplikaci",
-    "web_search": "Hledám na webu", "web_read": "Čtu stránku", "weather": "Zjišťuji počasí",
-    "google_ask": "Ptám se Googlu", "world_news": "Čtu zprávy",
-    "money_action": "Peníze – schválíš?", "multitask_start": "Rozděluji se na agenty", "multitask_stop": "Zastavuji agenty",
-    "volume": "Hlasitost", "media_control": "Média", "screenshot": "Snímek obrazovky",
-    "system_power": "Napájení", "run_shell": "PowerShell", "computer_use": "Ovládám počítač",
-    "run_python": "Spouštím kód", "generate_image": "Kreslím obrázek", "set_timer": "Časovač",
-    "set_reminder": "Připomínka", "find_file": "Hledám soubor", "open_file": "Otevírám soubor",
-    "remember": "Pamatuji si", "send_file": "Posílám soubor", "send_to_phone": "Posílám na telefon",
-    "create_skill": "Učím se novou dovednost", "schedule_task": "Plánuji úlohu",
-    "browser_open": "Otevírám stránku", "browser_click": "Klikám v prohlížeči", "browser_type": "Píšu do prohlížeče",
-    "ui_click": "Klikám", "ui_type": "Píšu do aplikace", "ui_inspect": "Prohlížím okno", "ui_read": "Čtu okno",
-    "ui_wait": "Čekám na okno", "mouse": "Myš", "move_files": "Přesouvám soubory", "update_plan": "Plán",
-    "git_status": "Git stav", "git_diff": "Git změny", "git_commit": "Git commit", "git_push": "Git push",
-    "checkpoint": "Záchytný bod", "restore_checkpoint": "Obnovuji záchytný bod", "compare_files": "Porovnávám soubory",
-    "run_tests": "Spouštím testy", "claude_code": "Claude Code",
-    "make_website": "Stavím web", "read_website": "Čtu web", "list_websites": "Moje weby",
-    "set_dark_mode": "Tmavý režim", "briefing": "Brífink", "run_protocol": "Protokol", "list_protocols": "Protokoly",
-    "show_hud": "Stark HUD", "system_info": "Stav systémů",
-    "create_automation": "Nová automatizace", "list_automations": "Automatizace", "delete_automation": "Mažu automatizaci",
-    "toggle_automation": "Automatizace", "home_devices": "Chytrá domácnost", "home_control": "Domácnost",
-    "home_scene": "Scéna", "list_add": "Přidávám na seznam", "list_show": "Seznam", "list_done": "Odškrtávám",
-    "list_clear": "Mažu seznam", "list_to_phone": "Seznam do mobilu", "exchange_rate": "Kurz ČNB", "price": "Cena",
-    "price_alert": "Hlídám cenu", "network_devices": "Zařízení v síti", "name_device": "Pojmenovávám zařízení",
-    "wake_device": "Budím počítač", "find_phone": "Hledám telefon", "phone_battery": "Baterie telefonu",
-    "pc_health_report": "Diagnostika PC (jen čtení)", "save_mission_as_skill": "Skill Forge: nová dovednost",
-}
-SAY_RESULT = {"briefing", "pc_health_report"}   # in a protocol/mission, JARVIS says what these found
-MEDIA_ACTIONS = {"play_pause": "přehrát / pauza", "next": "další", "previous": "předchozí", "stop": "stop"}
 
 
-class BudgetExceeded(Exception):
-    """A mission used up its budget (actions / minutes, Nastavení → Oprávnění)."""
-
-
-def _waves(steps: list, done: set[int]) -> list[list[int]]:
-    """Steps in dependency order: each wave holds the steps whose `needs` are all finished. Without any `needs` the
-    steps run one by one, as written (a protocol's order matters: say → pause music → …)."""
-    todo = [i for i in range(len(steps)) if i not in done]
-    if not any(getattr(st, "needs", None) for st in steps):
-        return [[i] for i in todo]
-    finished, out = set(done), []
-    while todo:
-        wave = [i for i in todo if all(n in finished or n >= len(steps) or n < 0 for n in steps[i].needs)]
-        if not wave:            # a cycle → run the rest in order instead of hanging
-            wave = [todo[0]]
-        out.append(wave)
-        finished |= set(wave)
-        todo = [i for i in todo if i not in wave]
-    return out
-
-
-# OMEGA 182: what cannot be undone asks twice
-DOUBLE_TOOLS = {"delete_file", "clean_pc", "email_delete"}
-
-
-def _needs_second(call: ToolCall, limits) -> bool:
-    if limits is None or not limits.double_confirm:
-        return False
-    a = call.arguments or {}
-    return (call.name in DOUBLE_TOOLS
-            or (call.name == "system_power" and a.get("action") in ("shutdown", "restart", "logoff", "hibernate"))
-            or (call.name == "home_control" and a.get("action") == "unlock"))
-
-
-def _wave_of(waves: list[list[int]], i: int) -> int:
-    return next((k for k, w in enumerate(waves) if i in w), -1)
-
-
-_DOTS = re.compile(r"^[\s.…·]*$")
-
-
-def only_dots(text: str) -> bool:
-    """3.13 "...", "…", ". . ." – no words at all (not shown, not spoken, not kept)."""
-    return bool(_DOTS.match(text or ""))
-
-
-AGENT_MODE_RULE = ("Režim Agent: u úkolu s více kroky nejdřív zavolej update_plan se seznamem kroků, po každém kroku "
-                   "ho aktualizuj a na konci ověř výsledek.")
-
-
-def _first_sentence(text: str) -> str:
-    import re
-
-    m = re.match(r"\s*(.+?[.!?])(\s|$)", text or "", re.S)
-    return (m.group(1) if m else (text or "")).strip()[:300]
-
-
-# 3.12 Propojení: the actions that wait for a click, in words (what is sent / changed and where)
-CONNECTOR_LABELS = {
-    "google_gmail_send": "Odeslat e-mail", "google_gmail_draft": "Koncept e-mailu", "google_calendar_create": "Nová událost v kalendáři",
-    "google_sheets_append": "Zapsat do Google Tabulky", "google_docs_create": "Nový Google Dokument", "supabase_sql": "SQL v Supabase",
-    "spaceship_dns_set": "Změnit DNS záznam", "github_issue_create": "Nové issue na GitHubu", "notion_append": "Zapsat do Notionu",
-    "slack_post": "Zpráva do Slacku", "google_tasks_add": "Nový úkol v Google Úkolech",
-    "outlook_mail_send": "Odeslat e-mail (Outlook)", "outlook_mail_draft": "Koncept e-mailu (Outlook)",
-    "outlook_calendar_create": "Nová událost v kalendáři Outlook", "mstodo_add": "Nový úkol v Microsoft To Do",
-    "stripe_refund": "Vrátit peníze (Stripe)", "stripe_payment_link": "Platební odkaz (Stripe)",
-    "fakturoid_invoice_create": "Vystavit fakturu (Fakturoid)", "hubspot_contact_create": "Nový kontakt v HubSpotu",
-    "hubspot_note": "Poznámka v HubSpotu", "pipedrive_deal_create": "Nový obchod v Pipedrive", "todoist_add": "Nový úkol v Todoistu",
-    "todoist_done": "Dokončit úkol v Todoistu", "trello_card_create": "Nová karta v Trellu", "asana_task_create": "Nový úkol v Asaně",
-    "linear_issue_create": "Nové issue v Linearu", "jira_issue_create": "Nový úkol v Jiře", "clickup_task_create": "Nový úkol v ClickUpu",
-    "airtable_create": "Nový záznam v Airtable", "monday_item_create": "Nová položka v monday.com", "toggl_timer": "Stopky v Togglu",
-    "cloudflare_dns_set": "Změnit DNS (Cloudflare)", "telegram_send": "Zpráva na Telegram", "discord_send": "Zpráva na Discord",
-    "webhook_send": "Spustit automatizaci",
-}
-
-
-def describe_call(name: str, args: dict) -> str:
-    label = CONNECTOR_LABELS.get(name) or TOOL_LABELS.get(name, name)
-    if name in ("google_gmail_send", "google_gmail_draft", "outlook_mail_send", "outlook_mail_draft") and args.get("to"):
-        return f"{label}: {args['to']} – {args.get('subject', '')}"
-    if name == "spaceship_dns_set" and args.get("domain"):
-        return f"{label}: {args['domain']} {args.get('type', '')} {args.get('name', '@')} → {args.get('value', '')}"
-    if name == "cloudflare_dns_set" and args.get("domain"):
-        return f"{label}: {args['domain']} {args.get('type', '')} {args.get('name', '@')} → {args.get('content', '')}"
-    if name == "fakturoid_invoice_create" and args.get("client"):
-        return f"{label}: {args['client']}"
-    if name == "stripe_refund" and args.get("payment_id"):
-        return f"{label}: {args['payment_id']}" + (f" ({args['amount']})" if args.get("amount") else "")
-    if name == "slack_post" and args.get("channel"):
-        return f"{label}: {args['channel']}"
-    if name == "volume" and args.get("action") == "set" and args.get("level") is not None:
-        return f"{label}: {args['level']} %"
-    if name == "media_control" and args.get("action") in MEDIA_ACTIONS:
-        return f"{label}: {MEDIA_ACTIONS[args['action']]}"
-    if name == "set_dark_mode" and "dark" in args:
-        return f"{label}: {'zapnout' if args['dark'] else 'vypnout'}"
-    key = next((args[k] for k in ("query", "name", "text", "task", "prompt", "url", "command", "action", "path", "city", "title")
-                if isinstance(args.get(k), (str, int)) and args.get(k) != ""), None)
-    return f"{label}: {key}" if key is not None else label
-
-
-def _stored_to_llm(m: dict) -> dict:
-    text = m["text"] or ""
-    if m["attachments"]:
-        text += "\n" + " ".join(f"[příloha id={a}]" for a in m["attachments"])
-    return {"role": "assistant" if m["role"] == "assistant" else "user", "content": text}
-
-
-class Agent:
+class Agent(FastPaths):
     def __init__(self, rt: Any):
         self.rt = rt
         self._lock = asyncio.Lock()
@@ -182,13 +50,23 @@ class Agent:
     # ---------- public ----------
     async def handle(self, text: str, attachments: list[str] | None = None, source: str = "chat",
                      record_user: bool = True, extra_system: str = "", lang: str = "", task_id: str | None = None,
-                     ai: str = "") -> str:
+                     ai: str = "", untrusted: bool = False) -> str:
+        """untrusted = the message carries text you did not write (the clipboard, a selection): no reflexes, nothing
+        learnt, and the AI asks before steps that change something (3.17, trust.foreign_needs_ask)."""
         rt = self.rt
         self._task_hint = task_id           # a queued / interrupted mission this request carries on
         if self._lock.locked() and rt.tasks.current and rt.tasks.current["status"] == "paused":
             msg = "Úkol je pozastavený – nejdřív ho nech pokračovat, nebo ho zruš (Úkoly nebo STOP)."
             rt.bus.publish("error", message=msg)
             return msg
+        if self.busy and self._task is not None and not self._task.done() and record_user and MIDRUN.match(text or ""):
+            # 3.16 (návrh 21) "ne, tu modrou" while he still works: stop that, and do it right with what was already done
+            done = [str(c.get("label") or c.get("name")) for c in getattr(self, "_live_cards", []) if c.get("ok")]
+            note = (f"Uživatel tě právě přerušil opravou. Původní požadavek: „{self._goal}“."
+                    + (f" Už hotové kroky: {'; '.join(done)[:400]}." if done else "")
+                    + " Splň ho podle opravy; co je hotové špatně, oprav nebo vrať, pokud to jde.")
+            extra_system = (extra_system + "\n" if extra_system else "") + note
+            self.stop()
         gen = self._gen
         async with self._lock:
             if gen != self._gen:  # STOP was pressed while this request waited → drop it
@@ -198,9 +76,16 @@ class Agent:
             self._task = asyncio.current_task()
             self.busy = True
             try:
-                if lang == "en":
-                    extra_system = (extra_system + "\n" if extra_system else "") + "Odpověz anglicky."
-                self._lang = lang or "cs"
+                from .lang import preferred
+
+                lang = preferred(text, lang, getattr(rt.cfg.general, "language", "cs"))   # 3.14 návrh 114
+                from .accessx import ANSWER_RULE
+
+                rule = ANSWER_RULE.get(lang)                  # 3.20 (461, 462, 478) also Polish and Ukrainian
+                if rule:
+                    extra_system = (extra_system + "\n" if extra_system else "") + rule
+                self._lang = lang if lang in ("cs", "en") else "cs"
+                self._foreign_turn = bool(untrusted)
                 return await self._handle(text, attachments or [], source, record_user, extra_system)
             finally:
                 self.busy = False
@@ -299,6 +184,7 @@ class Agent:
     def confirm(self, cid: str, approved: bool) -> bool:
         fut = self._confirms.get(cid)
         if fut and not fut.done():
+            agent_x320.audit_confirm(self.rt, self.confirm_info.get(cid), bool(approved))     # 3.20 (194)
             fut.set_result(bool(approved))
             self.rt.bus.publish("confirm_resolved", id=cid, approved=bool(approved))
             return True
@@ -324,6 +210,32 @@ class Agent:
         rt = self.rt
         know = getattr(rt, "knowledge", None)
         facts = know.for_prompt() if know else [f["text"] for f in rt.memory.facts()]
+        from . import shield
+
+        if shield.guest_on(rt):                     # 3.14 návrh 109: a guest at the PC – nothing about you
+            facts = []
+            extra = (extra + "\n\n" if extra else "") + shield.GUEST_RULE
+        from . import safety
+
+        if safety.kids_on(rt):                      # 3.14 návrh 41: a child at the PC
+            facts = []
+            extra = (extra + "\n\n" if extra else "") + safety.KIDS_RULE
+        from . import persona
+
+        try:                                        # 3.14 návrhy 15, 16: humour that knows when; a voice nobody knows
+            stranger = persona.speaker_line(rt) if voice else ""
+            if stranger and not shield.guest_on(rt):
+                facts = []
+                extra = (extra + "\n\n" if extra else "") + stranger
+            fun = persona.humour_line(rt, text)
+            if fun:
+                extra = (extra + "\n\n" if extra else "") + fun
+            prev = [m for m in rt.memory.recent(4) if m.get("role") == "assistant"]
+            if prev and not getattr(self, "_speculating", False):
+                persona.note_reaction(rt, text, str(prev[-1].get("text") or prev[-1].get("content") or ""))
+        except Exception as e:  # noqa: BLE001 – never in the way of an answer
+            log.debug("persona: %s", e)
+        facts = agent_x320.facts_for(rt, facts, voice)        # 3.20 (51, 59) family members: shared only; locked: never
         proj = know.project_prompt() if know else ""
         vm = getattr(rt, "voice_mood", None)          # OMEGA P3.12: only when switched on, only fresh, only a hint
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
@@ -333,7 +245,15 @@ class Agent:
             world = rt.world.for_prompt() if getattr(rt, "world", None) is not None else ""
         except Exception:  # noqa: BLE001
             world = ""
-        extra = "\n\n".join(x for x in (proj, mood, world, extra) if x)
+        from . import brainplus
+
+        vid = getattr(rt, "voiceid", None)
+        plus = [vid.prompt() if voice and vid is not None else "",                     # 3.14 who is speaking
+                brainplus.rules_prompt(rt) if getattr(rt.cfg.brain, "learn_corrections", True) else "",
+                brainplus.traits_prompt(rt.cfg),
+                brainplus.risky(text) if getattr(rt.cfg.brain, "second_opinion", True) else "",
+                *brainx.prompt_lines(rt, text or "")]                                       # 3.20 Mozek+ (21–40)
+        extra = "\n\n".join(x for x in (proj, mood, world, *plus, extra) if x)
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:
             history = history[:-1]
@@ -357,21 +277,30 @@ class Agent:
             msgs.append({"role": "user", "content": text})
         return msgs, need_vision
 
-    async def _ask_confirm(self, call: ToolCall, second: bool = False, timeout: float | None = None, phone: bool = False) -> bool:
+    async def _ask_confirm(self, call: ToolCall, second: bool = False, timeout: float | None = None, phone: bool = False,
+                           why: str = "") -> bool:
         cid = uuid.uuid4().hex[:10]
         fut = asyncio.get_running_loop().create_future()
-        desc = describe_call(call.name, call.arguments)
+        desc = describe_call(call.name, call.arguments) + (f" ({why})" if why else "")
+        if is_money(call.name, call.arguments):      # 3.18/3.19 the real offer and amount, to the phone with the fingerprint
+            from . import money
+
+            phone = True
+            real = money.confirm_text(self.rt, call.name, call.arguments or {})
+            if real:
+                desc = real + (f" ({why})" if why else "")
         if second:
             desc = f"Opravdu? {desc} (druhé potvrzení – tuhle akci nejde vrátit)"
+        desc, otp = await agent_x320.confirm_extras(self.rt, call, desc)       # 3.20 (189) a second model, (196) YubiKey
         spec = tools.REGISTRY.get(call.name)
         details = await asyncio.to_thread(tools.details_for, spec, call.arguments, self.rt) if spec else []
         self.confirm_info[cid] = {"id": cid, "description": desc, "tool": call.name, "details": details, "ts": time.time(),
-                                  "second": second}
+                                  "second": second, "otp": otp}
         # pending only from the moment the request is announced (details are prepared in a thread before that), so
         # whoever sees a pending confirmation also has its request
         self._confirms[cid] = fut
         self.rt.bus.publish("confirm_request", id=cid, description=desc, tool=call.name, args=call.arguments,
-                            details=details, second=second)
+                            details=details, second=second, needs_otp=otp)
         self.rt.on_confirm_request(cid, desc, phone=phone)
         try:
             return await asyncio.wait_for(fut, timeout or CONFIRM_TIMEOUT)
@@ -394,15 +323,74 @@ class Agent:
         b = self.rt.cfg.brain
         first = next((p for i in (b.chain or []) for p in b.providers if p.id == i and p.enabled), None)
         local = first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and not self._only
-        names = sel.pick(tools.REGISTRY, self._allowed_names(), text or "", getattr(self, "_recent_tools", []),
+        allowed = self._allowed_names()
+        names = sel.pick(tools.REGISTRY, allowed, text or "", getattr(self, "_recent_tools", []),
                          extra=6 if local else sel.MAX_EXTRA)
+        try:                                       # 3.16 what worked before, by meaning, the app in front, habits
+            from . import toolmind
+
+            more = [n for n in toolmind.suggest(self.rt, tools.REGISTRY, allowed, text or "") if n not in names]
+            names = names[:-1] + more[: 3 if local else 6] + names[-1:] if names and names[-1] == sel.FIND else names + more[:6]
+        except Exception as e:  # noqa: BLE001 – the memory must never stop an answer
+            log.debug("tool memory: %s", e)
+        self._picked = names
         return [tools.REGISTRY[n].schema() for n in names]
+
+    async def _routing(self, text: str, attachments: list) -> tuple[str, dict, bool]:
+        """Which AI and how deeply (tier, router keywords, private = only the AI on this PC)."""
+        from . import brainplus
+        from .llm import difficulty                        # 3.14 návrh 4: the model tier and the depth of thinking
+
+        rt = self.rt
+
+        tier = difficulty.classify(text or "", attachments=len(attachments or []), agent_mode=bool(rt.cfg.agent.mode),
+                                   mission=bool(getattr(self, "_task_hint", None)))
+        self.tier = tier
+        tier_kw: dict = {"effort": difficulty.EFFORT[tier]}
+        if tier == "fast" and not self._only:
+            tier_kw["fast"] = True
+        private = False
+        if not self._only and getattr(rt.cfg.brain, "private_local", True) and brainplus.sensitive(text or ""):
+            lid = brainplus.local_provider(rt)        # 3.14 návrh 32: passwords, health, bank → the AI on this PC
+            ready = False
+            if lid and rt.router.local_ready is not None:
+                try:
+                    ready = await rt.router.local_ready()
+                except Exception:  # noqa: BLE001
+                    ready = False
+            if lid and ready:
+                tier_kw["only"] = lid
+                tier_kw.pop("fast", None)
+                private = True
+        if not self._only and not private:
+            from . import brainpick
+
+            pref = await brainpick.split_for(rt, tier)     # 3.14 chytré rozdělení: easy → e.g. Ollama, hard → e.g. Claude
+            if pref:
+                tier_kw["prefer"] = pref
+                if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
+                    tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
+        agent_x320.tune_routing(rt, text or "", tier_kw, private, self._only)      # 3.20 Mozek+ (21, 22, 32, 35, 40)
+        return tier, tier_kw, private
 
     def _rounds(self) -> int:
         return MAX_ROUNDS_AGENT if self.rt.cfg.agent.mode else MAX_ROUNDS
 
-    async def _run_call(self, call: ToolCall, tool_cards: list[dict], attachments: list[str]) -> dict:
+    def _foreign_ask(self, name: str, offered: bool) -> bool:
+        """3.17 (návrh 15) foreign text is in this task and the AI chose a step that changes something → ask first."""
+        from . import trust
+
+        return bool(getattr(self, "_untrusted_seen", False)) and \
+            trust.foreign_needs_ask(tools.REGISTRY.get(name), offered, getattr(self, "_own_words", ""))
+
+    async def _run_call(self, call: ToolCall, tool_cards: list[dict], attachments: list[str],
+                        ai_offered: bool | None = None) -> dict:
+        """ai_offered: None = not the AI's choice (an everyday command, a reflex, a protocol step); else whether the
+        tool was sent with your words (False = the AI reached it itself through use_tool or by its name)."""
         rt = self.rt
+        from . import trust
+
+        chose_after_foreign = ai_offered is not None and bool(getattr(self, "_untrusted_seen", False))
         await rt.tasks.checkpoint()
         if rt.tasks.current is None:
             rt.tasks.begin(self._goal, rt.memory.current_conversation, self._task_hint)
@@ -412,23 +400,55 @@ class Agent:
             raise BudgetExceeded(budget)
         spec = tools.REGISTRY.get(call.name)
         disabled = set(rt.cfg.tools.disabled)
+        from . import booking, safety, shield
+
         if spec is None or call.name in disabled:
             res = tools.ToolResult(False, f"Nástroj {call.name} neexistuje nebo je vypnutý.")
+        elif (kid_why := safety.kids_blocks(rt, call.name, call.arguments)):     # 3.14 návrh 41: a child at the PC
+            res = tools.ToolResult(False, kid_why)
+        elif shield.guest_on(rt) and call.name in shield.GUEST_BLOCKED:
+            res = tools.ToolResult(False, "V režimu host osobní data (e-maily, zprávy, paměť, kalendář) neukazuji.")
+        elif (money_why := trust.money_blocked(call.name, bool(getattr(self, "_untrusted_seen", False)),
+                                               getattr(self, "_own_words", ""), call.arguments or {})):
+            res = tools.ToolResult(False, money_why)
+        elif call.name == "travel_book" and (pre := booking.precheck(rt, call.arguments or {})):
+            res = tools.ToolResult(False, pre)               # a gone offer or a wrong amount: not even asked, nothing paid
         else:
             approved = True
-            from . import trust
-
-            if tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt) and \
-                    not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False)):
+            dangerous = tools.is_dangerous(spec, call.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt)
+            foreign = ai_offered is not None and self._foreign_ask(call.name, ai_offered)
+            why = "po přečtení cizího textu" if foreign and not dangerous else ""
+            if ai_offered is not None and not foreign and getattr(self, "_untrusted_seen", False):
+                leak = trust.link_leak(call.arguments or {}, getattr(self, "_own_words", ""))   # 3.18 data out in a link
+                if leak:
+                    foreign, why = True, leak
+            vid = getattr(rt, "voiceid", None)
+            owner_block = bool(dangerous and getattr(self, "_source_now", "") == "voice"
+                               and getattr(rt.cfg.voice, "owner_only", True) and vid is not None and not vid.owner_ok())
+            if owner_block:                            # 3.14 návrh 38: a risky action by voice only in the owner's voice
+                approved = False
+            elif foreign or (dangerous and not trust.skip_confirm(rt, spec, getattr(self, "_untrusted_seen", False), call.arguments)):
                 rt.bus.publish("state", state="waiting")
                 rt.tasks.set_waiting(True)
                 try:
-                    approved = await self._ask_confirm(call)
+                    approved = await self._ask_confirm(call, **({"why": why} if why else {}))
                     if approved and _needs_second(call, getattr(rt.cfg, "limits", None)):
                         approved = await self._ask_confirm(call, second=True)
                 finally:
                     rt.tasks.set_waiting(False)
-            if not approved:
+                if foreign:                        # 3.18 Bezpečí: what foreign text led to, and your answer
+                    trust.log_foreign(rt, getattr(self, "_foreign_from", ""), call.name,
+                                      describe_call(call.name, call.arguments), why or "cizí text", approved)
+                if is_money(call.name, call.arguments):   # 3.19 Peníze → přehled: every money step and your answer
+                    from . import money
+
+                    money.log_step(rt, call.name, describe_call(call.name, call.arguments),
+                                   *money.amount_of(call.name, call.arguments or {}), approved=approved)
+            if owner_block:
+                res = tools.ToolResult(False, "Tohle hlasem udělám jen na pokyn majitele (jeho hlas jsem nepoznal). Ať to "
+                                              "řekne sám, nebo ať to napíše v chatu. NEPROVEDENO.")
+                rt.bus.publish("tool_end", id=call.id, ok=False, summary="Jen hlasem majitele")
+            elif not approved:
                 res = tools.ToolResult(False, "Uživatel akci nepotvrdil – NEPROVEDENO. Nezkoušej to znovu.")
                 rt.bus.publish("tool_end", id=call.id, ok=False, summary="Zrušeno")
             else:
@@ -455,8 +475,16 @@ class Agent:
                         before = await asyncio.to_thread(_read, str(_resolve((call.arguments or {}).get("path", ""))))
                     except Exception:  # noqa: BLE001
                         before = None
-                res = await tools.call(call.name, call.arguments, rt)
+                from . import prefetch                    # 3.16 fetched in the background a moment ago: at once
+
+                pf = prefetch.get(rt)
+                res = pf.get(call.name, call.arguments)
+                if res is None:
+                    res = await tools.call(call.name, call.arguments, rt)
+                    pf.put(call.name, call.arguments, res)
                 if call.name in UNTRUSTED_OUTPUT:
+                    if not self._untrusted_seen:
+                        self._foreign_from = call.name     # 3.18 where the foreign text came from
                     self._untrusted_seen = True
                 if before is not None and res.ok:
                     try:
@@ -468,10 +496,25 @@ class Agent:
                         rt.bus.publish("jarvis_changes", items=list(rt.recent_changes)[-12:])
                     except Exception as e:  # noqa: BLE001
                         log.debug("change diff: %s", e)
-                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview)
+                try:                                           # 3.15 a live picture under some results (weather, flights…)
+                    from .livecards import card as live_card
+
+                    live = live_card(call.name, res.ok, res.data)
+                except Exception:  # noqa: BLE001
+                    live = None
+                rt.bus.publish("tool_end", id=call.id, ok=res.ok, summary=res.summary, preview=res.preview, live=live)
+                try:                                           # 3.15 volume / brightness / media → the display on the desktop
+                    from .overlayfx import after_tool
+
+                    after_tool(rt, call.name, call.arguments or {}, res.ok, res.data, res.summary)
+                except Exception:  # noqa: BLE001
+                    pass
                 if call.name != "update_plan":
-                    rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary,
-                                        int((time.monotonic() - t0) * 1000))
+                    ms = int((time.monotonic() - t0) * 1000)
+                    rt.tasks.log_action(call.name, call.arguments, res.ok, res.summary, ms)
+                    from . import quality
+
+                    quality.record_tool(rt, call.name, res.ok, ms)      # Zdraví JARVISe (návrh 16)
         attachments += [a for a in res.attachments if a not in attachments]
         if res.ok:                                     # OMEGA 550: what the answer rests on
             try:
@@ -485,18 +528,45 @@ class Agent:
         card = {"name": call.name, "label": describe_call(call.name, call.arguments), "ok": res.ok, "summary": res.summary}
         if res.preview:
             card["preview"] = res.preview
+        try:
+            from .livecards import card as live_card
+
+            lc = live_card(call.name, res.ok, res.data)
+            if lc:
+                card["live"] = lc
+        except Exception:  # noqa: BLE001
+            pass
         tool_cards.append(card)
+        calls_now = getattr(self, "_turn_calls", None)
+        if calls_now is not None and not chose_after_foreign:   # 3.16 what worked for these words (3.17 not what foreign text led to)
+            calls_now.append((call.name, dict(call.arguments or {}), bool(res.ok)))
         return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": res.for_llm()}
 
     async def _handle(self, text: str, attachments: list[str], source: str, record_user: bool, extra: str) -> str:
         rt = self.rt
         bus = rt.bus
         voice = source in ("voice", "mobile_voice", "headset")      # spoken: short answers without tables or code
+        from . import latency                  # 3.16 how long each step takes (Diagnostika)
+
+        lat = latency.get(rt)
+        lat.agent_start(source)
         self._goal = text or "(příloha)"
+        self._source_now = source
         self._sources = []
-        self._untrusted_seen = False            # 3.13 full trust asks again after e-mails / web pages were read
+        foreign = bool(getattr(self, "_foreign_turn", False))
+        # 3.13 full trust asks again after e-mails / web pages were read; 3.17 a picture or pasted text counts from the start
+        self._untrusted_seen = foreign or bool(attachments)
+        self._foreign_from = "clipboard" if foreign else "attachment" if attachments else ""
+        self._own_words = "" if foreign else (text or "")
         rt.request_text = text or ""           # 3.13 close_app: a game is closed only when you named it
         status = "done"
+        from . import brainplus                # 3.14 Mozek+: corrections, traits, think twice, private, preface, check
+
+        correction_of = None
+        if record_user and getattr(rt.cfg.brain, "learn_corrections", True) and brainplus.is_correction(text or ""):
+            prev = [m for m in rt.memory.recent(4) if m["role"] in ("user", "assistant")]
+            if len(prev) >= 2 and prev[-1]["role"] == "assistant" and prev[-2]["role"] == "user":
+                correction_of = (prev[-2]["text"], prev[-1]["text"])
         if record_user:
             um = rt.memory.add_message("user", text, attachments, source)
             bus.publish("user_message", id=um["id"], text=text, source=source,
@@ -510,11 +580,45 @@ class Agent:
             extra = (extra + "\n" if extra else "") + trust.RULE
         full_text = ""
         tool_cards: list[dict] = []
+        self._live_cards = tool_cards               # 3.16 what is done so far (a correction mid-way sees it)
         out_atts: list[str] = []
         used_now: list[str] = []
+        self._turn_stats = {"use_tool": 0, "use_tool_errors": 0, "find_tools": 0}
+        self._turn_calls: list[tuple[str, dict, bool]] = []
+        from . import toolmind
+        if correction_of is not None:              # 3.16 "ne, to ne": what was done for those words is not a reflex
+            try:
+                toolmind.punish(rt, correction_of[0])
+            except Exception as e:  # noqa: BLE001
+                log.debug("tool memory: %s", e)
         cancelled = False
         quick = None                                       # 3.13 an everyday command: done at once, no AI in between
-        if not attachments and not self._only and getattr(rt.cfg.agent, "instant", True):
+        un = getattr(rt, "unspoken", None)                 # 3.16 (návrh 23) you talked over him a moment ago
+        if un and time.time() - un.get("ts", 0) < 120 and not attachments:
+            rt.unspoken = None
+            if CONTINUE.match((text or "").strip()):
+                quick = un["text"]                         # "pokračuj" → the rest of what he was saying, no AI
+            else:
+                extra = (extra + "\n\n" if extra else "") + f"Uživatel tě přerušil a neslyšel konec tvé předchozí odpovědi: „{un['text'][:400]}“."
+        phrase = None if attachments or foreign else rt.automations.phrase_match(text or "") if hasattr(rt.automations, "phrase_match") else None
+        if phrase is not None:                             # 3.14 návrh 48: "jdu spát" → your own routine, no AI
+            rt.automations.fire(phrase, {"text": text or ""}, reason="phrase", force=True)
+            quick = f"Spouštím {phrase.name}."
+        silent = False                                     # 3.20 the step already spoke for itself (e.g. "pomaleji")
+        if quick is None and not foreign and not self._only:
+            q320 = agent_x320.quick320(rt, text or "", attachments)             # 3.20 sčítání, přeskoč/vrať se/pomaleji, poznámka, proč, styl, noc
+            if q320 is not None:
+                name, args = q320
+                try:
+                    await self._run_call(ToolCall(id="x0", name=name, arguments=dict(args)), tool_cards, out_atts)
+                    quick = (tool_cards[-1].get("summary") if tool_cards else None) or None
+                    silent = bool(tool_cards and (tool_cards[-1].get("data") or {}).get("spoken"))
+                except Exception as e:  # noqa: BLE001
+                    log.info("quick320 %s: %s", name, e)
+                    quick = None
+                if quick is None:
+                    tool_cards.clear()
+        if quick is None and not attachments and not foreign and not self._only and getattr(rt.cfg.agent, "instant", True):
             from . import instant
 
             p = instant.plan(text)
@@ -530,16 +634,90 @@ class Agent:
                     quick = None
                 if quick is None:
                     tool_cards.clear()
+        reflexed = False
+        if quick is None and not attachments and not foreign and not self._only and record_user:
+            try:                                   # 3.16 the same words went well twice: do it at once, no AI
+                rx = toolmind.reflex(rt, text or "", self._allowed_names())
+            except Exception as e:  # noqa: BLE001
+                log.debug("reflex: %s", e)
+                rx = None
+            if rx:
+                name, args, said = rx
+                await self._run_call(ToolCall(id="r0", name=name, arguments=dict(args)), tool_cards, out_atts)
+                ok = bool(tool_cards and tool_cards[-1].get("ok"))
+                quick = said if ok else (tool_cards[-1].get("summary") if tool_cards else None) or None
+                reflexed = quick is not None
+        if quick is None and not attachments and not foreign and not self._only and record_user and not self._ASKS.search(text or ""):
+            from . import reflexmodel
+
+            if reflexmodel.enabled(rt):            # 3.16 the small model on this PC decides a clear command at once
+                self._tool_schemas(text)
+
+                def ok_tool(name: str, args: dict) -> bool:
+                    spec = tools.REGISTRY.get(name)
+                    t = rt.cfg.tools
+                    return bool(spec) and (name in self.DONE_TOOLS or spec.category in self.DONE_CATS) and \
+                        not tools.is_dangerous(spec, args, t.always_confirm, t.trusted, rt)
+                try:
+                    pick = await reflexmodel.route(rt, text or "", list(getattr(self, "_picked", [])), ok_tool)
+                except Exception as e:  # noqa: BLE001
+                    log.debug("reflex model: %s", e)
+                    pick = None
+                if pick:
+                    await self._run_call(ToolCall(id="m0", name=pick[0], arguments=dict(pick[1])), tool_cards, out_atts)
+                    card = tool_cards[-1] if tool_cards else {}
+                    if card.get("ok") and card.get("summary"):
+                        said = str(card["summary"]).strip()
+                        quick = said if said.endswith((".", "!", "?", "…")) else said + "."
+                        self._turn_stats["reflex_model"] = 1
+                    else:
+                        tool_cards.clear()
         msgs: list[dict] = []
         need_vision = False
         schemas: list[dict] = []
+        pack = None
+        spec_used = None
         if quick is None:
-            msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
-            schemas = self._tool_schemas(text)
-        speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+            if brainx.wants_screen(rt, text or "", attachments):     # 3.20 (31) "co to je?" → the active window goes along
+                aid = await brainx.screen_attachment(rt)
+                if aid:
+                    attachments = [aid]
+                    self._untrusted_seen = True                       # the screen may show someone else's text
+                    self._foreign_from = self._foreign_from or "screen"
+            spec_used = self._take_spec(text or "", attachments, extra, voice)
+            if spec_used is not None:                      # 3.17 the AI was already asked before you finished
+                msgs, schemas, pack = spec_used["msgs"], spec_used["schemas"], spec_used["pack"]
+                self._picked = spec_used["picked"]
+                self._turn_stats["speculative"] = 1
+            else:
+                msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
+                schemas = self._tool_schemas(text)
+                pack = self._tool_pack()
+        speech = None if silent else rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+        if speech is not None:
+            speech.turn = lat.cur                          # 3.16 the first sound is measured on this answer
+        tier, tier_kw, private = await self._routing(text or "", attachments)
+        if spec_used is not None:                          # 3.17 the request that already started before the end
+            tier_kw = dict(spec_used["tier_kw"])
+        if ((tier == "strong" or (tier == "normal" and brainplus.slow_brain(rt))) and speech is not None and quick is None
+                and getattr(rt.cfg.brain, "quick_preface", True) and not private):
+            async def _say_first() -> None:            # 3.14 návrh 23: one sentence at once while the main model thinks
+                line = await brainplus.preface(rt, text or "")
+                if line and not speech.spoke:
+                    speech.preface(line)
+            asyncio.get_running_loop().create_task(_say_first())
+        if quick is None:                                  # 3.20 režim učitele (36), náčrt (34), plán ke schválení (29)
+            taught = agent_x320.teach_filter(rt, text or "", schemas)
+            if taught is not None:
+                schemas, pack = taught, None
+            if tier == "strong" and speech is None and not private and source in ("chat", "mobile"):
+                agent_x320.draft(rt, text or "", lambda: full_text)
+            quick = await agent_x320.plan_gate(self, text or "", tier, msgs)
         offered = {sc.get("function", sc).get("name") for sc in schemas}
+        from_words = set(offered)                  # 3.17 sent with your words (not reached by the AI later on)
         calls: list[ToolCall] | None = None
         rnd = 0
+        cut = False
         try:
             rounds = -1 if quick is not None else self._rounds()
             if quick is not None:
@@ -554,7 +732,13 @@ class Agent:
                 calls: list[ToolCall] | None = None
                 use_tools = schemas if rnd < rounds else None
                 shown = 0                                  # 3.13 how much of round_text is on the screen already
-                async for ch in rt.router.stream(msgs, use_tools, need_vision=need_vision, **({"only": self._only} if self._only else {})):
+                rt.router.catalog_used = False
+                source_stream = self._replay(spec_used) if (rnd == 0 and spec_used is not None) else \
+                    rt.router.stream(msgs, use_tools, need_vision=need_vision, **tier_kw, catalog=pack,
+                                     **({"only": self._only} if self._only else {}))
+                async for ch in source_stream:
+                    if ch.text or ch.tool_calls:
+                        lat.mark("first_token")
                     if ch.text:
                         round_text += ch.text
                         if not only_dots(round_text):      # "..." alone (some models send it between steps) is not shown
@@ -582,17 +766,57 @@ class Agent:
                 if rnd >= rounds:
                     break
                 msgs.append({"role": "assistant", "content": round_text or None, "tool_calls": [c.as_message() for c in calls]})
-                safe = [c for c in calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
-                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))]
                 results: dict[str, dict] = {}
-                if len(safe) > 1:
-                    outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts) for c in safe))
-                    results.update({c.id: o for c, o in zip(safe, outs)})
+                run_calls = []                           # 3.16 use_tool → the real tool (its own confirmation and card)
                 for c in calls:
-                    if c.id not in results:
-                        results[c.id] = await self._run_call(c, tool_cards, out_atts)
+                    if c.name != tc.USE:
+                        run_calls.append(c)
+                        continue
+                    u = tc.unwrap(tools.REGISTRY, self._allowed_names(), c.arguments)
+                    self._turn_stats["use_tool"] += 1
+                    if u.error:
+                        self._turn_stats["use_tool_errors"] += 1
+                        results[c.id] = {"role": "tool", "tool_call_id": c.id, "name": c.name, "content": u.error}
+                        if u.name in tools.REGISTRY and u.name not in offered:   # its exact description for the next step
+                            schemas.append(tools.REGISTRY[u.name].schema())
+                            offered.add(u.name)
+                        continue
+                    run_calls.append(ToolCall(id=c.id, name=u.name, arguments=u.args))
+                for c in run_calls:                      # 3.20 (33) why each step was done ("proč jsi to udělal?")
+                    try:
+                        brainx.log_why(rt, c.name, c.arguments or {}, round_text)
+                    except Exception as e:  # noqa: BLE001
+                        log.debug("why log: %s", e)
+                safe = [c for c in run_calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
+                    tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))
+                    and not self._foreign_ask(c.name, c.name in from_words)]
+                ack = self._ack_later(speech, run_calls, tool_cards) if speech is not None and not speech.spoke and run_calls else None
+                try:
+                    if len(safe) > 1:
+                        outs = await asyncio.gather(*(self._run_call(c, tool_cards, out_atts, ai_offered=c.name in from_words)
+                                                      for c in safe))
+                        results.update({c.id: o for c, o in zip(safe, outs)})
+                    for c in run_calls:
+                        if c.id not in results:
+                            results[c.id] = await self._run_call(c, tool_cards, out_atts, ai_offered=c.name in from_words)
+                finally:
+                    if ack is not None:
+                        ack.cancel()
+                for c in calls:                          # the answer goes back under the name the AI called
+                    results[c.id]["name"] = c.name
                 msgs += [results[c.id] for c in calls]
-                used_now += [c.name for c in calls if c.name != sel.FIND]
+                used_now += [c.name for c in run_calls if c.name != sel.FIND]
+                if any(c.name == sel.FIND for c in calls):
+                    self._turn_stats["find_tools"] += 1
+                done_text = self._done_by_tools(text or "", round_text, run_calls, tool_cards) if rnd == 0 else ""
+                if done_text:                            # 3.16 the tool already said it all: no second AI round
+                    full_text += done_text
+                    bus.publish("assistant_delta", text=done_text)
+                    if speech:
+                        speech.feed(done_text)
+                    self._turn_stats["skipped_round"] = 1
+                    calls = None
+                    break
                 for c in calls:                          # the AI asked for more tools → they go with the next step
                     if c.name == sel.FIND:
                         for n in sel.search(tools.REGISTRY, str((c.arguments or {}).get("query", "")), 24):
@@ -647,14 +871,28 @@ class Agent:
             status = "failed"
             bus.publish("error", message=f"Něco se pokazilo: {type(e).__name__}: {e}")
             full_text = (full_text + "\n\n" if full_text else "") + "Omlouvám se, při práci se něco pokazilo."
+        if status == "done" and not cancelled and quick is None and full_text.strip():
+            add = agent_x320.finish_add(rt, full_text, voice, self._sources)       # 3.20 čísla (28), jistota (23)
+            if add:
+                full_text += add
+                bus.publish("assistant_delta", text=add)
         if getattr(rt, "_anchor", None):
             rt.set_anchor(None)
         if rt.tasks.current is not None:
             rt.tasks.finish(status, _first_sentence(full_text))
         am = rt.memory.add_message("assistant", full_text, out_atts, source,
-                                   meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12]})
+                                   meta={"tools": tool_cards, "brain": rt.router.last_used, "sources": self._sources[:12],
+                                         "tier": getattr(self, "tier", ""), **({"private": True} if private else {})})
         bus.publish("assistant_done", id=am["id"], text=full_text, tools=tool_cards, sources=self._sources[:12],
                     attachments=[rt.public_attachment(a) for a in out_atts])
+        lat.finish(tools=len(tool_cards), instant=quick is not None, catalog=bool(getattr(rt.router, "catalog_used", False)),
+                   status=status, reflex=reflexed, **self._turn_stats)
+        if status == "done" and record_user and not reflexed and not private and not foreign and \
+                not getattr(rt, "speedcheck_running", False):
+            try:
+                toolmind.learn(rt, text or "", self._turn_calls, full_text)
+            except Exception as e:  # noqa: BLE001
+                log.debug("tool memory: %s", e)
         if speech is not None:                      # spoken as it was written; anything added at the end too
             if cancelled:
                 speech.cancel()
@@ -662,10 +900,37 @@ class Agent:
                 if full_text.startswith(speech.fed) and len(full_text) > len(speech.fed):
                     speech.feed(full_text[len(speech.fed):])
                 asyncio.get_running_loop().create_task(speech.finish())
-        elif not cancelled:
+        elif not cancelled and not silent:
             rt.maybe_speak(full_text, source, self._lang)
         if status == "done" and not cancelled:      # 3.12 a long chat: summarise its older part in the background
             from . import chatsummary
 
             asyncio.get_running_loop().create_task(chatsummary.refresh(rt))
+        if correction_of and not cancelled:         # 3.14 návrh 24: a rule from the correction, for next time
+            asyncio.get_running_loop().create_task(brainplus.learn(rt, correction_of[0], correction_of[1], text or ""))
+        if (status == "done" and not cancelled and getattr(rt.cfg.brain, "verify_answers", True)
+                and brainplus.worth_checking(full_text, self._sources)):
+            texts = [str(m.get("content") or "") for m in msgs if m.get("role") == "tool"
+                     and m.get("name") in ("web_read", "read_website", "web_search", "google_ask", "deep_research", "world_news")]
+            asyncio.get_running_loop().create_task(self._check_answer(am["id"], full_text, texts))
+        if status == "done" and not cancelled and not cut and getattr(rt.cfg.brain, "post_check", True) and len(tool_cards) >= 3:
+            asyncio.get_running_loop().create_task(agent_x320.post_check(rt, am["id"], text or "", list(tool_cards), full_text))
+        if not cancelled and not silent:
+            voicex.remember_answer(rt, full_text, speech)  # 3.20 (6, 9) "přeskoč", "vrať se", "cože?"
         return full_text
+
+    async def _check_answer(self, msg_id: str, answer: str, texts: list[str]) -> None:
+        """3.14 návrh 26: claims the read pages do not support → marked under the answer."""
+        from . import brainplus
+
+        issues = await brainplus.check_answer(self.rt, answer, texts)
+        if not issues:
+            return
+        row = self.rt.db.one("SELECT meta FROM messages WHERE id=?", (msg_id,))
+        try:
+            meta = __import__("json").loads((row or {}).get("meta") or "{}")
+        except ValueError:
+            meta = {}
+        meta["check"] = issues
+        self.rt.db.exec("UPDATE messages SET meta=? WHERE id=?", (__import__("json").dumps(meta, ensure_ascii=False), msg_id))
+        self.rt.bus.publish("answer_check", id=msg_id, issues=issues)

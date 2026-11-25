@@ -404,7 +404,19 @@ def snapshot(rt: Any, month: str | None = None, week_offset: int = 0) -> dict:
         "areas": AREAS,
         "plan": plan(rt, hs, logs, week_offset),
         "goals": goals(rt),
+        "body": _body(rt),
     }
+
+
+def _body(rt: Any) -> dict | None:
+    """3.14 the watch's numbers for the Dnes card (None before the first reading)."""
+    try:
+        from . import body
+
+        st = body.status(rt)
+        return st if st["now"] or st["yesterday"] else None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def find(rt: Any, name: str) -> dict | None:

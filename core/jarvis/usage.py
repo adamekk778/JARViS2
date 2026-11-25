@@ -45,6 +45,21 @@ class Usage:
             "INSERT INTO llm_usage VALUES (?,?,?,1,?,?,?) ON CONFLICT(day, provider, model) DO UPDATE SET "
             "calls=calls+1, tok_in=tok_in+excluded.tok_in, tok_out=tok_out+excluded.tok_out, images=images+excluded.images",
             (day, provider, model or "", chars // CHARS_PER_TOKEN, out_chars // CHARS_PER_TOKEN, images))
+        try:                                          # 3.20 (35) what today's AI cost while playing / working / otherwise
+            from . import brainx
+
+            tin, tout = chars // CHARS_PER_TOKEN, out_chars // CHARS_PER_TOKEN
+            per = self.price(provider)
+            czk = (tin + tout) / 1e6 * per if per else 0.0
+            p = next((x for x in self.rt.cfg.brain.providers if x.id == provider), None)
+            if not czk and p is not None and p.preset == "anthropic":
+                from .llm.pricing import czk as model_czk
+
+                czk = model_czk(model or "", tin, tout) or 0.0
+            if czk:
+                brainx.add_spend(self.rt, brainx.context_now(self.rt), czk)
+        except Exception:  # noqa: BLE001 – counting must never break an answer
+            pass
 
     def day(self, day: str | None = None) -> list[dict]:
         day = day or dt.date.today().isoformat()
@@ -77,6 +92,12 @@ class Usage:
     def blocked(self, provider_cfg) -> str:
         """Why this provider must be skipped now ("" = go). Over the limit only free/local providers still answer."""
         lim = self.rt.cfg.limits
+        if getattr(provider_cfg, "preset", "") == "anthropic" and getattr(lim, "claude_daily_usd", 0):
+            from .brainpick import claude_spend
+
+            sp = claude_spend(self.rt)
+            if sp["over"]:                         # 3.14 the Claude budget for today is used up: the other AIs answer
+                return f"denní limit pro Claude (${lim.claude_daily_usd:g}) vyčerpán – dnes ≈ ${sp['usd']:.2f}"
         if not (lim.ai_daily_tokens or lim.ai_daily_cost) or self.price(provider_cfg.id) == 0 and not lim.ai_daily_tokens:
             return ""
         t = self.today()

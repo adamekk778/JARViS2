@@ -53,7 +53,7 @@ def test_app_habits():
 
 async def test_prediction_and_opportunity_tools(rt):
     now = time.time()
-    rt.tasks  # make sure the schema exists
+    assert rt.tasks is not None  # make sure the schema exists
     for r in rows(DAY, now - 5 * 86400):
         rt.db.exec("INSERT INTO task_actions (task_id, ts, tool, args, ok, summary, ms) VALUES ('t', ?, ?, '{}', 1, '', 1)", (r["ts"], r["tool"]))
     rt.db.exec("INSERT INTO task_actions (task_id, ts, tool, args, ok, summary, ms) VALUES ('t', ?, 'mail_check', '{}', 1, '', 1)", (now - 60,))

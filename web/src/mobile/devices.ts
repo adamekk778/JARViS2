@@ -1,6 +1,6 @@
 // Wave 34 on the phone: photos for the PC (413 / 723 / 729), the PC's shared folders (415), places for automations
 // (728 – the position never leaves the phone), command QR codes (731) and the guest remote (727).
-import { h, icon, toast } from "../shared/dom";
+import { h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import { native } from "./native";
 
@@ -72,7 +72,7 @@ export function photoRequests(c: JarvisClient, host: HTMLElement, onShow: () => 
     host.prepend(card);
     onShow();
     native.haptic();
-    if (document.hidden) native.notify("JARVIS žádá fotku", m.reason || "Otevři aplikaci");
+    if (document.hidden) void native.notify("JARVIS žádá fotku", m.reason || "Otevři aplikaci");
   });
 }
 
@@ -238,7 +238,7 @@ export function lanSpeedCard(c: JarvisClient): HTMLElement {
 // ---------------------------------------------------------------- 140 the PC at a glance
 // 3.12 Zdraví PC: the numbers now, the last 24 hours, what loads the PC most and the recent warnings
 export function pcStatusCard(c: JarvisClient): HTMLElement {
-  const tiles = h("div", { class: "m-stats" }, h("p", { class: "help" }, "Načítám…"));
+  const tiles = h("div", { class: "m-stats" }, loading());
   const chart = h("div", { class: "m-health-chart" });
   const top = h("p", { class: "help" });
   const alerts = h("div", { class: "m-health-alerts" });

@@ -16,7 +16,7 @@ const ICONS: Record<string, string> = {
   notetaker: "record", dictation: "sliders", dictionary: "book-open", chat: "chat-circle-dots", tasks: "list-checks", diagnostics: "pulse",
   general: "user-circle", brain: "brain", voice: "waveform", notch: "rectangle", appearance: "palette", hotkeys: "keyboard",
   permissions: "shield-check", tools: "toolbox", integrations: "plugs-connected", phone: "device-mobile", memory: "database",
-  jobs: "calendar-check", backup: "floppy-disk",
+  jobs: "calendar-check", backup: "floppy-disk", travel: "airplane-tilt",
 };
 
 export function hero(spec: HeroSpec, title: string, subtitle: string | null, actions: HTMLElement[] = [], compact = false): HTMLElement {
@@ -31,6 +31,7 @@ export function hero(spec: HeroSpec, title: string, subtitle: string | null, act
 
 /** Every page's colour and cast (the JARVIS window's palette). */
 export const HEROES: Record<string, HeroSpec> = {
+  travel: { color: "#38bdf8", cast: [{ color: "cyan", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "blue", size: 40, start: 0.95 }] },
   habits: { color: "#2ee6a6", cast: [{ color: "green", size: 56, start: 0.2 }, { color: "cyan", size: 46, start: 0.6 }, { color: "white", size: 40, start: 0.95 }] },
   learn: { color: "#34d399", cast: [{ color: "green", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "cyan", size: 40, start: 0.95 }] },
   knowledge: { color: "#c084fc", cast: [{ color: "violet", size: 56, start: 0.2 }, { color: "white", size: 46, start: 0.6 }, { color: "rose", size: 40, start: 0.95 }] },

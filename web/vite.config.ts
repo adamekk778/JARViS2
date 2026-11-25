@@ -15,6 +15,8 @@ export default defineConfig({
         character: resolve(__dirname, "character.html"),
         chat: resolve(__dirname, "chat.html"),
         hud: resolve(__dirname, "hud.html"),
+        karaoke: resolve(__dirname, "karaoke.html"),
+        wallpaper: resolve(__dirname, "wallpaper.html"),   // 3.15 the live wallpaper behind the desktop icons
       },
     },
   },

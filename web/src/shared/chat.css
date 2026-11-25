@@ -337,3 +337,29 @@ body.sp-max-open::before { content: ""; position: fixed; inset: 0; z-index: 59; 
 .conv-when { padding: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint, var(--muted)); }
 .conv-when:first-child { padding-top: 2px; }
 @media (prefers-reduced-motion: reduce) { .think, .msg.live .mini-blob { animation: none; color: var(--muted); background: none; } }
+
+/* 3.14 Mozek+: 👍/👎 and the fact check note */
+.actions .rate.on { color: var(--accent); }
+.actions .star.on { color: #f5a524; }
+.answer-check { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0 2px; padding: 8px 10px; border-radius: 10px;
+  font-size: 12.5px; background: color-mix(in srgb, #f5a524 12%, transparent); border: 1px solid color-mix(in srgb, #f5a524 35%, transparent); }
+.answer-check ul { margin: 2px 0 0 16px; padding: 0; }
+
+/* 3.15 the answer materialises: the newest words arrive with a glow */
+.md .mat { animation: mat .7s ease-out both; }
+@keyframes mat { from { color: var(--accent, #4f8dff); text-shadow: 0 0 12px var(--accent, #4f8dff); filter: blur(2px); opacity: .2; }
+  50% { opacity: 1; filter: none; } to { text-shadow: none; } }
+.md .caret { box-shadow: 0 0 10px var(--accent, #4f8dff); }
+html[data-fx="off"] .md .mat { animation: none; }
+
+/* 3.20 (34) the quick first sentence, replaced by the full answer as soon as it starts */
+.msg.assistant .draft { color: var(--muted, #8a93a6); font-style: italic; margin: 0; animation: draft-in .25s ease-out; }
+@keyframes draft-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .msg.assistant .draft { animation: none; } }
+
+/* 3.20 (476) the next words while typing */
+.chat-predict { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 4px; min-height: 0; }
+.chat-predict:empty { display: none; }
+.chat-predict .predict { border: 1px solid var(--edge); background: transparent; color: var(--muted); border-radius: 999px; padding: 3px 10px;
+  font: inherit; font-size: 13px; cursor: pointer; }
+.chat-predict .predict:hover, .chat-predict .predict:focus-visible { color: inherit; border-color: var(--accent); }

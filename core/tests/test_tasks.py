@@ -8,7 +8,7 @@ from jarvis.llm.base import AllProvidersFailed
 class SlowRouter(FakeRouter):
     """Gives the test time to act between LLM rounds."""
 
-    async def stream(self, messages, tools, need_vision=False, fast=False):
+    async def stream(self, messages, tools, need_vision=False, fast=False, **kw):
         await asyncio.sleep(0.1)
         async for ch in super().stream(messages, tools, need_vision, fast):
             yield ch

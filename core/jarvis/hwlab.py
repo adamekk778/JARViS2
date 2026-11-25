@@ -164,6 +164,13 @@ def record_build(rt, project: str, action: str, ok: bool, version: str, info: di
     f, r = info.get("flash") or {}, info.get("ram") or {}
     _db(rt).exec("INSERT INTO fw_builds (project, ts, action, ok, version, flash, flash_pct, ram_pct, summary) VALUES (?,?,?,?,?,?,?,?,?)",
                  (project, time.time(), action, int(ok), version, f.get("bytes"), f.get("percent"), r.get("percent"), summary[:400]))
+    try:                                              # 3.15 the active workshop project's journal gets the build too
+        from . import workbench
+
+        what = "Nahráno do desky" if action == "upload" else "Sestaveno"
+        workbench.log_active(rt, "build", f"{what if ok else 'Chyba sestavení'}: {project} v{version}" + (f" – {summary[:120]}" if not ok else ""))
+    except Exception:  # noqa: BLE001 – the journal must never break a build
+        pass
 
 
 def build_project(rt, name: str, upload: bool = False, runner=subprocess.run) -> dict:

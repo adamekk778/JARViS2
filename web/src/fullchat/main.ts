@@ -3,7 +3,7 @@
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import { ChatView, conversationList, miniBlob, sitePreview } from "../shared/chat";
-import { fmtTime, h, icon, toast } from "../shared/dom";
+import { fmtTime, h, icon, loading, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
 import { stopButton } from "../shared/taskcard";
 import { missingModelCard } from "../shared/localmissing";
@@ -106,7 +106,7 @@ try { if (localStorage.getItem("fc-side") === "closed" || innerWidth < 860) docu
 // ---------- websites gallery ----------
 function showSites() {
   client.send("sites_get");
-  const grid = h("div", { class: "fc-sites-grid" }, h("p", { class: "help" }, "Načítám…"));
+  const grid = h("div", { class: "fc-sites-grid" }, loading());
   const close = () => { dlg.remove(); off(); };
   const dlg = h("div", { class: "fc-dialog", role: "dialog", "aria-modal": "true", "aria-label": "Moje weby", onclick: (e: Event) => { if (e.target === dlg) close(); } },
     h("div", { class: "fc-dialog-box" },

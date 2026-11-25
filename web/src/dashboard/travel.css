@@ -1,0 +1,8 @@
+/* 3.18 Cesty */
+.travel-view .trip-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; padding: 6px 0 0; }
+.travel-view .trip-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.travel-view .trip-bar i { display: block; width: 100%; max-width: 28px; border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, #38bdf8, color-mix(in srgb, #38bdf8 40%, transparent)); transition: height .3s; }
+.travel-view .trip-bar span { font-size: 11px; opacity: .6; }
+.travel-view .row-actions { display: inline-flex; align-items: center; gap: 8px; }
+.travel-view .help.warn { color: #ffb366; }

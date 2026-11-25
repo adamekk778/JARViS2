@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 FIRST_MIN = 12          # the first piece may be short – it is what makes the answer feel instant
 NEXT_MIN = 60           # later pieces: a sentence or two together (fewer, smoother joins)
 _END = re.compile(r"[.!?…:](?=\s)|\n\s*\n|\n(?=[-*•\d])")
+_CLAUSE = re.compile(r"[,;–—](?=\s)")
+CLAUSE_MIN = 18         # 3.14 a first clause this long may be spoken before its sentence ends (3.16: 28 → 18)
 
 
 def cut(buf: str, first: bool) -> tuple[str, str]:
@@ -27,6 +29,11 @@ def cut(buf: str, first: bool) -> tuple[str, str]:
         if end >= need:
             best = end
             break
+    if best < 0 and first and buf.count("```") % 2 == 0:
+        # 3.14 the first sound sooner: no sentence end yet, but a long clause is written → say it already
+        m = next((m for m in _CLAUSE.finditer(buf) if CLAUSE_MIN <= m.end() <= 110), None)
+        if m:
+            best = m.end()
     if best < 0:
         return "", buf
     return buf[:best], buf[best:]
@@ -47,9 +54,20 @@ class SpeechStream:
         self.first = True
         self.spoke = False
         self._jobs: asyncio.Queue = asyncio.Queue()
+        self.turn: dict | None = None    # 3.16 latency: the answer whose first sound this is
+        self.queued: list[str] = []      # 3.16 every piece given to the voice, and how many were really heard
+        self.played = 0
         self._player = asyncio.get_running_loop().create_task(self._play_all())
 
+    def progress(self, line: str) -> None:
+        """3.18 a short "počasí mám, ještě kalendář" while the tools still work – only before the answer itself."""
+        if getattr(self, "answer_started", False) or self.rt.speaker is None or not line.strip():
+            return
+        self._queue(line)
+
     def feed(self, delta: str) -> None:
+        if delta.strip():
+            self.answer_started = True
         self.fed += delta
         if self.rt.speaker is None or (self.rt.speaker._stop.is_set() and self.spoke):
             return
@@ -61,14 +79,31 @@ class SpeechStream:
             self.buf = rest
             self._queue(piece)
 
+    def preface(self, line: str) -> None:
+        """3.14 one short sentence said before the answer is written (not part of the answer text)."""
+        if self.spoke or self.rt.speaker is None or not line.strip():
+            return
+        self._queue(line)
+
     def _queue(self, piece: str) -> None:
         text = speakable(piece)
         if not re.search(r"\w", text):
             return
         self.first = False
         self.spoke = True
+        self.queued.append(text)
+        sp = self.rt.speaker
+        if len(self.queued) == 1 and hasattr(sp, "can_stream") and sp.can_stream() and not sp.has_phrase(text, self.lang):
+            self._jobs.put_nowait((text, None))     # 3.17 the first sentence plays while it is being made
+            return
         # synthesis starts now, in parallel with whatever is playing (no gap between sentences)
-        self._jobs.put_nowait((text, asyncio.get_running_loop().create_task(self.rt.speaker.synth(text, self.lang))))
+        self._jobs.put_nowait((text, asyncio.get_running_loop().create_task(sp.synth(text, self.lang))))
+
+    def _first_sound(self) -> None:
+        if self.turn is not None and "first_audio" not in self.turn["marks"]:
+            import time as _t
+
+            self.turn["marks"]["first_audio"] = round((_t.monotonic() - self.turn["t0"]) * 1000)
 
     async def finish(self) -> None:
         """The answer is complete: say what is left, then wait until everything has been said."""
@@ -97,8 +132,24 @@ class SpeechStream:
                         break
                     text, synth = job
                     if sp._stop.is_set():            # "Stop" / talked over: drop the rest
-                        synth.cancel()
+                        if synth is not None:
+                            synth.cancel()
                         continue
+                    if synth is None:                # 3.17 made and played at the same time
+                        if not started:
+                            started = True
+                            sp.on_first_sound = self._first_sound     # measured when the first block really plays
+                            sp.speaking = True
+                            self.rt.bus.publish("state", state="speaking")
+                            if ducker:
+                                ducker.acquire()
+                        ok = await sp.stream_and_play(text, self.lang)
+                        sp.on_first_sound = None
+                        if ok:
+                            if not sp._stop.is_set():
+                                self.played += 1
+                            continue
+                        synth = asyncio.get_running_loop().create_task(sp.synth(text, self.lang))   # the usual way
                     try:
                         audio, _mime = await synth
                     except Exception as e:  # noqa: BLE001
@@ -106,6 +157,7 @@ class SpeechStream:
                         continue
                     if not started:
                         started = True
+                        self._first_sound()
                         sp.speaking = True
                         self.rt.bus.publish("state", state="speaking")
                         if ducker:
@@ -116,9 +168,17 @@ class SpeechStream:
                         self.rt.bus.publish("caption", who="jarvis", lines=caption_timing(caption_chunks(text)))
                     try:
                         await asyncio.to_thread(sp._play, audio)
+                        if not sp._stop.is_set():
+                            self.played += 1
                     except Exception as e:  # noqa: BLE001
                         log.warning("playback failed: %s", e)
             finally:
+                if sp._stop.is_set() and self.played < len(self.queued):   # talked over: keep the rest for "pokračuj"
+                    import time as _t
+
+                    rest = " ".join(self.queued[self.played:] + ([self.buf.strip()] if self.buf.strip() else [])).strip()
+                    if rest:
+                        self.rt.unspoken = {"text": rest, "ts": _t.time()}
                 if started:
                     if ducker:
                         ducker.release()

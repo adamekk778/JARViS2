@@ -14,6 +14,187 @@ Malé ověřitelné milníky; každý končí testy, CI na skutečném Windows a
 | M7 | Controlled Self-Evolution: návrh změny vlastních dovedností na samostatné větvi/sandboxu, měření před/po, testy, diff + schválení + rollback | změna dovednosti projde testy a jde vrátit | nikdy nesahat na kód oprávnění |
 | M8 | World Builder a experimentální: Blender/Unity/Roblox přes jejich API, sériový port/Arduino, AR/gesta (jen pokud je HW) | reálný artefakt (soubor modelu/projektu) s důkazem | závislost na nainstalovaných nástrojích |
 
+## 3.14 – „nejlepší JARVIS“ (118 návrhů v 11 dávkách)
+Hotovo v kódu s testy: spolehlivost a měření kvality, Claude přes SDK, hlas, paměť s místním vyhledáváním podle
+významu, proaktivita, notch, ovládání PC, telefon (odpovědi z hodinek, Android Auto na úrovni oznámení, widget),
+propojení (OBS, podepsané balíčky dovedností), bezpečnost (kód v omezeném prostředí, záznam přístupů, režim host,
+samooprava dovedností, oprávnění pro každého agenta zvlášť) a dosah (angličtina, winget, web, statistiky se souhlasem).
+
+Co z 3.14 zbývá (a proč):
+- **Vlastní aplikace pro Wear OS** – dnes hodinky odpovídají přes oznámení telefonu (RemoteInput); samostatná aplikace ne.
+- **Plné Android Auto** – jen oznámení s odpovědí; vlastní obrazovka v autě vyžaduje šablony Car App Library.
+- **Geofencing na pozadí** – potřebuje službu s typem location a oprávnění „vždy“; zatím jen v popředí.
+- **Plně obousměrná offline synchronizace telefonu a PC** – zatím fronta zpráv odeslaných bez připojení.
+- **Klíčové snímky pro animace notche (editor)** a **mazlíček na ploše** (odstraněn ve 3.1).
+- **„Hmm, aha“ během poslechu** (zpětná vazba hlasem) – mikrofon by ji nahrál; potřeba echo-cancel.
+- **Vlastní velký hlasový model** – potřebuje GPU a token Hugging Face.
+- **iOS** – nativní build vyžaduje Mac a účet Apple; zatím PWA.
+- **Podpis kódu a Microsoft Store** – CI je připravené (docs/SIGNING.md), certifikát a účet musí pořídit správce.
+- **Angličtina** – slovník pokrývá hlavní obrazovky; méně častá místa zůstávají česky a doplňují se postupně.
+
+## 3.20 – 500 nápadů (25 oblastí v 11 vlnách)
+Hotovo v kódu s testy: všech 500 položek stránky „Nápady pro JARVISe“ – hlas, mozek, paměť, proaktivita, ovládání PC,
+vzhled, telefon, hodinky, domácnost, bezpečnost, peníze, cesty, auto, zdraví, rodina, učení, práce, firma,
+programování, dílna, zábava, propojení, spolehlivost, přístupnost a komunita. Akce, které něco odesílají, mažou nebo
+platí, se ptají (včetně sdílení polohy, automatické odpovědi, odloženého e-mailu, podpisu PDF, mazání podle GDPR,
+synchronizace kalendáře a seznamů, zálohy do cloudu).
+
+Co je jinak, než by název sliboval, nebo co potřebuje tebe:
+- **Hardware a podpis:** podepsaný instalátor bez SmartScreenu (482) potřebuje certifikát; Google Play a F-Droid (486)
+  potřebují účty – metadata jsou připravená v `mobile/fastlane`; testy na tvém PC, telefonu a hodinkách (448) – v CI
+  běží Windows, emulátor Androidu a sestavení Wear OS, ne skutečná zařízení; macOS vrstva (489) je napsaná a otestovaná
+  jen na simulovaných příkazech; Linux (488) pokrývá běžné povely, ne UI Automation a herní vstup.
+- **Bez veřejného API:** EduPage (422), Rohlík (427 – otevře hledání, do košíku a k platbě jdeš ty), ČSFD a Databáze
+  knih (429, 430 – odkaz a seznam, hodnocení nečteme), portály distributorů elektřiny (440 – import exportovaného CSV),
+  Garmin (433 – import GPX / CSV), banky mimo Fio (208, 432 – PSD2 jen přes placeného licencovaného poskytovatele).
+- **Klíče a účty:** TMDB pro filmy (344), Ticketmaster pro koncerty (359), TomTom pro dopravu (407), Yubico API (196),
+  Strava aplikace (433), token bota pro Discord (356, potřebuje i `discord.py[voice]` a ffmpeg), OpenSCAD pro díry a
+  řezy STL (325, 338), Equalizer APO (351), python-matter-server (177).
+- **Datová schránka (431):** jen seznam nových zpráv. Přihlášení osoby s právem číst zprávy se počítá jako doručení –
+  návod proto doporučuje pověřenou osobu jen se seznamy.
+- **Zjednodušení:** offline povely v telefonu jsou pravidla, ne AI (129); komplikace místo celého ciferníku (151); stres
+  je odhad z tepu (152); poznámka po hovoru, ne nahrávka (140); sdílení polohy povolíš ťuknutím (139); šachy rozebere AI
+  bez enginu (368); otázky na autoškolu jsou cvičné (370); shrnutí YouTube jen s titulky (365); podpis PDF je obrázek,
+  ne kvalifikovaný podpis (280); blokování webů potřebuje správce (261); jeden notch se přesouvá mezi monitory místo
+  více oken (110); ovládání pohledem (473) a znaková řeč (470) nejsou – kamera umí gesta rukou, ne spolehlivý pohled
+  ani znaky; „čtečka obrazovky“ (465) = popisky a živé oblasti v UI, s NVDA a Předčítáním neověřeno; videonávody (494)
+  nejsou, místo nich nápověda F1 a „Co je nového“; fórum (493) a hlasování (491) běží přes GitHub (Discussions zapne
+  vlastník, hlasuje se 👍); obchod s rozšířeními (483) = katalogy JSON s podpisy a hodnocením, ne vlastní server.
+- **Zdraví a právo:** zdravotní funkce nejsou lékařská rada; rizika smlouvy a šablony smluv nejsou právní rada;
+  licence projektu zůstává na autorovi (CONTRIBUTING.md).
+
+## 3.19 – peníze pod kontrolou a Cesty 2 (17 návrhů ve 4 dávkách)
+Hotovo v kódu s testy: kurz ČNB pro limity a rozpočet (uložený pro offline), stejná pravidla pro každou platbu
+(rezervace, zrušení, vrácení přes Stripe, nákup na obrazovce, Zaplatit v prohlížeči, návrhy firemních agentů), přehled
+peněz, zkušební rezervace se zkušebním klíčem; spolucestující, RegioJet živě + IDOS, vstupní podmínky, ubytování
+z e-mailu, cestovní karta offline, zpoždění → hotel, stravné; testy na Windows ve dvou částech, novější akce GitHubu,
+opravená varování (Pillow, nedokončená korutina); hodinky s cestou a čekající platbou, odkaz na cestu pro rodinu,
+překlady nových obrazovek.
+
+Co nejde nebo zatím není:
+- **Test na tvém PC přes Remote Control** – k relaci zase nebyl připojený žádný počítač.
+- **Schválení platby z hodinek** – záměrně ne: hodinky nemají otisk prstu; dlaždice jen řekne „Potvrď platbu v telefonu“.
+- **Koupě jízdenky RegioJet přímo z JARVISe** – veřejné API je jen pro vyhledávání; koupě na jejich webu v prohlížeči
+  JARVISe se zastavením před platbou. ČD, Leo Express a FlixBus nemají veřejné API – IDOS.
+- **Vstupní podmínky** – shrnutí pro krátké turistické cesty občanů ČR; pravidla se mění, proto vždy odkaz na MZV.
+- **Stravné** – výchozí sazby 2026 (tuzemsko vyhl. 573/2025 Sb., zahraničí vyhl. 489/2025 Sb. pro 20 nejčastějších zemí);
+  každý rok je mění nová vyhláška, další země doplníš sám.
+- **Odkaz na cestu mimo domov** – jen s veřejnou HTTPS adresou (Tailscale / Cloudflare), jinak funguje jen doma.
+- **Neověřeno ostře:** RegioJet živě odpovídal z tohoto prostředí, ale v testech je simulovaný; e-maily z Booking.com
+  a Airbnb jen se simulovanými texty; ČNB testována simulovanou odpovědí.
+
+## 3.18 – cesty a rezervace po potvrzení + 18 vylepšení (37 návrhů v 6 balících)
+Hotovo v kódu s testy: samotest integrací v Diagnostice, odkaz s daty po cizím textu se ptá, záznam cizího textu
+v Bezpečí, Šifrovat i doma; STL na Bambu přes OrcaSlicer, kontrola před tiskem, bohatší CAD (díry, text, zaoblení,
+3MF), fotka a časosběr hotového tisku; rychlejší živý přepis, teplá cache Clauda, průběžné hlášení, rozdělený agent,
+hlídání paměti a CPU při dlouhém běhu; GLS s klíčem, „vyzvedni do“, Web Push pro iPhone, aplikace Wear OS s dlaždicí.
+Cesty: kritéria z popisu (AI + kontrola), srovnání 3–5 nabídek s důvody, „jako minule“, celá cesta, LiteAPI a Duffel
+(hotely, lety), prohlížeč se zastavením před platbou, přednost zrušení zdarma a platby na hotelu, pojistky (dvakrát,
+přesná částka z vlastního hledání, telefon s otiskem, limit, měsíční rozpočet, nikdy po cizím textu, nová kontrola
+ceny těsně před platbou), kalendář / Cesty / složka cesty, připomínky, hlídání zlevnění, zrušení a změna, zpráva
+hotelu, náklady pro účetní, hlídání cen, vstupenky, útrata.
+
+Co nejde nebo zatím není:
+- **Test na tvém PC přes Remote Control (A3)** – k téhle cloudové relaci nebyl připojený žádný počítač, takže na
+  skutečném Windows u tebe se nic nespouštělo; Windows v CI ano.
+- **Ostré rezervace** – LiteAPI i Duffel jsou testované jen se simulovanými odpověďmi podle jejich dokumentace; první
+  rezervaci zkus se zkušebním klíčem (`sand_…`, `duffel_test_…`). U Duffel letenek zatím jen jeden cestující (víc lidí
+  přes prohlížeč); u Duffel hotelů nevíme dopředu podmínky zrušení, takže se nehlídá jejich zlevnění.
+- **Platba kartou přímo z JARVISe** – záměrně ne: JARVIS číslo karty nevidí; platí LiteAPI (karta v tvém účtu) nebo
+  zůstatek Duffelu, jinak prohlížeč se zastavením před platbou.
+- **E-mail hotelu sám od sebe** – adresu hotelu poskytovatelé nedávají; JARVIS napíše koncept a pošle ho po potvrzení
+  na adresu, kterou mu řekneš.
+- **Neověřeno na skutečném zařízení:** aplikace Wear OS (sestaví ji CI, na hodinkách nevyzkoušená), Web Push na
+  iPhonu, GLS živě (bez klíče API vrací 403), OrcaSlicer s Bambu tiskárnou, časosběr se skutečnou kamerou.
+
+## 3.17 – rychlost doma, chytřejší, bezpečnější, integrace (20 návrhů v 6 balících)
+Hotovo v kódu s testy: Windows testy a Android emulátor v CI, měření rychlosti doma; hlas po kouscích, dotaz na AI
+s předstihem při váhavé pauze (nástroje až po dořečení), průběžný přepis malým modelem, hodinová cache Clauda s úsporou
+v Diagnostice, tvoje tempo, průvodce rychlostí; CAD z popisu (strom tvarů s kontrolou), gesta prsty (MediaPipe),
+testy z tvých povelů, přehled a mazání reflexů, vzorové reflexy; cizí text v úkolu už neřídí kroky, které něco mění
+(i `use_tool`), kontrola nových rychlých cest; Bambu napřímo (MQTT + FTPS + kamera P1/A1, připnutý certifikát),
+STEP v prohlížeči (occt-import-js, LGPL), DPD a PPL živě, otázky z hodinek Wear OS přes notifikace telefonu.
+
+Co nejde nebo zatím není:
+- **Aplikace pro iPhone** – nativní build potřebuje Mac s Xcode a placený účet Apple Developer; v tomhle prostředí ji
+  nejde sestavit ani podepsat. Zůstává webová aplikace v Safari (mikrofon v Safari jen přes HTTPS).
+- **Samostatná aplikace pro Wear OS** (dlaždice, vlastní obrazovka) – otázky z hodinek jdou přes notifikace telefonu,
+  které Wear OS zobrazuje; vlastní modul hodinek by potřeboval Android SDK a hodinky k vyzkoušení.
+- **GLS živě** – GLS zrušilo otevřené sledování (vyžaduje registraci API); JARVIS drží odkaz.
+- **PPL** – oficiální API dává PPL jen firemním zákazníkům (Client ID od obchodního zástupce); bez něj odkaz.
+- **Kamera Bambu X1** (RTSP) – záměrně ne: přístupový kód by šel bez kontroly certifikátu; použij adresu snímku.
+- **Neověřeno na skutečném zařízení:** tiskárna Bambu (protokol testovaný proti simulované tiskárně přes skutečné
+  TLS), DPD a PPL (odpovědi podle veřejných popisů – ze sandboxu byly služby nedostupné), gesta prsty se skutečnou
+  kamerou, hodinky Wear OS, změny v Android aplikaci (Java prošla jen kontrolou syntaxe; APK sestaví CI).
+
+## 3.16 – „Odpověď hned“ a nástroje v hlavě (24 návrhů v 7 balících)
+Hotovo v kódu s testy: katalog všech nástrojů v cache + `use_tool` (kontrola a oprava parametrů), pokyny rozdělené pro
+cache, pevná sada nástrojů pro velkou AI, měření časů kroků a trefy nástroje; paměť nástrojů, reflexy, příklady
+z historie, výběr podle významu, podle aplikace a zvyků; přepis při pauze, chytrý konec věty, živý přepis, tvoje
+slova, udržovaná spojení a předehřátí; povely s údaji bez AI, bez druhého kola AI, slovo při delší práci, připravené
+fráze, rychlá první věta podle změřených časů, odpovědi dopředu; rodiny nástrojů v katalogu a audit; místní reflexní
+model; oprava za běhu, „pokračuj“, rychlejší Piper / ElevenLabs, tiché „mhm“.
+
+Co nejde nebo zatím není:
+- **AI se nespouští na nedokončené větě** – start s předstihem je přepis a rozhodnutí o konci věty; spustit AI (a tím
+  i nástroje) na půlce věty by mohlo udělat něco, co jsi nechtěl.
+- **Slučování nástrojů** – audit nenašel skutečné duplicity (podobná jména jsou doplňkové akce), takže se nic
+  neslučovalo; katalog jen seskupuje rodiny (úspora ~5 %).
+- **Streamování zvuku po kouscích uvnitř věty** (Edge / ElevenLabs) – hlas pořád hraje po větách; zrychlení je
+  v udržovaném spojení, kratším prvním kousku, připravených frázích a modelu Flash.
+- **Skutečné časy** (o kolik je to rychlejší na tvém PC a s tvou AI) se v kontejneru změřit nedají – ukáže je
+  Diagnostika → Rychlost odpovědí po pár desítkách otázek.
+
+## 3.15 – „Mega animace“ a dílna (45 návrhů v 8 balících)
+Hotovo v kódu s testy: základ pohybu (úrovně kvality podle grafiky, hlídání FPS, pauza ve hře a na baterii, zvukový
+design), Stark HUD ve 3D (reaktor, start, glóbus, paralaxa, telemetrie, orbit nástrojů, ovládání hlasem, Holo),
+notch a Mochi (tekutý kov, pružiny, rytmus, emoce, tekutá upozornění, denní doba), chat a aplikace (zhmotnění textu,
+živé karty, grafy, přechody, hlasový režim, úvod, barevná schémata), telefon (EDITH AR, start, haptika, SOS, hovor,
+widgety), plocha Windows (zaměřovač, paprsek, OSD, „Vítejte zpět“, živá tapeta, holo-plocha), gesta kamerou v HUD
+a celá dílna: text → CAD s verzemi a úpravami hlasem, 3D model v HUD s rozloženým pohledem, 3D tiskárna s hlídáním
+selhání, deník projektů s díly a nákupním seznamem, simulace (nosník, teplo, obvod, RC/RL). Elektronika (Arduino /
+ESP build a upload, sériový monitor, schéma) už byla z dřívějška a deník projektů zapisuje i do ní.
+
+Co je potřeba od uživatele: OpenSCAD (přesné STL z CAD, jinak náhled s mírně zaoblenými hranami), FreeCAD (STEP v HUD),
+PrusaSlicer + profil tiskárny (tisk ze STL), OctoPrint / Moonraker nebo Bambu v Home Assistantu, kamera u tiskárny
+a AI s obrazem (hlídání tisku), webkamera (gesta).
+
+Co nejde nebo zatím není:
+- **STEP přímo v prohlížeči** – knihovna occt-import-js je pod LGPL; nepřidal jsem ji bez souhlasu. Teď přes FreeCAD.
+- **Bambu Lab napřímo** (MQTT + FTP s kódem z tiskárny) – jen přes integraci ha-bambulab v Home Assistantu; poslat
+  soubor k tisku na Bambu jde z Bambu Studia.
+- **Parametrický CAD je šablonový** (krabička, L-držák, deska, sloupek, háček, knoflík) – libovolný tvar z věty
+  neumí; na složité díly je .scad, který jde dál upravit.
+- **Gesta** jsou pohyb ruky (ne prsty / štípnutí) – rozpoznávání prstů by potřebovalo model pro ruku.
+- **Nativní efekty na ploše a živá tapeta** (vrstvená okna, WorkerW) – napsané podle Win32 API, ale **neověřené na
+  skutečném Windows** (tady je Linux); stejně tak widgety a animace hovoru v Androidu bez skutečného telefonu.
+- **Nic z dílny nebylo vyzkoušené na skutečné tiskárně** – OctoPrint, Moonraker i Home Assistant jen v simulaci.
+
+## 3.14 – „JARVIS jako z filmu“ (58 návrhů, bez sekce C – dílna)
+Hotovo v kódu s testy (simulovaná zařízení a služby): hlas a osobnost (živý rozhovor, bez „Hey Jarvis“ přes kameru,
+FRIDAY, humor, tlumočník), celý dům (satelity, reproduktory, následuj mě, uvítání, scény, kiosk, víc PC, Docker server,
+spotová elektřina), oči a uši (EDITH, obličeje, zvuky, pomocník na obrazovce, letadla), bezpečnost (Frigate, zvonek,
+fotka při hlídání, SOS, brífink, dětský režim), zdraví (Health Connect, stav systémů, hlídání u PC), auto přes Home
+Assistant, cestovní režim, zásilky, mapa světa v HUD, AI sekretářka a volání za tebe (Twilio), shrnutí chatů, noční
+učení, Paměť života, mise na dny, „co když“, vysavač, sekačka a dron Tello.
+
+Co je potřeba od uživatele: webkamera (bez „Hey Jarvis“, obličeje, držení těla), VB-Cable (tlumočník), Home Assistant
+(satelity, reproduktory, auto, vysavač, sekačka, zvonek), Frigate (kamery), Twilio + veřejná HTTPS adresa (sekretářka,
+volání), klíč AeroDataBox (zpoždění a gate letů), klíč HIBP (úniky e-mailů v brífinku), nouzové kontakty (SOS),
+hodinky zapisující do Health Connect, DJI Tello a PC na jeho Wi-Fi, Docker (nonstop server).
+
+Co z „filmu“ nejde nebo zatím není:
+- **Sekce C – dílna** – doplněná ve verzi 3.15 (viz výše).
+- **Vlastní aplikace pro Wear OS** – hodinky dál odpovídají přes oznámení telefonu (RemoteInput); samostatnou aplikaci
+  pro hodinky tady nejde sestavit ani vyzkoušet.
+- **Garmin / Fitbit napřímo** – jen přes Health Connect (aplikace Garmin Connect a Fitbit do něj zapisují).
+- **OBD adaptér napřímo** – přes Home Assistant (ESPHome / Torque Pro), ne přímo z PC.
+- **Zpoždění vlaků** – veřejné API Českých drah / RegioJetu chybí; JARVIS zná jízdní řád z jízdenky.
+- **Stav zásilek PPL, DPD, GLS** – jen odkaz na sledování (jejich veřejná API tady nešlo ověřit); Česká pošta a
+  Balíkovna živě, Zásilkovna s API heslem.
+- **Nic z toho nebylo vyzkoušené na skutečném hardwaru** (kamera, satelity, Frigate, Twilio, auto, vysavač, dron,
+  hodinky) – jen s jejich simulací v testech.
+
 ## Android vs. iPhone
 | Schopnost | Android (dnes) | iPhone |
 |---|---|---|

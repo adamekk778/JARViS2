@@ -118,6 +118,11 @@ class Updater:
         to = str(m.get("to", ""))
         if not to:
             return
+        try:                                       # 3.14 the check after the update may go back to this one
+            self.rt.db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)")
+            self.rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('updated_from', ?)", (str(m.get("from", "")),))
+        except Exception:  # noqa: BLE001
+            pass
         if not newer(to, self.status["current"]):
             self.rt.notify("JARVIS je aktualizovaný", f"V noci se nainstalovala verze {to}. Co je nového najdeš v notchi.",
                            speak=False)
@@ -132,16 +137,41 @@ class Updater:
     def _publish(self) -> None:
         self.rt.bus.publish("update_status", **self.status)
 
+    def channel(self) -> str:
+        return getattr(self.rt.cfg.general, "update_channel", "stable") or "stable"
+
+    def _releases_url(self) -> str:
+        """3.14 beta channel: the list of releases (test builds are marked "pre-release") instead of the latest one."""
+        url = self.rt.cfg.general.update_url
+        if self.channel() == "beta" and url.rstrip("/").endswith("/releases/latest"):
+            return url.rstrip("/")[: -len("/latest")] + "?per_page=15"
+        return url
+
+    @staticmethod
+    def pick(data, channel: str = "stable") -> dict | None:
+        """The release to offer: the latest one, or on beta the newest of the list (pre-releases included)."""
+        items = data if isinstance(data, list) else [data]
+        best = None
+        for d in items:
+            if not isinstance(d, dict) or d.get("draft"):
+                continue
+            if d.get("prerelease") and channel != "beta":
+                continue
+            v = (d.get("tag_name") or "").lstrip("vV")
+            if v and any(a.get("name") == ASSET for a in d.get("assets", [])) and (best is None or newer(v, best[0])):
+                best = (v, d)
+        return best[1] if best else None
+
     async def check(self, force: bool = False) -> dict | None:
         import httpx
 
         try:
             async with httpx.AsyncClient(verify=tlsctx.context(), transport=self.transport, timeout=15, follow_redirects=True) as c:
-                r = await c.get(self.rt.cfg.general.update_url, headers={"Accept": "application/vnd.github+json"})
+                r = await c.get(self._releases_url(), headers={"Accept": "application/vnd.github+json"})
             if r.status_code != 200:
                 log.info("update check: HTTP %s", r.status_code)
                 return None
-            data = r.json()
+            data = self.pick(r.json(), self.channel()) or {}
             version = (data.get("tag_name") or "").lstrip("vV")
             url = next((a.get("browser_download_url") for a in data.get("assets", []) if a.get("name") == ASSET), None)
         except Exception as e:  # offline, private repo, rate limit…
@@ -209,6 +239,41 @@ class Updater:
         args = ["/VERYSILENT", "/SUPPRESSMSGBOXES"] if silent else ["/SILENT"]
         subprocess.Popen([str(path), *args, "/NORESTART", "/CLOSEAPPLICATIONS"], close_fds=True)
         self.rt.loop.call_later(1.5, lambda: os._exit(0))
+
+    # ---------- 3.14 back to the previous version (návrh 12) ----------
+    async def release_of(self, version: str) -> str | None:
+        """The installer address of an exact version (GitHub release v<version>)."""
+        import httpx
+
+        base = self.rt.cfg.general.update_url.rstrip("/")
+        if not base.endswith("/releases/latest"):
+            return None
+        url = base[: -len("/latest")] + f"/tags/v{version.lstrip('vV')}"
+        async with httpx.AsyncClient(verify=tlsctx.context(), transport=self.transport, timeout=15, follow_redirects=True) as c:
+            r = await c.get(url, headers={"Accept": "application/vnd.github+json"})
+        if r.status_code != 200:
+            return None
+        return next((a.get("browser_download_url") for a in r.json().get("assets", []) if a.get("name") == ASSET), None)
+
+    async def rollback(self, to: str, bad: str = "") -> bool:
+        """Install version `to` over the current one; `bad` is never installed by itself again."""
+        local = paths.sub("updates") / f"JARVIS-Setup-{to}.exe"
+        if bad:
+            try:
+                (paths.data_dir() / "update_skip.txt").write_text(bad, "utf-8")
+            except OSError:
+                pass
+        if local.exists() and local.stat().st_size >= self.min_size:
+            path = local
+        else:
+            url = await self.release_of(to)
+            if not url:
+                return False
+            self._url, self.status["latest"] = url, to
+            path = await self.download()
+        self.status.update(latest=to)
+        self.install(path, silent=True)
+        return True
 
     async def download_and_install(self, silent: bool = False) -> None:
         """An explicit user action (panel button / confirmed voice request) – or the night update the user switched on."""

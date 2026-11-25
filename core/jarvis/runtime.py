@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import sys
+import threading
 import time
 from typing import Any
 
@@ -31,6 +33,7 @@ PRESET_LABEL = {"groq": "Groq", "gemini": "Gemini", "openrouter": "OpenRouter", 
 
 
 class Runtime:
+    safe_mode = False                 # 3.20 (446) set at start: JARVIS_SAFE=1 or a SAFE_MODE file in the data folder
     def __init__(self, cfg: config_mod.Config | None = None, *, platform: Platform | None = None,
                  transport: httpx.AsyncBaseTransport | None = None, llm_transport: httpx.AsyncBaseTransport | None = None,
                  persist_config: bool = True):
@@ -73,6 +76,11 @@ class Runtime:
         self.lyrics_state: dict = {}     # 3.12: synced lyrics of the song playing (for the notch)
         self.ui_hook = None           # desktop host: show window (second launch)
         self.voice_mode = False       # dashboard voice mode is open → follow-up listening on
+        self._started = False
+        self.live_talk = False        # 3.14 živý rozhovor: "pojďme si povídat" until "díky, to je vše" or a long silence
+        from .webcam import LookWatcher
+
+        self.look_watcher = LookWatcher(self)    # 3.14 mluv bez „Hey Jarvis“ (camera, opt-in)
         from .mood import MoodEngine
 
         self.mood = MoodEngine(self)
@@ -178,6 +186,17 @@ class Runtime:
 
         self.pc_audio = PcAudio(self)          # 3.12 Zvuk z PC do telefonu
         self.memory.set_private(self.cfg.privacy.private_mode)
+        from collections import deque as _dq
+
+        from .voice.voiceid import VoiceId
+
+        self.voiceid = VoiceId(self)            # 3.14 who speaks (household, owner), own wake word, whispering
+        self.voice_lat: _dq = _dq(maxlen=50)   # 3.14 end of your sentence → JARVIS's first sound, ms
+        self.voice_t_end: float | None = None
+        from . import notchplus
+
+        self.widgets = notchplus.Widgets(self)  # 3.14 your own tiles in the notch (76)
+        self.loadwatch = notchplus.LoadWatch(self)   # 3.14 fewer effects under heavy load (79)
         tools.load_builtin()
 
     # ---------- lifecycle ----------
@@ -194,6 +213,14 @@ class Runtime:
 
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
+        self.safe_mode = os.environ.get("JARVIS_SAFE") == "1" or (paths.data_dir() / "SAFE_MODE").exists()
+        from .communityx import demo_on, seed_demo
+
+        if demo_on() and not self.db.one("SELECT v FROM kv WHERE k='cx_demo'"):   # 3.20 (497) made-up data for the demo
+            seed_demo(self)
+            self.db.exec("INSERT OR REPLACE INTO kv VALUES ('cx_demo', '1')")
+        if self.safe_mode:
+            log.warning("safe mode: only the core runs (delete SAFE_MODE in the data folder to leave it)")
         self.bus.bind_loop(self.loop)
         from . import diagnostics
 
@@ -218,52 +245,141 @@ class Runtime:
         from . import netwatch
 
         self._sys_tasks.append(self._later(netwatch.loop(self)))   # OMEGA 708/709/719 (3.13: a little later)
-        from . import focusguard
+        if not self.safe_mode:                              # 3.20 (446) safe mode: only the core – no extra loops, skills, MCP
+            from . import focusguard
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
-        from . import meetings
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(focusguard.loop(self)))   # 3.12 focus guard
+            from . import meetings
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
-        from . import fsplus
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(meetings.loop(self)))     # 3.12 calls → notes
+            from . import fsplus
 
-        self._sys_tasks.append(self._later(fsplus.version_loop(self)))   # OMEGA 328
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
-        self._sys_tasks.append(self._later(self.health.run()))          # 3.12 Zdraví PC
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
-        from . import morning
+            self._sys_tasks.append(self._later(fsplus.version_loop(self)))   # OMEGA 328
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(self.link.start()))          # 3.12 JARVIS Link
+            self._sys_tasks.append(self._later(self.health.run()))          # 3.12 Zdraví PC
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(self.guard.loop()))          # 3.12 Hlídání PC
+            from . import morning
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
-        self._sys_tasks.append(self._later(self.nightcare.loop()))      # 3.12 Noční údržba
-        from . import habits
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(morning.loop(self)))         # 3.12 Ranní souhrn
+            self._sys_tasks.append(self._later(self.nightcare.loop()))      # 3.12 Noční údržba
+            from . import habits
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
-        from . import gamecoach
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(habits.remind_loop(self)))  # 3.12 Návyky – večer
+            from . import gamecoach
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
-        from . import worldwatch
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(gamecoach.loop(self)))    # 3.13 Herní pomocník
+            from . import worldwatch
 
-        self._sys_tasks.append(self._later(worldwatch.loop(self)))                              # 3.13 Přehled o světě
-        from . import bizagents
+            self._sys_tasks.append(self._later(worldwatch.loop(self)))                              # 3.13 Přehled o světě
+            from . import bizagents
 
-        self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti
-        from . import bizevents, bizgoals, bizreport
+            self._sys_tasks.append(self._later(bizagents.loop(self)))    # 3.12 Firemní agenti
+            from . import bizevents, bizgoals, bizreport
 
-        self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
-        self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
-        self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
-        try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
-            first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
-            if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
-                self._sys_tasks.append(asyncio.get_running_loop().create_task(self.local.warm(first.model or None)))
-        except Exception as e:  # noqa: BLE001
-            log.debug("warm: %s", e)
-        from . import upkeep
+            self._sys_tasks.append(self._later(bizevents.loop(self)))    # 3.12 agents react to e-mails, orders, payments
+            self._sys_tasks.append(self._later(bizreport.loop(self)))    # 3.12 the weekly company report (PDF)
+            self._sys_tasks.append(self._later(bizgoals.loop(self)))     # 3.13 the company's goals measure themselves
+            try:                                     # 3.13 a local AI first in the chain: load it now, not at the first question
+                first = next((p for i in self.cfg.brain.chain for p in self.cfg.brain.providers if p.id == i and p.enabled), None)
+                if first is not None and (first.preset or first.id) in ("ollama", "lmstudio") and self.cfg.brain.local_enabled:
+                    self._sys_tasks.append(asyncio.get_running_loop().create_task(self.local.warm(first.model or None)))
+            except Exception as e:  # noqa: BLE001
+                log.debug("warm: %s", e)
+            from . import upkeep
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
-        from . import selfcheck
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.after_update(self)))   # 3.12 check after update
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(upkeep.keys_daily(self)))     # 3.12 AI keys once a day
+            self._started = True
+            if self.look_watcher.wanted():
+                self.look_watcher.start()
+            from . import house
 
-        self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
+            try:
+                house.ensure_scenes(self)                                # 3.14 Vítej doma / Kino / Odchod / Spánek
+            except Exception as e:  # noqa: BLE001
+                log.debug("house scenes: %s", e)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(house.of(self).run()))   # 3.14 home / away, welcome
+            from . import eyes
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(eyes.sounds(self).run()))  # 3.14 sounds of the house (opt-in)
+            from . import safety
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.cameras(self).run()))   # 3.14 cameras, doorbell
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(safety.weekly(self)))         # 3.14 security briefing
+            from . import body
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(body.desk(self).run()))       # 3.14 water, long day, bed, posture
+            from . import parcels, travel
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(travel.watch(self).run()))    # 3.14 trips from e-mail, leave time
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(parcels.loop(self)))          # 3.14 parcels on the way
+            from . import resmon
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(resmon.loop(self)))           # 3.18 the long run
+            from . import tripcare
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(tripcare.loop(self)))         # 3.18 booked trips
+            from . import memx, proactx
+
+            try:
+                memx.apply_tombstones(self)                     # 3.20 (42) what you asked to forget stays forgotten after a restore
+            except Exception as e:  # noqa: BLE001
+                log.debug("tombstones: %s", e)
+            from .reliax import supervise                       # 3.20 (441) a crashed part starts again and you are told why
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(supervise(self, "Proaktivita+", lambda: proactx.loop(self))))
+            from . import secx
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(supervise(self, "Bezpečnost+", lambda: secx.loop(self))))   # 3.20
+            from . import overlayfx
+
+            self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
+            if sys.platform == "win32":                         # 3.20 keyboard per app, monitor profiles, share ring, taskbar bars
+                from . import pcx
+
+                self._sys_tasks.append(asyncio.get_running_loop().create_task(pcx.desktop_loop(self)))
+            from . import lookx
+
+            if lookx.startup_sound_ok(self) and getattr(self, "speaker", None) is not None:   # 3.20 (120) a short start sound
+                threading.Thread(target=self.speaker._play, args=(lookx.startup_wav(),), daemon=True, name="startup-sound").start()
+            from . import printer3d
+
+            self._sys_tasks.append(printer3d.start(self))                                               # 3.15 the 3D printer + its watch
+            from . import prefetch
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(prefetch.get(self).run()))    # 3.16 answers ready ahead
+
+            async def _mine_after_update() -> None:                       # 3.17 your own requests checked after an update
+                await asyncio.sleep(60)
+                try:
+                    from .evals import mine
+
+                    await asyncio.to_thread(mine.after_update, self)
+                except Exception as e:  # noqa: BLE001
+                    log.debug("mine check: %s", e)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(_mine_after_update()))
+            from . import lifelog, quests
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(lifelog.recorder(self).run()))  # 3.14 life timeline (opt-in)
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(quests.loop(self)))           # 3.14 missions over days
+            from . import stats
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(stats.weekly(self)))         # 3.14 only if switched on
+            from . import quality
+
+            self._sys_tasks.append(self._later(quality.power_loop()))     # 3.14 what JARVIS takes from the battery (návrh 20)
+            from . import memplus, proactiveplus
+
+            self._sys_tasks.append(self._later(memplus.monthly(self)))    # 3.14 a monthly memory clean-up proposal (57)
+            self._sys_tasks.append(self._later(proactiveplus.evening_loop(self)))   # 3.14 the evening review (58)
+            from . import notchplus
+
+            self._sys_tasks.append(self._later(self.widgets.loop()))
+            self._sys_tasks.append(self._later(self.loadwatch.loop()))
+            self._sys_tasks.append(self._later(notchplus.Spectrum(self).loop()))   # 3.14 the spectrum of the music (74)
+            from . import selfcheck
+
+            self._sys_tasks.append(asyncio.get_running_loop().create_task(selfcheck.warn_phone_blocked(self)))   # 3.12 why the phone fails
         try:
             from .updater import Updater
 
@@ -274,8 +390,9 @@ class Runtime:
         try:
             from .tools.skills import load_all_skills, migrate_existing
 
-            migrate_existing(self)
-            load_all_skills(self.cfg.tools.approved_skills, self.cfg.tools.legacy_skills)
+            if not self.safe_mode:
+                migrate_existing(self)
+                load_all_skills(self.cfg.tools.approved_skills, self.cfg.tools.legacy_skills)
         except Exception as e:  # pragma: no cover
             log.warning("skills: %s", e)
         try:
@@ -283,13 +400,17 @@ class Runtime:
 
             self.scheduler = Scheduler(self)
             self.scheduler.start()
+            from .brainx import ensure_week_job
+
+            ensure_week_job(self)                     # 3.20 (39) every Sunday: what JARVIS learned this week
         except Exception as e:  # pragma: no cover
             log.warning("scheduler unavailable: %s", e)
         try:
             from .integrations.mcp_client import McpManager
 
             self.mcp = McpManager(self)
-            bg(self.mcp.start())
+            if not self.safe_mode:
+                bg(self.mcp.start())
         except Exception as e:  # pragma: no cover
             log.warning("mcp unavailable: %s", e)
 
@@ -444,6 +565,13 @@ class Runtime:
         return httpx.AsyncClient(transport=self.transport, follow_redirects=True, verify=tlsctx.context())
 
     def update_config(self, patch: dict) -> config_mod.Config:
+        locked = getattr(self, "_policy_locked", None)
+        if locked and not getattr(self, "_applying_policy", False):     # 3.20 (500) what the company locked stays
+            from .communityx import strip_locked
+
+            patch, dropped = strip_locked(patch, locked)
+            if dropped:
+                log.info("policy keeps %s", ", ".join(dropped))
         was_local = self.cfg.brain.local_enabled
         old_cfg = self.cfg
         self.cfg = config_mod.apply_patch(self.cfg, patch)
@@ -454,10 +582,13 @@ class Runtime:
 
             skillforge.on_config_change(self, old_cfg, self.cfg)   # every saved change of a skill / automation = a new version
         if was_local and not self.cfg.brain.local_enabled:
+            co = self.local.unload()
             try:
-                bg(self.local.unload())
-            except RuntimeError:
-                pass
+                bg(co)
+            except RuntimeError:                   # no event loop (a test, the first start): nothing is loaded anyway
+                co.close()
+        if "voice" in patch and self._started:            # 3.14 the camera watcher follows its switch
+            (self.look_watcher.start if self.look_watcher.wanted() else self.look_watcher.stop)()
         if self.persist_config:
             config_mod.save(self.cfg)
         self.router.update(self.cfg.brain)
@@ -478,6 +609,71 @@ class Runtime:
     async def notice_action(self, act: str, args: dict) -> tuple[bool, str] | None:
         """3.13 a button of a notice – from the notch or from the phone's notification (the same buttons)."""
         args = args if isinstance(args, dict) else {}
+        if act == "ask":                          # 3.14 a proactive notice's button / "Odpovědět" on the phone
+            text = str(args.get("text") or "")[:300]
+            if text:
+                if args.get("from_phone"):
+                    async def answer_to_phone() -> None:     # the answer goes back to where the question was typed
+                        out = await self.agent.handle(text, [], "mobile")
+                        if out:
+                            self.phone_push("notify", title="JARVIS", body=str(out).strip()[:400])
+                    self.submit(answer_to_phone())
+                else:
+                    self.submit(self.agent.handle(text, [], "chat"))
+            return None
+        if act == "call_note":                    # 3.20 (140) a note to the call that just ended, typed in the notification
+            from . import phonex
+
+            try:
+                phonex.save_call_note(self, str(args.get("who") or ""), str(args.get("text") or ""))
+            except ValueError as e:
+                return False, str(e)
+            return True, "Poznámku k hovoru jsem uložil."
+        if act == "emergency_ok":                 # 3.14 návrh 39: "Jsem v pořádku" under the emergency question
+            from . import safety
+
+            safety.emergency(self).cancel()
+            return True, "Dobře, ruším nouzový protokol."
+        if act == "dial":                         # 3.14 "Volat 112" – the phone dials only because you tapped it
+            num = str(args.get("number") or "")[:20]
+            ok = bool(num) and self.phone_push("dial", who=num)
+            return ok, f"Telefon vytáčí {num}." if ok else "Telefon teď není připojený – vytoč to prosím sám."
+        if act == "device_revoke":                # 3.14 návrh 111: "Odvolat" under "a new device paired"
+            from . import mobileplus
+
+            ok = mobileplus.revoke_device(self, str(args.get("id") or ""))
+            return ok, "Zařízení odvoláno – už se nepřipojí." if ok else "To zařízení už spárované není."
+        if act == "mute_kind":                    # 3.14 "Nezajímá mě" under a proactive notice
+            kind = str(args.get("kind") or "")[:30]
+            if kind:
+                self.update_config({"stark": {"muted_kinds": sorted(set(self.cfg.stark.muted_kinds) | {kind})}})
+                from .proactiveplus import KIND_LABEL
+
+                return True, f"Dobře, {KIND_LABEL.get(kind, kind)} už posílat nebudu (zapneš v Nastavení → Obecné)."
+            return None
+        if act == "printer":                      # 3.15 "Pokračovat" / "Zrušit tisk" under the failed-print notice
+            from . import printer3d
+
+            a = str(args.get("action") or "")
+            err = await printer3d.command(self, a)
+            done = {"resume": "Tisk pokračuje.", "pause": "Tisk je pozastavený.", "cancel": "Tisk je zrušený."}.get(a, "Hotovo.")
+            return not err, done if not err else f"Tiskárna: {err}"
+        if act in ("fact_confirm", "fact_drop"):   # 3.20 (50) "Platí to ještě?" under a fact older than a year
+            from . import memx
+
+            fid = int(args.get("id") or 0)
+            if act == "fact_confirm":
+                return memx.confirm_fact(self, fid), "Díky, nechávám si to."
+            return memx.drop_fact(self, fid), "Dobře, zapomínám to."
+        if act == "water_done":                   # 3.14 "Vypito" under the water reminder
+            from . import body, healthx
+
+            try:
+                healthx.water_add(self)                # 3.20 (258) the notch's glass fills up
+            except Exception as e:  # noqa: BLE001
+                log.debug("water glass: %s", e)
+
+            return True, body.water_done(self)
         if act == "break_snooze":
             self.activity.snooze_break(int(args.get("minutes") or 10))
             return True, "Připomenu za chvíli."
@@ -516,21 +712,82 @@ class Runtime:
                 await asyncio.to_thread(self.platform.open_path, str(p))
         return None
 
+    def _follow_me(self, title: str, body: str, target: str) -> None:
+        """3.14 Následuj mě: you are in a room with a satellite (not at the PC) → the notice is said there too."""
+        h = getattr(self, "house", None)
+        if target != "all" or h is None or not getattr(self.cfg.home, "follow_me", True):
+            return
+        from .voicex import house_speakers_ok
+
+        if not house_speakers_ok(self):               # 3.20 (1) headphones on: nothing to the speakers around the house
+            return
+        w = h.where()
+        if w.startswith("room:"):
+            from . import house
+
+            try:
+                bg(house.announce(self, body or title, w[5:]))
+            except RuntimeError:
+                pass
+
     def mobile_clients(self) -> int:
         return sum(1 for c in self.clients.values() if c.get("client") == "mobile")
 
     def notify(self, title: str, body: str, url: str = "", speak: bool = True, target: str = "all", urgent: bool = False,
-               actions: list[dict] | None = None) -> int:
+               actions: list[dict] | None = None, kind: str = "") -> int:
         """urgent = something the user asked for at this time (a timer, an alarm, a reminder): always said aloud."""
+        if getattr(self.cfg.privacy, "guest_mode", False) and target == "all" and not urgent:
+            body, speak = "Podrobnosti jsou skryté v režimu host.", False     # 3.14 návrh 109
+        topic = getattr(self, "focus_topic", "")
+        if topic and target == "all" and not urgent:     # 3.20 (277) "teď jen faktury": the rest waits
+            from .workx import focus_topic_holds
+
+            if focus_topic_holds(topic, title, body):
+                held = getattr(self, "focus_held", None)
+                if held is None:
+                    held = self.focus_held = []
+                held.append(f"{title}: {body}"[:120])
+                return 0
         att = getattr(self, "attention", None)
         if att is not None and target == "all" and not att.gate(title, body, urgent):
             return 0                                   # kept for the summary after the focus / meeting / game
+        if target == "all" and not urgent and not kind:  # 3.20 (119) a burst of notices → one line instead
+            from .lookx import Burst
+
+            burst = getattr(self, "_burst", None) or Burst()
+            self._burst = burst
+            if not burst.add(title):
+                return 0
         # 3.13 buttons in the notice ("Za 10 min", "+5 min") – each a notice_action the notch sends back
         acts = [{"label": str(a["label"])[:24], "action": str(a["action"]), "args": a.get("args") or {}} for a in (actions or [])][:3]
         self.notices.appendleft({"title": title, "body": body, "ts": time.time(), "target": target})   # 3.13 history
-        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts)
+        lights = getattr(getattr(self.cfg, "accessx", None), "flash_lights", None)
+        if lights and target in ("all", "pc") and getattr(self, "loop", None) is not None:   # 3.20 (467) a light instead of a sound
+            from . import accessx
+
+            if accessx.should_flash(title, body, urgent):
+                self.call_soon(lambda: self.loop.create_task(accessx.flash(self, list(lights))))
+        if kind:                                         # 3.14 a proactive notice: "Nezajímá mě" + used / ignored feedback
+            acts = (acts + [{"label": "Nezajímá mě", "action": "mute_kind", "args": {"kind": kind}}])[:3]
+        self.bus.publish("notify", title=title, body=body, url=url, target=target, actions=acts, kind=kind,
+                         urgent=bool(urgent) and getattr(self.cfg.notch, "urgent_red", True))   # 3.20 (102) red only when urgent
         if target == "all" and self.user_away():          # 3.12 away from the PC → it comes to the phone
             self.phone_push("notify", title=title[:80], body=body[:400], actions=[a for a in acts if a["action"] not in ("open_window", "open_report")])
+        if target == "all":                              # 3.20 (141) the wrist taps the notice's code when you are away
+            try:
+                from .phonex import on_notice
+
+                on_notice(self, title, body, kind, urgent)
+            except Exception as e:  # noqa: BLE001
+                log.debug("watch notice: %s", e)
+        if (target == "mobile" or (target == "all" and self.user_away())) and getattr(self, "loop", None) is not None:
+            from . import webpush                        # 3.18 the iPhone (the web app on its home screen)
+
+            try:
+                if webpush.subscriptions(self):
+                    self.call_soon(lambda: self.loop.create_task(webpush.send(self, title, body)))
+            except Exception as e:  # noqa: BLE001
+                log.debug("web push: %s", e)
         if speak and not urgent and getattr(self.cfg.stark, "smart_quiet", True):
             from .proactive import quiet_reason      # OMEGA 500: shown, but not said aloud in a meeting / at night / in a game
 
@@ -540,6 +797,7 @@ class Runtime:
                 pass
         if speak:
             self.speak(body)
+            self._follow_me(title, body, target)
         try:
             self.platform.notify(title, body)
         except Exception:

@@ -1,0 +1,39 @@
+/* 3.14 Karaoke přes celou obrazovku */
+:root { --k-ink: #f4f6fb; --k-dim: rgba(244, 246, 251, .34); --k-lit: #ffd166; --k-glow: rgba(255, 209, 102, .45); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #05070b; color: var(--k-ink); overflow: hidden;
+  font-family: "Inter Variable", "Segoe UI", system-ui, sans-serif; }
+.k { position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr auto; isolation: isolate; }
+.k-bg { position: absolute; inset: -60px; z-index: -1; background: radial-gradient(circle at 30% 20%, #1b2540, #05070b 70%);
+  background-size: cover; background-position: center; filter: blur(60px) saturate(1.3) brightness(.45); transform: scale(1.1); }
+.k-head { display: flex; align-items: center; gap: 14px; padding: 18px 24px; }
+.k-head .grow { flex: 1; }
+.k-cover { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; box-shadow: 0 6px 24px rgba(0, 0, 0, .5); }
+.k-meta { display: grid; min-width: 0; }
+.k-meta strong { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-meta span { color: var(--k-dim); font-size: 14px; }
+.k-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .06);
+  color: var(--k-ink); display: grid; place-items: center; cursor: pointer; font-size: 18px; }
+.k-btn:hover { background: rgba(255, 255, 255, .14); }
+.k-btn:focus-visible { outline: 2px solid var(--k-lit); outline-offset: 2px; }
+.k-stage { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2vh; padding: 0 6vw; text-align: center; }
+.k-line { margin: 0; line-height: 1.18; font-weight: 800; letter-spacing: -.01em; max-width: 92vw; }
+.k-prev { font-size: clamp(18px, 3vw, 34px); color: var(--k-dim); opacity: .7; }
+.k-next { font-size: clamp(20px, 3.4vw, 40px); color: var(--k-dim); }
+.k-next2 { opacity: .55; font-size: clamp(16px, 2.6vw, 30px); }
+.k-now { font-size: clamp(34px, 6.4vw, 86px); }
+/* every word lights from left to right by how much of it is sung (--f) */
+.k-w { --f: 0; background: linear-gradient(90deg, var(--k-lit) calc(var(--f) * 100%), var(--k-ink) calc(var(--f) * 100%));
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.k-now .k-w { text-shadow: 0 0 calc(var(--f) * 28px) rgba(255, 209, 102, calc(var(--f) * .45)); }
+.k-prev .k-w, .k-next .k-w { background: none; color: inherit; text-shadow: none; }
+.k-dots { color: var(--k-dim); }
+.k-tr { margin: 0; min-height: 1.3em; font-size: clamp(16px, 2.4vw, 28px); color: rgba(244, 246, 251, .7); font-style: italic; }
+.k-note { margin: 0; color: var(--k-dim); font-size: clamp(16px, 2.2vw, 24px); display: grid; gap: 16px; justify-items: center; }
+.k-plain { margin: 0; max-height: 60vh; overflow: auto; font: 600 clamp(16px, 2vw, 22px)/1.5 inherit; color: var(--k-ink); white-space: pre-wrap; }
+.k-foot { padding: 0 24px 22px; }
+.k-bar { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.k-bar i { display: block; height: 100%; width: 0; background: var(--k-lit); }
+.k.paused .k-now { opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .k-now .k-w { text-shadow: none; } }
+@media (max-width: 600px) { .k-head { padding: 12px 16px; } .k-stage { padding: 0 16px; } }

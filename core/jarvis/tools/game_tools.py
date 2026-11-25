@@ -29,7 +29,10 @@ async def game_result(ctx, result: Annotated[str, "výhra / prohra / remíza"], 
     except ValueError as e:
         return ToolResult(False, str(e))
     word = {"win": "Výhra", "loss": "Prohra", "draw": "Remíza"}[r["result"]]
-    return ToolResult(True, f"{word} v {r['game']}{' ' + score if score else ''} zapsána.", data=r)
+    from ..funx import coach_for                         # 3.20 (341) one piece of advice from your own numbers
+
+    tip = coach_for(ctx, r["game"])
+    return ToolResult(True, f"{word} v {r['game']}{' ' + score if score else ''} zapsána." + (f" {tip}" if tip else ""), data=r)
 
 
 @tool("game_tip", "Dá tip ke hře, kterou uživatel právě hraje (nebo ke jmenované), a ukáže ho v notchi.", category="hry")

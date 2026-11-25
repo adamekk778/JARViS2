@@ -34,6 +34,36 @@ export const CLIENT_TYPES = [
   "connectors_get", "connector_save", "connector_remove", "connector_test", "connector_oauth", "mcp_add", "mcp_remove",
   "wallpaper_get", "diagnostics_summary", "bizagents_get", "bizagent_save", "bizagent_delete", "bizagent_run", "bizagent_template", "bizagent_text", "bizproposal_decide", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "bizpause_set", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
   "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop", "multitask_tell", "multitask_preset", "monitor_check", "paper_get", "paper_reset",
+  "quality_get", "bug_report", "rollback_now", "update_channel_set",
+  "rules_get", "rule_delete", "rule_add", "answer_rate", "ratings_get",
+  "offline_pack_get", "offline_pack_prepare", "offline_pack_test",
+  "voiceid_get", "voiceid_sample", "voiceid_save", "voiceid_delete", "voiceid_reset",
+  "embedder_get", "embedder_download",
+  "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
+  "notice_feedback", "proactive_get",
+  "widgets_get", "widget_delete", "mochi_level_get",
+  "access_log_get",
+  "stats_preview_get",
+  "brain_tiles_get", "brain_models_get", "brain_use",
+  "brain_split",
+  "lyrics_get",
+  "persona_set",
+  "node_add", "node_remove",
+  "edith_ask",
+  "emergency", "emergency_cancel",
+  "world_map_get",
+  "fx_report",
+  "hud_presence", "hud_gesture", "printer_get",
+  "speedcheck_run", "speedcheck_get",
+  "speedwizard_get", "speedwizard_apply",
+  "toolmem_get", "toolmem_forget", "mine_check",
+  "hands_status", "hands_download",
+  "foreign_log_get",
+  "webpush_key", "webpush_subscribe", "webpush_test",
+  "watch_pair_start",
+  "travel_get", "travel_watch_stop",
+  "travel_drill", "money_get",
+  "mem_sync", "msg_star",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -54,6 +84,46 @@ export const SERVER_TYPES = [
   "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
   "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
   "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask", "multitask_result", "monitor_check_result", "paper",
+  "quality", "bug_report_url",
+  "rules", "ratings", "answer_check",
+  "offline_pack", "offline_pack_progress", "offline_pack_test_result",
+  "voiceid",
+  "embedder",
+  "memory_cleanup", "memory_import", "data_encrypt_result",
+  "proactive",
+  "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
+  "access_log",
+  "stats_preview",
+  "brain_tiles", "brain_models", "brain_used",
+  "lyrics_autoshift",
+  "live_talk",
+  "interpreter",
+  "house",
+  "edith_answer", "screen_buddy",
+  "world_map", "hud_map",
+  "fx_pause",
+  "hud_cmd",
+  "emergency_state",
+  "overlay_fx",
+  "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
+  "speedcheck",
+  "speedwizard",
+  "toolmem", "mine_check",
+  "hands",
+  "foreign_log",
+  "printer_done",
+  "webpush",
+  "watch_pair",
+  "travel",
+  "travel_drill", "money",
+  "assistant_draft",
+  "mem_sync_done", "msg_starred",
+  "countdown", "day_timeline", "weather_now", "second_clock", "wallpaper_tasks", "photo_frame", "mochi_action",
+  "notch_active",
+  "driving", "hr_now", "vacation",
+  "savings_goal",
+  "breathe", "water_glass", "rsvp", "notice_hint",
+  "lang_changed",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -80,6 +150,7 @@ export interface ToolCard {
   ok: boolean;
   summary: string;
   preview?: string;
+  live?: any;            // 3.15 a live picture under the result (weather, a flight, parcels…)
 }
 
 export interface Message {
@@ -90,7 +161,7 @@ export interface Message {
   attachments: Attachment[];
   source?: string;
   created?: number;
-  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[] };
+  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[]; check?: string[]; tier?: string; private?: boolean; rated?: boolean; starred?: boolean };
 }
 
 /** OMEGA 550: what an answer rests on. */

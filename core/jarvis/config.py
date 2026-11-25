@@ -47,7 +47,7 @@ class ProviderCfg(BaseModel):
 def _default_providers() -> list[ProviderCfg]:
     return [
         ProviderCfg(id="omniroute", preset="omniroute", base_url="http://localhost:20128/v1", model="auto"),
-        ProviderCfg(id="ollama", preset="ollama", base_url="http://localhost:11434", model="qwen2.5:3b"),
+        ProviderCfg(id="ollama", preset="ollama", base_url="http://localhost:11434", model="qwen3:4b"),
     ]
 
 
@@ -55,14 +55,18 @@ class General(BaseModel):
     user_name: str = ""
     address_as: str = "pane"
     language: str = "cs"
-    personality: Literal["jarvis", "friend", "brief", "custom"] = "jarvis"
+    personality: Literal["jarvis", "friday", "friend", "brief", "custom"] = "jarvis"
     custom_prompt: str = ""
     autostart: bool = True
     city: str = "Praha"
     update_url: str = "https://api.github.com/repos/adamekk778/JARViS2/releases/latest"
     auto_update: bool = True       # 3.12 a new version installs itself at night (2–6 h) while nobody uses the PC
+    update_channel: Literal["stable", "beta"] = "stable"   # 3.14 beta: test builds come first (návrh 13)
+    auto_rollback: bool = True     # 3.14 the check after an update finds the notch / voice broken → previous version (12)
     night_care: bool = True        # 3.12 Noční údržba: old temp files, disk health, waiting Windows updates (once a night)
     onboarded: bool = False        # 3.12 the first-run guide was finished or skipped
+    traits: dict[str, int] = Field(default_factory=lambda: {"humor": 1, "formal": 1, "brevity": 1})   # 3.14 0–2 each (29)
+    answer_style: Literal["auto", "brief", "normal", "detailed", "teacher"] = "auto"   # 3.20 (30) how answers are written
 
 
 class Brain(BaseModel):
@@ -78,10 +82,39 @@ class Brain(BaseModel):
     local_gpu_layers: int = -1     # OMEGA 574: layers on the graphics card (-1 = let Ollama decide)
     save_limits: bool = True       # 3.12 Šetřič limitů: background work (chat summaries) by the AI on this PC when its backup is on
     adaptive_local: bool = True    # OMEGA P15.10: local models step aside during games, on low battery, when RAM runs out
+    quick_preface: bool = True     # 3.14 a hard question asked aloud: one sentence at once from the quick model (23)
+    learn_corrections: bool = True  # 3.14 "ne, myslel jsem…" → a rule for next time (24)
+    verify_answers: bool = True    # 3.14 claims the read web pages do not support are marked under the answer (26)
+    second_opinion: bool = True    # 3.14 money / health / law / deleting: weigh it twice, ask other AIs (30)
+    private_local: bool = True     # 3.14 passwords, health, bank details → only the AI on this PC, when it runs (32)
+    only_primary: bool = False     # 3.14 "Jen tento mozek": only the brain you picked answers (no backup AIs)
+    split: bool = False            # 3.14 chytré rozdělení: easy questions → split_easy, hard tasks → split_hard
+    split_easy: str = ""           # a provider id (e.g. "ollama" – free, on this PC)
+    split_hard: str = ""           # a provider id (e.g. "anthropic" – the strongest)
+    # 3.16 nástroje v hlavě: the whole tool catalog for an AI with a big context and a prompt cache (auto = Claude,
+    # OpenAI, Gemini, DeepSeek, Mistral; on = every cloud AI; off = the small set + find_tools as before)
+    tool_catalog: Literal["auto", "on", "off"] = "auto"
+    # 3.16 místní reflexní model: a small Ollama model (e.g. qwen3:1.7b) decides clear commands before the big AI ("" = off)
+    reflex_model: str = ""
+    reflex_min_conf: float = 0.85
+    claude_cache_ttl: Literal["5m", "1h"] = "1h"   # 3.17 how long Claude keeps the instructions + catalog cached
+    cache_warm: bool = True                # 3.18 "Hey Jarvis" after a long pause writes Claude's cache again first
+    # 3.20 Mozek+ (nápady 21–40)
+    risk_depth: bool = True        # money, deleting, sending, health, law → thinks more deeply on its own
+    confidence: bool = True        # facts from the web end with "Jistota: NN % – proč"
+    honest: bool = True            # "nevím jistě" instead of making things up
+    post_check: bool = True        # after a task of 3+ steps a quick second look: does it match what was asked?
+    check_numbers: bool = True     # calculations in the answer are recomputed; a wrong one is corrected under it
+    screen_context: bool = True    # "co to je?", "oprav tohle" without an attachment → the active window goes with it
+    teach: bool = False            # režim učitele: explains how to do it yourself instead of doing it
+    night_hour: int = 2            # "udělej to v noci" → this hour, with the cheapest brain
+    quick_draft: bool = True       # chat: a hard question gets one quick sentence at once, the full answer after it
 
 
 class Voice(BaseModel):
     enabled: bool = True
+    dialects: bool = False         # 3.20 (477) Moravian and Slovak words help the speech recognition
+    auto_volume: bool = False      # 3.20 (475) louder in a noisy room, softer in a quiet one
     emotion: bool = False          # OMEGA P3.12: read the tone of voice (tired / tense / lively) – off unless you turn it on
     wake_word: bool = True
     wake_word_model: str = "hey_jarvis"
@@ -104,7 +137,16 @@ class Voice(BaseModel):
     tts_volume: str = "+0%"
     speak_mode: Literal["always", "voice", "never"] = "voice"
     silence_seconds: float = 0.6     # 3.13 the answer starts sooner after you stop talking (was 0.8)
-    silence_rev: int = 0
+    silence_rev: int = 1            # fresh configs are already migrated (a saved 0 would undo your own 0.8 s later)
+    smart_endpoint: bool = True     # 3.16 the words are written down at each pause; a finished sentence ends at once
+    low_latency: bool = False       # 3.16 ElevenLabs: the fastest model (Flash) – the first word sooner, a little less rich
+    stream_voice: bool = True       # 3.17 Edge / ElevenLabs: the first sentence plays while it is still being made
+    adaptive_pace: bool = True      # 3.17 the end-of-sentence wait follows your own pauses in the middle of sentences
+    live_partial: bool = True       # 3.17 the words appear while you speak (a tiny model when yours is slow; local only)
+    live_window: bool = True        # 3.18 the live text reads only the new audio each time (constant cost)
+    speculate: bool = True          # 3.17 at an unsure pause the AI starts on the words so far (used only if they stay)
+    backchannel: bool = False       # 3.16 a quiet "mhm" in a long live conversation pause (only with echo cancellation)
+    vocabulary: bool = True         # 3.16 your names, projects, rooms and apps go to the speech recognizer
     followup: bool = False          # after an answer, listen 6 s more without the wake word
     game_quiet: bool = True         # 3.13 Herní režim: while a game runs, announcements wait and come as one line afterwards
     output_device: str = ""         # speaker name; empty = Windows default
@@ -116,11 +158,41 @@ class Voice(BaseModel):
     barge_in: bool = True           # 3.13 start talking while JARVIS speaks → it stops and listens (needs echo_cancel)
     duck_media: bool = True         # turn other programs down while JARVIS listens or speaks
     duck_level: float = 0.3         # … to this share of their volume
+    adaptive_tone: bool = True      # 3.14 slower and quieter at night, livelier in the morning (44)
+    whisper_reply: bool = True      # 3.14 you whisper → JARVIS answers quietly (41)
+    pronounce: list["Replacement"] = Field(default_factory=list)   # 3.14 how to say names / abbreviations (43)
+    custom_wake: bool = False       # 3.14 your own wake word (recorded in Nastavení → Hlas), next to "Hey Jarvis" (37)
+    owner_only: bool = True         # 3.14 a voice profile of the owner exists → risky actions by voice only in that voice (38)
+    look_to_talk: bool = False      # 3.14 alone at the PC and looking at the screen → just talk, no wake word (camera, opt-in)
+    camera_index: int = 0           # 3.14 which camera (0 = the first one)
+    interpreter_out: str = ""       # 3.14 tlumočník: the virtual microphone device (e.g. "CABLE Input") for your translated voice
+    # 3.20 Hlas+ (nápady 1–20)
+    headphones_only: bool = False   # headphones connected → JARVIS speaks only into them, nothing to the house speakers
+    whisper_boost: bool = True      # a whispered command is levelled up before it is recognised
+    addressed_only: bool = True     # without the wake word, words for someone else ("Jano, …") are not answered
+    code_switch: bool = True        # English words in a Czech sentence come out English ("chill vibes", not "čil vajbs")
+    kids_voice: bool = True         # dětský režim: a gentler fairy-tale voice
+    confirm_tone: bool = False      # "Hotovo." and other plain confirmations as a short tone instead of words
+    length_rate: bool = True        # long answers are read a little faster
+    read_full_from: list[str] = Field(default_factory=list)   # names / addresses whose messages are read in full
+    short_shops: bool = True        # e-mails from shops and newsletters: just "přišel e-mail od …"
+
+
+class NotchWidget(BaseModel):
+    """3.14 a small tile in the notch: a read-only tool run every few minutes and its one-line answer (návrh 76)."""
+    id: str
+    name: str = "Widget"
+    icon: str = "squares-four"
+    tool: str = "weather"
+    args: dict[str, Any] = Field(default_factory=dict)
+    every_min: int = 15
 
 
 class Notch(BaseModel):
     enabled: bool = True
     music_viz: bool = True         # OMEGA P12.02: bars moving with the music while something plays
+    spectrum: bool = False         # 3.14 the bars from the real spectrum of what plays (loopback, 10× a second) (74)
+    widgets: list[NotchWidget] = Field(default_factory=list)   # 3.14 your own tiles in Více (76)
     follow_window: bool = True     # OMEGA 752: while JARVIS works in a window, the notch moves above it
     edge_play: bool = True         # OMEGA 247: when nothing happens for a while, Mochi plays along the screen edge
     monitor: int = 0
@@ -133,14 +205,26 @@ class Notch(BaseModel):
     close_delay_ms: int = 400
     linger_s: float = 6.0
     hide_in_fullscreen: bool = True
+    # 3.20 Vzhled+ (101–120)
+    wheel_volume: bool = True        # the mouse wheel over the notch changes the volume
+    urgent_red: bool = True          # only what really cannot wait turns the notch red
+    photo_frame: bool = True         # now and then a photo from the same day years ago
+    zen: bool = False                # the notch is invisible until JARVIS listens, speaks or something urgent comes
+    auto_size: bool = True           # the notch's size follows the monitor (ultrawide wider, a small notebook smaller)
+    all_monitors: bool = False       # a notch on every monitor; notices on the one you are working on
+    timeline: bool = True            # a thin line under the notch: how much of the day is left and where the meetings are
+    weather_scene: bool = True       # rain, snow or sun as a quiet animation in the notch
+    second_tz: str = ""              # a second clock ("Europe/London"); on a trip abroad it appears by itself
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
+    subs_speak: bool = False       # 3.14: …and the translation read aloud (the video is turned down meanwhile)
     lyrics: bool = True            # 3.12: song lyrics in the notch, the line being sung marked by a running bar (LRCLIB)
     lyrics_translate: bool = True  # 3.12: a small Czech translation under a foreign line (the AI, once per song)
+    lyrics_autosync: bool = True   # 3.14: the timing fitted to the singing by listening to the PC's sound once per song
     habit_ring: bool = False       # 3.12: today's habits as a small ring in the closed notch when nothing else is shown
-    habit_ring_rev: int = 0        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
+    habit_ring_rev: int = 2        # 3.12: the ring was on by default once – switched off (the idle notch shows the eyes)
     # 3.12: the island's colour – the song's cover while music plays, and with "song_wall" the wallpaper otherwise
     tint: Literal["song_wall", "song", "black"] = "song_wall"
-    tint_rev: int = 0
+    tint_rev: int = 1               # fresh configs are already migrated (else your own "song" turned back next start)
     focus_guard: bool = True       # 3.12: while you focus, the notch blinks when YouTube, Netflix, TikTok… come to the front
     native_region_anim: bool = False   # 3.12: JARVIS animates the window outline itself (experimental, off: hung in CI)
     pinned: bool = False   # big panel stays open (also after restart)
@@ -164,9 +248,29 @@ class Appearance(BaseModel):
     density: Literal["auto", "compact", "comfortable", "large"] = "auto"   # OMEGA 758: hustota a velikost rozhraní
     input_mode: Literal["auto", "mouse", "touch", "voice"] = "auto"      # OMEGA 522: ovládání myší / dotykem / hlasem
     captions: bool = False              # OMEGA 790: live captions of what JARVIS says and what it heard
+    seasonal: bool = True               # 3.20 (106) soft winter / spring / summer / autumn shades of the theme
+    custom_themes: list[dict] = Field(default_factory=list)   # 3.20 (107) your own themes (colours, font, speed, roundness)
+    active_theme: str = ""              # 3.20 (107) the name of the custom theme in use ("" = the built-in one)
+    startup_sound: bool = True          # 3.20 (120) a short sound when JARVIS starts (never at night)
+    taskbar_eq: bool = False            # 3.20 (113) music bars just above the taskbar while music plays
+    share_ring: bool = True             # 3.20 (118) a ring around the cursor while you share your screen
+    avatar3d: bool = False              # 3.20 (117) a 3D character in the corner instead of the notch
+    high_contrast: bool = False         # 3.14 stronger borders and text for weaker eyes (68)
+    dyslexia: bool = False              # 3.20 (468) a clearer font, wider letter and line spacing, no italics
+    colorblind: Literal["", "protan", "deutan", "tritan"] = ""   # 3.20 (469) status colours you can tell apart
+    simple: bool = False                # 3.20 (472) few big buttons and plain words (seniors)
+    keyboard_only: bool = False         # 3.20 (464) a strong focus ring everywhere and a "skip to the content" link
+    auto_dark: bool = False             # 3.20 (479) light by day, dark in the evening (by the sun)
+    switch_scan: int = 0                # 3.20 (474) one-switch control: ms per step (0 = off; Space = choose)
+    font_scale: float = 1.0             # 3.14 the whole interface larger (1.0–1.6) (68)
     gestures: bool = False              # OMEGA 188: hand gestures through the PC camera (off unless turned on; red dot while on)
+    gesture_fingers: bool = True        # 3.17 with the hand model downloaded: fingers (pinch, turn, fist) instead of hand motion
     accent: str = "#4f8dff"    # JARVIS blue (2.2); the 2.0 default cyan is migrated to it
     animations: Literal["full", "reduced", "auto"] = "full"   # auto = reduced on battery (OMEGA 240 / 764)
+    fx_quality: Literal["auto", "ultra", "high", "eco", "off"] = "auto"   # 3.15 effects: auto = by the graphics card, battery, fps
+    motif: Literal["vlastni", "stark", "mark", "friday", "stealth"] = "vlastni"   # 3.15 colour motifs for the whole app
+    desktop_fx: bool = True             # 3.15 effects over the desktop: scan, target reticle, volume display, "Vítejte zpět"
+    live_wallpaper: Literal["off", "reactor", "globe"] = "off"   # 3.15 the reactor / globe behind the desktop icons (Windows)
     sounds: bool = True        # subtle interface sounds in the notch
     sound_volume: int = 30     # 0–100
     spatial_sounds: bool = True   # OMEGA 102 / 761: sounds come from where things happen (phone right, notch centre…)
@@ -201,9 +305,12 @@ class Tools(BaseModel):
     always_confirm: list[str] = Field(default_factory=list)
     trusted: list[str] = Field(default_factory=list)
     full_trust: bool = False    # 3.13 Plná důvěra: PC actions without asking (see trust.py for what still asks)
+    sandbox_code: bool = True   # 3.14 run_python in a fenced process: no programs, no network, writes only in its folder (10)
+    sandbox_network: bool = False   # 3.14 …but with the network allowed
     computer_use: bool = True   # deprecated: migrated to permissions.input
     allowed_folders: list[str] = Field(default_factory=list)
     approved_skills: list[str] = Field(default_factory=list)   # skills allowed to load (spec §10)
+    trusted_publishers: list[str] = Field(default_factory=list)   # 3.14 fingerprints of skill authors you trust
     legacy_skills: list[str] = Field(default_factory=list)     # 2.0 skills: keep their full ctx (platform, store)
 
 
@@ -236,6 +343,8 @@ class Integrations(BaseModel):
     webhooks: list[Webhook] = Field(default_factory=list)
     peers: list[Peer] = Field(default_factory=list)
     image_provider: str = "pollinations"
+    obs_url: str = "ws://127.0.0.1:4455"   # 3.14 OBS Studio's WebSocket server (its password is in the keyring as "obs")
+    skill_catalogs: list[str] = Field(default_factory=list)   # 3.14 catalogs of skill packages (JSON lists on the web)
 
 
 class Device(BaseModel):
@@ -285,7 +394,8 @@ class CustomReaction(BaseModel):
 class Character(BaseModel):
     color: Literal["black", "midnight", "violet", "rose", "white", "blue", "orange", "green", "amber", "cyan"] = "black"
     glow: str = ""            # empty = JARVIS blue (#4f8dff)
-    outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] = "auto"
+    outfit: Literal["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap",
+                    "headphones", "graduate", "flower", "halo"] = "auto"   # 3.14 the last four unlock with Mochi's level
     size: Literal["S", "M", "L"] = "M"
     personality: Literal["vyvážený", "hravý", "klidný", "profesionální"] = "vyvážený"   # OMEGA 242: how lively he is
     ambient: bool = True      # OMEGA 739–741: accessories by weather and time of day, dimmer at night
@@ -308,6 +418,9 @@ class Snippet(BaseModel):
 class Replacement(BaseModel):
     src: str                  # what the recognizer writes
     dst: str                  # what you want instead
+
+
+Voice.model_rebuild()         # 3.14 Voice.pronounce uses Replacement, defined after it
 
 
 class Dictation(BaseModel):
@@ -390,6 +503,12 @@ class Stark(BaseModel):
     attention_aware: bool = True        # OMEGA 753: non-urgent notices wait during a meeting / full-screen app, then come as a summary
     layout_memory: bool = True          # OMEGA 31: keep the window layout, offer it back after a restart
     crash_help: bool = True             # OMEGA 32: a program crashed 3× today → offer to find out why
+    evening_review: bool = True         # 3.14 a short evening review: done, left, tomorrow, unprepared meetings (58, 59)
+    evening_time: str = "21:00"
+    leave_briefing: bool = True         # 3.14 leaving home with the phone: weather, next event, departures (60)
+    home_stop: str = ""                 # 3.14 your stop for the departures (Prague, Golemio key)
+    proactive_daily_max: int = 8        # 3.14 at most this many proactive notices a day (66); 0 = no limit
+    muted_kinds: list[str] = Field(default_factory=list)   # 3.14 kinds you kept ignoring – they stay quiet (64)
     hud_layout: Literal["full", "minimal", "focus", "presentation"] = "full"   # OMEGA 756: rozložení HUD
     protocols: list[Protocol] = Field(default_factory=_default_protocols)
 
@@ -467,6 +586,11 @@ class PhoneLinkCfg(BaseModel):
     twilio_sid: str = ""
     twilio_from: str = ""        # your Twilio number, +1…
     my_number: str = ""          # your mobile, +420…
+    # 3.14 AI sekretářka a volání za tebe (Twilio + a public HTTPS address for its webhooks)
+    secretary: bool = False      # forwarded calls you do not take → JARVIS answers, asks, sends you a summary
+    secretary_greeting: str = "" # own first sentence ("" = "Dobrý den, tady JARVIS. Jsem umělá inteligence…")
+    public_url: str = ""         # https://… where Twilio reaches this JARVIS (nonstop server / Cloudflare tunnel)
+    call_key: str = ""           # the secret part of the webhook address (made on first use)
 
 
 class LinkCfg(BaseModel):
@@ -479,6 +603,7 @@ class LinkCfg(BaseModel):
     enabled: bool = False
     port: int = 8766             # the encrypted (TLS) port on this PC
     upnp: bool = True            # ask the router to open the port (UPnP)
+    encrypt_home: bool = False   # 3.18 the phone uses the encrypted link at home too (not only when away)
     public_port: int = 0         # the port on the router (0 = the same as `port`)
     public_host: str = ""        # a name or address for the home (DDNS / a port forwarded by hand) – optional
     relay_host: str = ""         # your relay server (IP or name); its access key is in the keyring
@@ -494,7 +619,8 @@ class CalendarCfg(BaseModel):
 class AutoTrigger(BaseModel):
     """3.5 "Když …": what starts an automation."""
     type: Literal["time", "boot", "app_open", "app_close", "mail", "phone_message", "phone_call", "battery", "power",
-                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state", "phone_power", "phone_battery"] = "time"
+                  "away", "back", "zone_enter", "zone_leave", "webhook", "home_state", "phone_power", "phone_battery",
+                  "phrase"] = "time"      # 3.14 phrase: value = what you say ("jdu spát") → the steps run (návrh 48)
     value: str = ""    # time "07:30" · app "Spotify" · mail/phone sender · battery % · power "in"/"out" · away/back minutes
     #                    3.13 phone_power "in"/"out" (the phone on / off its charger) · phone_battery % (the phone runs low)
     text: str = ""     # …and the subject / message must contain this · home_state: the state ("on", "open") or "> 25" / "< 10"
@@ -509,6 +635,8 @@ class Automation(BaseModel):
     trigger: AutoTrigger = Field(default_factory=AutoTrigger)
     steps: list[ProtocolStep] = Field(default_factory=list)
     say: Literal["voice", "notch", "phone"] = "voice"   # 3.13 how it speaks up: aloud · only in the notch (quiet) · on the phone
+    once: bool = False   # 3.14 "připomeň mi, až…": removes itself after it fires once (61)
+    when: list[str] = Field(default_factory=list)   # 3.20 (76) and only if: "prší", "teplo>25", "víkend", "mezi 7:00-9:00"…
 
 
 def _default_automations() -> list[Automation]:
@@ -530,6 +658,94 @@ class AutomationsCfg(BaseModel):
 class HomeCfg(BaseModel):
     """3.5 smart home through Home Assistant (the long-lived access token is in the keyring)."""
     url: str = ""                   # http://homeassistant.local:8123
+    # 3.14 JARVIS v celém domě
+    speakers: list[str] = Field(default_factory=list)          # media_player entities for "the whole house"
+    room_speakers: dict[str, str] = Field(default_factory=dict)  # room name → media_player entity
+    tts_entity: str = ""            # Home Assistant's own TTS (tts.*) instead of JARVIS's voice (empty = JARVIS's voice)
+    person_entity: str = ""         # person.* in Home Assistant for home / away (empty = by your phone on the Wi-Fi)
+    welcome: bool = True            # back home after a while → "Vítejte doma, pane…"
+    welcome_protocol: bool = True   # …and the "Vítej doma" protocol
+    follow_me: bool = True          # spoken notices go where you are (a room with a satellite)
+    satellite_key: str = ""         # the secret part of the address for Home Assistant voice satellites (made on first use)
+    nodes: list[dict] = Field(default_factory=list)           # 3.14 other JARVIS PCs: {name, url, token, mac}
+    sound_watch: Literal["off", "away", "always"] = "off"   # 3.14 smoke alarm / a crash heard by the PC's microphone → phone
+    frigate_url: str = ""           # 3.14 Frigate NVR (person detection on the house cameras), e.g. http://frigate.local:5000
+    camera_zones: list[str] = Field(default_factory=list)    # Frigate zones watched also by day (e.g. "vchod", "zahrada")
+    doorbell_entity: str = ""       # binary_sensor of the doorbell in Home Assistant
+    door_camera: str = ""           # camera.* at the door (its picture comes with "Někdo zvoní")
+    car: dict[str, str] = Field(default_factory=dict)        # 3.14 the car's entities: battery, fuel, range, location, lock,
+                                                             # climate, charging, odometer (+ name); found by car_setup
+    travel_buffer_min: int = 120    # 3.14 be at the airport this long before a flight (a train: 10 minutes)
+    vacuum_rooms: dict[str, list[int]] = Field(default_factory=dict)   # 3.14 room → the vacuum's segment numbers (Roborock…)
+
+
+# 3.19 základní sazby zahraničního stravného 2026 (vyhláška č. 489/2025 Sb., příloha) for the most common countries
+PER_DIEM_ABROAD_2026: dict[str, float] = {
+    "DE": 50, "AT": 45, "SK": 40, "PL": 50, "HU": 50, "IT": 55, "FR": 50, "ES": 50, "HR": 50, "GB": 45, "US": 70, "NL": 50,
+    "BE": 50, "CH": 75, "PT": 45, "GR": 40, "SI": 40, "DK": 65, "SE": 65, "IE": 55}
+PER_DIEM_ABROAD_CUR_2026: dict[str, str] = {c: "EUR" for c in PER_DIEM_ABROAD_2026} | {"GB": "GBP", "US": "USD", "CH": "CHF"}
+
+
+class Companion(BaseModel):
+    """3.19 someone you travel with (their details stay on this PC, like yours)."""
+    first_name: str = ""
+    last_name: str = ""
+    born_on: str = ""                      # YYYY-MM-DD (flights; a child's age for hotels)
+    title: Literal["mr", "ms", "mrs", "miss", "dr"] = "mr"
+    gender: Literal["m", "f"] = "m"
+    relation: str = ""                     # partner, dítě, kolega… (only for you)
+
+
+class BookingCfg(BaseModel):
+    """3.18 Cesty a rezervace: hotels and flights by your description, booked and paid only after your confirmation.
+    The keys are in the keyring (Propojení → LiteAPI / Duffel); the traveller's details stay on this PC."""
+    provider: Literal["auto", "liteapi", "duffel", "browser"] = "auto"
+    currency: str = "CZK"
+    nationality: str = "CZ"
+    max_per_booking: float = 15000.0       # Kč; a booking above it is refused
+    monthly_budget: float = 0.0            # Kč per month for trips (0 = no budget)
+    prefer_free_cancel: bool = True        # rates you can cancel for free first
+    prefer_pay_at_hotel: bool = True       # …and those paid only at the hotel
+    liteapi_payment: Literal["ACC_CREDIT_CARD", "WALLET"] = "ACC_CREDIT_CARD"   # the card in your LiteAPI account / its wallet
+    first_name: str = ""
+    last_name: str = ""
+    email: str = ""
+    phone: str = ""                        # +420…
+    born_on: str = ""                      # YYYY-MM-DD (flights)
+    title: Literal["mr", "ms", "mrs", "miss", "dr"] = "mr"
+    gender: Literal["m", "f"] = "m"
+    passport_until: str = ""               # YYYY-MM-DD: warns when it runs out too soon for a trip
+    reminders: bool = True                 # free cancellation ends, check-in, weather, packing
+    price_watch: bool = True               # a booked hotel that you can cancel for free got cheaper → tell me
+    companions: list[Companion] = Field(default_factory=list)       # 3.19 who you travel with
+    # stravné 2026: tuzemsko vyhl. 573/2025 Sb. (soukromá sféra, minimum), zahraničí vyhl. 489/2025 Sb. – a decree
+    # changes them every year, keep them current (Cesty → Údaje a limity)
+    per_diem_cz: list[float] = Field(default_factory=lambda: [155.0, 236.0, 370.0])   # Kč: 5–12 h, 12–18 h, nad 18 h
+    per_diem_abroad: dict[str, float] = Field(default_factory=lambda: dict(PER_DIEM_ABROAD_2026))  # země → základní sazba
+    per_diem_abroad_currency: dict[str, str] = Field(default_factory=lambda: dict(PER_DIEM_ABROAD_CUR_2026))
+    entry_warnings: bool = True            # passport / visa / ETA for the destination when searching
+
+
+class WorkshopCfg(BaseModel):
+    """3.15 Dílna: the 3D printer and the failed-print watch (the printer's API key is in the keyring as "printer")."""
+    printer: Literal["off", "octoprint", "moonraker", "bambu_ha", "bambu_lan"] = "off"
+    printer_url: str = ""           # http://octopi.local, http://mainsail.local:7125; Bambu napřímo: the printer's IP
+    printer_name: str = "Tiskárna"
+    ha_prefix: str = ""             # Bambu in Home Assistant: the entities' prefix (empty = the first printer found)
+    camera_url: str = ""            # a snapshot URL (empty = the printer's own camera)
+    watch: bool = True              # look at a running print with the AI every few minutes
+    watch_every_min: int = 3
+    on_failure: Literal["pause", "notify"] = "pause"
+    slicer_profile: str = ""        # PrusaSlicer .ini of your printer (STL → G-code before printing)
+    bambu_serial: str = ""          # 3.17 Bambu napřímo: the serial number (Settings on the printer → Device); code in keyring
+    bambu_model: Literal["auto", "x1", "p1", "a1"] = "auto"   # the camera: P1 / A1 directly, X1 through the camera URL
+    bambu_ams: bool = False         # print with the AMS (multi-colour) when a .3mf is sent
+    bambu_pin: str = ""             # the printer certificate's SHA-256, remembered at the first connection (clear = re-pair)
+    orca_settings: str = ""         # 3.18 STL → Bambu: OrcaSlicer / Bambu Studio printer + process profile (.json;.json)
+    orca_filament: str = ""         # …and the filament profile (.json)
+    bed_mm: list[float] = Field(default_factory=list)   # the bed (x, y, z mm); empty = by the printer model
+    timelapse: bool = True          # 3.18 a picture every couple of minutes → a time-lapse video when the print is done
+    timelapse_every_min: int = 2
 
 
 class LimitsCfg(BaseModel):
@@ -537,26 +753,278 @@ class LimitsCfg(BaseModel):
     read_only: bool = False            # nothing that changes the PC, files, accounts or the home (only looking/reading)
     ai_daily_tokens: int = 0           # 0 = no limit; an estimate (characters / 4) across all providers
     ai_daily_cost: float = 0.0         # 0 = no limit; in `currency`, from the prices below
+    claude_daily_usd: float = 0.0      # 3.14 Claude only: USD a day by its own price list (0 = no limit); over it → other AIs
     currency: str = "Kč"
     prices: dict[str, float] = Field(default_factory=dict)   # provider id → price per 1 million tokens
     mission_max_actions: int = 60      # one mission may call at most this many tools …
     mission_max_minutes: int = 30      # … and run at most this long
+    mission_max_cost: float = 0.0      # 3.14 … and cost at most this much on paid AI keys (in `currency`; 0 = no limit)
     double_confirm: bool = True        # the most dangerous actions ask twice
     app_allowlist: list[str] = Field(default_factory=list)   # mouse/keyboard only in these apps (empty = any)
     project_isolation: bool = False    # OMEGA 688: while a project with a folder is active, file tools stay inside it
     project_perms: dict[str, list[str]] = Field(default_factory=dict)   # OMEGA 180: project name → permission areas allowed in it
+    ai_czk_game: float = 0.0           # 3.20 (35) cloud AI a day while playing (Kč, 0 = no limit); over it → the AI on this PC
+    ai_czk_work: float = 0.0           # … while working
+    ai_czk_other: float = 0.0          # … otherwise
 
 
 class PrivacyCfg(BaseModel):
     private_mode: bool = False         # nothing new is written to the history or memory
+    guest_mode: bool = False           # 3.14 someone else at the PC: nothing private in answers, notices, aloud (109)
+    kids_mode: bool = False            # 3.14 a child at the PC: kind language, no shopping / locks / deleting / installing (41)
+    guard_photo: bool = False          # 3.14 Hlídat PC: a webcam photo of whoever uses the PC while you are away (38)
+    emergency_contacts: list[dict] = Field(default_factory=list)   # 3.14 [{name, phone}] for the emergency protocol (39)
+    security_weekly: bool = True       # 3.14 the weekly security briefing (Sunday evening) (40)
     keep_days: int = 0                 # older conversations, missions and logs are deleted (0 = keep)
     mask_screens: bool = True          # OMEGA 285: password managers / banking windows blacked out before a screenshot goes to an AI
     mask_patterns: list[str] = Field(default_factory=list)   # own words to mask (empty = the built-in list)
+    life_log: bool = False             # 3.14 Paměť života: an encrypted, local diary of your days at the PC (53) – only on your yes
+    life_log_days: int = 90            # …kept this many days
+    share_stats: bool = False          # 3.14 návrh 117: anonymous weekly statistics – only when switched on
+    stats_url: str = ""                # where they go (HTTPS); empty = nothing is ever sent
+
+
+class HealthCfg(BaseModel):
+    """3.14 Zdraví jako ve filmu (42–44): the watch's numbers in the morning, care while you sit at the PC."""
+    morning: bool = True               # "Stav systémů" (sleep, resting heart rate) in the morning briefing
+    water_minutes: int = 0             # a glass of water every N minutes at the PC (0 = off)
+    long_day_h: float = 10.0           # one notice after this many hours at the PC in a day (0 = off)
+    bedtime: str = ""                  # "23:30": after this, while you still sit at the PC, a nudge to bed ("" = off)
+    posture: bool = False              # posture from the webcam every 2 minutes (leaning in, slumped); only on your yes
+
+
+class PcCfg(BaseModel):
+    """3.20 Ovládání PC+ (81–100)."""
+    auto_restore: bool = True          # a restore point before a big change of the system (at most one a day)
+    keyboard_by_app: dict[str, str] = Field(default_factory=dict)   # app → keyboard language ("Code": "en", "Telegram": "cs")
+    monitor_profiles: dict[str, str] = Field(default_factory=dict)  # the monitors connected → the saved layout to load
+
+
+class DayCfg(BaseModel):
+    """3.20 Proaktivita+ (61–80): what JARVIS watches over the day by itself (each can be switched off)."""
+    laundry: bool = True               # a good day for drying the washing outside
+    deadlines: bool = True             # STK, insurance, passport, invoices – a week and a day before
+    dates: bool = True                 # birthdays and anniversaries (with a gift tip)
+    holidays: bool = True              # the day before a public holiday: what will be closed
+    seasonal: bool = True              # tyres, gutters, the tax return, the boiler… on Saturday mornings in season
+    friends: bool = True               # "you have not talked to Petr for 3 months" (only people you pick)
+    weekend_forecast: bool = True      # Thursday evening: the weekend's weather and a trip tip
+    month_close: bool = True           # the last day of the month: invoices, reports, subscriptions
+    week_plan: bool = True             # Sunday evening: a plan for the week
+    diary_time: str = "21:30"          # the evening diary question ("" = off)
+    workday_end: str = ""              # "17:00" → the end-of-work routine on working days ("" = off)
+    work_apps: list[str] = Field(default_factory=list)   # closed by the end-of-work routine
+    meeting_prep_min: int = 30         # a summary this many minutes before a meeting (0 = off)
+    game_break_min: int = 120          # a gentle break reminder after this long in a game
+    vacation_until: str = ""           # "YYYY-MM-DD": on holiday until then (the morning summary changes)
+
+
+class MobxCfg(BaseModel):
+    """3.20 Telefon + Hodinky (121–160): what the phone and the watch do with JARVIS (each can be switched off)."""
+    watch_vibes: bool = True           # notices as vibration codes on the wrist when you are away from the PC
+    name_mentions: bool = True         # a group message names you → three quick taps
+    forgotten_phone: bool = True       # the watch is out, the phone still at home → "Telefon zůstal doma"
+    drive_mode: bool = True            # the phone joins the car's Bluetooth → short spoken answers, nothing to read
+    car_names: list[str] = Field(default_factory=list)   # your car's Bluetooth names ("" = guess from the usual ones)
+    quiet_sleep: str = ""              # "23:00-07:00" → the phone's Do Not Disturb at night ("" = off)
+    quiet_meetings: bool = False       # Do Not Disturb during calendar meetings
+    lock_status: bool = False          # a quiet notification on the lock screen: the next meeting + PC volume buttons
+    roaming_info: bool = True          # another country → roaming, currency, plugs, the emergency number
+    home_country: str = "cz"
+    data_limit_gb: float = 0           # mobile data per month (0 = no warnings)
+    charge_limit: int = 80             # "nabito na 80 %" (0 = off)
+    charger_plug: str = ""             # Home Assistant switch of the phone charger (switch.nabijecka) – optional
+    cheap_charging: bool = True        # with the plug: an evening charge waits for the cheapest hour
+    call_notes: bool = True            # after a call: "Chceš si k hovoru něco poznamenat?"
+    my_names: list[str] = Field(default_factory=list)    # short forms of your name for the mention taps
+
+
+class HomeXCfg(BaseModel):
+    """3.20 Domácnost+ (161–180): what JARVIS watches in the house through Home Assistant (each can be switched off)."""
+    window_climate: dict[str, str] = Field(default_factory=dict)   # window sensor → its room's climate (guessed by name when empty)
+    forgotten_watts: float = 60          # a plug drawing more than this for 30 min while nobody is home → a notice
+    co2_max: int = 1200                  # ppm → "vyvětrej"
+    night_light: str = ""                # "23:00-06:00" → motion at night turns its room's light on dimmed ("" = off)
+    night_brightness: int = 8
+    simulate: bool = True                # on holiday and away: lights on and off in the evening like someone is home
+    simulate_lights: list[str] = Field(default_factory=list)
+    solar_entity: str = ""               # the PV surplus / export sensor (W)
+    solar_watts: float = 1500            # this much surplus for 10 minutes → solar_loads switch on (once a day)
+    solar_loads: list[str] = Field(default_factory=list)
+    watering_entity: str = ""            # the garden valve / pump switch
+    watering_time: str = "06:00"
+    watering_minutes: int = 15
+    vacuum_days: list[int] = Field(default_factory=list)   # 0 = Monday … (empty = never by itself)
+    privacy_cameras: list[str] = Field(default_factory=list)  # switches that turn indoor cameras off while you are home
+    lock_camera: str = ""                # camera.* that sees the lock ("" = the door camera)
+    door_speaker: str = ""               # a room of Domov → reproduktory for the answer at the doorbell ("" = "dveře")
+    profiles: dict[str, dict] = Field(default_factory=dict)  # person → {lights: {entity: %}, climate: {entity: °C}, scenes: []}
+    matter_url: str = ""                 # python-matter-server ("" = ws://localhost:5580/ws)
+    floorplan: str = ""                  # a picture of the floor plan for the house map (URL or /api/files/…)
+    map_positions: dict[str, list[float]] = Field(default_factory=dict)  # entity → [x %, y %] on the floor plan
+
+
+class SecXCfg(BaseModel):
+    """3.20 Bezpečnost+ (181–200)."""
+    scam_check: bool = True              # a message that looks like a scam → a warning on the phone
+    family_devices: list[str] = Field(default_factory=list)   # paired phones of parents / kids (their scam warnings come to you)
+    stranger_lock: bool = False          # someone unknown at the PC (webcam, only while typing) → lock the screen
+    owners: list[str] = Field(default_factory=list)            # whose faces count as yours ("" = your first name)
+    second_ai: bool = False              # another model gives its view on every dangerous step before you approve
+    second_ai_provider: str = ""         # which brain (a provider id) – a different one than usual is best
+    media_alert: bool = True             # an app starts using the camera / the microphone → a quiet notice
+    scan_downloads: bool = True          # a new file in Downloads → checked (type, signature, Defender)
+    downloads_folder: str = ""
+    time_locks: list[dict] = Field(default_factory=list)   # [{"what": "money", "from": "23:00", "to": "06:00", "days": [0..6]}]
+    yubikey_required: bool = False       # dangerous steps approved only with a touch of your YubiKey (Yubico OTP)
+    yubikey_id: str = ""                 # the first 12 characters of your key's codes
+
+
+class MoneyXCfg(BaseModel):
+    """3.20 Peníze+ (201–220)."""
+    my_account: str = ""                 # your account (123456789/0800 or an IBAN) for QR payments when you split a bill
+    gift_budget: float = 0               # the Christmas (or another season's) gift budget
+    gift_season: str = ""                # e.g. "Vánoce 2026"
+
+
+class TripXCfg(BaseModel):
+    """3.20 Cesty+ (221–240)."""
+    closure_feeds: list[str] = Field(default_factory=list)    # pages / feeds of your operators with closure notices
+    closure_lines: list[str] = Field(default_factory=list)    # your lines and stations ("S7", "R9", "Beroun")
+    gbfs_feeds: list[str] = Field(default_factory=list)       # GBFS auto-discovery URLs of shared bikes / scooters in your city
+    allergies: list[str] = Field(default_factory=list)        # for menu translations
+
+
+class CarXCfg(BaseModel):
+    """3.20 Auto+ (401–420)."""
+    tyres: str = ""                      # "zimní" / "letní" – what is on the car now
+    service_km: int = 15000
+    service_months: int = 12
+    cabin_temp_entity: str = ""          # a temperature sensor in the car (Home Assistant)
+    occupied_entity: str = ""            # an input_boolean you switch on when a pet / child stays in the car
+    battery_kwh: float = 0               # an electric car's battery
+    ev_range_km: float = 0
+    commute_from: str = ""               # "50.08,14.42" – the morning traffic check (TomTom key needed)
+    commute_to: str = ""
+    commute_time: str = "07:15"
+
+
+class HealthXCfg(BaseModel):
+    """3.20 Zdraví+ (241–260). Not a medical device."""
+    water_goal: int = 8                  # glasses a day (the notch's glass fills up)
+    eyes_202020: bool = True             # every 20 minutes at the screen: look 20 s into the distance (a quiet hint)
+    warm_screen: bool = False            # a warmer screen in the evening (Windows gamma)
+    warm_from: str = "21:00"
+    detox_apps: list[str] = Field(default_factory=list)   # closed in the evening (only the ones you list)
+    detox_from: str = "22:00"
+    pollen: list[str] = Field(default_factory=list)       # your allergens: bříza, trávy, pelyněk, ambrózie, olše…
+    blood_type: str = ""                 # for the emergency card on the phone's lock screen
+    allergies: list[str] = Field(default_factory=list)
+    ice_contact: str = ""                # "Jana (manželka) +420 …"
+
+
+class LearnXCfg(BaseModel):
+    """3.20 Učení+ (361–380)."""
+    word_of_day: str = ""                # "en" / "de" → a word every morning ("" = off)
+    fact_topic: str = ""                 # "vesmír" → a fact of the day in the evening ("" = off)
+
+
+class FamilyXCfg(BaseModel):
+    """3.20 Rodina+ (381–400)."""
+    kid_rules: dict = Field(default_factory=dict)        # {"school_from": "15:00", "bed": "20:30", "daily_min": 90}
+
+
+class WorkXCfg(BaseModel):
+    """3.20 Práce+ (261–280)."""
+    projects: dict[str, list[str]] = Field(default_factory=dict)   # project → words in the window / app ("Alfa": ["alfa", "Figma"])
+
+
+class BizXCfg(BaseModel):
+    """3.20 Firma+ (281–300)."""
+    feeds: list[str] = Field(default_factory=list)        # RSS of tenders, law changes, grant calls
+    feed_words: list[str] = Field(default_factory=list)   # your field ("tisk", "3D", "elektro")
+    region: str = ""
+    my_name: str = ""                    # your company for contract templates
+    my_ico: str = ""
+    my_address: str = ""
+
+
+class DevXCfg(BaseModel):
+    """3.20 Programování+ (301–320)."""
+    ci_repos: list[str] = Field(default_factory=list)     # "owner/repo" whose GitHub Actions JARVIS watches (token: the GitHub connector)
+    project_license: str = "MIT"         # your projects' licence for the licence check
+
+
+class ShopXCfg(BaseModel):
+    """3.20 Dílna+ (321–340)."""
+    kwh_price: float = 6.0               # Kč per kWh for print costs
+    printer_watts: float = 120
+    wear_per_hour: float = 2.0           # Kč per printing hour (nozzle, belts, plate)
+    filament_price: float = 500          # Kč per kg when the spool has no price
+    spool_low_g: float = 150
+    parts_dirs: list[str] = Field(default_factory=list)   # folders with your models (STL, 3MF, STEP…)
+    printers: list[dict] = Field(default_factory=list)    # [{name, materials: ["PLA", "PETG"], bed: [256, 256, 256]}]
+    iron_plug: str = ""                  # the soldering iron's smart plug (switch.*)
+    iron_minutes: int = 45               # on this long with nobody in the workshop → a warning, 5 min later off
+    workshop_motion: str = ""            # binary_sensor.* in the workshop
+    workshop_temp: str = ""              # sensor.* temperature
+    workshop_humidity: str = ""          # sensor.* humidity
+    lend_days: int = 30                  # a lent thing → a reminder after this many days
+
+
+class FunXCfg(BaseModel):
+    """3.20 Zábava+ (341–360)."""
+    play_limits: dict[str, int] = Field(default_factory=dict)   # kid → minutes of play a day
+    services: list[str] = Field(default_factory=list)          # your streaming services (netflix, hbo, disney, prime, skyshowtime, voyo…)
+    steam_dir: str = ""                  # "" = the usual place
+    epic_dir: str = ""
+    music_dirs: list[str] = Field(default_factory=list)        # your music for the quiz
+    favorite_artists: list[str] = Field(default_factory=list)  # for concerts (empty = from what you play)
+    sound_pack: str = ""                 # krystal / marimba / scifi / klid ("" = the built-in sounds)
+
+
+class LinkXCfg(BaseModel):
+    """3.20 Propojení+ (421–440)."""
+    region: str = ""                     # kraj / okres / ORP for ČHMÚ warnings ("" = the whole country)
+    chmu_url: str = ""                   # "" = ČHMÚ's current CAP document
+    rss: list[str] = Field(default_factory=list)
+    youtube: list[str] = Field(default_factory=list)   # channel IDs (UC…) or playlist links
+    nextcloud_calendar: str = "personal"
+    watch_isds: bool = False             # check the data box for new messages twice a day (list only)
+    obsidian_vault: str = ""             # the vault folder
+    calendar_sync: bool = False          # JARVIS calendar ↔ Google Calendar every 15 minutes
+    list_sync: dict[str, str] = Field(default_factory=dict)   # JARVIS list → "todoist:Projekt" or "mstodo:Seznam"
+
+
+class ReliaXCfg(BaseModel):
+    """3.20 Spolehlivost+ (441–460)."""
+    ups: bool = False                    # this PC is on a UPS (Windows shows it as a battery) – watch power cuts
+    ups_shutdown_pct: int = 0            # shut down when the UPS has this many % left (0 = never by itself)
+    ups_shutdown_minutes: int = 0        # … or after this many minutes on battery (0 = never)
+    hotspot_ssid: str = ""               # your phone's hotspot (a saved Wi-Fi profile): internet down → connect to it
+    voice_check: str = ""                # "07:30" = a voice check every morning while you are away ("" = off)
+    model_evals: bool = False            # a new AI model → 10 test questions and a comparison (costs a few cents)
+
+
+class AccessXCfg(BaseModel):
+    """3.20 Přístupnost+ (461–480)."""
+    flash_lights: list[str] = Field(default_factory=list)   # light.* that blink at the doorbell, an alarm or an urgent notice
+    allergies: list[str] = Field(default_factory=list)      # label reading warns about these
+
+
+class CommunityXCfg(BaseModel):
+    """3.20 Komunita+ (481–500)."""
+    cloud_url: str = ""                  # WebDAV folder for the encrypted backup (Nextcloud: …/remote.php/dav/files/<you>/JARVIS)
+    cloud_backup_day: int = -1           # 0 = Monday … 6 = Sunday, -1 = off (at 2:30 at night)
+    policy_source: str = ""              # company policy: a JSON file on a share or a URL (IT manages it)
 
 
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
+    reflexes: bool = True  # 3.16 the same words that went well twice with the same harmless action: done at once, no AI
+    prefetch: bool = True  # 3.16 the weather, today's calendar and the news fetched ahead while you are at the PC
+    plan_first: bool = False  # 3.20 (29) a big task: the plan first, the work only after you approve it
 
 
 class Permissions(BaseModel):
@@ -597,9 +1065,32 @@ class Config(BaseModel):
     multitask: MultitaskCfg = Field(default_factory=MultitaskCfg)
     link: LinkCfg = Field(default_factory=LinkCfg)
     automations: AutomationsCfg = Field(default_factory=AutomationsCfg)
+    workshop: WorkshopCfg = Field(default_factory=WorkshopCfg)
+    booking: BookingCfg = Field(default_factory=BookingCfg)
     home: HomeCfg = Field(default_factory=HomeCfg)
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
+    health: HealthCfg = Field(default_factory=HealthCfg)
+    day: DayCfg = Field(default_factory=DayCfg)
+    pc: PcCfg = Field(default_factory=PcCfg)
+    mobx: MobxCfg = Field(default_factory=MobxCfg)
+    homex: HomeXCfg = Field(default_factory=HomeXCfg)
+    secx: SecXCfg = Field(default_factory=SecXCfg)
+    moneyx: MoneyXCfg = Field(default_factory=MoneyXCfg)
+    tripx: TripXCfg = Field(default_factory=TripXCfg)
+    carx: CarXCfg = Field(default_factory=CarXCfg)
+    healthx: HealthXCfg = Field(default_factory=HealthXCfg)
+    learnx: LearnXCfg = Field(default_factory=LearnXCfg)
+    familyx: FamilyXCfg = Field(default_factory=FamilyXCfg)
+    workx: WorkXCfg = Field(default_factory=WorkXCfg)
+    bizx: BizXCfg = Field(default_factory=BizXCfg)
+    devx: DevXCfg = Field(default_factory=DevXCfg)
+    shopx: ShopXCfg = Field(default_factory=ShopXCfg)
+    funx: FunXCfg = Field(default_factory=FunXCfg)
+    linkx: LinkXCfg = Field(default_factory=LinkXCfg)
+    reliax: ReliaXCfg = Field(default_factory=ReliaXCfg)
+    accessx: AccessXCfg = Field(default_factory=AccessXCfg)
+    communityx: CommunityXCfg = Field(default_factory=CommunityXCfg)
 
     @model_validator(mode="before")
     @classmethod
@@ -670,7 +1161,8 @@ SETTABLE_BY_VOICE: set[str] = {
     "voice.wake_word", "voice.tts_voice", "voice.tts_rate", "voice.tts_pitch", "voice.tts_volume",
     "voice.speak_mode", "voice.stt_language", "voice.followup", "voice.game_quiet", "voice.barge_in", "notch.music_viz", "notch.follow_window", "notch.edge_play", "powers.download_watch",
     "notch.enabled", "notch.tiles", "notch.hide_in_fullscreen", "notch.open_on", "appearance.density", "appearance.input_mode", "stark.hud_layout",
-    "appearance.theme", "appearance.accent", "appearance.animations",
+    "appearance.dyslexia", "appearance.colorblind", "appearance.simple", "appearance.keyboard_only", "appearance.auto_dark", "voice.auto_volume",
+    "appearance.theme", "appearance.accent", "appearance.animations", "appearance.fx_quality", "appearance.motif", "appearance.desktop_fx", "appearance.live_wallpaper",
     "character.color", "character.glow", "character.size", "character.outfit", "character.personality", "character.ambient",
     "agent.mode",
     "dictation.enabled", "dictation.cleanup",
@@ -678,14 +1170,16 @@ SETTABLE_BY_VOICE: set[str] = {
     "stark.guardian", "stark.guardian_speak", "stark.network_watch", "stark.hardware_watch", "stark.perf_history", "stark.smart_quiet", "stark.attention_aware", "appearance.captions", "appearance.spatial_sounds", "automations.enabled",
     "privacy.private_mode",
     "powers.clipboard_history", "powers.screen_time", "powers.break_minutes",
+    "health.morning", "health.water_minutes", "health.long_day_h", "health.bedtime", "health.posture",
     "phone_link.announce", "phone_link.speak", "phone_link.notch_events", "games.tips", "games.tips_every", "games.boost", "games.stats",
     "world.enabled", "world.topics", "world.interests", "world.every_min", "world.digest", "world.in_answers",
     "multitask.parallel", "multitask.watch_every_s",
+    "workshop.watch", "workshop.watch_every_min", "workshop.on_failure", "agent.reflexes", "brain.tool_catalog",
     "mail.notify", "mail.speak", "mail.ignore_newsletters", "mail.vip", "mail.call_vip", "calendar.remind_minutes",
 }
 
 # Never sent to remote clients.
-SECRET_KEYS = {("phone", "token"), ("link", "room")}
+SECRET_KEYS = {("phone", "token"), ("link", "room"), ("home", "satellite_key"), ("phone_link", "call_key")}
 
 
 def config_path():
@@ -743,8 +1237,13 @@ def dotted_to_patch(key: str, value: Any) -> dict:
     return out
 
 
-def public_dump(cfg: Config) -> dict:
+# 3.18 the traveller's details (for bookings) stay on this PC: not sent to the phone or another device
+PC_ONLY_KEYS = [("booking", k) for k in ("first_name", "last_name", "email", "phone", "born_on", "passport_until", "gender", "title",
+                                         "companions")]
+
+
+def public_dump(cfg: Config, local: bool = True) -> dict:
     data = cfg.model_dump(mode="json")
-    for sec, key in SECRET_KEYS:
+    for sec, key in [*SECRET_KEYS, *([] if local else PC_ONLY_KEYS)]:
         data.get(sec, {}).pop(key, None)
     return data

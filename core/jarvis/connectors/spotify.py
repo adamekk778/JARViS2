@@ -14,7 +14,8 @@ from . import http, need, register, skey, value
 
 AUTH = "https://accounts.spotify.com/authorize"
 TOKEN = "https://accounts.spotify.com/api/token"
-SCOPES = "user-read-currently-playing user-read-playback-state"
+SCOPES = ("user-read-currently-playing user-read-playback-state user-modify-playback-state playlist-read-private "
+          "user-library-modify")   # 3.20 (425): control and playlists too – sign in again once after the update
 _PENDING: dict[str, dict] = {}
 _ACCESS: dict[str, Any] = {"token": "", "until": 0.0}
 

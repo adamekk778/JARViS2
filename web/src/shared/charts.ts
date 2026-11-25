@@ -48,7 +48,7 @@ export function lineChart(series: Series[], opts: { height?: number; max?: numbe
       d += `${pen ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`;
       pen = true;
     }
-    if (d) svg.append(s("path", { d, fill: "none", stroke: se.color, "stroke-width": 1.8, "vector-effect": "non-scaling-stroke" }));
+    if (d) svg.append(s("path", { d, fill: "none", stroke: se.color, "stroke-width": 1.8, "vector-effect": "non-scaling-stroke", pathLength: 1, class: "chart-line" }));
   }
   const cursor = s("line", { y1: T, y2: H - B, class: "chart-cursor", visibility: "hidden" });
   svg.append(cursor);

@@ -342,6 +342,11 @@ async def subscriptions_overview(ctx, months: int = 14) -> ToolResult:
     except Exception as e:  # noqa: BLE001
         return ToolResult(False, f"E-mail nejde přečíst: {str(e)[:150]}")
     r = bp.subscriptions(msgs)
+    try:                                         # 3.19 for Peníze → přehled (the last count, not the e-mails)
+        ctx.db.exec("INSERT OR REPLACE INTO kv (k, v) VALUES ('subs_monthly', ?)", (json.dumps(
+            {"monthly_czk": r["monthly_czk"], "count": len(r["subscriptions"]), "ts": time.time()}),))
+    except Exception:  # noqa: BLE001
+        pass
     if not r["subscriptions"]:
         return ToolResult(True, f"V {len(msgs)} e-mailech s platbami jsem žádné pravidelné předplatné nenašel.", data=r)
     msg = f"Asi {r['monthly_czk']} Kč měsíčně ({r['yearly_czk']} Kč ročně): " + "; ".join(

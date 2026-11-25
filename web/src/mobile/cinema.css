@@ -1,0 +1,32 @@
+/* 3.15 the opening, the SOS screen */
+.m-splash { position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 22px;
+  background: radial-gradient(70% 60% at 50% 45%, #0b1d30, #02060b 75%); transition: opacity .45s; }
+.m-splash.out { opacity: 0; pointer-events: none; }
+.m-splash strong { font: 700 18px/1 "Orbitron Variable", system-ui, sans-serif; letter-spacing: .45em; color: #cdefff; text-shadow: 0 0 16px #4fc3ff;
+  animation: msText .9s ease .35s both; }
+.ms-core { position: relative; width: 150px; height: 150px; }
+.ms-core i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8fe3ff; border-left-color: transparent; border-bottom-color: transparent;
+  animation: msSpin 1.6s linear infinite, msIn .7s cubic-bezier(.2, .9, .2, 1) both; }
+.ms-core i:nth-child(2) { inset: 16px; animation-direction: reverse, normal; animation-duration: 1.1s, .7s; animation-delay: 0s, .1s; }
+.ms-core i:nth-child(3) { inset: 32px; border-style: dashed; animation-duration: 2.4s, .7s; animation-delay: 0s, .2s; }
+.ms-core b { position: absolute; inset: 52px; border-radius: 50%; background: radial-gradient(#fff, #8fe3ff 40%, transparent 72%);
+  box-shadow: 0 0 34px #4fc3ff; animation: msIn .6s ease .3s both; }
+@keyframes msSpin { to { transform: rotate(360deg); } }
+@keyframes msIn { from { opacity: 0; transform: scale(.3); } }
+@keyframes msText { from { opacity: 0; letter-spacing: .9em; } }
+
+.sos-screen { position: fixed; inset: 0; z-index: 210; display: grid; place-content: center; justify-items: center; gap: 16px; padding: 24px;
+  padding-top: calc(24px + env(safe-area-inset-top)); text-align: center; color: #fff;
+  background: radial-gradient(80% 60% at 50% 40%, #3a0a0f, #0c0204 75%); animation: sosIn .35s ease both; transition: opacity .4s; }
+.sos-screen.out { opacity: 0; pointer-events: none; }
+.sos-screen strong { font: 800 26px/1.1 system-ui, sans-serif; letter-spacing: .12em; }
+.sos-text { margin: 0; max-width: 340px; opacity: .85; line-height: 1.45; }
+.sos-rings { position: relative; width: 200px; height: 200px; display: grid; place-items: center; }
+.sos-rings i { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #ff5a5f; opacity: 0; animation: sosRing 2.4s ease-out infinite; }
+.sos-rings i:nth-child(2) { animation-delay: .8s; } .sos-rings i:nth-child(3) { animation-delay: 1.6s; }
+.sos-count { position: relative; font: 800 64px/1 system-ui, sans-serif; text-shadow: 0 0 24px #ff5a5f; font-variant-numeric: tabular-nums; }
+@keyframes sosRing { 0% { transform: scale(.45); opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sosIn { from { opacity: 0; } }
+.sos-ok { min-width: 260px; min-height: 56px; font-size: 18px; background: #3ddc97; color: #00170d; border: 0; }
+.sos-112 { min-width: 260px; }
+html[data-fx="off"] .sos-rings i, html[data-fx="off"] .ms-core i { animation: none; opacity: .6; }

@@ -16,6 +16,7 @@ from .. import secrets, tools, uiplus
 from ..tools.sites import list_sites, site_path
 from ..tools.system import system_snapshot
 from ..background import bg
+from . import handlers
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +58,36 @@ CLIENT_TYPES = [
     "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_get", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all",
     "bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizrun_rate", "bizagent_test", "bizproposals_decide", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizagent_quick", "bizbrief_get", "brain_pick",
     "habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set", "habit_task", "habit_mindset", "habit_goal", "notice_action", "notices_get", "wake_calibrate", "games_get", "trial_run", "world_get", "world_refresh", "multitask_get", "multitask_stop", "multitask_tell", "multitask_preset", "monitor_check", "paper_get", "paper_reset",
+    "quality_get", "bug_report", "rollback_now", "update_channel_set",
+    "rules_get", "rule_delete", "rule_add", "answer_rate", "ratings_get",
+    "offline_pack_get", "offline_pack_prepare", "offline_pack_test",
+    "voiceid_get", "voiceid_sample", "voiceid_save", "voiceid_delete", "voiceid_reset",
+    "embedder_get", "embedder_download",
+    "memory_cleanup_get", "memory_cleanup_apply", "memory_import_preview", "memory_import_run", "data_encrypt",
+    "notice_feedback", "proactive_get",
+    "widgets_get", "widget_delete", "mochi_level_get",
+    "access_log_get",
+    "stats_preview_get",
+    "brain_tiles_get", "brain_models_get", "brain_use",
+    "brain_split",
+    "lyrics_get",
+    "persona_set",
+    "node_add", "node_remove",
+    "edith_ask",
+    "emergency", "emergency_cancel",
+    "world_map_get",
+    "fx_report",
+    "hud_presence", "hud_gesture", "printer_get",
+    "speedcheck_run", "speedcheck_get",
+    "speedwizard_get", "speedwizard_apply",
+    "toolmem_get", "toolmem_forget", "mine_check",
+    "hands_status", "hands_download",
+    "foreign_log_get",
+    "webpush_key", "webpush_subscribe", "webpush_test",
+    "watch_pair_start",
+    "travel_get", "travel_watch_stop",
+    "travel_drill", "money_get",
+    "mem_sync", "msg_star",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -77,6 +108,46 @@ SERVER_TYPES = [
     "guests", "pc_files", "clean_text_result", "command_qr", "phone_photo_request", "phone_photo_result", "phone_zone", "webhook", "screen_share", "music_level", "voices", "voice_sample", "volume", "workshop",
     "focus", "focus_nudge", "caption", "live_subs", "lyrics", "agent_activity", "mission_sim", "windows",
     "handoff", "mochi_where", "anchor", "hardware", "link_status", "link_relay_script", "remote_desk", "photo_backup", "wake_info", "health", "guard", "morning", "phone_mirror", "nightcare", "brain_key_result", "selfcheck", "phone_net", "habits", "brains", "gym", "gym_rest", "habit_meal_result", "connectors", "bizagents", "diagnostics_summary", "wallpaper", "bizaudit", "bizagent_test_result", "bizhook", "bizbrief", "autopilot", "brain_picked", "sound_record", "phone_event", "phone_power", "phone_battery", "notices", "wake_calibration", "game_state", "game_tip", "games", "barge_in", "world", "multitask", "multitask_result", "monitor_check_result", "paper",
+    "quality", "bug_report_url",
+    "rules", "ratings", "answer_check",
+    "offline_pack", "offline_pack_progress", "offline_pack_test_result",
+    "voiceid",
+    "embedder",
+    "memory_cleanup", "memory_import", "data_encrypt_result",
+    "proactive",
+    "live_activity", "widgets", "perf_hint", "viz_bands", "mochi_level",
+    "access_log",
+    "stats_preview",
+    "brain_tiles", "brain_models", "brain_used",
+    "lyrics_autoshift",
+    "live_talk",
+    "interpreter",
+    "house",
+    "edith_answer", "screen_buddy",
+    "world_map", "hud_map",
+    "fx_pause",
+    "hud_cmd",
+    "emergency_state",
+    "overlay_fx",
+    "hud_model", "printer", "printer_look", "workshop_journal", "hud_presence",
+    "speedcheck",
+    "speedwizard",
+    "toolmem", "mine_check",
+    "hands",
+    "foreign_log",
+    "printer_done",
+    "webpush",
+    "watch_pair",
+    "travel",
+    "travel_drill", "money",
+    "assistant_draft",
+    "mem_sync_done", "msg_starred",
+    "countdown", "day_timeline", "weather_now", "second_clock", "wallpaper_tasks", "photo_frame", "mochi_action",
+    "notch_active",
+    "driving", "hr_now", "vacation",
+    "savings_goal",
+    "breathe", "water_glass", "rsvp", "notice_hint",
+    "lang_changed",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)
@@ -88,7 +159,7 @@ FILE_TOOLS = {"find_duplicates": "Najít duplicity", "remove_duplicates": "Dupli
               "find_in_files": "Hledat v obsahu", "backup_plan": "Co zálohovat", "backup_folder": "Zálohovat složku"}
 QUICK_ACTIONS = {"workshop_step", "call_me", "media_control", "volume", "system_power", "screenshot", "window_control", "open_app", "open_url",
                  "youtube_play", "set_timer", "cancel_timer", "clipboard_set", "set_dark_mode", "press_keys", "focus_mode", "media_seek",
-                 "save_attachment", "send_to_phone"}
+                 "save_attachment", "send_to_phone", "lyrics_wrong"}
 LOCAL_ONLY = {"bizgoal_save", "bizgoal_delete", "bizgoals_refresh", "bizagent_test", "bizevents_speed", "bizhook_get", "bizhook_new", "bizsetup_export", "bizsetup_import", "bizchain_build", "bizdept_budget_set", "bizphone_set", "bizaudit_export", "bizreport_make", "bizevents_check", "connectors_test_all", "bizcompany_build", "bizagent_hire", "bizagents_bulk", "bizbrain_add", "bizbrain_delete", "bizprofile_save", "bizbudget_set", "wallpaper_get", "diagnostics_summary", "bizagent_save", "bizagent_delete", "bizagent_template", "bizagent_text", "mcp_add", "mcp_remove", "connector_save", "connector_remove", "connector_test", "connector_oauth", "brains_test_all", "wake_prepare", "phone_net_get", "selfcheck_run", "firewall_allow", "brain_key", "nightcare_get", "nightcare_run", "mirror_get", "mirror_request", "mirror_stop", "mirror_input", "wake_get", "photo_backup_get", "photo_backup_open", "link_get", "link_set", "link_check", "link_relay_script", "meeting_record", "device_listen_set", "device_listen_action", "local_backup_set", "phone_reply", "phone_reply_suggest", "screen_ask_action", "screen_ask_start", "pc_control_take", "pc_control_give", "qnotes_get", "qnote_set", "qnote_delete", "clips_get", "clip_action", "shots_get", "shot_action", "device_revoke", "lockdown", "live_subs_get", "live_subs_set", "settings_set", "secret_set", "provider_test", "voice_import", "voice_delete", "voice_preview", "fact_update", "fact_delete", "memory_wipe", "pairing_get",
               "update_install", "tasks_clear", "local_status", "local_pull", "local_pull_cancel", "local_delete",
               "local_unload", "local_gpu_test", "local_tune", "memory_import", "diagnostics_export",
@@ -108,6 +179,11 @@ SLOW = {"bizgoals_refresh", "bizagent_test", "bizproposals_decide", "bizsetup_ex
 
 
 LIVE: "weakref.WeakSet[Connection]" = weakref.WeakSet()
+
+
+handlers.load()
+LOCAL_ONLY |= handlers.LOCAL_ONLY
+SLOW |= handlers.SLOW
 
 
 async def close_devices(which) -> int:
@@ -319,6 +395,8 @@ class Connection:
                     continue
                 if self.guest and msg["type"] == "settings_changed":
                     msg = {"type": "settings_changed", "settings": self._guest_settings()}
+                elif msg["type"] == "settings_changed" and not self.local:      # 3.18 the traveller's details stay here
+                    msg = {"type": "settings_changed", "settings": config_mod.public_dump(self.rt.cfg, local=False)}
                 await self.send(**msg)
         except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
             pass
@@ -335,7 +413,7 @@ class Connection:
             return
         await self.send("welcome", version=__import__("jarvis").__version__, local=self.local,
                         power={"on_battery": bool(getattr(rt, "on_battery", False))},
-                        settings=config_mod.public_dump(rt.cfg), conversation=rt.memory.current_conversation,
+                        settings=config_mod.public_dump(rt.cfg, local=self.local), conversation=rt.memory.current_conversation,
                         history=self._history(), conversations=rt.memory.list_conversations(),
                         busy=rt.agent.busy, brain=list(rt.router.last_used) if rt.router.last_used else None,
                         pc_control=rt.pc_control.state(), clip_sync=rt.cfg.phone_link.clip_sync, remote_desk=rt.remote_desk.status(),
@@ -467,6 +545,8 @@ class Connection:
             patch["enabled"] = bool(m["enabled"])
         if "upnp" in m:
             patch["upnp"] = bool(m["upnp"])
+        if "encrypt_home" in m:                  # 3.18 the phone uses the encrypted link at home too
+            patch["encrypt_home"] = bool(m["encrypt_home"])
         if "public_host" in m:
             patch["public_host"] = str(m["public_host"] or "").strip()[:200]
         if "relay_host" in m:
@@ -525,6 +605,10 @@ class Connection:
         if t in LOCAL_ONLY and not self.local:
             await self.send("error", message="Tohle jde změnit jen přímo na počítači.")
             return
+        handler = handlers.HANDLERS.get(t)          # areas moved out of this file (server/handlers/*)
+        if handler is not None:
+            await handler(self, m)
+            return
         if t == "hello":
             self.client = m.get("client", "unknown")
             self.name = m.get("name", "")
@@ -556,11 +640,19 @@ class Connection:
             pcm, self.audio = bytes(self.audio), bytearray()
             self.spawn(self._transcribe_pcm_and_handle(pcm, self.audio_sr))
         elif t == "voice_upload":
-            self.spawn(self._voice_note(m["attachment_id"]))
+            self.spawn(self._voice_note(m["attachment_id"], bool(m.get("dictate"))))
         elif t == "confirm_response":
             if m.get("approved") and not self.local and rt.cfg.phone.approve_nearby_only and not self._nearby():
                 await self.send("error", message="Schvalovat jde jen z domácí sítě (nastavení Telefon → Schvalovat jen doma).")
                 return
+            info = rt.agent.confirm_info.get(str(m.get("id", ""))) or {}
+            if m.get("approved") and info.get("otp"):         # 3.20 (196) approved only with a touch of the YubiKey
+                from .. import secx
+
+                ok, why = await secx.yubikey_verify(rt, str(m.get("otp") or ""))
+                if not ok:
+                    await self.send("error", message=f"Neschváleno: {why}")
+                    return
             rt.agent.confirm(m.get("id", ""), bool(m.get("approved")))
         elif t == "stop":
             rt.agent.stop()
@@ -575,28 +667,6 @@ class Connection:
         elif t == "tasks_get":
             await self.send("tasks", items=rt.tasks.list(int(m.get("limit", 50)), m.get("q", ""), m.get("status", "")),
                             current=rt.tasks.current)
-        elif t == "dictation_get":
-            await self.send("dictation_data", stats=rt.dictation.stats(str(m.get("period", "month"))),
-                            history=rt.dictation.history(str(m.get("q", "")), int(m.get("limit", 200))) if self.local else [],
-                            state=rt.dictation.state)
-        elif t == "dictation_delete":
-            rt.dictation.delete(int(m.get("id", 0)))
-            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=rt.dictation.history(), state=rt.dictation.state)
-        elif t == "dictation_clear":
-            rt.dictation.clear()
-            await self.send("dictation_data", stats=rt.dictation.stats("month"), history=[], state=rt.dictation.state)
-        elif t == "notes_get":
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
-        elif t == "note_get":
-            await self.send("note", note=rt.notetaker.get(str(m.get("id", ""))))
-        elif t == "note_delete":
-            rt.notetaker.delete(str(m.get("id", "")))
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
-        elif t in ("note_start", "note_stop", "note_cancel"):
-            res = rt.notetaker.start() if t == "note_start" else rt.notetaker.stop(cancel=t == "note_cancel")
-            if not res.get("ok"):
-                await self.send("error", message=res.get("message", ""))
-            await self.send("notes", items=rt.notetaker.list(), state=rt.notetaker.state, current=rt.notetaker.current)
         elif t == "whats_new_seen":
             rt.whats_new_seen()
         elif t == "sounds_folder":
@@ -1170,15 +1240,11 @@ class Connection:
                 await rt.remote_desk.input(m)
             except Exception as e:  # noqa: BLE001
                 log.debug("remote input: %s", e)
-        elif t == "habit_health":             # 3.12 spánek a kroky from the phone (Health Connect)
+        elif t == "habit_health":             # 3.12 spánek a kroky (+ 3.14 tep, variabilita, kyslík) from the phone's Health Connect
+            from .. import body
             from .. import habits as hb
 
-            def num(v):
-                try:
-                    return float(v) if v is not None else None
-                except (TypeError, ValueError):
-                    return None
-            hb.health_sync(rt, m.get("day") or None, num(m.get("steps")), num(m.get("sleep_h")))
+            body.from_phone(rt, dict(m))
             hb.publish(rt)
         elif t in ("habits_get", "habit_save", "habit_delete", "habit_log", "habit_meal", "habit_reorder", "habit_remind_set",
                    "habit_task", "habit_mindset", "habit_goal"):
@@ -1544,7 +1610,7 @@ class Connection:
                 rt.bus.publish("history", conversation=rt.memory.current_conversation, messages=self._history())
                 self.spawn(rt.agent.handle(u["text"], u["attachments"], self._source(), record_user=False))
         elif t == "settings_get":
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags(),
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags(),
                             presets=__import__("jarvis.llm.presets", fromlist=["PRESETS"]).PRESETS,
                             perm_labels=__import__("jarvis.permissions", fromlist=["PERMS"]).PERMS,
                             voice=self._voice_status())
@@ -1556,12 +1622,12 @@ class Connection:
                     from .. import nowplaying
 
                     nowplaying.refresh(rt)            # the song playing now: lyrics / reason at once
-                await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+                await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
             except ValueError as e:
                 await self.send("error", message=f"Neplatné nastavení: {e}")
         elif t == "secret_set":
             secrets.set(m["name"], m.get("value", ""))
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
         elif t in ("qnotes_get", "qnote_set", "qnote_delete"):   # 3.12 quick notes in the notch (this PC only)
             from .. import quicknotes
 
@@ -1808,19 +1874,18 @@ class Connection:
 
             r = await brainkey.apply(rt, str(m.get("key", "")), self._provider_test, str(m.get("preset") or "") or None)
             await self.send("brain_key_result", **r)
-            await self.send("settings", settings=config_mod.public_dump(rt.cfg), secrets=self._secret_flags())
+            await self.send("settings", settings=config_mod.public_dump(rt.cfg, local=self.local), secrets=self._secret_flags())
         elif t == "brain_pick":           # 3.13 a click on an AI's logo in the notch: from now on that AI answers (the rest are backup)
             pid = str(m.get("id") or "")
             provs = {p.id: p for p in rt.cfg.brain.providers}
             if pid not in provs:
                 await self.send("notify", title="AI", body="Tuhle AI v nastavení nemám.", url="", target="dashboard")
             else:
-                chain = [pid] + [x for x in (rt.cfg.brain.chain or list(provs)) if x != pid]
-                chain += [x for x in provs if x not in chain]
-                patch: dict = {"brain": {"chain": chain}}
-                if not provs[pid].enabled:
-                    patch["brain"]["providers"] = [{**p.model_dump(), "enabled": True} if p.id == pid else p.model_dump() for p in rt.cfg.brain.providers]
-                rt.update_config(patch)                  # → settings_changed: the logos repaint, the chat shows the AI
+                from .. import brainpick
+
+                res = brainpick.use(rt, pid, str(m.get("model") or ""))   # 3.14 also lifts "Jen offline" / turns local AI on
+                for note in res["notes"]:
+                    await self.send("notify", title="AI", body=note, url="", target="dashboard")
                 rt.bus.publish("brain_picked", id=pid, name=provs[pid].id)
                 if (provs[pid].preset or pid) in ("ollama", "lmstudio"):
                     self.spawn(rt.local.warm(provs[pid].model or None))   # loaded now, so the first answer is quick
@@ -2128,8 +2193,12 @@ class Connection:
         if text:
             await rt.agent.handle(text, [], self._source(voice=True))
 
-    async def _voice_note(self, aid: str) -> None:
+    async def _voice_note(self, aid: str, dictate: bool = False) -> None:
         rt = self.rt
+        if dictate and not self.local and "input" not in set(rt.cfg.phone.allowed):
+            await self.send("error", message="Diktovat do PC smí telefon jen s povolením „Myš a klávesnice“ (na PC: Nastavení → "
+                                             "Telefon → Co smí telefon).")
+            return
         att = await rt.store.ensure(aid)
         if not att:
             return
@@ -2138,6 +2207,9 @@ class Connection:
             await self.send("error", message=att.error or "Nerozuměl jsem nahrávce.")
             return
         rt.bus.publish("transcript", text=text, final=True)
+        if dictate:                         # 3.20 (126) the phone as the PC's microphone: the words go where the cursor is
+            await asyncio.to_thread(rt.platform.type_text, text + " ")
+            return
         await rt.agent.handle(text, [], self._source(voice=True))
 
     async def _voices(self) -> dict:

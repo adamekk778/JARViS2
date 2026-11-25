@@ -1,0 +1,23 @@
+# Weekly update proposals for the libraries JARVIS ships with (Python core, web UI, Android shell, CI actions).
+# Each proposal is a pull request that has to pass the same CI (tests on Linux and real Windows) before merging.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /core
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      python-minor: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      web-minor: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }

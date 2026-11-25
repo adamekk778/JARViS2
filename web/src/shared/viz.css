@@ -66,3 +66,8 @@
 .nw-row { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .nw-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
 .nw-dot.up { background: #22c55e; } .nw-dot.down { background: #ef4444; }
+
+/* 3.15 charts draw themselves in */
+.chart-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: chartDraw 1.3s cubic-bezier(.3, .8, .2, 1) forwards; }
+@keyframes chartDraw { to { stroke-dashoffset: 0; } }
+html[data-fx="off"] .chart-line { animation: none; stroke-dashoffset: 0; }

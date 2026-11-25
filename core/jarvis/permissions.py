@@ -22,7 +22,7 @@ READ_PERMS = {"files_read", "screen", "network"}
 READ_ONLY_OK = {
     "line_history", "process_profile", "disk_activity", "windows_updates", "mochi_history", "crash_dumps", "search_meetings", "find_by_meaning", "color_info", "sensor_check", "sensor_fuse", "solve_equation", "compare_articles", "disk_partitions", "disk_triage", "gaming_stats", "simulate_decision", "connections_health", "iot_overview", "draft_message", "feature_audit", "picture_to_data", "explain_error", "video_subtitles", "check_form_values", "windows_search", "compare_open_documents",
     "data_lens", "predict_errors", "blender_scene", "unity_project", "roblox_datastore", "transit_departures",
-    "voice_tone", "knowledge_graph",
+    "voice_tone", "knowledge_graph", "now_playing_info",
     "responsive_check", "animation_curve", "glass_material", "icon_set", "motion_timeline", "layout_heatmap",
     "workflow_export", "scene_animation",
     "meeting_relevance", "meeting_review", "coding_exercise", "exercise_list",
@@ -141,14 +141,20 @@ def perm_of(spec: Any) -> str:
     return CATEGORY_PERM.get(spec.category, "apps")
 
 
+def is_reading(spec: Any) -> bool:
+    """The tool only looks or reads – it changes nothing (the rule of "Režim jen pro čtení", 3.17 also after foreign text)."""
+    if spec.name in READ_ONLY_OK:
+        return True
+    return not (spec.danger or spec.danger_if is not None or perm_of(spec) not in READ_PERMS or spec.name in READ_PERM_WRITERS)
+
+
 def blocked_by(cfg: Any, spec: Any) -> str | None:
     """The first switched-off permission this tool needs (or READ_ONLY), or None."""
     perms = getattr(cfg, "permissions", None)
     if perms is None:
         return None
     limits = getattr(cfg, "limits", None)
-    if limits is not None and limits.read_only and spec.name not in READ_ONLY_OK and (
-            spec.danger or spec.danger_if is not None or perm_of(spec) not in READ_PERMS or spec.name in READ_PERM_WRITERS):
+    if limits is not None and limits.read_only and not is_reading(spec):
         return READ_ONLY
     return next((p for p in required(spec) if not getattr(perms, p, True) and not granted(p)), None)
 

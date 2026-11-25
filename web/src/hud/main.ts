@@ -10,8 +10,20 @@ import "./style.css";
 import { h, icon } from "../shared/dom";
 import { configureSounds, play } from "../shared/sounds";
 import { JarvisClient, localEndpoint } from "../shared/ws";
+import { kioskMode } from "./kiosk";
+import { isAvatar, isGlasses, isObs, mountAvatar, mountGlasses, mountObs } from "./x320";
+import { worldMap } from "./worldmap";
+import { modelViewer } from "./modelview";
+import { at, onTier } from "../shared/motion";
+import { mountReactor3d } from "./reactor3d";
+import { mountGlobe } from "./globe3d";
+import { bootSequence, netScale, parallax, protocolRun, redAlert, screensaver, telemetry, toolOrbit, trace } from "./hudfx";
 
-const client = new JarvisClient(localEndpoint(), "hud", "PC");
+// 3.14 on a tablet / TV on the home network: ?token=<the phone's key> (kiosk=1: the wall display, see kiosk.ts)
+const hudEp = localEndpoint();
+const hudToken = new URLSearchParams(location.search).get("token");
+if (hudToken) hudEp.token = hudToken;
+const client = new JarvisClient(hudEp, "hud", "PC");
 const api = () => (window as any).pywebview?.api;
 const SVG = "http://www.w3.org/2000/svg";
 const svg = (tag: string, attrs: Record<string, string | number> = {}, ...kids: Element[]) => {
@@ -127,9 +139,12 @@ const gCpu = gauge("CPU"), gRam = gauge("RAM"), gDisk = gauge("DISK"), gBat = ga
 const cpuSpark = spark();
 const netEl = h("div", { class: "kv" });
 const upEl = h("div", { class: "kv" });
+const trGpu = trace("GPU", "var(--holo-2)"), trNet = trace("SÍŤ ↓", "#7fffd4");      // 3.15 live telemetry curves
 const sysPanel = panel("SYSTÉMY", "cpu", 0,
   h("div", { class: "gauges" }, gCpu.el, gRam.el, gDisk.el, gBat.el),
-  h("div", { class: "spark-wrap" }, h("span", { class: "tiny" }, "ZATÍŽENÍ CPU · 90 s"), cpuSpark.el), netEl, upEl);
+  h("div", { class: "spark-wrap" }, h("span", { class: "tiny" }, "ZATÍŽENÍ CPU · 90 s"), cpuSpark.el),
+  h("div", { class: "traces" }, trGpu.el, trNet.el), netEl, upEl);
+let lastSys: number[] = [0, 0, 0];
 
 const logList = h("ol", { class: "log" });
 const logPanel = panel("ZÁZNAM", "list-dashes", 2, logList);
@@ -173,18 +188,55 @@ const bottom = h("div", { class: "bottom" }, protoRow,
     input,
     h("button", { class: "hbtn", type: "button", title: "Odeslat", "aria-label": "Odeslat", onclick: send }, icon("arrow-right", "ph-bold")),
     h("button", { class: "hbtn", type: "button", title: "Ranní brífink", "aria-label": "Brífink", onclick: () => client.send("user_text", { text: "Brífink", attachments: [] }) }, icon("sun-horizon")),
+    h("button", { class: "hbtn", type: "button", title: "Mapa světa", "aria-label": "Mapa světa", onclick: () => wmap.open() }, icon("globe-hemisphere-west")),
     h("button", { class: "hbtn", type: "button", title: "Otevřít celý chat", "aria-label": "Celý chat", onclick: () => openChat("full") }, icon("chats-circle"))));
 
 const alertBox = h("div", { class: "alert", hidden: true });
+const wmap = worldMap(client);                 // 3.14 radar, home, the car, trips, planes
+const mview = modelViewer(client, play);       // 3.15 Dílna: the 3D model as a hologram
+// 3.15 the 3D printer while it prints: a thin bar with the per cent and the time left
+const printBar = h("div", { class: "printbar", hidden: true, role: "status" },
+  icon("printer"), h("span", { class: "pb-name" }), h("i", { class: "pb-track" }, h("b", {})), h("span", { class: "pb-text" }));
+client.on("printer" as any, (m: any) => {
+  const on = m.state === "printing" || m.state === "paused";
+  printBar.hidden = !on;
+  if (!on) return;
+  printBar.classList.toggle("paused", m.state === "paused");
+  (printBar.querySelector(".pb-name") as HTMLElement).textContent = (m.name || "Tisk").toUpperCase();
+  (printBar.querySelector(".pb-track b") as HTMLElement).style.transform = `scaleX(${Math.max(0, Math.min(100, Number(m.progress) || 0)) / 100})`;
+  const left = Number(m.left_s) || 0, mins = Math.round(left / 60);
+  const t = left ? (mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`) : "";
+  (printBar.querySelector(".pb-text") as HTMLElement).textContent =
+    `${Math.round(Number(m.progress) || 0)} %${t ? " · zbývá " + t : ""}${m.state === "paused" ? " · POZASTAVENO" : ""}`;
+});
+client.on("printer_look" as any, (m: any) => { if (!m.ok) log(`Tisk: ${m.kind} – ${m.why}`.slice(0, 90), "bad"); });
 const briefBox = h("div", { class: "brief", hidden: true });
 const closeBtn = h("button", { class: "close", type: "button", title: "Zavřít HUD (Esc)", "aria-label": "Zavřít HUD", onclick: () => closeHud() }, icon("x"));
 const left = h("div", { class: "col left" }, sysPanel, logPanel);
 const right = h("div", { class: "col right" }, planPanel, mediaPanel);
 const root = h("div", { class: "hud booting" },
   h("div", { class: "grid" }), h("div", { class: "scan" }), h("div", { class: "vignette" }),
-  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, closeBtn,
+  topLeft, topRight, left, centre, right, bottom, alertBox, briefBox, wmap.el, mview.el, printBar, closeBtn,
   h("i", { class: "br b1" }), h("i", { class: "br b2" }), h("i", { class: "br b3" }), h("i", { class: "br b4" }));
 document.getElementById("hud")!.append(root);
+// 3.15 the screensaver of the wall display: the globe turning slowly with the time, until someone comes
+const saver = screensaver(root, (gh) => mountGlobe(gh));
+kioskMode(root, saver);                // 3.14 the wall display (only with ?kiosk=1)
+if (isObs()) mountObs(client, root);   // 3.20 (114) the see-through OBS overlay (?obs=1)
+if (isAvatar()) void mountAvatar(client, root);   // 3.20 (117) the 3D character instead of the notch (?avatar=1)
+if (isGlasses()) mountGlasses(client, root);      // 3.20 (159) captions for smart glasses (?glasses=1)
+root.append(telemetry(() => lastSys));
+parallax(root);
+const orbit = toolOrbit(rx);
+const proto = protocolRun(root);
+let rx3d: (() => void) | null = null;
+function ensure3d() {
+  if (rx3d || !at("high")) return;
+  rx3d = () => {};                     // mounting
+  mountReactor3d(rx, () => ({ mood: root.dataset.mood || "idle", level: lvl })).then((d) => { rx3d = d; }).catch(() => { rx3d = null; });
+}
+onTier((t) => { if (t === "high" || t === "ultra") ensure3d(); else rx3d = null; });
+root.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest?.(".hbtn, .proto, .layouts button")) play("holo"); });
 
 // ---------------------------------------------------------------- behaviour
 function quick(action: string, args: any = {}) { client.send("quick_action", { action, args }); }
@@ -247,6 +299,7 @@ function showAlert(title: string, text: string) {
 
 function showBriefing(text: string) {
   briefBox.hidden = false;
+  play("whoosh");
   const body = h("p", {});
   briefBox.replaceChildren(h("header", {}, icon("sun-horizon"), h("span", {}, "RANNÍ BRÍFINK"),
     h("button", { class: "hbtn sm", type: "button", "aria-label": "Zavřít brífink", onclick: () => (briefBox.hidden = true) }, icon("x"))), body);
@@ -257,7 +310,7 @@ const plain = (md: string) => md.replace(/```[\s\S]*?```/g, " [kód] ").replace(
 let answer = "";
 
 // OMEGA 756: layouts – everything, just the essentials, focus (no log, no media), presentation (nothing personal)
-const LAYOUTS: [string, string][] = [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace"]];
+const LAYOUTS: [string, string][] = [["full", "Plné"], ["minimal", "Minimální"], ["focus", "Soustředění"], ["presentation", "Prezentace"], ["holo", "Holo"]];
 const layoutBar = h("div", { class: "layouts", role: "radiogroup", "aria-label": "Rozložení HUD" });
 root.append(layoutBar);
 function setLayout(name: string) {
@@ -275,6 +328,7 @@ client.on("welcome", (m) => {
   applyAppearance(m.settings);
   configureSounds(m.settings?.appearance);
   name = m.settings?.general?.address_as || m.settings?.general?.user_name || "pane";
+  bootInfo = { ai: String(m.settings?.brain?.chain?.[0] || ""), voice: m.settings?.voice?.enabled !== false, online: true, name };
   renderProtocols(m.settings?.stark?.protocols);
   timers = (m.timers || []).map((t: any) => ({ ...t }));
   setMedia(m.media || {});
@@ -284,6 +338,10 @@ client.on("welcome", (m) => {
 client.on("settings_changed", (m) => { setLayout(m.settings?.stark?.hud_layout); applyAppearance(m.settings); renderProtocols(m.settings?.stark?.protocols); });
 client.on("system", (s) => {
   gCpu.set(s.cpu_percent); cpuSpark.push(s.cpu_percent || 0);
+  const gu = s.gpu?.util;
+  trGpu.push(gu ?? 0, gu == null ? "–" : `${Math.round(gu)} %`);
+  trNet.push(netScale(s.net_down_kbps || 0), fmtRate(s.net_down_kbps));
+  lastSys = [s.cpu_percent || 0, s.ram_percent || 0, s.net_down_kbps || 0];
   gRam.set(s.ram_percent, `${Math.round(s.ram_percent)}%`);
   gDisk.set(s.disk_percent);
   if (s.battery_percent == null) gBat.set(100, "AC"); else gBat.set(s.battery_percent, `${s.battery_percent}%`);
@@ -336,15 +394,57 @@ client.on("assistant_delta", (m) => { answer += m.text; answerEl.textContent = p
 client.on("assistant_done", (m) => { answer = m.text || answer; answerEl.textContent = plain(answer).slice(0, 420); });
 client.on("tool_start", (m) => {
   chipsEl.append(h("span", { class: "chip run", "data-id": m.id }, (m.label || m.name).replace(/^[^\p{L}\p{N}]+/u, "")));
+  orbit.start(String(m.id), m.label || m.name);
 });
 client.on("tool_end", (m) => {
+  orbit.end(String(m.id), !!m.ok);
+  if (proto.active()) proto.step();
   const c = chipsEl.querySelector(`[data-id="${m.id}"]`);
   c?.classList.remove("run"); c?.classList.add(m.ok ? "ok" : "fail");
   if (c) log(`${c.textContent}${m.summary ? " – " + m.summary : ""}`.slice(0, 90), m.ok ? "" : "bad");
 });
-client.on("protocol", (m) => { log(`Protokol ${m.name} spuštěn`, "lp"); play("wake"); });
+client.on("protocol", (m) => { log(`Protokol ${m.name} spuštěn`, "lp"); void proto.start(m.name || "", m.icon || "", (m as any).steps || []); });
 client.on("automation", (m) => log(`Automatizace ${m.name}: ${m.why}`, "lp"));
-client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); });
+client.on("guardian", (m) => { log(m.text, "bad"); showAlert(m.title, m.text); redAlert(root); });
+// 3.15 the HUD by voice: "přibliž mapu", "ukaž glóbus", "schovej panely", "minimální rozložení"…
+client.on("hud_cmd" as any, (m: any) => {
+  const a = String(m.action || "");
+  if (["map", "globe", "flat", "zoom_in", "zoom_out", "radar_play", "close_map"].includes(a)) wmap.command(a === "map" ? "open" : a);
+  else if (["full", "minimal", "focus", "presentation", "holo"].includes(a)) setLayout(a);
+  else if (a === "systems") setLayout("full");
+  else if (a === "hide_panels" || a === "show_panels") root.classList.toggle("panels-off", a === "hide_panels");
+  else if (a === "close") closeHud();
+  else if (a.startsWith("model_")) mview.command(a);
+  else if (a === "gesture") gesture(String(m.gesture || ""));
+});
+// 3.15 hand gestures (the notch's camera sends them here while the HUD is on screen): the open model first, then the map
+// / globe, else the layouts – left / right = previous / next layout, up = the map, down = close it, a wave = panels on / off
+function gesture(g: string) {
+  const fineG = /^(rotate|zoom):(-?[\d.]+)$/.exec(g);           // 3.17 finger gestures carry how much
+  if (fineG) {
+    const v = Number(fineG[2]);
+    if (mview.isOpen && mview.fine(fineG[1], v)) return;
+    if (!wmap.el.hidden) { wmap.command(fineG[1] === "rotate" ? (v > 0 ? "turn_right" : "turn_left") : v > 1 ? "zoom_in" : "zoom_out"); return; }
+    if (fineG[1] === "rotate" && Math.abs(v) >= 20) gesture(v > 0 ? "right" : "left");
+    return;
+  }
+  if (g === "fist" && !mview.isOpen) { root.classList.toggle("panels-off"); return; }
+  if (mview.isOpen && mview.gesture(g)) return;
+  if (!wmap.el.hidden) {
+    const act = ({ left: "turn_left", right: "turn_right", up: "zoom_in", down: "zoom_out", wave: "close_map" } as Record<string, string>)[g];
+    if (act) wmap.command(act);
+    return;
+  }
+  const i = LAYOUTS.findIndex(([k]) => k === root.dataset.layout);
+  if (g === "left" || g === "right") setLayout(LAYOUTS[(i + (g === "right" ? 1 : LAYOUTS.length - 1)) % LAYOUTS.length][0]);
+  else if (g === "up") void wmap.open();
+  else if (g === "wave") root.classList.toggle("panels-off");
+  play("holo");
+}
+// the HUD on screen → the camera's gestures steer it (and back to the music when it goes away)
+const presence = () => client.send("hud_presence" as any, { visible: document.visibilityState === "visible" && !root.classList.contains("closing") });
+document.addEventListener("visibilitychange", presence);
+client.onStatus((s) => { if (s === "open") presence(); });
 client.on("notify", (m) => log(`${m.title}: ${m.body}`.slice(0, 90)));
 client.on("briefing", (m) => { showBriefing(m.text); log("Ranní brífink"); });
 client.on("error", (m) => log(m.message, "bad"));
@@ -356,6 +456,7 @@ function refresh(all = false) {
   client.send("system_get");
   if (all) { client.send("weather_get"); client.send("jobs_get"); client.send("timers_get"); }
 }
+let bootInfo = { ai: "", voice: true, online: false, name: "" };
 function open() {
   root.classList.remove("closing");
   root.classList.add("booting");
@@ -363,17 +464,22 @@ function open() {
   setTimeout(() => root.classList.remove("booting"), 1900);
   typeText(moodEl, "INICIALIZACE SYSTÉMŮ…", 60);
   setTimeout(() => setMood(root.dataset.mood || "idle"), 1500);
-  play("boot");
+  ensure3d();
+  if (at("high")) void bootSequence(root, { ...bootInfo, online: client.status === "open" });   // 3.15 the cinematic start
+  else play("boot");
   tickClock();
   clearInterval(poll); clearInterval(clockT); clearInterval(slow);
   poll = window.setInterval(() => refresh(), 1500);
   clockT = window.setInterval(tickClock, 1000);
   slow = window.setInterval(() => refresh(true), 10 * 60 * 1000);
   refresh(true);
+  client.send("printer_get" as any, {});
+  presence();
   setTimeout(() => input.focus(), 400);
 }
 function close() {
   clearInterval(poll); clearInterval(clockT); clearInterval(slow);
+  client.send("hud_presence" as any, { visible: false });
   briefBox.hidden = true;
 }
 (window as any).__hud = {

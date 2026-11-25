@@ -107,6 +107,14 @@ class Guard:
             sent = False
         ev["sent"] = bool(sent)
         self.rt.bus.publish("guard", **self.status())    # the open phone app shows it at once
+        from . import safety                             # 3.14 návrh 38: a webcam photo of who it is (opt-in)
+        from .background import bg
+
+        try:
+            asyncio.get_running_loop()                   # no loop (a test, shutdown): no photo – and no coroutine left unawaited
+        except RuntimeError:
+            return
+        bg(safety.guard_photo(self.rt, body))
 
     async def loop(self) -> None:
         while True:

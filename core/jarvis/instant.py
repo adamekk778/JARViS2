@@ -67,7 +67,7 @@ def plan(text: str) -> Plan | None:
         return Plan([("volume", {"action": "set", "level": max(0, min(100, int(m.group(1))))})], kind="volume")
     if re.fullmatch(r"(?:dej |udelej )?(?:hlasitejc?i|nahlas|zesil\w*|pridej\w*(?: zvuk| hlasitost)?|hlasitej\w*)", t):
         return Plan([("volume", {"action": "up"})], kind="volume")
-    if re.fullmatch(r"(?:dej |udelej )?(?:tisejc?i|potichu|zeslab\w*|uber\w*(?: zvuk| hlasitost)?|ztis\w*)", t):
+    if re.fullmatch(r"(?:dej |udelej )?(?:tisejc?i|potichu|zeslab\w*|(?:uber|ubrat|ubir)\w*(?: zvuk| hlasitost)?|ztis\w*)", t):
         return Plan([("volume", {"action": "down"})], kind="volume")
     if re.fullmatch(r"(?:vypni zvuk|ztlum\w*(?: zvuk| to| vse| vsechno)?|mute)", t):
         return Plan([("volume", {"action": "mute"})], kind="volume")
@@ -78,7 +78,7 @@ def plan(text: str) -> Plan | None:
         return Plan([("media_control", {"action": "next"})], say=lambda c: "Další.", kind="media")
     if re.fullmatch(r"(?:predchozi|predesl\w*|zpet)(?: pisnick\w*| skladb\w*| song\w*| video)?", t):
         return Plan([("media_control", {"action": "previous"})], say=lambda c: "Předchozí.", kind="media")
-    if re.fullmatch(r"(?:pauza|pozastav\w*)(?: hudbu| pisnick\w*| video| to)?|zastav (?:hudbu|pisnick\w*|video)|(?:pust|pokracuj)(?: hudbu| to| dal)?", t):
+    if re.fullmatch(r"(?:pauza|pozastav\w*)(?: hudbu| pisnick\w*| video| to)?|zastav (?:hudbu|pisnick\w*|video)|(?:pust|pokracuj)(?: hudbu| to)?(?: dal)?", t):
         return Plan([("media_control", {"action": "play_pause"})], say=lambda c: "Hotovo.", kind="media")
     # ---- time, date
     if re.fullmatch(r"(?:kolik je hodin|kolik je|jaky je cas|cas)", t):
@@ -92,10 +92,53 @@ def plan(text: str) -> Plan | None:
         sec = n * (3600 if m.group(2).startswith("hodin") else 1 if m.group(2).startswith(("sek", "vter")) else 60)
         return Plan([("set_timer", {"seconds": sec})], kind="timer")
     # ---- weather, screenshot
-    if re.fullmatch(r"(?:jake je |jak je )?pocasi(?: dnes| ted| venku)?|(?:bude prset|je venku zima|kolik je venku stupnu)", t):
+    if re.fullmatch(r"(?:jake je |jak je )?(?:venku )?pocasi(?: dnes| ted| venku)?|(?:bude prset|je venku zima|kolik je venku stupnu)", t):
         return Plan([("weather", {})], kind="weather")
     if re.fullmatch(r"(?:udelej |vyfot\w* |zachyt\w* )?(?:screenshot|snimek obrazovky|screen)", t):
         return Plan([("screenshot", {})], say=lambda c: "Hotovo, snímek je v chatu." if c and c[0]["ok"] else c[0]["summary"], kind="screenshot")
+    # ---- 3.14 voice & personality
+    full = " ".join(re.sub(r"[^\w\s:%]", " ", "".join(c for c in unicodedata.normalize("NFKD", (text or "").lower())
+                                                       if not unicodedata.combining(c))).split())
+    if re.fullmatch(r"(?:prepni|prepnout|zmen|chci|vrat)\s+(?:se\s+)?(?:(?:na|zpatky|zpet)\s+)+(?:j|dz)arvis\w*", full):
+        return Plan([("persona_switch", {"name": "jarvis"})], kind="voice")      # "Jarvis" is a polite word elsewhere
+    m = re.fullmatch(r"(?:prepni|prepnout|zmen|chci)\s+(?:se\s+)?(?:na |zpatky |zpet )*(fr[ae]j?d[ae]j\w*|friday\w*|jarvis\w*|dzarvis\w*)", t)
+    if m:
+        return Plan([("persona_switch", {"name": "friday" if m.group(1).startswith("fr") else "jarvis"})], kind="voice")
+    if re.fullmatch(r"(?:pojdme si |budeme si |chci si )?povid(?:at|ej|ejme)(?: si)?(?: se mnou)?|zivy rozhovor", t):
+        return Plan([("live_conversation", {"on": True})], kind="voice")
+    m = re.fullmatch(r"(?:tlumoc|prekladej)(?: me| muj hlas)?(?: do| v)? (anglictin\w*|nemcin\w*|slovenstin\w*|polstin\w*|francouzstin\w*|spanelstin\w*|italstin\w*|ukrajinstin\w*)", t)
+    if m:
+        code = {"ang": "en", "nem": "de", "slo": "sk", "pol": "pl", "fra": "fr", "spa": "es", "ita": "it", "ukr": "uk"}[m.group(1)[:3]]
+        return Plan([("interpreter", {"on": True, "lang": code})], kind="voice")
+    if re.fullmatch(r"(?:vypni|ukonci|zastav|konec)\s+(?:tlumoceni|prekladani)", t):
+        return Plan([("interpreter", {"on": False})], kind="voice")
+    # ---- 3.14 music: what is playing, karaoke
+    if re.fullmatch(r"(?:co (?:to )?(?:ted )?hraje|co je to za (?:pisnick\w*|pisen|song|skladb\w*)|jaka je to pisnick\w*|kdo to zpiva|co to je za pisnick\w*)", t):
+        return Plan([("now_playing_info", {})], kind="music")
+    if re.fullmatch(r"(?:pust |zapni |otevri |spust )?karaoke", t):
+        return Plan([("karaoke_open", {})], kind="music")
+    # ---- 3.14 the brain: "přepni na Ollamu", "použij Claude Sonnet", "přepni model na qwen3:8b" – works even when
+    # the AI answering now does not (that is when you want to switch)
+    m = re.fullmatch(r"(?:prepni|prepnout|pouzij|pouzivej|zmen|vyber)\s+(?:(mozek|model|ai|umelou inteligenci)\s+)?(?:na |do )?(.{2,40})", t)
+    if m:
+        from . import brainpick
+
+        target = m.group(2)
+        brain = brainpick.preset_from_words(target)
+        if brain:
+            model = brainpick.claude_model_from_words(target) if brain == "anthropic" else ""
+            if brain == "ollama":
+                rest = re.sub(r"\b(ollam\w*|olam\w*|lokaln\w*|offline)\b", " ", target).split()
+                model = rest[0] if rest and re.search(r"[:\d]", rest[0]) else ""
+            return Plan([("brain_switch", {"brain": brain, **({"model": model} if model else {})})], kind="brain")
+        if m.group(1) == "model" and re.fullmatch(r"[\w.:/-]{2,60}", target):
+            return Plan([("brain_switch", {"model": target})], kind="brain")
+    # ---- 3.16 everyday commands with a slot (lists, lights, the printer, the model, the HUD, YouTube, prices…)
+    from . import quickcmd
+
+    q = quickcmd.plan(text)
+    if q:
+        return Plan(q[0], fallback=True, kind=q[1])
     # ---- apps: open, close
     m = re.fullmatch(r"(?:otevri|spust|zapni aplikaci|nastartuj)\s+(.{2,40})", t)
     if m and not re.search(r"\b(soubor\w*|slozk\w*|web\w*|strank\w*|dokument\w*|posledni|email\w*|mail\w*|fotk\w*|obrazek|pdf)\b", m.group(1)):

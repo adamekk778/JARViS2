@@ -723,3 +723,20 @@ html[data-motion="reduced"] .n-ctl, html[data-motion="reduced"] .n-ctl-dot::afte
   overflow: hidden; text-overflow: ellipsis; font: 500 11.5px/1.2 var(--font); color: rgb(255 255 255 / .55); pointer-events: none; }
 .notch.has-tr[data-island="lyrics"]:is([data-mode="closed"], [data-mode="hover"]) .n-lyr-tr { display: block; opacity: 1; }
 .notch.has-tr[data-island="lyrics"] .n-lyr { bottom: 16px; }
+
+
+/* 3.14 widgets in Více */
+.mo-widgets { display: contents; }
+.mo-widget.bad .mo-text span { opacity: .6; }
+
+/* 3.15 Mega animace – the notice stack, the liquid entry, the time of day */
+.n-alert-more { position: absolute; right: 10px; top: 8px; min-width: 22px; padding: 1px 7px; border-radius: 999px; font: 700 11px/16px system-ui, sans-serif;
+  font-style: normal; text-align: center; color: #001018; background: var(--accent, #4f8dff); box-shadow: 0 0 10px rgb(79 141 255 / .6); }
+.n-alert-text { touch-action: pan-y; will-change: transform; }
+.n-alert-text.liquid-in { animation: liquidIn .55s cubic-bezier(.2, .9, .2, 1.1) both; }
+@keyframes liquidIn { 0% { filter: blur(6px); transform: scale(.92, .7) translateY(-8px); opacity: 0; } 55% { filter: blur(0); transform: scale(1.02, 1.04); opacity: 1; }
+  100% { transform: none; } }
+html[data-daypart="morning"] .blob { filter: brightness(1.06) saturate(1.05); }
+html[data-daypart="evening"] .blob { filter: sepia(.12) saturate(1.05); }
+html[data-daypart="night"] .blob { filter: brightness(.82) saturate(.8); }
+html[data-fx="off"] .n-alert-text.liquid-in { animation: none; }

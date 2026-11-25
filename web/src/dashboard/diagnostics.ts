@@ -1,6 +1,6 @@
 // Diagnostika (spec §8): what JARVIS itself costs, child processes, AI latency, voice, redacted log.
 import { hero, HEROES } from "../shared/hero";
-import { h, icon, toast } from "../shared/dom";
+import { h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 import { openTrial } from "../shared/trial";
 
@@ -8,6 +8,47 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
   let timer = 0;
   const stats = h("div", { class: "diag-stats" });
   const sys = h("div", { class: "diag-stats" });
+  const fx = h("div", { class: "diag-stats" });
+  const speed = h("div", { class: "diag-stats" });
+  const longRun = h("div", { class: "diag-stats" });
+  // 3.17 Změřit rychlost: typical read-only requests + the voice there and back, on this PC with this AI
+  const sc = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Projde 20 běžných dotazů, které nic nemění (čas, počasí, kalendář, výpočty…), a hlas tam a zpět. Trvá asi minutu; dotazy jdou na tvou AI jako obvykle, výsledek zůstane v počítači."));
+  const scBtn = h("button", { class: "btn primary", type: "button", onclick: () => { scBtn.disabled = true; client.send("speedcheck_run" as any, { voice: true }); } }, icon("gauge"), "Změřit rychlost") as HTMLButtonElement;
+  const ms = (v: any) => (v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(1).replace(".", ",")} s` : `${v} ms`);
+  // 3.17 Moje povely: what you asked and what worked, checked again (also once after every update)
+  const mine = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Ověří, že tvoje obvyklé povely pořád vedou ke stejnému nástroji (offline, nic se nespouští)."));
+  client.on("mine_check" as any, (m: any) => {
+    const failed: any[] = m.failed || [];
+    mine.replaceChildren(h("p", { class: `sc-sum ${failed.length ? "bad" : "ok"}` },
+      m.checked ? `${m.ok} z ${m.checked} povelů vede ke stejnému nástroji.` : "Zatím žádné naučené povely."),
+      ...failed.slice(0, 30).map((f) => h("div", { class: "sc-item bad" }, icon("x-circle", "ph-fill"),
+        h("div", { class: "sc-text" }, h("strong", {}, `„${f.phrase}“ → ${f.tool}`), h("span", {}, f.got)))));
+  });
+  const mineBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("mine_check" as any, {}) }, icon("list-checks"), "Zkontrolovat moje povely");
+  // 3.17 Průvodce rychlostí: what this PC can do faster, each with one button
+  const wiz = h("div", { class: "card sc-list" }, h("p", { class: "help" }, "Načítám doporučení…"));
+  client.on("speedwizard" as any, (m: any) => {
+    if (m.text) toast(m.text, m.ok ? "ok" : "error");
+    const items: any[] = m.items || [];
+    wiz.replaceChildren(...(items.length ? items.map((r) => h("div", { class: `sc-item ${r.done ? "ok" : "na"}` },
+      icon(r.done ? "check-circle" : "lightning", "ph-fill"),
+      h("div", { class: "sc-text" }, h("strong", {}, r.title), h("span", {}, r.why),
+        r.done ? null : h("button", { class: "btn primary sm", type: "button", onclick: (e: Event) => {
+          (e.currentTarget as HTMLButtonElement).disabled = true;
+          client.send("speedwizard_apply" as any, { id: r.id });
+        } }, r.pull ? `Stáhnout a zapnout (${r.pull})` : "Zapnout")))) : [h("p", { class: "help" }, "Všechno je nastavené na nejrychlejší.")]));
+  });
+  client.on("speedcheck" as any, (m: any) => {
+    if (m.running) { sc.replaceChildren(h("p", { class: "help" }, `Měřím… ${m.done || 0} z ${m.total || 20}${m.last ? ` · „${m.last.text}“ ${ms(m.last.total_ms)} (${m.last.how})` : ""}`)); return; }
+    scBtn.disabled = false;
+    if (m.error) { sc.replaceChildren(h("p", { class: "help" }, m.error)); return; }
+    if (!m.report) return;
+    const r = m.report;
+    sc.replaceChildren(h("p", { class: "sc-sum ok" }, m.text),
+      ...r.requests.map((q: any) => h("div", { class: "row" }, h("span", {}, q.text), h("span", { class: "help" }, `${q.how} · první slovo ${ms(q.first_word_ms)} · celé ${ms(q.total_ms)}`))),
+      ...(r.voice || []).map((v: any) => h("div", { class: "row" }, h("span", {}, `🔊 ${v.text}`),
+        h("span", { class: "help" }, v.error ? v.error : `hlas ${ms(v.tts_ms)} · rozpoznání ${ms(v.stt_ms)} · „${v.heard || ""}“ (${Math.round((v.match || 0) * 100)} %)`))));
+  });
   const kids = h("div", {});
   const ttft = h("div", {});
   const log = h("pre", { class: "diag-log" });
@@ -24,6 +65,45 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
       h("span", { class: "help" }, `průměr ${Math.round(v.reduce((a, b) => a + b, 0) / v.length)} ms · posledních ${v.length}`)))
       : [h("p", { class: "help" }, "Zatím žádné odpovědi.")]));
     log.textContent = (m.log_tail || []).slice(-60).join("\n");
+    // 3.15 each JARVIS window's frame rate and effects tier
+    const NAMES: Record<string, string> = { hud: "Stark HUD", notch: "Notch", dashboard: "Aplikace", fullchat: "Chat", mobile: "Telefon",
+      karaoke: "Karaoke", overlay: "Efekty na ploše", wallpaper: "Živá tapeta" };
+    const TIERS: Record<string, string> = { ultra: "Ultra", high: "Vysoká", eco: "Úsporná", off: "bez efektů" };
+    fx.replaceChildren(...((m.fx || []) as any[]).map((f) => stat(`${NAMES[f.page] || f.page} – ${TIERS[f.tier] || "?"}`, `${f.fps} FPS`, f.fps < 45)));
+    if (!(m.fx || []).length) fx.replaceChildren(h("p", { class: "help" }, "Otevři HUD nebo notch – do půl minuty tu uvidíš jejich snímky za sekundu."));
+    // 3.16 how fast JARVIS answers: each step (median of the last answers) and how often the tool was there at once
+    const L = m.latency || {};
+    const v = L.voice || {}, all = L.stages || {};
+    const ms = (x: any) => (x ? (x.median >= 1000 ? `${(x.median / 1000).toFixed(1).replace(".", ",")} s` : `${x.median} ms`) : "–");
+    const cells = [
+      stat("Přepis řeči (hlas)", ms(v.stt), (v.stt?.median || 0) > 1200),
+      stat("První slovo AI (hlas)", ms(v.first_token), (v.first_token?.median || 0) > 2500),
+      stat("První zvuk (hlas)", ms(v.first_audio), (v.first_audio?.median || 0) > 3000),
+      stat("První slovo AI (psaní)", ms(all.first_token), (all.first_token?.median || 0) > 2500),
+    ];
+    if (L.first_try != null) cells.push(stat("Nástroj trefen napoprvé", `${L.first_try} %`, L.first_try < 85));
+    if (L.n) cells.push(stat("Odpovědí bez AI (okamžité)", `${L.instant || 0} z ${L.n}`), stat("S katalogem nástrojů", `${L.catalog || 0} z ${L.n}`));
+    for (const c of (m.cache || []) as any[]) cells.push(stat(`Z cache – ${c.provider}`, `${c.from_cache_pct} %`, c.requests >= 5 && c.from_cache_pct < 40));
+    speed.replaceChildren(...(L.n ? cells : [h("p", { class: "help" }, "Zatím žádné odpovědi – po pár otázkách tu uvidíš, kolik trvá každý krok.")]));
+    // 3.18 the long run: memory over the last day (a sparkline) and whether it keeps growing
+    const R = m.resources || {};
+    if (!R.n) longRun.replaceChildren(h("p", { class: "help" }, "Za pár minut tu bude paměť a procesor JARVISe za poslední den (každých 5 minut)."));
+    else {
+      const pts: number[][] = R.points || [];
+      const lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1]), lo + 1);
+      const W = 320, H = 48;
+      const path = pts.map((p, i) => `${i ? "L" : "M"}${(i / Math.max(1, pts.length - 1) * W).toFixed(1)},${(H - (p[1] - lo) / (hi - lo) * (H - 4) - 2).toFixed(1)}`).join(" ");
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("class", "spark"); svg.setAttribute("aria-label", "Paměť JARVISe za poslední den");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("d", path); line.setAttribute("fill", "none"); line.setAttribute("stroke", "currentColor"); line.setAttribute("stroke-width", "1.5");
+      svg.append(line);
+      longRun.replaceChildren(
+        stat("Paměť teď", `${Math.round(R.rss_now)} MB`), stat("Za den", `${Math.round(R.rss_min)}–${Math.round(R.rss_max)} MB`),
+        stat("Roste o", `${Math.round(R.grow_mb_day)} MB / den`, !!R.leak), stat("Procesor průměrně", `${R.cpu_avg} %`),
+        stat("Vlákna · soubory", `${R.threads} · ${R.files}`), h("div", { class: "spark-wrap" }, svg,
+          h("p", { class: "help" }, R.leak ? "Paměť den co den roste – restart pomůže; pošli prosím Export, ať se najde příčina." : `Posledních ${R.hours} h, vzorek každých 5 minut.`)));
+    }
   });
   client.on("system", (m) => {
     const gpu = m.gpu ? `${m.gpu.name}${m.gpu.util != null ? ` · ${m.gpu.util} %` : ""}` : "n/a";
@@ -67,6 +147,74 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
     }
   });
 
+  // 3.14 Zdraví JARVISe (návrhy 12, 13, 16, 17, 20): failing tools, AI speed, voice delay, versions, battery
+  const health = h("div", { class: "card qh" }, loading());
+  const pct = (x: number) => `${Math.round(x * 1000) / 10} %`;
+  client.on("quality", (m: any) => {
+    const v = m.voice || {};
+    const verdict = m.verdict ? `Nová verze je ${m.verdict} než předchozí (podle chybovosti nástrojů).` : "Na porovnání verzí je zatím málo dat.";
+    const row = (a: string, b: string, warn = false) => h("div", { class: `row ${warn ? "warn" : ""}` }, h("span", {}, a), h("span", { class: "help" }, b));
+    const ch = h("select", { onchange: (e: Event) => client.send("update_channel_set", { channel: (e.target as HTMLSelectElement).value }) },
+      h("option", { value: "stable", selected: m.channel !== "beta" }, "Stabilní verze"),
+      h("option", { value: "beta", selected: m.channel === "beta" }, "Beta (novinky dřív, víc chyb)"));
+    const auto = h("input", { type: "checkbox", checked: !!m.auto_rollback,
+      onchange: (e: Event) => client.send("settings_set", { patch: { general: { auto_rollback: (e.target as HTMLInputElement).checked } } }) });
+    health.replaceChildren(
+      h("div", { class: "diag-stats" },
+        stat("Hlas – do prvního slova", v.median_ms != null ? `${v.median_ms} ms` : "zatím neměřeno", v.median_ms != null && v.median_ms > (v.target_ms || 1200)),
+        stat("Chyby v logu (7 dní)", String(m.errors ?? 0), (m.errors ?? 0) > 20),
+        stat("JARVIS z procesoru", m.power?.cpu_share != null ? `${m.power.cpu_share} %` : "měřím…"),
+        stat("JARVIS z baterie", m.power?.jarvis_per_h != null ? `${m.power.jarvis_per_h} % za hodinu` : "jen na baterii")),
+      h("p", { class: "help" }, verdict),
+      ...(m.versions || []).map((x: any) => row(`Verze ${x.version}`, `${x.calls} akcí · chybovost ${pct(x.rate)} · od ${x.since}`)),
+      h("p", { class: "group-label" }, "Nástroje, které nejčastěji selhávají"),
+      ...((m.failing || []).length ? m.failing.map((t: any) => row(t.tool, `${t.fails} z ${t.calls} selhalo · ${t.avg_ms} ms`, true))
+        : [h("p", { class: "help" }, "Žádný nástroj neselhává častěji než ve 30 % případů.")]),
+      h("p", { class: "group-label" }, "Rychlost AI (medián do prvního slova)"),
+      ...((m.models || []).length ? m.models.map((x: any) => row(x.provider, `${x.median_ms} ms · ${x.answers} odpovědí${x.error ? " · " + x.error : ""}`, !!x.error))
+        : [h("p", { class: "help" }, "Zatím žádné odpovědi.")]),
+      h("div", { class: "row" }, h("span", {}, "Aktualizace"), ch),
+      h("label", { class: "row" }, h("span", {}, "Když po aktualizaci přestane fungovat notch nebo hlas, vrátit se samo na předchozí verzi"), auto),
+      h("div", { class: "btn-row" },
+        h("button", { class: "btn", type: "button", onclick: () => {
+          const text = window.prompt("Co se stalo? (napiš pár slov – diagnostiku bez hesel a klíčů přidám sám)");
+          if (text === null) return;                                    // Zrušit
+          client.send("bug_report", { title: text.slice(0, 80), text });
+        } }, icon("bug"), "Nahlásit chybu"),
+        m.previous && m.previous !== m.current ? h("button", { class: "btn", type: "button", onclick: () => {
+          if (window.confirm(`Nainstalovat zpět verzi ${m.previous}? JARVIS se na chvíli zavře.`)) client.send("rollback_now", { to: m.previous });
+        } }, icon("arrow-counter-clockwise"), `Vrátit verzi ${m.previous}`) : null));
+  });
+  client.on("bug_report_url", (m: any) => {
+    if (!m.url) { toast("Adresu pro hlášení neznám (aktualizace nejsou z GitHubu).", "error"); return; }
+    const a = h("a", { href: m.url, target: "_blank", rel: "noopener" }); a.click();
+    toast("Otevírám formulář na GitHubu – zkontroluj text a klikni Submit.", "ok", 6000);
+  });
+
+  // 3.14 Úplně offline (návrh 31): speech recognition, AI and voice on this PC – sizes first, one click, then a test
+  const offline = h("div", { class: "card qh" }, loading());
+  const offlineLog = h("p", { class: "help" });
+  client.on("offline_pack_progress", (m: any) => { offlineLog.textContent = m.text; });
+  client.on("offline_pack", (m: any) => {
+    offlineLog.textContent = (m.errors || []).join(" ");
+    offline.replaceChildren(
+      h("p", { class: "help" }, m.ready ? "Všechno potřebné pro práci bez internetu je v tomhle PC." :
+        `Pro práci úplně bez internetu chybí ${m.parts.filter((p: any) => !p.ready).length} část(i) – ke stažení ${m.download_gb} GB.`),
+      ...m.parts.map((p: any) => h("div", { class: `row ${p.ready ? "" : "warn"}` }, h("span", {}, icon(p.ready ? "check-circle" : "download-simple"), " ", p.name),
+        h("span", { class: "help" }, p.ready ? `připraveno · ${p.note}` : `${p.size_gb} GB · ${p.note}`))),
+      h("div", { class: "btn-row" },
+        m.ready ? null : h("button", { class: "btn primary", type: "button", onclick: () => {
+          if (!window.confirm(`Stáhnout ${m.download_gb} GB pro práci bez internetu?`)) return;
+          offlineLog.textContent = "Připravuju…"; client.send("offline_pack_prepare", { switch: false });
+        } }, icon("download-simple"), "Připravit vše offline"),
+        h("button", { class: "btn", type: "button", onclick: () => { offlineLog.textContent = "Zkouším hlas → rozpoznání → AI…"; client.send("offline_pack_test"); } }, icon("play"), "Vyzkoušet"),
+        m.ready && !m.offline_only ? h("button", { class: "btn", type: "button", onclick: () => client.send("offline_pack_prepare", { switch: true }) }, icon("wifi-slash"), "Používat jen offline") : null),
+      offlineLog);
+  });
+  client.on("offline_pack_test_result", (m: any) => {
+    offlineLog.replaceChildren(...(m.items || []).map((i: any) => h("span", { class: "row" }, icon(i.ok === false ? "x-circle" : i.ok ? "check-circle" : "minus-circle"), " ", i.detail)));
+  });
+
   const tick = () => { client.send("diagnostics_get"); client.send("system_get", { gpu: true }); };
   const el = h("section", { class: "diag-view" },
     hero(HEROES.diagnostics, "Diagnostika", "Jak se daří JARVISovi a tvému počítači.", [
@@ -76,15 +224,23 @@ export function buildDiagnostics(client: JarvisClient, ask: (text: string) => vo
       h("button", { class: "btn", type: "button", onclick: () => client.send("diagnostics_export") }, icon("file-zip"), "Exportovat")]),
     h("div", { class: "sc-head" }, h("p", { class: "group-label" }, "Kontrola funkcí"),
       h("button", { class: "btn primary", type: "button", onclick: runCheck }, icon("stethoscope"), "Zkontrolovat")), checks,
+    h("p", { class: "group-label" }, "Zdraví JARVISe"), health,
+    h("p", { class: "group-label" }, "Úplně offline"), offline,
     h("p", { class: "group-label" }, "JARVIS"), stats,
     h("p", { class: "group-label" }, "Počítač"), sys,
+    h("p", { class: "group-label" }, "Dlouhý běh (poslední den)"), longRun,
+    h("p", { class: "group-label" }, "Rychlost odpovědí (střed posledních 60)"), speed,
+    h("div", { class: "btn-row" }, scBtn), sc,
+    h("p", { class: "group-label" }, "Průvodce rychlostí"), wiz,
+    h("p", { class: "group-label" }, "Moje povely"), h("div", { class: "btn-row" }, mineBtn), mine,
+    h("p", { class: "group-label" }, "Animace (snímky za sekundu)"), fx,
     h("div", { class: "grid2" },
       h("div", {}, h("p", { class: "group-label" }, "Podprocesy"), h("div", { class: "card" }, kids)),
       h("div", {}, h("p", { class: "group-label" }, "Rychlost AI (do prvního slova)"), h("div", { class: "card" }, ttft))),
     h("p", { class: "group-label" }, "Log (bez hesel a klíčů)"), h("div", { class: "card" }, log));
   return {
     el,
-    show() { tick(); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
+    show() { tick(); client.send("quality_get"); client.send("offline_pack_get"); client.send("speedwizard_get" as any); client.send("speedcheck_get" as any); window.clearInterval(timer); timer = window.setInterval(() => { if (el.isConnected && !el.hidden) tick(); else window.clearInterval(timer); }, 2000); },
     hide() { window.clearInterval(timer); },
   };
 }

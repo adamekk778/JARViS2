@@ -59,7 +59,7 @@ export const native = {
   },
 
   /** OMEGA 136 / 722: the texts the home-screen widget shows. */
-  widget(o: { status: string; task: string; pins: string; habits?: string; song?: string; online?: boolean }) {
+  widget(o: { status: string; task: string; pins: string; habits?: string; song?: string; online?: boolean; busy?: boolean; progress?: number }) {
     if (isNative) JarvisPhone.widget(o).catch(() => {});
   },
 
@@ -72,7 +72,7 @@ export const native = {
   onLink(cb: (url: string) => void) {
     if (!isNative) return;
     import("@capacitor/app").then(({ App }) => {
-      App.addListener("appUrlOpen", (e: any) => e?.url && cb(e.url));
+      void App.addListener("appUrlOpen", (e: any) => e?.url && cb(e.url));
       App.getLaunchUrl().then((r: any) => r?.url && cb(r.url)).catch(() => {});
     }).catch(() => {});
   },
@@ -122,6 +122,19 @@ export const native = {
         new Notification(title, { body });
       }
     } catch { /* ignore */ }
+  },
+
+  /** 3.20 (129) a reminder the phone keeps by itself (works without the PC; in a browser only while the page is open). */
+  async notifyAt(title: string, body: string, at: Date): Promise<boolean> {
+    try {
+      if (isNative) {
+        const { LocalNotifications } = await import("@capacitor/local-notifications");
+        await LocalNotifications.schedule({ notifications: [{ id: notifyId++, title, body, schedule: { at, allowWhileIdle: true } }] });
+        return true;
+      }
+      window.setTimeout(() => { void this.notify(title, body); }, Math.max(0, at.getTime() - Date.now()));
+      return true;
+    } catch { return false; }
   },
 
   /** Fingerprint / face / screen lock before an "Allow" (3.0). In a plain browser there is nothing to check. */

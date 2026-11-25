@@ -35,7 +35,8 @@ def test_templates_and_auto_motion_in_ui():
     a = (web / "dashboard" / "automations.ts").read_text(encoding="utf-8")
     assert "export const TEMPLATES" in a and a.count('a: T("') >= 8
     b = (web / "shared" / "base.ts").read_text(encoding="utf-8")
-    assert 'motionPref === "auto" && onBattery' in b and "export function applyPower" in b
+    assert 'motionPref === "auto" && (onBattery' in b and "export function applyPower" in b
+    assert "export function applyLoad" in b                     # 3.14: heavy load reduces effects too
 
 
 def test_power_state_in_welcome(rt):

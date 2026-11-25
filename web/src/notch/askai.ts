@@ -44,6 +44,24 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
   let atts: { id: string; url: string }[] = [];
   let busy = false;
   const logo = h("span", { class: "aa-logo" }), title = h("strong", {}), model = h("span", { class: "aa-model" });
+  // 3.14 the AI that answers now: its model switches right here (Ollama: the models on this PC; Claude: Opus, Sonnet…)
+  const modelSel = h("select", { class: "aa-model-sel", "aria-label": "Model", hidden: true }) as HTMLSelectElement;
+  let activeId = "";
+  modelSel.onchange = () => {
+    if (!target || !modelSel.value) return;
+    client.send("brain_use", { key: target.p.id, model: modelSel.value });
+    model.textContent = `${host(target)} · ${modelSel.value}`;
+    toast(`Model: ${modelSel.value}`, "ok", 1600);
+  };
+  client.on("brain_models", (m: any) => {
+    if (!target || (m.key !== target.p.id && m.id !== target.p.id)) return;
+    const list: { id: string; label: string; note: string }[] = Array.isArray(m.models) ? m.models : [];
+    if (list.length < 2) { modelSel.hidden = true; model.hidden = false; return; }
+    const now = target.p.model || String(m.current || "");
+    modelSel.replaceChildren(...list.map((x) => h("option", { value: x.id, selected: x.id === now }, x.note ? `${x.label} – ${x.note}` : x.label)));
+    modelSel.hidden = false;
+    model.hidden = true;
+  });
   const input = h("textarea", { class: "aa-input", rows: 3, placeholder: "Na co se chceš zeptat?", "aria-label": "Dotaz" }) as HTMLTextAreaElement;
   const thumbs = h("div", { class: "aa-thumbs" });
   const file = h("input", { type: "file", accept: "image/*", multiple: true, hidden: true }) as HTMLInputElement;
@@ -52,7 +70,7 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
   const sheet = h("div", { class: "lk-sheet aa-sheet", role: "dialog", "aria-label": "Zeptat se AI", hidden: true },
     h("div", { class: "aa-head" },
       h("button", { class: "aa-back", type: "button", "aria-label": "Zpět", onclick: () => open(null) }, icon("caret-left")),
-      logo, h("div", { class: "aa-titles" }, title, model)),
+      logo, h("div", { class: "aa-titles" }, title, model, modelSel)),
     h("div", { class: "aa-box" }, input, thumbs, h("div", { class: "aa-tools" }, clip, send)),
     h("p", { class: "aa-hint" }, "Enter odešle · Shift+Enter nový řádek · sponka: přidat fotku"), file);
 
@@ -95,6 +113,9 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
     sheet.style.setProperty("--tint", t.brand.color);
     title.textContent = `Zeptej se ${t.brand.name}`;
     model.textContent = `${host(t)} · ${t.p.model || "výchozí model"}`;
+    model.hidden = false;
+    modelSel.hidden = true;
+    if (t.p.id === activeId) client.send("brain_models_get", { key: t.p.id });   // only the one answering now switches here
     sheet.animate([{ opacity: 0, transform: "translateY(10px) scale(.98)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.9,.25,1)" });
     window.setTimeout(() => input.focus(), 30);
   }
@@ -106,14 +127,15 @@ export function createAskAi(getHost: () => HTMLElement, client: JarvisClient, to
     const chain: string[] = settings?.brain?.chain || [];
     const provs: Prov[] = settings?.brain?.providers || [];
     const active = chain.find((id) => provs.some((p) => p.id === id && p.enabled !== false)) || "";
+    activeId = active;
     chips.hidden = !ts.length;
     chips.replaceChildren(...ts.map((t) => {
       const on = t.p.id === active;
       // 3.13 a click: from now on this AI answers (the others stay as backup); right-click: ask it just once (with a photo)
       const b = h("button", { type: "button", class: `aa-chip ${on ? "on" : ""}`, "aria-pressed": on ? "true" : "false",
-        title: on ? `Teď odpovídá ${label(t)} · pravým: zeptat se jednou` : `Odpovídat bude ${label(t)} · pravým: zeptat se jednou`,
+        title: on ? `Teď odpovídá ${label(t)} · klikni: přepnout model` : `Odpovídat bude ${label(t)} · pravým: zeptat se jednou`,
         "aria-label": `Odpovídat bude ${label(t)}`,
-        onclick: (e: Event) => { e.stopPropagation(); if (!on) { client.send("brain_pick", { id: t.p.id }); toast(`Teď odpovídá ${label(t)}`, "ok", 1800); } },
+        onclick: (e: Event) => { e.stopPropagation(); if (!on) { client.send("brain_pick", { id: t.p.id }); toast(`Teď odpovídá ${label(t)} · klikni znovu a vybereš model`, "ok", 2400); } else open(t); },
         oncontextmenu: (e: Event) => { e.preventDefault(); e.stopPropagation(); open(t); } }, brandEl(t.brand));
       b.style.setProperty("--c", t.brand.color);
       b.dataset.brand = t.brand.id;                   // app-icon colours per brand (askai.css)       // custom properties do not go through h()'s style object

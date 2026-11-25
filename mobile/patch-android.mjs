@@ -7,6 +7,7 @@ let m = readFileSync(manifestPath, "utf8");
 const perms = [
   "android.permission.INTERNET",
   "android.permission.RECORD_AUDIO",
+  "android.permission.CAMERA",            // 3.14 EDITH: the live camera (asked the first time EDITH opens)
   "android.permission.MODIFY_AUDIO_SETTINGS",
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.VIBRATE",
@@ -32,6 +33,11 @@ const perms = [
   "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",   // 3.12 Telefon na monitoru PC (Android asks every time)
   "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",     // 3.12 Zvuk z PC do telefonu
   "android.permission.REQUEST_INSTALL_PACKAGES",   // 3.12 update the app with one tap (Android still asks)
+  "android.permission.NFC",                        // 3.20 (121) JARVIS NFC tags
+  "android.permission.ACCESS_NOTIFICATION_POLICY", // 3.20 (130) Nerušit for sleep and meetings (you allow it once)
+  "android.permission.FOREGROUND_SERVICE_LOCATION",// 3.20 (139) a location share you started with a tap
+  "android.permission.PACKAGE_USAGE_STATS",        // 3.20 (128) the month's mobile data (optional, granted in Settings)
+  "android.permission.ACCESS_BACKGROUND_LOCATION", // 3.20 (409) where you parked – only if you choose "Povolit vždy"
 ];
 for (const p of perms) {
   if (!m.includes(`"${p}"`)) m = m.replace("</manifest>", `    <uses-permission android:name="${p}" />\n</manifest>`);
@@ -110,6 +116,35 @@ const tile = `
         </service>
 `;
 if (!m.includes(".JarvisTile")) m = m.replace("</application>", tile + "    </application>");
+// 3.20 Telefon + Hodinky: mute / lock the PC from the quick settings (122), the lock-screen volume buttons (133),
+// NFC tags (121), a time-limited location share (139)
+const x320 = `
+        <service android:name=".MuteTile" android:exported="true" android:label="Ztlumit PC" android:icon="@drawable/ic_tile_jarvis"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <service android:name=".LockTile" android:exported="true" android:label="Zamknout PC" android:icon="@drawable/ic_tile_jarvis"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <receiver android:name=".PcControlReceiver" android:exported="false" />
+        <activity android:name=".NfcActivity" android:exported="true" android:excludeFromRecents="true" android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="jarvis" android:host="tag" />
+            </intent-filter>
+        </activity>
+        <service android:name=".LocShareService" android:exported="false" android:foregroundServiceType="location" />
+`;
+if (!m.includes(".MuteTile")) m = m.replace("</application>", x320 + "    </application>");
+if (!m.includes("android.hardware.nfc")) m = m.replace("</manifest>", '    <uses-feature android:name="android.hardware.nfc" android:required="false" />\n</manifest>');
+// 3.20 (158) JARVIS as the phone's assistant: the long-press / assistant gesture can open the JARVIS voice window
+if (!m.includes("android.intent.action.ASSIST")) {
+  m = m.replace(/(<activity android:name="\.VoiceActivity"[\s\S]*?)(<\/activity>)/,
+    '$1    <intent-filter><action android:name="android.intent.action.ASSIST" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>\n        $2');
+}
 // 3.12 Telefon na monitoru PC: the screen (after Android's own question) + clicks from the PC (accessibility, switched on by you)
 const mirror = `
         <service android:name=".MirrorService" android:exported="false" android:foregroundServiceType="mediaProjection" />
@@ -133,6 +168,9 @@ const widget = `
         </receiver>
 `;
 if (!m.includes(".JarvisWidget")) m = m.replace("</application>", widget + "    </application>");
+// 3.14 Android Auto: JARVIS's notices are messages the car reads aloud, "Odpovědět" by voice
+if (!m.includes("com.google.android.gms.car.application")) m = m.replace("</application>",
+  '        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />\n    </application>');
 const queries = `
     <queries>
         <package android:name="com.whatsapp" />

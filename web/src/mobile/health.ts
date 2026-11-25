@@ -1,13 +1,16 @@
 // 3.12 spánek a kroky z telefonu: with your yes in Android's Health Connect, the phone reads today's steps and last
-// night's sleep and sends them to your PC, where they tick the Spánek and Kroky habits. Nothing else is read, nothing
-// is written, and it goes only to your own PC. Off until you press "Propojit".
+// night's sleep and sends them to your PC, where they tick the Spánek and Kroky habits. 3.14 (návrh 42): with your
+// watch too – Wear OS, Samsung, Pixel, Garmin Connect or Fitbit write into Health Connect – the resting heart rate,
+// heart-rate variability, today's average heart rate and blood oxygen, for the morning "Stav systémů". Nothing is
+// written, and it goes only to your own PC. Off until you press "Propojit"; each kind can be refused on its own.
 import { registerPlugin } from "@capacitor/core";
 import type { JarvisClient } from "../shared/ws";
 import { native } from "./native";
 
 const Health: any = native.isNative ? registerPlugin("Health") : null;
 const KEY = "jarvis.health";
-const load = (): { on?: boolean; last?: number; steps?: number; sleep?: number } => {
+const READ = ["steps", "sleep", "restingHeartRate", "heartRateVariability", "heartRate", "oxygenSaturation"];
+const load = (): { on?: boolean; last?: number; steps?: number; sleep?: number; rest_hr?: number; hrv?: number } => {
   try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { return {}; }
 };
 const save = (v: object) => { try { localStorage.setItem(KEY, JSON.stringify({ ...load(), ...v })); } catch { /* full */ } };
@@ -22,9 +25,9 @@ export async function healthConnect(): Promise<string> {
     await Health.openHealthConnectSettings?.().catch(() => {});
     return "V telefonu chybí Health Connect – nainstaluj „Health Connect“ z Obchodu Play (na Androidu 14+ už je) a zkus to znovu.";
   }
-  const st = await Health.requestAuthorization({ read: ["steps", "sleep"] });
+  const st = await Health.requestAuthorization({ read: READ });
   const ok = (st.readAuthorized || []) as string[];
-  if (!ok.length) return "Bez povolení to nejde – v okně Health Connect zaškrtni Kroky a Spánek.";
+  if (!ok.length) return "Bez povolení to nejde – v okně Health Connect zaškrtni Kroky, Spánek a Tep.";
   save({ on: true });
   return "";
 }
@@ -59,7 +62,34 @@ export async function healthSync(c: JarvisClient, force = false): Promise<void> 
     }
     sleepH = min > 0 ? Math.round((min / 60) * 10) / 10 : null;
   } catch { /* no sleep permission */ }
-  if (steps == null && sleepH == null) return;
-  c.send("habit_health" as any, { day: ymd(now), steps, sleep_h: sleepH });
-  save({ last: Date.now(), steps: steps ?? undefined, sleep: sleepH ?? undefined });
+  const since = new Date(now.getTime() - 24 * 3600 * 1000);
+  const latest = async (type: string, from: Date): Promise<number | null> => {   // the newest reading (resting heart rate, oxygen)
+    try {
+      const r = await Health.readSamples({ dataType: type, startDate: iso(from), endDate: iso(now), limit: 50 });
+      const s = (r.samples || []).filter((x: any) => Number.isFinite(Number(x.value)))
+        .sort((a: any, b: any) => Date.parse(b.endDate) - Date.parse(a.endDate));
+      return s.length ? Number(s[0].value) : null;
+    } catch { return null; }                                                       // not allowed / no watch: skip it
+  };
+  const average = async (type: string, from: Date): Promise<number | null> => {
+    try {
+      const r = await Health.readSamples({ dataType: type, startDate: iso(from), endDate: iso(now), limit: 500 });
+      const v = (r.samples || []).map((x: any) => Number(x.value)).filter((x: number) => Number.isFinite(x) && x > 0);
+      return v.length ? Math.round((v.reduce((a: number, b: number) => a + b, 0) / v.length) * 10) / 10 : null;
+    } catch { return null; }
+  };
+  const restHr = await latest("restingHeartRate", since);
+  const hrv = await average("heartRateVariability", new Date(midnight.getTime() - 6 * 3600 * 1000));   // over the night
+  let hr: number | null = null;
+  try {
+    const r = await Health.queryAggregated({ dataType: "heartRate", startDate: iso(midnight), endDate: iso(now), bucket: "day", aggregation: "average" });
+    const s = (r.samples || [])[0];
+    const v = Number(s?.value ?? s?.values?.average);
+    hr = Number.isFinite(v) && v > 0 ? Math.round(v) : null;
+  } catch { /* no heart rate */ }
+  let spo2 = await latest("oxygenSaturation", since);
+  if (spo2 != null && spo2 <= 1) spo2 = Math.round(spo2 * 1000) / 10;         // some watches report 0.97, others 97
+  if (steps == null && sleepH == null && restHr == null && hrv == null) return;
+  c.send("habit_health" as any, { day: ymd(now), steps, sleep_h: sleepH, rest_hr: restHr, hrv, hr, spo2 });
+  save({ last: Date.now(), steps: steps ?? undefined, sleep: sleepH ?? undefined, rest_hr: restHr ?? undefined, hrv: hrv ?? undefined });
 }

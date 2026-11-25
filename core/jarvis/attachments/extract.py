@@ -53,9 +53,7 @@ def ocr_bytes(data: bytes) -> str | None:
     except Exception:
         return None
     global _OCR
-    try:
-        _OCR
-    except NameError:
+    if globals().get("_OCR") is None:
         _OCR = RapidOCR()
     res, _ = _OCR(data)
     return "\n".join(r[1] for r in res or [])

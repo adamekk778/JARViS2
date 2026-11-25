@@ -259,7 +259,7 @@ async def offline_ai(rt: Any) -> dict:
     if not names:
         return _r("ollama", name, False, f"Ollama běží (verze {st.get('version') or '?'}), ale nemá stažený žádný model.",
                   "Nastavení → AI mozek → Offline záloha mozku → Nastavit (stáhne asi 2 GB).")
-    want = b.get("model") or "qwen2.5:3b"
+    want = b.get("model") or "qwen3:4b"
     have = want in names or any(n.split(":")[0] == want.split(":")[0] for n in names)
     if not b.get("on"):
         return _r("ollama", name, False, f"Ollama běží a má {', '.join(names[:3])}, ale offline záloha v JARVISovi je vypnutá.",
@@ -472,6 +472,12 @@ async def run(rt: Any, tester) -> list[dict]:
     except asyncio.TimeoutError:
         results.append(_r("lan", "Domácí síť", None, "Kontrola sítě nestihla doběhnout."))
     results += [wake(rt), notch(rt), phone(rt)]        # 3.13 "Hey Jarvis", the notch and the phone too
+    try:                                               # 3.18 the printer, gestures, parcels, STEP, travel booking
+        from . import integrationcheck
+
+        results += await asyncio.wait_for(integrationcheck.run(rt), 60)
+    except Exception as e:  # noqa: BLE001
+        results.append(_r("integrations", "Integrace", None, f"Kontrola integrací nedoběhla: {str(e)[:120]}"))
     for r in results:                                  # into the log, so a diagnostics export carries them
         (log.warning if r["ok"] is False else log.info)("kontrola %s: %s – %s", r["key"], "OK" if r["ok"] else "CHYBA", r["detail"])
     return results

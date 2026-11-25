@@ -30,7 +30,8 @@ class ServiceError(RuntimeError):
 
 
 GROUPS = {"work": "Google a Microsoft", "money": "Peníze a faktury", "sales": "Prodej a zákazníci",
-          "tasks": "Úkoly a projekty", "dev": "Vývoj a weby", "chat": "Zprávy a automatizace", "music": "Hudba"}
+          "tasks": "Úkoly a projekty", "dev": "Vývoj a weby", "chat": "Zprávy a automatizace", "music": "Hudba",
+          "travel": "Cesty a zásilky"}
 PROBES: dict[str, dict] = {}          # id → a request with a made-up key (the CI on real Windows: the service must say "wrong key")
 
 
@@ -309,7 +310,7 @@ async def probe(cid: str, transport=None) -> dict:
 MODULES = ("google", "microsoft", "dropbox", "stripe", "fakturoid", "idoklad", "fio", "shopify", "woocommerce", "hubspot",
            "pipedrive", "mailchimp", "calendly", "todoist", "trello", "asana", "linear", "atlassian", "clickup", "airtable",
            "monday", "notion", "toggl", "github", "supabase", "spaceship", "vercel", "cloudflare", "sentry", "slack",
-           "telegram", "discord", "webhook", "spotify", "shoptet", "zasilkovna", "heureka", "gopay", "comgate", "flexi", "pohoda")
+           "telegram", "discord", "webhook", "spotify", "shoptet", "zasilkovna", "ppl", "gls", "travelapis", "heureka", "gopay", "comgate", "flexi", "pohoda", "aerodatabox", "czlinks")
 
 
 def load() -> None:

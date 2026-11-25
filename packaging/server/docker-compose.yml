@@ -1,0 +1,15 @@
+# 3.14 JARVIS nonstop:  docker compose -f packaging/server/docker-compose.yml up -d   (from the repository root)
+services:
+  jarvis:
+    build:
+      context: ../..
+      dockerfile: packaging/server/Dockerfile
+    container_name: jarvis
+    restart: unless-stopped
+    network_mode: host          # satellites, Wake-on-LAN and the phone on the home network see it directly
+    volumes:
+      - jarvis-data:/data
+    environment:
+      - TZ=Europe/Prague
+volumes:
+  jarvis-data:

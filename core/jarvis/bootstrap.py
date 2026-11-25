@@ -77,7 +77,7 @@ def start_background(rt) -> None:
                     log.info("omniroute: %s", ensure_omniroute(p.base_url or "http://localhost:20128/v1"))
                 elif p.preset == "ollama" and rt.cfg.brain.local_enabled:
                     log.info("ollama: %s", ensure_ollama_model(
-                        p.base_url or "http://localhost:11434", p.model or "qwen2.5:3b",
+                        p.base_url or "http://localhost:11434", p.model or "qwen3:4b",
                         lambda _t, **d: rt.local.set_missing(d["name"], d.get("size_gb"))))
             except Exception as e:
                 log.warning("bootstrap %s: %s", p.id, e)

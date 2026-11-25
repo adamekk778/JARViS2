@@ -30,7 +30,30 @@ KIND_LABEL = {
     "zone_enter": "Přijdu na místo (telefon)", "zone_leave": "Odejdu z místa (telefon)",
     "home_state": "Čidlo v domácnosti (Home Assistant)",
     "phone_power": "Telefon na nabíječce", "phone_battery": "Slabá baterie telefonu",
+    "phrase": "Řeknu větu",
 }
+
+
+def _norm_phrase(text: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    t = re.sub(r"[^a-z0-9 ]", " ", t)
+    return " ".join(w for w in t.split() if w not in ("jarvis", "jarvisi", "hej", "hey", "prosim"))
+
+
+def phrase_match(rt, text: str):
+    """3.14 návrh 48: an enabled "phrase" automation whose sentence is what was just said (or how it starts)."""
+    said = _norm_phrase(text)
+    if not said or not getattr(rt.cfg.automations, "enabled", True):
+        return None
+    for a in rt.cfg.automations.items:
+        if a.enabled and a.trigger.type == "phrase":
+            p = _norm_phrase(a.trigger.value)
+            if p and (said == p or (said.startswith(p + " ") and len(said.split()) <= len(p.split()) + 2)):
+                return a
+    return None
 HOME_POLL_S = 30
 
 
@@ -202,12 +225,23 @@ class Automations:
             next((a for a in items if want and want in _fold(a.name)), None)
 
     # ---------- firing ----------
+    def phrase_match(self, text: str):
+        return phrase_match(self.rt, text)
+
     def fire(self, a, vars: dict | None = None, reason: str = "", force: bool = False) -> bool:
         now = time.monotonic()
         if not force and now - self._last.get(a.id, -1e9) < COOLDOWN_S:
             return False
         if not force and time.monotonic() < getattr(self.rt.scheduler, "_paused_until", 0.0):
             return False            # STOP was pressed a moment ago
+        from . import proactx
+
+        if not force and getattr(a, "when", None) and not proactx.conditions_ok(self.rt, a.when):
+            return False            # 3.20 (76) "jen když prší / o víkendu / nad 25 °C" does not hold now
+        try:
+            proactx.record_fire(self.rt, a.id)        # 3.20 (79) which routines you really use
+        except Exception as e:  # noqa: BLE001
+            log.debug("auto stats: %s", e)
         self._last[a.id] = now
         vars = vars or {}
         steps = [st.model_copy(update={"say": fill(st.say, vars), "ask": fill(st.ask, vars),
@@ -221,6 +255,9 @@ class Automations:
 
         bg(
             run_protocol(self.rt, proto, "Automatizace", THIRD_PARTY.format(name=a.name), say=getattr(a, "say", "voice")))
+        if getattr(a, "once", False):              # 3.14 "připomeň mi, až…" – fired once, then gone (61)
+            items = [x.model_dump() for x in self.rt.cfg.automations.items if x.id != a.id]
+            self.rt.update_config({"automations": {"items": items}})
         return True
 
     async def _boot(self) -> None:
@@ -239,6 +276,12 @@ class Automations:
                 record_event(self.rt, ev)                 # OMEGA 599: kept for a dry-run replay
             except Exception as e:
                 log.debug("event log: %s", e)
+            try:
+                from .proactiveplus import on_event
+
+                await on_event(self.rt, ev)               # 3.14 leaving home → a briefing to the phone (60)
+            except Exception as e:  # noqa: BLE001
+                log.debug("proactive event: %s", e)
             try:
                 for a in self.active():
                     vars = match_event(a, ev)

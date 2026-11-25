@@ -2,7 +2,7 @@
 // temporary permissions, the private mode, retention, what JARVIS stores, the microphone log, exports, the encrypted
 // backup and the complete reset. Everything that loosens safety is only here, never by voice.
 import { hero, HEROES } from "../shared/hero";
-import { fmtSize, h, icon, toast } from "../shared/dom";
+import { fmtSize, h, icon, loading, toast } from "../shared/dom";
 import type { JarvisClient } from "../shared/ws";
 
 const PERM_LABEL: Record<string, string> = {
@@ -26,6 +26,32 @@ export function buildSecurity(client: JarvisClient) {
     return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)), inp);
   };
 
+  const statsBox = h("pre", { class: "sec-pre", "data-no-tr": "", hidden: true });
+  // 3.14 nouzové kontakty: who gets a text when you do not answer "Jsi v pořádku?"
+  const contactsRow = (list: { name: string; phone: string }[]) => {
+    const name = h("input", { class: "input", placeholder: "Jméno", "aria-label": "Jméno kontaktu" }) as HTMLInputElement;
+    const phone = h("input", { class: "input", placeholder: "+420 …", "aria-label": "Telefon kontaktu", inputmode: "tel" }) as HTMLInputElement;
+    return h("div", { class: "row-text sec-contacts" }, h("strong", {}, "Nouzové kontakty"),
+      h("span", { class: "help" }, "Komu JARVIS napíše SMS (z tvého telefonu) i s polohou, když na nouzovou otázku neodpovíš."),
+      ...list.map((x, i) => h("div", { class: "row" }, h("span", {}, `${x.name} · ${x.phone}`),
+        h("button", { class: "icon-btn sm", type: "button", "aria-label": `Odebrat ${x.name}`,
+          onclick: () => set({ privacy: { emergency_contacts: list.filter((_, k) => k !== i) } }) }, icon("trash")))),
+      h("div", { class: "house-add" }, name, phone, h("button", { class: "btn sm", type: "button", onclick: () => {
+        if (!name.value.trim() || !/[\d+]{6,}/.test(phone.value.replace(/\s/g, ""))) { toast("Vyplň jméno a telefon"); return; }
+        set({ privacy: { emergency_contacts: [...list, { name: name.value.trim(), phone: phone.value.replace(/\s/g, "") }] } });
+      } }, icon("plus"), "Přidat")));
+  };
+  const statsUrl = (val: string) => {
+    const inp = h("input", { class: "input", value: val, placeholder: "https://… (prázdné = nic se neposílá)", "aria-label": "Adresa pro statistiky" }) as HTMLInputElement;
+    inp.onchange = () => {
+      const v = inp.value.trim();
+      if (v && !v.startsWith("https://")) { toast("Adresa musí začínat https://"); return; }
+      set({ privacy: { stats_url: v } });
+    };
+    return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Kam se statistiky posílají"),
+      h("span", { class: "help" }, "Adresa serveru autora JARVISe. Dokud je prázdná, neodejde nic ani se zapnutým přepínačem.")), inp);
+  };
+  client.on("stats_preview", (m: any) => { statsBox.hidden = false; statsBox.textContent = JSON.stringify(m.data, null, 2); });
   const safety = h("div", { class: "group" });
   const usageBox = h("div", { class: "card sec-card" });
   const grantsBox = h("div", { class: "card sec-card" });
@@ -35,7 +61,7 @@ export function buildSecurity(client: JarvisClient) {
   const dataBox = h("div", { class: "card sec-card" });
 
   function renderSettings() {
-    const L = s.limits || {}, P = s.privacy || {};
+    const L = s.limits || {}, P = s.privacy || {}, T = s.tools || {};
     const allow = h("input", { class: "input", value: (L.app_allowlist || []).join(", "), placeholder: "prázdné = kdekoli, např. Poznámkový blok, Chrome",
       "aria-label": "Povolené aplikace" }) as HTMLInputElement;
     allow.onchange = () => set({ limits: { app_allowlist: allow.value.split(",").map((x) => x.trim()).filter(Boolean) } });
@@ -47,12 +73,35 @@ export function buildSecurity(client: JarvisClient) {
       num("Mise: nejvýš akcí", "Kolik kroků smí jedna mise udělat, než ji JARVIS zastaví.", L.mission_max_actions ?? 60, 1, 1000, (v) => set({ limits: { mission_max_actions: v } })),
       num("Mise: nejdéle minut", "Jak dlouho smí jedna mise běžet.", L.mission_max_minutes ?? 30, 1, 1440, (v) => set({ limits: { mission_max_minutes: v } })),
       h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Myš a klávesnice jen v aplikacích"),
-        h("span", { class: "help" }, "Když tu něco napíšeš, JARVIS bude klikat a psát jen v těchto aplikacích.")), allow));
+        h("span", { class: "help" }, "Když tu něco napíšeš, JARVIS bude klikat a psát jen v těchto aplikacích.")), allow),
+      // 3.14 návrh 10: the fenced Python
+      sw("Omezené prostředí pro kód", "Python, který JARVIS spouští (výpočty, grafy), nesmí spouštět programy, zapisovat mimo svou složku ani použít víc než 2 GB paměti.",
+        () => T.sandbox_code !== false, (v) => set({ tools: { sandbox_code: v } })),
+      sw("Kód smí na internet", "Jen když kód potřebuje stahovat data sám. Jinak stahují nástroje JARVISe (bezpečnější).",
+        () => !!T.sandbox_network, (v) => set({ tools: { sandbox_network: v } })));
     privacyBox.replaceChildren(
       sw("Soukromý režim", "Nová konverzace se drží jen v paměti a nic se nezapíše na disk (ani fakta). Po vypnutí zmizí.",
         () => !!P.private_mode, (v) => set({ privacy: { private_mode: v } })),
       num("Mazat data starší než (dní)", "Konverzace, mise, záznamy akcí, diktování a spotřebu AI. 0 = nemazat. Fakta a nastavení zůstávají.",
-        P.keep_days ?? 0, 0, 3650, (v) => set({ privacy: { keep_days: v } })));
+        P.keep_days ?? 0, 0, 3650, (v) => set({ privacy: { keep_days: v } })),
+      // 3.14 návrh 117: anonymous statistics – off unless you switch them on, and you see exactly what would go out
+      sw("Anonymní statistiky", "Jednou týdně: verze, které vestavěné nástroje se používají a jak často selhávají, rychlost AI a hlasu. Nikdy nic z toho, co říkáš, píšeš nebo máš v souborech.",
+        () => !!P.share_stats, (v) => set({ privacy: { share_stats: v } })),
+      statsUrl(P.stats_url || ""),
+      // 3.14 ochrana a nouze
+      sw("Dětský režim", "U PC je dítě: laskavá řeč, nic nevhodného, žádné nákupy, mazání, instalace, zámky ani alarm.",
+        () => !!P.kids_mode, (v) => set({ privacy: { kids_mode: v } })),
+      sw("Fotka při hlídání PC", "Když někdo použije PC, zatímco ho JARVIS hlídá, vyfotí ho webkamera a fotka přijde do chatu v telefonu.",
+        () => !!P.guard_photo, (v) => set({ privacy: { guard_photo: v } })),
+      sw("Týdenní bezpečnostní brífink", "V neděli večer: neznámá zařízení v síti, neúspěšná přihlášení, úniky e-mailů.",
+        () => P.security_weekly !== false, (v) => set({ privacy: { security_weekly: v } })),
+      hibpRow(client),
+      sw("Paměť života", "Šifrovaný deník tvých dní u PC (aplikace a okna s časem, tvoje poznámky) – jen v tomhle PC, klíč v trezoru Windows. Hesla, bankovnictví a anonymní okna se nezapisují. Pak se můžeš zeptat „co jsem dělal minulé úterý“.",
+        () => !!P.life_log, (v) => set({ privacy: { life_log: v } })),
+      contactsRow(P.emergency_contacts || []),
+      h("div", { class: "row" }, h("span", { class: "help" }, "Přesně tohle by se poslalo:"),
+        h("button", { class: "btn sm", type: "button", onclick: () => client.send("stats_preview_get") }, icon("eye"), "Ukázat")),
+      statsBox);
   }
 
   function renderUsage(m: any) {
@@ -139,15 +188,81 @@ export function buildSecurity(client: JarvisClient) {
   client.on("settings_changed", (m) => sync(m.settings));
   renderGrants({});
 
+  // 3.14 návrhy 107, 109: what JARVIS looked at / touched today, and the guest mode
+  const accessBox = h("div", { class: "card sec-card" }, loading());
+  const KIND_ICON: Record<string, string> = { screen: "monitor", input: "cursor-click", camera: "camera", clipboard: "clipboard-text", injection: "warning" };
+  client.on("access_log", (m: any) => {
+    const rows: any[] = m.rows || [];
+    accessBox.replaceChildren(
+      h("div", { class: "row" }, h("span", {}, m.guest ? "Režim host je zapnutý – nic osobního se neukazuje." : "Režim host (u PC sedí někdo jiný)"),
+        h("button", { class: `btn ${m.guest ? "primary" : ""} sm`, type: "button", onclick: () => {
+          client.send("settings_set", { patch: { privacy: { guest_mode: !m.guest } } }); window.setTimeout(() => client.send("access_log_get"), 300);
+        } }, icon(m.guest ? "user-minus" : "user-plus"), m.guest ? "Vypnout" : "Zapnout")),
+      h("p", { class: "help" }, rows.length ? `Dnes: ${Object.entries(m.counts || {}).map(([k, n]) => `${({ screen: "obrazovka", input: "ovládání", camera: "kamera", clipboard: "schránka", injection: "podezřelé texty" } as any)[k] || k} ${n}×`).join(", ")}.`
+        : "Dnes JARVIS na obrazovku, schránku ani ovládání nesáhl."),
+      ...rows.slice(0, 30).map((r) => h("div", { class: "row" }, h("span", {}, icon(KIND_ICON[r.kind] || "eye"), " ",
+        new Date(r.ts * 1000).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }), " · ", r.tool), h("span", { class: "muted" }, r.what || ""))));
+  });
+
+  // 3.19 Peníze: what goes out this month – AI, trips, subscriptions, approved payments – and every money step you were asked
+  const moneyBox = h("div", { class: "card sec-card" }, loading());
+  const KIND: Record<string, string> = { travel_book: "rezervace", booking_cancel: "zrušení rezervace", stripe_refund: "vrácení peněz",
+    money_action: "nákup na obrazovce", browser_click: "platba v prohlížeči" };
+  client.on("money", (m: any) => {
+    const parts: any[] = m.parts || [];
+    const steps: any[] = m.steps || [];
+    const czk = (v: number) => `${Math.round(v).toLocaleString("cs-CZ")} Kč`;
+    moneyBox.replaceChildren(
+      h("div", { class: "row" }, h("strong", {}, "Celkem tento měsíc"), h("strong", {}, czk(m.total_czk || 0))),
+      ...parts.map((p) => h("div", { class: "row" }, h("span", {}, p.label + (p.count ? ` (${p.count})` : "")), h("span", {}, czk(p.czk)))),
+      parts.some((p) => p.key === "subs") ? h("span", {}) : h("p", { class: "help" }, "Předplatné se ukáže po „přehled předplatných“ v chatu (projde e-maily s účtenkami)."),
+      h("p", { class: "help" }, `Cizí měny přepočítané: ${m.rate || ""}. Každá platba se potvrzuje dvakrát (podruhé s přesnou částkou), na telefonu otiskem prstu, a nikdy ji nespustí e-mail, stránka ani agent na pozadí.`),
+      steps.length ? h("ul", { class: "sec-list" }, ...steps.slice(0, 12).map((x) => h("li", {},
+        h("span", {}, `${new Date(x.ts * 1000).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })} · ${KIND[x.kind] || x.kind}: ${x.what}`),
+        h("span", { class: x.approved ? "muted" : "sec-ok" }, x.approved ? "povoleno" : "zamítnuto")))) : h("p", { class: "muted" }, "Tento měsíc se JARVIS na žádnou platbu neptal."));
+  });
+
+  // 3.18 Co zkoušel cizí text: steps an e-mail, a web page, a file, a picture or the clipboard led to – and your answer
+  const foreignBox = h("div", { class: "card sec-card" });
+  const SRC: Record<string, string> = { clipboard: "schránka", attachment: "příloha", email_read: "e-mail", email_inbox: "e-maily",
+    email_search: "e-maily", web_read: "web", web_search: "web", google_search: "web", browser_read: "web", phone_messages: "zprávy",
+    read_text_file: "soubor", read_attachment: "příloha", clipboard_get: "schránka", ui_read: "obrazovka", selected_text: "označený text" };
+  client.on("foreign_log", (m: any) => {
+    const items: any[] = m.items || [];
+    foreignBox.replaceChildren(
+      h("p", { class: "help" }, "Když JARVIS přečte cizí text a ten by ho chtěl dostat ke kroku, který něco mění (psaní, klávesy, odkaz s daty, paměť…), JARVIS se nejdřív zeptal. Tady je, co to bylo a jak jsi odpověděl."),
+      items.length ? h("ul", { class: "sec-list" }, ...items.map((x) => h("li", {},
+        h("span", {}, `${new Date(x.ts * 1000).toLocaleString("cs-CZ", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })} · ${SRC[x.source] || x.source || "cizí text"} → ${x.what}`),
+        h("span", { class: x.approved ? "muted" : "sec-ok" }, x.approved ? `povoleno (${x.why})` : `zamítnuto (${x.why})`))))
+        : h("p", { class: "muted" }, "Zatím nic – žádný cizí text se nepokusil o krok, který by něco měnil."));
+  });
   const el = h("section", { class: "tasks-view security-view" },
     hero(HEROES.security, "Bezpečí a soukromí", "Co JARVIS smí, kolik smí utratit, co si pamatuje – a jak to všechno vypnout, vyexportovat nebo smazat.", [
       h("button", { class: "btn", type: "button", onclick: refresh }, icon("arrow-clockwise"), "Obnovit")]),
     h("h2", { class: "group-label" }, "Bezpečí"), safety,
     h("h2", { class: "group-label" }, "Dočasná oprávnění"), grantsBox,
+    h("h2", { class: "group-label" }, "Peníze tento měsíc"), moneyBox,
     h("h2", { class: "group-label" }, "Spotřeba AI"), usageBox,
     h("h2", { class: "group-label" }, "Soukromí"), privacyBox,
     h("h2", { class: "group-label" }, "Co JARVIS ukládá"), invBox,
     h("h2", { class: "group-label" }, "Mikrofon a kamera"), micBox,
+    h("h2", { class: "group-label" }, "Co JARVIS dnes viděl a čeho se dotkl"), accessBox,
+    h("h2", { class: "group-label" }, "Co zkoušel cizí text"), foreignBox,
     h("h2", { class: "group-label" }, "Export, záloha, smazání"), dataBox);
-  return { el, show: refresh };
+  return { el, show: () => { refresh(); client.send("access_log_get"); client.send("foreign_log_get"); client.send("money_get"); } };
+}
+
+// 3.14 the security briefing's leak check: the user's own Have I Been Pwned key (kept in the Windows vault)
+function hibpRow(client: JarvisClient): HTMLElement {
+  const inp = h("input", { class: "input", type: "password", placeholder: "Klíč Have I Been Pwned (nepovinné)", "aria-label": "Klíč Have I Been Pwned", autocomplete: "off" }) as HTMLInputElement;
+  return h("div", { class: "row" },
+    h("div", { class: "row-text" }, h("strong", {}, "Úniky e-mailů v brífinku"),
+      h("span", { class: "help" }, "S vlastním klíčem z haveibeenpwned.com/API/Key brífink zkontroluje, jestli tvoje e-mailové adresy nejsou v nových únicích dat. Klíč zůstane v trezoru Windows.")),
+    inp, h("button", { class: "btn sm", type: "button", onclick: () => {
+      const v = inp.value.trim();
+      if (!v) return;
+      client.send("secret_set", { name: "hibp", value: v });
+      inp.value = "";
+      toast("Klíč uložen", "ok");
+    } }, icon("floppy-disk"), "Uložit"));
 }

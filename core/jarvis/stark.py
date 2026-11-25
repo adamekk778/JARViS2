@@ -70,8 +70,24 @@ async def run_protocol(rt, proto, kind: str = "Protokol", extra_system: str = ""
 
 def start_protocol(rt, proto) -> None:
     """From a button, the HUD or a voice tool: runs after whatever JARVIS is doing now (it waits for the agent)."""
-    rt.bus.publish("protocol", id=proto.id, name=proto.name, icon=proto.icon)
+    rt.bus.publish("protocol", id=proto.id, name=proto.name, icon=proto.icon, steps=protocol_labels(proto))
     bg(run_protocol(rt, proto))
+
+
+def protocol_labels(proto) -> list[str]:
+    """3.15 the steps as short labels for the HUD's protocol animation (lit one by one as the tools finish)."""
+    from . import tools
+
+    out = []
+    for st in proto.steps:
+        if st.tool:
+            spec = tools.REGISTRY.get(st.tool)
+            out.append((getattr(spec, "description", "") or st.tool).split(":")[0].split("(")[0].strip()[:40] or st.tool)
+        elif st.ask:
+            out.append(st.ask.strip()[:40])
+        elif st.say:
+            out.append("„" + st.say.strip()[:36] + "“")
+    return out[:12]
 
 
 # ---------------------------------------------------------------------------------------------- briefing
@@ -126,6 +142,16 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
     except Exception as e:
         log.debug("briefing weather: %s", e)
 
+    try:                                  # 3.14 návrh 43: the watch's night – "Stav systémů: spánek 6 h… lehčí den"
+        from . import body
+
+        line = body.morning_line(rt)
+        if line:
+            parts.append(line)
+            data["body"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing body: %s", e)
+
     cal = getattr(rt, "calendar", None)
     if cal is not None:
         try:
@@ -149,6 +175,26 @@ async def briefing(rt, now: dt.datetime | None = None, news: bool | None = None)
             data["mail_unread"] = len(real)
         except Exception as e:
             log.debug("briefing mail: %s", e)
+
+    try:                                  # 3.14 návrh 52: what JARVIS learned last night
+        from . import nightlearn
+
+        line = nightlearn.morning_line(rt)
+        if line:
+            parts.append(line)
+            data["learned"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing learned: %s", e)
+
+    try:                                  # 3.14 návrh 47: today's flight / train and when to leave
+        from . import travel
+
+        line = travel.briefing_line(rt, now)
+        if line:
+            parts.append(line)
+            data["travel"] = line
+    except Exception as e:  # noqa: BLE001
+        log.debug("briefing travel: %s", e)
 
     jobs = _today_jobs(rt, now)
     timers = rt.timers.list()

@@ -56,7 +56,7 @@ export function openPhoneMirror(client: JarvisClient, base = ""): void {
       }
     }
   };
-  pull();
+  void pull();
   const off = client.on("phone_mirror", (m) => {
     control = !!m.control;
     hint.textContent = !m.active ? "" : control ? "Klik = ťuknutí · podržet = dlouhý stisk · táhnout = přejetí · kolečko = posun · pravé tlačítko = Zpět · piš rovnou na klávesnici"

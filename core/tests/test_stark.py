@@ -56,7 +56,7 @@ async def test_protocol_ask_step_goes_to_the_ai(rt):
 async def test_dangerous_step_still_needs_confirmation(rt):
     p = Protocol(id="off", name="Vypnout", steps=[ProtocolStep(tool="system_power", args={"action": "shutdown"})])
     task = asyncio.create_task(stark.run_protocol(rt, p))
-    q = rt.bus.subscribe()
+    rt.bus.subscribe()
     for _ in range(50):
         await asyncio.sleep(0.02)
         if rt.agent.pending_confirm():

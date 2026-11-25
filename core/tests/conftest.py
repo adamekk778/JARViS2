@@ -1,4 +1,22 @@
+import os
+
 import pytest
+
+
+def pytest_collection_modifyitems(config, items):
+    """3.19 CI runs the Windows tests in parallel parts: JARVIS_TEST_SHARD="1/2" keeps every second test file (whole files,
+    so a file's fixtures and order stay together). Without the variable everything runs."""
+    shard = os.environ.get("JARVIS_TEST_SHARD", "")
+    if not shard:
+        return
+    k, n = (int(x) for x in shard.split("/"))
+    files = sorted({item.nodeid.split("::")[0] for item in items})
+    mine = {f for i, f in enumerate(files) if i % n == k - 1}
+    keep = [item for item in items if item.nodeid.split("::")[0] in mine]
+    drop = [item for item in items if item.nodeid.split("::")[0] not in mine]
+    if drop:
+        config.hook.pytest_deselected(items=drop)
+    items[:] = keep
 
 
 @pytest.fixture(autouse=True)
@@ -7,6 +25,16 @@ def jarvis_home(tmp_path, monkeypatch):
     monkeypatch.setenv("PYTHON_KEYRING_BACKEND", "keyring.backends.fail.Keyring")
     monkeypatch.setenv("JARVIS_NO_NET", "1")
     return tmp_path / "home"
+
+
+@pytest.fixture(autouse=True)
+def money_rates_reset():
+    """3.19 the ČNB rates live in memory: every test starts without them (the estimate), as on a fresh start."""
+    from jarvis import money
+
+    money.reset()
+    yield
+    money.reset()
 
 
 @pytest.fixture
@@ -47,10 +75,11 @@ class FakeRouter:
     def update(self, brain):
         pass
 
-    async def stream(self, messages, tools, need_vision=False, fast=False, only=None, model=None):
+    async def stream(self, messages, tools, need_vision=False, fast=False, only=None, model=None, **kw):
         from jarvis.llm.base import Chunk, ToolCall
 
-        self.calls.append({"messages": messages, "tools": tools, "need_vision": need_vision, "only": only, "model": model})
+        self.calls.append({"messages": messages, "tools": tools, "need_vision": need_vision, "only": only, "model": model,
+                           "fast": fast, **kw})
         item = self.script.pop(0) if self.script else "konec"
         if isinstance(item, Exception):
             raise item

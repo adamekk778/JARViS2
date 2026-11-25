@@ -1,5 +1,7 @@
 import type { Attachment, ClientType, ServerMsg, ServerType } from "./protocol";
-import { applyPower } from "./base";
+import { applyLoad, applyPower } from "./base";
+import { configureMotion, currentFps, tier as fxTier } from "./motion";
+import { setLang } from "./i18n";
 
 export interface Endpoint {
   base: string; // http://host:port (no trailing slash)
@@ -21,7 +23,16 @@ export class JarvisClient {
   status: ConnStatus = "closed";
   local = false;
 
-  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud", private name = "") {}
+  constructor(public ep: Endpoint, private client: "dashboard" | "notch" | "mobile" | "fullchat" | "hud" | "karaoke" | "wallpaper", private name = "") {}
+
+  // 3.15 the frame rate and the effects tier of this window, for Diagnostika (every 30 s, only while it animates)
+  private fxTimer = 0;
+  private startFxReport() {
+    if (this.fxTimer) return;
+    this.fxTimer = window.setInterval(() => {
+      if (this.status === "open" && !document.hidden) this.send("fx_report" as any, { page: this.client, fps: currentFps(), tier: fxTier() });
+    }, 30000);
+  }
 
   on(type: ServerType | "*", h: Handler): () => void {
     if (!this.handlers.has(type)) this.handlers.set(type, new Set());
@@ -62,7 +73,11 @@ export class JarvisClient {
         return;
       }
       if (m.type === "welcome") this.local = !!m.local;
+      if (m.type === "welcome" || m.type === "settings_changed") setLang((m as any).settings?.general?.language, true, (p) => this.url(p));   // 3.14 návrh 114
       if (m.type === "power_state" || (m.type === "welcome" && (m as any).power)) applyPower(!!((m as any).power?.on_battery ?? (m as any).on_battery));
+      if (m.type === "perf_hint") applyLoad(!!(m as any).heavy);
+      if (m.type === "fx_pause") configureMotion({ paused: !!(m as any).on });              // 3.15 a full-screen game: effects stop
+      if (m.type === "welcome") this.startFxReport();
       // one screen that cannot handle a message must not stop the others (or the rest of this one) from getting it
       const run = (h: Handler) => { try { h(m); } catch (e) { console.warn(`JARVIS: ${m.type} handler failed`, e); } };
       this.handlers.get(m.type)?.forEach(run);

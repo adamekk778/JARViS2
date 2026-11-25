@@ -20,19 +20,41 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - run: pip install -e "./core[dev]"
+      - name: Lint (ruff – real bugs only, see core/pyproject.toml)
+        run: cd core && ruff check jarvis tests
+      - name: Types (mypy on the typed core)
+        run: cd core && mypy
       - run: cd core && pytest -q
+      - name: Quality evals (offline – which tools a Czech request reaches, the instant commands)
+        run: cd core && python -m jarvis.evals --offline --min-score 0.9
+
+  audit:
+    # known holes in the libraries JARVIS ships with; reported on every build, never blocks a release by itself
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install pip-audit && pip install "./core"
+      - name: pip-audit (Python packages)
+        run: pip-audit --progress-spinner off --skip-editable
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: npm audit (web UI, production packages)
+        run: cd web && npm ci --no-audit --no-fund && npm audit --omit=dev --audit-level=high
 
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
-      - run: cd web && npm ci && npm run build
+      - run: cd web && npm ci && npm run lint && npm test && npm run build
       # build outputs travel through the cache, not artifacts: the artifact quota filled up and blocked releases,
       # the cache evicts old entries by itself
       - uses: actions/cache/save@v4
@@ -41,18 +63,74 @@ jobs:
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
-  windows:
+  ui-check:
+    # every page in a real browser at three sizes against a real JARVIS server: script errors, pages spilling
+    # sideways, clipped buttons, the notch off its window; the screenshots are kept for a look (návrh 21)
     needs: [web]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: web/dist
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: pip install -e "./core[dev]"
+      - run: cd web && npm install --no-save --no-audit --no-fund playwright@1 axe-core@4 && npx playwright install --with-deps chromium
+      - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome python -m jarvis.uicheck --out $RUNNER_TEMP/uicheck
+      - run: cd core && JARVIS_HOME=$RUNNER_TEMP/jhome-en python -m jarvis.uicheck --lang en --out $RUNNER_TEMP/uicheck/en
+      - uses: actions/upload-artifact@v5
+        if: always()
+        continue-on-error: true
+        with: { name: ui-screenshots, path: "${{ runner.temp }}/uicheck", retention-days: 7 }
+
+  # 3.19 the tests on real Windows run in two parts beside the build (before: ~17 min of tests, then the build)
+  windows-tests:
+    needs: [web]
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - name: Install JARVIS
+        run: |
+          python -m pip install --upgrade pip
+          pip install "./core[desktop,voice,dev]"
+          python -c "import openwakeword.utils as u; u.download_models(['hey_jarvis'])"
+      - name: Tests on Windows (part ${{ matrix.shard }})
+        env:
+          JARVIS_TEST_SHARD: ${{ matrix.shard }}
+        run: cd core; pytest -q -x
+
+  windows:
+    needs: [web]
+    runs-on: windows-latest
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        with:
+          path: web/dist
+          key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - name: Version into the app (Settings, updates and the "Co je nového" check read it)
         shell: pwsh
@@ -64,11 +142,24 @@ jobs:
           # the "Jarvis" wake word models go INTO the installer – before, JARVIS downloaded them after every update
           # and the voice was not ready (or not there at all when the internet was blocked)
           python -c "import openwakeword.utils as u; u.download_models(['hey_jarvis'])"
-      - name: Tests on Windows
-        run: cd core; pytest -q -x
       - name: PyInstaller
         timeout-minutes: 25      # normally 4–5 min; a hang must end with a log, not after 6 hours
         run: cd packaging; pyinstaller jarvis.spec --noconfirm --distpath ../dist --workpath ../build
+      - name: Sign JARVIS.exe (only when a code-signing certificate is in the repository secrets)
+        # Settings → Secrets → Actions: WINDOWS_CERT_PFX (the .pfx as base64) + WINDOWS_CERT_PASSWORD. Without them the
+        # build stays unsigned (SmartScreen then warns once); see docs/SIGNING.md
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = "$env:RUNNER_TEMP\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $st.FullName sign /f $pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 dist\JARVIS\JARVIS.exe dist\JARVIS\JARVIS-debug.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+          Remove-Item $pfx
       - name: Bundle size by package (what makes the installer big)
         shell: pwsh
         run: |
@@ -202,9 +293,10 @@ jobs:
             $h = [W]::Notch([uint32]$p.Id, $seen)
             $wr = New-Object W+RECT; [W]::GetWindowRect($h, [ref]$wr) | Out-Null
             $rr = New-Object W+RECT; [W]::GetWindowRgnBox($h, [ref]$rr) | Out-Null
-            # just left of and below the notch shape: inside the window rectangle (which may be wider than this
-            # small screen) but outside the region
-            $px = [Math]::Max(0, $wr.L + $rr.L - 30); $py = $wr.T + $rr.B + 6
+            # just left of the notch shape, near the top: inside the window rectangle (which may be wider than this
+            # small screen) but outside the region. Not below it: a tall notice (e.g. "Telefon se k PC nepřipojí")
+            # pushed that point down onto the JARVIS window opened by the first-run guide – a false "grey box"
+            $px = [Math]::Max(0, $wr.L + $rr.L - 30); $py = $wr.T + $rr.T + 8
             $b = New-Object System.Drawing.Bitmap 1, 1
             [System.Drawing.Graphics]::FromImage($b).CopyFromScreen($px, $py, 0, 0, $b.Size)
             $c = $b.GetPixel(0, 0)
@@ -252,6 +344,9 @@ jobs:
           $bd.Show(); [System.Windows.Forms.Application]::DoEvents()
           $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
           [W]::SetCursorPos(10, 700) | Out-Null; Start-Sleep -Seconds 2; [System.Windows.Forms.Application]::DoEvents()
+          # the first-run guide may open the JARVIS window after the backdrop: put the backdrop back on top (the notch is
+          # topmost and stays above it)
+          $bd.BringToFront(); [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 300
           Shot "1-closed"; $k1 = Region "closed"; Zoom "closed"; $c1 = Corner "closed"; $r1 = Rim "closed"
           [W]::SetCursorPos([int]($sw / 2), 8) | Out-Null; Start-Sleep -Milliseconds 1500
           [System.Windows.Forms.Application]::DoEvents()
@@ -330,7 +425,7 @@ jobs:
           if ($hud -eq [IntPtr]::Zero) { throw "the Stark HUD did not open" }
           if (($hr.R - $hr.L) -lt $sb.Width * 0.95) { throw "the Stark HUD does not cover the screen" }
           if (($fr.R - $fr.L) -lt $sb.Width * 0.8) { throw "the full chat window is not maximized" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         continue-on-error: true   # screenshots are for diagnosis only – a full artifact quota must not fail the build
         with: { name: notch-shots, path: "${{ runner.temp }}/notch-shots", retention-days: 7 }
@@ -365,7 +460,7 @@ jobs:
           $rsr = ($rs | Select-Object -Last 1) | ConvertFrom-Json
           if (-not $rsr.ok) { throw "PC rescue: a probe did not return data or the report was not verified" }
           if ($code -ne 0) { throw "idle cost above 2x target" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         continue-on-error: true
         with: { name: windowed-screen, path: "${{ runner.temp }}/screen.png", retention-days: 7 }
@@ -377,6 +472,19 @@ jobs:
           if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           & $iscc "/DMyAppVersion=$env:JARVIS_VERSION" packaging\installer.iss
           if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+      - name: Sign JARVIS-Setup.exe (only with the certificate secrets, as above)
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = "$env:RUNNER_TEMP\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $st.FullName sign /f $pfx /p $env:WINDOWS_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 dist\JARVIS-Setup.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+          Remove-Item $pfx
       - name: Installer smoke test (fresh install, then an upgrade over it, then start)
         timeout-minutes: 10
         shell: pwsh
@@ -427,16 +535,16 @@ jobs:
     needs: [web]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache/restore@v4
         with:
           path: web/dist
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: "21" }
       - run: bash mobile/build-android.sh
       - uses: actions/cache/save@v4
@@ -445,9 +553,55 @@ jobs:
           key: apk-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
 
+  wear:                           # 3.18 JARVIS for Wear OS watches – its own small project, its own APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.11.1" }
+      - run: gradle -p mobile/wear assembleDebug --no-daemon --stacktrace
+      - run: cp mobile/wear/app/build/outputs/apk/debug/app-debug.apk JARVIS-wear.apk
+      - uses: actions/upload-artifact@v5
+        with:
+          name: JARVIS-wear
+          path: JARVIS-wear.apk
+          retention-days: 30
+
+  android-ui:                     # 3.17 the APK in a real emulator: starts, stays up, widget offered, no crash
+    needs: [android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache/restore@v4
+        with:
+          path: mobile/JARVIS.apk
+          key: apk-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+      - name: KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash mobile/emulator-smoke.sh "${{ runner.temp }}/android-shots"
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: android-shots, path: "${{ runner.temp }}/android-shots", retention-days: 7 }
+
   release:
-    needs: [test, windows, android]
-    if: github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch'
+    needs: [test, windows, windows-tests, android]
+    # the default branch = stable releases; the `beta` branch = test builds (pre-release, only the beta channel gets them)
+    if: github.ref_name == github.event.repository.default_branch || github.ref_name == 'beta' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/cache/restore@v4
@@ -463,12 +617,19 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       - run: mkdir -p out && cp dist/JARVIS-Setup.exe mobile/JARVIS.apk out/ && ls -la out
+      - uses: actions/checkout@v5
+        with: { path: src, sparse-checkout: packaging/winget }
+      - name: winget manifests (3.14 návrh 115 – attached to the release, submitted to winget-pkgs by hand)
+        run: |
+          python3 src/packaging/winget/make_manifest.py "$JARVIS_VERSION" out/JARVIS-Setup.exe out/winget "$GITHUB_REPOSITORY"
+          (cd out && zip -r winget-manifests.zip winget)
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.JARVIS_VERSION }}
           name: JARVIS ${{ env.JARVIS_VERSION }}
           target_commitish: ${{ github.sha }}
-          make_latest: true
+          make_latest: ${{ github.ref_name != 'beta' }}
+          prerelease: ${{ github.ref_name == 'beta' }}
           body: |
             ## Stáhni a nainstaluj
             - **PC (Windows 10/11):** `JARVIS-Setup.exe` → spusť a klikni Další.
@@ -477,3 +638,4 @@ jobs:
           files: |
             out/JARVIS-Setup.exe
             out/JARVIS.apk
+            out/winget-manifests.zip

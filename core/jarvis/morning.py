@@ -71,7 +71,10 @@ async def build(rt: Any) -> dict:
     from .stark import briefing
 
     b = await briefing(rt)
-    text = " ".join([b["text"], *overnight(rt), habits_line(rt)]).strip()
+    from .proactx import morning_lead
+
+    lead = morning_lead(rt)                    # 3.20 (61) a working day, the weekend / a holiday, or a vacation
+    text = " ".join([lead, b["text"], *overnight(rt), habits_line(rt)]).strip()
     return {"title": "Ranní souhrn", "text": text}
 
 

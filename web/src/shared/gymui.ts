@@ -1,7 +1,7 @@
 // 3.12 Gym deník in the tracker (PC and phone): add a set (exercise, kg, reps, how many sets), today's sets, and a card
 // per exercise – the best set, the estimated one-rep max as a line over the weeks, the gain and a record badge.
 import "./gym.css";
-import { h, icon } from "./dom";
+import { h, icon, loading } from "./dom";
 import type { JarvisClient } from "./ws";
 
 export interface GymSnap {
@@ -59,7 +59,7 @@ function line(pts: { day: string; rm: number }[]): HTMLElement {
 }
 
 export function gymView(client: JarvisClient, s: GymSnap | null): HTMLElement {
-  if (!s) { client.send("gym_get"); return h("p", { class: "hb-empty" }, "Načítám…"); }
+  if (!s) { client.send("gym_get"); return loading(); }
   const ex = h("input", { class: "gy-in gy-ex", placeholder: "Cvik (např. Bench press)", list: "gy-names", maxlength: "60", "aria-label": "Cvik" }) as HTMLInputElement;
   const w = h("input", { class: "gy-in", type: "number", inputmode: "decimal", min: "0", step: "0.5", placeholder: "kg", "aria-label": "Váha v kg" }) as HTMLInputElement;
   const r = h("input", { class: "gy-in", type: "number", inputmode: "numeric", min: "1", step: "1", placeholder: "opak.", "aria-label": "Opakování" }) as HTMLInputElement;

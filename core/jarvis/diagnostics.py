@@ -125,12 +125,51 @@ def snapshot(rt: Any) -> dict:
     ttft = {k: [round(x) for x in v] for k, v in getattr(rt.router, "ttft", {}).items()}
     return {"cpu_pct": cpu, "ram_mb": round(ram, 1), "threads": threads, "children": children,
             "loop_lag_ms": round(float(getattr(rt, "diag_lag_ms", 0.0)), 1), "ttft": ttft, "voice": voice,
-            "log_tail": _log_tail()}
+            "log_tail": _log_tail(), "fx": fx_stats(rt), "latency": _latency(rt), "cache": cache_stats(rt),
+            "resources": _resources(rt)}
+
+
+def cache_stats(rt: Any) -> list[dict]:
+    """3.17 how much of what was sent came from the AI's prompt cache (cheaper and faster), per provider."""
+    out = []
+    for pid, c in (getattr(rt.router, "cache_stats", {}) or {}).items():
+        total = c["in"] + c["cache_read"] + c["cache_write"]
+        if total:
+            out.append({"provider": pid, "requests": c["requests"], "from_cache_pct": round(100 * c["cache_read"] / total),
+                        "written_pct": round(100 * c["cache_write"] / total), "tokens": total})
+    return out
+
+
+def _resources(rt: Any) -> dict:
+    """3.18 the long run: memory and CPU over the last day, and whether it keeps growing."""
+    from . import resmon
+
+    try:
+        return resmon.summary(rt)
+    except Exception as e:  # noqa: BLE001
+        return {"n": 0, "error": str(e)[:120]}
+
+
+def _latency(rt: Any) -> dict:
+    from . import latency
+
+    try:
+        return latency.get(rt).stats()
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def fx_stats(rt: Any, now: float | None = None) -> list[dict]:
+    """3.15 each window's frame rate and effects tier (reported every 30 s; older than 2 minutes = closed)."""
+    import time
+
+    now = time.time() if now is None else now
+    return [{"page": k, **v} for k, v in sorted((getattr(rt, "_fx", None) or {}).items()) if now - v.get("t", 0) < 120]
 
 
 def export_zip(rt: Any) -> Path:
     out = paths.sub("diagnostics") / f"jarvis-diagnostika-{dt.datetime.now():%Y%m%d-%H%M%S}.zip"
-    cfg = config_mod.public_dump(rt.cfg)
+    cfg = config_mod.public_dump(rt.cfg, local=False)          # 3.18 no traveller's details in a support file
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("config.json", redact(json.dumps(cfg, ensure_ascii=False, indent=2)))
         snap = snapshot(rt)

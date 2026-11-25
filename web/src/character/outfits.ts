@@ -1,11 +1,15 @@
 // The wardrobe (3.0): outfits drawn in the character's own SVG (viewBox 0..200, the dome's crown at y≈45,
 // the eyes at y≈133), so they move, squash and tilt with him. "auto" dresses him for the season.
-export const OUTFITS = ["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap"] as const;
+export const OUTFITS = ["auto", "none", "beanie", "crown", "party", "santa", "witch", "sunglasses", "bow", "cap",
+  "headphones", "graduate", "flower", "halo"] as const;
+/** 3.14 návrh 78: outfits Mochi unlocks as you spend time together (the level comes from the core: mochi_level). */
+export const UNLOCK_LEVEL: Partial<Record<Outfit, number>> = { headphones: 2, graduate: 4, flower: 6, halo: 9 };
 export type Outfit = (typeof OUTFITS)[number];
 
 export const OUTFIT_LABEL: Record<Outfit, string> = {
   auto: "Podle sezóny", none: "Nic", beanie: "Kulich", crown: "Koruna", party: "Párty čepička", santa: "Santa",
   witch: "Čarodějnický klobouk", sunglasses: "Sluneční brýle", bow: "Mašle", cap: "Kšiltovka",
+  headphones: "Sluchátka", graduate: "Čepice absolventa", flower: "Kytička", halo: "Svatozář",
 };
 
 /** "auto" → what to wear today (Christmas, Halloween, New Year, summer). */
@@ -37,6 +41,16 @@ export const OUTFIT_SVG: Record<Exclude<Outfit, "auto" | "none">, string> = {
     <path d="M50 124 L62 124" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".5"/><path d="M118 124 L130 124" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".5"/>`,
   bow: `<g transform="translate(138 50) rotate(18)"><path d="M0 0 L-24 -14 L-24 14 Z" fill="#f472b6"/><path d="M0 0 L24 -14 L24 14 Z" fill="#f472b6"/>
     <circle r="7" fill="#db2777"/></g>`,
+  headphones: `<path d="M34 112 C30 40 170 40 166 112" stroke="#2a2d36" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <rect x="22" y="100" width="24" height="40" rx="10" fill="#3b82f6"/><rect x="154" y="100" width="24" height="40" rx="10" fill="#3b82f6"/>
+    <rect x="27" y="106" width="8" height="28" rx="4" fill="#93c5fd" opacity=".6"/><rect x="165" y="106" width="8" height="28" rx="4" fill="#93c5fd" opacity=".6"/>`,
+  graduate: `<path d="M100 18 L178 40 L100 62 L22 40 Z" fill="#111318" stroke="#2a2d36" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M60 50 L60 70 C80 80 120 80 140 70 L140 50 L100 62 Z" fill="#1c1f26"/>
+    <path d="M150 44 L156 82" stroke="#f7c948" stroke-width="3"/><circle cx="156" cy="86" r="5" fill="#f7c948"/>`,
+  flower: `<g transform="translate(140 46)"><g fill="#f9a8d4">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="0" cy="-11" rx="7" ry="11" transform="rotate(${a})"/>`).join("")}</g>
+    <circle r="6" fill="#fde047"/></g><path d="M140 58 C138 66 136 70 132 74" stroke="#22c55e" stroke-width="3" fill="none"/>`,
+  halo: `<ellipse cx="100" cy="20" rx="44" ry="10" fill="none" stroke="#fde68a" stroke-width="6" opacity=".95"/>
+    <ellipse cx="100" cy="20" rx="44" ry="10" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".8"/>`,
   cap: `<path d="M40 76 C42 22 158 22 160 76 Z" fill="#3b82f6"/><path d="M150 74 C170 70 190 74 196 82 C180 86 160 84 146 82 Z" fill="#1d4ed8"/>
     <circle cx="100" cy="27" r="5" fill="#1d4ed8"/><path d="M100 28 L100 74" stroke="#1d4ed8" stroke-width="2" opacity=".5"/>`,
 };

@@ -22,7 +22,7 @@ async def test_tool_then_answer(rt, monkeypatch):
     monkeypatch.setattr(youtube, "search_youtube", lambda q, n=1: [{"id": "X1", "title": "Trailer", "channel": "", "duration": 1}])
     rt.router = FakeRouter([[("youtube_play", {"query": "avengers"})], "Pouštím trailer."])
     q = rt.bus.subscribe()
-    out = await rt.agent.handle("pusť avengers trailer")
+    out = await rt.agent.handle("pusť avengers trailer – o čem ten film je?")   # a question: the AI answers after the tool
     assert "Pouštím" in out
     ev = drain(q)
     assert any(e["type"] == "tool_start" and e["name"] == "youtube_play" for e in ev)

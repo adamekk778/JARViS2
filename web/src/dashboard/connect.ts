@@ -10,7 +10,7 @@ interface Field { key: string; label: string; secret: boolean; hint: string; set
 interface Conn { id: string; name: string; icon: string; help: string[]; url: string; oauth: boolean; what: string; fields: Field[];
   connected: boolean; last?: { ok: boolean; detail: string } | null; group?: string; group_name?: string; login?: string }
 
-const GROUP_ORDER = ["work", "money", "sales", "tasks", "dev", "chat", "music"];
+const GROUP_ORDER = ["work", "money", "sales", "tasks", "dev", "chat", "music", "travel"];
 const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 // the sign-in address in the steps names this PC's real port (8765 unless changed)
 const port = (t: string) => (location.port && location.port !== "8765" ? t.replace(/:8765\//g, `:${location.port}/`) : t);

@@ -1,3 +1,4 @@
+import { transition } from "../shared/motion";
 import { applyAppearance } from "../shared/base";
 import "./style.css";
 import "./shell.css";
@@ -6,6 +7,7 @@ import { loadLook, loadPhoto, onLookChange } from "../shared/lookstore";
 import { captionBar, focusBanner } from "../shared/viz";
 import { helpMode } from "../shared/help";
 import { ChatView, conversationList } from "../shared/chat";
+import { createBrainPicker } from "../shared/brainpicker";
 import { Blob } from "../character/blob";
 import { h, icon, toast } from "../shared/dom";
 import { JarvisClient, localEndpoint } from "../shared/ws";
@@ -31,6 +33,7 @@ import { buildHabits } from "./habits";
 import { buildPlay } from "./play";
 import { buildRescue } from "./rescue";
 import { buildSecurity } from "./security";
+import { buildTravel } from "./travel";
 import { whatsNewOverlay } from "../shared/whatsnew";
 import { onboarding } from "./onboarding";
 import { missingModelCard } from "../shared/localmissing";
@@ -42,7 +45,23 @@ const chat = new ChatView(client);
 
 const face = new Blob({ size: 34 });
 face.setMood("offline");
-const brainChip = h("span", { class: "chip brain-chip", title: "Aktuální AI mozek" }, icon("brain"), "připojuji…");
+const brainChip = h("button", { type: "button", class: "chip brain-chip as-btn", title: "Která AI odpovídá – klikni a přepni AI nebo model",
+  "aria-haspopup": "dialog", "aria-expanded": "false" }, icon("brain"), h("span", {}, "připojuji…"));
+// 3.14 a click on the AI chip: switch the AI (Claude, Ollama, …) and its model right in the chat
+const chatPicker = createBrainPicker(client, { compact: true });
+const brainPop = h("div", { class: "bp-pop", role: "dialog", "aria-label": "Která AI odpovídá", hidden: true },
+  h("h3", {}, "Která AI odpovídá"), chatPicker.el);
+const closePop = () => { brainPop.hidden = true; brainChip.setAttribute("aria-expanded", "false"); };
+brainChip.onclick = (e) => {
+  e.stopPropagation();
+  const open = brainPop.hidden;
+  brainPop.hidden = !open;
+  brainChip.setAttribute("aria-expanded", String(open));
+  if (open) chatPicker.refresh();
+};
+brainPop.addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => { if (!brainPop.hidden) closePop(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !brainPop.hidden) { closePop(); brainChip.focus(); } });
 const voiceBtn = h("button", { class: "icon-btn", type: "button", title: "Poslech (Hey Jarvis)", "aria-label": "Zapnout nebo vypnout poslech", onclick: () => client.send("voice_toggle") }, icon("microphone"));
 const stopBtn = stopButton(client);
 stopBtn.hidden = true;
@@ -51,10 +70,10 @@ const fullBtn = h("button", { class: "btn", type: "button", title: "Otevřít ch
   onclick: () => (client.local ? client.send("open_window", { view: "full" }) : window.open("/chat", "_blank")) }, icon("arrows-out-simple"), "Celý chat");
 const newChatBtn = h("button", { class: "btn", type: "button", onclick: () => client.send("new_chat") }, icon("plus"), "Nová konverzace");
 
-type Page = "connect" | "agents" | "habits" | "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
+type Page = "connect" | "agents" | "habits" | "travel" | "play" | "tasks" | "voice-mode" | "diagnostics" | "dictate" | "stats" | "notetaker" | "claude" | "stark" | "comms" | "auto" | "home" | "security" | "rescue" | "files" | "knowledge" | "learn";
 type View = "chat" | Page | Section;
 const GROUPS: [string, View[]][] = [
-  ["Hlavní", ["chat", "agents", "connect", "habits", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
+  ["Hlavní", ["chat", "agents", "connect", "habits", "travel", "stark", "auto", "home", "comms", "tasks", "knowledge", "learn", "files", "rescue", "security", "voice-mode", "claude", "play"]],
   ["Diktování", ["dictate", "notetaker", "stats", "dictionary", "dictation"]],
   ["Systém", ["diagnostics"]],          // "Nastavení" is pinned at the bottom of the sidebar (its sections are tabs inside)
 ];
@@ -63,6 +82,7 @@ const NAV: [View, string, string][] = [
   ["agents", "users-three", "Firemní agenti"],
   ["connect", "plugs-connected", "Propojení"],
   ["habits", "heartbeat", "Návyky a zdraví"],
+  ["travel", "airplane-tilt", "Cesty"],
   ["stark", "circle-notch", "Stark"],
   ["auto", "flow-arrow", "Automatizace"],
   ["home", "house-line", "Domov"],
@@ -103,7 +123,7 @@ const chatView = h("section", { class: "chat-view" },
   h("aside", { class: "sidebar" }, newChatBtn, h("div", { class: "side-title" }, "Konverzace"), conversationList(client)),
   h("div", { class: "chat-wrap" },
     h("header", { class: "chat-head" }, h("span", { class: "chat-head-title" }, "Chat"), brainChip, h("span", { class: "grow" }), stopBtn, voiceBtn, fullBtn),
-    missingModelCard(client), chat.el));
+    brainPop, missingModelCard(client), chat.el));
 const settingsHost = h("section", { class: "settings-view" });
 const tasks = buildTasks(client);
 const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => void }> = {
@@ -122,6 +142,7 @@ const pages: Record<Page, { el: HTMLElement; show?: () => void; hide?: () => voi
   auto: buildAutomations(client),
   home: buildHome(client),
   security: buildSecurity(client),
+  travel: buildTravel(client, (text) => { go("chat"); client.send("user_text", { text, attachments: [] }); }),
   rescue: buildRescue(client),
   files: buildFiles(client),
   knowledge: buildBrain(client),
@@ -140,6 +161,9 @@ const settingsBtn: HTMLButtonElement = h("button", { type: "button", class: "sid
   icon("gear-six"), h("span", {}, "Nastavení"));
 const SETTINGS_VIEWS: View[] = ["general", "brain", "voice", "notch", "appearance", "hotkeys", "permissions", "tools", "integrations", "phone", "memory", "jobs", "backup"];
 function go(v: View) {
+  transition(() => goNow(v));                // 3.15 a page change glides (the browser's view transition)
+}
+function goNow(v: View) {
   [...nav.querySelectorAll("button"), settingsBtn].forEach((b) => b.classList.toggle("active", b.dataset.view === v || (b.dataset.view === "general" && SETTINGS_VIEWS.includes(v))));
   const page = pages[v as Page];
   chatView.hidden = v !== "chat";
@@ -234,6 +258,7 @@ client.on("mood", (m) => {
 client.on("stopped", () => toast("Zastaveno.", "ok"));
 client.on("level", (m) => face.setLevel(m.rms || 0));
 client.on("brain", (m) => (brainChip.lastChild!.textContent = `${m.provider} · ${m.model}`));
+client.on("brain_used", (m: any) => (brainChip.lastChild!.textContent = `${m.id} · ${m.model}`));   // 3.14 switched in the picker
 client.on("voice_status", (m) => { voiceBtn.classList.toggle("on", !!m.listening); voiceBtn.hidden = !m.available; });
 client.on("notify", (m) => toast(`${m.title}: ${m.body}`, "info", 6000));
 client.connect();

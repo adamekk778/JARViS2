@@ -9,3 +9,10 @@ export function setApproveGuard(fn: (reason: string) => Promise<boolean>) {
 export function guardApprove(reason: string): Promise<boolean> {
   return guard(reason);
 }
+
+/** 3.20 (196) dangerous steps approved only with a touch of the YubiKey: the key types its one-time code into the box. */
+export function askOtp(needed: unknown): string | null | undefined {
+  if (!needed) return undefined;
+  const v = (window.prompt("Dotkni se svého YubiKey – kód napíše sám:") || "").trim();
+  return v || null;
+}

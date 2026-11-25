@@ -1,0 +1,10 @@
+// 3.18 JARVIS for Wear OS – its own small project (the phone APK build never depends on it)
+pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories { google(); mavenCentral() }
+}
+rootProject.name = "jarvis-wear"
+include ":app"

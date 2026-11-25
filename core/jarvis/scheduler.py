@@ -144,12 +144,51 @@ class Scheduler:
                                        paper=bool(p.get("paper")))
                 self.rt.notify(job["title"] or "Agenti podle plánu", f"Spustil jsem {len(s.workers)} agentů – uvidíš je v notchi "
                                "(Více → Agenti), na konci dám vědět.", speak=False)
+            elif job["kind"] == "car_ready":  # 3.14 "připrav auto na 7:30"
+                from .car import run_ready
+
+                await run_ready(self.rt, p)
             elif job["kind"] == "prompt":
-                text = await self.rt.agent.handle(
-                    p["prompt"], [], "schedule",
-                    extra_system="Tohle je automaticky spuštěná naplánovaná úloha (rutina). Splň ji a odpověz stručně, "
-                                 "odpověď se přečte nahlas a pošle na telefon.")
-                self.rt.notify(job["title"] or "Rutina", text[:300], speak=True, target="all")
+                self.rt.cheap_turn = bool(p.get("cheap"))       # 3.20 (32) a night task: the cheapest brain
+                try:
+                    text = await self.rt.agent.handle(
+                        p["prompt"], [], "schedule",
+                        extra_system="Tohle je automaticky spuštěná naplánovaná úloha (rutina). Splň ji a odpověz stručně, "
+                                     "odpověď se přečte nahlas a pošle na telefon.")
+                finally:
+                    self.rt.cheap_turn = False
+                self.rt.notify(job["title"] or "Rutina", text[:300], speak=not p.get("cheap"), target="all")
+            elif job["kind"] == "voice_alarm":      # 3.20 (5) budíček s ranním souhrnem
+                from .voicex import run_alarm
+
+                await run_alarm(self.rt, p)
+                from .reliax import alarm_fired
+
+                alarm_fired(self.rt, job["title"] or "Budík")     # 3.20 (452) nobody reacts → it rings again
+            elif job["kind"] == "future_message":   # 3.20 (11) vzkaz pro budoucí já
+                from .voicex import run_future
+
+                await run_future(self.rt, p)
+            elif job["kind"] == "send_mail":        # 3.20 (267) a mail written in the evening goes out in the morning
+                import asyncio as _aio
+
+                from .tools.mail_tools import _mail
+
+                acc = _mail(self.rt).account(p.get("account", ""))
+                await _aio.to_thread(acc.send, p["to"], p["subject"], p["body"])
+                self.rt.notify("E-mail odeslán", f"{p['subject']} → {p['to']}", speak=False)
+            elif job["kind"] == "watch_alarm":      # 3.20 (154) tichý budík na hodinkách
+                from .phonex import run_watch_alarm
+
+                run_watch_alarm(self.rt, p)
+                if p.get("important"):
+                    from .reliax import alarm_fired
+
+                    alarm_fired(self.rt, job["title"] or "Budík")
+            elif job["kind"] == "brain_week":       # 3.20 (39) co se JARVIS za týden naučil
+                from .brainx import learned_text, learned_week
+
+                self.rt.notify("Co jsem se tento týden naučil", learned_text(learned_week(self.rt)), speak=False)
         except Exception as e:
             log.warning("job %s failed: %s", job["id"], e)
 

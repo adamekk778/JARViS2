@@ -26,6 +26,33 @@ export interface HabitSnap {
   wake?: string; bedtime?: string;
   plan?: { week: number; start: string; end: string; days: PlanDay[]; done: number; total: number; pct: number | null };
   goals?: Goal[];
+  body?: BodyStatus | null;
+}
+
+/** 3.14 the watch's numbers and the morning verdict ("Stav systémů") */
+export interface BodyStatus {
+  day: string; level: "full" | "normal" | "easy" | "unknown"; text: string; reasons: string[];
+  now: Partial<Record<"steps" | "sleep_h" | "rest_hr" | "hrv" | "hr" | "spo2", number | null>>;
+  base: Partial<Record<"steps" | "sleep_h" | "rest_hr" | "hrv", number | null>>;
+  yesterday: Partial<Record<"steps" | "sleep_h", number | null>>;
+}
+
+const LEVEL: Record<string, [string, string]> = { full: ["Plná síla", "battery-full"], normal: ["Běžný den", "battery-medium"],
+  easy: ["Lehčí den", "battery-low"], unknown: ["Bez dat", "battery-empty"] };
+
+/** 3.14 the "Stav systémů" card: last night, the heart against your normal, what it means for today */
+export function bodyCard(b: BodyStatus | null | undefined): HTMLElement | string {
+  if (!b || b.level === "unknown") return "";
+  const [label, ic] = LEVEL[b.level] || LEVEL.unknown;
+  const stat = (name: string, v: number | null | undefined, unit: string, base?: number | null) =>
+    v == null ? "" : h("div", { class: "hb-body-stat" }, h("span", {}, name), h("strong", {}, `${num(v)}${unit}`),
+      base ? h("small", {}, `obvykle ${num(base)}${unit}`) : "");
+  return h("div", { class: `hb-card hb-body lvl-${b.level}`, role: "group", "aria-label": "Stav systémů" },
+    h("div", { class: "hb-body-head" }, icon(ic, "ph-fill"), h("strong", {}, "Stav systémů"), h("span", { class: "hb-body-lvl" }, label)),
+    h("div", { class: "hb-body-stats" },
+      stat("Spánek", b.now.sleep_h, " h", b.base.sleep_h), stat("Klidový tep", b.now.rest_hr, "", b.base.rest_hr),
+      stat("Variabilita", b.now.hrv, " ms", b.base.hrv), stat("Kyslík", b.now.spo2, " %")),
+    h("p", { class: "hb-body-text" }, b.text.replace(/^Stav systémů:[^.]*\.\s*/, "")));
 }
 
 const DAY = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];

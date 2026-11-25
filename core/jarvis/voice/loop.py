@@ -1,6 +1,7 @@
 """The always-on voice loop: wake word → listen → transcribe → agent → speak."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import queue
 import threading
@@ -15,6 +16,8 @@ log = logging.getLogger(__name__)
 SR = 16000
 FRAME = 1280  # 80 ms, what openWakeWord expects
 FOLLOWUP_S = 6.0
+LIVE_S = 12.0           # 3.14 živý rozhovor: this long to start the next sentence before the conversation rests
+LOOK_SPEECH_S = 0.24    # 3.14 mluv bez Hey Jarvis: this much speech while you look at the screen = talking to JARVIS
 END_PHRASES = ("to je vse", "to je vsechno", "diky to je vse", "dekuji to je vse", "stop", "konec", "that's all",
                "thats all", "that is all", "thank you that's all")
 
@@ -65,6 +68,10 @@ class VoiceLoop:
         self.ducker = Ducker(rt.platform, lambda: rt.cfg.voice.duck_level)
         self._recent: deque = deque(maxlen=12)  # ~1 s of microphone before the wake word = the room's noise
         self._score_sink: list | None = None    # wake-word calibration collects the scores here
+        self._rec: dict | None = None           # 3.14 recording one sample (own wake word / voice print)
+        from .voiceid import ShortUtterance
+
+        self._short = ShortUtterance(FRAME / SR)  # 3.14 own wake word: a short word followed by a pause
 
     # ---------- public ----------
     def start(self) -> None:
@@ -115,7 +122,8 @@ class VoiceLoop:
         # the phone, the greeting after start-up, a reminder) is just said; the microphone does not open after it.
         if reply_to not in ("voice",):
             return
-        if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False)) and not self.paused:
+        if (self.rt.cfg.voice.followup or getattr(self.rt, "voice_mode", False) or getattr(self.rt, "live_talk", False)) \
+                and not self.paused:
             self.followup_active = True
             self._ptt.set()
 
@@ -125,6 +133,9 @@ class VoiceLoop:
         dev = self.rt.cfg.voice.input_device or None
 
         def cb(indata, frames, t, status):
+            raw = getattr(self, "_raw", None)
+            if raw is not None and len(raw) < SR * 2 * 60 * 20:     # 3.20 (17) nácvik prezentace: up to 20 minutes
+                raw.extend(bytes(indata))
             try:   # the frame started being recorded one frame ago (the echo canceller lines it up with the player)
                 self._q.put_nowait((bytes(indata), time.monotonic() - frames / SR))
             except queue.Full:
@@ -242,6 +253,18 @@ class VoiceLoop:
             return True
         return False
 
+    def _look_talk(self, frame: bytes, vad, np) -> bool:
+        """3.14 Mluv bez „Hey Jarvis“: one person looks at the screen (the camera says so) and starts talking."""
+        lw = getattr(self.rt, "look_watcher", None)
+        if lw is None or not getattr(self.rt.cfg.voice, "look_to_talk", False) or self.speaker.speaking or not lw.ok():
+            self._look_n = 0
+            return False
+        self._look_n = (getattr(self, "_look_n", 0) + 1) if self._is_speech(frame, vad, np) else 0
+        if self._look_n * FRAME / SR >= LOOK_SPEECH_S:
+            self._look_n = 0
+            return True
+        return False
+
     def _listen_forever(self, ww, vad, np) -> None:
         cooldown = 0.0
         while not self._restart.is_set():
@@ -253,7 +276,21 @@ class VoiceLoop:
                 continue
             if frame is not None:
                 self._recent.append(frame)
+            if frame is not None and self._rec is not None:       # 3.14 recording a sample: nothing triggers meanwhile
+                self._record_frame(frame, vad, np)
+                continue
             triggered = self._ptt.is_set()
+            vid = getattr(self.rt, "voiceid", None)
+            if (frame is not None and not triggered and vid is not None and vid.wake.ready
+                    and getattr(self.rt.cfg.voice, "custom_wake", False) and time.time() > cooldown):
+                utt = self._short.feed(frame, self._is_speech(frame, vad, np))
+                if utt is not None:
+                    heard, _dist = vid.wake.check(np.frombuffer(utt, dtype=np.int16).astype(np.float32) / 32768.0)
+                    if heard:
+                        triggered = True
+            if frame is not None and not triggered and time.time() > cooldown and self._look_talk(frame, vad, np):
+                triggered = True                          # 3.14 you looked at the screen and spoke
+                self._preroll = list(self._recent)[-8:]   # the start of the sentence is already said: keep it
             if frame is not None and not triggered and self._talk_over(frame, vad, np):
                 triggered = True                          # 3.13 you started talking over JARVIS
                 self.rt.bus.publish_threadsafe("barge_in")
@@ -270,10 +307,40 @@ class VoiceLoop:
             if triggered:
                 self._ptt.clear()
                 self.transcriber.prefetch()              # the model loads while the command is being spoken
+                self.prewarm()                           # 3.16 the AI's connection opens while you speak
                 if self.speaker.speaking:
                     self.speaker.stop()  # barge-in
                 cooldown = time.time() + 2.0
                 self._capture(vad, np)
+
+    # ---------- 3.14 recording samples for the own wake word / the voice print ----------
+    def record_utterance(self, short: bool, timeout: float = 8.0) -> bytes | None:
+        """The next thing said into the microphone (a short word, or a sentence up to ~6 s). Blocks; call in a thread."""
+        ev = threading.Event()
+        self._rec = {"short": short, "buf": bytearray(), "speech": 0.0, "silence": 0.0, "event": ev, "out": None}
+        try:
+            ev.wait(timeout)
+            return self._rec["out"] if self._rec else None
+        finally:
+            self._rec = None
+
+    def _record_frame(self, frame: bytes, vad, np) -> None:
+        r = self._rec
+        if r is None or r["event"].is_set():
+            return
+        step = FRAME / SR
+        speech = self._is_speech(frame, vad, np)
+        if speech:
+            r["buf"] += frame
+            r["speech"] += step
+            r["silence"] = 0.0
+        elif r["speech"] > 0:
+            r["buf"] += frame
+            r["silence"] += step
+        limit = 1.6 if r["short"] else 6.0
+        if (r["speech"] >= 0.3 and r["silence"] >= (0.25 if r["short"] else 0.6)) or r["speech"] >= limit:
+            r["out"] = bytes(r["buf"])
+            r["event"].set()
 
     def _beep(self, np, freq: float = 880.0) -> None:
         try:
@@ -310,9 +377,14 @@ class VoiceLoop:
         from .dsp import agc, denoise
 
         v = self.rt.cfg.voice
-        if not (v.noise_suppression or v.auto_gain) or len(audio) < SR // 2:
+        boost = v.auto_gain and getattr(v, "whisper_boost", True)     # 3.20 (2) part of the automatic gain
+        if not (v.noise_suppression or v.auto_gain or boost) or len(audio) < SR // 2:
             return audio
         x = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+        if boost:                                       # 3.20 (2) a whispered command, levelled up for the recognizer
+            from ..voicex import whisper_boost
+
+            x = whisper_boost(x, SR)
         if v.noise_suppression:
             noise = np.frombuffer(b"".join(self._recent), dtype=np.int16).astype(np.float32) / 32768.0 if self._recent else None
             x, _ = denoise(x, SR, noise if noise is not None and len(noise) >= SR // 4 else None)
@@ -334,13 +406,22 @@ class VoiceLoop:
         self._beep(np)
         while not self._q.empty():  # drop audio from before the trigger
             self._q.get_nowait()
-        ep = Endpointer(FRAME / SR, self.rt.cfg.voice.silence_seconds,
-                        no_speech_s=FOLLOWUP_S if self.followup_active else 6.0)
-        bus.publish_threadsafe("state", state="listening", followup=self.followup_active)
+        live = bool(getattr(self.rt, "live_talk", False))
+        from .fastear import pace
+
+        ep = Endpointer(FRAME / SR, pace(self.rt).silence(self.rt.cfg.voice.silence_seconds),     # 3.17 your tempo
+                        no_speech_s=(LIVE_S if live else FOLLOWUP_S) if self.followup_active else 6.0)
+        bus.publish_threadsafe("state", state="listening", followup=self.followup_active, live=live)
         audio = bytearray()
         result = None
+        pre, self._preroll = getattr(self, "_preroll", None), None
+        for f in pre or []:                       # 3.14 the words said before JARVIS knew you meant it
+            audio += f
+            result = ep.feed(self._is_speech(f, vad, np))
+        result = None if result == "done" else result
         n = 0
         self._cancel_capture = False
+        spec = self._speculator(ep, np)                   # 3.16 written down at each pause, finished sentences end early
         while result is None:
             if self._cancel_capture:
                 break
@@ -349,20 +430,45 @@ class VoiceLoop:
             except queue.Empty:
                 break
             audio += frame
-            result = ep.feed(self._is_speech(frame, vad, np))
+            speaking = self._is_speech(frame, vad, np)
+            result = ep.feed(speaking)
+            if result is None and spec is not None:
+                result = spec.step(ep, audio, speaking)
+                if result is None and live:
+                    self._maybe_backchannel(ep, spec, speaking)
             n += 1
             if n % 2 == 0:
                 a = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
                 bus.publish_threadsafe("level", rms=round(float(np.sqrt(np.mean(a ** 2))), 3))
         self.listening = False
+        if result != "done" and spec is not None:
+            spec.close()
         if result != "done":
+            if self.followup_active and getattr(self.rt, "live_talk", False):   # 3.14 a long silence ends the conversation
+                self.rt.live_talk = False
+                bus.publish_threadsafe("live_talk", on=False)
             self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
         self._beep(np, 660.0)
+        from .style import mark_end
+
+        mark_end(self.rt)                                  # 3.14 návrh 1: from here to JARVIS's first sound
+        from .. import latency
+
+        latency.get(self.rt).begin("voice")                # 3.16 the steps of this answer are measured from here
         bus.publish_threadsafe("state", state="thinking")
+        vid = getattr(self.rt, "voiceid", None)
+        if vid is not None:                                # 3.14 who spoke (household, owner) and whether whispered
+            try:
+                vid.on_utterance(bytes(audio))
+            except Exception as e:  # noqa: BLE001
+                log.debug("voice id: %s", e)
         try:
-            text = self.transcriber.transcribe(self.clean_utterance(bytes(audio), np), SR)
+            early = spec.result_for(len(audio)) if spec is not None else None
+            if spec is not None:
+                spec.close()
+            text = early if early is not None else self._stt(bytes(audio), np)
         except Exception as e:
             log.warning("stt failed: %s", e)
             bus.publish_threadsafe("error", message=f"Rozpoznávání řeči selhalo: {e}")
@@ -374,6 +480,7 @@ class VoiceLoop:
             bus.publish_threadsafe("state", state="idle")
             return
         bus.publish_threadsafe("transcript", text=text, final=True)
+        latency.get(self.rt).mark("stt")
         if getattr(self.rt.cfg.voice, "emotion", False) and text.strip():
             try:                                       # OMEGA P3.12: tone of voice vs the user's own usual voice
                 from ..sysplus import update_voice_mood
@@ -385,7 +492,129 @@ class VoiceLoop:
             self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
+        self.rt.voicex_last_pcm, self.rt.voicex_last_pcm_text = bytes(audio), text   # 3.20 (7) a note keeps the recording
         self.handle_transcript(text, getattr(self.transcriber, "last_language", "cs"))
+
+    # ---------- 3.20 (17) nácvik prezentace: everything the microphone hears, raw ----------
+    def start_raw_recording(self) -> None:
+        self._raw = bytearray()
+
+    def stop_raw_recording(self) -> bytes:
+        raw, self._raw = getattr(self, "_raw", None), None
+        return bytes(raw or b"")
+
+    def _stt(self, pcm: bytes, np) -> str:
+        """The words, with the names the recognizer should expect (3.16 tvoje slova); the time it took is remembered."""
+        from .fastear import vocabulary
+
+        try:
+            vocab = vocabulary(self.rt) if getattr(self.rt.cfg.voice, "vocabulary", True) else ""
+        except Exception:  # noqa: BLE001
+            vocab = ""
+        t0 = time.monotonic()
+        text = self.transcriber.transcribe(self.clean_utterance(pcm, np), SR, prompt=vocab)
+        from ..voicex import codeswitch
+
+        text = codeswitch(self.rt, text)                # 3.20 (12) "čil vajbs" → "chill vibes"
+        took = time.monotonic() - t0
+        self._stt_s = took if not getattr(self, "_stt_s", 0) else 0.7 * self._stt_s + 0.3 * took
+        return text
+
+    def _partial_stt(self, pcm: bytes, np) -> str:
+        """3.17 the live text while you speak: Whisper "tiny" (~75 MB, quick on any PC); the final words still come
+        from your own model."""
+        tr = getattr(self, "_partial", None)
+        if tr is None:
+            tr = self._partial = Transcriber(self.rt.cfg.voice.model_copy(update={"stt_model": "tiny", "stt_provider": "local"}))
+        return tr.transcribe(self.clean_utterance(pcm, np), SR)
+
+    def _live_words(self, small: bool):
+        """3.18 the words with their times for the live window: the tiny model, or your own one on a fast PC."""
+        def words(audio) -> list[dict]:
+            if small:
+                tr = getattr(self, "_partial", None)
+                if tr is None:
+                    tr = self._partial = Transcriber(self.rt.cfg.voice.model_copy(update={"stt_model": "tiny",
+                                                                                        "stt_provider": "local"}))
+                return tr.words(audio)
+            return self.transcriber.words(audio)
+        return words
+
+    def _speculator(self, ep, np):
+        """3.16 the early transcription at pauses (+ the live text in the notch when speech recognition is fast)."""
+        if not getattr(self.rt.cfg.voice, "smart_endpoint", True):
+            return None
+        from .fastear import Speculator
+
+        bus = self.rt.bus
+        from .fastear import pace
+
+        local = self.transcriber.provider() == "local"
+        fast = 0 < getattr(self, "_stt_s", 9.0) < 0.45
+        small = local and not fast and getattr(self.rt.cfg.voice, "live_partial", True) \
+            and getattr(self.rt.cfg.voice, "stt_download_ok", False)       # 3.17 the live text by a tiny model
+        window = None
+        if local and (fast or small) and getattr(self.rt.cfg.voice, "live_window", True):
+            from .fastear import LiveWindow                  # 3.18 only the new audio is read each time
+
+            window = LiveWindow(self._live_words(small))
+        sp = Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
+                        live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
+                        live_ok=lambda: local and (fast or small),
+                        max_spec=3 if local else 2,
+                        live_transcribe=window.update if window is not None else
+                        ((lambda b: self._partial_stt(b, np)) if small else None))
+        if window is not None:
+            sp.live_every = 0.5 if fast else 0.8
+        sp.on_pause = pace(self.rt).record
+        loop = getattr(self.rt, "loop", None)
+        agent = getattr(self.rt, "agent", None)
+        if loop is not None and agent is not None and getattr(self.rt.cfg.voice, "speculate", True):
+            sp.on_unsure = lambda t: asyncio.run_coroutine_threadsafe(agent.speculate(t), loop)
+            sp.on_stale = lambda: loop.call_soon_threadsafe(agent.cancel_spec)
+        return sp
+
+    BACKCHANNEL_AFTER_S = 6.0                             # this much talking since the last "mhm"
+
+    def _maybe_backchannel(self, ep, spec, speaking: bool) -> bool:
+        """3.16 (návrh 23) a long live conversation, you pause mid-thought (the words so far are unfinished): "mhm"."""
+        v = self.rt.cfg.voice
+        if not (getattr(v, "backchannel", False) and getattr(v, "echo_cancel", True)):
+            return False
+        now = time.monotonic()
+        if speaking:
+            if not getattr(self, "_bc_talk_from", 0):
+                self._bc_talk_from = now
+            return False
+        talked = now - (getattr(self, "_bc_talk_from", 0) or now)
+        if spec.decided is not False or not (0.35 <= ep.quiet < 0.6) or talked < self.BACKCHANNEL_AFTER_S:
+            return False
+        self._bc_talk_from = 0
+        loop = getattr(self.rt, "loop", None)
+        if loop is None:
+            return False
+        asyncio.run_coroutine_threadsafe(self.speaker.backchannel(), loop)
+        return True
+
+    def prewarm(self) -> None:
+        """3.16 "Hey Jarvis" heard: open the connection to the AI (and the local model) in the background."""
+        last = getattr(self, "_prewarmed", 0.0)
+        if time.monotonic() - last < 45:                   # a connection stays open ~2 minutes
+            return
+        self._prewarmed = time.monotonic()
+        loop = getattr(self.rt, "loop", None)
+        if loop is None:
+            return
+        try:
+            asyncio.run_coroutine_threadsafe(self.rt.router.prewarm(), loop)
+            agent = getattr(self.rt, "agent", None)
+            if agent is not None and hasattr(agent, "warm_cache"):        # 3.18 Claude's cache too, while you speak
+                asyncio.run_coroutine_threadsafe(agent.warm_cache(), loop)
+            if not getattr(self, "_phrases_ready", False):     # 3.16 "Moment, pane." etc. ready to be heard at once
+                self._phrases_ready = True
+                asyncio.run_coroutine_threadsafe(self.speaker.prepare_phrases(), loop)
+        except Exception as e:  # noqa: BLE001
+            log.debug("prewarm: %s", e)
 
     def handle_transcript(self, text: str, lang: str = "cs") -> None:
         """What to do with a finished utterance: answer a pending confirmation, end a follow-up, or ask the agent."""
@@ -396,8 +625,23 @@ class VoiceLoop:
                 self._confirm_id = None
                 self.rt.call_soon(self.rt.agent.confirm, cid, yn)
                 return
+        from .. import voicex
+
+        if voicex.poll_active(self.rt):                  # 3.20 (14) a vote while the family poll runs
+            vid = getattr(self.rt, "voiceid", None)
+            said = voicex.poll_answer(self.rt, text, getattr(vid, "last_speaker", "") if vid is not None else "")
+            if said:
+                self.rt.speak(said)
+                return
+        if (self.followup_active or getattr(self.rt, "live_talk", False)) and voicex.aside(self.rt, text):
+            self.followup_active = True                  # 3.20 (4) not meant for JARVIS: keep listening, say nothing
+            self._ptt.set()
+            return
         if is_end_phrase(text):
             self.followup_active = False
+            if getattr(self.rt, "live_talk", False):     # 3.14 the end of a live conversation
+                self.rt.live_talk = False
+                self.rt.bus.publish_threadsafe("live_talk", on=False)
             self.rt.bus.publish_threadsafe("state", state="idle")
             return
         self.rt.submit(self.rt.agent.handle(text, [], "voice", lang=lang))

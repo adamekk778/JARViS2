@@ -4,13 +4,19 @@ from __future__ import annotations
 import asyncio
 import re
 import sys
-from typing import Annotated
+from typing import Annotated, Any
 
 from .. import paths
 from .base import ToolResult, tool
 
 RISKY_LABEL = re.compile(r"(koupit|zaplatit|objednat|odeslat|potvrdit objednávku|buy|pay|order|checkout|purchase|submit|"
-                         r"smazat|delete|odhlásit)", re.I)
+                         r"smazat|delete|odhlásit|"
+                         # 3.18 bookings: never a reservation or a payment without your confirmation (whole English
+                         # words: "booking.com" or "Facebook" in a link is not a booking)
+                         r"rezervovat|zarezervovat|rezervaci|závazně|zavazne|dokončit|dokoncit|zakoupit|platba|platit|"
+                         r"uhradit|vstupenky|\bbook\b|\bbook now\b|\breserve\b|\bconfirm\b|\bcomplete\b|\bplace order\b|"
+                         r"\bget tickets\b)", re.I)
+MONEY_HREF = re.compile(r"(checkout|/payment|/pay(?:/|\?|$)|/purchase)", re.I)
 
 INDEX_JS = r"""
 () => {
@@ -39,6 +45,7 @@ class BrowserSession:
         self.ctx = None
         self.page = None
         self._lock = asyncio.Lock()
+        self.last_elements: dict[int, tuple[str, str]] = {}     # index → (text, link)
 
     async def ensure(self):
         if self.page and not self.page.is_closed():
@@ -72,8 +79,20 @@ class BrowserSession:
         await page.wait_for_load_state("domcontentloaded")
         els = await page.evaluate(INDEX_JS)
         text = await page.evaluate("() => document.body ? document.body.innerText : ''")
+        self.last_elements = {int(e["i"]): (str(e.get("label") or ""), str(e.get("href") or "")) for e in els}
         return {"url": page.url, "title": await page.title(), "text": re.sub(r"\n{3,}", "\n\n", text)[:max_chars],
                 "elements": els}
+
+    def element_of(self, index: Any) -> tuple[str, str] | None:
+        """(text, link) of element `index` in the last overview (None = not seen)."""
+        try:
+            return self.last_elements.get(int(index))
+        except (TypeError, ValueError):
+            return None
+
+    def label_of(self, index: Any) -> str | None:
+        el = self.element_of(index)
+        return el[0] if el else None
 
     async def close(self):
         try:
@@ -99,8 +118,28 @@ async def browser_open(ctx, url: str) -> ToolResult:
     return ToolResult(True, f"Otevřeno: {snap['title']}", data=snap)
 
 
+MONEY = re.compile(r"(koupit|zaplatit|platba|platit|uhradit|objednat|rezervovat|zarezervovat|rezervaci|závazně|zavazne|"
+                   r"vstupenky|zakoupit|\b(?:buy|pay|pay now|checkout|purchase|book|book now|reserve|place order|get tickets|"
+                   r"complete booking|confirm booking|confirm and pay)\b)", re.I)
+
+
+def money_click(a: dict) -> bool:
+    """3.18 a click that buys, pays or books – asked always, full trust or not: the words the AI gives, the element's
+    real text, or a link to a payment page."""
+    el = SESSION.element_of(a.get("index")) or ("", "")
+    return bool(MONEY.search(str(a.get("label", ""))) or MONEY.search(el[0]) or MONEY_HREF.search(el[1]))
+
+
+def _click_danger(a: dict) -> bool:
+    """3.18 the element's REAL text from the last overview decides (not only the label the AI says it clicks); an
+    element JARVIS has not seen (no overview yet) asks too."""
+    el = SESSION.element_of(a.get("index"))
+    return el is None or bool(RISKY_LABEL.search(str(a.get("label", ""))) or RISKY_LABEL.search(el[0])
+                              or MONEY_HREF.search(el[1]))
+
+
 @tool("browser_click", "Klikne na prvek v prohlížeči podle čísla z posledního přehledu. label = text prvku.",
-      danger_if=lambda a: bool(RISKY_LABEL.search(str(a.get("label", "")))), category="prohlížeč")
+      danger_if=_click_danger, category="prohlížeč")
 async def browser_click(ctx, index: int, label: Annotated[str, "text prvku, na který klikáš"] = "") -> ToolResult:
     async with SESSION._lock:
         page = await SESSION.ensure()

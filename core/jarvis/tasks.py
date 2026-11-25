@@ -80,6 +80,7 @@ class TaskManager:
         self._current_action = ""
         self._running.set()
         self._started = time.time()
+        self._cost0 = self._spent()
         if task_id and self.db.one("SELECT id FROM tasks WHERE id=?", (task_id,)):
             self._id = task_id
             self.db.exec("UPDATE tasks SET status='running', finished=NULL WHERE id=?", (task_id,))
@@ -88,6 +89,7 @@ class TaskManager:
             self.db.exec("INSERT INTO tasks (id, conv_id, goal, status, created, finished, summary) VALUES (?,?,?,?,?,?,?)",
                          (self._id, conv_id, goal[:500], "running", time.time(), None, ""))
         self._publish(force=True)
+        self._widget(force=True)
         return self._id
 
     # ---------- 3.7 queue, deadlines, budget ----------
@@ -134,7 +136,28 @@ class TaskManager:
         mins = (time.time() - getattr(self, "_started", time.time())) / 60
         if limits.mission_max_minutes and mins >= limits.mission_max_minutes:
             return f"Rozpočet mise vyčerpán: běží {mins:.0f} min (limit {limits.mission_max_minutes})."
+        cap = float(getattr(limits, "mission_max_cost", 0) or 0)
+        if cap > 0:                                         # 3.14 návrh 35: what the paid AI keys cost this mission
+            spent = self._spent() - getattr(self, "_cost0", 0.0)
+            if spent >= cap:
+                return f"Rozpočet mise vyčerpán: AI stála {spent:.2f} {limits.currency} (limit {cap:g})."
         return ""
+
+    def _widget(self, force: bool = False) -> None:
+        """3.14 návrh 9: the phone's widget learns a mission started / ended (through its background connection)."""
+        try:
+            from .phoneplus import push_widget
+
+            push_widget(self.rt, force)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _spent(self) -> float:
+        usage = getattr(self.rt, "usage", None)
+        try:
+            return float(usage.today()["cost"]) if usage is not None else 0.0
+        except Exception:  # noqa: BLE001
+            return 0.0
 
     def set_plan(self, steps: list[str], current: int = 0, note: str = "") -> None:
         if not self._id:
@@ -218,7 +241,15 @@ class TaskManager:
                      (status, time.time(), redact(summary)[:500], self._id))
         self._current_action = ""
         self._publish(force=True)
+        if status == "done":                     # 3.14 návrh 62: the same steps a third time → offer a skill
+            try:
+                from .proactiveplus import after_mission
+
+                after_mission(self.rt, self._id)
+            except Exception:  # noqa: BLE001 – an offer must never break finishing a mission
+                pass
         self._id = None
+        self._widget(force=True)
         self._running.set()
 
     # ---------- pause / resume ----------

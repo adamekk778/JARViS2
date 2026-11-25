@@ -91,7 +91,11 @@ def _wrap(path: Path, tool_name: str, timeout: int, legacy: bool = False):
             elif line.startswith("@@RESULT "):
                 result = json.loads(line[9:])
         if proc.returncode != 0 or result is None:
-            last = (err.decode("utf-8", "replace").strip().splitlines() or ["neznámá chyba"])[-1]
+            text = err.decode("utf-8", "replace").strip()
+            last = (text.splitlines() or ["neznámá chyba"])[-1]
+            from .. import skillheal          # 3.14: remembered, so "oprav dovednost" can propose a fix
+
+            skillheal.record_failure(ctx, path.stem, tool_name, text or last)
             return ToolResult(False, f"Skill spadl: {last}")
         return ToolResult(bool(result["ok"]), str(result["summary"]), data=result.get("data"))
 

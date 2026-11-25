@@ -6,6 +6,8 @@ from typing import AsyncIterator
 
 import httpx
 
+from . import pool
+
 from .base import Chunk, ProviderError, ToolCallAssembler
 
 
@@ -34,6 +36,25 @@ def with_signatures(messages: list[dict]) -> list[dict]:
             if not google.get("thought_signature"):
                 first["extra_content"] = {**(first.get("extra_content") or {}),
                                           "google": {**google, "thought_signature": GEMINI_SKIP}}
+            m = {**m, "tool_calls": calls}
+        out.append(m)
+    return out
+
+
+def without_foreign(messages: list[dict]) -> list[dict]:
+    """3.14: what Claude attached to its tool calls (thinking blocks) stays with Claude – another service would refuse
+    an unknown field or read a large block it cannot use."""
+    out = []
+    for m in messages:
+        calls = m.get("tool_calls") if m.get("role") == "assistant" else None
+        if calls and any("anthropic" in (c.get("extra_content") or {}) for c in calls):
+            calls = [dict(c) for c in calls]
+            for c in calls:
+                ex = {k: v for k, v in (c.get("extra_content") or {}).items() if k != "anthropic"}
+                if ex:
+                    c["extra_content"] = ex
+                else:
+                    c.pop("extra_content", None)
             m = {**m, "tool_calls": calls}
         out.append(m)
     return out
@@ -79,6 +100,7 @@ class OpenAICompat:
         return h
 
     async def stream(self, messages: list[dict], tools: list[dict] | None, model: str | None = None) -> AsyncIterator[Chunk]:
+        messages = without_foreign(messages)
         if is_gemini(self.base_url):
             messages = with_signatures(messages)
         body: dict = {
@@ -92,8 +114,9 @@ class OpenAICompat:
             body["tools"] = tools
         asm = ToolCallAssembler()
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout, verify=_tls()) as client:
-                async with client.stream("POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body) as r:
+            async with pool.client(self._transport, self._timeout, _tls()) as client:     # 3.16 a kept connection
+                async with client.stream("POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body,
+                                         timeout=self._timeout) as r:
                     if self.on_headers is not None:
                         try:
                             self.on_headers(r.headers)
@@ -146,8 +169,8 @@ class OpenAICompat:
     async def list_models(self) -> list[str]:
         """GET /models – the model names this endpoint offers (empty when it cannot say)."""
         try:
-            async with httpx.AsyncClient(transport=self._transport, timeout=15, verify=_tls()) as client:
-                r = await client.get(f"{self.base_url}/models", headers=self._headers())
+            async with pool.client(self._transport, 15, _tls()) as client:
+                r = await client.get(f"{self.base_url}/models", headers=self._headers(), timeout=15)
             if r.status_code != 200:
                 return []
             data = r.json()

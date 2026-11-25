@@ -47,7 +47,7 @@ export function wireCodeCopy(root: HTMLElement) {
     const btn = (e.target as HTMLElement).closest(".code-copy") as HTMLButtonElement | null;
     if (!btn) return;
     const code = btn.closest(".code")?.querySelector("code")?.textContent || "";
-    copyText(code, "");
+    void copyText(code, "");
     btn.innerHTML = '<i class="ph ph-check"></i> Zkopírováno';
     setTimeout(() => (btn.innerHTML = '<i class="ph ph-copy"></i> Kopírovat'), 1500);
   });

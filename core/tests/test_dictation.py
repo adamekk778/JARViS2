@@ -81,7 +81,7 @@ async def test_cleanup_failure_keeps_raw_text(rt):
 
 async def test_nothing_heard_pastes_nothing(rt):
     rt.dictation._own_stt = FakeSTT("  ")
-    q = rt.bus.subscribe()
+    rt.bus.subscribe()
     assert await rt.dictation.handle_audio(tone(0.5), 1.0) == ""
     assert not any(c[0] == "hotkey" for c in rt.platform.calls)
     assert rt.dictation.state == "idle"

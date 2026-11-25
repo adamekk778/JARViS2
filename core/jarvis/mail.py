@@ -376,9 +376,13 @@ class Mail:
                 continue
             self.rt.bus.publish("mail_new", **m)
             if cfg.notify:
-                who = m["from_name"] or m["from"]
-                title = "Důležitý e-mail" if m["vip"] else "Nový e-mail"
-                self.rt.notify(title, f"Píše vám {who}: {m['subject']}", speak=cfg.speak and self.rt.cfg.voice.speak_mode != "never")
+                from .voicex import notice_text                # 3.20 (19) family in full, shops in one short line
+
+                title, body = notice_text(self.rt, m["from_name"] or "", m["from"] or "", m.get("subject") or "",
+                                          str(m.get("preview") or m.get("text") or ""))
+                if m["vip"]:
+                    title = "Důležitý e-mail"
+                self.rt.notify(title, body, speak=cfg.speak and self.rt.cfg.voice.speak_mode != "never")
             if m["vip"] and cfg.call_vip and getattr(self.rt, "phone", None):
                 await self.rt.phone.ring(f"Pane, přišel důležitý e-mail od {m['from_name'] or m['from']}: {m['subject']}.", reason="mail")
         return fresh

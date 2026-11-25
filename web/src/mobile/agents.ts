@@ -61,12 +61,12 @@ export function permissionsWizard(force = false): void {
     step(st.fullScreen, "6. Zvonění přes zamčenou obrazovku", "Aby hovor od JARVISe zazvonil jako opravdový.", "Nastavit", () => native.phone.openFullScreen()));
   const close = () => { try { localStorage.setItem(WIZ, "1"); } catch { /* no storage */ } sheet.remove(); document.removeEventListener("visibilitychange", again); };
   const refresh = async () => { try { paint(await native.phone.status()); } catch { /* not ready */ } };
-  const again = () => { if (!document.hidden) refresh(); };          // back from Android's settings: ticks update
+  const again = () => { if (!document.hidden) void refresh(); };          // back from Android's settings: ticks update
   document.addEventListener("visibilitychange", again);
   const sheet = h("div", { class: "m-wiz" }, h("div", { class: "m-wiz-card" },
     h("div", { class: "m-wiz-head" }, h("strong", {}, "Nastavení telefonu"), h("button", { class: "icon-btn", type: "button", "aria-label": "Zavřít", onclick: close }, icon("x"))),
     h("p", { class: "m-wiz-sub" }, "Projdi kroky shora dolů. Každý otevře správné místo v Androidu – po návratu se tu objeví ✓."),
     list, h("button", { class: "btn", type: "button", onclick: close }, "Hotovo – zbytek později")));
   document.body.append(sheet);
-  refresh();
+  void refresh();
 }

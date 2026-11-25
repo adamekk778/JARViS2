@@ -40,8 +40,13 @@ async def after_update(rt: Any, delay: float = 75.0) -> list[dict] | None:
     if _kv(rt, "selfcheck_version") == __version__:
         return None
     await asyncio.sleep(delay)                      # the voice, the notch and the media watcher are up by now
+    try:
+        before = __import__("json").loads(_kv(rt, "selfcheck_last") or "[]")   # the previous version's last check
+    except ValueError:
+        before = []
     items = await selfcheck.run(rt, lambda pid: brainkey.provider_test(rt, pid))
     _set(rt, "selfcheck_version", __version__)
+    await _maybe_roll_back(rt, before, items)
     _set(rt, "selfcheck_last", __import__("json").dumps(items, ensure_ascii=False)[:20000])
     rt.bus.publish("selfcheck", running=False, items=items)
     bad = problems(items)
@@ -50,6 +55,29 @@ async def after_update(rt: Any, delay: float = 75.0) -> list[dict] | None:
                   " · ".join(f"{i['name']}: {i['detail'][:70]}" for i in bad[:3]) + " – víc v Diagnostika → Kontrola funkcí.",
                   speak=False)
     return bad
+
+
+async def _maybe_roll_back(rt: Any, before: list[dict], items: list[dict]) -> bool:
+    """3.14 (návrh 12): what worked in the previous version and is broken now → back to it (or offer it)."""
+    from . import __version__, quality
+
+    regs = quality.regressions(before, items)
+    prev = _kv(rt, "updated_from")
+    if not regs or not prev or prev == __version__:
+        return False
+    names = ", ".join(r["name"] for r in regs)
+    updater = getattr(rt, "updater", None)
+    if quality.should_roll_back(regs) and getattr(rt.cfg.general, "auto_rollback", True) and updater is not None:
+        rt.notify("Vracím předchozí verzi", f"Po aktualizaci na {__version__} nefunguje: {names}. Instaluju zpět {prev} "
+                  "a tuhle verzi sám znovu nenainstaluju.", speak=False)
+        try:
+            return await updater.rollback(prev, bad=__version__)
+        except Exception as e:  # noqa: BLE001
+            log.warning("rollback to %s: %s", prev, e)
+            return False
+    rt.notify("Po aktualizaci se něco rozbilo", f"Ve verzi {prev} fungovalo, teď ne: {names}. Předchozí verzi vrátíš "
+              "v Diagnostice → Zdraví JARVISe.", speak=False)
+    return False
 
 
 async def check_keys(rt: Any) -> list[dict]:

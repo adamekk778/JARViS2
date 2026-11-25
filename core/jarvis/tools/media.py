@@ -55,3 +55,31 @@ async def media_seek(ctx, seconds: Annotated[float, "kam přetočit, sekundy od 
         st.update(position=float(seconds), at=time.time())
         ctx.bus.publish("media", **st)
     return ToolResult(True, f"Přetočeno na {int(seconds) // 60}:{int(seconds) % 60:02d}")
+
+
+@tool("lyrics_wrong", "Text písně v notchi nepatří k písni, která hraje (jiná píseň nebo jiná verze): JARVIS ho zahodí, už ho "
+      "pro tuhle píseň neukáže a hned zkusí jiný. Na „to není ten text“, „špatný text“, „jiný text“.", category="média")
+async def lyrics_wrong(ctx) -> ToolResult:
+    from .. import nowplaying
+
+    r = await nowplaying.mark_wrong(ctx)
+    return ToolResult(bool(r["ok"]), r["message"])
+
+
+@tool("now_playing_info", "Co teď hraje: název písně, interpret, album, rok a žánr a krátce o interpretovi. Na „co to hraje“, "
+      "„co je to za písničku“, „kdo to zpívá“.", category="média")
+async def now_playing_info(ctx) -> ToolResult:
+    from .. import nowplaying
+
+    info = await nowplaying.song_info(ctx)
+    return ToolResult(bool(info["ok"]), info["say"], data=info)
+
+
+@tool("karaoke_open", "Otevře karaoke přes celou obrazovku: text právě hrající písně velkým písmem, slova se rozsvěcují podle "
+      "zpěvu. Na „pusť karaoke“, „karaoke“, „ukaž text písničky přes celou obrazovku“.", category="média")
+async def karaoke_open(ctx) -> ToolResult:
+    hook = getattr(ctx, "ui_hook", None)
+    if hook is None:
+        return ToolResult(True, "Karaoke otevřeš v prohlížeči na adrese /karaoke tohoto PC.", data={"path": "/karaoke"})
+    hook("karaoke")
+    return ToolResult(True, "Karaoke je otevřené. Zavřeš ho klávesou Esc.")

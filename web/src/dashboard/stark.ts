@@ -200,7 +200,37 @@ export function buildStark(client: JarvisClient) {
       psw("clipboard_history", "Historie schránky", "Posledních 30 zkopírovaných textů, jen v paměti (po restartu zmizí). Hesla si nepamatuje."),
       psw("screen_time", "Čas u PC", "Kolik minut jsi v které aplikaci. Zůstává jen v tomhle PC (30 dní)."),
       h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připomenout pauzu po"),
-        h("span", { class: "help" }, "Minutách u PC bez přestávky. 0 = nepřipomínat.")), brk));
+        h("span", { class: "help" }, "Minutách u PC bez přestávky. 0 = nepřipomínat.")), brk),
+      ...healthRows());
+  }
+
+  // 3.14 Zdraví u PC (návrh 44): water, the long day, bedtime, posture from the webcam, the morning "Stav systémů"
+  function healthRows(): HTMLElement[] {
+    const hc = settings?.health || {};
+    const put = (patch: object) => client.send("settings_set", { patch: { health: patch } });
+    const numRow = (key: string, title: string, desc: string, max: number, step = 1) => {
+      const inp = h("input", { class: "input sm", type: "number", min: 0, max, step, value: hc[key] ?? 0, "aria-label": title }) as HTMLInputElement;
+      inp.onchange = () => put({ [key]: Math.max(0, Math.min(max, +inp.value || 0)) });
+      return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)), inp);
+    };
+    const swRow = (key: string, title: string, desc: string) => {
+      const inp = h("input", { type: "checkbox", role: "switch", "aria-label": title }) as HTMLInputElement;
+      inp.checked = !!hc[key];
+      inp.onchange = () => put({ [key]: inp.checked });
+      return h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, title), h("span", { class: "help" }, desc)),
+        h("span", { class: "switch" }, inp, h("span")));
+    };
+    const bed = h("input", { class: "input sm", type: "time", value: hc.bedtime || "", "aria-label": "Připomenout spánek od" }) as HTMLInputElement;
+    bed.onchange = () => put({ bedtime: bed.value || "" });
+    return [
+      h("h4", {}, "Zdraví u PC"),
+      numRow("water_minutes", "Pitný režim každých", "Minut – „je čas na sklenici vody“ s tlačítkem Vypito (odškrtne návyk Voda). 0 = vypnuto.", 600),
+      numRow("long_day_h", "Dlouhý den u PC po", "Hodinách za den – jedno upozornění, ať to zabalíš nebo jdeš ven. 0 = vypnuto.", 20, 0.5),
+      h("label", { class: "row" }, h("div", { class: "row-text" }, h("strong", {}, "Připomenout spánek od"),
+        h("span", { class: "help" }, "Když po tomhle čase pořád sedíš u PC, JARVIS jednou za noc připomene spánek (i s tím, jak málo jsi spal minule). Prázdné = vypnuto.")), bed),
+      swRow("posture", "Hlídat držení těla kamerou", "Každé 2 minuty jeden snímek z webkamery: jsi moc blízko monitoru nebo se hrbíš? Prvních pár snímků si zapamatuje, jak sedíš rovně („teď sedím dobře“ nastaví znovu). Fotky se neukládají ani neposílají."),
+      swRow("morning", "Stav systémů v ranním brífinku", "Spánek a klidový tep z hodinek (přes telefon) proti tvému normálu a co to znamená pro dnešek."),
+    ];
   }
 
   client.on("mission_sim", (m) => {         // OMEGA 192 / 755: the steps as a graph, played as a dry run

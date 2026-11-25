@@ -8,6 +8,7 @@ import { h, icon, toast } from "../shared/dom";
 import { renderMarkdown, wireCodeCopy } from "../shared/markdown";
 import { native } from "./native";
 import { queueForPc } from "./offline";
+import { offlineRule } from "./x320";
 import "./solo.css";
 
 type Pid = "groq" | "gemini" | "cerebras" | "openrouter" | "nvidia" | "mistral" | "github";
@@ -169,7 +170,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   }
   function paint(thinking = false) {
     if (!hist.length && !thinking) {
-      const tip = (t: string) => h("button", { class: "suggest", type: "button", onclick: () => { input.value = t; submit(); } }, h("span", {}, t), icon("arrow-up-right", "suggest-go"));
+      const tip = (t: string) => h("button", { class: "suggest", type: "button", onclick: () => { input.value = t; void submit(); } }, h("span", {}, t), icon("arrow-up-right", "suggest-go"));
       list.replaceChildren(h("div", { class: "chat-empty solo-empty" },
         h("div", { class: "solo-eyes big", "aria-hidden": "true" }, h("i"), h("i")),
         h("h2", {}, "Jsem tu i bez PC"), h("p", { class: "chat-sub" }, `Odpovídá ${AI[provider].name} zdarma přímo z telefonu.`),
@@ -181,6 +182,19 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
   async function submit() {
     const text = input.value.trim();
     if (!text || busy) return;
+    const local = offlineRule(text);              // 3.20 (129) a timer, an alarm, a note… the phone does by itself, no AI
+    if (local) {
+      input.value = "";
+      hist.push({ role: "user", text, at: Date.now() / 1000 });
+      try { await local.run?.(); } catch { /* shown below anyway */ }
+      if (/^(poznámk|zapiš|poznamenej)/i.test(text)) queueForPc(text);
+      hist.push({ role: "assistant", text: local.reply, at: Date.now() / 1000 });
+      hist = hist.slice(-MAX_HIST);
+      save(HIST, hist);
+      paint(true);
+      native.haptic();
+      return;
+    }
     const key = await getKey(provider);
     if (!key) { setup(); return; }
     busy = true; send.disabled = true;
@@ -233,7 +247,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     const paintChoose = async () => {
       const saved = await Promise.all(ORDER.map(async (p) => !!(await getKey(p))));
       choose.replaceChildren(...ORDER.map((p, i) => h("button", { type: "button", class: `solo-opt ${pick === p ? "on" : ""}`,
-        onclick: () => { pick = p; paintChoose(); } }, icon(AI[p].ico, "ph-fill"), h("strong", {}, AI[p].name, saved[i] ? " ✓" : ""), h("span", {}, AI[p].hint))));
+        onclick: () => { pick = p; void paintChoose(); } }, icon(AI[p].ico, "ph-fill"), h("strong", {}, AI[p].name, saved[i] ? " ✓" : ""), h("span", {}, AI[p].hint))));
       link.href = AI[pick].url;
       (link.lastChild as HTMLElement).textContent = `Získat klíč (${new URL(AI[pick].url).host})`;
       const has = !!(await getKey(pick));
@@ -261,7 +275,7 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
       h("button", { class: "btn primary", type: "button", onclick: go }, icon("check"), "Uložit a vyzkoušet"), status,
       h("button", { class: "btn ghost", type: "button", onclick: () => { close(); o.pair(); } }, icon("qr-code"), "Spárovat s PC znovu")));
     shell.append(sheet);
-    paintChoose();
+    void paintChoose();
   }
 
   async function lookForPc(manual = false) {
@@ -269,8 +283,8 @@ export function soloScreen(app: HTMLElement, o: { retry: () => Promise<boolean>;
     if (await o.retry()) { window.clearInterval(timer); return; }
     if (manual) toast("PC zatím neodpovídá", "error");
   }
-  timer = window.setInterval(() => { if (!shell.isConnected) { window.clearInterval(timer); return; } if (!busy) lookForPc(); }, 20000);
+  timer = window.setInterval(() => { if (!shell.isConnected) { window.clearInterval(timer); return; } if (!busy) void lookForPc(); }, 20000);
   paintPill();
   paint();
-  getKey(provider).then((k) => { if (!k) setup(); });
+  void getKey(provider).then((k) => { if (!k) setup(); });
 }
