@@ -79,6 +79,71 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
   });
   window.setInterval(paintCount, 1000);
 
+  // 3.20 Zdraví+ a Učení+ in the notch: (242) breathing, (258) the water glass, (374) speed reading, (245) quiet hints
+  const panel = document.createElement("div");
+  panel.className = "x-panel";
+  panel.hidden = true;
+  shape.append(panel);
+  let panelTimer = 0;
+  const hide = () => { panel.hidden = true; panel.replaceChildren(); window.clearTimeout(panelTimer); };
+  const show = (ms: number) => { panel.hidden = false; window.clearTimeout(panelTimer); panelTimer = window.setTimeout(hide, ms); };
+  client.on("breathe", (m) => {
+    const steps = (Array.isArray(m.steps) ? m.steps : []) as { say: string; s: number }[];
+    const rounds = Math.max(1, Number(m.rounds) || 1);
+    if (!steps.length) return;
+    const ring = document.createElement("div");
+    ring.className = "x-breathe";
+    const say = document.createElement("span");
+    panel.replaceChildren(ring, say);
+    let i = 0;
+    const total = steps.reduce((a, b) => a + b.s, 0) * rounds * 1000;
+    show(total + 1500);
+    const next = () => {
+      if (panel.hidden || i >= steps.length * rounds) { hide(); return; }
+      const st = steps[i % steps.length];
+      say.textContent = st.say;
+      ring.style.transition = `transform ${st.s}s ease-in-out`;
+      ring.style.transform = st.say.startsWith("nádech") ? "scale(1.6)" : st.say.startsWith("výdech") ? "scale(.6)" : ring.style.transform;
+      i += 1;
+      window.setTimeout(next, st.s * 1000);
+    };
+    next();
+  });
+  client.on("water_glass", (m) => {
+    const goal = Math.max(1, Number(m.goal) || 8), n = Math.max(0, Number(m.n) || 0);
+    const glass = document.createElement("div");
+    glass.className = "x-glass";
+    const fill = document.createElement("i");
+    fill.style.height = `${Math.min(100, (n / goal) * 100)}%`;
+    glass.append(fill);
+    const txt = document.createElement("span");
+    txt.textContent = `${n} / ${goal} sklenic`;
+    panel.replaceChildren(glass, txt);
+    show(5000);
+  });
+  client.on("rsvp", (m) => {
+    const words = (Array.isArray(m.words) ? m.words : []).map(String);
+    const ms = Math.max(60, Number(m.ms) || 200);
+    if (!words.length) return;
+    const w = document.createElement("b");
+    w.className = "x-rsvp";
+    panel.replaceChildren(w);
+    show(words.length * ms + 1500);
+    let i = 0;
+    const tick = () => {
+      if (panel.hidden || i >= words.length) { hide(); return; }
+      w.textContent = words[i++];
+      window.setTimeout(tick, ms * (/[.!?]$/.test(w.textContent || "") ? 2 : 1));
+    };
+    tick();
+  });
+  client.on("notice_hint", (m) => {
+    const t = document.createElement("span");
+    t.textContent = String(m.text || "").slice(0, 60);
+    panel.replaceChildren(t);
+    show(6000);
+  });
+
   // 3.20 (207) a savings goal moved: a thin bar with its percentage for a few seconds
   const goal = document.createElement("div");
   goal.className = "x-goal";

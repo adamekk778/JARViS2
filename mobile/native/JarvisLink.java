@@ -318,6 +318,8 @@ public final class JarvisLink {
                     return PhoneX.locShare(c, cmd.optString("token"), cmd.optInt("minutes"));
                 case "voice_share":            // 3.20 (16) a voice message recorded in JARVIS's voice → WhatsApp
                     return PhoneX.voiceShare(c, cmd, foreground);
+                case "ice_card":               // 3.20 (259) the emergency card on the lock screen
+                    return PhoneX.iceCard(c, cmd.optString("text"));
                 case "where":                  // 3.20 (409) where you parked (the car's Bluetooth went away)
                     return PhoneX.where(c);
                 case "save_file":              // 3.20 (226) a ticket kept in the phone offline

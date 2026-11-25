@@ -122,6 +122,7 @@ export const SERVER_TYPES = [
   "notch_active",
   "driving", "hr_now", "vacation",
   "savings_goal",
+  "breathe", "water_glass", "rsvp", "notice_hint",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];

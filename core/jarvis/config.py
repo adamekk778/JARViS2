@@ -901,6 +901,31 @@ class CarXCfg(BaseModel):
     commute_time: str = "07:15"
 
 
+class HealthXCfg(BaseModel):
+    """3.20 Zdraví+ (241–260). Not a medical device."""
+    water_goal: int = 8                  # glasses a day (the notch's glass fills up)
+    eyes_202020: bool = True             # every 20 minutes at the screen: look 20 s into the distance (a quiet hint)
+    warm_screen: bool = False            # a warmer screen in the evening (Windows gamma)
+    warm_from: str = "21:00"
+    detox_apps: list[str] = Field(default_factory=list)   # closed in the evening (only the ones you list)
+    detox_from: str = "22:00"
+    pollen: list[str] = Field(default_factory=list)       # your allergens: bříza, trávy, pelyněk, ambrózie, olše…
+    blood_type: str = ""                 # for the emergency card on the phone's lock screen
+    allergies: list[str] = Field(default_factory=list)
+    ice_contact: str = ""                # "Jana (manželka) +420 …"
+
+
+class LearnXCfg(BaseModel):
+    """3.20 Učení+ (361–380)."""
+    word_of_day: str = ""                # "en" / "de" → a word every morning ("" = off)
+    fact_topic: str = ""                 # "vesmír" → a fact of the day in the evening ("" = off)
+
+
+class FamilyXCfg(BaseModel):
+    """3.20 Rodina+ (381–400)."""
+    kid_rules: dict = Field(default_factory=dict)        # {"school_from": "15:00", "bed": "20:30", "daily_min": 90}
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -961,6 +986,9 @@ class Config(BaseModel):
     moneyx: MoneyXCfg = Field(default_factory=MoneyXCfg)
     tripx: TripXCfg = Field(default_factory=TripXCfg)
     carx: CarXCfg = Field(default_factory=CarXCfg)
+    healthx: HealthXCfg = Field(default_factory=HealthXCfg)
+    learnx: LearnXCfg = Field(default_factory=LearnXCfg)
+    familyx: FamilyXCfg = Field(default_factory=FamilyXCfg)
 
     @model_validator(mode="before")
     @classmethod

@@ -146,6 +146,7 @@ SERVER_TYPES = [
     "notch_active",
     "driving", "hr_now", "vacation",
     "savings_goal",
+    "breathe", "water_glass", "rsvp", "notice_hint",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

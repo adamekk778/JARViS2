@@ -38,6 +38,45 @@ def register(app: FastAPI, rt: Any, require_auth: Callable[[Request], None]) -> 
         return HTMLResponse(secx.oneshot_page(token[:40], revealed=text, gone=text is None), status_code=200 if text is not None else 410,
                             headers=NOSTORE)
 
+    @app.get("/learn/tuner")
+    async def learn_tuner(request: Request):
+        """3.20 (361) a tuner and a metronome (the microphone stays in the browser, nothing is sent)."""
+        require_auth(request)
+        from .. import learnx
+
+        return HTMLResponse(learnx.tuner_page())
+
+    @app.get("/learn/typing")
+    async def learn_typing(request: Request):
+        require_auth(request)
+        from .. import learnx
+
+        return HTMLResponse(learnx.typing_page())
+
+    @app.post("/api/learn/typing")
+    async def learn_typing_score(request: Request):
+        require_auth(request)
+        import time as _t
+
+        from .. import learnx
+
+        try:
+            b = await request.json()
+            learnx.db(rt).exec("INSERT INTO ln_typing VALUES (?,?,?)", (_t.time(), float(b.get("wpm") or 0), float(b.get("accuracy") or 0)))
+        except Exception:  # noqa: BLE001
+            return {"ok": False}
+        return {"ok": True}
+
+    @app.get("/family-calendar")
+    async def family_calendar(request: Request):
+        require_auth(request)
+        import datetime as _dt
+
+        from .. import familyx
+
+        today = _dt.date.today()
+        return HTMLResponse(familyx.week_html(rt, today - _dt.timedelta(days=today.weekday())), headers={"Cache-Control": "no-store"})
+
     @app.get("/house-map")
     async def house_map(request: Request):
         require_auth(request)

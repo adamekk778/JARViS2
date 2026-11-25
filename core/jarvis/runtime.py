@@ -644,7 +644,12 @@ class Runtime:
                 return memx.confirm_fact(self, fid), "Díky, nechávám si to."
             return memx.drop_fact(self, fid), "Dobře, zapomínám to."
         if act == "water_done":                   # 3.14 "Vypito" under the water reminder
-            from . import body
+            from . import body, healthx
+
+            try:
+                healthx.water_add(self)                # 3.20 (258) the notch's glass fills up
+            except Exception as e:  # noqa: BLE001
+                log.debug("water glass: %s", e)
 
             return True, body.water_done(self)
         if act == "break_snooze":

@@ -631,6 +631,15 @@ def prompt_lines(rt: Any, text: str) -> list[str]:
         sp = style_prompt(_kv_get(rt, "writing_style", {}) or {})
         if sp:
             lines.append(sp)
+    from .healthx import CRISIS_RULE, crisis_signal
+
+    if crisis_signal(text):                            # 3.20 (257) gently, with real places to call
+        lines.append(CRISIS_RULE)
+    lang = getattr(rt, "lang_practice", "")
+    if lang:                                           # 3.20 (363) a conversation in a foreign language with corrections
+        from .learnx import practice_rule
+
+        lines.append(practice_rule(lang))
     if getattr(rt, "driving", False):                  # 3.20 (123) the phone is in the car
         from .phonex import DRIVE_RULE
 

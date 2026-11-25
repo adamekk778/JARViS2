@@ -28,6 +28,7 @@ final class PhoneX {
 
     static final int NOTIF_LOCK = 7010;
     static final int NOTIF_LOC_ASK = 7011;
+    static final int NOTIF_ICE = 7013;
 
     // ---------- (130) Nerušit
     static String dnd(Context c, boolean on) {
@@ -64,6 +65,21 @@ final class PhoneX {
             }
         }
         nm.notify(NOTIF_LOCK, b.build());
+        return "shown";
+    }
+
+    // ---------- (259) the emergency card on the lock screen (blood type, allergies, medicines, a contact)
+    static String iceCard(Context c, String text) {
+        JarvisLink.channels(c);
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm == null) return "error";
+        if (text == null || text.isEmpty()) { nm.cancel(NOTIF_ICE); return "hidden"; }
+        Notification.Builder b = JarvisLink.builder(c, JarvisLink.CH_QUIET).setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("Zdravotní karta – v nouzi").setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(text + "\nTip: vyplň i Nastavení → Bezpečnost a nouze → Zdravotní údaje."))
+                .setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false);
+        if (Build.VERSION.SDK_INT >= 21) b.setVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.notify(NOTIF_ICE, b.build());
         return "shown";
     }
 
