@@ -307,6 +307,13 @@ class Runtime:
         from . import tripcare
 
         self._sys_tasks.append(asyncio.get_running_loop().create_task(tripcare.loop(self)))         # 3.18 booked trips
+        from . import memx, proactx
+
+        try:
+            memx.apply_tombstones(self)                     # 3.20 (42) what you asked to forget stays forgotten after a restore
+        except Exception as e:  # noqa: BLE001
+            log.debug("tombstones: %s", e)
+        self._sys_tasks.append(asyncio.get_running_loop().create_task(proactx.loop(self)))          # 3.20 Proaktivita+
         from . import overlayfx
 
         self._sys_tasks += overlayfx.start(self)                                                    # 3.15 effects on the desktop
@@ -367,6 +374,9 @@ class Runtime:
 
             self.scheduler = Scheduler(self)
             self.scheduler.start()
+            from .brainx import ensure_week_job
+
+            ensure_week_job(self)                     # 3.20 (39) every Sunday: what JARVIS learned this week
         except Exception as e:  # pragma: no cover
             log.warning("scheduler unavailable: %s", e)
         try:
@@ -606,6 +616,13 @@ class Runtime:
             err = await printer3d.command(self, a)
             done = {"resume": "Tisk pokračuje.", "pause": "Tisk je pozastavený.", "cancel": "Tisk je zrušený."}.get(a, "Hotovo.")
             return not err, done if not err else f"Tiskárna: {err}"
+        if act in ("fact_confirm", "fact_drop"):   # 3.20 (50) "Platí to ještě?" under a fact older than a year
+            from . import memx
+
+            fid = int(args.get("id") or 0)
+            if act == "fact_confirm":
+                return memx.confirm_fact(self, fid), "Díky, nechávám si to."
+            return memx.drop_fact(self, fid), "Dobře, zapomínám to."
         if act == "water_done":                   # 3.14 "Vypito" under the water reminder
             from . import body
 
@@ -652,6 +669,10 @@ class Runtime:
         """3.14 Následuj mě: you are in a room with a satellite (not at the PC) → the notice is said there too."""
         h = getattr(self, "house", None)
         if target != "all" or h is None or not getattr(self.cfg.home, "follow_me", True):
+            return
+        from .voicex import house_speakers_ok
+
+        if not house_speakers_ok(self):               # 3.20 (1) headphones on: nothing to the speakers around the house
             return
         w = h.where()
         if w.startswith("room:"):

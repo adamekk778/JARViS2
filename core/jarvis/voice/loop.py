@@ -133,6 +133,9 @@ class VoiceLoop:
         dev = self.rt.cfg.voice.input_device or None
 
         def cb(indata, frames, t, status):
+            raw = getattr(self, "_raw", None)
+            if raw is not None and len(raw) < SR * 2 * 60 * 20:     # 3.20 (17) nácvik prezentace: up to 20 minutes
+                raw.extend(bytes(indata))
             try:   # the frame started being recorded one frame ago (the echo canceller lines it up with the player)
                 self._q.put_nowait((bytes(indata), time.monotonic() - frames / SR))
             except queue.Full:
@@ -374,9 +377,14 @@ class VoiceLoop:
         from .dsp import agc, denoise
 
         v = self.rt.cfg.voice
-        if not (v.noise_suppression or v.auto_gain) or len(audio) < SR // 2:
+        boost = v.auto_gain and getattr(v, "whisper_boost", True)     # 3.20 (2) part of the automatic gain
+        if not (v.noise_suppression or v.auto_gain or boost) or len(audio) < SR // 2:
             return audio
         x = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+        if boost:                                       # 3.20 (2) a whispered command, levelled up for the recognizer
+            from ..voicex import whisper_boost
+
+            x = whisper_boost(x, SR)
         if v.noise_suppression:
             noise = np.frombuffer(b"".join(self._recent), dtype=np.int16).astype(np.float32) / 32768.0 if self._recent else None
             x, _ = denoise(x, SR, noise if noise is not None and len(noise) >= SR // 4 else None)
@@ -484,7 +492,16 @@ class VoiceLoop:
             self.followup_active = False
             bus.publish_threadsafe("state", state="idle")
             return
+        self.rt.voicex_last_pcm, self.rt.voicex_last_pcm_text = bytes(audio), text   # 3.20 (7) a note keeps the recording
         self.handle_transcript(text, getattr(self.transcriber, "last_language", "cs"))
+
+    # ---------- 3.20 (17) nácvik prezentace: everything the microphone hears, raw ----------
+    def start_raw_recording(self) -> None:
+        self._raw = bytearray()
+
+    def stop_raw_recording(self) -> bytes:
+        raw, self._raw = getattr(self, "_raw", None), None
+        return bytes(raw or b"")
 
     def _stt(self, pcm: bytes, np) -> str:
         """The words, with the names the recognizer should expect (3.16 tvoje slova); the time it took is remembered."""
@@ -496,6 +513,9 @@ class VoiceLoop:
             vocab = ""
         t0 = time.monotonic()
         text = self.transcriber.transcribe(self.clean_utterance(pcm, np), SR, prompt=vocab)
+        from ..voicex import codeswitch
+
+        text = codeswitch(self.rt, text)                # 3.20 (12) "čil vajbs" → "chill vibes"
         took = time.monotonic() - t0
         self._stt_s = took if not getattr(self, "_stt_s", 0) else 0.7 * self._stt_s + 0.3 * took
         return text
@@ -605,6 +625,18 @@ class VoiceLoop:
                 self._confirm_id = None
                 self.rt.call_soon(self.rt.agent.confirm, cid, yn)
                 return
+        from .. import voicex
+
+        if voicex.poll_active(self.rt):                  # 3.20 (14) a vote while the family poll runs
+            vid = getattr(self.rt, "voiceid", None)
+            said = voicex.poll_answer(self.rt, text, getattr(vid, "last_speaker", "") if vid is not None else "")
+            if said:
+                self.rt.speak(said)
+                return
+        if (self.followup_active or getattr(self.rt, "live_talk", False)) and voicex.aside(self.rt, text):
+            self.followup_active = True                  # 3.20 (4) not meant for JARVIS: keep listening, say nothing
+            self._ptt.set()
+            return
         if is_end_phrase(text):
             self.followup_active = False
             if getattr(self.rt, "live_talk", False):     # 3.14 the end of a live conversation

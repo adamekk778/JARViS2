@@ -66,6 +66,7 @@ class General(BaseModel):
     night_care: bool = True        # 3.12 Noční údržba: old temp files, disk health, waiting Windows updates (once a night)
     onboarded: bool = False        # 3.12 the first-run guide was finished or skipped
     traits: dict[str, int] = Field(default_factory=lambda: {"humor": 1, "formal": 1, "brevity": 1})   # 3.14 0–2 each (29)
+    answer_style: Literal["auto", "brief", "normal", "detailed", "teacher"] = "auto"   # 3.20 (30) how answers are written
 
 
 class Brain(BaseModel):
@@ -98,6 +99,16 @@ class Brain(BaseModel):
     reflex_min_conf: float = 0.85
     claude_cache_ttl: Literal["5m", "1h"] = "1h"   # 3.17 how long Claude keeps the instructions + catalog cached
     cache_warm: bool = True                # 3.18 "Hey Jarvis" after a long pause writes Claude's cache again first
+    # 3.20 Mozek+ (nápady 21–40)
+    risk_depth: bool = True        # money, deleting, sending, health, law → thinks more deeply on its own
+    confidence: bool = True        # facts from the web end with "Jistota: NN % – proč"
+    honest: bool = True            # "nevím jistě" instead of making things up
+    post_check: bool = True        # after a task of 3+ steps a quick second look: does it match what was asked?
+    check_numbers: bool = True     # calculations in the answer are recomputed; a wrong one is corrected under it
+    screen_context: bool = True    # "co to je?", "oprav tohle" without an attachment → the active window goes with it
+    teach: bool = False            # režim učitele: explains how to do it yourself instead of doing it
+    night_hour: int = 2            # "udělej to v noci" → this hour, with the cheapest brain
+    quick_draft: bool = True       # chat: a hard question gets one quick sentence at once, the full answer after it
 
 
 class Voice(BaseModel):
@@ -153,6 +164,16 @@ class Voice(BaseModel):
     look_to_talk: bool = False      # 3.14 alone at the PC and looking at the screen → just talk, no wake word (camera, opt-in)
     camera_index: int = 0           # 3.14 which camera (0 = the first one)
     interpreter_out: str = ""       # 3.14 tlumočník: the virtual microphone device (e.g. "CABLE Input") for your translated voice
+    # 3.20 Hlas+ (nápady 1–20)
+    headphones_only: bool = False   # headphones connected → JARVIS speaks only into them, nothing to the house speakers
+    whisper_boost: bool = True      # a whispered command is levelled up before it is recognised
+    addressed_only: bool = True     # without the wake word, words for someone else ("Jano, …") are not answered
+    code_switch: bool = True        # English words in a Czech sentence come out English ("chill vibes", not "čil vajbs")
+    kids_voice: bool = True         # dětský režim: a gentler fairy-tale voice
+    confirm_tone: bool = False      # "Hotovo." and other plain confirmations as a short tone instead of words
+    length_rate: bool = True        # long answers are read a little faster
+    read_full_from: list[str] = Field(default_factory=list)   # names / addresses whose messages are read in full
+    short_shops: bool = True        # e-mails from shops and newsletters: just "přišel e-mail od …"
 
 
 class NotchWidget(BaseModel):
@@ -590,6 +611,7 @@ class Automation(BaseModel):
     steps: list[ProtocolStep] = Field(default_factory=list)
     say: Literal["voice", "notch", "phone"] = "voice"   # 3.13 how it speaks up: aloud · only in the notch (quiet) · on the phone
     once: bool = False   # 3.14 "připomeň mi, až…": removes itself after it fires once (61)
+    when: list[str] = Field(default_factory=list)   # 3.20 (76) and only if: "prší", "teplo>25", "víkend", "mezi 7:00-9:00"…
 
 
 def _default_automations() -> list[Automation]:
@@ -716,6 +738,9 @@ class LimitsCfg(BaseModel):
     app_allowlist: list[str] = Field(default_factory=list)   # mouse/keyboard only in these apps (empty = any)
     project_isolation: bool = False    # OMEGA 688: while a project with a folder is active, file tools stay inside it
     project_perms: dict[str, list[str]] = Field(default_factory=dict)   # OMEGA 180: project name → permission areas allowed in it
+    ai_czk_game: float = 0.0           # 3.20 (35) cloud AI a day while playing (Kč, 0 = no limit); over it → the AI on this PC
+    ai_czk_work: float = 0.0           # … while working
+    ai_czk_other: float = 0.0          # … otherwise
 
 
 class PrivacyCfg(BaseModel):
@@ -743,11 +768,31 @@ class HealthCfg(BaseModel):
     posture: bool = False              # posture from the webcam every 2 minutes (leaning in, slumped); only on your yes
 
 
+class DayCfg(BaseModel):
+    """3.20 Proaktivita+ (61–80): what JARVIS watches over the day by itself (each can be switched off)."""
+    laundry: bool = True               # a good day for drying the washing outside
+    deadlines: bool = True             # STK, insurance, passport, invoices – a week and a day before
+    dates: bool = True                 # birthdays and anniversaries (with a gift tip)
+    holidays: bool = True              # the day before a public holiday: what will be closed
+    seasonal: bool = True              # tyres, gutters, the tax return, the boiler… on Saturday mornings in season
+    friends: bool = True               # "you have not talked to Petr for 3 months" (only people you pick)
+    weekend_forecast: bool = True      # Thursday evening: the weekend's weather and a trip tip
+    month_close: bool = True           # the last day of the month: invoices, reports, subscriptions
+    week_plan: bool = True             # Sunday evening: a plan for the week
+    diary_time: str = "21:30"          # the evening diary question ("" = off)
+    workday_end: str = ""              # "17:00" → the end-of-work routine on working days ("" = off)
+    work_apps: list[str] = Field(default_factory=list)   # closed by the end-of-work routine
+    meeting_prep_min: int = 30         # a summary this many minutes before a meeting (0 = off)
+    game_break_min: int = 120          # a gentle break reminder after this long in a game
+    vacation_until: str = ""           # "YYYY-MM-DD": on holiday until then (the morning summary changes)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
     reflexes: bool = True  # 3.16 the same words that went well twice with the same harmless action: done at once, no AI
     prefetch: bool = True  # 3.16 the weather, today's calendar and the news fetched ahead while you are at the PC
+    plan_first: bool = False  # 3.20 (29) a big task: the plan first, the work only after you approve it
 
 
 class Permissions(BaseModel):
@@ -794,6 +839,7 @@ class Config(BaseModel):
     limits: LimitsCfg = Field(default_factory=LimitsCfg)
     privacy: PrivacyCfg = Field(default_factory=PrivacyCfg)
     health: HealthCfg = Field(default_factory=HealthCfg)
+    day: DayCfg = Field(default_factory=DayCfg)
 
     @model_validator(mode="before")
     @classmethod

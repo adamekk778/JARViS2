@@ -87,6 +87,7 @@ CLIENT_TYPES = [
     "watch_pair_start",
     "travel_get", "travel_watch_stop",
     "travel_drill", "money_get",
+    "mem_sync", "msg_star",
 ]
 SERVER_TYPES = [
     "welcome", "state", "level", "transcript", "user_message", "assistant_delta", "assistant_done", "tool_start",
@@ -139,6 +140,8 @@ SERVER_TYPES = [
     "watch_pair",
     "travel",
     "travel_drill", "money",
+    "assistant_draft",
+    "mem_sync_done", "msg_starred",
 ]
 
 # the "Soubory" page: these tools by button; the ones that change files go through the normal confirmation (preview)

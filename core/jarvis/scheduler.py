@@ -149,11 +149,27 @@ class Scheduler:
 
                 await run_ready(self.rt, p)
             elif job["kind"] == "prompt":
-                text = await self.rt.agent.handle(
-                    p["prompt"], [], "schedule",
-                    extra_system="Tohle je automaticky spuštěná naplánovaná úloha (rutina). Splň ji a odpověz stručně, "
-                                 "odpověď se přečte nahlas a pošle na telefon.")
-                self.rt.notify(job["title"] or "Rutina", text[:300], speak=True, target="all")
+                self.rt.cheap_turn = bool(p.get("cheap"))       # 3.20 (32) a night task: the cheapest brain
+                try:
+                    text = await self.rt.agent.handle(
+                        p["prompt"], [], "schedule",
+                        extra_system="Tohle je automaticky spuštěná naplánovaná úloha (rutina). Splň ji a odpověz stručně, "
+                                     "odpověď se přečte nahlas a pošle na telefon.")
+                finally:
+                    self.rt.cheap_turn = False
+                self.rt.notify(job["title"] or "Rutina", text[:300], speak=not p.get("cheap"), target="all")
+            elif job["kind"] == "voice_alarm":      # 3.20 (5) budíček s ranním souhrnem
+                from .voicex import run_alarm
+
+                await run_alarm(self.rt, p)
+            elif job["kind"] == "future_message":   # 3.20 (11) vzkaz pro budoucí já
+                from .voicex import run_future
+
+                await run_future(self.rt, p)
+            elif job["kind"] == "brain_week":       # 3.20 (39) co se JARVIS za týden naučil
+                from .brainx import learned_text, learned_week
+
+                self.rt.notify("Co jsem se tento týden naučil", learned_text(learned_week(self.rt)), speak=False)
         except Exception as e:
             log.warning("job %s failed: %s", job["id"], e)
 

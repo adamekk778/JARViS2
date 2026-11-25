@@ -8,7 +8,7 @@ import time
 import uuid
 from typing import Any
 
-from . import tools
+from . import agent_x320, brainx, tools, voicex
 from . import toolcatalog as tc
 from .agent_fast import FastPaths
 # 3.18 the helpers live in agent_helpers.py; importing them from here keeps working
@@ -232,6 +232,7 @@ class Agent(FastPaths):
                 persona.note_reaction(rt, text, str(prev[-1].get("text") or prev[-1].get("content") or ""))
         except Exception as e:  # noqa: BLE001 – never in the way of an answer
             log.debug("persona: %s", e)
+        facts = agent_x320.facts_for(rt, facts, voice)        # 3.20 (51, 59) family members: shared only; locked: never
         proj = know.project_prompt() if know else ""
         vm = getattr(rt, "voice_mood", None)          # OMEGA P3.12: only when switched on, only fresh, only a hint
         mood = (f"Podle tónu hlasu (ne slov) uživatel teď zní: {vm['mood']} – přizpůsob tón a délku odpovědi, nekomentuj to."
@@ -247,7 +248,8 @@ class Agent(FastPaths):
         plus = [vid.prompt() if voice and vid is not None else "",                     # 3.14 who is speaking
                 brainplus.rules_prompt(rt) if getattr(rt.cfg.brain, "learn_corrections", True) else "",
                 brainplus.traits_prompt(rt.cfg),
-                brainplus.risky(text) if getattr(rt.cfg.brain, "second_opinion", True) else ""]
+                brainplus.risky(text) if getattr(rt.cfg.brain, "second_opinion", True) else "",
+                *brainx.prompt_lines(rt, text or "")]                                       # 3.20 Mozek+ (21–40)
         extra = "\n\n".join(x for x in (proj, mood, world, *plus, extra) if x)
         history = rt.memory.recent(rt.cfg.memory.context_messages + 1)
         if history and history[-1]["role"] == "user" and history[-1]["text"] == text:
@@ -364,6 +366,7 @@ class Agent(FastPaths):
                 tier_kw["prefer"] = pref
                 if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
                     tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
+        agent_x320.tune_routing(rt, text or "", tier_kw, private, self._only)      # 3.20 Mozek+ (21, 22, 32, 35, 40)
         return tier, tier_kw, private
 
     def _rounds(self) -> int:
@@ -597,6 +600,20 @@ class Agent(FastPaths):
         if phrase is not None:                             # 3.14 návrh 48: "jdu spát" → your own routine, no AI
             rt.automations.fire(phrase, {"text": text or ""}, reason="phrase", force=True)
             quick = f"Spouštím {phrase.name}."
+        silent = False                                     # 3.20 the step already spoke for itself (e.g. "pomaleji")
+        if quick is None and not foreign and not self._only:
+            q320 = agent_x320.quick320(rt, text or "", attachments)             # 3.20 sčítání, přeskoč/vrať se/pomaleji, poznámka, proč, styl, noc
+            if q320 is not None:
+                name, args = q320
+                try:
+                    await self._run_call(ToolCall(id="x0", name=name, arguments=dict(args)), tool_cards, out_atts)
+                    quick = (tool_cards[-1].get("summary") if tool_cards else None) or None
+                    silent = bool(tool_cards and (tool_cards[-1].get("data") or {}).get("spoken"))
+                except Exception as e:  # noqa: BLE001
+                    log.info("quick320 %s: %s", name, e)
+                    quick = None
+                if quick is None:
+                    tool_cards.clear()
         if quick is None and not attachments and not foreign and not self._only and getattr(rt.cfg.agent, "instant", True):
             from . import instant
 
@@ -657,6 +674,12 @@ class Agent(FastPaths):
         pack = None
         spec_used = None
         if quick is None:
+            if brainx.wants_screen(rt, text or "", attachments):     # 3.20 (31) "co to je?" → the active window goes along
+                aid = await brainx.screen_attachment(rt)
+                if aid:
+                    attachments = [aid]
+                    self._untrusted_seen = True                       # the screen may show someone else's text
+                    self._foreign_from = self._foreign_from or "screen"
             spec_used = self._take_spec(text or "", attachments, extra, voice)
             if spec_used is not None:                      # 3.17 the AI was already asked before you finished
                 msgs, schemas, pack = spec_used["msgs"], spec_used["schemas"], spec_used["pack"]
@@ -666,7 +689,7 @@ class Agent(FastPaths):
                 msgs, need_vision = await self._build_messages(text, attachments, voice, extra)
                 schemas = self._tool_schemas(text)
                 pack = self._tool_pack()
-        speech = rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
+        speech = None if silent else rt.speech_stream(source, self._lang)      # 3.12 speaks from the first sentence on
         if speech is not None:
             speech.turn = lat.cur                          # 3.16 the first sound is measured on this answer
         tier, tier_kw, private = await self._routing(text or "", attachments)
@@ -679,10 +702,18 @@ class Agent(FastPaths):
                 if line and not speech.spoke:
                     speech.preface(line)
             asyncio.get_running_loop().create_task(_say_first())
+        if quick is None:                                  # 3.20 režim učitele (36), náčrt (34), plán ke schválení (29)
+            taught = agent_x320.teach_filter(rt, text or "", schemas)
+            if taught is not None:
+                schemas, pack = taught, None
+            if tier == "strong" and speech is None and not private and source in ("chat", "mobile"):
+                agent_x320.draft(rt, text or "", lambda: full_text)
+            quick = await agent_x320.plan_gate(self, text or "", tier, msgs)
         offered = {sc.get("function", sc).get("name") for sc in schemas}
         from_words = set(offered)                  # 3.17 sent with your words (not reached by the AI later on)
         calls: list[ToolCall] | None = None
         rnd = 0
+        cut = False
         try:
             rounds = -1 if quick is not None else self._rounds()
             if quick is not None:
@@ -747,6 +778,11 @@ class Agent(FastPaths):
                             offered.add(u.name)
                         continue
                     run_calls.append(ToolCall(id=c.id, name=u.name, arguments=u.args))
+                for c in run_calls:                      # 3.20 (33) why each step was done ("proč jsi to udělal?")
+                    try:
+                        brainx.log_why(rt, c.name, c.arguments or {}, round_text)
+                    except Exception as e:  # noqa: BLE001
+                        log.debug("why log: %s", e)
                 safe = [c for c in run_calls if not (tools.REGISTRY.get(c.name) and tools.is_dangerous(
                     tools.REGISTRY[c.name], c.arguments, rt.cfg.tools.always_confirm, rt.cfg.tools.trusted, rt))
                     and not self._foreign_ask(c.name, c.name in from_words)]
@@ -831,6 +867,11 @@ class Agent(FastPaths):
             status = "failed"
             bus.publish("error", message=f"Něco se pokazilo: {type(e).__name__}: {e}")
             full_text = (full_text + "\n\n" if full_text else "") + "Omlouvám se, při práci se něco pokazilo."
+        if status == "done" and not cancelled and quick is None and full_text.strip():
+            add = agent_x320.finish_add(rt, full_text, voice, self._sources)       # 3.20 čísla (28), jistota (23)
+            if add:
+                full_text += add
+                bus.publish("assistant_delta", text=add)
         if getattr(rt, "_anchor", None):
             rt.set_anchor(None)
         if rt.tasks.current is not None:
@@ -855,7 +896,7 @@ class Agent(FastPaths):
                 if full_text.startswith(speech.fed) and len(full_text) > len(speech.fed):
                     speech.feed(full_text[len(speech.fed):])
                 asyncio.get_running_loop().create_task(speech.finish())
-        elif not cancelled:
+        elif not cancelled and not silent:
             rt.maybe_speak(full_text, source, self._lang)
         if status == "done" and not cancelled:      # 3.12 a long chat: summarise its older part in the background
             from . import chatsummary
@@ -868,6 +909,10 @@ class Agent(FastPaths):
             texts = [str(m.get("content") or "") for m in msgs if m.get("role") == "tool"
                      and m.get("name") in ("web_read", "read_website", "web_search", "google_ask", "deep_research", "world_news")]
             asyncio.get_running_loop().create_task(self._check_answer(am["id"], full_text, texts))
+        if status == "done" and not cancelled and not cut and getattr(rt.cfg.brain, "post_check", True) and len(tool_cards) >= 3:
+            asyncio.get_running_loop().create_task(agent_x320.post_check(rt, am["id"], text or "", list(tool_cards), full_text))
+        if not cancelled and not silent:
+            voicex.remember_answer(rt, full_text, speech)  # 3.20 (6, 9) "přeskoč", "vrať se", "cože?"
         return full_text
 
     async def _check_answer(self, msg_id: str, answer: str, texts: list[str]) -> None:

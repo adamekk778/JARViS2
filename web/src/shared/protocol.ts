@@ -63,6 +63,7 @@ export const CLIENT_TYPES = [
   "watch_pair_start",
   "travel_get", "travel_watch_stop",
   "travel_drill", "money_get",
+  "mem_sync", "msg_star",
 ] as const;
 
 export const SERVER_TYPES = [
@@ -115,6 +116,8 @@ export const SERVER_TYPES = [
   "watch_pair",
   "travel",
   "travel_drill", "money",
+  "assistant_draft",
+  "mem_sync_done", "msg_starred",
 ] as const;
 
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -152,7 +155,7 @@ export interface Message {
   attachments: Attachment[];
   source?: string;
   created?: number;
-  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[]; check?: string[]; tier?: string; private?: boolean; rated?: boolean };
+  meta?: { tools?: ToolCard[]; brain?: [string, string] | null; sources?: SourceRef[]; check?: string[]; tier?: string; private?: boolean; rated?: boolean; starred?: boolean };
 }
 
 /** OMEGA 550: what an answer rests on. */

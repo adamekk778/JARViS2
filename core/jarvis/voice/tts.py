@@ -217,7 +217,9 @@ class Speaker:
     async def synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
         """The chosen engine (Edge, Piper incl. an own voice, ElevenLabs), then the others as a fallback, and the
         studio effect on top. `override` = unsaved studio settings for a preview."""
-        key = None if override else self._phrase_key(text.strip(), lang)
+        from ..voicex import kids_override
+
+        key = None if override or kids_override(self.rt) else self._phrase_key(text.strip(), lang)
         cache = getattr(self, "_phrases", None)
         if cache is None:
             cache = self._phrases = {}
@@ -231,7 +233,11 @@ class Speaker:
         return out
 
     async def _synth(self, text: str, lang: str = "cs", override: dict | None = None) -> tuple[bytes, str]:
-        v = self.rt.cfg.voice.model_copy(update=override) if override else self.rt.cfg.voice
+        from ..voicex import kids_override, length_rate
+
+        kid = kids_override(self.rt) if lang != "en" else None          # 3.20 (13) a gentler fairy-tale voice for a child
+        upd = {**(kid or {}), **(override or {})}
+        v = self.rt.cfg.voice.model_copy(update=upd) if upd else self.rt.cfg.voice
         edge_voice, piper_voice = (v.tts_voice_en, v.piper_voice_en) if lang == "en" else (v.tts_voice, v.piper_voice)
         spoken = strip_markdown(text)[:3000] or ("Done." if lang == "en" else "Hotovo.")
         from .style import pronounce, prosody
@@ -239,6 +245,8 @@ class Speaker:
         if lang != "en":
             spoken = pronounce(self.rt.cfg, spoken)          # 3.14 your own "how to say it"
         e_rate, e_pitch, e_vol = prosody(self.rt, v)        # 3.14 tone by the time of day, a whisper
+        if not (override or {}).get("tts_rate"):
+            e_rate = length_rate(self.rt, spoken, e_rate)    # 3.20 (18) long answers a little faster
         order = [v.tts_engine] + [e for e in ("edge", "piper") if e != v.tts_engine] + (["windows"] if sys.platform == "win32" else [])
         audio, mime, err = b"", "", None
         for eng in order:
@@ -289,8 +297,13 @@ class Speaker:
             return
         async with self._lock:
             self._stop.clear()
+            from ..voicex import plain_ack, tone_wav
+
             try:
-                audio, _mime = await self.synth(text, lang)
+                if getattr(self.rt.cfg.voice, "confirm_tone", False) and plain_ack(text):
+                    audio = tone_wav()                          # 3.20 (15) a short tone instead of "Hotovo, pane."
+                else:
+                    audio, _mime = await self.synth(text, lang)
             except Exception as e:
                 log.warning("tts failed: %s", e)
                 self.rt.bus.publish("error", message=f"Hlas selhal: {e}")
@@ -331,7 +344,9 @@ class Speaker:
         first = True
         from .devices import output_index
 
-        dev = output_index(self.rt.cfg.voice.output_device)
+        from ..voicex import output_for
+
+        dev = output_index(output_for(self.rt))           # 3.20 (1) headphones on → only into them
         echo = getattr(getattr(self.rt, "voice", None), "echo", None)
         with sd.OutputStream(samplerate=sr, channels=1, dtype="float32", device=dev) as out:
             for i in range(0, len(pcm), block):

@@ -127,6 +127,9 @@ CONNECTOR_LABELS = {
 
 def describe_call(name: str, args: dict) -> str:
     label = CONNECTOR_LABELS.get(name) or TOOL_LABELS.get(name, name)
+    if name == "plan_approval":                     # 3.20 (29) the plan of a big task, before any work starts
+        steps = [str(x) for x in (args.get("steps") or [])][:8]
+        return "Schválit plán: " + " ".join(f"{i}) {st}" for i, st in enumerate(steps, 1))
     if name == "travel_book":
         try:
             money = f"{float(args.get('expected_total') or 0):,.2f}".replace(",", " ")

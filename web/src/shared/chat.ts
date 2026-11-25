@@ -157,12 +157,16 @@ export class ChatView {
     c.on("state", (m) => this.setState(m.state));
     c.on("mood", (m) => this.emptyBlob?.setMood(m.mood, m));
     c.on("assistant_delta", (m) => this.delta(m.text));
+    c.on("assistant_draft", (m) => {                    // 3.20 (34) one quick sentence while the full answer is written
+      const l = this.ensureLive();
+      if (!l.text && m.text) l.body.replaceChildren(h("p", { class: "draft" }, m.text));
+    });
     c.on("tool_start", (m) => this.toolStart(m));
     c.on("tool_end", (m) => this.toolEnd(m));
     c.on("assistant_done", (m) => this.done(m));
     c.on("answer_check", (m) => {
       const el = this.list.querySelector(`.msg.assistant[data-id="${m.id}"] .a-main`);
-      const note = this.checkEl(m.issues);
+      const note = this.checkEl(m.issues, m.title);
       if (el && note && !el.querySelector(".answer-check")) el.querySelector(".actions")?.before(note);
     });
     c.on("confirm_request", (m) => this.confirmCard(m));
@@ -331,16 +335,24 @@ export class ChatView {
   }
 
   /** 3.14 claims the read web pages do not support, under the answer. */
-  private checkEl(issues: string[] = []): HTMLElement | null {
+  private checkEl(issues: string[] = [], title?: string): HTMLElement | null {
     if (!issues.length) return null;
     return h("div", { class: "answer-check", role: "note" }, icon("warning"), h("div", {},
-      h("strong", {}, "Ve zdrojích jsem nenašel:"), h("ul", {}, ...issues.map((i) => h("li", {}, i)))));
+      h("strong", {}, title || "Ve zdrojích jsem nenašel:"), h("ul", {}, ...issues.map((i) => h("li", {}, i)))));
   }
 
   private actions(m: Message): HTMLElement {
     return h("div", { class: "actions" },
       h("button", { class: "icon-btn sm", type: "button", title: "Kopírovat", "aria-label": "Kopírovat", onclick: () => copyText(m.text) }, icon("copy")),
       h("button", { class: "icon-btn sm", type: "button", title: "Přečíst nahlas", "aria-label": "Přečíst nahlas", onclick: () => this.speak(m) }, icon("speaker-high")),
+      h("button", { class: `icon-btn sm star ${m.meta?.starred ? "on" : ""}`, type: "button", title: "Oblíbená odpověď (najdeš ji pod „oblíbené odpovědi“)",
+        "aria-label": "Oblíbená odpověď", "aria-pressed": m.meta?.starred ? "true" : "false", onclick: (e: Event) => {   // 3.20 (55)
+          const b = e.currentTarget as HTMLElement;
+          const on = !b.classList.contains("on");
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+          if (m.id) this.client.send("msg_star", { id: m.id, on });
+        } }, icon("star", m.meta?.starred ? "ph-fill" : undefined)),
       h("button", { class: "icon-btn sm regen", type: "button", title: "Vygenerovat znovu", "aria-label": "Vygenerovat znovu", onclick: () => this.client.send("regenerate") }, icon("arrows-clockwise")),
       h("button", { class: `icon-btn sm rate ${m.meta?.rated === true ? "on" : ""}`, type: "button", title: "Dobrá odpověď", "aria-label": "Dobrá odpověď",
         onclick: (e: Event) => this.rate(m, true, e.currentTarget as HTMLElement) }, icon("thumbs-up")),

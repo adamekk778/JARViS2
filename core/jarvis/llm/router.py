@@ -167,7 +167,7 @@ class Router:
     async def stream(self, messages: list[dict], tools: list[dict] | None,
                      need_vision: bool = False, fast: bool = False, only: str | None = None,
                      model: str | None = None, light: bool = False, effort: str | None = None,
-                     prefer: str | None = None, catalog: Any = None) -> AsyncIterator[Chunk]:
+                     prefer: str | None = None, catalog: Any = None, temperature: float | None = None) -> AsyncIterator[Chunk]:
         """`model` asks one particular model of the provider (to compare several models of one gateway). `light`:
         background work nobody waits for – with Šetřič limitů on and the AI on this PC ready, that one goes first, so
         the free cloud limits are kept for what you ask."""
@@ -207,6 +207,8 @@ class Router:
             prov = build_provider(pcfg, self.key_lookup(pcfg.id), self.brain, self.transport)
             if effort and hasattr(prov, "effort"):      # 3.14 how deeply it thinks (Claude); others ignore it
                 prov.effort = effort
+            if temperature is not None and hasattr(prov, "temperature"):   # 3.20 (40) kreativní režim: one answer bolder
+                prov.temperature = temperature
             if hasattr(prov, "on_headers"):
                 prov.on_headers = lambda h, _p=pcfg.id, _prov=prov: self.quota.from_headers(_p, _prov.model, h)
             if pcfg.id in self.resolved_models:

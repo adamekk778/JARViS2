@@ -286,6 +286,10 @@ class DeskCare:
             self.last_water = max(self.last_water, now - idle)     # away from the PC: maybe you drank, count from then
         out = []
         mins = int(getattr(c, "water_minutes", 0) or 0)
+        if mins:
+            from .proactx import water_minutes
+
+            mins = water_minutes(self.rt, mins)           # 3.20 (68) a hot day: a glass more often
         if present and mins > 0:
             if not self.last_water:
                 self.last_water = now

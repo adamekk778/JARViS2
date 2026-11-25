@@ -234,6 +234,14 @@ class Automations:
             return False
         if not force and time.monotonic() < getattr(self.rt.scheduler, "_paused_until", 0.0):
             return False            # STOP was pressed a moment ago
+        from . import proactx
+
+        if not force and getattr(a, "when", None) and not proactx.conditions_ok(self.rt, a.when):
+            return False            # 3.20 (76) "jen když prší / o víkendu / nad 25 °C" does not hold now
+        try:
+            proactx.record_fire(self.rt, a.id)        # 3.20 (79) which routines you really use
+        except Exception as e:  # noqa: BLE001
+            log.debug("auto stats: %s", e)
         self._last[a.id] = now
         vars = vars or {}
         steps = [st.model_copy(update={"say": fill(st.say, vars), "ask": fill(st.ask, vars),

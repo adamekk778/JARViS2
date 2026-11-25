@@ -54,8 +54,16 @@ async def answer(rt: Any, text: str, room: str) -> str:
     house.of(rt).note_room(room)
     if not text:
         return ""
+    from .. import voicex
+
+    said = voicex.poll_answer(rt, text, room)            # 3.20 (14) a vote in the family poll
+    if said:
+        return said
+    if room and room != "-":                             # 3.20 (8) the rest of an unfinished answer comes here
+        await voicex.handoff(rt, room)
     where = f" Uživatel je v místnosti: {room}." if room and room != "-" else ""
-    out = await rt.agent.handle(text, [], "satellite", extra_system=VOICE_RULE + where)
+    cont = voicex.room_context(rt, room) if room and room != "-" else ""
+    out = await rt.agent.handle(text, [], "satellite", extra_system=VOICE_RULE + where + (" " + cont if cont else ""))
     return str(out or "").strip() or "Hotovo."
 
 
