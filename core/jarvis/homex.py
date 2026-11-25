@@ -667,7 +667,7 @@ async def tick(rt: Any, now: float | None = None, clock: dt.datetime | None = No
         from .homeplus import raw_states
 
         raw = await raw_states(rt)
-    now = now or time.time()
+    now = time.time() if now is None else now
     clock = clock or dt.datetime.fromtimestamp(now)
     st = norm(raw)
     hs = getattr(rt, "house", None)
@@ -720,6 +720,10 @@ async def tick(rt: Any, now: float | None = None, clock: dt.datetime | None = No
     t = await camera_privacy(rt, home_now, service)
     if t:
         said.append(t)
+    from . import shopx                                    # 3.20 Dílna+: the soldering iron, the workshop's climate
+
+    for t in await shopx.ha_tick(rt, st, now, service):
+        tell("Dílna", t, urgent="vypnu" in t)
     if clock.hour == 9 and clock.minute == 0:
         from .homeplus import low_batteries
 

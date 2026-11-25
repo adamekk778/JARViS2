@@ -941,6 +941,40 @@ class BizXCfg(BaseModel):
     my_address: str = ""
 
 
+class DevXCfg(BaseModel):
+    """3.20 Programování+ (301–320)."""
+    ci_repos: list[str] = Field(default_factory=list)     # "owner/repo" whose GitHub Actions JARVIS watches (token: the GitHub connector)
+    project_license: str = "MIT"         # your projects' licence for the licence check
+
+
+class ShopXCfg(BaseModel):
+    """3.20 Dílna+ (321–340)."""
+    kwh_price: float = 6.0               # Kč per kWh for print costs
+    printer_watts: float = 120
+    wear_per_hour: float = 2.0           # Kč per printing hour (nozzle, belts, plate)
+    filament_price: float = 500          # Kč per kg when the spool has no price
+    spool_low_g: float = 150
+    parts_dirs: list[str] = Field(default_factory=list)   # folders with your models (STL, 3MF, STEP…)
+    printers: list[dict] = Field(default_factory=list)    # [{name, materials: ["PLA", "PETG"], bed: [256, 256, 256]}]
+    iron_plug: str = ""                  # the soldering iron's smart plug (switch.*)
+    iron_minutes: int = 45               # on this long with nobody in the workshop → a warning, 5 min later off
+    workshop_motion: str = ""            # binary_sensor.* in the workshop
+    workshop_temp: str = ""              # sensor.* temperature
+    workshop_humidity: str = ""          # sensor.* humidity
+    lend_days: int = 30                  # a lent thing → a reminder after this many days
+
+
+class FunXCfg(BaseModel):
+    """3.20 Zábava+ (341–360)."""
+    play_limits: dict[str, int] = Field(default_factory=dict)   # kid → minutes of play a day
+    services: list[str] = Field(default_factory=list)          # your streaming services (netflix, hbo, disney, prime, skyshowtime, voyo…)
+    steam_dir: str = ""                  # "" = the usual place
+    epic_dir: str = ""
+    music_dirs: list[str] = Field(default_factory=list)        # your music for the quiz
+    favorite_artists: list[str] = Field(default_factory=list)  # for concerts (empty = from what you play)
+    sound_pack: str = ""                 # krystal / marimba / scifi / klid ("" = the built-in sounds)
+
+
 class AgentCfg(BaseModel):
     mode: bool = False   # agent mode: plan first, up to 25 rounds
     instant: bool = True  # 3.13 everyday commands (volume, next song, open/close an app, time, timer, record) without the AI
@@ -1006,6 +1040,9 @@ class Config(BaseModel):
     familyx: FamilyXCfg = Field(default_factory=FamilyXCfg)
     workx: WorkXCfg = Field(default_factory=WorkXCfg)
     bizx: BizXCfg = Field(default_factory=BizXCfg)
+    devx: DevXCfg = Field(default_factory=DevXCfg)
+    shopx: ShopXCfg = Field(default_factory=ShopXCfg)
+    funx: FunXCfg = Field(default_factory=FunXCfg)
 
     @model_validator(mode="before")
     @classmethod
