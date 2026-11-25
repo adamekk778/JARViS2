@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12", cache: pip }
       - run: pip install -e "./core[dev]"
       - name: Lint (ruff – real bugs only, see core/pyproject.toml)
@@ -38,7 +38,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12", cache: pip }
       - run: pip install pip-audit && pip install "./core"
       - name: pip-audit (Python packages)
@@ -76,7 +76,7 @@ jobs:
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12", cache: pip }
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
@@ -105,7 +105,7 @@ jobs:
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12", cache: pip }
       - name: Install JARVIS
         run: |
@@ -130,7 +130,7 @@ jobs:
           key: web-dist-${{ github.run_id }}-${{ github.run_attempt }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12", cache: pip }
       - name: Version into the app (Settings, updates and the "Co je nového" check read it)
         shell: pwsh
