@@ -243,3 +243,17 @@ async def test_look_and_pc_tools(rt):
     assert (await tools.call("look_kit", {"action": "second_clock", "text": "Mars/Base"}, rt)).ok is False
     assert (await tools.call("look_kit", {"action": "second_clock", "text": "Asia/Tokyo"}, rt)).ok and rt.cfg.notch.second_tz == "Asia/Tokyo"
     assert tools.REGISTRY["pc_kit"].danger_if({"action": "move_program"}) and not tools.REGISTRY["pc_kit"].danger_if({"action": "wifi"})
+
+
+def test_weather_scene_is_off_by_default_and_migrated_off(rt, monkeypatch):
+    """The snow showed as a grid of dots over the answer card: off by default, and a saved "on" from 3.20 goes off once."""
+    from jarvis import config
+
+    assert config.Config().notch.weather_scene is False
+    old = config.Config().model_dump(mode="json")
+    old["notch"]["weather_scene"] = True
+    old["notch"].pop("weather_scene_rev")
+    assert config.Config.model_validate(old).notch.weather_scene is False
+    kept = config.Config().model_dump(mode="json")
+    kept["notch"]["weather_scene"] = True                      # switched on again after the migration: stays on
+    assert config.Config.model_validate(kept).notch.weather_scene is True

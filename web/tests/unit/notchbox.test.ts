@@ -23,3 +23,7 @@ test("the island is sized by the monitor in the script, not scaled by CSS (the w
   const main = readFileSync(new URL("../../src/notch/main.ts", import.meta.url), "utf8");
   assert.match(main, /dataset\.sizek/);
 });
+
+test("the weather and the day line stay on the small island, never over an answer card", () => {
+  assert.match(css, /:not\(\[data-mode="bar"\]\)\s*:is\(\.x-timeline,\s*\.x-weather\)\s*\{\s*display:\s*none/);
+});

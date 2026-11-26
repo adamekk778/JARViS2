@@ -601,7 +601,7 @@ export function buildSettings(client: JarvisClient, host: HTMLElement) {
         sw("notch.auto_size", "Velikost podle monitoru", "Na širokoúhlém monitoru větší, na malém notebooku menší."),
         sw("notch.all_monitors", "Notch na každém monitoru", "Upozornění se ukážou na monitoru, kde zrovna pracuješ (projeví se po restartu JARVISe)."),
         sw("notch.timeline", "Časová osa dne", "Tenká linka pod notchem: kolik dne zbývá a kde jsou schůzky."),
-        sw("notch.weather_scene", "Počasí v notchi", "Déšť, sníh nebo slunce jako jemná animace podle skutečného počasí."),
+        sw("notch.weather_scene", "Počasí v notchi", "Déšť, sníh nebo slunce jako jemná animace v malém ostrůvku podle skutečného počasí (ne přes odpovědi)."),
         text("notch.second_tz", "Druhé hodiny", "Časové pásmo, např. Europe/London. Na cestě do zahraničí se ukážou samy."),
         sw("appearance.seasonal", "Barvy podle ročního období", "Jemný zimní, jarní, letní a podzimní nádech."),
         sw("appearance.startup_sound", "Zvuk při startu", "Krátký zvuk, když JARVIS naběhne (v noci nikdy)."),

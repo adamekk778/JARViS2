@@ -213,7 +213,8 @@ class Notch(BaseModel):
     auto_size: bool = True           # the notch's size follows the monitor (ultrawide wider, a small notebook smaller)
     all_monitors: bool = False       # a notch on every monitor; notices on the one you are working on
     timeline: bool = True            # a thin line under the notch: how much of the day is left and where the meetings are
-    weather_scene: bool = True       # rain, snow or sun as a quiet animation in the notch
+    weather_scene: bool = False      # rain, snow or sun as a quiet animation in the notch (only the small island)
+    weather_scene_rev: int = 1       # 3.20: was on by default – its snow showed as dots over the answer card; off once
     second_tz: str = ""              # a second clock ("Europe/London"); on a trip abroad it appears by itself
     subs_translate: bool = True    # 3.12: subtitles of a foreign video translated to Czech (through the AI)
     subs_speak: bool = False       # 3.14: …and the translation read aloud (the video is turned down meanwhile)
@@ -1117,6 +1118,9 @@ class Config(BaseModel):
         # 3.12: the habits ring in the closed notch was on by default – off once; the idle notch shows the eyes again
         if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("habit_ring_rev", 0) or 0) < 2:
             data = {**data, "notch": {**data["notch"], "habit_ring": False, "habit_ring_rev": 2}}   # 3.13 the eyes, always
+        # 3.20: the weather in the notch was on by default (snow = dots over the answer card) – off once; a switch in Vzhled
+        if isinstance(data, dict) and isinstance(data.get("notch"), dict) and int(data["notch"].get("weather_scene_rev", 0) or 0) < 1:
+            data = {**data, "notch": {**data["notch"], "weather_scene": False, "weather_scene_rev": 1}}
         # 3.13: a saved 0.8 s wait after speech becomes 0.6 s once (faster answers; you can set it back)
         if isinstance(data, dict) and isinstance(data.get("voice"), dict) and int(data["voice"].get("silence_rev", 0) or 0) < 1:
             v = dict(data["voice"])

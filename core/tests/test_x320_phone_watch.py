@@ -261,7 +261,7 @@ async def test_timer_alarm_find(rt):
     w = _watch_on(rt)
     r = await tools.call("set_timer", {"seconds": 300, "label": "Čaj"}, rt)
     assert r.ok and w.queue[-1]["kind"] == "timer" and w.queue[-1]["label"] == "Čaj"
-    job = phonex.schedule_silent_alarm(rt, "6:30", dt.datetime(2026, 11, 25, 22, 0))
+    job = phonex.schedule_silent_alarm(rt, "6:30", dt.datetime.now().replace(hour=22, minute=0, second=0, microsecond=0))   # next 6:30 = tomorrow
     assert job["kind"] == "watch_alarm" and "6:30" in job["title"].replace("06:30", "6:30")
     assert phonex.run_watch_alarm(rt) == "watch" and w.queue[-1]["kind"] == "alarm" and w.queue[-1]["repeat"]
     w.last_poll = 0

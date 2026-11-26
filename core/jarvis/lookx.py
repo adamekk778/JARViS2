@@ -242,7 +242,8 @@ async def tick(rt: Any, now: float | None = None) -> list[str]:
         rt.lookx_sent_once = True
         bus.publish("day_timeline", **day_timeline(rt, day))
         h = proactx.now_hour(rt, dt.datetime.fromtimestamp(now))
-        scene = weather_scene(h.get("weather_code"), h.get("temperature_2m"), dt.datetime.fromtimestamp(now).hour) if h else ""
+        scene = weather_scene(h.get("weather_code"), h.get("temperature_2m"), dt.datetime.fromtimestamp(now).hour) \
+            if h and getattr(rt.cfg.notch, "weather_scene", False) else ""      # off (the default): the notch clears it
         bus.publish("weather_now", scene=scene, temp=h.get("temperature_2m") if h else None)
         clock = trip_clock(rt, day)
         bus.publish("second_clock", **(clock or {"tz": getattr(rt.cfg.notch, "second_tz", "") or "", "label": ""}))
