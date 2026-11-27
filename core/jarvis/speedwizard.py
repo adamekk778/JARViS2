@@ -49,7 +49,7 @@ async def recommendations(rt: Any) -> list[dict]:
         done = v.stt_provider == "local" and v.stt_download_ok
         out.append({"id": "stt_gpu", "title": "Rozpoznávání řeči na grafické kartě",
                     "why": "Máš grafiku NVIDIA: Whisper na ní přepíše větu za zlomek sekundy a bez internetu.",
-                    "done": done, "patch": {"voice": {"stt_provider": "local", "stt_download_ok": True, "stt_model": "small"}}})
+                    "done": done, "patch": {"voice": {"stt_provider": "local", "stt_download_ok": True, "stt_model": "auto"}}})
     elif groq:
         out.append({"id": "stt_groq", "title": "Rozpoznávání řeči přes Groq",
                     "why": "Bez grafiky NVIDIA je nejrychlejší Groq (zdarma, klíč už máš).",

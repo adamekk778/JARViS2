@@ -518,7 +518,32 @@ class VoiceLoop:
         text = codeswitch(self.rt, text)                # 3.20 (12) "čil vajbs" → "chill vibes"
         took = time.monotonic() - t0
         self._stt_s = took if not getattr(self, "_stt_s", 0) else 0.7 * self._stt_s + 0.3 * took
+        self._upgrade_hint()
         return text
+
+    def _upgrade_hint(self) -> None:
+        """3.20.1 this PC can run the accurate Czech model, but downloading it was not allowed: say so (once a week)."""
+        tr = self.transcriber
+        try:
+            if getattr(self, "_hinted", False) or tr.provider() != "local" or getattr(self.rt.cfg.voice, "stt_download_ok", False):
+                return
+            target = tr.target_model()
+            if target == tr.model_now() or tr.on_disk(target):
+                return
+            self._hinted = True
+            import datetime as _dt
+
+            week = _dt.date.today().strftime("%G-%V")
+            row = self.rt.db.one("SELECT v FROM kv WHERE k='stt_upgrade_hint'")
+            if row and row["v"] == week:
+                return
+            self.rt.db.exec("INSERT OR REPLACE INTO kv VALUES ('stt_upgrade_hint', ?)", (week,))
+            self.rt.notify("Přesnější rozpoznávání češtiny",
+                           "Tvůj PC zvládne přesnější model řeči (zhruba třikrát méně chyb). Povol jeho stažení (1,6 GB) "
+                           "v Nastavení → Hlas → „Povolit stažení místního modelu řeči“ – do té doby poslouchá menší model.",
+                           speak=False)
+        except Exception as e:  # noqa: BLE001
+            log.debug("stt upgrade hint: %s", e)
 
     def _partial_stt(self, pcm: bytes, np) -> str:
         """3.17 the live text while you speak: Whisper "tiny" (~75 MB, quick on any PC); the final words still come
@@ -561,7 +586,9 @@ class VoiceLoop:
         sp = Speculator(lambda b: self._stt(b, np), FRAME * 2, ep.silence_s,
                         live=lambda t: bus.publish_threadsafe("transcript", text=t, final=False),
                         live_ok=lambda: local and (fast or small),
-                        max_spec=3 if local else 2,
+                        # a model that needs over a second a sentence (the accurate one on a CPU): one early guess
+                        # at most – more of them only fought the final words for the processor
+                        max_spec=(1 if getattr(self, "_stt_s", 0) > 1.2 else 3) if local else 2,
                         live_transcribe=window.update if window is not None else
                         ((lambda b: self._partial_stt(b, np)) if small else None))
         if window is not None:

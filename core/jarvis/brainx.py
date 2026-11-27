@@ -49,9 +49,15 @@ def _kv_set(rt: Any, key: str, value: Any) -> None:
 
 
 # ------------------------------------------------------------------ (21) hloubka podle rizika, (22) důkladně
-RISK = re.compile(r"\b(zaplat\w*|plat\w*|prevod\w*|posli\w* penize|kup\w*|objednej|rezerv\w*|smaz\w*|vymaz\w*|odstran\w*|"
-                  r"zformatuj|preinstaluj|odesl\w*|posli\w*( e-?mail| zpravu)?|odpovez\w*|podepis\w*|vypovez\w*|smlouv\w*|"
-                  r"zalob\w*|soud\w*|danov\w*|dan[ei]?\b|lek\w*|davk\w*|diagnoz\w*|investuj\w*|prodej\w*|akci[ei]?\b)\b")
+# only what really is at stake – money leaving, data gone for good, contracts and courts, taxes, medicine doses. Not
+# everyday words ("pošli to na tiskárnu", "lekce", "lékárna", "platforma", "akce na dnešek"): those made half of all
+# ordinary commands think at the highest effort on the big model, and answers took ages (3.20 → fixed)
+RISK = re.compile(r"\b(zaplat(?:it|te|i|me)?|plat(?:it|te)? kartou|preved\w*|posli\w* (?:mu |jim |ji )?penize|investuj\w*|"
+                  r"(?:prodej|kup)\w* akci\w*|"
+                  r"(?:smaz|vymaz|odstran)\w* (?:vsechn\w*|cel[aeyou]\w*|slozk\w*|soubor\w*|zaloh\w*|disk\w*|ucet|ucty|program\w*|"
+                  r"fotk\w*|historii|starou|stare|ty stare)|zformatuj\w*|preinstaluj\w*|"
+                  r"smlouv\w*|zalob\w*|soudn\w*|vypoved\w*|vypovez\w*|podepis\w*|"
+                  r"danov\w*|dan z prijmu|davkovani|diagnoz\w*|leky|leku|lek (?:na|proti)|predavkov\w*)\b")
 DEEP = re.compile(r"\b(promysli|zamysli se|rozmysli)\w*\b.*\b(dukladne|poradne|do hloubky|peclive)\b|\bkrok za krokem\b|"
                   r"\b(dukladne|do hloubky) (promysli|zvaz|analyzuj|rozeber)\w*\b")
 STEPS_RULE = ("Uživatel chce důkladné promyšlení: nejdřív napiš stručný očíslovaný postup, jak jsi uvažoval („Postup: 1. … 2. …“), "

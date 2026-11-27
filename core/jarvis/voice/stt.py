@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import io
 import logging
+import os
+import re
 import threading
 import time
 import wave
@@ -21,6 +23,44 @@ def pcm_to_wav(pcm: bytes, sr: int) -> bytes:
         w.writeframes(pcm)
     return buf.getvalue()
 
+
+
+# 3.20.1 Czech by ear: measured on 24 spoken commands with a little room noise – "small" got 23 % of the words wrong
+# ("Zásni světla", "půstmí na spoty páj"), "large-v3-turbo" 8 %. The bigger model is the default where the PC runs it in
+# time (an NVIDIA card, or 12+ CPU threads – an estimate, not measured on such a PC); it downloads in the background and "small" answers until
+# it is there. On a 4-thread CPU it took ~3.5 s – there "small" stays (with beam search + a Czech hint: 23 % → 20 %).
+ACCURATE, LIGHT = "large-v3-turbo", "small"
+CS_HINT = "Přepis hlasového povelu pro asistenta JARVIS v češtině, s diakritikou a interpunkcí."
+# what Whisper writes into silence or noise (learnt from subtitles) – never a command
+HALLUCINATIONS = re.compile(r"^\W*(titulky\b.*|.*vytvořil[a]? .*titulk.*|děkuj[ei]\w* za (pozornost|sledování|shlédnutí).*|"
+                            r"sledujte nás.*|odebírejte.*|konec\.?|www\.\S+|amara\.org.*|mějte se.*|"
+                            r"thank you\.?|thanks for watching.*|you\.?)\W*$", re.I)
+
+
+def clean_hallucinations(parts: list[str]) -> str:
+    return " ".join(t for t in (p.strip() for p in parts) if t and not HALLUCINATIONS.match(t)).strip()
+
+
+_CUDA: bool | None = None
+
+
+def has_cuda() -> bool:
+    global _CUDA
+    if _CUDA is None:
+        try:
+            import ctranslate2
+
+            _CUDA = ctranslate2.get_cuda_device_count() > 0
+        except Exception:  # noqa: BLE001
+            _CUDA = False
+    return _CUDA
+
+
+def best_model(cuda: bool | None = None, threads: int | None = None) -> str:
+    """The model for "auto": the accurate one when it answers in about a second or two, else the light one."""
+    cuda = has_cuda() if cuda is None else cuda
+    threads = (os.cpu_count() or 4) if threads is None else threads
+    return ACCURATE if cuda or threads >= 12 else LIGHT
 
 
 def _tls():
@@ -97,6 +137,55 @@ class Transcriber:
     def update(self, cfg_voice) -> None:
         self.cfg = cfg_voice
 
+    # ---------- 3.20.1 the model: "auto" = the accurate one where the PC runs it in time ----------
+    _downloading: set[str] = set()
+
+    def target_model(self) -> str:
+        name = str(getattr(self.cfg, "stt_model", "auto") or "auto")
+        return best_model() if name == "auto" else name
+
+    @staticmethod
+    def on_disk(name: str) -> bool:
+        """The model's files are complete on disk (a half-finished download does not count)."""
+        root = paths.sub("models") / "whisper"
+        plain = root / f"faster-whisper-{name}"
+        if (plain / "model.bin").is_file():
+            return True
+        try:
+            return root.is_dir() and any(p.is_dir() and p.name.endswith(f"faster-whisper-{name}") and any(p.rglob("model.bin"))
+                                         for p in root.iterdir())
+        except OSError:
+            return False
+
+    def model_now(self) -> str:
+        """The target when it is on disk; else the light model while the target downloads in the background (never a
+        1.6 GB download in the middle of a sentence)."""
+        target = self.target_model()
+        if target in ("tiny", "base", LIGHT) or self.on_disk(target):
+            return target
+        if getattr(self.cfg, "stt_download_ok", False):
+            self._download_later(target)
+        return LIGHT if self.on_disk(LIGHT) or target == ACCURATE else target
+
+    def _download_later(self, name: str) -> None:
+        if name in Transcriber._downloading:
+            return
+        Transcriber._downloading.add(name)
+
+        def go():
+            try:
+                from faster_whisper.utils import download_model
+
+                log.info("downloading whisper %s in the background", name)
+                download_model(name, cache_dir=str(paths.sub("models") / "whisper"))
+                log.info("whisper %s downloaded – used from the next sentence", name)
+            except Exception as e:  # noqa: BLE001
+                log.warning("whisper %s download failed: %s", name, e)
+            finally:
+                Transcriber._downloading.discard(name)
+
+        threading.Thread(target=go, daemon=True, name="whisper-download").start()
+
     # ---------- 3.12 where speech is recognised: Groq when there is a Groq key, else on this PC ----------
     _groq_seen = (0.0, False)
 
@@ -134,18 +223,11 @@ class Transcriber:
     def _local(self):
         with self._lock:
             self._used = time.monotonic()
-            name = self.cfg.stt_model
-            if self._model is None or self._model_name != name:
+            name = want = self.model_now()
+            if self._model is None or self._model_name != want:
                 from faster_whisper import WhisperModel
 
-                device = "cpu"
-                try:
-                    import ctranslate2
-
-                    if ctranslate2.get_cuda_device_count() > 0:
-                        device = "cuda"
-                except Exception:
-                    pass
+                device = "cuda" if has_cuda() else "cpu"
                 log.info("loading whisper %s on %s", name, device)
                 root = str(paths.sub("models") / "whisper")
                 plain = paths.sub("models") / "whisper" / f"faster-whisper-{name}"
@@ -162,7 +244,7 @@ class Transcriber:
                         log.info("CUDA whisper unavailable (%s), using CPU", e)
                         model = None
                 self._model = model or WhisperModel(name, device="cpu", compute_type="int8", download_root=root)
-                self._model_name = self.cfg.stt_model
+                self._model_name = want
             self._arm()
             return self._model
 
@@ -177,12 +259,14 @@ class Transcriber:
         lang = self._language() if language is None else language
         if lang:
             data["language"] = lang
+        if lang == "cs" and language is None:
+            prompt = f"{CS_HINT} {prompt}".strip()
         if prompt:
             data["prompt"] = prompt[:800]
         r = httpx.post(f"{self.groq_base}/audio/transcriptions", headers={"Authorization": f"Bearer {key}"}, verify=_tls(),
                        files={"file": (filename, wav)}, data=data, timeout=60)
         r.raise_for_status()
-        text = r.json().get("text", "").strip()
+        text = clean_hallucinations([r.json().get("text", "")])
         from ..lang import detect
 
         self.last_language = detect(text)
@@ -279,12 +363,8 @@ class Transcriber:
         """The local recogniser is already on disk (live subtitles never start a big download by themselves)."""
         if self._model is not None:
             return True
-        root = paths.sub("models") / "whisper"
-        name = str(self.cfg.stt_model)
-        try:
-            return any(name in p.name for p in root.iterdir() if p.is_dir()) if root.is_dir() else False
-        except OSError:
-            return False
+        name = self.target_model()
+        return self.on_disk(name) or (name == ACCURATE and self.on_disk(LIGHT))
 
     def caption(self, audio, language: str | None = None) -> tuple[str, str]:
         """A few seconds of what the PC plays (float32, 16 kHz) → (text, language) for live subtitles.
@@ -313,9 +393,12 @@ class Transcriber:
             from ..accessx import DIALECT_PROMPT
 
             prompt = f"{prompt} {DIALECT_PROMPT}".strip()
-        segments, info = model.transcribe(audio, language=self._language(), beam_size=1, vad_filter=True,
+        quick = str(getattr(self.cfg, "stt_model", "")) in ("tiny", "base")       # the live text while you speak
+        if not quick and self._language() == "cs":
+            prompt = f"{CS_HINT} {prompt}".strip()                # proper Czech with diacritics, not English sounds
+        segments, info = model.transcribe(audio, language=self._language(), beam_size=1 if quick else 5, vad_filter=True,
                                           condition_on_previous_text=False, initial_prompt=prompt or None)
-        text = " ".join(s.text.strip() for s in segments).strip()
+        text = clean_hallucinations([s.text for s in segments])
         from ..lang import detect
 
         self.last_language = "en" if getattr(info, "language", "") == "en" or detect(text) == "en" else "cs"

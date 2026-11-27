@@ -51,6 +51,10 @@ async def status(rt: Any) -> dict:
     model_ok = any(n == rec or n.split(":")[0] == rec.split(":")[0] for n in installed) if installed else False
     size = next((m["size_gb"] for m in MODELS if m["name"] == rec), 3.0)
     stt_model = str(rt.cfg.voice.stt_model)
+    if stt_model == "auto":
+        from .voice.stt import best_model
+
+        stt_model = best_model()
     parts = [
         {"key": "stt", "name": "Rozpoznávání řeči v PC (Whisper)", "ready": await asyncio.to_thread(_stt_ready, rt),
          "size_gb": WHISPER_GB.get(stt_model, 0.5), "note": f"model {stt_model}"},

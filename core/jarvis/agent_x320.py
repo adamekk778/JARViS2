@@ -82,12 +82,15 @@ def facts_for(rt: Any, facts: list[str], voice: bool) -> list[str]:
         return facts
 
 
-def tune_routing(rt: Any, text: str, tier_kw: dict, private: bool, only: str | None) -> None:
-    """(21, 22) deeper for money / deleting / sending or "promysli to důkladně", (40) bolder for wild ideas, (32) the
-    cheapest brain for a night task, (35) the AI on this PC once today's budget for playing / working is used up."""
-    if getattr(rt.cfg.brain, "risk_depth", True) and (brainx.risky_action(text) or brainx.deep_request(text)):
+def tune_routing(rt: Any, text: str, tier_kw: dict, private: bool, only: str | None, source: str = "") -> None:
+    """(21, 22) deeper for money / deleting / contracts or "promysli to důkladně", (40) bolder for wild ideas, (32) the
+    cheapest brain for a night task, (35) the AI on this PC once today's budget for playing / working is used up.
+    Aloud the answer stays quick: only "promysli to důkladně" thinks deeper there (risky actions ask anyway)."""
+    deep = brainx.deep_request(text)
+    if getattr(rt.cfg.brain, "risk_depth", True) and (deep or (source != "voice" and brainx.risky_action(text))):
         tier_kw["effort"] = "high"
-        tier_kw.pop("fast", None)
+        if source != "voice":
+            tier_kw.pop("fast", None)
     if brainx.creative_request(text):
         tier_kw["temperature"] = 1.0
     if getattr(rt, "cheap_turn", False) and not only and not private:

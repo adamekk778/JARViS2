@@ -370,7 +370,8 @@ class Agent(FastPaths):
                 tier_kw["prefer"] = pref
                 if tier == "fast" and pref == getattr(rt.cfg.brain, "split_easy", ""):
                     tier_kw.pop("fast", None)          # the easy brain itself, not some other provider's quick model
-        agent_x320.tune_routing(rt, text or "", tier_kw, private, self._only)      # 3.20 Mozek+ (21, 22, 32, 35, 40)
+        agent_x320.tune_routing(rt, text or "", tier_kw, private, self._only,
+                                getattr(self, "_source_now", ""))                  # 3.20 Mozek+ (21, 22, 32, 35, 40)
         return tier, tier_kw, private
 
     def _rounds(self) -> int:
