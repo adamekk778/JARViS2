@@ -543,12 +543,14 @@ async def desktop_loop(rt: Any) -> None:                 # pragma: no cover – 
         n += 1
         pc = getattr(rt.cfg, "pc", None)
         app_cfg = rt.cfg.appearance
-        try:
-            info = rt.platform.foreground_info() or {}
-        except Exception:  # noqa: BLE001
-            info = {}
-        app = info.get("app", "")
         mapping = getattr(pc, "keyboard_by_app", {}) or {}
+        info: dict = {}
+        if mapping:     # only when a keyboard per app is set – and off the event loop (a process lookup can stall)
+            try:
+                info = await asyncio.to_thread(rt.platform.foreground_info) or {}
+            except Exception:  # noqa: BLE001
+                info = {}
+        app = info.get("app", "")
         if mapping and app and app != last:
             last = app
             klid = layout_for(app, mapping)

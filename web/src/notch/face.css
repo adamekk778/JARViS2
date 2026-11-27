@@ -88,7 +88,7 @@ html[data-nstyle="dynamic"] .n-inner > .dy-face.on.blink[class] .fe-lid { animat
 .dy-face[data-anim="glitch"] .fe-g { animation: fe-glitch 1.8s steps(1) infinite; }
 @keyframes fe-glitch { 0%, 100% { transform: none; } 30% { transform: translateX(1.5px) skewX(8deg); } 34% { transform: translateX(-1px); } 70% { transform: scaleY(.6); } 73% { transform: none; } }
 .dy-face[data-anim="party"] .fe-g { animation: fe-party 1.2s linear infinite; }
-@keyframes fe-party { 0% { filter: hue-rotate(0deg); transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } 100% { filter: hue-rotate(360deg); transform: rotate(360deg) scale(1); } }
+@keyframes fe-party { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }   /* GPU only */
 @keyframes fe-spin { to { transform: rotate(360deg); } }
 .dy-face[data-anim="sleep"] .fe-ball { opacity: .55; }
 .dy-face[data-anim="sleep"] .fe-glow { opacity: .25; }

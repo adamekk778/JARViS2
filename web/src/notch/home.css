@@ -67,8 +67,11 @@
 .ai-logo i { font-size: 16px; color: #0a84ff; }
 .ai-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-dot { width: 7px; height: 7px; margin-left: auto; flex: none; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 0 rgb(48 209 88 / .6); }
-.tile.ai.busy .ai-dot { background: var(--tint, #0a84ff); animation: ai-ping 1.6s ease-out infinite; }
-@keyframes ai-ping { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.ai-dot { position: relative; }
+.tile.ai.busy .ai-dot { background: var(--tint, #0a84ff); }
+.tile.ai.busy .ai-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; opacity: .6;
+  animation: ai-ping 1.6s ease-out infinite; }
+@keyframes ai-ping { 70%, 100% { transform: scale(3); opacity: 0; } }      /* transform / opacity: no repaint per frame */
 .ai-word { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1.15; margin-top: 4px; }
 .ai-sub { font-size: 12.5px; color: rgb(255 255 255 / .6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

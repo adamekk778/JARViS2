@@ -29,7 +29,7 @@ html[data-nstyle="dynamic"] .x-ring { border-radius: var(--r); }
 .x-count svg { width: 100%; height: 100%; rotate: -90deg; }
 .x-count circle { fill: none; stroke-width: 3; }
 .x-count .bg { stroke: rgba(255, 255, 255, .14); }
-.x-count .fg { stroke: var(--accent, #4fc3ff); stroke-dasharray: 94.25; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+.x-count .fg { stroke: var(--accent, #4fc3ff); stroke-dasharray: 94.25; stroke-linecap: round; }   /* steps once a second: no transition */
 .x-count.soon .fg { stroke: #ff9f0a; }
 .x-count span { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 9px/1 system-ui, sans-serif; }
 
@@ -68,13 +68,13 @@ html[data-nstyle="dynamic"] .x-ring { border-radius: var(--r); }
 .x-weather { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .5; }
 .notch[data-weather="rain"] .x-weather, .notch[data-weather="storm"] .x-weather {
   background: repeating-linear-gradient(105deg, transparent 0 9px, rgba(150, 190, 255, .35) 9px 10px); background-size: 40px 40px;
-  animation: x-rain .6s linear infinite; }
-.notch[data-weather="storm"] .x-weather { animation: x-rain .45s linear infinite, x-flash 7s steps(1) infinite; }
+  animation: x-rain .6s steps(6) infinite; }
+.notch[data-weather="storm"] .x-weather { animation: x-rain .45s steps(5) infinite, x-flash 7s steps(1) infinite; }
 .notch[data-weather="snow"] .x-weather { background-image: radial-gradient(#fff 1px, transparent 1.6px), radial-gradient(#fff 1px, transparent 1.6px);
-  background-size: 22px 22px, 31px 31px; background-position: 0 0, 11px 7px; animation: x-snow 6s linear infinite; }
+  background-size: 22px 22px, 31px 31px; background-position: 0 0, 11px 7px; animation: x-snow 6s steps(36) infinite; }
 .notch[data-weather="sun"] .x-weather { background: radial-gradient(circle at 92% -20%, rgba(255, 204, 0, .35), transparent 45%); animation: x-sun 6s ease-in-out infinite; }
 .notch[data-weather="fog"] .x-weather { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent); background-size: 200% 100%;
-  animation: x-fog 9s linear infinite; }
+  animation: x-fog 9s steps(54) infinite; }
 .notch[data-weather="night"] .x-weather { background-image: radial-gradient(#fff 0.8px, transparent 1.2px); background-size: 37px 19px; opacity: .25; }
 @keyframes x-rain { to { background-position: -40px 40px; } }
 @keyframes x-snow { to { background-position: 0 44px, 11px 69px; } }

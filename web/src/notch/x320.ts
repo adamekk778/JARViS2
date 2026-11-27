@@ -60,10 +60,12 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
   ring.innerHTML = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15"/><circle class="fg" cx="18" cy="18" r="15"/></svg><span></span>';
   shape.append(ring);
   let cd: { until: number; total: number; title: string } | null = null;
+  let cdTimer = 0;
+  const stopCount = () => { cd = null; if (!ring.hidden) ring.hidden = true; window.clearInterval(cdTimer); cdTimer = 0; };
   const paintCount = () => {
-    if (!cd) { ring.hidden = true; return; }
+    if (!cd) { stopCount(); return; }
     const left = cd.until - Date.now() / 1000;
-    if (left <= 0) { cd = null; ring.hidden = true; return; }
+    if (left <= 0) { stopCount(); return; }
     ring.hidden = false;
     const frac = Math.max(0, Math.min(1, left / cd.total));
     (ring.querySelector(".fg") as SVGCircleElement).style.strokeDashoffset = String(94.25 * (1 - frac));
@@ -76,8 +78,8 @@ export function initX320(client: Client, shape: HTMLElement, blob: BlobLike): vo
     const until = Number(m.until) || 0;
     cd = until > Date.now() / 1000 ? { until, total: Math.max(60, until - Date.now() / 1000), title: String(m.title || "") } : null;
     paintCount();
+    if (cd && !cdTimer) cdTimer = window.setInterval(paintCount, 1000);   // ticks only while a countdown runs
   });
-  window.setInterval(paintCount, 1000);
 
   // 3.20 Zdraví+ a Učení+ in the notch: (242) breathing, (258) the water glass, (374) speed reading, (245) quiet hints
   const panel = document.createElement("div");

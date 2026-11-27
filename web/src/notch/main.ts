@@ -2231,11 +2231,12 @@ client.on("live_activity", (m: any) => {
   updateActivity();
 });
 // 3.14 the real spectrum of the music (when Nastavení → Notch → Spektrum is on): the 5 bars follow it
-let vizBands: number[] = [], vizAt = 0;
+let vizBands: number[] = [], vizAt = 0, vizRaf = 0;
 let bassAvg = 0, lastBeat = 0;
 const beatGaps: number[] = [];
 client.on("viz_bands", (m: any) => {
   vizBands = Array.isArray(m.bands) ? m.bands : []; vizAt = Date.now();
+  if (!vizRaf) vizRaf = window.requestAnimationFrame(paintViz);
   // 3.15 the beat of the music from the bass (a jump over its own average): Mochi dances in time with it
   const bass = (Number(vizBands[0]) || 0) + (Number(vizBands[1]) || 0);
   const now = performance.now();
@@ -2248,15 +2249,20 @@ client.on("viz_bands", (m: any) => {
   }
   bassAvg = bassAvg * 0.9 + bass * 0.1;
 });
+// runs only while the spectrum comes (before, it ran every frame all the time and rewrote the bars' style each frame)
+let vizShown = false;
 const paintViz = () => {
+  vizRaf = 0;
+  const bars = document.querySelectorAll<HTMLElement>(".n-wave.music i");
   if (Date.now() - vizAt < 600 && vizBands.length >= 6) {
-    document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar, i) => {
-      bar.style.animation = "none"; bar.style.transform = `scaleY(${(0.25 + 0.75 * (vizBands[i + 1] || 0)).toFixed(2)})`;
-    });
-  } else document.querySelectorAll<HTMLElement>(".n-wave.music i").forEach((bar) => { bar.style.animation = ""; bar.style.transform = ""; });
-  window.requestAnimationFrame(paintViz);
+    bars.forEach((bar, i) => { bar.style.animation = "none"; bar.style.transform = `scaleY(${(0.25 + 0.75 * (vizBands[i + 1] || 0)).toFixed(2)})`; });
+    vizShown = true;
+    vizRaf = window.requestAnimationFrame(paintViz);
+  } else if (vizShown) {
+    bars.forEach((bar) => { bar.style.animation = ""; bar.style.transform = ""; });
+    vizShown = false;
+  }
 };
-window.requestAnimationFrame(paintViz);
 client.on("download_progress", (m) => { dls = Array.isArray(m.items) ? m.items.filter((d: any) => d && typeof d.file === "string") : []; dlsAt = Date.now(); updateActivity(); });
 client.on("dictation", (m) => {
   const was = dict.state;

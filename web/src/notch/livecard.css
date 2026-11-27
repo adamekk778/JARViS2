@@ -38,8 +38,13 @@ html[data-nstyle="dynamic"] .n-inner > .n-brand {
 .n-brand .nb-state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: rgb(235 240 245 / .62);
   white-space: nowrap; }
 .n-brand .nb-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: rgb(255 255 255 / .35); font-style: normal; }
-.n-brand .nb-state.on .nb-dot { background: var(--brand, #30d158); box-shadow: 0 0 0 0 var(--brand, #30d158); animation: nb-ping 1.5s ease-out infinite; }
-@keyframes nb-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand, #30d158) 70%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+/* the ping is a ring that scales and fades: transform / opacity run on the GPU, a growing box-shadow repainted the
+   whole (transparent, always-on-top) notch window 60× a second while JARVIS answered */
+.n-brand .nb-dot { position: relative; }
+.n-brand .nb-state.on .nb-dot { background: var(--brand, #30d158); }
+.n-brand .nb-state.on .nb-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--brand, #30d158);
+  opacity: .7; animation: nb-ping 1.5s ease-out infinite; }
+@keyframes nb-ping { to { transform: scale(3.3); opacity: 0; } }
 
 /* STOP: a soft red glass capsule, not a loud red block */
 html[data-nstyle="dynamic"] .n-inner > .stop-btn {
